@@ -3,4 +3,5 @@
 .aws-sam/
 packaged.yaml
 node_modules/
+charcoal-client/node_modules/
 package-lock.json
