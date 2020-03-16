@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders learn react link 1`] = `
+<div
+  class="App"
+>
+  <header
+    class="App-header"
+  >
+    Test of WebSockets
+  </header>
+</div>
+`;

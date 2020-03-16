@@ -1,23 +1,26 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
-function App() {
+function App({ webSocketOverride = null }) {
+
+  const [webSocket, setWebSocket] = useState(webSocketOverride)
+
+  useEffect(() => {
+      if (!webSocket) {
+        let setupSocket = new WebSocket('wss://m3j0brmd23.execute-api.us-east-1.amazonaws.com/Prod')
+        setupSocket.onopen = () => {
+          console.log('WebSocket Client Connected')
+        }
+        setupSocket.onmessage = (message) => {
+          console.log(message)
+        }
+        setWebSocket(setupSocket)
+      }
+  }, [webSocket, setWebSocket])
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        Test of WebSockets
       </header>
     </div>
   );
