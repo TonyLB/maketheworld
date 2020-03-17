@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Provider } from 'react-redux'
+import { store } from './store/index.js'
 import './App.css';
 
 function App({ webSocketOverride = null }) {
@@ -18,11 +20,13 @@ function App({ webSocketOverride = null }) {
       }
   }, [webSocket, setWebSocket])
   return (
-    <div className="App">
-      <header className="App-header">
-        Test of WebSockets
-      </header>
-    </div>
+    <Provider store={store}>
+      <div className="App">
+        <header className="App-header">
+          Test of WebSockets
+        </header>
+      </div>
+    </Provider>
   );
 }
 
