@@ -4,14 +4,29 @@ exports[`renders learn react link 1`] = `
 <div
   class="App"
 >
-  <header
-    class="App-header"
+  <div
+    class="MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded"
   >
-    Test of WebSockets
-    <input
-      placeholder="Enter your chat text here"
-      value=""
-    />
-  </header>
+    <h2
+      class="MuiTypography-root MuiTypography-h2 MuiTypography-gutterBottom MuiTypography-alignCenter"
+    >
+      Test of WebSockets
+    </h2>
+    <div
+      class="MuiFormControl-root MuiTextField-root MuiFormControl-fullWidth"
+    >
+      <div
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-fullWidth MuiInput-fullWidth MuiInputBase-formControl MuiInput-formControl"
+      >
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input MuiInput-input"
+          placeholder="Enter your chat text here"
+          type="text"
+          value=""
+        />
+      </div>
+    </div>
+  </div>
 </div>
 `;
