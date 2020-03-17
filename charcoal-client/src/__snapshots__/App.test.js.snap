@@ -8,6 +8,10 @@ exports[`renders learn react link 1`] = `
     class="App-header"
   >
     Test of WebSockets
+    <input
+      placeholder="Enter your chat text here"
+      value=""
+    />
   </header>
 </div>
 `;
