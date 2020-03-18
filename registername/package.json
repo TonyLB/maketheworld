@@ -1,0 +1,12 @@
+{
+    "name": "register-name",
+    "version": "1.0.0",
+    "description": "registername handler for BurnedOverMUSH",
+    "main": "src/app.js",
+    "author": "SAM CLI",
+    "license": "MIT",
+    "dependencies": {
+      "aws-sdk": "^2.434.0"
+    }
+  }
+  

@@ -4,8 +4,9 @@ export const reducer = (state = [], action) => {
     const { type: actionType = 'NOOP', payload = '' } = action || {}
     switch (actionType) {
         case RECEIVE_MESSAGE:
-            if (payload) {
-                return [ ...state, payload ]
+            const { name = '', message = '' } = payload
+            if (message) {
+                return [ ...state, { name, message } ]
             }
             else {
                 return state

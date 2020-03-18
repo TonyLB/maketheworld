@@ -7,6 +7,7 @@ import {
     Typography,
     Paper,
     Card,
+    Avatar,
     Backdrop,
     CircularProgress,
     Dialog,
@@ -17,7 +18,7 @@ import {
 
 // Local code imports
 import { receiveMessage, sendMessage } from '../actions/messages.js'
-import { setName } from '../actions/name.js'
+import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { getMessages } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
@@ -46,6 +47,32 @@ const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     )
 }
 
+const Message = ({ name, children, ...rest }) => (
+    <React.Fragment {...rest} >
+        <Card elevation={5} >
+            {
+                name && <div>
+                    <Avatar>
+                        { name[0].toUpperCase() }
+                    </Avatar>
+                    <Typography variant='body2' align='left'>
+                        {name}
+                    </Typography>
+                </div>
+            }
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column'
+            }}>
+                <Typography variant='body1' align='center'>
+                    {children}
+                </Typography>
+            </div>
+        </Card>
+        <br />
+    </React.Fragment>
+)
+
 export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
     const messages = useSelector(getMessages)
@@ -58,9 +85,22 @@ export const Chat = () => {
           let setupSocket = new WebSocket('>INSERT WSS ADDRESS<')
           setupSocket.onopen = () => {
             console.log('WebSocket Client Connected')
+            dispatch(registerName(name))
           }
           setupSocket.onmessage = (message) => {
-            dispatch(receiveMessage(message.data))
+            const { type, ...rest } = JSON.parse(message.data)
+            switch(type) {
+                case 'sendmessage':
+                    dispatch(receiveMessage(rest))
+                    break
+                case 'registername':
+                    dispatch(setName(rest.name))
+                    break
+                default:
+            }
+          }
+          setupSocket.onerror = (error) => {
+              console.error('WebSocket error: ', error)
           }
           dispatch(registerWebSocket(setupSocket))
         }
@@ -72,15 +112,10 @@ export const Chat = () => {
                     Test of WebSockets
                 </Typography>
                 {
-                    messages.map((message, index) => (
-                        <React.Fragment>
-                            <Card key={`Message-${index}`} elevation={5} >
-                                <Typography variant='body1' align='center'>
-                                    {message}
-                                </Typography>
-                            </Card>
-                            <br />
-                        </React.Fragment>
+                    messages.map(({ name = '', message }, index) => (
+                        <Message key={`Message-${index}`} name={name} >
+                            {message}
+                        </Message>
                     ))
                 }
                 <LineEntry
@@ -90,9 +125,11 @@ export const Chat = () => {
             <NameDialog
                 open={!name}
                 defaultValue={name}
-                onClose={(name) => () => { dispatch(setName(name)) }}
+                onClose={(name) => () => {
+                    dispatch(setName(name))
+                }}
             />
-            <Backdrop open={name && !webSocket}>
+            <Backdrop open={(name && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>
         </div>
