@@ -5,9 +5,12 @@ import { useSelector, useDispatch } from 'react-redux'
 // MaterialUI imports
 import {
     Typography,
+    Container,
     Paper,
     Card,
+    Grid,
     Avatar,
+    Tooltip,
     Backdrop,
     CircularProgress,
     Dialog,
@@ -16,6 +19,14 @@ import {
     Button,
     TextField } from '@material-ui/core'
 
+import {
+    blue,
+    pink,
+    purple,
+    green
+} from "@material-ui/core/colors"
+import { makeStyles } from "@material-ui/core/styles"
+
 // Local code imports
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { setName, registerName } from '../actions/name.js'
@@ -23,7 +34,21 @@ import { registerWebSocket } from '../actions/webSocket.js'
 import { getMessages } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
+import { getColorMap } from '../selectors/colorMap.js'
 import LineEntry from '../components/LineEntry.js'
+
+const useStyles = makeStyles(theme => ({
+    ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
+        [colorName]: {
+            color: theme.palette.getContrastText(color[500]),
+            backgroundColor: color[500]
+        },
+        [`light${colorName}`]: {
+            color: theme.palette.getContrastText(color[50]),
+            backgroundColor: color[50]
+        }
+    })).reduce((prev, item) => ({ ...prev, ...item }), {}))
+}))
 
 const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
@@ -47,31 +72,34 @@ const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     )
 }
 
-const Message = ({ name, children, ...rest }) => (
-    <React.Fragment {...rest} >
-        <Card elevation={5} >
-            {
-                name && <div>
-                    <Avatar>
-                        { name[0].toUpperCase() }
-                    </Avatar>
-                    <Typography variant='body2' align='left'>
-                        {name}
+const Message = ({ name, children, ...rest }) => {
+    const colorMap = useSelector(getColorMap)
+    const color = name && colorMap && colorMap[name]
+    const classes = useStyles()
+    return <React.Fragment {...rest} >
+        <Card elevation={5} className={ color && classes[color.light] }>
+            <Grid container wrap="nowrap" spacing={2}>
+                <Grid item>
+                    {
+                        name && <div>
+                            <Tooltip title={name}>
+                                <Avatar className={color && classes[color.primary]}>
+                                    { name[0].toUpperCase() }
+                                </Avatar>
+                            </Tooltip>
+                        </div>
+                    }
+                </Grid>
+                <Grid item xs>
+                    <Typography variant='body1' align='left'>
+                        {children}
                     </Typography>
-                </div>
-            }
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column'
-            }}>
-                <Typography variant='body1' align='center'>
-                    {children}
-                </Typography>
-            </div>
+                </Grid>
+            </Grid>
         </Card>
         <br />
     </React.Fragment>
-)
+}
 
 export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
@@ -107,21 +135,23 @@ export const Chat = () => {
     }, [webSocket, name, dispatch])
     return (
         <div className="App">
-            <Paper>
-                <Typography variant='h2' align='center' gutterBottom>
-                    Test of WebSockets
-                </Typography>
-                {
-                    messages.map(({ name = '', message }, index) => (
-                        <Message key={`Message-${index}`} name={name} >
-                            {message}
-                        </Message>
-                    ))
-                }
-                <LineEntry
-                    callback={ (entry) => { dispatch(sendMessage(entry)) }}
-                />
-            </Paper>
+            <Container maxWidth="lg">
+                <Paper>
+                    <Typography variant='h2' align='center' gutterBottom>
+                        Test of WebSockets
+                    </Typography>
+                    {
+                        messages.map(({ name = '', message }, index) => (
+                            <Message key={`Message-${index}`} name={name} >
+                                {message}
+                            </Message>
+                        ))
+                    }
+                    <LineEntry
+                        callback={ (entry) => { dispatch(sendMessage(entry)) }}
+                    />
+                </Paper>
+            </Container>
             <NameDialog
                 open={!name}
                 defaultValue={name}
