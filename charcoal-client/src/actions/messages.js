@@ -1,3 +1,5 @@
+import { socketDispatch } from './webSocket.js'
+
 export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE'
 
 export const receiveMessage = (message) => ({
@@ -5,13 +7,4 @@ export const receiveMessage = (message) => ({
     payload: message
 })
 
-
-export const sendMessage = (message) => (dispatch, getState) => {
-    const { webSocket } = getState()
-    if (webSocket) {
-        webSocket.send(JSON.stringify({
-            message: 'sendmessage',
-            data: message
-        }))
-    }
-}
+export const sendMessage = socketDispatch('sendmessage')
