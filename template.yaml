@@ -148,7 +148,7 @@ Resources:
   OnConnectFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: onconnect/
+      CodeUri: lambda/onconnect/
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
@@ -172,7 +172,7 @@ Resources:
   OnDisconnectFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ondisconnect/
+      CodeUri: lambda/ondisconnect/
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
@@ -196,7 +196,7 @@ Resources:
   SendMessageFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: sendmessage/
+      CodeUri: lambda/sendmessage/
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
@@ -226,7 +226,7 @@ Resources:
   RegisterNameFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: registername/
+      CodeUri: lambda/registername/
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x

@@ -1,9 +1,9 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk');
+const AWS = require('aws-sdk')
 
-const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
+const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION })
 
 const { TABLE_PREFIX } = process.env;
 
