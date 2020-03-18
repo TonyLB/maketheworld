@@ -5,14 +5,17 @@ const AWS = require('aws-sdk');
 
 const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
 
-const { TABLE_NAME } = process.env;
+const { TABLE_PREFIX } = process.env;
+
+const connectionTable = `${TABLE_PREFIX}_connections`
+const roomTable = `${TABLE_PREFIX}_rooms`
 
 exports.handler = async event => {
   
   let nameData
   try {
     nameData = await ddb.get({
-      TableName: TABLE_NAME,
+      TableName: connectionTable,
       Key: {
         'connectionId': event.requestContext.connectionId
       }
@@ -23,9 +26,10 @@ exports.handler = async event => {
     }
   }
 
-  let connectionData;
+  const roomId = nameData.Item.roomId
+  let roomData
   try {
-    connectionData = await ddb.scan({ TableName: TABLE_NAME, ProjectionExpression: 'connectionId' }).promise();
+    roomData = await ddb.get({ TableName: roomTable, Key: { roomId }}).promise()
   } catch (e) {
     return { statusCode: 500, body: e.stack };
   }
@@ -41,13 +45,13 @@ exports.handler = async event => {
     message: JSON.parse(event.body).data
   })
   
-  const postCalls = connectionData.Items.map(async ({ connectionId }) => {
+  const postCalls = roomData.Item.players.map(async ({ connectionId }) => {
     try {
       await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: postData }).promise();
     } catch (e) {
       if (e.statusCode === 410) {
         console.log(`Found stale connection, deleting ${connectionId}`);
-        await ddb.delete({ TableName: TABLE_NAME, Key: { connectionId } }).promise();
+        await ddb.delete({ TableName: `${TABLE_PREFIX}_connections`, Key: { connectionId } }).promise();
       } else {
         throw e;
       }

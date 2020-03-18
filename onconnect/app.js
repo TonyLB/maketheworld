@@ -7,7 +7,7 @@ const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: 
 
 exports.handler = async event => {
   const putParams = {
-    TableName: process.env.TABLE_NAME,
+    TableName: `${process.env.TABLE_PREFIX}_connections`,
     Item: {
       connectionId: event.requestContext.connectionId
     }
