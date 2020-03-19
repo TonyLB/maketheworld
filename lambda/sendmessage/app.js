@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT-0
 
 const AWS = require('aws-sdk');
-const { getRoom } = require('./rooms.js')
-const { messageConnectionList } = require('./sockets.js')
+const { getRoom } = require('/opt/rooms')
+const { messageConnectionList } = require('/opt/sockets')
 const { parseCommand } = require('./parse.js')
 
 const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
@@ -14,6 +14,11 @@ const connectionTable = `${TABLE_PREFIX}_connections`
 
 exports.handler = async event => {
   
+  const apigwManagementApi = new AWS.ApiGatewayManagementApi({
+    apiVersion: '2018-11-29',
+    endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
+  });
+
   let nameData
   try {
     nameData = await ddb.get({
@@ -39,11 +44,6 @@ exports.handler = async event => {
     return { statusCode: 500, body: e.stack };
   }
   
-  const apigwManagementApi = new AWS.ApiGatewayManagementApi({
-    apiVersion: '2018-11-29',
-    endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
-  });
-
   let parseFound = false
   try{
     parseFound = await parseCommand({

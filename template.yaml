@@ -145,6 +145,14 @@ Resources:
       SSESpecification:
         SSEEnabled: True
       TableName: !Sub '${TablePrefix}_rooms'
+  SharedLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: shared-layer
+        Description: Lambda layer with shared code for functions
+        ContentUri: lambda/shared/
+        CompatibleRuntimes:
+          - nodejs12.x
   OnConnectFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -200,6 +208,8 @@ Resources:
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
+      Layers:
+        - !Ref SharedLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix

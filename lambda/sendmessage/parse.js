@@ -1,5 +1,5 @@
-const { messageConnectionList } = require('./sockets.js')
-const { getRoom } = require('./rooms.js')
+const { messageConnectionList } = require('/opt/sockets')
+const { getRoom } = require('/opt/rooms')
 
 const { TABLE_PREFIX } = process.env;
 const connectionTable = `${TABLE_PREFIX}_connections`
