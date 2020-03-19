@@ -19,17 +19,6 @@ const parseCommand = async ({
     const firstMatchedExit = exits.filter(({ exitName }) => (exitName === strippedMessage))
     if (firstMatchedExit.length) {
         const { toRoomId, exitName } = firstMatchedExit[0]
-        const postData = JSON.stringify({
-            type: 'sendmessage',
-            name,
-            message: `Exit attempted: ${exitName}`
-        })
-        await messageConnectionList({
-            connections: roomData.players.map(({ connectionId }) => (connectionId)),
-            gatewayAPI,
-            ddb,
-            postData
-        })
         const connectionPutParams = {
             TableName: connectionTable,
             Item: {
@@ -54,6 +43,7 @@ const parseCommand = async ({
                 postData: JSON.stringify({
                     type: 'sendmessage',
                     name: '',
+                    protocol: 'worldMessage',
                     message: `${name} has taken the ${exitName} exit.`
                 })
             })
@@ -87,6 +77,7 @@ const parseCommand = async ({
                 postData: JSON.stringify({
                     type: 'sendmessage',
                     name: '',
+                    protocol: 'worldMessage',
                     message: `${name} has arrived.`
                 })
             })

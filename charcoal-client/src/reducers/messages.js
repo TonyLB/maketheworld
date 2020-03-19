@@ -1,12 +1,21 @@
 import { RECEIVE_MESSAGE } from '../actions/messages.js'
+import {
+    playerMessage,
+    worldMessage
+} from '../store/messages'
 
 export const reducer = (state = [], action) => {
     const { type: actionType = 'NOOP', payload = '' } = action || {}
     switch (actionType) {
         case RECEIVE_MESSAGE:
-            const { name = '', message = '' } = payload
+            const { protocol = '', message = '', ...rest } = payload
             if (message) {
-                return [ ...state, { name, message } ]
+                switch (protocol) {
+                    case 'playerMessage':
+                        return [ ...state, new playerMessage({ message, ...rest }) ]
+                    default:
+                        return [ ...state, new worldMessage({ message, ...rest }) ]
+                }
             }
             else {
                 return state

@@ -62,6 +62,7 @@ exports.handler = async event => {
     const postData = JSON.stringify({
       type: 'sendmessage',
       name: nameData && nameData.Item && nameData.Item.name,
+      protocol: 'playerMessage',
       message: JSON.parse(event.body).data
     })
   

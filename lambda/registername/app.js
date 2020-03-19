@@ -60,6 +60,7 @@ exports.handler = async event => {
 
   const postData = {
     type: 'sendmessage',
+    protocol: 'worldMessage',
     message: `${nameData} has connected.`
   }
   

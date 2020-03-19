@@ -7,25 +7,14 @@ import {
     Typography,
     Container,
     Paper,
-    Card,
-    Grid,
-    Avatar,
-    Tooltip,
     Backdrop,
     CircularProgress,
     Dialog,
     DialogTitle,
     DialogActions,
     Button,
-    TextField } from '@material-ui/core'
-
-import {
-    blue,
-    pink,
-    purple,
-    green
-} from "@material-ui/core/colors"
-import { makeStyles } from "@material-ui/core/styles"
+    TextField
+} from '@material-ui/core'
 
 // Local code imports
 import { receiveMessage, sendMessage } from '../actions/messages.js'
@@ -34,21 +23,8 @@ import { registerWebSocket } from '../actions/webSocket.js'
 import { getMessages } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
-import { getColorMap } from '../selectors/colorMap.js'
 import LineEntry from '../components/LineEntry.js'
-
-const useStyles = makeStyles(theme => ({
-    ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
-        [colorName]: {
-            color: theme.palette.getContrastText(color[500]),
-            backgroundColor: color[500]
-        },
-        [`light${colorName}`]: {
-            color: theme.palette.getContrastText(color[50]),
-            backgroundColor: color[50]
-        }
-    })).reduce((prev, item) => ({ ...prev, ...item }), {}))
-}))
+import Message from './Message'
 
 const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
@@ -72,34 +48,6 @@ const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     )
 }
 
-const Message = ({ name, children, ...rest }) => {
-    const colorMap = useSelector(getColorMap)
-    const color = name && colorMap && colorMap[name]
-    const classes = useStyles()
-    return <React.Fragment {...rest} >
-        <Card elevation={5} className={ color && classes[color.light] }>
-            <Grid container wrap="nowrap" spacing={2}>
-                <Grid item>
-                    {
-                        name && <div>
-                            <Tooltip title={name}>
-                                <Avatar className={color && classes[color.primary]}>
-                                    { name[0].toUpperCase() }
-                                </Avatar>
-                            </Tooltip>
-                        </div>
-                    }
-                </Grid>
-                <Grid item xs>
-                    <Typography variant='body1' align='left'>
-                        {children}
-                    </Typography>
-                </Grid>
-            </Grid>
-        </Card>
-        <br />
-    </React.Fragment>
-}
 
 export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
@@ -141,10 +89,8 @@ export const Chat = () => {
                         Test of WebSockets
                     </Typography>
                     {
-                        messages.map(({ name = '', message }, index) => (
-                            <Message key={`Message-${index}`} name={name} >
-                                {message}
-                            </Message>
+                        messages.map((message, index) => (
+                            <Message key={`Message-${index}`} message={message} />
                         ))
                     }
                     <LineEntry
