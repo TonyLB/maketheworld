@@ -1,0 +1,40 @@
+{
+    "burnedover_rooms": [
+        {
+            "PutRequest": {
+                "Item": {
+                    "roomId": {"N": "0"},
+                    "name": {"S": "The Vortex"},
+                    "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."},
+                    "players": {"L": []},
+                    "exits": {"L": [
+                        {
+                            "M": {
+                                "exitName": {"S": "lobby"},
+                                "toRoomId": {"N": "1"}
+                            }
+                        }
+                    ]}
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "roomId": {"N": "1"},
+                    "name": {"S": "The Lobby"},
+                    "description": {"S": "A comfortable lobby with a staid couch.  Painted on a green wall in large white letters is a message: 'Everything is fine.'  A shining green door leads to a pool of lambent energy."},
+                    "players": {"L": []},
+                    "exits": {"L": [
+                        {
+                            "M": {
+                                "exitName": {"S": "vortex"},
+                                "toRoomId": {"N": "0"}
+                            }
+                        }
+                    ]}
+                }
+            }
+        }
+    ]
+}
