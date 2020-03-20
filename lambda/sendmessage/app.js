@@ -6,62 +6,45 @@ const { socketHandler } = require('/opt/sockets')
 const { parseCommand } = require('./parse.js')
 
 
-exports.handler = async event => {
+exports.handler = event => {
 
   const dbh = new dbHandler(process.env)
   const sockets = new socketHandler({ dbh, event })
 
-  let nameData
-  try {
-    nameData = await dbh.getConnection(event.requestContext.connectionId)
-  } catch (e) {
-    nameData = {
-      Item: {
-        name: 'Error',
-        roomId: 0
-      }
-    }
-  }
-
-  const roomId = nameData.Item.roomId
-  let roomData
-  try {
-    roomData = await dbh.getRoom(roomId)
-  } catch (e) {
-    return { statusCode: 500, body: e.stack };
-  }
-  
-  let parseFound = false
-  try{
-    parseFound = await parseCommand({
-      name: nameData && nameData.Item && nameData.Item.name,
-      message: JSON.parse(event.body).data,
-      roomData: roomData.Item,
-      dbh,
-      sockets,
-      connectionId: event.requestContext.connectionId
+  return dbh.getConnection(event.requestContext.connectionId)
+    .then((nameData) => {
+      return dbh.getRoom(nameData.Item.roomId)
+        .then((roomData) => (roomData.Item))
+        .then((roomData) => (
+          parseCommand({
+            name: nameData && nameData.Item && nameData.Item.name,
+            message: JSON.parse(event.body).data,
+            roomData,
+            dbh,
+            sockets,
+            connectionId: event.requestContext.connectionId
+          })
+          // Promise.resolve(true)
+          .then((parseFound) => {
+            if (parseFound) {
+              return Promise.resolve(true)
+            }
+            else {
+              const postData = JSON.stringify({
+                type: 'sendmessage',
+                name: nameData && nameData.Item && nameData.Item.name,
+                protocol: 'playerMessage',
+                message: JSON.parse(event.body).data
+              })
+              return sockets.messageConnectionList({
+                connections: roomData.players.map(({ connectionId }) => (connectionId)),
+                postData
+              })
+            }
+          })
+        ))
     })
-  } catch (e) {
-    return { statusCode: 500, body: e.stack };
-  }
+    .then(() => ({ statusCode: 200, body: 'Data sent.' }))
+    .catch((e) => ({ statusCode: 500, body: e.stack }))
 
-  if (!parseFound) {
-    const postData = JSON.stringify({
-      type: 'sendmessage',
-      name: nameData && nameData.Item && nameData.Item.name,
-      protocol: 'playerMessage',
-      message: JSON.parse(event.body).data
-    })
-  
-    try {
-      await sockets.messageConnectionList({
-        connections: roomData.Item.players.map(({ connectionId }) => (connectionId)),
-        postData
-      })
-    } catch (e) {
-      return { statusCode: 500, body: e.stack };
-    }
-  }
-
-  return { statusCode: 200, body: 'Data sent.' };
 };

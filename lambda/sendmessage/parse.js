@@ -2,7 +2,7 @@ const { TABLE_PREFIX } = process.env;
 const connectionTable = `${TABLE_PREFIX}_connections`
 const roomTable = `${TABLE_PREFIX}_rooms`
 
-const parseCommand = async ({
+const parseCommand = ({
     name,
     message,
     roomData,
@@ -30,56 +30,55 @@ const parseCommand = async ({
                 players: roomData.players.filter((player) => (player.connectionId !== connectionId))
             }
         }
-    
-        try {
-            await sockets.messageConnectionList({
-                connections: roomData.players.map(({ connectionId }) => (connectionId)),
-                postData: JSON.stringify({
-                    type: 'sendmessage',
-                    name: '',
-                    protocol: 'worldMessage',
-                    message: `${name} has taken the ${exitName} exit.`
-                })
-            })
-            let toRoomData = await dbh.getRoom(toRoomId)
-            toRoomData = toRoomData.Item
-            const roomPutParamsTwo = {
-                TableName: roomTable,
-                Item: {
-                    ...toRoomData,
-                    players: [
-                        ...(toRoomData.players || []),
-                        {
-                            name,
-                            connectionId
-                        }
-                    ]
-                }    
-            }
-            await Promise.all([
-                dbh.put(connectionPutParams),
-                dbh.put(roomPutParamsOne),
-                dbh.put(roomPutParamsTwo)
-            ])
-            await sockets.messageConnectionList({
-                connections: [
-                    ...(toRoomData.players.map(({ connectionId }) => (connectionId))),
-                    connectionId
-                ],
-                postData: JSON.stringify({
-                    type: 'sendmessage',
-                    name: '',
-                    protocol: 'worldMessage',
-                    message: `${name} has arrived.`
-                })
-            })
-        } catch (err) {
-            return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
-        }
         
-        return true
+        return dbh.getRoom(toRoomId)
+            .then((toRoomData) => (toRoomData.Item))
+            .then((toRoomData) => ({
+                ...toRoomData,
+                players: [
+                    ...(toRoomData.players || []),
+                    {
+                        name,
+                        connectionId
+                    }
+                ]
+            }))
+            .then((toRoomData) => {
+                const roomMessages = sockets.messageConnectionList({
+                    connections: roomData.players.map(({ connectionId }) => (connectionId)),
+                    postData: JSON.stringify({
+                        type: 'sendmessage',
+                        name: '',
+                        protocol: 'worldMessage',
+                        message: `${name} has taken the ${exitName} exit.`
+                    })
+                })
+                .then(() => (sockets.messageConnectionList({
+                        connections: toRoomData.players.map(({ connectionId }) => (connectionId)),
+                        postData: JSON.stringify({
+                            type: 'sendmessage',
+                            name: '',
+                            protocol: 'worldMessage',
+                            message: `${name} has arrived.`
+                        })
+                    })
+                ))
+                return Promise.all([
+                    roomMessages,
+                    dbh.put(connectionPutParams),
+                    dbh.put(roomPutParamsOne),
+                    dbh.put({
+                        TableName: roomTable,
+                        Item: toRoomData
+                    })
+                ])
+            })
+            .then(() => (true))
+
     }
-    return false
+    else {
+        return Promise.resolve(false)
+    }
 }
 
 exports.parseCommand = parseCommand

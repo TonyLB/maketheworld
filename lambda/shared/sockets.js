@@ -7,6 +7,21 @@ class socketHandler {
             endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
         })
         this.dbh = dbh
+        this.connectionId = event.requestContext.connectionId
+        this.playerData = {}
+    }
+
+    getPlayerData = () => {
+        if (this.playerData) {
+            return Promise.resolve(this.playerData)
+        }
+        else {
+            return this.dbh.getConnection(this.connectionId)
+                .then((playerData) => {
+                    this.playerData = playerData
+                    return playerData
+                })
+        }
     }
 
     messageConnectionList = ({ connections = [], postData = {} }) => {
@@ -29,6 +44,17 @@ class socketHandler {
             return Promise.resolve()
         }
     }
+
+    debugMessage = (message) => (
+        this.messageConnectionList({
+            connections: [ this.connectionId ],
+            postData: JSON.stringify({
+                type: 'debug',
+                message
+            })
+        })
+        .then(() => (message))
+    )
 }
 
 exports.socketHandler = socketHandler
