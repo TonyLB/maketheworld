@@ -1,11 +1,10 @@
 // Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk');
-
-const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
+const { dbHandler } = require('/opt/dbHandler')
 
 exports.handler = async event => {
+  const dbh = new dbHandler(process.env)
   const putParams = {
     TableName: `${process.env.TABLE_PREFIX}_connections`,
     Item: {
@@ -14,7 +13,7 @@ exports.handler = async event => {
   };
 
   try {
-    await ddb.put(putParams).promise();
+    await dbh.put(putParams)
   } catch (err) {
     return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
   }

@@ -1,8 +1,4 @@
-const { TABLE_PREFIX } = process.env;
-
-const connectionTable = `${TABLE_PREFIX}_connections`
-
-const messageConnectionList = async ({ connections = [], gatewayAPI = {}, ddb, postData = {} }) => {
+const messageConnectionList = async ({ connections = [], gatewayAPI = {}, dbh, postData = {} }) => {
     if (gatewayAPI) {
         const postCalls = connections.map(async (connectionId) => {
             try {
@@ -10,7 +6,7 @@ const messageConnectionList = async ({ connections = [], gatewayAPI = {}, ddb, p
             } catch (e) {
                 if (e.statusCode === 410) {
                     console.log(`Found stale connection, deleting ${connectionId}`);
-                    await ddb.delete({ TableName: connectionTable, Key: { connectionId } }).promise();
+                    await dbh.deleteConnection(connectionId)
                 } else {
                     throw e;
                 }

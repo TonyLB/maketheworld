@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT-0
 
 const AWS = require('aws-sdk')
+const { dbHandler } = require('/opt/dbHandler')
+const { messageConnectionList } = require('/opt/sockets')
 
-const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION })
+const dbh = new dbHandler(process.env)
 
 const { TABLE_PREFIX } = process.env;
 
@@ -23,14 +25,14 @@ exports.handler = async event => {
   };
 
   try {
-    await ddb.put(connectionPutParams).promise();
+    await dbh.put(connectionPutParams)
   } catch (err) {
     return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
   }
 
   let roomData
   try {
-    roomData = await ddb.get({ TableName: roomTable, Key: { roomId: 0 }}).promise()
+    roomData = await dbh.getRoom(0)
     roomData.Item.players = [
       ...roomData.Item.players,
       {
@@ -38,7 +40,7 @@ exports.handler = async event => {
         connectionId: event.requestContext.connectionId
       }
     ]
-    await ddb.put({ TableName: roomTable, Item: roomData.Item }).promise()
+    await dbh.put({ TableName: roomTable, Item: roomData.Item })
   } catch (e) {
     return { statusCode: 500, body: e.stack };
   }
@@ -53,34 +55,26 @@ exports.handler = async event => {
     name: nameData
   }
   try {
-    await apigwManagementApi.postToConnection({ ConnectionId: event.requestContext.connectionId, Data: JSON.stringify(nameReplyData) }).promise();
+    await apigwManagementApi.postToConnection({ ConnectionId: event.requestContext.connectionId, Data: JSON.stringify(nameReplyData) }).promise()
   } catch (e) {
     return { statusCode: 500, body: e.stack }
   }
 
-  const postData = {
+  const postData = JSON.stringify({
     type: 'sendmessage',
     protocol: 'worldMessage',
     message: `${nameData} has connected.`
-  }
-  
-  const postCalls = roomData.Item.players.map(async ({ connectionId }) => {
-    try {
-      await apigwManagementApi.postToConnection({ ConnectionId: connectionId, Data: JSON.stringify(postData) }).promise();
-    } catch (e) {
-      if (e.statusCode === 410) {
-        console.log(`Found stale connection, deleting ${connectionId}`);
-        await ddb.delete({ TableName: connectionTable, Key: { connectionId } }).promise();
-      } else {
-        throw e;
-      }
-    }
-  });
+  })
   
   try {
-    await Promise.all(postCalls);
+    await messageConnectionList({
+      connections: roomData.Item.players.map(({ connectionId }) => (connectionId)),
+      gatewayAPI: apigwManagementApi,
+      dbh,
+      postData
+    })
   } catch (e) {
-    return { statusCode: 500, body: e.stack };
+      return { statusCode: 500, body: e.stack };
   }
 
   return { statusCode: 200, body: 'Data sent.' };

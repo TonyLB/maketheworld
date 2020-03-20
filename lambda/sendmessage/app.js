@@ -2,18 +2,15 @@
 // SPDX-License-Identifier: MIT-0
 
 const AWS = require('aws-sdk');
-const { getRoom } = require('/opt/rooms')
+const { dbHandler } = require('/opt/dbHandler')
 const { messageConnectionList } = require('/opt/sockets')
 const { parseCommand } = require('./parse.js')
 
-const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
-
-const { TABLE_PREFIX } = process.env;
-
-const connectionTable = `${TABLE_PREFIX}_connections`
 
 exports.handler = async event => {
-  
+
+  const dbh = new dbHandler(process.env)
+
   const apigwManagementApi = new AWS.ApiGatewayManagementApi({
     apiVersion: '2018-11-29',
     endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
@@ -21,12 +18,7 @@ exports.handler = async event => {
 
   let nameData
   try {
-    nameData = await ddb.get({
-      TableName: connectionTable,
-      Key: {
-        'connectionId': event.requestContext.connectionId
-      }
-    }).promise();
+    nameData = await dbh.getConnection(event.requestContext.connectionId)
   } catch (e) {
     nameData = {
       Item: {
@@ -39,7 +31,7 @@ exports.handler = async event => {
   const roomId = nameData.Item.roomId
   let roomData
   try {
-    roomData = await getRoom({ ddb, roomId })
+    roomData = await dbh.getRoom(roomId)
   } catch (e) {
     return { statusCode: 500, body: e.stack };
   }
@@ -50,7 +42,7 @@ exports.handler = async event => {
       name: nameData && nameData.Item && nameData.Item.name,
       message: JSON.parse(event.body).data,
       roomData: roomData.Item,
-      ddb,
+      dbh,
       gatewayAPI: apigwManagementApi,
       connectionId: event.requestContext.connectionId
     })
@@ -70,7 +62,7 @@ exports.handler = async event => {
       await messageConnectionList({
         connections: roomData.Item.players.map(({ connectionId }) => (connectionId)),
         gatewayAPI: apigwManagementApi,
-        ddb,
+        dbh,
         postData
       })
     } catch (e) {

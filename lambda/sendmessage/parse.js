@@ -10,7 +10,7 @@ const parseCommand = async ({
     name,
     message,
     roomData,
-    ddb,
+    dbh,
     gatewayAPI,
     connectionId
 }) => {
@@ -39,7 +39,7 @@ const parseCommand = async ({
             await messageConnectionList({
                 connections: roomData.players.map(({ connectionId }) => (connectionId)),
                 gatewayAPI,
-                ddb,
+                dbh,
                 postData: JSON.stringify({
                     type: 'sendmessage',
                     name: '',
@@ -47,7 +47,7 @@ const parseCommand = async ({
                     message: `${name} has taken the ${exitName} exit.`
                 })
             })
-            let toRoomData = await getRoom({ ddb, roomId: toRoomId })
+            let toRoomData = await dbh.getRoom(toRoomId)
             toRoomData = toRoomData.Item
             const roomPutParamsTwo = {
                 TableName: roomTable,
@@ -63,9 +63,9 @@ const parseCommand = async ({
                 }    
             }
             await Promise.all([
-                ddb.put(connectionPutParams).promise(),
-                ddb.put(roomPutParamsOne).promise(),
-                ddb.put(roomPutParamsTwo).promise()
+                dbh.put(connectionPutParams),
+                dbh.put(roomPutParamsOne),
+                dbh.put(roomPutParamsTwo)
             ])
             await messageConnectionList({
                 connections: [
@@ -73,7 +73,7 @@ const parseCommand = async ({
                     connectionId
                 ],
                 gatewayAPI,
-                ddb,
+                dbh,
                 postData: JSON.stringify({
                     type: 'sendmessage',
                     name: '',

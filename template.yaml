@@ -160,6 +160,8 @@ Resources:
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
+      Layers:
+        - !Ref SharedLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
@@ -184,6 +186,8 @@ Resources:
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
+      Layers:
+        - !Ref SharedLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
@@ -240,6 +244,8 @@ Resources:
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
+      Layers:
+        - !Ref SharedLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
