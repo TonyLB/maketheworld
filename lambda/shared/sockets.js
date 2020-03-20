@@ -9,21 +9,20 @@ class socketHandler {
         this.dbh = dbh
     }
 
-    messageConnectionList = async ({ connections = [], postData = {} }) => {
+    messageConnectionList = ({ connections = [], postData = {} }) => {
         if (this.gwAPI) {
-            const postCalls = connections.map(async (connectionId) => {
-                try {
-                    await this.gwAPI.postToConnection({ ConnectionId: connectionId, Data: postData }).promise();
-                } catch (e) {
-                    if (e.statusCode === 410) {
-                        console.log(`Found stale connection, deleting ${connectionId}`);
-                        await this.dbh.deleteConnection(connectionId)
-                    } else {
-                        throw e;
-                    }
-                }
-            })
-
+            const postCalls = connections.map((connectionId) => (
+                this.gwAPI.postToConnection({ ConnectionId: connectionId, Data: postData })
+                    .promise()
+                    .catch((e) => {
+                        if (e.statusCode === 410) {
+                            console.log(`Found stale connection, deleting ${connectionId}`);
+                            return this.dbh.deleteConnection(connectionId)
+                        } else {
+                            throw e;
+                        }
+                    })
+                ))
             return Promise.all(postCalls);
         }
         else {
