@@ -1,17 +1,13 @@
-const { messageConnectionList } = require('/opt/sockets')
-const { getRoom } = require('/opt/rooms')
-
 const { TABLE_PREFIX } = process.env;
 const connectionTable = `${TABLE_PREFIX}_connections`
 const roomTable = `${TABLE_PREFIX}_rooms`
-
 
 const parseCommand = async ({
     name,
     message,
     roomData,
     dbh,
-    gatewayAPI,
+    sockets,
     connectionId
 }) => {
     const exits = (roomData && roomData.exits) || []
@@ -36,10 +32,8 @@ const parseCommand = async ({
         }
     
         try {
-            await messageConnectionList({
+            await sockets.messageConnectionList({
                 connections: roomData.players.map(({ connectionId }) => (connectionId)),
-                gatewayAPI,
-                dbh,
                 postData: JSON.stringify({
                     type: 'sendmessage',
                     name: '',
@@ -67,13 +61,11 @@ const parseCommand = async ({
                 dbh.put(roomPutParamsOne),
                 dbh.put(roomPutParamsTwo)
             ])
-            await messageConnectionList({
+            await sockets.messageConnectionList({
                 connections: [
                     ...(toRoomData.players.map(({ connectionId }) => (connectionId))),
                     connectionId
                 ],
-                gatewayAPI,
-                dbh,
                 postData: JSON.stringify({
                     type: 'sendmessage',
                     name: '',

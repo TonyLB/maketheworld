@@ -3,9 +3,7 @@
 
 const AWS = require('aws-sdk')
 const { dbHandler } = require('/opt/dbHandler')
-const { messageConnectionList } = require('/opt/sockets')
-
-const dbh = new dbHandler(process.env)
+const { socketHandler } = require('/opt/sockets')
 
 const { TABLE_PREFIX } = process.env;
 
@@ -13,6 +11,9 @@ const connectionTable = `${TABLE_PREFIX}_connections`
 const roomTable = `${TABLE_PREFIX}_rooms`
 
 exports.handler = async event => {
+
+  const dbh = new dbHandler(process.env)
+  const sockets = new socketHandler({ dbh, event })
 
   const nameData = JSON.parse(event.body).data
   const connectionPutParams = {
@@ -44,18 +45,13 @@ exports.handler = async event => {
   } catch (e) {
     return { statusCode: 500, body: e.stack };
   }
-  
-  const apigwManagementApi = new AWS.ApiGatewayManagementApi({
-    apiVersion: '2018-11-29',
-    endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
-  });
-  
+
   const nameReplyData = {
     type: 'registername',
     name: nameData
   }
   try {
-    await apigwManagementApi.postToConnection({ ConnectionId: event.requestContext.connectionId, Data: JSON.stringify(nameReplyData) }).promise()
+    await sockets.gwAPI.postToConnection({ ConnectionId: event.requestContext.connectionId, Data: JSON.stringify(nameReplyData) }).promise()
   } catch (e) {
     return { statusCode: 500, body: e.stack }
   }
@@ -67,10 +63,8 @@ exports.handler = async event => {
   })
   
   try {
-    await messageConnectionList({
+    await sockets.messageConnectionList({
       connections: roomData.Item.players.map(({ connectionId }) => (connectionId)),
-      gatewayAPI: apigwManagementApi,
-      dbh,
       postData
     })
   } catch (e) {

@@ -1,20 +1,15 @@
 // Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk');
 const { dbHandler } = require('/opt/dbHandler')
-const { messageConnectionList } = require('/opt/sockets')
+const { socketHandler } = require('/opt/sockets')
 const { parseCommand } = require('./parse.js')
 
 
 exports.handler = async event => {
 
   const dbh = new dbHandler(process.env)
-
-  const apigwManagementApi = new AWS.ApiGatewayManagementApi({
-    apiVersion: '2018-11-29',
-    endpoint: event.requestContext.domainName + '/' + event.requestContext.stage
-  });
+  const sockets = new socketHandler({ dbh, event })
 
   let nameData
   try {
@@ -43,7 +38,7 @@ exports.handler = async event => {
       message: JSON.parse(event.body).data,
       roomData: roomData.Item,
       dbh,
-      gatewayAPI: apigwManagementApi,
+      sockets,
       connectionId: event.requestContext.connectionId
     })
   } catch (e) {
@@ -59,10 +54,8 @@ exports.handler = async event => {
     })
   
     try {
-      await messageConnectionList({
+      await sockets.messageConnectionList({
         connections: roomData.Item.players.map(({ connectionId }) => (connectionId)),
-        gatewayAPI: apigwManagementApi,
-        dbh,
         postData
       })
     } catch (e) {
