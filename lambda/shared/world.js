@@ -71,7 +71,7 @@ class worldHandler {
                 const roomDescData = JSON.stringify({
                         type: 'sendmessage',
                         protocol: 'roomDescription',
-                        ...roomData
+                        ...updatedRoomData
                     })
                 const updateConnection = this.dbh.putConnection({
                     ...playerData,
