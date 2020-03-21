@@ -196,6 +196,12 @@ Resources:
           TableName: !Sub '${TablePrefix}_connections'
       - DynamoDBCrudPolicy:
           TableName: !Sub '${TablePrefix}_rooms'
+      - Statement:
+        - Effect: Allow
+          Action:
+          - 'execute-api:ManageConnections'
+          Resource:
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SimpleChatWebSocket}/*'
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:

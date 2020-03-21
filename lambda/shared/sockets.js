@@ -45,14 +45,18 @@ class socketHandler {
         }
     }
 
-    debugMessage = (message) => (
+    messageToSelf = (postData) => (
         this.messageConnectionList({
             connections: [ this.connectionId ],
-            postData: JSON.stringify({
+            postData
+        })
+    )
+
+    debugMessage = (message) => (
+        this.messageToSelf(JSON.stringify({
                 type: 'debug',
                 message
-            })
-        })
+        }))
         .then(() => (message))
     )
 }

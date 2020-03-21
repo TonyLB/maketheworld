@@ -3,6 +3,7 @@
 
 const { dbHandler } = require('/opt/dbHandler')
 const { socketHandler } = require('/opt/sockets')
+const { worldHandler } = require('/opt/world')
 const { parseCommand } = require('./parse.js')
 
 
@@ -10,29 +11,26 @@ exports.handler = event => {
 
   const dbh = new dbHandler(process.env)
   const sockets = new socketHandler({ dbh, event })
+  const world = new worldHandler(sockets)
 
   return dbh.getConnection(event.requestContext.connectionId)
     .then((nameData) => {
-      return dbh.getRoom(nameData.Item.roomId)
-        .then((roomData) => (roomData.Item))
+      return dbh.getRoom(nameData.roomId)
         .then((roomData) => (
           parseCommand({
-            name: nameData && nameData.Item && nameData.Item.name,
             message: JSON.parse(event.body).data,
+            playerData: nameData,
             roomData,
-            dbh,
-            sockets,
-            connectionId: event.requestContext.connectionId
+            world
           })
-          // Promise.resolve(true)
           .then((parseFound) => {
             if (parseFound) {
-              return Promise.resolve(true)
+              return
             }
             else {
               const postData = JSON.stringify({
                 type: 'sendmessage',
-                name: nameData && nameData.Item && nameData.Item.name,
+                name: nameData && nameData.name,
                 protocol: 'playerMessage',
                 message: JSON.parse(event.body).data
               })

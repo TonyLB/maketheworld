@@ -16,7 +16,9 @@ class dbHandler {
     // on put.
     //
     getRoom(roomId) {
-        return this.documentClient.get({ TableName: this.roomTable, Key: { roomId } }).promise()
+        return this.documentClient.get({ TableName: this.roomTable, Key: { roomId } })
+            .promise()
+            .then(({ Item }) => (Item))
     }
 
     //
@@ -26,7 +28,9 @@ class dbHandler {
     // on put.
     //
     getConnection(connectionId) {
-        return this.documentClient.get({ TableName: this.connectionTable, Key: { connectionId } }).promise()
+        return this.documentClient.get({ TableName: this.connectionTable, Key: { connectionId } })
+            .promise()
+            .then(({ Item }) => (Item))
     }
 
     //
@@ -41,6 +45,20 @@ class dbHandler {
     //
     put(params) {
         return this.documentClient.put(params).promise()
+    }
+
+    putRoom(data) {
+        return this.put({
+            TableName: this.roomTable,
+            Item: data
+        })
+    }
+
+    putConnection(data) {
+        return this.put({
+            TableName: this.connectionTable,
+            Item: data
+        })
     }
 
     //

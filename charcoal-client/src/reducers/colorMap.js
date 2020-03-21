@@ -10,8 +10,8 @@ export const reducer = (state = {}, action) => {
     const { type: actionType = 'NOOP', payload = {} } = action || {}
     switch (actionType) {
         case RECEIVE_MESSAGE:
-            const { name = '' } = payload
-            if (name && !(state[name])) {
+            const { name = '', protocol } = payload
+            if (protocol === 'playerMessage' && name && !(state[name])) {
                 return {
                     ...state,
                     [name]: colorSequence[Object.keys(state).length % 4]

@@ -16,7 +16,11 @@ export const useStyles = makeStyles(theme => ({
             color: theme.palette.getContrastText(color[50]),
             backgroundColor: color[50]
         }
-    })).reduce((prev, item) => ({ ...prev, ...item }), {}))
+    })).reduce((prev, item) => ({ ...prev, ...item }), {})),
+    darkgreen: {
+        color: theme.palette.getContrastText(green[700]),
+        backgroundColor: green[700],
+    }
 }))
 
 export default useStyles
