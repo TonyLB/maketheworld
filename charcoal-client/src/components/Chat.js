@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import {
     Typography,
     Container,
+    Box,
     Paper,
     Backdrop,
     CircularProgress,
@@ -13,8 +14,13 @@ import {
     DialogTitle,
     DialogActions,
     Button,
-    TextField
+    TextField,
+    List,
+    AppBar,
+    Toolbar,
+    IconButton
 } from '@material-ui/core'
+import MenuIcon from '@material-ui/icons/Menu'
 
 // Local code imports
 import { receiveMessage, sendMessage } from '../actions/messages.js'
@@ -25,6 +31,7 @@ import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
+import useStyles from './styles'
 
 const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
@@ -56,6 +63,8 @@ export const Chat = () => {
 
     const dispatch = useDispatch()
 
+    const classes = useStyles()
+
     useEffect(() => {
         if (name && !webSocket) {
           let setupSocket = new WebSocket('>INSERT WSS ADDRESS<')
@@ -82,22 +91,31 @@ export const Chat = () => {
         }
     }, [webSocket, name, dispatch])
     return (
-        <div className="App">
-            <Container maxWidth="lg">
-                <Paper>
-                    <Typography variant='h2' align='center' gutterBottom>
-                        Test of WebSockets
-                    </Typography>
-                    {
-                        messages.map((message, index) => (
-                            <Message key={`Message-${index}`} message={message} />
-                        ))
-                    }
-                    <LineEntry
-                        callback={ (entry) => { dispatch(sendMessage(entry)) }}
-                    />
+        <React.Fragment>
+            <Container className={classes.messageContainer} maxWidth="lg">
+                <Paper className={classes.messagePaper}>
+                    <List className={classes.messageList}>
+                        {
+                            messages.map((message, index) => (
+                                <Message key={`Message-${index}`} message={message} />
+                            ))
+                        }
+                    </List>
                 </Paper>
             </Container>
+            <AppBar position="fixed" color="primary" className={classes.appBar}>
+                <Container className={classes.container} maxWidth="lg">
+                    <Toolbar>
+                        <IconButton edge="start" color="inherit" aria-label="open drawer">
+                            <MenuIcon />
+                        </IconButton>
+                        <LineEntry
+                            className={classes.lineEntry}
+                            callback={ (entry) => { dispatch(sendMessage(entry)) }}
+                        />
+                    </Toolbar>
+                </Container>
+            </AppBar>
             <NameDialog
                 open={!name}
                 defaultValue={name}
@@ -108,7 +126,7 @@ export const Chat = () => {
             <Backdrop open={(name && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>
-        </div>
+        </React.Fragment>
     );
   }
 

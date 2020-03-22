@@ -3,10 +3,11 @@ import { useSelector } from 'react-redux'
 
 import {
     Typography,
-    Card,
-    Grid,
     Avatar,
     Tooltip,
+    ListItem,
+    ListItemText,
+    ListItemAvatar
 } from '@material-ui/core'
 
 import { getColorMap } from '../../selectors/colorMap.js'
@@ -17,29 +18,20 @@ export const PlayerMessage = ({ message, ...rest }) => {
     const colorMap = useSelector(getColorMap)
     const color = name && colorMap && colorMap[name]
     const classes = useStyles()
-    return <React.Fragment {...rest} >
-        <Card elevation={5} className={ color && classes[color.light] }>
-            <Grid container wrap="nowrap" spacing={2}>
-                <Grid item>
-                    {
-                        name && <div>
-                            <Tooltip title={name}>
-                                <Avatar className={color && classes[color.primary]}>
-                                    { name[0].toUpperCase() }
-                                </Avatar>
-                            </Tooltip>
-                        </div>
-                    }
-                </Grid>
-                <Grid item xs>
-                    <Typography variant='body1' align='left'>
-                        { message.message }
-                    </Typography>
-                </Grid>
-            </Grid>
-        </Card>
-        <br />
-    </React.Fragment>
+    return <ListItem className={ color && classes[color.light] } alignItems="flex-start" {...rest} >
+        <ListItemAvatar>
+            <Tooltip title={name}>
+                <Avatar className={color && classes[color.primary]}>
+                    { name[0].toUpperCase() }
+                </Avatar>
+            </Tooltip>
+        </ListItemAvatar>
+        <ListItemText>
+            <Typography variant='body1' align='left'>
+                { message.message }
+            </Typography>
+        </ListItemText>
+    </ListItem>
 }
 
 export default PlayerMessage

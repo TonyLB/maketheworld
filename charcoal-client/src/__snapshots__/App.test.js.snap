@@ -2,60 +2,14 @@
 
 exports[`renders learn react link 1`] = `
 <div
-  class="App"
+  class="MuiContainer-root makeStyles-messageContainer-16 MuiContainer-maxWidthLg"
 >
   <div
-    class="MuiContainer-root MuiContainer-maxWidthLg"
+    class="MuiPaper-root makeStyles-messagePaper-17 MuiPaper-elevation1 MuiPaper-rounded"
   >
-    <div
-      class="MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded"
-    >
-      <h2
-        class="MuiTypography-root MuiTypography-h2 MuiTypography-gutterBottom MuiTypography-alignCenter"
-      >
-        Test of WebSockets
-      </h2>
-      <div
-        class="MuiFormControl-root MuiTextField-root MuiFormControl-fullWidth"
-      >
-        <div
-          class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-fullWidth MuiInput-fullWidth MuiInputBase-formControl MuiInput-formControl"
-        >
-          <input
-            aria-invalid="false"
-            class="MuiInputBase-input MuiInput-input"
-            placeholder="Enter your chat text here"
-            type="text"
-            value=""
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-  <div
-    aria-hidden="true"
-    class="MuiBackdrop-root"
-    style="opacity: 0; visibility: hidden;"
-  >
-    <div
-      class="MuiCircularProgress-root MuiCircularProgress-indeterminate"
-      role="progressbar"
-      style="width: 40px; height: 40px;"
-    >
-      <svg
-        class="MuiCircularProgress-svg"
-        viewBox="22 22 44 44"
-      >
-        <circle
-          class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate"
-          cx="44"
-          cy="44"
-          fill="none"
-          r="20.2"
-          stroke-width="3.6"
-        />
-      </svg>
-    </div>
+    <ul
+      class="MuiList-root MuiList-padding"
+    />
   </div>
 </div>
 `;

@@ -8,7 +8,7 @@ export const triggerOnEnter = (value, setValue) => (callback) => (e) => {
     }
 }
 
-export const LineEntry = ({ callback = () => {} }) => {
+export const LineEntry = ({ callback = () => {}, ...rest }) => {
     const [value, setValue] = useState('')
 
     return <TextField
@@ -17,6 +17,7 @@ export const LineEntry = ({ callback = () => {} }) => {
             onKeyPress={triggerOnEnter(value, setValue)(callback)}
             value={value}
             fullWidth
+            {...rest}
         />
 }
 

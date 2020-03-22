@@ -5,6 +5,7 @@ import {
     green
 } from "@material-ui/core/colors"
 import { makeStyles } from "@material-ui/core/styles"
+import { FormHelperText } from "@material-ui/core"
 
 export const useStyles = makeStyles(theme => ({
     ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
@@ -21,9 +22,28 @@ export const useStyles = makeStyles(theme => ({
             backgroundColor: color[50]
         }
     })).reduce((prev, item) => ({ ...prev, ...item }), {})),
-    darkgreen: {
-        color: theme.palette.getContrastText(green[700]),
-        backgroundColor: green[700],
+    roomMessage: {
+        color: theme.palette.getContrastText(theme.palette.primary.main),
+        backgroundColor: theme.palette.primary.main,
+    },
+    appBar: {
+        top: 'auto',
+        bottom: 0,
+      },
+    lineEntry: {
+        backgroundColor: theme.palette.background.default
+    },
+    messageContainer: {
+        height: "calc(100% - 80px)",
+        display: "flex",
+        flexDirection: "column-reverse",
+        maxWidth: "lg",
+        overflow: "auto"
+    },
+    messagePaper: {
+        position: "relative",
+        width: "100%",
+        marginBottom: "10px"
     }
 }))
 
