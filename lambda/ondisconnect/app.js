@@ -12,19 +12,17 @@ exports.handler = event => {
   const connectionId = event.requestContext.connectionId
   return dbh.getConnection(connectionId)
     .then(({ name, roomId }) => {
-      return dbh.getRoom(roomId)
-        .then((roomData) => (Promise.all([
-          world.removePlayerFromRoom({ roomData, connectionId }),
-          dbh.deleteConnection(connectionId),
-          world.messageRoomExceptMe({
-            roomData,
-            postData: JSON.stringify({
-              type: 'sendmessage',
-              protocol: 'worldMessage',
-              message: `${name} has disconnected.`
-            })
+      return Promise.all([
+        dbh.deleteConnection(connectionId),
+        world.messageRoomExceptMe({
+          roomId,
+          postData: JSON.stringify({
+            type: 'sendmessage',
+            protocol: 'worldMessage',
+            message: `${name} has disconnected.`
           })
-        ])))
+        })
+      ])
     })
     .then(() => ({ statusCode: 200, body: 'Disconnected.' }))
     .catch((err) => ({ statusCode: 500, body: err.stack }))

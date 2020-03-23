@@ -4,9 +4,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 // MaterialUI imports
 import {
-    Typography,
     Container,
-    Box,
     Paper,
     Backdrop,
     CircularProgress,
@@ -67,7 +65,7 @@ export const Chat = () => {
 
     useEffect(() => {
         if (name && !webSocket) {
-          let setupSocket = new WebSocket('>INSERT WSS ADDRESS<')
+          let setupSocket = new WebSocket('wss://kesf1y6y06.execute-api.us-east-1.amazonaws.com/Prod')
           setupSocket.onopen = () => {
             console.log('WebSocket Client Connected')
             dispatch(registerName(name))

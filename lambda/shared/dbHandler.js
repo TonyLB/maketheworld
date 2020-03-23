@@ -3,8 +3,8 @@ const AWS = require('aws-sdk');
 class dbHandler {
     constructor(processEnv) {
         const { TABLE_PREFIX, AWS_REGION } = processEnv;
-        this.roomTable = `${TABLE_PREFIX}_rooms`
-        this.connectionTable = `${TABLE_PREFIX}_connections`
+        this.permanentTable = `${TABLE_PREFIX}_permanents`
+        this.connectionTable = `${TABLE_PREFIX}_players`
 
         this.documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
         this.writeQueue = []
@@ -16,9 +16,38 @@ class dbHandler {
     // on put.
     //
     getRoom(roomId) {
-        return this.documentClient.get({ TableName: this.roomTable, Key: { roomId } })
+        return this.documentClient.get({ TableName: this.permanentTable, Key: { permanentId: roomId } })
             .promise()
-            .then(({ Item }) => (Item))
+            .then(({ Item: { permanentId, ...Item } }) => {
+                return this.documentClient.scan({
+                    TableName: this.connectionTable,
+                    FilterExpression: 'roomId = :roomId',
+                    ExpressionAttributeValues: { ':roomId': roomId }
+                }).promise()
+                .then((props) => {
+                    console.log(props)
+                    return props
+                })
+                .then(({ Items }) => ({
+                    ...Item,
+                    roomId,
+                    players: Items
+                }))
+            })
+    }
+
+    //
+    // getRoomConnections: Get only the connection IDs of players in the room (which
+    // are all handily present in the connection table, no need to hit permanents)
+    //
+    getRoomConnections(roomId) {
+        return this.documentClient.scan({
+            TableName: this.connectionTable,
+            FilterExpression: 'roomId = :roomId',
+            ExpressionAttributeValues: { ':roomId': roomId },
+            ProjectionExpression: 'connectionId'
+        }).promise()
+        .then(({ Items }) => Items.map(({ connectionId }) => connectionId))
     }
 
     //
@@ -45,13 +74,6 @@ class dbHandler {
     //
     put(params) {
         return this.documentClient.put(params).promise()
-    }
-
-    putRoom(data) {
-        return this.put({
-            TableName: this.roomTable,
-            Item: data
-        })
     }
 
     putConnection(data) {

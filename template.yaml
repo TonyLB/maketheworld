@@ -20,7 +20,7 @@ Resources:
   SimpleChatWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: SimpleChatWebSocket
+      Name: BurnedOverRealTimeSocket
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.message"
   ConnectRoute:
@@ -119,7 +119,7 @@ Resources:
       Description: Prod Stage
       DeploymentId: !Ref Deployment
       ApiId: !Ref SimpleChatWebSocket
-  ConnectionsTable:
+  PlayersTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
@@ -131,20 +131,20 @@ Resources:
         KeyType: "HASH"
       SSESpecification:
         SSEEnabled: True
-      TableName: !Sub '${TablePrefix}_connections'
-  RoomsTable:
+      TableName: !Sub '${TablePrefix}_players'
+  PermanentsTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-      - AttributeName: "roomId"
+      - AttributeName: "permanentId"
         AttributeType: "N"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
-      - AttributeName: "roomId"
+      - AttributeName: "permanentId"
         KeyType: "HASH"
       SSESpecification:
         SSEEnabled: True
-      TableName: !Sub '${TablePrefix}_rooms'
+      TableName: !Sub '${TablePrefix}_permanents'
   SharedLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -167,9 +167,9 @@ Resources:
           TABLE_PREFIX: !Ref TablePrefix
       Policies:
       - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_connections'
-      - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_rooms'
+          TableName: !Sub '${TablePrefix}_players'
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
   OnConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -193,9 +193,9 @@ Resources:
           TABLE_PREFIX: !Ref TablePrefix
       Policies:
       - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_connections'
-      - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_rooms'
+          TableName: !Sub '${TablePrefix}_players'
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
       - Statement:
         - Effect: Allow
           Action:
@@ -225,9 +225,9 @@ Resources:
           TABLE_PREFIX: !Ref TablePrefix
       Policies:
       - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_connections'
-      - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_rooms'
+          TableName: !Sub '${TablePrefix}_players'
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
       - Statement:
         - Effect: Allow
           Action:
@@ -257,9 +257,9 @@ Resources:
           TABLE_PREFIX: !Ref TablePrefix
       Policies:
       - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_connections'
-      - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_rooms'
+          TableName: !Sub '${TablePrefix}_players'
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
       - Statement:
         - Effect: Allow
           Action:
@@ -275,11 +275,167 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref RegisterNameFunction
       Principal: apigateway.amazonaws.com
+  PermanentsAdminAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: PermanentsAdminAPI
+      Description: An API to grant REST access into the permanents table
+  PermanentsAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:GetItem"
+              - "dynamodb:BatchGetItem"
+              - "dynamodb:Query"
+              - "dynamodb:Put"
+            Resource: !GetAtt "PermanentsTable.Arn"
+  PermanentsAPIExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: '/'
+      ManagedPolicyArns:
+        - !Ref PermanentsAccessPolicy
+      Policies:
+        - PolicyName: logging
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              Resource: '*'
+  RoomResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PermanentsAdminAPI
+      ParentId: !GetAtt
+        - PermanentsAdminAPI
+        - RootResourceId
+      PathPart: "room"
+  RoomRoomOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref PermanentsAdminAPI
+      ResourceId: !Ref RoomResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  GetRoomResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PermanentsAdminAPI
+      ParentId: !Ref RoomResource
+      PathPart: "{roomId}"
+  GetRoomOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref PermanentsAdminAPI
+      ResourceId: !Ref GetRoomResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  GetRoomMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.roomId: true
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS
+        Credentials: !GetAtt "PermanentsAPIExecutionRole.Arn"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:dynamodb:action/GetItem"
+        RequestTemplates:
+          application/json: !Sub >-
+            {
+                "TableName": "${TablePrefix}_permanents",
+                "Key": {
+                    "permanentId": { "N": "$input.params('roomId')" }
+                }
+            }
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: >-
+                #set($inputRoot = $input.path('$.Item'))
+                {
+                    "roomId": $inputRoot.permanentId.N,
+                    "name": $inputRoot.name.S,
+                    "description": $inputRoot.description.S,
+                    "exits": [
+                        #foreach($exit in $inputRoot.exits.L) {
+                            "exitName": "$exit.M.exitName.S",
+                            "toRoomId": $exit.M.toRoomId.N
+                        }#if($foreach.hasNext),#end
+                        #end
+                    ]
+                }
+            StatusCode: 200
+        RequestParameters:
+          integration.request.path.roomId: "method.request.path.roomId"
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: 200
+      ResourceId: !Ref GetRoomResource
+      RestApiId: !Ref PermanentsAdminAPI
 
 Outputs:
-  ConnectionsTableArn:
-    Description: "Connections table ARN"
-    Value: !GetAtt ConnectionsTable.Arn
+  PlayersTableArn:
+    Description: "Players table ARN"
+    Value: !GetAtt PlayersTable.Arn
 
   OnConnectFunctionArn:
     Description: "OnConnect function ARN"

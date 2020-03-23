@@ -21,23 +21,16 @@ exports.handler = (event) => {
   // Update the name in the Connection record
   //
   return dbh.putConnection(playerData)
-    .then(() => world.fetchRoomData({ roomId: 0 }))
-    .then((roomData) => (
+    .then(() => (
       //
       // Move the player to the Vortex
       //
-      world.movePlayerToRoom({ playerData, roomData })
+      world.movePlayerToRoom({ playerData, roomId: 1 })
       //
       // Then message everyone there (now including the player) that they have connected.
       //
       .then(() => (world.messageRoom({
-          roomData: {
-            ...roomData,
-            players: [
-              ...roomData.players,
-              playerData
-            ]
-          },
+          roomId: 1,
           postData: JSON.stringify({
             type: 'sendmessage',
             protocol: 'worldMessage',

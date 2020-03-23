@@ -21,39 +21,32 @@ const parseCommand = ({
     }
     const firstMatchedExit = exits.filter(({ exitName }) => (exitName === strippedMessage))
     if (firstMatchedExit.length) {
+        const { roomId } = roomData
         const { toRoomId, exitName } = firstMatchedExit[0]
+        console.log(`To: ${toRoomId}`)
         
-        return dbh.getRoom(toRoomId)
-            .then((toRoomData) => {
-                const exitMessage = sockets.messageConnectionList({
-                    connections: roomData.players.map(({ connectionId }) => (connectionId)),
-                    postData: JSON.stringify({
-                        type: 'sendmessage',
-                        name: '',
-                        protocol: 'worldMessage',
-                        message: `${name} has taken the ${exitName} exit.`
-                    })
+        return world.messageRoom({
+                roomId,
+                postData: JSON.stringify({
+                    type: 'sendmessage',
+                    name: '',
+                    protocol: 'worldMessage',
+                    message: `${name} has taken the ${exitName} exit.`
                 })
-                return exitMessage
-                    .then(() => (world.removePlayerFromRoom({ roomData, connectionId })))
-                    .then(() => (world.movePlayerToRoom({
-                        roomData: toRoomData,
-                        playerData
-                    })))
-                    .then(() => (sockets.messageConnectionList({
-                            connections: [
-                                ...(toRoomData.players.map(({ connectionId }) => (connectionId))),
-                                playerData.connectionId
-                            ],
-                            postData: JSON.stringify({
-                                type: 'sendmessage',
-                                name: '',
-                                protocol: 'worldMessage',
-                                message: `${name} has arrived.`
-                            })
-                        })
-                    ))
             })
+            .then(() => (world.movePlayerToRoom({
+                roomId: toRoomId,
+                playerData
+            })))
+            .then(() => (world.messageRoom({
+                roomId: toRoomId,
+                postData: JSON.stringify({
+                    type: 'sendmessage',
+                    name: '',
+                    protocol: 'worldMessage',
+                    message: `${name} has arrived.`
+                })
+            })))
             .then(() => (true))
     }
     else {

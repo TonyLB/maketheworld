@@ -6,7 +6,7 @@ const { dbHandler } = require('/opt/dbHandler')
 exports.handler = event => {
   const dbh = new dbHandler(process.env)
   const putParams = {
-    TableName: `${process.env.TABLE_PREFIX}_connections`,
+    TableName: `${process.env.TABLE_PREFIX}_players`,
     Item: {
       connectionId: event.requestContext.connectionId
     }

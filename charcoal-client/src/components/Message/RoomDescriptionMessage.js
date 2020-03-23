@@ -53,7 +53,6 @@ export const RoomDescriptionMessage = ({ message, ...rest }) => {
                         .map(({ name }) => name)
                         .map((player) => {
                             const color = colorMap[player]
-                            console.log(`Chip color: ${color}`)
                             return <Chip
                                 key={player}
                                 label={player}
