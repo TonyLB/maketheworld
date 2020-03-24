@@ -3,14 +3,14 @@
         {
             "PutRequest": {
                 "Item": {
-                    "permanentId": {"N": "1"},
+                    "permanentId": {"S": "VORTEX"},
                     "name": {"S": "The Vortex"},
                     "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."},
                     "exits": {"L": [
                         {
                             "M": {
                                 "exitName": {"S": "lobby"},
-                                "toRoomId": {"N": "2"}
+                                "toRoomId": {"S": "0000-1111-2222"}
                             }
                         }
                     ]}
@@ -20,14 +20,14 @@
         {
             "PutRequest": {
                 "Item": {
-                    "permanentId": {"N": "2"},
+                    "permanentId": {"S": "0000-1111-2222"},
                     "name": {"S": "The Lobby"},
                     "description": {"S": "A comfortable lobby with a staid couch.  Painted on a green wall in large white letters is a message: 'Everything is fine.'  A shining green door leads to a pool of lambent energy."},
                     "exits": {"L": [
                         {
                             "M": {
                                 "exitName": {"S": "vortex"},
-                                "toRoomId": {"N": "1"}
+                                "toRoomId": {"S": "VORTEX"}
                             }
                         }
                     ]}

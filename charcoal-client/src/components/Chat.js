@@ -65,7 +65,7 @@ export const Chat = () => {
 
     useEffect(() => {
         if (name && !webSocket) {
-          let setupSocket = new WebSocket('wss://kesf1y6y06.execute-api.us-east-1.amazonaws.com/Prod')
+          let setupSocket = new WebSocket('>INSERT WSS ADDRESS<')
           setupSocket.onopen = () => {
             console.log('WebSocket Client Connected')
             dispatch(registerName(name))

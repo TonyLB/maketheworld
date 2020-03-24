@@ -1,0 +1,16 @@
+{
+  "name": "put-room",
+  "version": "1.0.0",
+  "description": "Lambda proxy for writing room data into the permanents table",
+  "main": "src/app.js",
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.434.0",
+    "uuid": "^7.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

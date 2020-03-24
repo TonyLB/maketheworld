@@ -15,7 +15,7 @@ exports.handler = (event) => {
   const playerData = {
     connectionId: event.requestContext.connectionId,
     name: nameData,
-    roomId: 0
+    roomId: "VORTEX"
   }
   //
   // Update the name in the Connection record
@@ -25,12 +25,12 @@ exports.handler = (event) => {
       //
       // Move the player to the Vortex
       //
-      world.movePlayerToRoom({ playerData, roomId: 1 })
+      world.movePlayerToRoom({ playerData, roomId: "VORTEX" })
       //
       // Then message everyone there (now including the player) that they have connected.
       //
       .then(() => (world.messageRoom({
-          roomId: 1,
+          roomId: "VORTEX",
           postData: JSON.stringify({
             type: 'sendmessage',
             protocol: 'worldMessage',
