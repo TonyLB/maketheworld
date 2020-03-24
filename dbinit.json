@@ -4,16 +4,9 @@
             "PutRequest": {
                 "Item": {
                     "permanentId": {"S": "VORTEX"},
+                    "type": { "S": "ROOM" },
                     "name": {"S": "The Vortex"},
-                    "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."},
-                    "exits": {"L": [
-                        {
-                            "M": {
-                                "exitName": {"S": "lobby"},
-                                "toRoomId": {"S": "0000-1111-2222"}
-                            }
-                        }
-                    ]}
+                    "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."}
                 }
             }
         },
@@ -21,16 +14,31 @@
             "PutRequest": {
                 "Item": {
                     "permanentId": {"S": "0000-1111-2222"},
+                    "type": {"S": "ROOM" },
                     "name": {"S": "The Lobby"},
-                    "description": {"S": "A comfortable lobby with a staid couch.  Painted on a green wall in large white letters is a message: 'Everything is fine.'  A shining green door leads to a pool of lambent energy."},
-                    "exits": {"L": [
-                        {
-                            "M": {
-                                "exitName": {"S": "vortex"},
-                                "toRoomId": {"S": "VORTEX"}
-                            }
-                        }
-                    ]}
+                    "description": {"S": "A comfortable lobby with a staid couch.  Painted on a green wall in large white letters is a message: 'Everything is fine.'  A shining green door leads to a pool of lambent energy."}
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "permanentId": {"S": "1111-2222-3333"},
+                    "type": { "S": "ENTRY" },
+                    "parentId": {"S": "0000-1111-2222"},
+                    "fromRoomId": {"S": "VORTEX" },
+                    "name": {"S": "vortex"}
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "permanentId": {"S": "2222-3333-4444"},
+                    "type": { "S": "ENTRY" },
+                    "parentId": {"S": "VORTEX" },
+                    "fromRoomId": {"S": "0000-1111-2222"},
+                    "name": {"S": "lobby"}
                 }
             }
         }

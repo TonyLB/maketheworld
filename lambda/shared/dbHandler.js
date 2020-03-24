@@ -18,21 +18,28 @@ class dbHandler {
     getRoom(roomId) {
         return this.documentClient.get({ TableName: this.permanentTable, Key: { permanentId: roomId } })
             .promise()
-            .then(({ Item: { permanentId, ...Item } }) => {
-                return this.documentClient.scan({
-                    TableName: this.connectionTable,
-                    FilterExpression: 'roomId = :roomId',
-                    ExpressionAttributeValues: { ':roomId': roomId }
-                }).promise()
-                .then((props) => {
-                    console.log(props)
-                    return props
-                })
-                .then(({ Items }) => ({
-                    ...Item,
-                    roomId,
-                    players: Items
-                }))
+            .then(({ Item: { type, permanentId, ...Item } }) => {
+                return this.documentClient.query({
+                        TableName: this.permanentTable,
+                        IndexName: 'fromRoomIndex',
+                        KeyConditionExpression: 'fromRoomId = :roomId',
+                        ExpressionAttributeValues: { ':roomId': roomId }
+                    }).promise()
+                    .then(({ Items }) => (Items.map(({ name, parentId }) => ({ exitName: name, toRoomId: parentId }))))
+                    .then((exits) => {
+
+                        return this.documentClient.scan({
+                            TableName: this.connectionTable,
+                            FilterExpression: 'roomId = :roomId',
+                            ExpressionAttributeValues: { ':roomId': roomId }
+                        }).promise()
+                        .then(({ Items }) => ({
+                            ...Item,
+                            roomId,
+                            players: Items,
+                            exits
+                        }))
+                    })
             })
     }
 

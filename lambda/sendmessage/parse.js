@@ -23,7 +23,6 @@ const parseCommand = ({
     if (firstMatchedExit.length) {
         const { roomId } = roomData
         const { toRoomId, exitName } = firstMatchedExit[0]
-        console.log(`To: ${toRoomId}`)
         
         return world.messageRoom({
                 roomId,
