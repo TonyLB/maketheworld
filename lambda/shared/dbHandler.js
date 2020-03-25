@@ -10,12 +10,9 @@ class dbHandler {
         this.writeQueue = []
     }
     //
-    // getRoom:  Gets the entry from the rooms table for a given ID.
+    // getRoomRaw:  Gets the entry from the permanents table for a given ID.
     //
-    // TODO:  Create a room class, instantiate that class on fetch, and serialize back out
-    // on put.
-    //
-    getRoom(roomId) {
+    getRoomRaw({ roomId, admin=false }) {
         return this.documentClient.get({ TableName: this.permanentTable, Key: { permanentId: roomId } })
             .promise()
             .then(({ Item: { type, permanentId, ...Item } }) => {
@@ -26,20 +23,25 @@ class dbHandler {
                         ExpressionAttributeValues: { ':roomId': roomId }
                     }).promise()
                     .then(({ Items }) => (Items.map(({ name, parentId }) => ({ exitName: name, toRoomId: parentId }))))
-                    .then((exits) => {
+                    .then((exits) => ({ ...Item, roomId, exits }))
+            })
+    }
 
-                        return this.documentClient.scan({
-                            TableName: this.connectionTable,
-                            FilterExpression: 'roomId = :roomId',
-                            ExpressionAttributeValues: { ':roomId': roomId }
-                        }).promise()
-                        .then(({ Items }) => ({
-                            ...Item,
-                            roomId,
-                            players: Items,
-                            exits
-                        }))
-                    })
+    //
+    // getRoom:  Gets the permanents data and merges it with player data.
+    //
+    getRoom(roomId) {
+        return this.getRoomRaw({ roomId })
+            .then((roomData) => {
+                return this.documentClient.scan({
+                    TableName: this.connectionTable,
+                    FilterExpression: 'roomId = :roomId',
+                    ExpressionAttributeValues: { ':roomId': roomId }
+                }).promise()
+                .then(({ Items }) => ({
+                    ...roomData,
+                    players: Items
+                }))
             })
     }
 

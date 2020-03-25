@@ -24,6 +24,7 @@ import {
 import MenuIcon from '@material-ui/icons/Menu'
 
 // Local code imports
+import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
@@ -82,7 +83,7 @@ export const Chat = () => {
 
     useEffect(() => {
         if (name && !webSocket) {
-          let setupSocket = new WebSocket('>INSERT WSS ADDRESS<')
+          let setupSocket = new WebSocket(WSS_ADDRESS)
           setupSocket.onopen = () => {
             console.log('WebSocket Client Connected')
             dispatch(registerName(name))
@@ -124,7 +125,7 @@ export const Chat = () => {
                             messages.map((message, index) => (
                                 <Message
                                     key={`Message-${index}`}
-                                    mostRecent={ message === mostRecentRoomMessage }
+                                    { ...( message === mostRecentRoomMessage ? { mostRecent: true } : {})}
                                     message={message}
                                 />
                             ))

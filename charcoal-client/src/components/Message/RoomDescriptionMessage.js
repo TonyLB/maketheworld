@@ -21,7 +21,7 @@ import useStyles from '../styles'
 
 import { getColorMap } from '../../selectors/colorMap.js'
 import { sendMessage } from '../../actions/messages.js'
-import { activateRoomDialog } from '../../actions/UI/roomDialog'
+import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 
 export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false, ...rest }) => {
     const [{ detailsOpen, timeoutId }, setDetailStatus] = useState({ detailsOpen: true, timeoutId: null })
@@ -44,7 +44,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
 
     const colorMap = useSelector(getColorMap)
     const classes = useStyles()
-    const { name='', exits=[], players=[], description='' } = message
+    const { roomId='', name='', exits=[], players=[], description='' } = message
 
     const dispatch = useDispatch()
     const clickHandler = mostRecent ? (exitName) => () => { dispatch(sendMessage(exitName)) } : () => () => {}
@@ -101,7 +101,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                     ? detailsOpen
                         ? <ExpandLessIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
                         : <ExpandMoreIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
-                    : <CreateIcon onClick={() => { dispatch(activateRoomDialog(message)) }} />
+                    : <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(roomId)) }} />
             }
         </ListItemSecondaryAction>
     </ListItem>

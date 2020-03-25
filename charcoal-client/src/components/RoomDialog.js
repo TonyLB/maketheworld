@@ -19,6 +19,8 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    Grid,
+    GridItem
 } from '@material-ui/core'
 import DeleteForeverIcon from '@material-ui/icons/DeleteForever'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
@@ -48,77 +50,90 @@ export const RoomDialog = () => {
         >
             <DialogTitle id="room-dialog-title">Room Edit</DialogTitle>
             <DialogContent>
-                <form className={classes.root} noValidate autoComplete="off">
-                    <Card className={classes.card} >
-                        <CardHeader
-                            title="Appearance"
-                            className={classes.lightblue}
-                            titleTypographyProps={{ variant: "overline" }}
-                        />
-                        <div>
-                            <TextField
-                                required
-                                id="name"
-                                label="Name"
-                                value={name}
-                                onChange={onChangeHandler('name')}
+                <Grid container>
+                    <Grid item>
+                        <Card className={classes.card} >
+                            <CardHeader
+                                title="Appearance"
+                                className={classes.lightblue}
+                                titleTypographyProps={{ variant: "overline" }}
                             />
-                            <TextField
-                                disabled
-                                id="neighborhood"
-                                label="Neighborhood"
-                                value={neighborhood}
+                                <form className={classes.root} noValidate autoComplete="off">
+                                <div>
+                                    <TextField
+                                        required
+                                        id="name"
+                                        label="Name"
+                                        value={name}
+                                        onChange={onChangeHandler('name')}
+                                    />
+                                    <TextField
+                                        disabled
+                                        id="neighborhood"
+                                        label="Neighborhood"
+                                        value={neighborhood}
+                                    />
+                                </div>
+                                <div>
+                                    <TextField
+                                        required
+                                        id="description"
+                                        label="Description"
+                                        value={description}
+                                        multiline
+                                        rows={3}
+                                        fullWidth
+                                        onChange={onChangeHandler('description')}
+                                    />
+                                </div>
+                            </form>
+                        </Card>
+                        <Card className={classes.card} >
+                            <CardHeader
+                                title="External paths"
+                                className={classes.lightblue}
+                                titleTypographyProps={{ variant: "overline" }}
                             />
-                        </div>
-                        <div>
-                            <TextField
-                                required
-                                id="description"
-                                label="Description"
-                                value={description}
-                                multiline
-                                rows={3}
-                                fullWidth
-                                onChange={onChangeHandler('description')}
+                        </Card>
+                    </Grid>
+                    <Grid item>
+                        <Card className={classes.card}>
+                            <CardHeader
+                                title="Neighborhood paths"
+                                className={classes.lightblue}
+                                titleTypographyProps={{ variant: "overline" }}
                             />
-                        </div>
-                    </Card>
-                </form>
-                <Card className={classes.card} >
-                    <CardHeader
-                        title="Neighborhood paths"
-                        className={classes.lightblue}
-                        titleTypographyProps={{ variant: "overline" }}
-                    />
-                    <CardContent>
-                        <TableContainer>
-                            <Table className={classes.table}>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Name</TableCell>
-                                        <TableCell>To/From</TableCell>
-                                        <TableCell align="right">Room</TableCell>
-                                        <TableCell align="right">
-                                            <DeleteForeverIcon />
-                                        </TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    { exits.map(({ exitName, toRoomId }) => (
-                                        <TableRow>
-                                            <TableCell>{exitName}</TableCell>
-                                            <TableCell><ArrowForwardIcon /><HouseIcon /></TableCell>
-                                            <TableCell align="right">{toRoomId}</TableCell>
-                                            <TableCell align="right">
-                                                <DeleteForeverIcon />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </CardContent>
-                </Card>
+                            <CardContent>
+                                <TableContainer>
+                                    <Table className={classes.table}>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>Name</TableCell>
+                                                <TableCell>To/From</TableCell>
+                                                <TableCell align="right">Room</TableCell>
+                                                <TableCell align="right">
+                                                    <DeleteForeverIcon />
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            { exits.map(({ exitName, toRoomId }) => (
+                                                <TableRow key={`exit:${exitName}-${toRoomId}`}>
+                                                    <TableCell>{exitName}</TableCell>
+                                                    <TableCell><ArrowForwardIcon /><HouseIcon /></TableCell>
+                                                    <TableCell align="right">{toRoomId}</TableCell>
+                                                    <TableCell align="right">
+                                                        <DeleteForeverIcon />
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
             </DialogContent>
             <DialogActions>
                 <Button onClick={ () => { dispatch(closeRoomDialog()) } }>

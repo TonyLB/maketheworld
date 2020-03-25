@@ -17,7 +17,7 @@ Parameters:
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
 Resources:
-  SimpleChatWebSocket:
+  RealTimeWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: BurnedOverRealTimeSocket
@@ -26,7 +26,7 @@ Resources:
   ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       RouteKey: $connect
       AuthorizationType: NONE
       OperationName: ConnectRoute
@@ -37,7 +37,7 @@ Resources:
   ConnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       Description: Connect Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: 
@@ -46,7 +46,7 @@ Resources:
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       RouteKey: $disconnect
       AuthorizationType: NONE
       OperationName: DisconnectRoute
@@ -57,7 +57,7 @@ Resources:
   DisconnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       Description: Disconnect Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: 
@@ -66,7 +66,7 @@ Resources:
   SendRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       RouteKey: sendmessage
       AuthorizationType: NONE
       OperationName: SendRoute
@@ -77,7 +77,7 @@ Resources:
   SendInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       Description: Send Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: 
@@ -86,7 +86,7 @@ Resources:
   RegisterNameRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       RouteKey: registername
       AuthorizationType: NONE
       OperationName: RegisterNameRoute
@@ -97,13 +97,13 @@ Resources:
   RegisterNameInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
+      ApiId: !Ref RealTimeWebSocket
       Description: Register Name Integtration
       IntegrationType: AWS_PROXY
       IntegrationUri:
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterNameFunction.Arn}/invocations
-  Deployment:
+  RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - ConnectRoute
@@ -111,14 +111,14 @@ Resources:
     - RegisterNameRoute
     - DisconnectRoute
     Properties:
-      ApiId: !Ref SimpleChatWebSocket
-  Stage:
+      ApiId: !Ref RealTimeWebSocket
+  RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       StageName: Prod
       Description: Prod Stage
-      DeploymentId: !Ref Deployment
-      ApiId: !Ref SimpleChatWebSocket
+      DeploymentId: !Ref RealTimeDeployment
+      ApiId: !Ref RealTimeWebSocket
   PlayersTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -193,7 +193,7 @@ Resources:
   OnConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - SimpleChatWebSocket
+      - RealTimeWebSocket
       - OnConnectFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -221,11 +221,11 @@ Resources:
           Action:
           - 'execute-api:ManageConnections'
           Resource:
-          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SimpleChatWebSocket}/*'
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - SimpleChatWebSocket
+      - RealTimeWebSocket
       - OnDisconnectFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -253,11 +253,11 @@ Resources:
           Action:
           - 'execute-api:ManageConnections'
           Resource:
-          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SimpleChatWebSocket}/*'
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
   SendMessagePermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - SimpleChatWebSocket
+      - RealTimeWebSocket
       - SendMessageFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -285,11 +285,11 @@ Resources:
           Action:
           - 'execute-api:ManageConnections'
           Resource:
-          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SimpleChatWebSocket}/*'
+          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
   RegisterNamePermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - SimpleChatWebSocket
+      - RealTimeWebSocket
       - RegisterNameFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -390,7 +390,7 @@ Resources:
         - StatusCode: 200
           ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
             method.response.header.Access-Control-Allow-Origin: "'*'"
           ResponseTemplates:
             application/json: ''
@@ -406,45 +406,41 @@ Resources:
             method.response.header.Access-Control-Allow-Headers: false
             method.response.header.Access-Control-Allow-Methods: false
             method.response.header.Access-Control-Allow-Origin: false
+  GetRoomFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/permanents/getRoom/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Layers:
+        - !Ref SharedLambdaLayer
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
+  GetRoomPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - PermanentsAdminAPI
+      - GetRoomFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetRoomFunction
+      Principal: apigateway.amazonaws.com
   GetRoomMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       HttpMethod: GET
       AuthorizationType: NONE
-      RequestParameters:
-        method.request.path.roomId: true
       Integration:
         IntegrationHttpMethod: POST
-        Type: AWS
-        Credentials: !GetAtt "PermanentsAPIExecutionRole.Arn"
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:dynamodb:action/GetItem"
-        RequestTemplates:
-          application/json: !Sub >-
-            {
-                "TableName": "${TablePrefix}_permanents",
-                "Key": {
-                    "permanentId": { "S": "$input.params('roomId')" }
-                }
-            }
-        IntegrationResponses:
-          - ResponseTemplates:
-              application/json: >-
-                #set($inputRoot = $input.path('$.Item'))
-                {
-                    "roomId": "$inputRoot.permanentId.S",
-                    "name": "$inputRoot.name.S",
-                    "description": "$inputRoot.description.S",
-                    "exits": [
-                        #foreach($exit in $inputRoot.exits.L) {
-                            "exitName": "$exit.M.exitName.S",
-                            "toRoomId": "$exit.M.toRoomId.S"
-                        }#if($foreach.hasNext),#end
-                        #end
-                    ]
-                }
-            StatusCode: 200
-        RequestParameters:
-          integration.request.path.roomId: "method.request.path.roomId"
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub:
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetRoomFunction.Arn}/invocations
       MethodResponses:
         - ResponseModels:
             application/json: Empty
@@ -483,7 +479,6 @@ Resources:
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
-        # Credentials: !GetAtt "PermanentsAPIExecutionRole.Arn"
         Uri:
           Fn::Sub:
               arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutRoomFunction.Arn}/invocations
@@ -492,6 +487,20 @@ Resources:
             application/json: Empty
           StatusCode: 200
       ResourceId: !Ref RoomResource
+      RestApiId: !Ref PermanentsAdminAPI
+  PermanentsAPIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+    - GetRoomMethod
+    - PutRoomMethod
+    Properties:
+      RestApiId: !Ref PermanentsAdminAPI
+  PermanentsAPIStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref PermanentsAPIDeployment
       RestApiId: !Ref PermanentsAdminAPI
 
 Outputs:
@@ -517,4 +526,4 @@ Outputs:
 
   WebSocketURI:
     Description: "The WSS Protocol URI to connect to"
-    Value: !Join [ '', [ 'wss://', !Ref SimpleChatWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
+    Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]

@@ -27,7 +27,7 @@
                     "type": { "S": "ENTRY" },
                     "parentId": {"S": "0000-1111-2222"},
                     "fromRoomId": {"S": "VORTEX" },
-                    "name": {"S": "vortex"}
+                    "name": {"S": "lobby"}
                 }
             }
         },
@@ -38,7 +38,7 @@
                     "type": { "S": "ENTRY" },
                     "parentId": {"S": "VORTEX" },
                     "fromRoomId": {"S": "0000-1111-2222"},
-                    "name": {"S": "lobby"}
+                    "name": {"S": "vortex"}
                 }
             }
         }
