@@ -17,7 +17,9 @@ import {
     List,
     AppBar,
     Toolbar,
-    IconButton
+    IconButton,
+    Menu,
+    MenuItem
 } from '@material-ui/core'
 import MenuIcon from '@material-ui/icons/Menu'
 
@@ -25,6 +27,7 @@ import MenuIcon from '@material-ui/icons/Menu'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
+import { activateRoomDialog } from '../actions/UI/roomDialog'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
@@ -68,6 +71,15 @@ export const Chat = () => {
 
     const classes = useStyles()
 
+    const [ anchorEl, setAnchorEl ] = useState(null)
+    const menuOpen = Boolean(anchorEl)
+    const handleMenuClose = () => { setAnchorEl(null) }
+    const handleMenuOpen = (event) => { setAnchorEl(event.currentTarget) }
+    const handleAddRoom = () => {
+        dispatch(activateRoomDialog({}))
+        handleMenuClose()
+    }
+
     useEffect(() => {
         if (name && !webSocket) {
           let setupSocket = new WebSocket('>INSERT WSS ADDRESS<')
@@ -94,14 +106,13 @@ export const Chat = () => {
         }
     }, [webSocket, name, dispatch])
 
-    const [roomDialogOpen, setRoomDialogOpen] = useState(false)
     return (
         <React.Fragment>
             <AppBar position="fixed" color="primary" className={classes.topAppBar}>
                 {
                     mostRecentRoomMessage && <Container maxWidth="lg">
                          <List>
-                            <RoomDescriptionMessage key={`RoomMessage`} message={mostRecentRoomMessage} />
+                            <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={mostRecentRoomMessage} />
                         </List>
                     </Container>
                 }
@@ -111,7 +122,11 @@ export const Chat = () => {
                     <List className={classes.messageList}>
                         {
                             messages.map((message, index) => (
-                                <Message key={`Message-${index}`} message={message} />
+                                <Message
+                                    key={`Message-${index}`}
+                                    mostRecent={ message === mostRecentRoomMessage }
+                                    message={message}
+                                />
                             ))
                         }
                     </List>
@@ -124,7 +139,7 @@ export const Chat = () => {
                             edge="start"
                             color="inherit"
                             aria-label="open drawer"
-                            onClick={ () => { setRoomDialogOpen(!roomDialogOpen) } }
+                            onClick={handleMenuOpen}
                         >
                             <MenuIcon />
                         </IconButton>
@@ -132,12 +147,28 @@ export const Chat = () => {
                             className={classes.lineEntry}
                             callback={ (entry) => { dispatch(sendMessage(entry)) }}
                         />
+                        <Menu
+                            open={menuOpen}
+                            anchorEl={anchorEl}
+                            anchorOrigin={{
+                                vertical: 'top',
+                                horizontal: 'left',
+                              }}
+                              keepMounted
+                              transformOrigin={{
+                                vertical: 'bottom',
+                                horizontal: 'left',
+                              }}
+                              onClose={handleMenuClose}
+                        >
+                            <MenuItem onClick={handleAddRoom}>
+                                Add room
+                            </MenuItem>
+                        </Menu>
                     </Toolbar>
                 </Container>
             </AppBar>
             <RoomDialog
-                open={roomDialogOpen}
-                onClose={() => { setRoomDialogOpen(false) }}
                 defaultValues={mostRecentRoomMessage || {}}
             />
             <NameDialog

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 
 import {
     Typography,
@@ -15,12 +15,15 @@ import {
 import HouseIcon from '@material-ui/icons/House'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import CreateIcon from '@material-ui/icons/Create'
 
 import useStyles from '../styles'
 
 import { getColorMap } from '../../selectors/colorMap.js'
+import { sendMessage } from '../../actions/messages.js'
+import { activateRoomDialog } from '../../actions/UI/roomDialog'
 
-export const RoomDescriptionMessage = ({ message, inline=false, ...rest }) => {
+export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false, ...rest }) => {
     const [{ detailsOpen, timeoutId }, setDetailStatus] = useState({ detailsOpen: true, timeoutId: null })
 
     useEffect(() => {
@@ -42,6 +45,9 @@ export const RoomDescriptionMessage = ({ message, inline=false, ...rest }) => {
     const colorMap = useSelector(getColorMap)
     const classes = useStyles()
     const { name='', exits=[], players=[], description='' } = message
+
+    const dispatch = useDispatch()
+    const clickHandler = mostRecent ? (exitName) => () => { dispatch(sendMessage(exitName)) } : () => () => {}
     return <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
         <ListItemIcon>
             <HouseIcon />
@@ -64,6 +70,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, ...rest }) => {
                             <Chip
                                 key={exit.exitName}
                                 label={exit.exitName}
+                                onClick={clickHandler(exit.exitName)}
                             />
                         ))}
                     </Grid>
@@ -88,14 +95,15 @@ export const RoomDescriptionMessage = ({ message, inline=false, ...rest }) => {
                 </Grid>
             </React.Fragment>}
         </ListItemText>
-        { inline && <ListItemSecondaryAction>
-                <Typography variant='body1' align='right'>
-                    <span onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} >
-                        { (detailsOpen && <ExpandLessIcon />) || <ExpandMoreIcon /> }
-                    </span>
-                </Typography>
-            </ListItemSecondaryAction>
-        }
+        <ListItemSecondaryAction>
+            {
+                inline
+                    ? detailsOpen
+                        ? <ExpandLessIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
+                        : <ExpandMoreIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
+                    : <CreateIcon onClick={() => { dispatch(activateRoomDialog(message)) }} />
+            }
+        </ListItemSecondaryAction>
     </ListItem>
 }
 

@@ -1,5 +1,6 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
 import {
@@ -18,34 +19,33 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Typography
 } from '@material-ui/core'
 import DeleteForeverIcon from '@material-ui/icons/DeleteForever'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
-import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import HouseIcon from '@material-ui/icons/House'
 
 
 // Local code imports
+import { closeRoomDialog } from '../actions/UI/roomDialog'
+import { getRoomDialogUI } from '../selectors/UI/roomDialog.js'
 import useStyles from './styles'
 
+export const RoomDialog = () => {
+    const { open, ...defaultValues } = useSelector(getRoomDialogUI)
+    const [formValues, setFormValues] = useState({})
+    const dispatch = useDispatch()
 
-export const RoomDialog = ({ open, onClose = () => {}, defaultValues = {} }) => {
-    const [formValues, setFormValues] = useState(defaultValues)
-
-    useEffect(() => {
-        if (!open) {
-            setFormValues(defaultValues)
-        }
-    }, [open, defaultValues])
-
-    const { name = '', neighborhood = '', description = '', entries=[], exits=[] } = formValues
+    const { name = '', neighborhood = '', description = '', exits=[] } = formValues
 
     const onChangeHandler = (label) => (event) => { setFormValues({ ...formValues, [label]: event.target.value }) }
 
     const classes = useStyles()
     return(
-        <Dialog maxWidth="lg" open={open}>
+        <Dialog
+            maxWidth="lg"
+            open={open}
+            onEnter={() => { setFormValues(defaultValues) } }
+        >
             <DialogTitle id="room-dialog-title">Room Edit</DialogTitle>
             <DialogContent>
                 <form className={classes.root} noValidate autoComplete="off">
@@ -121,10 +121,10 @@ export const RoomDialog = ({ open, onClose = () => {}, defaultValues = {} }) => 
                 </Card>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>
+                <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
                     Cancel
                 </Button>
-                <Button onClick={onClose}>
+                <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
                     Save
                 </Button>
             </DialogActions>

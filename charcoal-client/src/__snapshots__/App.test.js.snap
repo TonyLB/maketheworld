@@ -1,15 +1,75 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`renders learn react link 1`] = `
-<div
-  class="MuiContainer-root makeStyles-messageContainer-16 MuiContainer-maxWidthLg"
+<header
+  class="MuiPaper-root MuiAppBar-root MuiAppBar-positionFixed MuiAppBar-colorPrimary makeStyles-topAppBar-15 mui-fixed MuiPaper-elevation4"
+  style="padding-right: 0px;"
 >
   <div
-    class="MuiPaper-root makeStyles-messagePaper-17 MuiPaper-elevation1 MuiPaper-rounded"
+    class="MuiContainer-root MuiContainer-maxWidthLg"
   >
     <ul
       class="MuiList-root MuiList-padding"
-    />
+    >
+      <li
+        class="MuiListItem-root makeStyles-roomMessage-14 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+      >
+        <div
+          class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root"
+            focusable="false"
+            role="presentation"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3l-3-2.7zm-9 .7c0-1.1.9-2 2-2s2 .9 2 2h-4z"
+            />
+          </svg>
+        </div>
+        <div
+          class="MuiListItemText-root"
+        >
+          <span
+            class="MuiTypography-root MuiListItemText-primary MuiTypography-body1"
+          >
+            <h5
+              class="MuiTypography-root MuiTypography-h5 MuiTypography-alignLeft"
+            />
+            <p
+              class="MuiTypography-root MuiTypography-body1 MuiTypography-alignLeft"
+            />
+            <hr
+              class="MuiDivider-root"
+            />
+            <div
+              class="MuiGrid-root MuiGrid-container"
+            >
+              <div
+                class="MuiGrid-root MuiGrid-item MuiGrid-grid-md-true"
+              >
+                <h6
+                  class="MuiTypography-root MuiTypography-subtitle1 MuiTypography-alignCenter"
+                >
+                  Exits:
+                </h6>
+              </div>
+              <div
+                class="MuiGrid-root MuiGrid-item MuiGrid-grid-md-true"
+              >
+                <h6
+                  class="MuiTypography-root MuiTypography-subtitle1 MuiTypography-alignCenter"
+                >
+                  Players:
+                </h6>
+              </div>
+            </div>
+          </span>
+        </div>
+      </li>
+    </ul>
   </div>
-</div>
+</header>
 `;
