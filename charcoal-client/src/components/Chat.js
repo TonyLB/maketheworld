@@ -10,6 +10,7 @@ import {
     CircularProgress,
     Dialog,
     DialogTitle,
+    DialogContent,
     DialogActions,
     Button,
     TextField,
@@ -24,12 +25,14 @@ import MenuIcon from '@material-ui/icons/Menu'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
-import { getMessages } from '../selectors/messages.js'
+import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
+import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
 import useStyles from './styles'
+import RoomDialog from './RoomDialog'
 
 const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
@@ -38,12 +41,14 @@ const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     return(
         <Dialog maxWidth="lg" onClose={handleClose} open={open} >
             <DialogTitle id="name-dialog-title">Choose a Name</DialogTitle>
-            <TextField
-                fullWidth
-                placeholder='Enter your name here'
-                onChange={(e) => setLocalName(e.target.value)}
-                value={localName}
-            />
+            <DialogContent>
+                <TextField
+                    fullWidth
+                    placeholder='Enter your name here'
+                    onChange={(e) => setLocalName(e.target.value)}
+                    value={localName}
+                />
+            </DialogContent>
             <DialogActions>
                 <Button autoFocus onClick={handleClose} color="primary">
                     Save
@@ -53,10 +58,10 @@ const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     )
 }
 
-
 export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
     const messages = useSelector(getMessages)
+    const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
     const name = useSelector(getName)
 
     const dispatch = useDispatch()
@@ -88,8 +93,19 @@ export const Chat = () => {
           dispatch(registerWebSocket(setupSocket))
         }
     }, [webSocket, name, dispatch])
+
+    const [roomDialogOpen, setRoomDialogOpen] = useState(false)
     return (
         <React.Fragment>
+            <AppBar position="fixed" color="primary" className={classes.topAppBar}>
+                {
+                    mostRecentRoomMessage && <Container maxWidth="lg">
+                         <List>
+                            <RoomDescriptionMessage key={`RoomMessage`} message={mostRecentRoomMessage} />
+                        </List>
+                    </Container>
+                }
+            </AppBar>
             <Container className={classes.messageContainer} maxWidth="lg">
                 <Paper className={classes.messagePaper}>
                     <List className={classes.messageList}>
@@ -101,10 +117,15 @@ export const Chat = () => {
                     </List>
                 </Paper>
             </Container>
-            <AppBar position="fixed" color="primary" className={classes.appBar}>
+            <AppBar position="fixed" color="primary" className={classes.bottomAppBar}>
                 <Container className={classes.container} maxWidth="lg">
                     <Toolbar>
-                        <IconButton edge="start" color="inherit" aria-label="open drawer">
+                        <IconButton
+                            edge="start"
+                            color="inherit"
+                            aria-label="open drawer"
+                            onClick={ () => { setRoomDialogOpen(!roomDialogOpen) } }
+                        >
                             <MenuIcon />
                         </IconButton>
                         <LineEntry
@@ -114,6 +135,11 @@ export const Chat = () => {
                     </Toolbar>
                 </Container>
             </AppBar>
+            <RoomDialog
+                open={roomDialogOpen}
+                onClose={() => { setRoomDialogOpen(false) }}
+                defaultValues={mostRecentRoomMessage || {}}
+            />
             <NameDialog
                 open={!name}
                 defaultValue={name}

@@ -12,7 +12,7 @@ export const Message = ({ message, ...rest }) => {
         return <PlayerMessage message={message} {...rest} />
     }
     else if (message instanceof roomDescription) {
-        return <RoomDescriptionMessage message={message} {...rest} />
+        return <RoomDescriptionMessage inline message={message} {...rest} />
     }
     return <WorldMessage message={message} {...rest} />
 }

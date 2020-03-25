@@ -21,14 +21,23 @@ export const useStyles = makeStyles(theme => ({
             backgroundColor: color[50]
         }
     })).reduce((prev, item) => ({ ...prev, ...item }), {})),
+    root: {
+        '& .MuiTextField-root': {
+            margin: theme.spacing(1),
+            minWidth: '25ch',
+        },
+    },
     roomMessage: {
         color: theme.palette.getContrastText(theme.palette.primary.main),
         backgroundColor: theme.palette.primary.main,
     },
-    appBar: {
+    topAppBar: {
+        top: 0
+    },
+    bottomAppBar: {
         top: 'auto',
         bottom: 0,
-      },
+    },
     lineEntry: {
         backgroundColor: theme.palette.background.default
     },

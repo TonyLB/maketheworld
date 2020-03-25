@@ -8,7 +8,7 @@ import {
 
 export const WorldMessage = ({ message, ...rest }) => {
     return <ListItem alignItems="flex-start" {...rest} >
-        <ListItemText>
+        <ListItemText inset>
             <Typography variant='body1' align='left'>
                 { message.message }
             </Typography>
