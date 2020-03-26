@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useState } from 'react'
+import React, { useReducer } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -29,17 +29,74 @@ import HouseIcon from '@material-ui/icons/House'
 
 // Local code imports
 import { closeRoomDialog } from '../actions/UI/roomDialog'
+import { putAndCloseRoomDialog } from '../actions/permanentAdmin'
 import { getRoomDialogUI } from '../selectors/UI/roomDialog.js'
 import useStyles from './styles'
 
+const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
+const resetFormValues = (defaultValues) => ({
+    type: RESET_FORM_VALUES,
+    defaultValues
+})
+const APPEARANCE_UPDATE = 'APPEARANCE_UPDATE'
+const appearanceUpdate = ({ label, value }) => ({
+    type: APPEARANCE_UPDATE,
+    label,
+    value
+})
+const REMOVE_EXIT = 'REMOVE_EXIT'
+const removeExit = (roomId) => ({
+    type: REMOVE_EXIT,
+    roomId
+})
+const REMOVE_ENTRY = 'REMOVE_ENTRY'
+const removeEntry = (roomId) => ({
+    type: REMOVE_ENTRY,
+    roomId
+})
+const roomDialogReducer = (state, action) => {
+    switch(action.type) {
+        case APPEARANCE_UPDATE:
+            return {
+                ...state,
+                [action.label]: action.value
+            }
+        case RESET_FORM_VALUES:
+            return action.defaultValues
+        case REMOVE_EXIT:
+            return {
+                ...state,
+                exits: state.exits.filter(exit => (exit.roomId !== action.roomId))
+            }
+        case REMOVE_ENTRY:
+            return {
+                ...state,
+                entries: state.entries.filter(entry => (entry.roomId !== action.roomId))
+            }
+        default:
+            return state
+    }
+}
+
 export const RoomDialog = () => {
     const { open, ...defaultValues } = useSelector(getRoomDialogUI)
-    const [formValues, setFormValues] = useState({})
+    const [formValues, formDispatch] = useReducer(roomDialogReducer, {})
     const dispatch = useDispatch()
 
     const { name = '', parentId = '', description = '', exits=[], entries=[], parentName='' } = formValues
 
-    const onChangeHandler = (label) => (event) => { setFormValues({ ...formValues, [label]: event.target.value }) }
+    const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
+    const onPathDeleteHandler = (type, roomId) => () => {
+        formDispatch(type === 'EXIT'
+            ? removeExit(roomId)
+            : removeEntry(roomId)
+        )
+    }
+    const saveHandler = () => {
+        const { name, description, parentId, roomId, exits, entries } = formValues
+        const roomData = { name, description, parentId, roomId, exits, entries }
+        dispatch(putAndCloseRoomDialog(roomData))
+    }
 
     const paths = [
         ...(exits.map((exit) => ({ type: 'EXIT', ...exit }))),
@@ -54,7 +111,7 @@ export const RoomDialog = () => {
         <Dialog
             maxWidth="lg"
             open={open}
-            onEnter={() => { setFormValues(defaultValues) } }
+            onEnter={() => { formDispatch(resetFormValues(defaultValues)) } }
         >
             <DialogTitle id="room-dialog-title">Room Edit</DialogTitle>
             <DialogContent>
@@ -74,7 +131,7 @@ export const RoomDialog = () => {
                                             id="name"
                                             label="Name"
                                             value={name}
-                                            onChange={onChangeHandler('name')}
+                                            onChange={onShallowChangeHandler('name')}
                                         />
                                         <TextField
                                             disabled
@@ -92,7 +149,7 @@ export const RoomDialog = () => {
                                             multiline
                                             rows={3}
                                             fullWidth
-                                            onChange={onChangeHandler('description')}
+                                            onChange={onShallowChangeHandler('description')}
                                         />
                                     </div>
                                 </form>
@@ -124,6 +181,7 @@ export const RoomDialog = () => {
                                                         name,
                                                         id,
                                                         type,
+                                                        roomId,
                                                         roomName,
                                                         roomParentName
                                                     }) => (
@@ -137,7 +195,7 @@ export const RoomDialog = () => {
                                                         <TableCell>{roomParentName}</TableCell>
                                                         <TableCell align="right">{roomName}</TableCell>
                                                         <TableCell align="right">
-                                                            <DeleteForeverIcon />
+                                                            <DeleteForeverIcon onClick={onPathDeleteHandler(type, roomId)} />
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
@@ -172,7 +230,7 @@ export const RoomDialog = () => {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                { neighborhoodPaths.map(({ name, exitId, entryId, type, roomName }) => (
+                                                { neighborhoodPaths.map(({ name, exitId, entryId, roomId, type, roomName }) => (
                                                     <TableRow key={`${exitId || entryId}`}>
                                                         <TableCell>{name}</TableCell>
                                                         <TableCell>
@@ -182,7 +240,7 @@ export const RoomDialog = () => {
                                                         </TableCell>
                                                         <TableCell align="right">{roomName}</TableCell>
                                                         <TableCell align="right">
-                                                            <DeleteForeverIcon />
+                                                            <DeleteForeverIcon onClick={onPathDeleteHandler(type, roomId)} />
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
@@ -200,7 +258,7 @@ export const RoomDialog = () => {
                 <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
                     Cancel
                 </Button>
-                <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
+                <Button onClick={saveHandler}>
                     Save
                 </Button>
             </DialogActions>

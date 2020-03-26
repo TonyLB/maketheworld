@@ -130,6 +130,67 @@ class dbHandler {
     }
 
     //
+    // treeReducer: Takes an in-construction tree and a new element (with ancestry)
+    // and recursively builds whatever empty branches are needed to store the information,
+    // or fills in information in an empty branch already created.
+    //
+    treeReducer(previous, { passedAncestry, ancestry, ...item }) {
+        const currentAncestry = passedAncestry || ancestry
+        if (!currentAncestry) {
+            return previous
+        }
+        const ancestryList = currentAncestry.split(':')
+        const remainingAncestry = ancestryList.slice(1).join(':')
+        const rootKey = ancestryList[0]
+        if (remainingAncestry) {
+            const children = this.treeReducer.bind(this)(
+                (previous[rootKey] || {}).children || {},
+                { passedAncestry: remainingAncestry, ancestry, ...item }
+            )
+            return {
+                ...previous,
+                [rootKey]: {
+                    permanentId: rootKey,
+                    ...(previous[rootKey] || {}),
+                    children
+                }
+            }
+        }
+        else {
+            return {
+                ...previous,
+                [rootKey]: {
+                    ...(previous[rootKey] || {}),
+                    ancestry,
+                    ...item
+                }
+            }
+        }
+    }
+
+    //
+    // getAllNeighborhoods: Returns a "table-of-contents" top-level view of the
+    // names and IDs of all neighborhoods and rooms in the permanents table.
+    //
+    getAllNeighborhoods() {
+        return this.documentClient.scan({
+            TableName: this.permanentTable,
+            FilterExpression: '#t = :neighborhood or #t = :room',
+            ProjectionExpression: '#t, #n, permanentId, parentId, ancestry',
+            ExpressionAttributeNames: {
+                '#n': 'name',
+                '#t': 'type'
+            },
+            ExpressionAttributeValues: {
+                ':neighborhood': 'NEIGHBORHOOD',
+                ':room': 'ROOM'
+            }
+        }).promise()
+        .then(({ Items }) => Items)
+        .then(Items => Items.reduce(this.treeReducer.bind(this), {}))
+    }
+
+    //
     // getRoomConnections: Get only the connection IDs of players in the room (which
     // are all handily present in the connection table, no need to hit permanents)
     //

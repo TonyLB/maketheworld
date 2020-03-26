@@ -356,7 +356,7 @@ Resources:
         - StatusCode: 200
           ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-            method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+            method.response.header.Access-Control-Allow-Methods: "'PUT,OPTIONS'"
             method.response.header.Access-Control-Allow-Origin: "'*'"
           ResponseTemplates:
             application/json: ''
@@ -493,6 +493,7 @@ Resources:
     DependsOn:
     - GetRoomMethod
     - PutRoomMethod
+    - GetAllNeighborhoodsMethod
     Properties:
       RestApiId: !Ref PermanentsAdminAPI
   PermanentsAPIStage:
@@ -501,6 +502,83 @@ Resources:
       StageName: Prod
       Description: Prod Stage
       DeploymentId: !Ref PermanentsAPIDeployment
+      RestApiId: !Ref PermanentsAdminAPI
+  NeighborhoodResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PermanentsAdminAPI
+      ParentId: !GetAtt
+        - PermanentsAdminAPI
+        - RootResourceId
+      PathPart: "neighborhood"
+  NeighborhoodOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref PermanentsAdminAPI
+      ResourceId: !Ref NeighborhoodResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  GetAllNeighborhoodsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/permanents/getAllNeighborhoods/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Layers:
+        - !Ref SharedLambdaLayer
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
+  GetAllNeighborhoodsPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - PermanentsAdminAPI
+      - GetAllNeighborhoodsFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetAllNeighborhoodsFunction
+      Principal: apigateway.amazonaws.com
+  GetAllNeighborhoodsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub:
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetAllNeighborhoodsFunction.Arn}/invocations
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: 200
+      ResourceId: !Ref NeighborhoodResource
       RestApiId: !Ref PermanentsAdminAPI
 
 Outputs:

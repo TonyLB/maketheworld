@@ -6,7 +6,8 @@
                     "permanentId": {"S": "VORTEX"},
                     "type": { "S": "ROOM" },
                     "name": {"S": "The Vortex"},
-                    "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."}
+                    "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."},
+                    "ancestry": {"S": "VORTEX"}
                 }
             }
         },
@@ -17,7 +18,8 @@
                     "parentId": {"S": "3333-4444-5555"},
                     "type": {"S": "ROOM" },
                     "name": {"S": "The Lobby"},
-                    "description": {"S": "A comfortable lobby with a staid couch.  Painted on a green wall in large white letters is a message: 'Everything is fine.'  A shining green door leads to a pool of lambent energy."}
+                    "description": {"S": "A comfortable lobby with a staid couch.  Painted on a green wall in large white letters is a message: 'Everything is fine.'  A shining green door leads to a pool of lambent energy."},
+                    "ancestry": {"S": "3333-4444-5555:0000-1111-2222"}
                 }
             }
         },
@@ -28,7 +30,8 @@
                     "type": { "S": "ENTRY" },
                     "parentId": {"S": "0000-1111-2222"},
                     "fromRoomId": {"S": "VORTEX" },
-                    "name": {"S": "lobby"}
+                    "name": {"S": "lobby"},
+                    "ancestry": {"S": "3333-4444-5555:0000-1111-2222:1111-2222-3333"}
                 }
             }
         },
@@ -39,7 +42,8 @@
                     "type": { "S": "ENTRY" },
                     "parentId": {"S": "VORTEX" },
                     "fromRoomId": {"S": "0000-1111-2222"},
-                    "name": {"S": "vortex"}
+                    "name": {"S": "vortex"},
+                    "ancestry": {"S": "VORTEX:2222-3333-4444"}
                 }
             }
         },
@@ -48,7 +52,8 @@
                 "Item": {
                     "permanentId": {"S": "3333-4444-5555"},
                     "type": { "S": "NEIGHBORHOOD" },
-                    "name": {"S": "The Good Place"}
+                    "name": {"S": "The Good Place"},
+                    "ancestry": {"S": "3333-4444-5555"}
                 }
             }
         }

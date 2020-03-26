@@ -3,6 +3,7 @@ import thunk from 'redux-thunk'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
 import name from '../reducers/name.js'
+import neighborhoods from '../reducers/neighborhoods.js'
 import colorMap from '../reducers/colorMap.js'
 import uiReducer from '../reducers/UI'
 
@@ -11,6 +12,7 @@ export const store = createStore(
         colorMap,
         messages,
         name,
+        neighborhoods,
         UI: uiReducer,
         webSocket
     }),
