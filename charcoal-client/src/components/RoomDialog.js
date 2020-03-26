@@ -19,11 +19,11 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Grid,
-    GridItem
+    Grid
 } from '@material-ui/core'
 import DeleteForeverIcon from '@material-ui/icons/DeleteForever'
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
+import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import HouseIcon from '@material-ui/icons/House'
 
 
@@ -37,9 +37,17 @@ export const RoomDialog = () => {
     const [formValues, setFormValues] = useState({})
     const dispatch = useDispatch()
 
-    const { name = '', neighborhood = '', description = '', exits=[] } = formValues
+    const { name = '', parentId = '', description = '', exits=[], entries=[], parentName='' } = formValues
 
     const onChangeHandler = (label) => (event) => { setFormValues({ ...formValues, [label]: event.target.value }) }
+
+    const paths = [
+        ...(exits.map((exit) => ({ type: 'EXIT', ...exit }))),
+        ...(entries.map((entry) => ({ type: 'ENTRY', ...entry })))
+    ].sort(({ roomId: roomIdA }, { roomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
+
+    const neighborhoodPaths = paths.filter(({ parentRoomId }) => (parentRoomId === parentId))
+    const externalPaths = paths.filter(({ parentRoomId }) => (parentRoomId !== parentId))
 
     const classes = useStyles()
     return(
@@ -58,35 +66,37 @@ export const RoomDialog = () => {
                                 className={classes.lightblue}
                                 titleTypographyProps={{ variant: "overline" }}
                             />
+                            <CardContent>
                                 <form className={classes.root} noValidate autoComplete="off">
-                                <div>
-                                    <TextField
-                                        required
-                                        id="name"
-                                        label="Name"
-                                        value={name}
-                                        onChange={onChangeHandler('name')}
-                                    />
-                                    <TextField
-                                        disabled
-                                        id="neighborhood"
-                                        label="Neighborhood"
-                                        value={neighborhood}
-                                    />
-                                </div>
-                                <div>
-                                    <TextField
-                                        required
-                                        id="description"
-                                        label="Description"
-                                        value={description}
-                                        multiline
-                                        rows={3}
-                                        fullWidth
-                                        onChange={onChangeHandler('description')}
-                                    />
-                                </div>
-                            </form>
+                                    <div>
+                                        <TextField
+                                            required
+                                            id="name"
+                                            label="Name"
+                                            value={name}
+                                            onChange={onChangeHandler('name')}
+                                        />
+                                        <TextField
+                                            disabled
+                                            id="neighborhood"
+                                            label="Neighborhood"
+                                            value={parentName}
+                                        />
+                                    </div>
+                                    <div>
+                                        <TextField
+                                            required
+                                            id="description"
+                                            label="Description"
+                                            value={description}
+                                            multiline
+                                            rows={3}
+                                            fullWidth
+                                            onChange={onChangeHandler('description')}
+                                        />
+                                    </div>
+                                </form>
+                            </CardContent>
                         </Card>
                         <Card className={classes.card} >
                             <CardHeader
@@ -94,42 +104,93 @@ export const RoomDialog = () => {
                                 className={classes.lightblue}
                                 titleTypographyProps={{ variant: "overline" }}
                             />
+                            <CardContent>
+                                { (externalPaths.length &&
+                                    <TableContainer>
+                                        <Table className={classes.table}>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>Name</TableCell>
+                                                    <TableCell>To/From</TableCell>
+                                                    <TableCell>Neighborhood</TableCell>
+                                                    <TableCell align="right">Room</TableCell>
+                                                    <TableCell align="right">
+                                                        <DeleteForeverIcon />
+                                                    </TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                { externalPaths.map(({
+                                                        name,
+                                                        id,
+                                                        type,
+                                                        roomName,
+                                                        roomParentName
+                                                    }) => (
+                                                    <TableRow key={`${id}`}>
+                                                        <TableCell>{name}</TableCell>
+                                                        <TableCell>
+                                                            { type === 'EXIT' && <ArrowForwardIcon /> }
+                                                            { type === 'ENTRY' && <ArrowBackIcon /> }
+                                                            <HouseIcon />
+                                                        </TableCell>
+                                                        <TableCell>{roomParentName}</TableCell>
+                                                        <TableCell align="right">{roomName}</TableCell>
+                                                        <TableCell align="right">
+                                                            <DeleteForeverIcon />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    ) || null
+                                }
+
+                            </CardContent>
                         </Card>
                     </Grid>
                     <Grid item>
-                        <Card className={classes.card}>
+                        <Card className={classes.neighborhoodPathsCard} height={"100%"}>
                             <CardHeader
                                 title="Neighborhood paths"
                                 className={classes.lightblue}
                                 titleTypographyProps={{ variant: "overline" }}
                             />
                             <CardContent>
-                                <TableContainer>
-                                    <Table className={classes.table}>
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell>Name</TableCell>
-                                                <TableCell>To/From</TableCell>
-                                                <TableCell align="right">Room</TableCell>
-                                                <TableCell align="right">
-                                                    <DeleteForeverIcon />
-                                                </TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            { exits.map(({ exitName, toRoomId }) => (
-                                                <TableRow key={`exit:${exitName}-${toRoomId}`}>
-                                                    <TableCell>{exitName}</TableCell>
-                                                    <TableCell><ArrowForwardIcon /><HouseIcon /></TableCell>
-                                                    <TableCell align="right">{toRoomId}</TableCell>
+                                { (neighborhoodPaths.length &&
+                                    <TableContainer>
+                                        <Table className={classes.table}>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>Name</TableCell>
+                                                    <TableCell>To/From</TableCell>
+                                                    <TableCell align="right">Room</TableCell>
                                                     <TableCell align="right">
                                                         <DeleteForeverIcon />
                                                     </TableCell>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
+                                            </TableHead>
+                                            <TableBody>
+                                                { neighborhoodPaths.map(({ name, exitId, entryId, type, roomName }) => (
+                                                    <TableRow key={`${exitId || entryId}`}>
+                                                        <TableCell>{name}</TableCell>
+                                                        <TableCell>
+                                                            { type === 'EXIT' && <ArrowForwardIcon /> }
+                                                            { type === 'ENTRY' && <ArrowBackIcon /> }
+                                                            <HouseIcon />
+                                                        </TableCell>
+                                                        <TableCell align="right">{roomName}</TableCell>
+                                                        <TableCell align="right">
+                                                            <DeleteForeverIcon />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    ) || null
+                                }
                             </CardContent>
                         </Card>
                     </Grid>

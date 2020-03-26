@@ -6,7 +6,8 @@ export const reducer = (state = { open: false }, action) => {
         roomId = '',
         name = '',
         description = '',
-        neighborhood = '',
+        parentId = '',
+        parentName = '',
         exits = [],
         entries = []
     } = action
@@ -24,7 +25,8 @@ export const reducer = (state = { open: false }, action) => {
                 roomId,
                 name,
                 description,
-                neighborhood,
+                parentId,
+                parentName,
                 exits,
                 entries
             }

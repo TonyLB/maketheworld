@@ -19,10 +19,10 @@ const parseCommand = ({
         }))
         .then(() => (true))
     }
-    const firstMatchedExit = exits.filter(({ exitName }) => (exitName === strippedMessage))
+    const firstMatchedExit = exits.filter(({ name }) => (name === strippedMessage))
     if (firstMatchedExit.length) {
         const { roomId } = roomData
-        const { toRoomId, exitName } = firstMatchedExit[0]
+        const { roomId: toRoomId, name: exitName } = firstMatchedExit[0]
         
         return world.messageRoom({
                 roomId,

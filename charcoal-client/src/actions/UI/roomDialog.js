@@ -5,7 +5,8 @@ export const activateRoomDialog = ({
     roomId = '',
     name = '',
     description = '',
-    neighborhood = '',
+    parentId = '',
+    parentName = '',
     exits = [],
     entries = []
 }) => ({
@@ -13,7 +14,8 @@ export const activateRoomDialog = ({
     roomId,
     name,
     description,
-    neighborhood,
+    parentId,
+    parentName,
     exits,
     entries
 })

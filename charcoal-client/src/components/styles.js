@@ -31,6 +31,9 @@ export const useStyles = makeStyles(theme => ({
         color: theme.palette.getContrastText(theme.palette.primary.main),
         backgroundColor: theme.palette.primary.main,
     },
+    card: {
+        margin: "10px"
+    },
     topAppBar: {
         top: 0
     },
@@ -52,6 +55,10 @@ export const useStyles = makeStyles(theme => ({
         position: "relative",
         width: "100%",
         marginBottom: "10px"
+    },
+    neighborhoodPathsCard: {
+        margin: "10px",
+        height: "calc(100% - 20px)"
     }
 }))
 
