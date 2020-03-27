@@ -1,7 +1,7 @@
 {
-  "name": "get-room",
+  "name": "get-all-neighborhoods",
   "version": "1.0.0",
-  "description": "Lambda proxy for reading room data from the permanents table",
+  "description": "Lambda proxy for reading reading structured table-of-contents data from the permanents table",
   "main": "src/app.js",
   "author": "Tony Lower-Basch",
   "license": "MIT",

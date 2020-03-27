@@ -28,7 +28,7 @@ import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
-import { activateRoomDialog } from '../actions/UI/roomDialog'
+import { fetchAndOpenNeighborhoodDialog } from '../actions/permanentAdmin'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
@@ -36,7 +36,8 @@ import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
 import useStyles from './styles'
-import RoomDialog from './RoomDialog'
+import RoomDialog from './RoomDialog/'
+import NeighborhoodDialog from './NeighborhoodDialog/'
 
 const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
@@ -76,8 +77,8 @@ export const Chat = () => {
     const menuOpen = Boolean(anchorEl)
     const handleMenuClose = () => { setAnchorEl(null) }
     const handleMenuOpen = (event) => { setAnchorEl(event.currentTarget) }
-    const handleAddRoom = () => {
-        dispatch(activateRoomDialog({}))
+    const handleWorldOverview = () => {
+        dispatch(fetchAndOpenNeighborhoodDialog())
         handleMenuClose()
     }
 
@@ -162,13 +163,14 @@ export const Chat = () => {
                               }}
                               onClose={handleMenuClose}
                         >
-                            <MenuItem onClick={handleAddRoom}>
-                                Add room
+                            <MenuItem onClick={handleWorldOverview}>
+                                World Overview
                             </MenuItem>
                         </Menu>
                     </Toolbar>
                 </Container>
             </AppBar>
+            <NeighborhoodDialog />
             <RoomDialog
                 defaultValues={mostRecentRoomMessage || {}}
             />

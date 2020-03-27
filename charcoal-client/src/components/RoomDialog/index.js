@@ -28,10 +28,10 @@ import HouseIcon from '@material-ui/icons/House'
 
 
 // Local code imports
-import { closeRoomDialog } from '../actions/UI/roomDialog'
-import { putAndCloseRoomDialog } from '../actions/permanentAdmin'
-import { getRoomDialogUI } from '../selectors/UI/roomDialog.js'
-import useStyles from './styles'
+import { closeRoomDialog } from '../../actions/UI/roomDialog'
+import { putAndCloseRoomDialog } from '../../actions/permanentAdmin'
+import { getRoomDialogUI } from '../../selectors/UI/roomDialog.js'
+import useStyles from '../styles'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
 const resetFormValues = (defaultValues) => ({

@@ -1,6 +1,7 @@
 import { HTTPS_ADDRESS } from '../config'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { fetchAllNeighborhoods } from './neighborhoods'
+import { activateNeighborhoodDialog } from './UI/neighborhoodDialog'
 
 export const fetchAndOpenRoomDialog = (roomId) => (dispatch) => {
     dispatch(fetchAllNeighborhoods())
@@ -36,4 +37,9 @@ export const putAndCloseRoomDialog = (roomData) => (dispatch) => {
     })
     .then(() => dispatch(closeRoomDialog()))
     .catch((err) => { console.log(err)})
+}
+
+export const fetchAndOpenNeighborhoodDialog = () => (dispatch) => {
+    dispatch(fetchAllNeighborhoods())
+    dispatch(activateNeighborhoodDialog())
 }

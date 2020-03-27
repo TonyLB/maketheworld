@@ -15,6 +15,14 @@ Parameters:
     MaxLength: 50
     AllowedPattern: ^[A-Za-z_]+$
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+  PermanentsStack:
+    Type: String
+    Default: 'BurnedOverPermanentsStack'
+    Description: (Required) The name of the stack containing the permanents DynamoDB table.
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
 Resources:
   RealTimeWebSocket:
@@ -132,39 +140,6 @@ Resources:
       SSESpecification:
         SSEEnabled: True
       TableName: !Sub '${TablePrefix}_players'
-  PermanentsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: "permanentId"
-          AttributeType: "S"
-        - AttributeName: "parentId"
-          AttributeType: "S"
-        - AttributeName: "fromRoomId"
-          AttributeType: "S"
-      BillingMode: "PAY_PER_REQUEST"
-      KeySchema:
-        - AttributeName: "permanentId"
-          KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        - IndexName: fromRoomIndex
-          KeySchema:
-            - AttributeName: fromRoomId
-              KeyType: HASH
-          Projection:
-            NonKeyAttributes:
-              - name
-              - parentId
-            ProjectionType: INCLUDE
-        - IndexName: parentIndex
-          KeySchema:
-            - AttributeName: parentId
-              KeyType: HASH
-          Projection:
-            ProjectionType: ALL
-      SSESpecification:
-        SSEEnabled: True
-      TableName: !Sub '${TablePrefix}_permanents'
   SharedLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -312,7 +287,9 @@ Resources:
               - "dynamodb:BatchGetItem"
               - "dynamodb:Query"
               - "dynamodb:PutItem"
-            Resource: !GetAtt "PermanentsTable.Arn"
+            Resource:
+              Fn::ImportValue:
+                !Sub "${PermanentsStack}-PermanentsArn"
   PermanentsAPIExecutionRole:
     Type: AWS::IAM::Role
     Properties:

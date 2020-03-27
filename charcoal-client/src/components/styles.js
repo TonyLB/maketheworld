@@ -59,6 +59,11 @@ export const useStyles = makeStyles(theme => ({
     neighborhoodPathsCard: {
         margin: "10px",
         height: "calc(100% - 20px)"
+    },
+    treeView: {
+        height: 240,
+        flexGrow: 1,
+        maxWidth: 400
     }
 }))
 

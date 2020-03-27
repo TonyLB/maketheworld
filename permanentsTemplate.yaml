@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  burnedover-mush-permanents-table
+
+  SAM Template for the static DynamoDB storage associated with burnedover-mush.
+
+Parameters:
+  TablePrefix:
+    Type: String
+    Default: 'burnedover'
+    Description: (Required) The name of the new DynamoDB to store connection identifiers for each connected clients. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+
+Resources:
+    PermanentsTable:
+        Type: AWS::DynamoDB::Table
+        Properties:
+          AttributeDefinitions:
+            - AttributeName: "permanentId"
+              AttributeType: "S"
+            - AttributeName: "parentId"
+              AttributeType: "S"
+            - AttributeName: "fromRoomId"
+              AttributeType: "S"
+          BillingMode: "PAY_PER_REQUEST"
+          KeySchema:
+            - AttributeName: "permanentId"
+              KeyType: "HASH"
+          GlobalSecondaryIndexes:
+            - IndexName: fromRoomIndex
+              KeySchema:
+                - AttributeName: fromRoomId
+                  KeyType: HASH
+              Projection:
+                NonKeyAttributes:
+                  - name
+                  - parentId
+                  - ancestry
+                ProjectionType: INCLUDE
+            - IndexName: parentIndex
+              KeySchema:
+                - AttributeName: parentId
+                  KeyType: HASH
+              Projection:
+                ProjectionType: ALL
+          SSESpecification:
+            SSEEnabled: True
+          TableName: !Sub '${TablePrefix}_permanents'
+Outputs:
+    TablePrefix:
+        Description: The prefix with which tables should begin.
+        Value: !Sub ${TablePrefix}
+        Export:
+            Name: !Sub "${AWS::StackName}-TablePrefix"
+    PermanentsArn:
+        Description: The Arn of the table
+        Value: !GetAtt "PermanentsTable.Arn"
+        Export:
+            Name: !Sub "${AWS::StackName}-PermanentsArn"

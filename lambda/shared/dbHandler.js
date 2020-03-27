@@ -22,7 +22,7 @@ class dbHandler {
                         KeyConditionExpression: 'fromRoomId = :roomId',
                         ExpressionAttributeValues: { ':roomId': roomId }
                     }).promise()
-                    .then(({ Items }) => (Items.map(({ name, parentId, permanentId }) => ({ name, roomId: parentId, id: permanentId }))))
+                    .then(({ Items }) => (Items.map(({ name, ancestry, parentId, permanentId }) => ({ name, ancestry, roomId: parentId, id: permanentId }))))
                     .then((exits) => ({ ...Item, roomId, exits }))
             })
         if (admin) {
@@ -34,7 +34,7 @@ class dbHandler {
                         FilterExpession: 'type = "ENTRY"',
                         ExpressionAttributeValues: { ':roomId': roomId }
                     }).promise()
-                    .then(({ Items }) => (Items.map(({ name, permanentId, fromRoomId }) => ({ name, id: permanentId, roomId: fromRoomId }))))
+                    .then(({ Items }) => (Items.map(({ name, ancestry, permanentId, fromRoomId }) => ({ name, ancestry, id: permanentId, roomId: fromRoomId }))))
                     .then((entries) => ({ roomId, ...rest, entries }))
                 })
                 .then(({ exits, entries, parentId, ...rest }) => {
