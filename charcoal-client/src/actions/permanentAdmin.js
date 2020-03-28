@@ -1,5 +1,5 @@
 import { HTTPS_ADDRESS } from '../config'
-import { fetchAllNeighborhoods } from './neighborhoods'
+import { fetchAllNeighborhoods, neighborhoodMerge } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { activateWorldDialog } from './UI/worldDialog'
 import { activateNeighborhoodDialog, closeNeighborhoodDialog } from './UI/neighborhoodDialog'
@@ -35,7 +35,15 @@ export const putAndCloseRoomDialog = (roomData) => (dispatch) => {
         if (!response.ok) {
             throw response.error
         }
+        return response.json()
     })
+    .then((permanentId) => ({
+        ...roomData,
+        type: 'ROOM',
+        permanentId,
+        ancestry: roomData.parentAncestry ? `${roomData.parentAncestry}:${permanentId}` : permanentId
+    }))
+    .then((roomData) => dispatch(neighborhoodMerge([roomData])))
     .then(() => dispatch(closeRoomDialog()))
     .catch((err) => { console.log(err)})
 }
@@ -75,7 +83,15 @@ export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch) =>
         if (!response.ok) {
             throw response.error
         }
+        return response.json()
     })
+    .then((permanentId) => ({
+        ...neighborhoodData,
+        type: 'NEIGHBORHOOD',
+        permanentId,
+        ancestry: neighborhoodData.parentAncestry ? `${neighborhoodData.parentAncestry}:${permanentId}` : permanentId
+    }))
+    .then((neighborhoodData) => dispatch(neighborhoodMerge([neighborhoodData])))
     .then(() => dispatch(closeNeighborhoodDialog()))
     .catch((err) => { console.log(err)})
 }

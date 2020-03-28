@@ -5,16 +5,20 @@ export const activateNeighborhoodDialog = ({
     neighborhoodId = '',
     name = '',
     description = '',
+    ancestry = '',
     parentId = '',
     parentName = '',
+    parentAncestry = '',
     nested = false
 }) => ({
     type: ACTIVATE_NEIGHBORHOOD_DIALOG,
     neighborhoodId,
     name,
     description,
+    ancestry,
     parentId,
     parentName,
+    parentAncestry,
     nested
 })
 

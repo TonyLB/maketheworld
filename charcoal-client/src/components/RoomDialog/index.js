@@ -204,10 +204,12 @@ export const RoomDialog = ({ nested=false }) => {
     const onPathAddHandler = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => () => {
         formDispatch(addExit({ roomId, roomName, roomParentId, roomParentName, roomAncestry }))
         formDispatch(addEntry({ roomId, roomName, roomParentId, roomParentName, roomAncestry }))
+        setNeighborhoodAddAnchorEl(null)
+        setExternalAddAnchorEl(null)
     }
     const saveHandler = () => {
-        const { name, description, parentId, roomId, exits, entries } = formValues
-        const roomData = { name, description, parentId, roomId, exits, entries }
+        const { name, description, parentId, roomId, exits, entries, parentAncestry } = formValues
+        const roomData = { name, description, parentId, roomId, exits, entries, parentAncestry }
         dispatch(putAndCloseRoomDialog(roomData))
     }
 

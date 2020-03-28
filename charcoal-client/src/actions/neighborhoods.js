@@ -1,10 +1,16 @@
 import { HTTPS_ADDRESS } from '../config'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
+export const NEIGHBORHOOD_MERGE = 'NEIGHBORHOOD_MERGE'
 
 export const neighborhoodUpdate = (neighborhoods) => ({
     type: NEIGHBORHOOD_UPDATE,
     data: neighborhoods
+})
+
+export const neighborhoodMerge = (permanentData) => ({
+    type: NEIGHBORHOOD_MERGE,
+    permanentData
 })
 
 export const fetchAllNeighborhoods = () => (dispatch) => {

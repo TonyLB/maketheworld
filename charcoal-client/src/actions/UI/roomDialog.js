@@ -8,6 +8,7 @@ export const activateRoomDialog = ({
     ancestry = '',
     parentId = '',
     parentName = '',
+    parentAncestry = '',
     exits = [],
     entries = [],
     nested = false
@@ -19,6 +20,7 @@ export const activateRoomDialog = ({
     ancestry,
     parentId,
     parentName,
+    parentAncestry,
     exits,
     entries,
     nested

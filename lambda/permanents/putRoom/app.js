@@ -8,7 +8,6 @@ exports.handler = (event) => {
 
     const { TABLE_PREFIX, AWS_REGION } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
-    const connectionTable = `${TABLE_PREFIX}_players`
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
@@ -152,7 +151,7 @@ exports.handler = (event) => {
                     ))
                     .then((items) => (items.map((Item) => ({ PutRequest: { Item }}))))
                 : Promise.resolve([])
-            const { parentId, ...roomRest } = roomData
+            const { parentId, parentAncestry, ...roomRest } = roomData
             const roomUpdate = { PutRequest: { Item: {
                 ...roomRest,
                 ...( parentId ? { parentId } : {}),

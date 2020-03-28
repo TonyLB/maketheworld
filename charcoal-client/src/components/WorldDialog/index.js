@@ -114,6 +114,8 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                         dispatch(activateNeighborhoodDialog({
                             parentId: nodeId,
                             parentName: name,
+                            ancestry: `${rest.ancestry}:`,
+                            parentAncestry: rest.ancestry,
                             nested: true
                         }))
                     }}
@@ -129,6 +131,8 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                         dispatch(activateRoomDialog({
                             parentId: nodeId,
                             parentName: name,
+                            ancestry: `${rest.ancestry}:`,
+                            parentAncestry: rest.ancestry,
                             nested: true
                         }))
                     }}
@@ -152,7 +156,7 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
     />
 }
 
-const RoomTreeItem = ({ nodeId, name, ...rest }) => {
+const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest }) => {
     const dispatch = useDispatch()
     return <OverviewTreeItem
         nodeId={nodeId}
@@ -174,19 +178,21 @@ const RoomTreeItem = ({ nodeId, name, ...rest }) => {
 }
 
 const NeighborhoodItem = ({ item }) => {
-    const { type, permanentId, name, children } = item
+    const { type, permanentId, name, children, parentId, parentAncestry, ...rest } = item
     switch(type) {
         case 'ROOM':
             return <RoomTreeItem
                 key={permanentId}
                 nodeId={permanentId}
                 name={name}
+                {...rest}
             />
         default:
             return <NeighborhoodTreeItem
                 key={permanentId}
                 nodeId={permanentId}
                 name={name}
+                {...rest}
             >
                 {
                     Object.values(children || {})
@@ -216,6 +222,38 @@ export const WorldDialog = () => {
                         title="Neighborhoods and Rooms"
                         className={classes.lightblue}
                         titleTypographyProps={{ variant: "overline" }}
+                        action={<React.Fragment>
+                                <Tooltip title={"Add Neighborhood"}>
+                                    <IconButton
+                                        aria-label="add neighborhood"
+                                        onClick={(event) => {
+                                            event.stopPropagation()
+                                            dispatch(activateNeighborhoodDialog({
+                                                parentId: '',
+                                                parentName: '',
+                                                nested: true
+                                            }))
+                                        }}
+                                    >
+                                        <NeighborhoodAddIcon fontSize="inherit" />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title={"Add Room"}>
+                                    <IconButton
+                                        aria-label="add room"
+                                        onClick={(event) => {
+                                            event.stopPropagation()
+                                            dispatch(activateRoomDialog({
+                                                parentId: '',
+                                                parentName: '',
+                                                nested: true
+                                            }))
+                                        }}
+                                    >
+                                        <RoomAddIcon fontSize="inherit" />
+                                    </IconButton>
+                                </Tooltip>
+                            </React.Fragment>}
                     />
                     <CardContent className={classes.scrollingCardContent} >
                         <TreeView

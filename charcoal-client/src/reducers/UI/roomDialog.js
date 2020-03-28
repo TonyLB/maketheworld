@@ -9,6 +9,7 @@ export const reducer = (state = { open: false }, action) => {
         ancestry = '',
         parentId = '',
         parentName = '',
+        parentAncestry = '',
         exits = [],
         entries = [],
         nested = false
@@ -32,6 +33,7 @@ export const reducer = (state = { open: false }, action) => {
                 ancestry,
                 parentId,
                 parentName,
+                parentAncestry,
                 exits,
                 entries
             }

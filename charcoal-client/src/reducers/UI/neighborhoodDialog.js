@@ -8,6 +8,7 @@ export const reducer = (state = { open: false }, action) => {
         description = '',
         parentId = '',
         parentName = '',
+        parentAncestry = '',
         nested = false
     } = action
 
@@ -27,7 +28,8 @@ export const reducer = (state = { open: false }, action) => {
                 name,
                 description,
                 parentId,
-                parentName
+                parentName,
+                parentAncestry
             }
         default:
             return state
