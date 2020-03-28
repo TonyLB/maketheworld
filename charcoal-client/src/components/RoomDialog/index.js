@@ -171,8 +171,8 @@ const roomDialogReducer = (state, action) => {
     }
 }
 
-export const RoomDialog = () => {
-    const { open, ...defaultValues } = useSelector(getRoomDialogUI)
+export const RoomDialog = ({ nested=false }) => {
+    const { open, nestedOpen, ...defaultValues } = useSelector(getRoomDialogUI)
     const [formValues, formDispatch] = useReducer(roomDialogReducer, {})
     const neighborhoodRooms = useSelector(getNeighborhoodSubtree({
         roomId: defaultValues.roomId,
@@ -239,7 +239,7 @@ export const RoomDialog = () => {
             />
             <Dialog
                 maxWidth="lg"
-                open={open}
+                open={(nested ? nestedOpen : open) || false}
                 onEnter={() => { formDispatch(resetFormValues(defaultValues)) } }
             >
                 <DialogTitle id="room-dialog-title">Room Edit</DialogTitle>

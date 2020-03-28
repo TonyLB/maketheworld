@@ -70,6 +70,9 @@ export const useStyles = makeStyles(theme => ({
     },
     pathTextField: {
         maxWidth: "12ch"
+    },
+    scrollingCardContent: {
+        overflow: "auto"
     }
 }))
 

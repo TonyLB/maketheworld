@@ -14,6 +14,18 @@ exports.handler = (event) => {
     return documentClient.get({ TableName: permanentsTable, Key: { permanentId: neighborhoodId } })
         .promise()
         .then(({ Item }) => Item)
+        .then(({ permanentId, ...rest }) => ({ neighborhoodId: permanentId, ...rest }))
+        .then(({ parentId, ...rest }) => (
+            (parentId
+                ? documentClient.get({
+                        TableName: permanentsTable,
+                        Key: { permanentId: parentId },
+                        AttributeList: ['name']
+                    }).promise()
+                    .then(({ Item }) => ((Item && Item.name) || ''))
+                : Promise.resolve(''))
+            .then((parentName) => ({ parentId, parentName, ...rest }))
+        ))
         .then((neighborhoodData) => ({
             statusCode: 200,
             headers: {

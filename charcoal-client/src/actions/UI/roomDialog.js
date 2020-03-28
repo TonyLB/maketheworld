@@ -9,7 +9,8 @@ export const activateRoomDialog = ({
     parentId = '',
     parentName = '',
     exits = [],
-    entries = []
+    entries = [],
+    nested = false
 }) => ({
     type: ACTIVATE_ROOM_DIALOG,
     roomId,
@@ -19,7 +20,8 @@ export const activateRoomDialog = ({
     parentId,
     parentName,
     exits,
-    entries
+    entries,
+    nested
 })
 
 export const closeRoomDialog = () => ({ type: CLOSE_ROOM_DIALOG })

@@ -29,9 +29,12 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 
 // Local code imports
+import RoomDialog from '../RoomDialog/'
+import NeighborhoodDialog from '../NeighborhoodDialog/'
 import { closeWorldDialog } from '../../actions/UI/worldDialog'
 import { activateRoomDialog } from '../../actions/UI/roomDialog'
-import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
+import { activateNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
+import { fetchAndOpenRoomDialog, fetchAndOpenNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
 import { getNeighborhoods } from '../../selectors/neighborhoods'
 import useStyles from '../styles'
@@ -101,18 +104,32 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
+        endIcon={<ChevronRightIcon />}
         ActionIcons={<React.Fragment>
             <Tooltip title={"Add Neighborhood"}>
-                <NeighborhoodAddIcon fontSize="inherit" />
+                <IconButton
+                    aria-label="add neighborhood"
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        dispatch(activateNeighborhoodDialog({
+                            parentId: nodeId,
+                            parentName: name,
+                            nested: true
+                        }))
+                    }}
+                >
+                    <NeighborhoodAddIcon fontSize="inherit" />
+                </IconButton>
             </Tooltip>
             <Tooltip title={"Add Room"}>
                 <IconButton
                     aria-label="add room"
-                    onClick={() => {
-                        dispatch(closeWorldDialog())
+                    onClick={(event) => {
+                        event.stopPropagation()
                         dispatch(activateRoomDialog({
                             parentId: nodeId,
-                            parentName: name
+                            parentName: name,
+                            nested: true
                         }))
                     }}
                 >
@@ -120,7 +137,15 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                 </IconButton>
             </Tooltip>
             <Tooltip title={"Edit Neighborhood"}>
-                <CreateIcon fontSize="inherit" />
+                <IconButton
+                    aria-label="edit room"
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        dispatch(fetchAndOpenNeighborhoodDialog(nodeId, true))
+                    }}
+                >
+                    <CreateIcon fontSize="inherit" />
+                </IconButton>
             </Tooltip>
         </React.Fragment>}
         {...rest}
@@ -132,12 +157,13 @@ const RoomTreeItem = ({ nodeId, name, ...rest }) => {
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
+        endIcon={<HouseIcon />}
         ActionIcons={<Tooltip title={"Edit Room"}>
             <IconButton
                 aria-label="edit room"
-                onClick={() => {
-                    dispatch(closeWorldDialog())
-                    dispatch(fetchAndOpenRoomDialog(nodeId))
+                onClick={(event) => {
+                    event.stopPropagation()
+                    dispatch(fetchAndOpenRoomDialog(nodeId, true))
                 }}
             >
                 <CreateIcon fontSize="inherit" />
@@ -183,18 +209,19 @@ export const WorldDialog = () => {
         >
             <DialogTitle id="room-dialog-title">World Overview</DialogTitle>
             <DialogContent>
+                <RoomDialog nested />
+                <NeighborhoodDialog nested />
                 <Card className={classes.card}>
                     <CardHeader
                         title="Neighborhoods and Rooms"
                         className={classes.lightblue}
                         titleTypographyProps={{ variant: "overline" }}
                     />
-                    <CardContent>
+                    <CardContent className={classes.scrollingCardContent} >
                         <TreeView
                             className={classes.treeView}
                             defaultCollapseIcon={<ExpandMoreIcon />}
                             defaultExpandIcon={<ChevronRightIcon />}
-                            defaultEndIcon={<HouseIcon />}
                         >
                             {
                                 Object.values(neighborhoods)

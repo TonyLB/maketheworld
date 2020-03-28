@@ -16,7 +16,7 @@ exports.handler = (event) => {
         description='',
         parentId=''
     } = neighborhoodData
-    const permanentId = neighborhoodData.permanentId || uuidv4()
+    const permanentId = neighborhoodData.neighborhoodId || uuidv4()
 
     const findParentAncestry = (neighborhoodData.parentId)
         ? documentClient.get({

@@ -1,39 +1,33 @@
-import { ACTIVATE_ROOM_DIALOG, CLOSE_ROOM_DIALOG } from '../../actions/UI/roomDialog'
+import { ACTIVATE_NEIGHBORHOOD_DIALOG, CLOSE_NEIGHBORHOOD_DIALOG } from '../../actions/UI/neighborhoodDialog'
 
 export const reducer = (state = { open: false }, action) => {
     const {
         type,
-        roomId = '',
+        neighborhoodId = '',
         name = '',
         description = '',
-        ancestry = '',
         parentId = '',
         parentName = '',
-        exits = [],
-        entries = [],
         nested = false
     } = action
-    
+
     switch (type) {
 
-        case CLOSE_ROOM_DIALOG:
+        case CLOSE_NEIGHBORHOOD_DIALOG:
             return {
                 ...state,
                 open: false,
                 nestedOpen: false
             }
-        case ACTIVATE_ROOM_DIALOG:
+        case ACTIVATE_NEIGHBORHOOD_DIALOG:
             return {
                 open: !nested,
                 nestedOpen: nested,
-                roomId,
+                neighborhoodId,
                 name,
                 description,
-                ancestry,
                 parentId,
-                parentName,
-                exits,
-                entries
+                parentName
             }
         default:
             return state
