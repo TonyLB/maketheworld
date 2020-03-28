@@ -133,7 +133,7 @@ exports.handler = (event) => {
                 ? documentClient.batchGet({
                         RequestItems: {
                             [permanentTable]: {
-                                Keys: exitsToPut.map(({ fromRoomId }) => ({ 'permanentId': fromRoomId })),
+                                Keys: exitsToPut.map(({ parentId }) => ({ 'permanentId': parentId })),
                                 ProjectionExpression: 'permanentId, ancestry'
                             }
                         }
@@ -144,11 +144,11 @@ exports.handler = (event) => {
                         .reduce((previous, item) => ({ ...previous, ...item }), {})
                     ))
                     .then((roomMap) => (exitsToPut
-                        .map(({ permanentId, fromRoomId, ...exit }) => ({
+                        .map(({ permanentId, parentId, ...exit }) => ({
                             permanentId,
-                            fromRoomId,
+                            parentId,
                             ...exit,
-                            ancestry: `${roomMap[fromRoomId]}:${permanentId}`
+                            ancestry: `${roomMap[parentId]}:${permanentId}`
                         }))
                     ))
                     .then((items) => (items.map((Item) => ({ PutRequest: { Item }}))))
