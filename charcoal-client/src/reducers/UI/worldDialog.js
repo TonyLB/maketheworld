@@ -1,4 +1,4 @@
-import { ACTIVATE_NEIGHBORHOOD_DIALOG, CLOSE_NEIGHBORHOOD_DIALOG } from '../../actions/UI/neighborhoodDialog'
+import { ACTIVATE_WORLD_DIALOG, CLOSE_WORLD_DIALOG } from '../../actions/UI/worldDialog'
 
 export const reducer = (state = { open: false }, action) => {
     const {
@@ -7,11 +7,11 @@ export const reducer = (state = { open: false }, action) => {
 
     switch (type) {
 
-        case CLOSE_NEIGHBORHOOD_DIALOG:
+        case CLOSE_WORLD_DIALOG:
             return {
                 open: false
             }
-        case ACTIVATE_NEIGHBORHOOD_DIALOG:
+        case ACTIVATE_WORLD_DIALOG:
             return {
                 open: true,
             }

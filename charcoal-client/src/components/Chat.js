@@ -28,7 +28,7 @@ import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
-import { fetchAndOpenNeighborhoodDialog } from '../actions/permanentAdmin'
+import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
@@ -37,7 +37,7 @@ import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
 import useStyles from './styles'
 import RoomDialog from './RoomDialog/'
-import NeighborhoodDialog from './NeighborhoodDialog/'
+import WorldDialog from './WorldDialog/'
 
 const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
@@ -78,7 +78,7 @@ export const Chat = () => {
     const handleMenuClose = () => { setAnchorEl(null) }
     const handleMenuOpen = (event) => { setAnchorEl(event.currentTarget) }
     const handleWorldOverview = () => {
-        dispatch(fetchAndOpenNeighborhoodDialog())
+        dispatch(fetchAndOpenWorldDialog())
         handleMenuClose()
     }
 
@@ -170,10 +170,8 @@ export const Chat = () => {
                     </Toolbar>
                 </Container>
             </AppBar>
-            <NeighborhoodDialog />
-            <RoomDialog
-                defaultValues={mostRecentRoomMessage || {}}
-            />
+            <WorldDialog />
+            <RoomDialog />
             <NameDialog
                 open={!name}
                 defaultValue={name}

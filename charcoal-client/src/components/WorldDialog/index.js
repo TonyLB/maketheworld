@@ -29,10 +29,10 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 
 // Local code imports
-import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
+import { closeWorldDialog } from '../../actions/UI/worldDialog'
 import { activateRoomDialog } from '../../actions/UI/roomDialog'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
-import { getNeighborhoodDialogUI } from '../../selectors/UI/neighborhoodDialog.js'
+import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
 import { getNeighborhoods } from '../../selectors/neighborhoods'
 import useStyles from '../styles'
 
@@ -109,7 +109,7 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                 <IconButton
                     aria-label="add room"
                     onClick={() => {
-                        dispatch(closeNeighborhoodDialog())
+                        dispatch(closeWorldDialog())
                         dispatch(activateRoomDialog({
                             parentId: nodeId,
                             parentName: name
@@ -136,7 +136,7 @@ const RoomTreeItem = ({ nodeId, name, ...rest }) => {
             <IconButton
                 aria-label="edit room"
                 onClick={() => {
-                    dispatch(closeNeighborhoodDialog())
+                    dispatch(closeWorldDialog())
                     dispatch(fetchAndOpenRoomDialog(nodeId))
                 }}
             >
@@ -170,8 +170,8 @@ const NeighborhoodItem = ({ item }) => {
     }
 }
 
-export const NeighborhoodDialog = () => {
-    const { open } = useSelector(getNeighborhoodDialogUI)
+export const WorldDialog = () => {
+    const { open } = useSelector(getWorldDialogUI)
     const neighborhoods = useSelector(getNeighborhoods)
     const dispatch = useDispatch()
 
@@ -205,7 +205,7 @@ export const NeighborhoodDialog = () => {
                 </Card>
             </DialogContent>
             <DialogActions>
-                <Button onClick={ () => { dispatch(closeNeighborhoodDialog()) } }>
+                <Button onClick={ () => { dispatch(closeWorldDialog()) } }>
                     Close
                 </Button>
             </DialogActions>
@@ -213,4 +213,4 @@ export const NeighborhoodDialog = () => {
     )
 }
 
-export default NeighborhoodDialog
+export default WorldDialog
