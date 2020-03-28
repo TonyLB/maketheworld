@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useReducer } from 'react'
+import React, { useReducer, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -13,25 +13,20 @@ import {
     DialogActions,
     Button,
     TextField,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Grid
+    Grid,
+    IconButton
 } from '@material-ui/core'
-import DeleteForeverIcon from '@material-ui/icons/DeleteForever'
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward'
-import ArrowBackIcon from '@material-ui/icons/ArrowBack'
-import HouseIcon from '@material-ui/icons/House'
+import AddBoxIcon from '@material-ui/icons/AddBox'
 
 
 // Local code imports
 import { closeRoomDialog } from '../../actions/UI/roomDialog'
 import { putAndCloseRoomDialog } from '../../actions/permanentAdmin'
 import { getRoomDialogUI } from '../../selectors/UI/roomDialog.js'
+import { getNeighborhoodSubtree, getExternalTree } from '../../selectors/neighborhoods'
 import useStyles from '../styles'
+import ExitList from './ExitList'
+import RoomSelectPopover from './RoomSelectPopover'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
 const resetFormValues = (defaultValues) => ({
@@ -54,6 +49,36 @@ const removeEntry = (roomId) => ({
     type: REMOVE_ENTRY,
     roomId
 })
+const UPDATE_EXIT_NAME = 'UPDATE_EXIT_NAME'
+const updateExitName = (roomId, name) => ({
+    type: UPDATE_EXIT_NAME,
+    roomId,
+    name
+})
+const UPDATE_ENTRY_NAME = 'UPDATE_ENTRY_NAME'
+const updateEntryName = (roomId, name) => ({
+    type: UPDATE_ENTRY_NAME,
+    roomId,
+    name
+})
+const ADD_EXIT = 'ADD_EXIT'
+const addExit = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => ({
+    type: ADD_EXIT,
+    roomId,
+    roomName,
+    roomParentId,
+    roomParentName,
+    roomAncestry
+})
+const ADD_ENTRY = 'ADD_ENTRY'
+const addEntry = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => ({
+    type: ADD_ENTRY,
+    roomId,
+    roomName,
+    roomParentId,
+    roomParentName,
+    roomAncestry
+})
 const roomDialogReducer = (state, action) => {
     switch(action.type) {
         case APPEARANCE_UPDATE:
@@ -73,6 +98,74 @@ const roomDialogReducer = (state, action) => {
                 ...state,
                 entries: state.entries.filter(entry => (entry.roomId !== action.roomId))
             }
+        case UPDATE_EXIT_NAME:
+            const findExit = state.exits.find(exit => (exit.roomId === action.roomId))
+            const otherExits = state.exits.filter(exit => (exit.roomId !== action.roomId))
+            return {
+                ...state,
+                exits: [
+                    ...otherExits,
+                    {
+                        ...findExit,
+                        name: action.name
+                    }
+                ]
+            }
+        case UPDATE_ENTRY_NAME:
+            const findEntry = state.entries.find(entry => (entry.roomId === action.roomId))
+            const otherEntries = state.entries.filter(entry => (entry.roomId !== action.roomId))
+            return {
+                ...state,
+                entries: [
+                    ...otherEntries,
+                    {
+                        ...findEntry,
+                        name: action.name
+                    }
+                ]
+            }
+        case ADD_EXIT:
+            if (!state.exits.find(exit => (exit.roomId === action.roomId))) {
+                return {
+                    ...state,
+                    exits: [
+                        ...state.exits,
+                        {
+                            name: '',
+                            id: '',
+                            roomId: action.roomId,
+                            roomName: action.roomName,
+                            roomParentId: action.roomParentId,
+                            roomParentName: action.roomParentName,
+                            roomAncestry: action.roomAncestry
+                        }
+                    ]
+                }
+            }
+            else {
+                return state
+            }
+        case ADD_ENTRY:
+            if (!state.entries.find(entry => (entry.roomId === action.roomId))) {
+                return {
+                    ...state,
+                    entries: [
+                        ...state.entries,
+                        {
+                            name: '',
+                            id: '',
+                            roomId: action.roomId,
+                            roomName: action.roomName,
+                            roomParentId: action.roomParentId,
+                            roomParentName: action.roomParentName,
+                            roomAncestry: action.roomAncestry
+                        }
+                    ]
+                }
+            }
+            else {
+                return state
+            }
         default:
             return state
     }
@@ -81,9 +174,19 @@ const roomDialogReducer = (state, action) => {
 export const RoomDialog = () => {
     const { open, ...defaultValues } = useSelector(getRoomDialogUI)
     const [formValues, formDispatch] = useReducer(roomDialogReducer, {})
+    const neighborhoodRooms = useSelector(getNeighborhoodSubtree({
+        roomId: defaultValues.roomId,
+        ancestry: defaultValues.ancestry
+    }))
+    const externalRooms = useSelector(getExternalTree({
+        roomId: defaultValues.roomId,
+        ancestry: defaultValues.ancestry
+    }))
     const dispatch = useDispatch()
+    const [ neighborhoodAddAnchorEl, setNeighborhoodAddAnchorEl ] = useState(null)
+    const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
 
-    const { name = '', parentId = '', description = '', exits=[], entries=[], parentName='' } = formValues
+    const { name = '', description = '', exits=[], entries=[], parentName='' } = formValues
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const onPathDeleteHandler = (type, roomId) => () => {
@@ -91,6 +194,16 @@ export const RoomDialog = () => {
             ? removeExit(roomId)
             : removeEntry(roomId)
         )
+    }
+    const onPathNameHandler = ({ type, roomId }) => (event) => {
+        formDispatch(type === 'EXIT'
+            ? updateExitName(roomId, event.target.value)
+            : updateEntryName(roomId, event.target.value)
+        )
+    }
+    const onPathAddHandler = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => () => {
+        formDispatch(addExit({ roomId, roomName, roomParentId, roomParentName, roomAncestry }))
+        formDispatch(addEntry({ roomId, roomName, roomParentId, roomParentName, roomAncestry }))
     }
     const saveHandler = () => {
         const { name, description, parentId, roomId, exits, entries } = formValues
@@ -102,167 +215,138 @@ export const RoomDialog = () => {
         ...(exits.map((exit) => ({ type: 'EXIT', ...exit }))),
         ...(entries.map((entry) => ({ type: 'ENTRY', ...entry })))
     ].sort(({ roomId: roomIdA }, { roomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
+    const parentAncestry = defaultValues.ancestry && defaultValues.ancestry.split(':').slice(0, -1).join(':')
 
-    const neighborhoodPaths = paths.filter(({ parentRoomId }) => (parentRoomId === parentId))
-    const externalPaths = paths.filter(({ parentRoomId }) => (parentRoomId !== parentId))
+    const neighborhoodPaths = paths.filter(({ roomAncestry }) => (roomAncestry.startsWith(parentAncestry)))
+    const externalPaths = paths.filter(({ roomAncestry }) => (!roomAncestry.startsWith(parentAncestry)))
 
     const classes = useStyles()
     return(
-        <Dialog
-            maxWidth="lg"
-            open={open}
-            onEnter={() => { formDispatch(resetFormValues(defaultValues)) } }
-        >
-            <DialogTitle id="room-dialog-title">Room Edit</DialogTitle>
-            <DialogContent>
-                <Grid container>
-                    <Grid item>
-                        <Card className={classes.card} >
-                            <CardHeader
-                                title="Appearance"
-                                className={classes.lightblue}
-                                titleTypographyProps={{ variant: "overline" }}
-                            />
-                            <CardContent>
-                                <form className={classes.root} noValidate autoComplete="off">
-                                    <div>
-                                        <TextField
-                                            required
-                                            id="name"
-                                            label="Name"
-                                            value={name}
-                                            onChange={onShallowChangeHandler('name')}
-                                        />
-                                        <TextField
-                                            disabled
-                                            id="neighborhood"
-                                            label="Neighborhood"
-                                            value={parentName}
-                                        />
-                                    </div>
-                                    <div>
-                                        <TextField
-                                            required
-                                            id="description"
-                                            label="Description"
-                                            value={description}
-                                            multiline
-                                            rows={3}
-                                            fullWidth
-                                            onChange={onShallowChangeHandler('description')}
-                                        />
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-                        <Card className={classes.card} >
-                            <CardHeader
-                                title="External paths"
-                                className={classes.lightblue}
-                                titleTypographyProps={{ variant: "overline" }}
-                            />
-                            <CardContent>
-                                { (externalPaths.length &&
-                                    <TableContainer>
-                                        <Table className={classes.table}>
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell>Name</TableCell>
-                                                    <TableCell>To/From</TableCell>
-                                                    <TableCell>Neighborhood</TableCell>
-                                                    <TableCell align="right">Room</TableCell>
-                                                    <TableCell align="right">
-                                                        <DeleteForeverIcon />
-                                                    </TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                { externalPaths.map(({
-                                                        name,
-                                                        id,
-                                                        type,
-                                                        roomId,
-                                                        roomName,
-                                                        roomParentName
-                                                    }) => (
-                                                    <TableRow key={`${id}`}>
-                                                        <TableCell>{name}</TableCell>
-                                                        <TableCell>
-                                                            { type === 'EXIT' && <ArrowForwardIcon /> }
-                                                            { type === 'ENTRY' && <ArrowBackIcon /> }
-                                                            <HouseIcon />
-                                                        </TableCell>
-                                                        <TableCell>{roomParentName}</TableCell>
-                                                        <TableCell align="right">{roomName}</TableCell>
-                                                        <TableCell align="right">
-                                                            <DeleteForeverIcon onClick={onPathDeleteHandler(type, roomId)} />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                    ) || null
-                                }
-
-                            </CardContent>
-                        </Card>
+        <React.Fragment>
+            <RoomSelectPopover
+                anchorEl={neighborhoodAddAnchorEl}
+                open={Boolean(neighborhoodAddAnchorEl)}
+                onClose={() => { setNeighborhoodAddAnchorEl(null) }}
+                neighborhoods={neighborhoodRooms}
+                addHandler={onPathAddHandler}
+            />
+            <RoomSelectPopover
+                anchorEl={externalAddAnchorEl}
+                open={Boolean(externalAddAnchorEl)}
+                onClose={() => { setExternalAddAnchorEl(null) }}
+                neighborhoods={externalRooms}
+                addHandler={onPathAddHandler}
+            />
+            <Dialog
+                maxWidth="lg"
+                open={open}
+                onEnter={() => { formDispatch(resetFormValues(defaultValues)) } }
+            >
+                <DialogTitle id="room-dialog-title">Room Edit</DialogTitle>
+                <DialogContent>
+                    <Grid container>
+                        <Grid item>
+                            <Card className={classes.card} >
+                                <CardHeader
+                                    title="Appearance"
+                                    className={classes.lightblue}
+                                    titleTypographyProps={{ variant: "overline" }}
+                                />
+                                <CardContent>
+                                    <form className={classes.root} noValidate autoComplete="off">
+                                        <div>
+                                            <TextField
+                                                required
+                                                id="name"
+                                                label="Name"
+                                                value={name}
+                                                onChange={onShallowChangeHandler('name')}
+                                            />
+                                            <TextField
+                                                disabled
+                                                id="neighborhood"
+                                                label="Neighborhood"
+                                                value={parentName}
+                                            />
+                                        </div>
+                                        <div>
+                                            <TextField
+                                                required
+                                                id="description"
+                                                label="Description"
+                                                value={description}
+                                                multiline
+                                                rows={3}
+                                                fullWidth
+                                                onChange={onShallowChangeHandler('description')}
+                                            />
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                            <Card className={classes.card} >
+                                <CardHeader
+                                    title="External paths"
+                                    action={<IconButton
+                                        aria-label="add external path"
+                                        onClick={(event) => { setExternalAddAnchorEl(event.target) }}
+                                    >
+                                        <AddBoxIcon />
+                                    </IconButton>}
+                                    className={classes.lightblue}
+                                    titleTypographyProps={{ variant: "overline" }}
+                                />
+                                <CardContent>
+                                    {
+                                        (externalPaths.length &&
+                                            <ExitList
+                                                paths={externalPaths}
+                                                deleteHandler={onPathDeleteHandler}
+                                                nameHandler={onPathNameHandler}
+                                            />
+                                        ) || null
+                                    }
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                        <Grid item>
+                            <Card className={classes.neighborhoodPathsCard} height={"100%"}>
+                                <CardHeader
+                                    title="Neighborhood paths"
+                                    action={<IconButton
+                                        aria-label="add external path"
+                                        onClick={(event) => { setNeighborhoodAddAnchorEl(event.target) }}
+                                    >
+                                        <AddBoxIcon />
+                                    </IconButton>}
+                                    className={classes.lightblue}
+                                    titleTypographyProps={{ variant: "overline" }}
+                                />
+                                <CardContent>
+                                    {
+                                        (neighborhoodPaths.length &&
+                                            <ExitList
+                                                paths={neighborhoodPaths}
+                                                deleteHandler={onPathDeleteHandler}
+                                                nameHandler={onPathNameHandler}
+                                            />
+                                        ) || null
+                                    }
+                                </CardContent>
+                            </Card>
+                        </Grid>
                     </Grid>
-                    <Grid item>
-                        <Card className={classes.neighborhoodPathsCard} height={"100%"}>
-                            <CardHeader
-                                title="Neighborhood paths"
-                                className={classes.lightblue}
-                                titleTypographyProps={{ variant: "overline" }}
-                            />
-                            <CardContent>
-                                { (neighborhoodPaths.length &&
-                                    <TableContainer>
-                                        <Table className={classes.table}>
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell>Name</TableCell>
-                                                    <TableCell>To/From</TableCell>
-                                                    <TableCell align="right">Room</TableCell>
-                                                    <TableCell align="right">
-                                                        <DeleteForeverIcon />
-                                                    </TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                { neighborhoodPaths.map(({ name, exitId, entryId, roomId, type, roomName }) => (
-                                                    <TableRow key={`${exitId || entryId}`}>
-                                                        <TableCell>{name}</TableCell>
-                                                        <TableCell>
-                                                            { type === 'EXIT' && <ArrowForwardIcon /> }
-                                                            { type === 'ENTRY' && <ArrowBackIcon /> }
-                                                            <HouseIcon />
-                                                        </TableCell>
-                                                        <TableCell align="right">{roomName}</TableCell>
-                                                        <TableCell align="right">
-                                                            <DeleteForeverIcon onClick={onPathDeleteHandler(type, roomId)} />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                    ) || null
-                                }
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
-                    Cancel
-                </Button>
-                <Button onClick={saveHandler}>
-                    Save
-                </Button>
-            </DialogActions>
-        </Dialog>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
+                        Cancel
+                    </Button>
+                    <Button onClick={saveHandler}>
+                        Save
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </React.Fragment>
     )
 }
 

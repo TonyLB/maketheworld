@@ -13,7 +13,8 @@ import {
     DialogActions,
     Button,
     Typography,
-    Tooltip
+    Tooltip,
+    IconButton
 } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -105,8 +106,8 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                 <NeighborhoodAddIcon fontSize="inherit" />
             </Tooltip>
             <Tooltip title={"Add Room"}>
-                <RoomAddIcon
-                    fontSize="inherit"
+                <IconButton
+                    aria-label="add room"
                     onClick={() => {
                         dispatch(closeNeighborhoodDialog())
                         dispatch(activateRoomDialog({
@@ -114,7 +115,9 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                             parentName: name
                         }))
                     }}
-                />
+                >
+                    <RoomAddIcon fontSize="inherit" />
+                </IconButton>
             </Tooltip>
             <Tooltip title={"Edit Neighborhood"}>
                 <CreateIcon fontSize="inherit" />
@@ -130,13 +133,15 @@ const RoomTreeItem = ({ nodeId, name, ...rest }) => {
         nodeId={nodeId}
         labelText={name}
         ActionIcons={<Tooltip title={"Edit Room"}>
-            <CreateIcon
-                fontSize="inherit"
+            <IconButton
+                aria-label="edit room"
                 onClick={() => {
                     dispatch(closeNeighborhoodDialog())
                     dispatch(fetchAndOpenRoomDialog(nodeId))
                 }}
-            />
+            >
+                <CreateIcon fontSize="inherit" />
+            </IconButton>
         </Tooltip>}
         {...rest}
     />

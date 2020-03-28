@@ -44,7 +44,7 @@ class dbHandler {
                                 RequestItems: {
                                     [this.permanentTable]: {
                                         Keys: roomKeysToFetch.map((key) => ({ 'permanentId': key })),
-                                        ProjectionExpression: 'permanentId, #n, parentId',
+                                        ProjectionExpression: 'permanentId, #n, ancestry, parentId',
                                         ExpressionAttributeNames: { '#n': 'name' }
                                     }
                                 }
@@ -73,7 +73,7 @@ class dbHandler {
                             .then((neighborhoods) => ({ rooms, neighborhoods }))
                         })
                         .then(({ rooms, neighborhoods }) => ({
-                            roomMap: rooms.map(({ permanentId, name, parentId }) => ({ [permanentId]: { name, parentId }}))
+                            roomMap: rooms.map(({ permanentId, ancestry, name, parentId }) => ({ [permanentId]: { name, ancestry, parentId }}))
                                 .reduce((prev, item) => ({ ...prev, ...item }), {}),
                             neighborhoodMap: neighborhoods.map(({ permanentId, name }) => ({ [permanentId]: name }))
                                 .reduce((prev, item) => ({ ...prev, ...item }), {}),
@@ -91,6 +91,7 @@ class dbHandler {
                                 ...rest,
                                 roomId,
                                 roomName: roomMap[roomId].name,
+                                roomAncestry: roomMap[roomId].ancestry,
                                 roomParentId: roomMap[roomId].parentId,
                                 roomParentName: roomMap[roomId].parentId &&
                                     neighborhoodMap[roomMap[roomId].parentId]
@@ -99,6 +100,7 @@ class dbHandler {
                                 ...rest,
                                 roomId,
                                 roomName: roomMap[roomId].name,
+                                roomAncestry: roomMap[roomId].ancestry,
                                 roomParentId: roomMap[roomId].parentId,
                                 roomParentName: roomMap[roomId].parentId &&
                                     neighborhoodMap[roomMap[roomId].parentId]

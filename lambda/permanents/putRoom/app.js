@@ -103,10 +103,6 @@ exports.handler = (event) => {
     //
     //
     const mergeCommands = Promise.all([getAncestry.then(generatePaths), existingPathMap])
-        .then((response) => {
-            console.log(response)
-            return response
-        })
         .then(([{ roomAncestry, paths: incomingPaths}, existingPathMap]) => {
             const pathsToDelete = Object.keys(existingPathMap)
                 .filter(key => (!incomingPaths.find(({ permanentId }) => (permanentId === key))))
@@ -118,18 +114,66 @@ exports.handler = (event) => {
                     existingPathMap[permanentId].fromRoomId !== fromRoomId ||
                     existingPathMap[permanentId].name !== name
                 ))
+                .map(({ permanentId, parentId, name, fromRoomId }) =>
+                    ({ permanentId: permanentId || uuidv4(), parentId, name, fromRoomId, type: 'ENTRY' }))
+            //
+            // Now make sure that we have ancestry information for all paths being put
+            //
+            const entriesToPut = pathsToPut
+                .filter(({ parentId }) => (parentId === roomData.permanentId))
+                .map(({ permanentId, ...rest }) => ({
+                    permanentId,
+                    ...rest,
+                    ancestry: `${roomAncestry}:${permanentId}`
+                }))
                 .map((Item) => ({ PutRequest: { Item }}))
-            const roomUpdate = { PutRequest: { Item: { ...roomData, type: 'ROOM', ancestry: roomAncestry } } }
-            return documentClient.batchWrite({
-                RequestItems: {
-                    [permanentTable]: [
-                        ...pathsToDelete,
-                        ...pathsToPut,
-                        roomUpdate
-                    ]
-                }
-            }).promise()
-            .then(() => (roomData.permanentId))
+
+            const exitsToPut = pathsToPut.filter(({ parentId }) => (parentId !== roomData.permanentId))
+            const findAncestryForExits = exitsToPut.length
+                ? documentClient.batchGet({
+                        RequestItems: {
+                            [permanentTable]: {
+                                Keys: exitsToPut.map(({ fromRoomId }) => ({ 'permanentId': fromRoomId })),
+                                ProjectionExpression: 'permanentId, ancestry'
+                            }
+                        }
+                    }).promise()
+                    .then(({ Responses }) => Responses[permanentTable])
+                    .then((responses) => (responses
+                        .map(({ permanentId, ancestry }) => ({ [permanentId]: ancestry }))
+                        .reduce((previous, item) => ({ ...previous, ...item }), {})
+                    ))
+                    .then((roomMap) => (exitsToPut
+                        .map(({ permanentId, fromRoomId, ...exit }) => ({
+                            permanentId,
+                            fromRoomId,
+                            ...exit,
+                            ancestry: `${roomMap[fromRoomId]}:${permanentId}`
+                        }))
+                    ))
+                    .then((items) => (items.map((Item) => ({ PutRequest: { Item }}))))
+                : Promise.resolve([])
+            const { parentId, ...roomRest } = roomData
+            const roomUpdate = { PutRequest: { Item: {
+                ...roomRest,
+                ...( parentId ? { parentId } : {}),
+                type: 'ROOM',
+                ancestry: roomAncestry
+            } } }
+            return findAncestryForExits
+                .then((mappedExitsToPut) => (
+                    documentClient.batchWrite({
+                        RequestItems: {
+                            [permanentTable]: [
+                                ...pathsToDelete,
+                                ...entriesToPut,
+                                ...mappedExitsToPut,
+                                roomUpdate
+                            ]
+                        }
+                    }).promise()
+                    .then(() => (roomData.permanentId))
+                ))
         })
 
     return mergeCommands

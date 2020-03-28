@@ -64,6 +64,12 @@ export const useStyles = makeStyles(theme => ({
         height: 240,
         flexGrow: 1,
         maxWidth: 400
+    },
+    nested: {
+        paddingLeft: theme.spacing(4),
+    },
+    pathTextField: {
+        maxWidth: "12ch"
     }
 }))
 
