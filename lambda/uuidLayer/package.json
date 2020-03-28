@@ -1,0 +1,14 @@
+{
+  "name": "uuidlayer",
+  "version": "1.0.0",
+  "description": "A shared layer to import the uuid library",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^7.0.2"
+  }
+}

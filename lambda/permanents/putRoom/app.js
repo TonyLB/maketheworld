@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 const AWS = require('aws-sdk');
-
-const { v4: uuidv4 } = require('uuid')
+const { v4: uuidv4 } = require('/opt/uuid')
 
 exports.handler = (event) => {
 

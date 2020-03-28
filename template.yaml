@@ -148,6 +148,14 @@ Resources:
         ContentUri: lambda/shared/
         CompatibleRuntimes:
           - nodejs12.x
+  UUIDLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: uuid-layer
+        Description: Lambda layer to import the uuid library
+        ContentUri: lambda/uuidLayer/
+        CompatibleRuntimes:
+          - nodejs12.x
   OnConnectFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -433,6 +441,7 @@ Resources:
       Runtime: nodejs12.x
       Layers:
         - !Ref SharedLambdaLayer
+        - !Ref UUIDLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
@@ -471,6 +480,7 @@ Resources:
     - GetRoomMethod
     - PutRoomMethod
     - GetAllNeighborhoodsMethod
+    - GetNeighborhoodMethod
     Properties:
       RestApiId: !Ref PermanentsAdminAPI
   PermanentsAPIStage:
@@ -500,7 +510,7 @@ Resources:
         - StatusCode: 200
           ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+            method.response.header.Access-Control-Allow-Methods: "'PUT,GET,OPTIONS'"
             method.response.header.Access-Control-Allow-Origin: "'*'"
           ResponseTemplates:
             application/json: ''
@@ -557,28 +567,126 @@ Resources:
           StatusCode: 200
       ResourceId: !Ref NeighborhoodResource
       RestApiId: !Ref PermanentsAdminAPI
+  GetNeighborhoodResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PermanentsAdminAPI
+      ParentId: !Ref NeighborhoodResource
+      PathPart: "{neighborhoodId}"
+  GetNeighborhoodOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref PermanentsAdminAPI
+      ResourceId: !Ref GetNeighborhoodResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  GetNeighborhoodFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/permanents/getNeighborhood/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
+  GetNeighborhoodPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - PermanentsAdminAPI
+      - GetNeighborhoodFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetNeighborhoodFunction
+      Principal: apigateway.amazonaws.com
+  GetNeighborhoodMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub:
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetNeighborhoodFunction.Arn}/invocations
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: 200
+      ResourceId: !Ref GetNeighborhoodResource
+      RestApiId: !Ref PermanentsAdminAPI
+  PutNeighborhoodFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/permanents/putNeighborhood/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Layers:
+        - !Ref UUIDLambdaLayer
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Sub '${TablePrefix}_permanents'
+  PutNeighborhoodPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - PermanentsAdminAPI
+      - PutNeighborhoodFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PutNeighborhoodFunction
+      Principal: apigateway.amazonaws.com
+  PutNeighborhoodMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub:
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutNeighborhoodFunction.Arn}/invocations
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: 200
+      ResourceId: !Ref NeighborhoodResource
+      RestApiId: !Ref PermanentsAdminAPI
 
 Outputs:
-  PlayersTableArn:
-    Description: "Players table ARN"
-    Value: !GetAtt PlayersTable.Arn
-
-  OnConnectFunctionArn:
-    Description: "OnConnect function ARN"
-    Value: !GetAtt OnConnectFunction.Arn
-
-  OnDisconnectFunctionArn:
-    Description: "OnDisconnect function ARN"
-    Value: !GetAtt OnDisconnectFunction.Arn
-
-  SendMessageFunctionArn:
-    Description: "SendMessage function ARN"
-    Value: !GetAtt SendMessageFunction.Arn
-
-  RegisterNameFunctionArn:
-    Description: "RegisterName function ARN"
-    Value: !GetAtt RegisterNameFunction.Arn
-
   WebSocketURI:
-    Description: "The WSS Protocol URI to connect to"
+    Description: "The WSS Protocol URI to connect to for realtime messages"
     Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+
+  PermanentsApiURI:
+    Description: "The HTTPS Protocol URI to connect to for permanents administration"
+    Value: !Join [ '', [ 'https://', !Ref PermanentsAdminAPI, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'PermanentsAPIStage'] ]
