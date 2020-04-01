@@ -1,3 +1,5 @@
+import { Auth } from 'aws-amplify'
+
 import { socketDispatch } from './webSocket.js'
 
 export const SET_NAME = 'SET_NAME'
@@ -7,9 +9,7 @@ export const setName = (name) => ({
     payload: name
 })
 
-export const registerName = () => (dispatch, getState) => {
-    const { name = '' } = getState()
-    if (name) {
-        dispatch(socketDispatch('registername')(name))
-    }
+export const registerName = () => (dispatch) => {
+    return Auth.currentAuthenticatedUser()
+        .then(({ username }) => (dispatch(socketDispatch('registername')(username))))
 }

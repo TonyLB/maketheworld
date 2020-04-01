@@ -16,6 +16,16 @@ This is the code base for the BurnedOverMUSH serverless multi-user environment. 
 
 Install the [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) and use it to package, deploy, and describe your application.  These are the commands you'll need to use:
 
+First, deploy the permanent storage stack for the world:
+```
+aws cloudformation deploy \
+    --template-file .\permanentsTemplate.yaml \
+    --stack-name BurnedOverPermanentsStack \
+    --capabilities CAPABILITY_IAM
+```
+
+Next deploy the running application stack:
+
 ```
 sam package \
     --template-file template.yaml \
@@ -24,13 +34,46 @@ sam package \
 
 sam deploy \
     --template-file packaged.yaml \
-    --stack-name simple-websocket-chat-app \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
+    --stack-name BurnedOverStack \
+    --capabilities CAPABILITY_IAM
 
 aws cloudformation describe-stacks \
-    --stack-name simple-websocket-chat-app --query 'Stacks[].Outputs'
+    --stack-name BurnedOverStack --query 'Stacks[].Outputs'
 ```
+
+## Deploying separate development stacks
+
+If you want to develop new code, you probably want separate stacks with separate resources, so as not to disturb
+your production environment (the one players are actually interacting with).  Create a separate stack by running
+the deploy commands again, with some changes and overrides.
+
+First, deploy the permanent storage stack for the world:
+```
+aws cloudformation deploy \
+    --template-file .\permanentsTemplate.yaml \
+    --stack-name BurnedOverDevPermanentsStack \
+    --capabilities CAPABILITY_IAM \
+    --parameter-overrides TablePrefix=burnedoverdev
+```
+
+Next deploy the running application stack:
+
+```
+sam package \
+    --template-file template.yaml \
+    --output-template-file packaged.yaml \
+    --s3-bucket REPLACE_THIS_WITH_YOUR_DEV_S3_BUCKET_NAME
+
+sam deploy \
+    --template-file packaged.yaml \
+    --stack-name BurnedOverDevStack \
+    --capabilities CAPABILITY_IAM \
+    --parameter-overrides TablePrefix=burnedoverdev PermanentsStack=BurnedOverDevPermanentsStack
+
+aws cloudformation describe-stacks \
+    --stack-name BurnedOverDevStack --query 'Stacks[].Outputs'
+```
+
 
 ## Testing the chat API
 

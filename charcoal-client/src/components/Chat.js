@@ -39,7 +39,7 @@ import useStyles from './styles'
 import RoomDialog from './RoomDialog/'
 import WorldDialog from './WorldDialog/'
 
-const NameDialog = ({ defaultValue, open, onClose = () => {} }) => {
+const CharacterPickerDialog = ({ defaultValue, open, onClose = () => {} }) => {
     const [ localName, setLocalName ] = useState(defaultValue)
     const handleClose = onClose(localName)
 
@@ -83,11 +83,11 @@ export const Chat = () => {
     }
 
     useEffect(() => {
-        if (name && !webSocket) {
+        if (!webSocket) {
           let setupSocket = new WebSocket(WSS_ADDRESS)
           setupSocket.onopen = () => {
             console.log('WebSocket Client Connected')
-            dispatch(registerName(name))
+            dispatch(registerName())
           }
           setupSocket.onmessage = (message) => {
             const { type, ...rest } = JSON.parse(message.data)
@@ -106,7 +106,7 @@ export const Chat = () => {
           }
           dispatch(registerWebSocket(setupSocket))
         }
-    }, [webSocket, name, dispatch])
+    }, [webSocket, dispatch])
 
     return (
         <React.Fragment>
@@ -172,13 +172,13 @@ export const Chat = () => {
             </AppBar>
             <WorldDialog />
             <RoomDialog />
-            <NameDialog
+            {/* <NameDialog
                 open={!name}
                 defaultValue={name}
                 onClose={(name) => () => {
                     dispatch(setName(name))
                 }}
-            />
+            /> */}
             <Backdrop open={(name && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>

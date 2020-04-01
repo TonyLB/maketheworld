@@ -25,6 +25,46 @@ Parameters:
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
 Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${TablePrefix}-user-UserPool
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${TablePrefix}-client
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      CallbackURLs:
+        - http://localhost:3000
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Sub ${TablePrefix}-auth
   RealTimeWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -138,8 +178,28 @@ Resources:
       - AttributeName: "connectionId"
         KeyType: "HASH"
       SSESpecification:
-        SSEEnabled: True
+        SSEEnabled: False
       TableName: !Sub '${TablePrefix}_players'
+  CharacterLocationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "roomId"
+        AttributeType: "S"
+      - AttributeName: "characterId"
+        AttributeType: "S"
+      BillingMode: "PAY_PER_REQUEST"
+      KeySchema:
+      - AttributeName: "roomId"
+        KeyType: "HASH"
+      - AttributeName: "characterId"
+        KeyType: "RANGE"
+      SSESpecification:
+        SSEEnabled: False
+      TimeToLiveSpecification:
+        AttributeName: "ExpirationTime"
+        Enabled: True
+      TableName: !Sub '${TablePrefix}_character_locations'
   SharedLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -690,3 +750,7 @@ Outputs:
   PermanentsApiURI:
     Description: "The HTTPS Protocol URI to connect to for permanents administration"
     Value: !Join [ '', [ 'https://', !Ref PermanentsAdminAPI, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'PermanentsAPIStage'] ]
+
+  UserPoolArn:
+    Description: The ARN for the player user pool"
+    Value: !GetAtt 'UserPool.Arn'

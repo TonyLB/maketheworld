@@ -2,6 +2,7 @@
 .idea/
 .aws-sam/
 packaged.yaml
+characterPackaged.yaml
 node_modules/
 charcoal-client/node_modules/
 package-lock.json

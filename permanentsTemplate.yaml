@@ -47,9 +47,32 @@ Resources:
                   KeyType: HASH
               Projection:
                 ProjectionType: ALL
-          SSESpecification:
-            SSEEnabled: True
           TableName: !Sub '${TablePrefix}_permanents'
+    CharactersTable:
+        Type: AWS::DynamoDB::Table
+        Properties:
+          AttributeDefinitions:
+            - AttributeName: "PlayerSub"
+              AttributeType: "S"
+            - AttributeName: "Name"
+              AttributeType: "S"
+            - AttributeName: "CharacterId"
+              AttributeType: "S"
+          BillingMode: "PAY_PER_REQUEST"
+          KeySchema:
+            - AttributeName: "PlayerSub"
+              KeyType: "HASH"
+            - AttributeName: "Name"
+              KeyType: "RANGE"
+          GlobalSecondaryIndexes:
+            - IndexName: CharacterIdIndex
+              KeySchema:
+                - AttributeName: CharacterId
+                  KeyType: HASH
+              Projection:
+                ProjectionType: ALL
+          TableName: !Sub '${TablePrefix}_characters'
+
 Outputs:
     TablePrefix:
         Description: The prefix with which tables should begin.
@@ -61,3 +84,8 @@ Outputs:
         Value: !GetAtt "PermanentsTable.Arn"
         Export:
             Name: !Sub "${AWS::StackName}-PermanentsArn"
+    CharactersArn:
+      Description: The Arn of the table
+      Value: !GetAtt "CharactersTable.Arn"
+      Export:
+          Name: !Sub "${AWS::StackName}-CharactersArn"

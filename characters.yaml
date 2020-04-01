@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    burnedover-mush-characters-api
+
+    SAM Template for the characters AppSync API for burnedover-mush
+
+Parameters:
+    TablePrefix:
+        Type: String
+        Default: 'burnedoverdev'
+        Description: (Required) The name of the new DynamoDB to store connection identifiers for each connected clients. Minimum 3 characters
+        MinLength: 3
+        MaxLength: 50
+        AllowedPattern: ^[A-Za-z_]+$
+        ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+    PermanentsStack:
+        Type: String
+        Default: 'BurnedOverDevPermanentsStack'
+        Description: (Required) The name of the stack containing the permanents DynamoDB table.
+        MinLength: 3
+        MaxLength: 50
+        AllowedPattern: ^[A-Za-z_]+$
+        ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+    UserPoolId:
+        Type: String
+        Default: 'us-east-1_1pA2i23sY'
+        Description: The physical ID of the cognito user pool that the API should validate against.
+
+Resources:
+    CharactersAPI:
+        Type: AWS::AppSync::GraphQLApi
+        Properties:
+            Name: !Sub ${TablePrefix} CharactersAPI
+            AuthenticationType: AMAZON_COGNITO_USER_POOLS
+            UserPoolConfig:
+                AwsRegion: us-east-1
+                UserPoolId: us-east-1_1pA2i23sY
+                DefaultAction: ALLOW
+    CharacterTablePolicy:
+        Type: AWS::IAM::ManagedPolicy
+        Properties:
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Action:
+                        - "dynamodb:GetItem"
+                        - "dynamodb:BatchGetItem"
+                        - "dynamodb:Query"
+                        - "dynamodb:PutItem"
+                    Resource:
+                        Fn::ImportValue:
+                            !Sub "${PermanentsStack}-CharactersArn"
+    CharactersAPIExecutionRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                  - Effect: Allow
+                    Principal:
+                        Service: appsync.amazonaws.com
+                    Action:
+                        - sts:AssumeRole
+            ManagedPolicyArns:
+                - !Ref CharacterTablePolicy         
+    CharacterDynamoDBTableDataSource:
+        Type: AWS::AppSync::DataSource
+        Properties:
+            ApiId: !GetAtt CharactersAPI.ApiId
+            Name: Character
+            Type: AMAZON_DYNAMODB
+            ServiceRoleArn: !GetAtt "CharactersAPIExecutionRole.Arn"
+            DynamoDBConfig:
+                AwsRegion: us-east-1
+                TableName: !Sub ${TablePrefix}_characters
+    QueryGetCharacterResolver:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt CharactersAPI.ApiId
+            TypeName: Query
+            FieldName: getCharacter
+            DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "GetItem",
+                    "key": {
+                        "PlayerSub": $util.dynamodb.toDynamoDBJson($ctx.args.playerSub),
+                        "Name": $util.dynamodb.toDynamoDBJson($ctx.args.name)
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    QueryPlayerCharactersResolver:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt CharactersAPI.ApiId
+            TypeName: Query
+            FieldName: getPlayerCharacters
+            DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "Query",
+                    "query": {
+                        "expression": "PlayerSub = :PlayerSub",
+                        "expressionValues": {
+                            ":PlayerSub": $util.dynamodb.toDynamoDBJson($ctx.identity.sub)
+                        }
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+    PutCharacterResolver:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt CharactersAPI.ApiId
+            TypeName: Mutation
+            FieldName: putCharacter
+            DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #set( $ddb = $util.dynamodb )
+                #set( $values = $ddb.toMapValues($ctx.args))
+                {
+                    "version": "2017-02-28",
+                    "operation": "PutItem",
+                    "key": {
+                        "PlayerSub": $ddb.toStringJson($ctx.identity.sub),
+                        "Name": $util.toJson($values.Name)
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    Schema:
+        Type: AWS::AppSync::GraphQLSchema
+        Properties:
+            ApiId: !GetAtt CharactersAPI.ApiId
+            Definition: >
+                type Character {
+                    PlayerSub: String!
+                    Name: String!
+                    CharacterId: String!
+                }
+                type Mutation {
+                    putCharacter(Name: String!): Character
+                }
+                type Query {
+                    getCharacter(playerSub: String!, name: String!): Character
+                    getPlayerCharacters: [Character]
+                }
+                schema {
+                    mutation: Mutation
+                    query: Query
+                }

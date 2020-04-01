@@ -1,0 +1,15 @@
+{
+    "burnedoverdev_permanents": [
+        {
+            "PutRequest": {
+                "Item": {
+                    "permanentId": {"S": "VORTEX"},
+                    "type": { "S": "ROOM" },
+                    "name": {"S": "The Vortex"},
+                    "description": {"S": "A swirling pool of flickering energy, barely thick enough to stand on.  A door in a nimbus of shadow leads out."},
+                    "ancestry": {"S": "VORTEX"}
+                }
+            }
+        }
+    ]
+}
