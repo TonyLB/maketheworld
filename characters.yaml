@@ -31,7 +31,7 @@ Resources:
     CharactersAPI:
         Type: AWS::AppSync::GraphQLApi
         Properties:
-            Name: !Sub ${TablePrefix} CharactersAPI
+            Name: !Sub ${TablePrefix}CharactersAPI
             AuthenticationType: AMAZON_COGNITO_USER_POOLS
             UserPoolConfig:
                 AwsRegion: us-east-1

@@ -1,0 +1,15 @@
+{
+    "burnedover": {
+        "awscloudformation": {
+            "AuthRoleName": "amplify-charcoal-client-burnedover-103736-authRole",
+            "UnauthRoleArn": "arn:aws:iam::918752187763:role/amplify-charcoal-client-burnedover-103736-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::918752187763:role/amplify-charcoal-client-burnedover-103736-authRole",
+            "Region": "us-east-1",
+            "DeploymentBucketName": "amplify-charcoal-client-burnedover-103736-deployment",
+            "UnauthRoleName": "amplify-charcoal-client-burnedover-103736-unauthRole",
+            "StackName": "amplify-charcoal-client-burnedover-103736",
+            "StackId": "arn:aws:cloudformation:us-east-1:918752187763:stack/amplify-charcoal-client-burnedover-103736/564cbb70-7426-11ea-a3f7-0aac80a39b9b",
+            "AmplifyAppId": "d1zkw3gbjk9e4w"
+        }
+    }
+}

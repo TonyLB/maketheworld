@@ -11,10 +11,16 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions,
+    Card,
+    CardHeader,
+    CardContent,
     Button,
     TextField,
+    Typography,
     List,
+    ListItem,
+    ListItemText,
+    Divider,
     AppBar,
     Toolbar,
     IconButton,
@@ -32,6 +38,8 @@ import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
+import { fetchCharacters } from '../actions/characters.js'
+import { getCharacterFetchNeeded, getCharacters } from '../selectors/characters.js'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
@@ -39,26 +47,42 @@ import useStyles from './styles'
 import RoomDialog from './RoomDialog/'
 import WorldDialog from './WorldDialog/'
 
-const CharacterPickerDialog = ({ defaultValue, open, onClose = () => {} }) => {
-    const [ localName, setLocalName ] = useState(defaultValue)
-    const handleClose = onClose(localName)
+const CharacterPicker = ({ open, onClose = () => {} }) => {
+    const characters = useSelector(getCharacters)
+    // const handleClose = onClose(characterId)
+    const classes = useStyles()
 
     return(
-        <Dialog maxWidth="lg" onClose={handleClose} open={open} >
-            <DialogTitle id="name-dialog-title">Choose a Name</DialogTitle>
+        <Dialog
+            maxWidth="lg"
+            open={open}
+        >
+            <DialogTitle
+                id="room-dialog-title"
+                className={classes.lightblue}
+            >
+                <Typography variant="overline">
+                    Choose Your Character
+                </Typography>
+            </DialogTitle>
             <DialogContent>
-                <TextField
-                    fullWidth
-                    placeholder='Enter your name here'
-                    onChange={(e) => setLocalName(e.target.value)}
-                    value={localName}
-                />
+                <List component="nav" aria-label="choose a character">
+                    { (characters || []).map(({ Name: name }) => (<ListItem key={name} button>
+                            <ListItemText>
+                                {name}
+                            </ListItemText>
+                        </ListItem>
+                    ))}
+                    <Divider />
+                    <ListItem button>
+                        <ListItemText>
+                            <Typography variant="">
+                                <em>Create a new character</em>
+                            </Typography>
+                        </ListItemText>
+                    </ListItem>
+                </List>
             </DialogContent>
-            <DialogActions>
-                <Button autoFocus onClick={handleClose} color="primary">
-                    Save
-                </Button>
-            </DialogActions>
         </Dialog>
     )
 }
@@ -107,6 +131,13 @@ export const Chat = () => {
           dispatch(registerWebSocket(setupSocket))
         }
     }, [webSocket, dispatch])
+
+    const characterFetchNeeded = useSelector(getCharacterFetchNeeded)
+    useEffect(() => {
+        if (characterFetchNeeded) {
+            dispatch(fetchCharacters())
+        }
+    }, [characterFetchNeeded, dispatch])
 
     return (
         <React.Fragment>
@@ -172,13 +203,12 @@ export const Chat = () => {
             </AppBar>
             <WorldDialog />
             <RoomDialog />
-            {/* <NameDialog
+            <CharacterPicker
                 open={!name}
-                defaultValue={name}
-                onClose={(name) => () => {
-                    dispatch(setName(name))
-                }}
-            /> */}
+                // onClose={(name) => () => {
+                //     dispatch(setName(name))
+                // }}
+            />
             <Backdrop open={(name && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>

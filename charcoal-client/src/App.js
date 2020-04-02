@@ -6,8 +6,10 @@ import { withAuthenticator } from 'aws-amplify-react'
 import { store } from './store/index.js'
 import Chat from './components/Chat.js'
 import { AuthConfig } from './config'
+import awsconfig from './aws-exports'
 import './App.css';
 
+Amplify.configure(awsconfig)
 Amplify.configure(AuthConfig)
 
 export const App = () => (
