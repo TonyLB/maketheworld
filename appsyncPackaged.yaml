@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'burnedover-mush-appsync-api
+
+  SAM Template for the AppSync API for burnedover-mush
+
+  '
+Parameters:
+  TablePrefix:
+    Type: String
+    Default: burnedoverdev
+    Description: (Required) The name of the new DynamoDB to store connection identifiers
+      for each connected clients. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: Required. Can be characters and underscore only. No numbers
+      or special characters allowed.
+  PermanentsStack:
+    Type: String
+    Default: BurnedOverDevPermanentsStack
+    Description: (Required) The name of the stack containing the permanents DynamoDB
+      table.
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: Required. Can be characters and underscore only. No numbers
+      or special characters allowed.
+  UserPoolId:
+    Type: String
+    Default: us-east-1_1pA2i23sY
+    Description: The physical ID of the cognito user pool that the API should validate
+      against.
+Resources:
+  AppSyncAPI:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name:
+        Fn::Sub: ${TablePrefix}AppSyncAPI
+      AuthenticationType: AMAZON_COGNITO_USER_POOLS
+      UserPoolConfig:
+        AwsRegion: us-east-1
+        UserPoolId:
+          Ref: UserPoolId
+        DefaultAction: ALLOW
+  CharacterTablePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:BatchGetItem
+          - dynamodb:Query
+          - dynamodb:PutItem
+          Resource:
+            Fn::ImportValue:
+              Fn::Sub: ${PermanentsStack}-CharactersArn
+  AppSyncAPIExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: appsync.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - Ref: CharacterTablePolicy
+  CharacterDynamoDBTableDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncAPI
+        - ApiId
+      Name: Character
+      Type: AMAZON_DYNAMODB
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - AppSyncAPIExecutionRole
+        - Arn
+      DynamoDBConfig:
+        AwsRegion: us-east-1
+        TableName:
+          Fn::Sub: ${TablePrefix}_characters
+  QueryGetCharacterResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncAPI
+        - ApiId
+      TypeName: Query
+      FieldName: getCharacter
+      DataSourceName:
+        Fn::GetAtt:
+        - CharacterDynamoDBTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n    \"version\": \"2017-02-28\",\n    \"operation\"\
+        : \"GetItem\",\n    \"key\": {\n        \"PlayerSub\": $util.dynamodb.toDynamoDBJson($ctx.args.playerSub),\n\
+        \        \"Name\": $util.dynamodb.toDynamoDBJson($ctx.args.name)\n    }\n\
+        }\n"
+      ResponseMappingTemplate: $utils.toJson($ctx.result)
+  QueryPlayerCharactersResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncAPI
+        - ApiId
+      TypeName: Query
+      FieldName: getPlayerCharacters
+      DataSourceName:
+        Fn::GetAtt:
+        - CharacterDynamoDBTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n    \"version\": \"2017-02-28\",\n    \"operation\"\
+        : \"Query\",\n    \"query\": {\n        \"expression\": \"PlayerSub = :PlayerSub\"\
+        ,\n        \"expressionValues\": {\n            \":PlayerSub\": $util.dynamodb.toDynamoDBJson($ctx.identity.sub)\n\
+        \        }\n    }\n}\n"
+      ResponseMappingTemplate: $utils.toJson($ctx.result.items)
+  PutCharacterResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncAPI
+        - ApiId
+      TypeName: Mutation
+      FieldName: putCharacter
+      DataSourceName:
+        Fn::GetAtt:
+        - CharacterDynamoDBTableDataSource
+        - Name
+      RequestMappingTemplate: "#if(!($ctx.args.CharacterId))\n    $util.qr($ctx.args.put(\"\
+        CharacterId\", $util.autoId()))\n#end #set( $ddb = $util.dynamodb ) {\n  \
+        \  \"version\": \"2017-02-28\",\n    \"operation\": \"PutItem\",\n    \"key\"\
+        : {\n        \"PlayerSub\": $ddb.toStringJson($ctx.identity.sub),\n      \
+        \  \"Name\": $ddb.toStringJson($ctx.args.Name)\n    },\n    \"attributeValues\"\
+        : {\n        \"CharacterId\": $ddb.toStringJson($ctx.args.CharacterId)\n \
+        \       #if($ctx.args.Pronouns), \"Pronouns\": $ddb.toStringJson($ctx.args.Pronouns)\
+        \ #end\n        #if($ctx.args.FirstImpression), \"FirstImpression\": $ddb.toStringJson($ctx.args.FirstImpression)\
+        \ #end\n        #if($ctx.args.OneCoolThing), \"OneCoolThing\": $ddb.toStringJson($ctx.args.OneCoolThing)\
+        \ #end\n        #if($ctx.args.Outfit), \"Outfit\": $ddb.toStringJson($ctx.args.Outfit)\
+        \ #end\n    }\n}\n"
+      ResponseMappingTemplate: $utils.toJson($ctx.result)
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncAPI
+        - ApiId
+      Definition: "type Character {\n    PlayerSub: String!\n    Name: String!\n \
+        \   CharacterId: String!\n    Pronouns: String\n    FirstImpression: String\n\
+        \    Outfit: String\n    OneCoolThing: String\n} type Mutation {\n    putCharacter(\n\
+        \        Name: String!,\n        CharacterId: String,\n        Pronouns: String,\n\
+        \        FirstImpression: String,\n        Outfit: String,\n        OneCoolThing:\
+        \ String\n    ): Character\n} type Query {\n    getCharacter(playerSub: String!,\
+        \ name: String!): Character\n    getPlayerCharacters: [Character]\n} type\
+        \ Subscription {\n    changedCharacter: Character\n    @aws_subscribe(mutations:\
+        \ [\"putCharacter\"])\n} schema {\n    mutation: Mutation\n    query: Query\n\
+        \    subscription: Subscription\n}\n"

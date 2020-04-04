@@ -11,10 +11,11 @@ exports.handler = (event) => {
   const sockets = new socketHandler({ dbh, event })
   const world = new worldHandler(sockets)
 
-  const nameData = JSON.parse(event.body).data
+  const { name, characterId } = JSON.parse(event.body).data
   const playerData = {
     connectionId: event.requestContext.connectionId,
-    name: nameData,
+    name,
+    CharacterId: characterId,
     roomId: "VORTEX"
   }
   //

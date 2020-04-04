@@ -1,4 +1,4 @@
-import { FETCH_CHARACTERS_ATTEMPT, FETCH_CHARACTERS_SUCCESS } from '../actions/characters.js'
+import { FETCH_CHARACTERS_ATTEMPT, FETCH_CHARACTERS_SUCCESS, RECEIVE_CHARACTER_CHANGE } from '../actions/characters.js'
 
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
@@ -21,6 +21,14 @@ export const reducer = (state = '', action = {}) => {
                     fetched: true
                 },
                 data: payload
+            }
+        case RECEIVE_CHARACTER_CHANGE:
+            return {
+                ...state,
+                data: [
+                    ...state.data.filter(({ Name }) => (Name !== payload.Name)),
+                    payload
+                ].sort(({ Name: nameA }, { Name: nameB }) => (nameA.localeCompare(nameB)))
             }
         default: return state
     }

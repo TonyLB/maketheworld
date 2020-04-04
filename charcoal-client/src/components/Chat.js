@@ -11,11 +11,6 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    Card,
-    CardHeader,
-    CardContent,
-    Button,
-    TextField,
     Typography,
     List,
     ListItem,
@@ -32,25 +27,32 @@ import MenuIcon from '@material-ui/icons/Menu'
 // Local code imports
 import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
+import { unsubscribeAll } from '../actions/subscriptions.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
+import { activateCharacterDialog } from '../actions/UI/characterDialog'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
-import { fetchCharacters } from '../actions/characters.js'
+import { getSubscriptions } from '../selectors/subscriptions'
+import { fetchCharacters, subscribeCharacterChanges } from '../actions/characters.js'
 import { getCharacterFetchNeeded, getCharacters } from '../selectors/characters.js'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
 import useStyles from './styles'
 import RoomDialog from './RoomDialog/'
+import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
+import CharacterDialog from './CharacterDialog'
+import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 
 const CharacterPicker = ({ open, onClose = () => {} }) => {
     const characters = useSelector(getCharacters)
-    // const handleClose = onClose(characterId)
+    const handleClose = ({ name, characterId }) => (onClose({ name, characterId }))
     const classes = useStyles()
+    const dispatch = useDispatch()
 
     return(
         <Dialog
@@ -67,18 +69,17 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
             </DialogTitle>
             <DialogContent>
                 <List component="nav" aria-label="choose a character">
-                    { (characters || []).map(({ Name: name }) => (<ListItem key={name} button>
+                    { (characters || []).map(({ Name: name, CharacterId: characterId }) => (
+                        <ListItem key={name} button onClick={handleClose({ name, characterId })}>
                             <ListItemText>
                                 {name}
                             </ListItemText>
                         </ListItem>
                     ))}
                     <Divider />
-                    <ListItem button>
+                    <ListItem button onClick={ () => { dispatch(activateCharacterDialog({})) } }>
                         <ListItemText>
-                            <Typography variant="">
-                                <em>Create a new character</em>
-                            </Typography>
+                            <em>Create a new character</em>
                         </ListItemText>
                     </ListItem>
                 </List>
@@ -89,6 +90,7 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
 
 export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
+    const subscriptions = useSelector(getSubscriptions)
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
     const name = useSelector(getName)
@@ -101,6 +103,10 @@ export const Chat = () => {
     const menuOpen = Boolean(anchorEl)
     const handleMenuClose = () => { setAnchorEl(null) }
     const handleMenuOpen = (event) => { setAnchorEl(event.currentTarget) }
+    const handleCharacterOverview = () => {
+        dispatch(activateAllCharactersDialog())
+        handleMenuClose()
+    }
     const handleWorldOverview = () => {
         dispatch(fetchAndOpenWorldDialog())
         handleMenuClose()
@@ -111,7 +117,6 @@ export const Chat = () => {
           let setupSocket = new WebSocket(WSS_ADDRESS)
           setupSocket.onopen = () => {
             console.log('WebSocket Client Connected')
-            dispatch(registerName())
           }
           setupSocket.onmessage = (message) => {
             const { type, ...rest } = JSON.parse(message.data)
@@ -131,6 +136,13 @@ export const Chat = () => {
           dispatch(registerWebSocket(setupSocket))
         }
     }, [webSocket, dispatch])
+
+    useEffect(() => {
+        if (!subscriptions.characters) {
+            dispatch(subscribeCharacterChanges())
+        }
+        return () => { dispatch(unsubscribeAll()) }
+    }, [subscriptions, dispatch])
 
     const characterFetchNeeded = useSelector(getCharacterFetchNeeded)
     useEffect(() => {
@@ -194,6 +206,9 @@ export const Chat = () => {
                               }}
                               onClose={handleMenuClose}
                         >
+                            <MenuItem onClick={handleCharacterOverview}>
+                                My Characters
+                            </MenuItem>
                             <MenuItem onClick={handleWorldOverview}>
                                 World Overview
                             </MenuItem>
@@ -201,13 +216,15 @@ export const Chat = () => {
                     </Toolbar>
                 </Container>
             </AppBar>
+            <AllCharactersDialog />
             <WorldDialog />
             <RoomDialog />
+            <CharacterDialog />
             <CharacterPicker
                 open={!name}
-                // onClose={(name) => () => {
-                //     dispatch(setName(name))
-                // }}
+                onClose={({ name, characterId }) => () => {
+                    dispatch(registerName({ name, characterId }))
+                }}
             />
             <Backdrop open={(name && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />

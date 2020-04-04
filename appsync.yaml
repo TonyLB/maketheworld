@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-    burnedover-mush-characters-api
+    burnedover-mush-appsync-api
 
-    SAM Template for the characters AppSync API for burnedover-mush
+    SAM Template for the AppSync API for burnedover-mush
 
 Parameters:
     TablePrefix:
@@ -28,14 +28,14 @@ Parameters:
         Description: The physical ID of the cognito user pool that the API should validate against.
 
 Resources:
-    CharactersAPI:
+    AppSyncAPI:
         Type: AWS::AppSync::GraphQLApi
         Properties:
-            Name: !Sub ${TablePrefix}CharactersAPI
+            Name: !Sub ${TablePrefix}AppSyncAPI
             AuthenticationType: AMAZON_COGNITO_USER_POOLS
             UserPoolConfig:
                 AwsRegion: us-east-1
-                UserPoolId: us-east-1_1pA2i23sY
+                UserPoolId: !Ref UserPoolId
                 DefaultAction: ALLOW
     CharacterTablePolicy:
         Type: AWS::IAM::ManagedPolicy
@@ -52,7 +52,7 @@ Resources:
                     Resource:
                         Fn::ImportValue:
                             !Sub "${PermanentsStack}-CharactersArn"
-    CharactersAPIExecutionRole:
+    AppSyncAPIExecutionRole:
         Type: AWS::IAM::Role
         Properties:
             AssumeRolePolicyDocument:
@@ -67,10 +67,10 @@ Resources:
     CharacterDynamoDBTableDataSource:
         Type: AWS::AppSync::DataSource
         Properties:
-            ApiId: !GetAtt CharactersAPI.ApiId
+            ApiId: !GetAtt AppSyncAPI.ApiId
             Name: Character
             Type: AMAZON_DYNAMODB
-            ServiceRoleArn: !GetAtt "CharactersAPIExecutionRole.Arn"
+            ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
             DynamoDBConfig:
                 AwsRegion: us-east-1
                 TableName: !Sub ${TablePrefix}_characters
@@ -78,7 +78,7 @@ Resources:
         Type: AWS::AppSync::Resolver
         DependsOn: Schema
         Properties:
-            ApiId: !GetAtt CharactersAPI.ApiId
+            ApiId: !GetAtt AppSyncAPI.ApiId
             TypeName: Query
             FieldName: getCharacter
             DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
@@ -96,7 +96,7 @@ Resources:
         Type: AWS::AppSync::Resolver
         DependsOn: Schema
         Properties:
-            ApiId: !GetAtt CharactersAPI.ApiId
+            ApiId: !GetAtt AppSyncAPI.ApiId
             TypeName: Query
             FieldName: getPlayerCharacters
             DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
@@ -116,40 +116,65 @@ Resources:
         Type: AWS::AppSync::Resolver
         DependsOn: Schema
         Properties:
-            ApiId: !GetAtt CharactersAPI.ApiId
+            ApiId: !GetAtt AppSyncAPI.ApiId
             TypeName: Mutation
             FieldName: putCharacter
             DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
             RequestMappingTemplate: >
+                #if(!($ctx.args.CharacterId))
+                    $util.qr($ctx.args.put("CharacterId", $util.autoId()))
+                #end
                 #set( $ddb = $util.dynamodb )
-                #set( $values = $ddb.toMapValues($ctx.args))
                 {
                     "version": "2017-02-28",
                     "operation": "PutItem",
                     "key": {
                         "PlayerSub": $ddb.toStringJson($ctx.identity.sub),
-                        "Name": $util.toJson($values.Name)
+                        "Name": $ddb.toStringJson($ctx.args.Name)
+                    },
+                    "attributeValues": {
+                        "CharacterId": $ddb.toStringJson($ctx.args.CharacterId)
+                        #if($ctx.args.Pronouns), "Pronouns": $ddb.toStringJson($ctx.args.Pronouns) #end
+                        #if($ctx.args.FirstImpression), "FirstImpression": $ddb.toStringJson($ctx.args.FirstImpression) #end
+                        #if($ctx.args.OneCoolThing), "OneCoolThing": $ddb.toStringJson($ctx.args.OneCoolThing) #end
+                        #if($ctx.args.Outfit), "Outfit": $ddb.toStringJson($ctx.args.Outfit) #end
                     }
                 }
             ResponseMappingTemplate: "$utils.toJson($ctx.result)"
     Schema:
         Type: AWS::AppSync::GraphQLSchema
         Properties:
-            ApiId: !GetAtt CharactersAPI.ApiId
+            ApiId: !GetAtt AppSyncAPI.ApiId
             Definition: >
                 type Character {
                     PlayerSub: String!
                     Name: String!
                     CharacterId: String!
+                    Pronouns: String
+                    FirstImpression: String
+                    Outfit: String
+                    OneCoolThing: String
                 }
                 type Mutation {
-                    putCharacter(Name: String!): Character
+                    putCharacter(
+                        Name: String!,
+                        CharacterId: String,
+                        Pronouns: String,
+                        FirstImpression: String,
+                        Outfit: String,
+                        OneCoolThing: String
+                    ): Character
                 }
                 type Query {
                     getCharacter(playerSub: String!, name: String!): Character
                     getPlayerCharacters: [Character]
                 }
+                type Subscription {
+                    changedCharacter: Character
+                    @aws_subscribe(mutations: ["putCharacter"])
+                }
                 schema {
                     mutation: Mutation
                     query: Query
+                    subscription: Subscription
                 }

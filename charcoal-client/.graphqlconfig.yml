@@ -1,8 +1,8 @@
 projects:
-  burnedoverdevCharactersAPI:
+  burnedoverdevAppSyncAPI:
     schemaPath: src/graphql/schema.json
     includes:
-      - src/graphQL/Character.js
+      - src/graphql/**/*.js
     excludes:
       - ./amplify/**
     extensions:
@@ -11,5 +11,8 @@ projects:
         generatedFileName: ''
         docsFilePath: src/graphql
         region: us-east-1
-        apiId: 72jsxv4jpbcf3pe6hbp5qzlmdy
+        apiId: h4qxhqpfgncornv2r7dvmlgxpi
         maxDepth: 2
+extensions:
+  amplify:
+    version: 3

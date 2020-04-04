@@ -7,6 +7,10 @@ export const getCharacter = /* GraphQL */ `
       PlayerSub
       Name
       CharacterId
+      Pronouns
+      FirstImpression
+      Outfit
+      OneCoolThing
     }
   }
 `;
@@ -16,6 +20,10 @@ export const getPlayerCharacters = /* GraphQL */ `
       PlayerSub
       Name
       CharacterId
+      Pronouns
+      FirstImpression
+      Outfit
+      OneCoolThing
     }
   }
 `;

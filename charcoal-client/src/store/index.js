@@ -5,6 +5,7 @@ import webSocket from '../reducers/webSocket.js'
 import name from '../reducers/name.js'
 import neighborhoods from '../reducers/neighborhoods.js'
 import characters from '../reducers/characters.js'
+import subscriptions from '../reducers/subscriptions'
 import colorMap from '../reducers/colorMap.js'
 import uiReducer from '../reducers/UI'
 
@@ -15,6 +16,7 @@ export const store = createStore(
         messages,
         name,
         neighborhoods,
+        subscriptions,
         UI: uiReducer,
         webSocket
     }),
