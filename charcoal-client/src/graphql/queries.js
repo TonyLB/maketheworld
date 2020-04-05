@@ -2,9 +2,9 @@
 // this is an auto generated file. This will be overwritten
 
 export const getCharacter = /* GraphQL */ `
-  query GetCharacter($playerSub: String!, $name: String!) {
-    getCharacter(playerSub: $playerSub, name: $name) {
-      PlayerSub
+  query GetCharacter($playerName: String!, $name: String!) {
+    getCharacter(playerName: $playerName, name: $name) {
+      PlayerName
       Name
       CharacterId
       Pronouns
@@ -17,13 +17,31 @@ export const getCharacter = /* GraphQL */ `
 export const getPlayerCharacters = /* GraphQL */ `
   query GetPlayerCharacters {
     getPlayerCharacters {
-      PlayerSub
+      PlayerName
       Name
       CharacterId
       Pronouns
       FirstImpression
       Outfit
       OneCoolThing
+    }
+  }
+`;
+export const getCharactersInPlay = /* GraphQL */ `
+  query GetCharactersInPlay {
+    getCharactersInPlay {
+      CharacterId
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+      }
+      RoomId
+      ConnectionId
     }
   }
 `;

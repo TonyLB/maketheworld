@@ -24,7 +24,7 @@ Parameters:
         ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
     UserPoolId:
         Type: String
-        Default: 'us-east-1_1pA2i23sY'
+        Default: 'us-east-1_legdibKxO'
         Description: The physical ID of the cognito user pool that the API should validate against.
 
 Resources:
@@ -37,21 +37,6 @@ Resources:
                 AwsRegion: us-east-1
                 UserPoolId: !Ref UserPoolId
                 DefaultAction: ALLOW
-    CharacterTablePolicy:
-        Type: AWS::IAM::ManagedPolicy
-        Properties:
-            PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                  - Effect: "Allow"
-                    Action:
-                        - "dynamodb:GetItem"
-                        - "dynamodb:BatchGetItem"
-                        - "dynamodb:Query"
-                        - "dynamodb:PutItem"
-                    Resource:
-                        Fn::ImportValue:
-                            !Sub "${PermanentsStack}-CharactersArn"
     AppSyncAPIExecutionRole:
         Type: AWS::IAM::Role
         Properties:
@@ -62,8 +47,39 @@ Resources:
                         Service: appsync.amazonaws.com
                     Action:
                         - sts:AssumeRole
-            ManagedPolicyArns:
-                - !Ref CharacterTablePolicy         
+            Policies:
+              - PolicyName: CharactersPolicy
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Action:
+                            - "dynamodb:GetItem"
+                            - "dynamodb:BatchGetItem"
+                            - "dynamodb:Query"
+                            - "dynamodb:PutItem"
+                        Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters"
+              - PolicyName: CharacterIndexPolicy
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Action:
+                            - "dynamodb:Query"
+                        Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters/*"
+              - PolicyName: CharactersInPlayPolicy
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Action:
+                            - "dynamodb:GetItem"
+                            - "dynamodb:BatchGetItem"
+                            - "dynamodb:Query"
+                            - "dynamodb:PutItem"
+                            - "dynamodb:UpdateItem"
+                            - "dynamodb:Scan"
+                        Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
     CharacterDynamoDBTableDataSource:
         Type: AWS::AppSync::DataSource
         Properties:
@@ -74,6 +90,16 @@ Resources:
             DynamoDBConfig:
                 AwsRegion: us-east-1
                 TableName: !Sub ${TablePrefix}_characters
+    CharactersInPlayDynamoDBTableDataSource:
+        Type: AWS::AppSync::DataSource
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: CharactersInPlay
+            Type: AMAZON_DYNAMODB
+            ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
+            DynamoDBConfig:
+                AwsRegion: us-east-1
+                TableName: !Sub ${TablePrefix}_characters_in_play
     QueryGetCharacterResolver:
         Type: AWS::AppSync::Resolver
         DependsOn: Schema
@@ -87,7 +113,7 @@ Resources:
                     "version": "2017-02-28",
                     "operation": "GetItem",
                     "key": {
-                        "PlayerSub": $util.dynamodb.toDynamoDBJson($ctx.args.playerSub),
+                        "PlayerName": $util.dynamodb.toDynamoDBJson($ctx.args.playerName),
                         "Name": $util.dynamodb.toDynamoDBJson($ctx.args.name)
                     }
                 }
@@ -105,9 +131,9 @@ Resources:
                     "version": "2017-02-28",
                     "operation": "Query",
                     "query": {
-                        "expression": "PlayerSub = :PlayerSub",
+                        "expression": "PlayerName = :PlayerName",
                         "expressionValues": {
-                            ":PlayerSub": $util.dynamodb.toDynamoDBJson($ctx.identity.sub)
+                            ":PlayerName": $util.dynamodb.toDynamoDBJson($context.identity.username)
                         }
                     }
                 }
@@ -129,7 +155,7 @@ Resources:
                     "version": "2017-02-28",
                     "operation": "PutItem",
                     "key": {
-                        "PlayerSub": $ddb.toStringJson($ctx.identity.sub),
+                        "PlayerName": $ddb.toStringJson($context.identity.username),
                         "Name": $ddb.toStringJson($ctx.args.Name)
                     },
                     "attributeValues": {
@@ -141,19 +167,253 @@ Resources:
                     }
                 }
             ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    CharacterInPlayGetCharacter:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: CharacterInPlay
+            FieldName: Character
+            DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "GetItem",
+                    "key": {
+                        "PlayerName": $util.dynamodb.toDynamoDBJson($context.source.PlayerName),
+                        "Name": $util.dynamodb.toDynamoDBJson($context.source.Name)
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    QueryGetCharactersInPlay:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Query
+            FieldName: getCharactersInPlay
+            DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "Scan",
+                    "filter": {
+                        "expression": "attribute_exists(ConnectionId)",
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+    MutationPreQueryCharacterInPlay:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PreQueryCharacterInPlay
+            Description: Checks before adding a character to see if a past record exists to reactivate
+            DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #if (!$ctx.prev.result.CharacterId)
+                    $ctx.error("CharacterId required")
+                #end
+                {
+                    "version": "2017-02-28",
+                    "operation": "GetItem",
+                    "key": {
+                        "CharacterId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                    }
+                }
+            ResponseMappingTemplate: >
+                #if ($ctx.result.PlayerName)
+                    {
+                        "CharacterId": "$ctx.prev.result.CharacterId",
+                        "ConnectionId": "$ctx.prev.result.ConnectionId",
+                        "PlayerName": "$ctx.result.PlayerName",
+                        "Name": "$ctx.result.Name",
+                        "RoomId": "$ctx.result.RoomId",
+                        "Reactivate": true
+                    }
+                #else
+                    {
+                        "CharacterId": "$ctx.prev.result.CharacterId",
+                        "ConnectionId": "$ctx.prev.result.ConnectionId",
+                        "Reactivate": false
+                    }
+                #end
+    MutationPreQueryCharacterIfNeeded:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PreQueryCharacterIfNeeded
+            Description: Checks if needed before adding a character to find PlayerName and Name
+            DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #if ($ctx.prev.result.Reactivate)
+                    #return($ctx.prev.result)
+                #else
+                {
+                    "version": "2017-02-28",
+                    "operation": "Query",
+                    "query": {
+                        "expression": "CharacterId = :characterId",
+                        "expressionValues": {
+                            ":characterId": $util.dynamodb.toStringJson($ctx.prev.result.CharacterId)
+                        }
+                    },
+                    "index": "CharacterIdIndex"
+                }
+                #end
+            ResponseMappingTemplate: >
+                #if ($ctx.error)
+                    $util.error($ctx.error.message, $ctx.error.type)
+                #end
+                #if ($ctx.result.Reactivate)
+                    $util.toJson($ctx.result)
+                #else
+                    #set($item = $ctx.result)
+                    {
+                        "CharacterId": "$ctx.prev.result.CharacterId",
+                        "ConnectionId": "$ctx.prev.result.ConnectionId",
+                        "PlayerName": "$item.PlayerName",
+                        "Name": "$item.Name",
+                        "RoomId": "VORTEX",
+                        "Reactivate": false
+                    }
+                #end
+    MutationAddCharacterInPlayPutFunction:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: AddCharacterInPlay
+            Description: Adds or activates a CharacterInPlay record
+            DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #set( $ddb = $util.dynamodb )
+                {
+                    #if ($ctx.prev.result.Reactivate)
+                        "version": "2018-05-29",
+                        "operation": "UpdateItem",
+                        "key": {
+                            "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                        },
+                        "update": {
+                            "expression": "SET #connectionfield = :connectionId",
+                            "expressionNames": {
+                                "#connectionfield": "ConnectionId"
+                            },
+                            "expressionValues": {
+                                ":connectionId": $ddb.toDynamoDBJson($ctx.prev.result.ConnectionId)
+                            }
+                        }
+                    #else
+                        "version" : "2017-02-28",
+                        "operation": "PutItem",
+                        "key": {
+                            "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                        },
+                        "attributeValues": {
+                            "PlayerName": $ddb.toDynamoDBJson($ctx.prev.result.PlayerName),
+                            "Name": $ddb.toDynamoDBJson($ctx.prev.result.Name),
+                            "RoomId": $ddb.toDynamoDBJson($ctx.prev.result.RoomId),
+                            "ConnectionId": $ddb.toDynamoDBJson($ctx.prev.result.ConnectionId)
+                        }
+                    #end
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    MutationAddCharacterInPlay:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Mutation
+            FieldName: addCharacterInPlay
+            Kind: PIPELINE
+            PipelineConfig:
+                Functions:
+                    - !GetAtt MutationPreQueryCharacterInPlay.FunctionId
+                    - !GetAtt MutationPreQueryCharacterIfNeeded.FunctionId
+                    - !GetAtt MutationAddCharacterInPlayPutFunction.FunctionId
+            RequestMappingTemplate: >
+                {
+                    "CharacterId": $util.toJson($ctx.args.CharacterId),
+                    "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    MutationDeleteCharacterInPlayResolver:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Mutation
+            FieldName: deleteCharacterInPlay
+            DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #if(!($ctx.args.CharacterId))
+                    $util.error("CharacterId field required")
+                #end
+                #set( $ddb = $util.dynamodb )
+                {
+                    "version": "2018-05-29",
+                    "operation": "UpdateItem",
+                    "key": {
+                        "CharacterId": $ddb.toDynamoDBJson($ctx.args.CharacterId)
+                    },
+                    "update": {
+                        "expression": "REMOVE #connectionfield",
+                        "expressionNames": {
+                            "#connectionfield": "ConnectionId"
+                        }
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    MutationMoveCharacterResolver:
+        Type: AWS::AppSync::Resolver
+        DependsOn: Schema
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Mutation
+            FieldName: moveCharacter
+            DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #if(!($ctx.args.CharacterId))
+                    $util.error("CharacterId field required")
+                #end
+                #set( $ddb = $util.dynamodb )
+                {
+                    "version": "2018-05-29",
+                    "operation": "UpdateItem",
+                    "key": {
+                        "CharacterId": $ddb.toDynamoDBJson($ctx.args.CharacterId)
+                    },
+                    "update": {
+                        "expression": "SET #roomfield = :roomId",
+                        "expressionNames": {
+                            "#roomfield": "RoomId"
+                        },
+                        "expressionValues": {
+                            ":roomId": $ddb.toDynamoDBJson($ctx.args.RoomId)
+                        }
+                    }
+                }
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
     Schema:
         Type: AWS::AppSync::GraphQLSchema
         Properties:
             ApiId: !GetAtt AppSyncAPI.ApiId
             Definition: >
                 type Character {
-                    PlayerSub: String!
+                    PlayerName: String!
                     Name: String!
-                    CharacterId: String!
+                    CharacterId: ID!
                     Pronouns: String
                     FirstImpression: String
                     Outfit: String
                     OneCoolThing: String
+                }
+                type CharacterInPlay {
+                    CharacterId: ID!
+                    Character: Character!
+                    RoomId: String!
+                    ConnectionId: String!
                 }
                 type Mutation {
                     putCharacter(
@@ -164,14 +424,32 @@ Resources:
                         Outfit: String,
                         OneCoolThing: String
                     ): Character
+                    addCharacterInPlay(
+                        CharacterId: String!
+                        ConnectionId: String!
+                    ): CharacterInPlay
+                    deleteCharacterInPlay(
+                        CharacterId: String!
+                    ): CharacterInPlay
+                    moveCharacter(
+                        CharacterId: String!
+                        RoomId: String!
+                    ): CharacterInPlay
                 }
                 type Query {
-                    getCharacter(playerSub: String!, name: String!): Character
+                    getCharacter(playerName: String!, name: String!): Character
                     getPlayerCharacters: [Character]
+                    getCharactersInPlay: [CharacterInPlay]
                 }
                 type Subscription {
                     changedCharacter: Character
                     @aws_subscribe(mutations: ["putCharacter"])
+                    addedCharacterInPlay: CharacterInPlay
+                    @aws_subscribe(mutations: ["addCharacterInPlay"])
+                    deletedCharacterInPlay: CharacterInPlay
+                    @aws_subscribe(mutations: ["deleteCharacterInPlay"])
+                    changedCharacterInPlay: CharacterInPlay
+                    @aws_subscribe(mutations: ["moveCharacter"])
                 }
                 schema {
                     mutation: Mutation

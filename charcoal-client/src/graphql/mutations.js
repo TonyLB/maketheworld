@@ -18,13 +18,67 @@ export const putCharacter = /* GraphQL */ `
       Outfit: $Outfit
       OneCoolThing: $OneCoolThing
     ) {
-      PlayerSub
+      PlayerName
       Name
       CharacterId
       Pronouns
       FirstImpression
       Outfit
       OneCoolThing
+    }
+  }
+`;
+export const addCharacterInPlay = /* GraphQL */ `
+  mutation AddCharacterInPlay($CharacterId: String!, $ConnectionId: String!) {
+    addCharacterInPlay(CharacterId: $CharacterId, ConnectionId: $ConnectionId) {
+      CharacterId
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+      }
+      RoomId
+      ConnectionId
+    }
+  }
+`;
+export const deleteCharacterInPlay = /* GraphQL */ `
+  mutation DeleteCharacterInPlay($CharacterId: String!) {
+    deleteCharacterInPlay(CharacterId: $CharacterId) {
+      CharacterId
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+      }
+      RoomId
+      ConnectionId
+    }
+  }
+`;
+export const moveCharacter = /* GraphQL */ `
+  mutation MoveCharacter($CharacterId: String!, $RoomId: String!) {
+    moveCharacter(CharacterId: $CharacterId, RoomId: $RoomId) {
+      CharacterId
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+      }
+      RoomId
+      ConnectionId
     }
   }
 `;

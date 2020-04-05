@@ -36,6 +36,9 @@ Resources:
         RecoveryMechanisms:
           - Name: verified_email
             Priority: 1
+      EmailVerificationSubject: Welcome to BurnedOverMUSH
+      EmailVerificationMessage: >
+          Thank you for signing up for BurnedOverMUSH.  Here is your verification code (the system will ask for it): {####}
       Schema:
         - Name: email
           AttributeDataType: String
@@ -180,26 +183,33 @@ Resources:
       SSESpecification:
         SSEEnabled: False
       TableName: !Sub '${TablePrefix}_players'
-  CharacterLocationsTable:
+  CharactersInPlayTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-      - AttributeName: "roomId"
+      - AttributeName: "CharacterId"
         AttributeType: "S"
-      - AttributeName: "characterId"
+      - AttributeName: "RoomId"
         AttributeType: "S"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
-      - AttributeName: "roomId"
+      - AttributeName: "CharacterId"
         KeyType: "HASH"
-      - AttributeName: "characterId"
-        KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: RoomIndex
+          KeySchema:
+            - AttributeName: RoomId
+              KeyType: HASH
+            - AttributeName: CharacterId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       SSESpecification:
         SSEEnabled: False
       TimeToLiveSpecification:
         AttributeName: "ExpirationTime"
         Enabled: True
-      TableName: !Sub '${TablePrefix}_character_locations'
+      TableName: !Sub '${TablePrefix}_characters_in_play'
   SharedLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
