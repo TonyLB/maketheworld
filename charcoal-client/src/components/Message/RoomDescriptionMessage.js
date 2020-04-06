@@ -10,7 +10,8 @@ import {
     ListItem,
     ListItemText,
     ListItemIcon,
-    ListItemSecondaryAction
+    ListItemSecondaryAction,
+    Tooltip
 } from '@material-ui/core'
 import HouseIcon from '@material-ui/icons/House'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
@@ -22,6 +23,7 @@ import useStyles from '../styles'
 import { getColorMap } from '../../selectors/colorMap.js'
 import { sendMessage } from '../../actions/messages.js'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
+import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 
 export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false, ...rest }) => {
     const [{ detailsOpen, timeoutId }, setDetailStatus] = useState({ detailsOpen: true, timeoutId: null })
@@ -43,6 +45,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
     }, [detailsOpen, inline, timeoutId])
 
     const colorMap = useSelector(getColorMap)
+    const charactersInPlay = useSelector(getCharactersInPlay)
     const classes = useStyles()
     const { roomId='', name='', exits=[], players=[], description='' } = message
 
@@ -76,19 +79,37 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                     </Grid>
                     <Grid item md>
                         <Typography variant='subtitle1' align='center'>
-                            Players:
+                            Characters:
                         </Typography>
                         { players
-                            .map(({ name }) => name)
-                            .map((player) => {
-                                const color = colorMap[player]
-                                return <Chip
-                                    key={player}
-                                    label={player}
-                                    classes={{
-                                        root: classes[`chip-${color.primary}`]
-                                    }}
-                                />
+                            .map(({ CharacterId }) => {
+                                const {
+                                    Name = 'DEFAULT',
+                                    Pronouns = '',
+                                    FirstImpression = '',
+                                    OneCoolThing = '',
+                                    Outfit = ''
+                                } = (charactersInPlay && charactersInPlay[CharacterId]) || {}
+                                const color = colorMap[Name] || 'blue'
+                                return (
+                                    <Tooltip key={Name} interactive arrow title={<React.Fragment>
+                                        <Typography variant='subtitle1' align='center'>
+                                            {Name}
+                                        </Typography>
+                                        { Pronouns && <div>Pronouns: {Pronouns}</div> }
+                                        { FirstImpression && <div>First Impression: {FirstImpression}</div> }
+                                        { OneCoolThing && <div>One Cool Thing: {OneCoolThing}</div> }
+                                        { Outfit && <div>Outfit: {Outfit}</div> }
+                                    </React.Fragment>}>
+                                        <Chip
+                                            label={Name}
+                                            classes={{
+                                                root: classes[`chip-${color.primary}`]
+                                            }}
+                                        />
+                                    </Tooltip>
+                                )
+
                             })
                         }
                     </Grid>

@@ -1,0 +1,422 @@
+{
+    "burnedover_permanents": [
+        { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Stew"
+                }, 
+                "fromRoomId": {
+                    "S": "30b2f605-a878-4b95-896a-ede09ced87b6"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:fd511945-d1c0-483b-a56e-3c31826238e5:4848c75b-d803-4744-a8e2-6d9201b986f4"
+                }, 
+                "parentId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "permanentId": {
+                    "S": "4848c75b-d803-4744-a8e2-6d9201b986f4"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Alley"
+                }, 
+                "fromRoomId": {
+                    "S": "ea2f0d8b-b583-423e-a2c4-ac2a1cbe42e2"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:30d18605-4bfc-4539-8634-96c02faca088:8af71794-0cc4-4c63-9d4e-fd0970554e24"
+                }, 
+                "parentId": {
+                    "S": "30d18605-4bfc-4539-8634-96c02faca088"
+                }, 
+                "permanentId": {
+                    "S": "8af71794-0cc4-4c63-9d4e-fd0970554e24"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "Surface access stations, airlocked, home to venturers outside."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:2f8cb4ae-5b1e-419b-a283-6a9e04564539"
+                }, 
+                "parentId": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301"
+                }, 
+                "permanentId": {
+                    "S": "2f8cb4ae-5b1e-419b-a283-6a9e04564539"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Transfer two"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Chanting Colony"
+                }, 
+                "fromRoomId": {
+                    "S": "30f0c550-b0fa-4563-8ae0-293208fd5bb2"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:00a564ff-fafa-4e1a-bbcb-5c4de94b1b15:72986e7a-2732-4de5-a078-d9ea179096b5"
+                }, 
+                "parentId": {
+                    "S": "00a564ff-fafa-4e1a-bbcb-5c4de94b1b15"
+                }, 
+                "permanentId": {
+                    "S": "72986e7a-2732-4de5-a078-d9ea179096b5"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Transfer Three"
+                }, 
+                "fromRoomId": {
+                    "S": "f835f58e-ce52-4df0-9cc2-2c2a5cb4a62f"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:26d2beb7-0f33-40e3-9f78-e12cf525113d:6809eae3-79ab-49b7-a843-50c7a235dbca"
+                }, 
+                "parentId": {
+                    "S": "26d2beb7-0f33-40e3-9f78-e12cf525113d"
+                }, 
+                "permanentId": {
+                    "S": "6809eae3-79ab-49b7-a843-50c7a235dbca"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "a vast, deep shaft, unplumbed, unscalable, in whose depths a strange light glows."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:30f0c550-b0fa-4563-8ae0-293208fd5bb2"
+                }, 
+                "parentId": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301"
+                }, 
+                "permanentId": {
+                    "S": "30f0c550-b0fa-4563-8ae0-293208fd5bb2"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Moon Well"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "The collapsed city here created layers of salvage, warrened through by scavengers"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:9eaa494e-0cc2-4bdf-b950-8292ceb270d4"
+                }, 
+                "parentId": {
+                    "S": "ac4a0579-9385-4db4-b548-2489e0b1caaf"
+                }, 
+                "permanentId": {
+                    "S": "9eaa494e-0cc2-4bdf-b950-8292ceb270d4"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Glass Stacks"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Stew"
+                }, 
+                "fromRoomId": {
+                    "S": "48d22bc2-f846-492b-8b2a-cd5b2b62153c"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:fd511945-d1c0-483b-a56e-3c31826238e5:f463229e-3581-4604-94f7-6dfad70645d1"
+                }, 
+                "parentId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "permanentId": {
+                    "S": "f463229e-3581-4604-94f7-6dfad70645d1"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "a central tunnel hundreds of kilometers long, winding and infinitely branching, traversed by wanderers, trade caravans, and bandits."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:50af6e42-e695-4660-97b9-cc1f0ea4ca10"
+                }, 
+                "parentId": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301"
+                }, 
+                "permanentId": {
+                    "S": "50af6e42-e695-4660-97b9-cc1f0ea4ca10"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Long Dark"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "permanentId": {
+                    "S": "VORTEX"
+                }, 
+                "ancestry": {
+                    "S": "VORTEX"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "description": {
+                    "S": "A swirling pool of flickering energy, thick enough to stand on, but not exactly comfortingly solid. There is a wide table of dark glossy wood, and the impression of a sound of rustling leaves. A door in a nimbus of shadow leads out."
+                }, 
+                "name": {
+                    "S": "Vortex"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Transfer Three"
+                }, 
+                "fromRoomId": {
+                    "S": "2f8cb4ae-5b1e-419b-a283-6a9e04564539"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:26d2beb7-0f33-40e3-9f78-e12cf525113d:c80a6b22-6484-4b5f-96b6-249925bdd5be"
+                }, 
+                "parentId": {
+                    "S": "26d2beb7-0f33-40e3-9f78-e12cf525113d"
+                }, 
+                "permanentId": {
+                    "S": "c80a6b22-6484-4b5f-96b6-249925bdd5be"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Containers"
+                }, 
+                "fromRoomId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:ea2f0d8b-b583-423e-a2c4-ac2a1cbe42e2:23573b30-5e94-45ef-bbbd-ebcf8184e98e"
+                }, 
+                "parentId": {
+                    "S": "ea2f0d8b-b583-423e-a2c4-ac2a1cbe42e2"
+                }, 
+                "permanentId": {
+                    "S": "23573b30-5e94-45ef-bbbd-ebcf8184e98e"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Baffles"
+                }, 
+                "fromRoomId": {
+                    "S": "50af6e42-e695-4660-97b9-cc1f0ea4ca10"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:5fe3fc19-6db1-4d3e-b30d-8ff2f7b04c4a:a135781c-fc50-4b92-b860-45fae98e49f1"
+                }, 
+                "parentId": {
+                    "S": "5fe3fc19-6db1-4d3e-b30d-8ff2f7b04c4a"
+                }, 
+                "permanentId": {
+                    "S": "a135781c-fc50-4b92-b860-45fae98e49f1"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Boneyard"
+                }, 
+                "fromRoomId": {
+                    "S": "6d9cebf4-22ab-4a9e-a399-396b31e3b867"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:f875c674-0bec-4df5-9500-18e3291ca3a5:6b2d8009-a184-4d2e-8c71-50aeb42f21da"
+                }, 
+                "parentId": {
+                    "S": "f875c674-0bec-4df5-9500-18e3291ca3a5"
+                }, 
+                "permanentId": {
+                    "S": "6b2d8009-a184-4d2e-8c71-50aeb42f21da"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Long Dark"
+                }, 
+                "fromRoomId": {
+                    "S": "5fe3fc19-6db1-4d3e-b30d-8ff2f7b04c4a"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:50af6e42-e695-4660-97b9-cc1f0ea4ca10:67203bd2-7f2e-47aa-b9c4-50ab28f6e7c4"
+                }, 
+                "parentId": {
+                    "S": "50af6e42-e695-4660-97b9-cc1f0ea4ca10"
+                }, 
+                "permanentId": {
+                    "S": "67203bd2-7f2e-47aa-b9c4-50ab28f6e7c4"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Stew"
+                }, 
+                "fromRoomId": {
+                    "S": "VORTEX"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:fd511945-d1c0-483b-a56e-3c31826238e5:6ad6bb90-e846-4ff0-b85b-a31b67fc6232"
+                }, 
+                "parentId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "permanentId": {
+                    "S": "6ad6bb90-e846-4ff0-b85b-a31b67fc6232"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "You followed a cat, and you've entered a place between. You can't quite figure out what it looks like. You feel brushes against your ankle or sharp claws in your calf depending on where you're going."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:99a299aa-3662-419b-be54-e6bb81d92b94"
+                }, 
+                "parentId": {
+                    "S": "ac4a0579-9385-4db4-b548-2489e0b1caaf"
+                }, 
+                "permanentId": {
+                    "S": "99a299aa-3662-419b-be54-e6bb81d92b94"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "The Cat Portal"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "Water runs through the ally, back into the Stew. Doors open to adjoining shops."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:30d18605-4bfc-4539-8634-96c02faca088"
+                }, 
+                "parentId": {
+                    "S": "ac4a0579-9385-4db4-b548-2489e0b1caaf"
+                }, 
+                "permanentId": {
+                    "S": "30d18605-4bfc-4539-8634-96c02faca088"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "The Alley"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Baffles"
+                }, 
+                "fromRoomId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:5fe3fc19-6db1-4d3e-b30d-8ff2f7b04c4a:685830c3-97c7-45d6-b735-a17c2bd22798"
+                }, 
+                "parentId": {
+                    "S": "5fe3fc19-6db1-4d3e-b30d-8ff2f7b04c4a"
+                }, 
+                "permanentId": {
+                    "S": "685830c3-97c7-45d6-b735-a17c2bd22798"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Transfer Prime"
+                }, 
+                "fromRoomId": {
+                    "S": "20544128-7f35-4fae-8090-47062e37df6e"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:23a5bede-a108-4274-b1b0-dbdfd56e84b5:c0c94483-258e-49b3-9f45-204e65f37807"
+                }, 
+                "parentId": {
+                    "S": "23a5bede-a108-4274-b1b0-dbdfd56e84b5"
+                }, 
+                "permanentId": {
+                    "S": "c0c94483-258e-49b3-9f45-204e65f37807"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}
+    ]
+}

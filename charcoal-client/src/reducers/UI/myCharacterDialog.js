@@ -1,4 +1,4 @@
-import { ACTIVATE_CHARACTER_DIALOG, CLOSE_CHARACTER_DIALOG } from '../../actions/UI/characterDialog'
+import { ACTIVATE_MY_CHARACTER_DIALOG, CLOSE_MY_CHARACTER_DIALOG } from '../../actions/UI/myCharacterDialog'
 
 export const reducer = (state = { open: false }, action) => {
     const {
@@ -14,13 +14,13 @@ export const reducer = (state = { open: false }, action) => {
 
     switch (type) {
 
-        case CLOSE_CHARACTER_DIALOG:
+        case CLOSE_MY_CHARACTER_DIALOG:
             return {
                 ...state,
                 open: false,
                 nestedOpen: false
             }
-        case ACTIVATE_CHARACTER_DIALOG:
+        case ACTIVATE_MY_CHARACTER_DIALOG:
             return {
                 open: !nested,
                 nestedOpen: nested,

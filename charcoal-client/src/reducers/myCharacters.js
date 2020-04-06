@@ -1,9 +1,9 @@
-import { FETCH_CHARACTERS_ATTEMPT, FETCH_CHARACTERS_SUCCESS, RECEIVE_CHARACTER_CHANGE } from '../actions/characters.js'
+import { FETCH_MY_CHARACTERS_ATTEMPT, FETCH_MY_CHARACTERS_SUCCESS, RECEIVE_MY_CHARACTER_CHANGE } from '../actions/characters.js'
 
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
     switch (actionType) {
-        case FETCH_CHARACTERS_ATTEMPT:
+        case FETCH_MY_CHARACTERS_ATTEMPT:
             return {
                 ...state,
                 meta: {
@@ -12,7 +12,7 @@ export const reducer = (state = '', action = {}) => {
                     fetched: false
                 }
             }
-        case FETCH_CHARACTERS_SUCCESS:
+        case FETCH_MY_CHARACTERS_SUCCESS:
             return {
                 ...state,
                 meta: {
@@ -22,7 +22,7 @@ export const reducer = (state = '', action = {}) => {
                 },
                 data: payload
             }
-        case RECEIVE_CHARACTER_CHANGE:
+        case RECEIVE_MY_CHARACTER_CHANGE:
             return {
                 ...state,
                 data: [

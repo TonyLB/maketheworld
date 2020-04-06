@@ -18,9 +18,9 @@ import {
 
 
 // Local code imports
-import { closeCharacterDialog } from '../../actions/UI/characterDialog'
-import { putCharacterAndCloseDialog } from '../../actions/characters'
-import { getCharacterDialogUI } from '../../selectors/UI/characterDialog.js'
+import { closeMyCharacterDialog } from '../../actions/UI/myCharacterDialog'
+import { putMyCharacterAndCloseDialog } from '../../actions/characters'
+import { getMyCharacterDialogUI } from '../../selectors/UI/myCharacterDialog.js'
 import useStyles from '../styles'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
@@ -35,7 +35,7 @@ const appearanceUpdate = ({ label, value }) => ({
     value
 })
 
-const characterDialogReducer = (state, action) => {
+const myCharacterDialogReducer = (state, action) => {
     switch(action.type) {
         case APPEARANCE_UPDATE:
             return {
@@ -49,9 +49,9 @@ const characterDialogReducer = (state, action) => {
     }
 }
 
-export const CharacterDialog = ({ nested=false }) => {
-    const { open, nestedOpen, ...defaultValues } = useSelector(getCharacterDialogUI)
-    const [formValues, formDispatch] = useReducer(characterDialogReducer, {})
+export const MyCharacterDialog = ({ nested=false }) => {
+    const { open, nestedOpen, ...defaultValues } = useSelector(getMyCharacterDialogUI)
+    const [formValues, formDispatch] = useReducer(myCharacterDialogReducer, {})
     const dispatch = useDispatch()
 
     const { name = '', pronouns = '', firstImpression = '', outfit = '', oneCoolThing = '' } = formValues
@@ -60,7 +60,7 @@ export const CharacterDialog = ({ nested=false }) => {
     const saveHandler = () => {
         const { name, pronouns, firstImpression, outfit, oneCoolThing, characterId } = formValues
         const characterData = { name, pronouns, firstImpression, outfit, oneCoolThing, characterId }
-        dispatch(putCharacterAndCloseDialog(characterData))
+        dispatch(putMyCharacterAndCloseDialog(characterData))
     }
 
     const classes = useStyles()
@@ -133,7 +133,7 @@ export const CharacterDialog = ({ nested=false }) => {
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={ () => { dispatch(closeCharacterDialog()) } }>
+                    <Button onClick={ () => { dispatch(closeMyCharacterDialog()) } }>
                         Cancel
                     </Button>
                     <Button onClick={saveHandler}>
@@ -145,4 +145,4 @@ export const CharacterDialog = ({ nested=false }) => {
     )
 }
 
-export default CharacterDialog
+export default MyCharacterDialog

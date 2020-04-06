@@ -12,7 +12,6 @@ import {
     DialogContent,
     DialogActions,
     Button,
-    Typography,
     Tooltip,
     IconButton,
     List,
@@ -20,26 +19,20 @@ import {
     ListItemText,
     ListItemSecondaryAction
 } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
-import {
-    TreeView,
-    TreeItem
-} from '@material-ui/lab'
 import CreateIcon from '@material-ui/icons/Create'
 import AddIcon from '@material-ui/icons/AddBox'
 
 // Local code imports
-import RoomDialog from '../RoomDialog/'
-import CharacterDialog from '../CharacterDialog/'
+import MyCharacterDialog from '../MyCharacterDialog/'
 import { closeAllCharactersDialog } from '../../actions/UI/allCharactersDialog'
-import { activateCharacterDialog, populateAndActivateCharacterDialog } from '../../actions/UI/characterDialog'
+import { activateMyCharacterDialog, populateAndActivateMyCharacterDialog } from '../../actions/UI/myCharacterDialog'
 import { getAllCharactersDialogUI } from '../../selectors/UI/allCharactersDialog.js'
-import { getCharacters } from '../../selectors/characters'
+import { getMyCharacters } from '../../selectors/myCharacters'
 import useStyles from '../styles'
 
 export const AllCharactersDialog = () => {
     const { open } = useSelector(getAllCharactersDialogUI)
-    const myCharacters = useSelector(getCharacters) || []
+    const myCharacters = useSelector(getMyCharacters) || []
     const dispatch = useDispatch()
 
     const classes = useStyles()
@@ -50,7 +43,7 @@ export const AllCharactersDialog = () => {
         >
             <DialogTitle id="all-character-dialog-title">Character Overview</DialogTitle>
             <DialogContent>
-                <CharacterDialog nested />
+                <MyCharacterDialog nested />
                 <Card className={classes.card}>
                     <CardHeader
                         title="My Characters"
@@ -61,7 +54,7 @@ export const AllCharactersDialog = () => {
                                     aria-label="add character"
                                     onClick={(event) => {
                                         event.stopPropagation()
-                                        dispatch(activateCharacterDialog({
+                                        dispatch(activateMyCharacterDialog({
                                             nested: true
                                         }))
                                     }}
@@ -76,14 +69,14 @@ export const AllCharactersDialog = () => {
                                 myCharacters.map(({
                                     Name
                                 }) => (
-                                    <ListItem>
+                                    <ListItem key={Name}>
                                         <ListItemText>
                                             { Name }
                                         </ListItemText>
                                         <ListItemSecondaryAction>
                                             <Tooltip title={`Edit ${Name}`}>
                                                 <IconButton onClick={() => {
-                                                        dispatch(populateAndActivateCharacterDialog({ Name, nested: true }))
+                                                        dispatch(populateAndActivateMyCharacterDialog({ Name, nested: true }))
                                                     }
                                                 } >
                                                     <CreateIcon />

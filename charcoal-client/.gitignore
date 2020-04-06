@@ -32,6 +32,9 @@ build/
 dist/
 node_modules/
 aws-exports.js
+src/aws-exports.js
+src/graphql
+src/models
 awsconfiguration.json
 amplifyconfiguration.json
 amplify-build-config.json

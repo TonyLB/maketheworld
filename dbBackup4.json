@@ -1,0 +1,380 @@
+{
+    "burnedover_permanents": [
+        { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Transfer Two"
+                }, 
+                "fromRoomId": {
+                    "S": "23a5bede-a108-4274-b1b0-dbdfd56e84b5"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:2f8cb4ae-5b1e-419b-a283-6a9e04564539:e740f8d9-659f-4be9-866d-0f0902f2dfda"
+                }, 
+                "parentId": {
+                    "S": "2f8cb4ae-5b1e-419b-a283-6a9e04564539"
+                }, 
+                "permanentId": {
+                    "S": "e740f8d9-659f-4be9-866d-0f0902f2dfda"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "Vulture sells containers here."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:ea2f0d8b-b583-423e-a2c4-ac2a1cbe42e2"
+                }, 
+                "parentId": {
+                    "S": "ac4a0579-9385-4db4-b548-2489e0b1caaf"
+                }, 
+                "permanentId": {
+                    "S": "ea2f0d8b-b583-423e-a2c4-ac2a1cbe42e2"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Vulture's Store"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Water Locks"
+                }, 
+                "fromRoomId": {
+                    "S": "9eaa494e-0cc2-4bdf-b950-8292ceb270d4"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:f835f58e-ce52-4df0-9cc2-2c2a5cb4a62f:2b1a7df9-7f21-46e3-b6ef-57fa4927e4f5"
+                }, 
+                "parentId": {
+                    "S": "f835f58e-ce52-4df0-9cc2-2c2a5cb4a62f"
+                }, 
+                "permanentId": {
+                    "S": "2b1a7df9-7f21-46e3-b6ef-57fa4927e4f5"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "The Alley"
+                }, 
+                "fromRoomId": {
+                    "S": "99a299aa-3662-419b-be54-e6bb81d92b94"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:30d18605-4bfc-4539-8634-96c02faca088:dd48239d-d227-41b5-8641-c05c0d3be53a"
+                }, 
+                "parentId": {
+                    "S": "30d18605-4bfc-4539-8634-96c02faca088"
+                }, 
+                "permanentId": {
+                    "S": "dd48239d-d227-41b5-8641-c05c0d3be53a"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Glass Stacks"
+                }, 
+                "fromRoomId": {
+                    "S": "f875c674-0bec-4df5-9500-18e3291ca3a5"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:9eaa494e-0cc2-4bdf-b950-8292ceb270d4:f9c2d2b5-710f-4197-b6a9-4e5ee173be54"
+                }, 
+                "parentId": {
+                    "S": "9eaa494e-0cc2-4bdf-b950-8292ceb270d4"
+                }, 
+                "permanentId": {
+                    "S": "f9c2d2b5-710f-4197-b6a9-4e5ee173be54"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "permanentId": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301"
+                }, 
+                "type": {
+                    "S": "NEIGHBORHOOD"
+                }, 
+                "description": {
+                    "S": "Beneath the surface of the world are echoing vaults, networks of tunnels, roaring cataracts, regions of light and power and other regions of cold silent darkness. In all, the ruins of whole cities built under the earth, spanning hundreds of kilometersÆ distance and impossible, unmeasured depths."
+                }, 
+                "name": {
+                    "S": "The Bottomless Vaults"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Glass Stacks"
+                }, 
+                "fromRoomId": {
+                    "S": "f835f58e-ce52-4df0-9cc2-2c2a5cb4a62f"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:9eaa494e-0cc2-4bdf-b950-8292ceb270d4:0f2b588f-4d43-4bea-8933-f25346b2da3e"
+                }, 
+                "parentId": {
+                    "S": "9eaa494e-0cc2-4bdf-b950-8292ceb270d4"
+                }, 
+                "permanentId": {
+                    "S": "0f2b588f-4d43-4bea-8933-f25346b2da3e"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Pick Up the Old Cat Statue"
+                }, 
+                "fromRoomId": {
+                    "S": "99a299aa-3662-419b-be54-e6bb81d92b94"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:30b2f605-a878-4b95-896a-ede09ced87b6:a4137fc2-f8f2-4c42-b21b-61ca23d84588"
+                }, 
+                "parentId": {
+                    "S": "30b2f605-a878-4b95-896a-ede09ced87b6"
+                }, 
+                "permanentId": {
+                    "S": "a4137fc2-f8f2-4c42-b21b-61ca23d84588"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Vortex"
+                }, 
+                "fromRoomId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "ancestry": {
+                    "S": "VORTEX:74b7fb42-2d92-4642-b496-530844253ed3"
+                }, 
+                "parentId": {
+                    "S": "VORTEX"
+                }, 
+                "permanentId": {
+                    "S": "74b7fb42-2d92-4642-b496-530844253ed3"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Moon Well"
+                }, 
+                "fromRoomId": {
+                    "S": "00a564ff-fafa-4e1a-bbcb-5c4de94b1b15"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:30f0c550-b0fa-4563-8ae0-293208fd5bb2:57361664-95fe-4ad8-a7a9-e5204e19cce6"
+                }, 
+                "parentId": {
+                    "S": "30f0c550-b0fa-4563-8ae0-293208fd5bb2"
+                }, 
+                "permanentId": {
+                    "S": "57361664-95fe-4ad8-a7a9-e5204e19cce6"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "A hammock swings casually in the eerly light, suspended above countless kilometers of light. Sundown sleeps here. There is a chair covered with cats."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:6481a823-0c9d-4810-aece-2b091850c033"
+                }, 
+                "parentId": {
+                    "S": "ac4a0579-9385-4db4-b548-2489e0b1caaf"
+                }, 
+                "permanentId": {
+                    "S": "6481a823-0c9d-4810-aece-2b091850c033"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Sundown's hammock flat"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "The Alley"
+                }, 
+                "fromRoomId": {
+                    "S": "30b2f605-a878-4b95-896a-ede09ced87b6"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:30d18605-4bfc-4539-8634-96c02faca088:a7fe08f6-838b-448d-9ba8-bda7df9b5a49"
+                }, 
+                "parentId": {
+                    "S": "30d18605-4bfc-4539-8634-96c02faca088"
+                }, 
+                "permanentId": {
+                    "S": "a7fe08f6-838b-448d-9ba8-bda7df9b5a49"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "Inhabited chambers named for their periodic flooding."
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "parentId": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301"
+                }, 
+                "permanentId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Stew"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Nothing could possible go wrong if I fall asleep in this chair, right?"
+                }, 
+                "fromRoomId": {
+                    "S": "6481a823-0c9d-4810-aece-2b091850c033"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:99a299aa-3662-419b-be54-e6bb81d92b94:905257be-f3ab-4043-bf63-530348205831"
+                }, 
+                "parentId": {
+                    "S": "99a299aa-3662-419b-be54-e6bb81d92b94"
+                }, 
+                "permanentId": {
+                    "S": "905257be-f3ab-4043-bf63-530348205831"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Stew"
+                }, 
+                "fromRoomId": {
+                    "S": "ea2f0d8b-b583-423e-a2c4-ac2a1cbe42e2"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:fd511945-d1c0-483b-a56e-3c31826238e5:a90b5af9-ff7a-4838-9b44-bdb124cd088b"
+                }, 
+                "parentId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "permanentId": {
+                    "S": "a90b5af9-ff7a-4838-9b44-bdb124cd088b"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Stew"
+                }, 
+                "fromRoomId": {
+                    "S": "5fe3fc19-6db1-4d3e-b30d-8ff2f7b04c4a"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:fd511945-d1c0-483b-a56e-3c31826238e5:4ae0bfbc-5b33-47bb-8bcb-3ce36ea7d34a"
+                }, 
+                "parentId": {
+                    "S": "fd511945-d1c0-483b-a56e-3c31826238e5"
+                }, 
+                "permanentId": {
+                    "S": "4ae0bfbc-5b33-47bb-8bcb-3ce36ea7d34a"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "name": {
+                    "S": "Through the Paths of mind"
+                }, 
+                "fromRoomId": {
+                    "S": "VORTEX"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:6481a823-0c9d-4810-aece-2b091850c033:a35a855d-c17b-4601-aa99-dcc56285849e"
+                }, 
+                "parentId": {
+                    "S": "6481a823-0c9d-4810-aece-2b091850c033"
+                }, 
+                "permanentId": {
+                    "S": "a35a855d-c17b-4601-aa99-dcc56285849e"
+                }, 
+                "type": {
+                    "S": "ENTRY"
+                }
+            }
+        }}, { "PutRequest": { "Item":
+            {
+                "description": {
+                    "S": "There are secret ruins here, where sometimes a gearcutter can find ancient machinery"
+                }, 
+                "ancestry": {
+                    "S": "d182e558-b648-48c4-b9b7-145b1d368301:ac4a0579-9385-4db4-b548-2489e0b1caaf:f875c674-0bec-4df5-9500-18e3291ca3a5"
+                }, 
+                "parentId": {
+                    "S": "ac4a0579-9385-4db4-b548-2489e0b1caaf"
+                }, 
+                "permanentId": {
+                    "S": "f875c674-0bec-4df5-9500-18e3291ca3a5"
+                }, 
+                "type": {
+                    "S": "ROOM"
+                }, 
+                "name": {
+                    "S": "Boneyard"
+                }
+            }
+        }}
+    ]
+}

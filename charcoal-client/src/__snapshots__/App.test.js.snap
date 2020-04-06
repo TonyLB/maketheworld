@@ -1,94 +1,21 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`renders learn react link 1`] = `
-<header
-  class="MuiPaper-root MuiAppBar-root MuiAppBar-positionFixed MuiAppBar-colorPrimary makeStyles-topAppBar-16 mui-fixed MuiPaper-elevation4"
-  style="padding-right: 0px;"
+<div
+  class="Section__container___3YYTG"
 >
   <div
-    class="MuiContainer-root MuiContainer-maxWidthLg"
+    class="Form__formContainer___1GA3x"
   >
-    <ul
-      class="MuiList-root MuiList-padding"
+    <div
+      class="Form__formSection___1PPvW"
     >
-      <li
-        class="MuiListItem-container"
+      <div
+        class="Section__sectionBody___ihqqd"
       >
-        <div
-          class="MuiListItem-root makeStyles-roomMessage-14 MuiListItem-gutters MuiListItem-alignItemsFlexStart MuiListItem-secondaryAction"
-        >
-          <div
-            class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root"
-              focusable="false"
-              role="presentation"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3l-3-2.7zm-9 .7c0-1.1.9-2 2-2s2 .9 2 2h-4z"
-              />
-            </svg>
-          </div>
-          <div
-            class="MuiListItemText-root"
-          >
-            <span
-              class="MuiTypography-root MuiListItemText-primary MuiTypography-body1"
-            >
-              <h5
-                class="MuiTypography-root MuiTypography-h5 MuiTypography-alignLeft"
-              />
-              <p
-                class="MuiTypography-root MuiTypography-body1 MuiTypography-alignLeft"
-              />
-              <hr
-                class="MuiDivider-root"
-              />
-              <div
-                class="MuiGrid-root MuiGrid-container"
-              >
-                <div
-                  class="MuiGrid-root MuiGrid-item MuiGrid-grid-md-true"
-                >
-                  <h6
-                    class="MuiTypography-root MuiTypography-subtitle1 MuiTypography-alignCenter"
-                  >
-                    Exits:
-                  </h6>
-                </div>
-                <div
-                  class="MuiGrid-root MuiGrid-item MuiGrid-grid-md-true"
-                >
-                  <h6
-                    class="MuiTypography-root MuiTypography-subtitle1 MuiTypography-alignCenter"
-                  >
-                    Players:
-                  </h6>
-                </div>
-              </div>
-            </span>
-          </div>
-        </div>
-        <div
-          class="MuiListItemSecondaryAction-root"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root"
-            focusable="false"
-            role="presentation"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-            />
-          </svg>
-        </div>
-      </li>
-    </ul>
+        Loading...
+      </div>
+    </div>
   </div>
-</header>
+</div>
 `;

@@ -463,29 +463,7 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "addedCharacterInPlay",
-          "description" : null,
-          "args" : [ ],
-          "type" : {
-            "kind" : "OBJECT",
-            "name" : "CharacterInPlay",
-            "ofType" : null
-          },
-          "isDeprecated" : false,
-          "deprecationReason" : null
-        }, {
-          "name" : "deletedCharacterInPlay",
-          "description" : null,
-          "args" : [ ],
-          "type" : {
-            "kind" : "OBJECT",
-            "name" : "CharacterInPlay",
-            "ofType" : null
-          },
-          "isDeprecated" : false,
-          "deprecationReason" : null
-        }, {
-          "name" : "changedCharacterInPlay",
+          "name" : "changedCharactersInPlay",
           "description" : null,
           "args" : [ ],
           "type" : {

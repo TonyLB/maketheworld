@@ -764,3 +764,7 @@ Outputs:
   UserPoolArn:
     Description: The ARN for the player user pool"
     Value: !GetAtt 'UserPool.Arn'
+
+  UserPoolClient:
+    Description: The client ID for the player user pool
+    Value: !Ref UserPoolClient

@@ -38,6 +38,13 @@ exports.handler = (event) => {
             message: `${playerData.name} has connected.`
           })
         })))
+      .then(() => (
+        world.sockets.messageToSelf(JSON.stringify({
+          type: 'connectionregister',
+          connectionId: event.requestContext.connectionId,
+          characterId
+        }))
+      ))
     ))
     .then(() => ({ statusCode: 200, body: 'Data sent.' }))
     //

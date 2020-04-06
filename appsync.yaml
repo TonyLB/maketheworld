@@ -80,6 +80,27 @@ Resources:
                             - "dynamodb:UpdateItem"
                             - "dynamodb:Scan"
                         Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
+              - PolicyName: PermanentsPolicy
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Action:
+                            - "dynamodb:GetItem"
+                            - "dynamodb:BatchGetItem"
+                            - "dynamodb:Query"
+                            - "dynamodb:PutItem"
+                            - "dynamodb:UpdateItem"
+                            - "dynamodb:Scan"
+                        Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
+              - PolicyName: PermanentsIndexPolicy
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Action:
+                            - "dynamodb:Query"
+                        Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
     CharacterDynamoDBTableDataSource:
         Type: AWS::AppSync::DataSource
         Properties:
@@ -100,6 +121,16 @@ Resources:
             DynamoDBConfig:
                 AwsRegion: us-east-1
                 TableName: !Sub ${TablePrefix}_characters_in_play
+    PermanentsDynamoDBTableDataSource:
+        Type: AWS::AppSync::DataSource
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: Permanents
+            Type: AMAZON_DYNAMODB
+            ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
+            DynamoDBConfig:
+                AwsRegion: us-east-1
+                TableName: !Sub ${TablePrefix}_permanents
     QueryGetCharacterResolver:
         Type: AWS::AppSync::Resolver
         DependsOn: Schema
@@ -202,6 +233,40 @@ Resources:
                     }
                 }
             ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+    QueryGetNeighborhoodTree:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Query
+            FieldName: getNeighborhoodTree
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2018-05-29",
+                    "operation": "Scan",
+                    "filter": {
+                        "expression": "#t = :neighborhood or #t = :room",
+                        "expressionNames": {
+                            "#t": "type"
+                        },
+                        "expressionValues": {
+                            ":neighborhood": $util.dynamodb.toStringJson("NEIGHBORHOOD"),
+                            ":room": $util.dynamodb.toStringJson("ROOM")
+                        }
+                    }
+                }
+            ResponseMappingTemplate: >
+                #set($output = [])
+                #foreach($node in $ctx.result.items)
+                    $util.qr($output.add({
+                        "Name": $node.name,
+                        "Type": $node.type,
+                        "PermanentId": $node.permanentId,
+                        "ParentId": $node.parentId,
+                        "Ancestry": $node.ancestry
+                    }))
+                #end
+                $util.toJson($output)
     MutationPreQueryCharacterInPlay:
         Type: AWS::AppSync::FunctionConfiguration
         Properties:
@@ -269,7 +334,7 @@ Resources:
                 #if ($ctx.result.Reactivate)
                     $util.toJson($ctx.result)
                 #else
-                    #set($item = $ctx.result)
+                    #set($item = $ctx.result.items[0])
                     {
                         "CharacterId": "$ctx.prev.result.CharacterId",
                         "ConnectionId": "$ctx.prev.result.ConnectionId",
@@ -395,6 +460,97 @@ Resources:
                     }
                 }
             ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    MutationPreQueryPermanentParentFunction:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PreQueryPermanentParent
+            Description: Gets the parent node in order to construct ancestry
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #if($ctx.prev.result.ParentId)
+                {
+                    "version": "2017-02-28",
+                    "operation": "GetItem",
+                    "key": {
+                        "permanentId": $util.dynamodb.toStringJson($ctx.prev.result.ParentId)
+                    }
+                }
+                #else
+                    #return($ctx.prev.result)
+                #end
+            ResponseMappingTemplate: >
+                #if ($ctx.error)
+                    $util.error($ctx.error.message, $ctx.error.type)
+                #end
+                #set($prev = $ctx.prev.result)
+                {
+                    "Name": $util.toJson($prev.Name)
+                    #if($prev.PermanentId), "PermanentId": $util.toJson($prev.PermanentId)#end
+                    #if($prev.Description), "Description": $util.toJson($prev.Description)#end
+                    #if($prev.ParentId), "ParentId": $util.toJson($prev.ParentId)#end
+                    #if ($util.isMap($ctx.result))
+                        #if ($ctx.result.ancestry)
+                            , "ParentAncestry": $util.toJson($ctx.result.ancestry)
+                        #end
+                    #end    
+                }
+    MutationPutNeighborhoodFunction:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PutNeighborhood
+            Description: Puts a neighborhood into the Permanents table
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #set( $ddb = $util.dynamodb )
+                #set( $args = $ctx.prev.result )
+                #set( $PermanentId = $args.PermanentId )
+                #if(!$PermanentId)
+                    #set( $PermanentId = $util.autoId() )
+                #end
+                #if($args.ParentAncestry)
+                    #set($ancestry = "${args.ParentAncestry}:${PermanentId}")
+                #else
+                    #set($ancestry = $PermanentId)
+                #end
+                {
+                    "version": "2017-02-28",
+                    "operation": "PutItem",
+                    "key": {
+                        "permanentId": $ddb.toDynamoDBJson($PermanentId)
+                    },
+                    "attributeValues": {
+                        "name": $ddb.toDynamoDBJson($args.Name),
+                        "type": $ddb.toStringJson("NEIGHBORHOOD"),
+                        "ancestry": $ddb.toStringJson($ancestry)
+                        #if($args.Description), "description": $ddb.toStringJson($args.Description) #end
+                        #if($args.ParentId), "parentId": $ddb.toStringJson($args.ParentId) #end
+                    }
+                }
+            ResponseMappingTemplate: >
+                {
+                    "PermanentId": $util.toJson($ctx.result.permanentId),
+                    "ParentId": $util.toJson($ctx.result.parentId),
+                    "Ancestry": $util.toJson($ctx.result.ancestry),
+                    "Name": $util.toJson($ctx.result.name),
+                    "Description": $util.toJson($ctx.result.description)
+                }
+    MutationPutNeighborhood:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Mutation
+            FieldName: putNeighborhood
+            Kind: PIPELINE
+            PipelineConfig:
+                Functions:
+                    - !GetAtt MutationPreQueryPermanentParentFunction.FunctionId
+                    - !GetAtt MutationPutNeighborhoodFunction.FunctionId
+            RequestMappingTemplate: "$utils.toJson($ctx.args)"
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
     Schema:
         Type: AWS::AppSync::GraphQLSchema
         Properties:
@@ -414,6 +570,22 @@ Resources:
                     Character: Character!
                     RoomId: String!
                     ConnectionId: String!
+                }
+                interface PermanentTreeNode {
+                    PermanentId: String!
+                    Name: String!
+                    Type: String!
+                    Ancestry: String!
+                    Description: String
+                    ParentId: String
+                }
+                type Neighborhood implements PermanentTreeNode {
+                    PermanentId: String!
+                    Name: String!
+                    Type: String!
+                    Ancestry: String!
+                    Description: String
+                    ParentId: String
                 }
                 type Mutation {
                     putCharacter(
@@ -435,21 +607,24 @@ Resources:
                         CharacterId: String!
                         RoomId: String!
                     ): CharacterInPlay
+                    putNeighborhood(
+                        PermanentId: String
+                        Name: String!
+                        Description: String
+                        ParentId: String
+                    ): Neighborhood
                 }
                 type Query {
                     getCharacter(playerName: String!, name: String!): Character
                     getPlayerCharacters: [Character]
                     getCharactersInPlay: [CharacterInPlay]
+                    getNeighborhoodTree: [PermanentTreeNode]
                 }
                 type Subscription {
                     changedCharacter: Character
                     @aws_subscribe(mutations: ["putCharacter"])
-                    addedCharacterInPlay: CharacterInPlay
-                    @aws_subscribe(mutations: ["addCharacterInPlay"])
-                    deletedCharacterInPlay: CharacterInPlay
-                    @aws_subscribe(mutations: ["deleteCharacterInPlay"])
-                    changedCharacterInPlay: CharacterInPlay
-                    @aws_subscribe(mutations: ["moveCharacter"])
+                    changedCharactersInPlay: CharacterInPlay
+                    @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                 }
                 schema {
                     mutation: Mutation

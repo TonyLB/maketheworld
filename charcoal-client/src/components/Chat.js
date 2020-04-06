@@ -27,17 +27,24 @@ import MenuIcon from '@material-ui/icons/Menu'
 // Local code imports
 import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
+import { connectionRegister } from '../actions/connection.js'
 import { unsubscribeAll } from '../actions/subscriptions.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
-import { activateCharacterDialog } from '../actions/UI/characterDialog'
+import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
 import { getSubscriptions } from '../selectors/subscriptions'
-import { fetchCharacters, subscribeCharacterChanges } from '../actions/characters.js'
-import { getCharacterFetchNeeded, getCharacters } from '../selectors/characters.js'
+import {
+    fetchMyCharacters,
+    subscribeMyCharacterChanges,
+    fetchCharactersInPlay,
+    subscribeCharactersInPlayChanges
+} from '../actions/characters.js'
+import { getMyCharacterFetchNeeded, getMyCharacters } from '../selectors/myCharacters.js'
+import { getCharactersInPlayFetchNeeded } from '../selectors/charactersInPlay.js'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
@@ -45,11 +52,11 @@ import useStyles from './styles'
 import RoomDialog from './RoomDialog/'
 import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
-import CharacterDialog from './CharacterDialog'
+import MyCharacterDialog from './MyCharacterDialog'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 
 const CharacterPicker = ({ open, onClose = () => {} }) => {
-    const characters = useSelector(getCharacters)
+    const myCharacters = useSelector(getMyCharacters)
     const handleClose = ({ name, characterId }) => (onClose({ name, characterId }))
     const classes = useStyles()
     const dispatch = useDispatch()
@@ -69,7 +76,7 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
             </DialogTitle>
             <DialogContent>
                 <List component="nav" aria-label="choose a character">
-                    { (characters || []).map(({ Name: name, CharacterId: characterId }) => (
+                    { (myCharacters || []).map(({ Name: name, CharacterId: characterId }) => (
                         <ListItem key={name} button onClick={handleClose({ name, characterId })}>
                             <ListItemText>
                                 {name}
@@ -77,7 +84,7 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
                         </ListItem>
                     ))}
                     <Divider />
-                    <ListItem button onClick={ () => { dispatch(activateCharacterDialog({})) } }>
+                    <ListItem button onClick={ () => { dispatch(activateMyCharacterDialog({})) } }>
                         <ListItemText>
                             <em>Create a new character</em>
                         </ListItemText>
@@ -124,6 +131,9 @@ export const Chat = () => {
                 case 'sendmessage':
                     dispatch(receiveMessage(rest))
                     break
+                case 'connectionregister':
+                    dispatch(connectionRegister(rest))
+                    break
                 case 'registername':
                     dispatch(setName(rest.name))
                     break
@@ -138,18 +148,26 @@ export const Chat = () => {
     }, [webSocket, dispatch])
 
     useEffect(() => {
-        if (!subscriptions.characters) {
-            dispatch(subscribeCharacterChanges())
+        if (!(subscriptions.myCharacters && subscriptions.charactersInPlay)) {
+            dispatch(subscribeMyCharacterChanges())
+            dispatch(subscribeCharactersInPlayChanges())
         }
         return () => { dispatch(unsubscribeAll()) }
     }, [subscriptions, dispatch])
 
-    const characterFetchNeeded = useSelector(getCharacterFetchNeeded)
+    const myCharacterFetchNeeded = useSelector(getMyCharacterFetchNeeded)
     useEffect(() => {
-        if (characterFetchNeeded) {
-            dispatch(fetchCharacters())
+        if (myCharacterFetchNeeded) {
+            dispatch(fetchMyCharacters())
         }
-    }, [characterFetchNeeded, dispatch])
+    }, [myCharacterFetchNeeded, dispatch])
+
+    const charactersInPlayFetchNeeded = useSelector(getCharactersInPlayFetchNeeded)
+    useEffect(() => {
+        if (charactersInPlayFetchNeeded) {
+            dispatch(fetchCharactersInPlay())
+        }
+    }, [charactersInPlayFetchNeeded, dispatch])
 
     return (
         <React.Fragment>
@@ -219,7 +237,7 @@ export const Chat = () => {
             <AllCharactersDialog />
             <WorldDialog />
             <RoomDialog />
-            <CharacterDialog />
+            <MyCharacterDialog />
             <CharacterPicker
                 open={!name}
                 onClose={({ name, characterId }) => () => {

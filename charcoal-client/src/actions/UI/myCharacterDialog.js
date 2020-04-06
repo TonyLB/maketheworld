@@ -1,9 +1,9 @@
-import { getCharacterByName } from "../../selectors/characters"
+import { getMyCharacterByName } from "../../selectors/myCharacters"
 
-export const ACTIVATE_CHARACTER_DIALOG = 'ACTIVATE_CHARACTER_DIALOG'
-export const CLOSE_CHARACTER_DIALOG = 'CLOSE_CHARACTER_DIALOG'
+export const ACTIVATE_MY_CHARACTER_DIALOG = 'ACTIVATE_MY_CHARACTER_DIALOG'
+export const CLOSE_MY_CHARACTER_DIALOG = 'CLOSE_MY_CHARACTER_DIALOG'
 
-export const activateCharacterDialog = ({
+export const activateMyCharacterDialog = ({
     characterId = '',
     name = '',
     pronouns = '',
@@ -12,7 +12,7 @@ export const activateCharacterDialog = ({
     oneCoolThing = '',
     nested = false
 }) => ({
-    type: ACTIVATE_CHARACTER_DIALOG,
+    type: ACTIVATE_MY_CHARACTER_DIALOG,
     characterId,
     name,
     pronouns,
@@ -22,14 +22,14 @@ export const activateCharacterDialog = ({
     nested
 })
 
-export const populateAndActivateCharacterDialog = ({
+export const populateAndActivateMyCharacterDialog = ({
     Name = '',
     nested = false
 }) => (dispatch, getState) => {
     if (Name) {
         const state = getState()
-        const characterData = getCharacterByName(Name)(state)
-        dispatch(activateCharacterDialog({
+        const characterData = getMyCharacterByName(Name)(state)
+        dispatch(activateMyCharacterDialog({
             name: characterData.Name,
             characterId: characterData.CharacterId,
             pronouns: characterData.Pronouns,
@@ -40,8 +40,8 @@ export const populateAndActivateCharacterDialog = ({
         }))
     }
     else {
-        dispatch(activateCharacterDialog({ nested }))
+        dispatch(activateMyCharacterDialog({ nested }))
     }
 }
 
-export const closeCharacterDialog = () => ({ type: CLOSE_CHARACTER_DIALOG })
+export const closeMyCharacterDialog = () => ({ type: CLOSE_MY_CHARACTER_DIALOG })

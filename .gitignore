@@ -3,6 +3,7 @@
 .aws-sam/
 packaged.yaml
 characterPackaged.yaml
+appsyncPackaged.yaml
 node_modules/
 charcoal-client/node_modules/
 package-lock.json

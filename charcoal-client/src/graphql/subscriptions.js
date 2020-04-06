@@ -14,45 +14,9 @@ export const changedCharacter = /* GraphQL */ `
     }
   }
 `;
-export const addedCharacterInPlay = /* GraphQL */ `
-  subscription AddedCharacterInPlay {
-    addedCharacterInPlay {
-      CharacterId
-      Character {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-      }
-      RoomId
-      ConnectionId
-    }
-  }
-`;
-export const deletedCharacterInPlay = /* GraphQL */ `
-  subscription DeletedCharacterInPlay {
-    deletedCharacterInPlay {
-      CharacterId
-      Character {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-      }
-      RoomId
-      ConnectionId
-    }
-  }
-`;
-export const changedCharacterInPlay = /* GraphQL */ `
-  subscription ChangedCharacterInPlay {
-    changedCharacterInPlay {
+export const changedCharactersInPlay = /* GraphQL */ `
+  subscription ChangedCharactersInPlay {
+    changedCharactersInPlay {
       CharacterId
       Character {
         PlayerName
