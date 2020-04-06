@@ -45,3 +45,15 @@ export const getCharactersInPlay = /* GraphQL */ `
     }
   }
 `;
+export const getNeighborhoodTree = /* GraphQL */ `
+  query GetNeighborhoodTree {
+    getNeighborhoodTree {
+      PermanentId
+      Name
+      Type
+      Ancestry
+      Description
+      ParentId
+    }
+  }
+`;

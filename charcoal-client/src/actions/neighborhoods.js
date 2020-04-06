@@ -1,4 +1,5 @@
-import { HTTPS_ADDRESS } from '../config'
+import { API, graphqlOperation } from 'aws-amplify'
+import { getNeighborhoodTree } from '../graphql/queries'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 export const NEIGHBORHOOD_MERGE = 'NEIGHBORHOOD_MERGE'
@@ -14,19 +15,24 @@ export const neighborhoodMerge = (permanentData) => ({
 })
 
 export const fetchAllNeighborhoods = () => (dispatch) => {
-    return fetch(`${HTTPS_ADDRESS}/neighborhood`,{
-        method: 'GET',
-        headers: {
-            'accept': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw response.error
-        }
-        return response
-    })
-    .then(response => response.json())
+    return API.graphql(graphqlOperation(getNeighborhoodTree))
+    .then(({ data }) => (data || {}))
+    .then(({ getNeighborhoodTree }) => (getNeighborhoodTree || []))
+    .then((neighborhoodTree) => (neighborhoodTree.map(({
+        PermanentId,
+        Type,
+        ParentId,
+        Ancestry,
+        Name,
+        Description
+    }) => ({
+        permanentId: PermanentId,
+        type: Type,
+        parentId: ParentId,
+        ancestry: Ancestry,
+        name: Name,
+        description: Description
+    }))))
     .then(response => dispatch(neighborhoodUpdate(response)))
     .catch((err) => { console.log(err)})
 }

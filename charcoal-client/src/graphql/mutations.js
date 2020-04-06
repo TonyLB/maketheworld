@@ -82,3 +82,25 @@ export const moveCharacter = /* GraphQL */ `
     }
   }
 `;
+export const putNeighborhood = /* GraphQL */ `
+  mutation PutNeighborhood(
+    $PermanentId: String
+    $Name: String!
+    $Description: String
+    $ParentId: String
+  ) {
+    putNeighborhood(
+      PermanentId: $PermanentId
+      Name: $Name
+      Description: $Description
+      ParentId: $ParentId
+    ) {
+      PermanentId
+      Name
+      Type
+      Ancestry
+      Description
+      ParentId
+    }
+  }
+`;

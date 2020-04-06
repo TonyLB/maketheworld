@@ -258,7 +258,13 @@ Resources:
             ResponseMappingTemplate: >
                 #set($output = [])
                 #foreach($node in $ctx.result.items)
+                    #if($node.type == "NEIGHBORHOOD")
+                        #set($typeName = "Neighborhood")
+                    #else
+                        #set($typeName = "Room")
+                    #end
                     $util.qr($output.add({
+                        "__typename": $typeName,
                         "Name": $node.name,
                         "Type": $node.type,
                         "PermanentId": $node.permanentId,
@@ -573,16 +579,24 @@ Resources:
                 }
                 interface PermanentTreeNode {
                     PermanentId: String!
-                    Name: String!
                     Type: String!
+                    Name: String!
                     Ancestry: String!
                     Description: String
                     ParentId: String
                 }
                 type Neighborhood implements PermanentTreeNode {
                     PermanentId: String!
-                    Name: String!
                     Type: String!
+                    Name: String!
+                    Ancestry: String!
+                    Description: String
+                    ParentId: String
+                }
+                type Room implements PermanentTreeNode {
+                    PermanentId: String!
+                    Type: String!
+                    Name: String!
                     Ancestry: String!
                     Description: String
                     ParentId: String

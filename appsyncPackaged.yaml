@@ -284,9 +284,12 @@ Resources:
         : $util.dynamodb.toStringJson(\"NEIGHBORHOOD\"),\n            \":room\": $util.dynamodb.toStringJson(\"\
         ROOM\")\n        }\n    }\n}\n"
       ResponseMappingTemplate: "#set($output = []) #foreach($node in $ctx.result.items)\n\
-        \    $util.qr($output.add({\n        \"Name\": $node.name,\n        \"Type\"\
-        : $node.type,\n        \"PermanentId\": $node.permanentId,\n        \"ParentId\"\
-        : $node.parentId,\n        \"Ancestry\": $node.ancestry\n    }))\n#end $util.toJson($output)\n"
+        \    #if($node.type == \"NEIGHBORHOOD\")\n        #set($typeName = \"Neighborhood\"\
+        )\n    #else\n        #set($typeName = \"Room\")\n    #end\n    $util.qr($output.add({\n\
+        \        \"__typename\": $typeName,\n        \"Name\": $node.name,\n     \
+        \   \"Type\": $node.type,\n        \"PermanentId\": $node.permanentId,\n \
+        \       \"ParentId\": $node.parentId,\n        \"Ancestry\": $node.ancestry\n\
+        \    }))\n#end $util.toJson($output)\n"
   MutationPreQueryCharacterInPlay:
     Type: AWS::AppSync::FunctionConfiguration
     Properties:
@@ -526,23 +529,26 @@ Resources:
         \    Outfit: String\n    OneCoolThing: String\n} type CharacterInPlay {\n\
         \    CharacterId: ID!\n    Character: Character!\n    RoomId: String!\n  \
         \  ConnectionId: String!\n} interface PermanentTreeNode {\n    PermanentId:\
-        \ String!\n    Name: String!\n    Type: String!\n    Ancestry: String!\n \
+        \ String!\n    Type: String!\n    Name: String!\n    Ancestry: String!\n \
         \   Description: String\n    ParentId: String\n} type Neighborhood implements\
-        \ PermanentTreeNode {\n    PermanentId: String!\n    Name: String!\n    Type:\
+        \ PermanentTreeNode {\n    PermanentId: String!\n    Type: String!\n    Name:\
         \ String!\n    Ancestry: String!\n    Description: String\n    ParentId: String\n\
-        } type Mutation {\n    putCharacter(\n        Name: String!,\n        CharacterId:\
-        \ String,\n        Pronouns: String,\n        FirstImpression: String,\n \
-        \       Outfit: String,\n        OneCoolThing: String\n    ): Character\n\
-        \    addCharacterInPlay(\n        CharacterId: String!\n        ConnectionId:\
-        \ String!\n    ): CharacterInPlay\n    deleteCharacterInPlay(\n        CharacterId:\
-        \ String!\n    ): CharacterInPlay\n    moveCharacter(\n        CharacterId:\
-        \ String!\n        RoomId: String!\n    ): CharacterInPlay\n    putNeighborhood(\n\
-        \        PermanentId: String\n        Name: String!\n        Description:\
-        \ String\n        ParentId: String\n    ): Neighborhood\n} type Query {\n\
-        \    getCharacter(playerName: String!, name: String!): Character\n    getPlayerCharacters:\
-        \ [Character]\n    getCharactersInPlay: [CharacterInPlay]\n    getNeighborhoodTree:\
-        \ [PermanentTreeNode]\n} type Subscription {\n    changedCharacter: Character\n\
-        \    @aws_subscribe(mutations: [\"putCharacter\"])\n    changedCharactersInPlay:\
-        \ CharacterInPlay\n    @aws_subscribe(mutations: [\"addCharacterInPlay\",\
-        \ \"deleteCharacterInPlay\", \"moveCharacter\"])\n} schema {\n    mutation:\
-        \ Mutation\n    query: Query\n    subscription: Subscription\n}\n"
+        } type Room implements PermanentTreeNode {\n    PermanentId: String!\n   \
+        \ Type: String!\n    Name: String!\n    Ancestry: String!\n    Description:\
+        \ String\n    ParentId: String\n} type Mutation {\n    putCharacter(\n   \
+        \     Name: String!,\n        CharacterId: String,\n        Pronouns: String,\n\
+        \        FirstImpression: String,\n        Outfit: String,\n        OneCoolThing:\
+        \ String\n    ): Character\n    addCharacterInPlay(\n        CharacterId:\
+        \ String!\n        ConnectionId: String!\n    ): CharacterInPlay\n    deleteCharacterInPlay(\n\
+        \        CharacterId: String!\n    ): CharacterInPlay\n    moveCharacter(\n\
+        \        CharacterId: String!\n        RoomId: String!\n    ): CharacterInPlay\n\
+        \    putNeighborhood(\n        PermanentId: String\n        Name: String!\n\
+        \        Description: String\n        ParentId: String\n    ): Neighborhood\n\
+        } type Query {\n    getCharacter(playerName: String!, name: String!): Character\n\
+        \    getPlayerCharacters: [Character]\n    getCharactersInPlay: [CharacterInPlay]\n\
+        \    getNeighborhoodTree: [PermanentTreeNode]\n} type Subscription {\n   \
+        \ changedCharacter: Character\n    @aws_subscribe(mutations: [\"putCharacter\"\
+        ])\n    changedCharactersInPlay: CharacterInPlay\n    @aws_subscribe(mutations:\
+        \ [\"addCharacterInPlay\", \"deleteCharacterInPlay\", \"moveCharacter\"])\n\
+        } schema {\n    mutation: Mutation\n    query: Query\n    subscription: Subscription\n\
+        }\n"

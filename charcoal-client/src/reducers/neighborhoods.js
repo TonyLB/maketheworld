@@ -6,7 +6,7 @@ const mergeSubtree = (state, { ancestryList, permanent }) => {
         return {
             ...state,
             [ancestryList[0]]: {
-                ...state[ancestryList[0]],
+                ...(state[ancestryList[0]] || {}),
                 children: mergeSubtree(pullOut, {
                     ancestryList: ancestryList.slice(1),
                     permanent
@@ -17,7 +17,10 @@ const mergeSubtree = (state, { ancestryList, permanent }) => {
     else {
         return {
             ...state,
-            [permanent.permanentId]: permanent
+            [permanent.permanentId]: {
+                ...(state[permanent.permanentId] || {}),
+                ...permanent
+            }
         }
     }
 }
@@ -33,7 +36,7 @@ export const reducer = (state = {}, action = {}) => {
     const { type: actionType = "NOOP", data = {} } = action
     switch (actionType) {
         case NEIGHBORHOOD_UPDATE:
-            return data || state
+            return mergeReducer(state, data || [])
         case NEIGHBORHOOD_MERGE:
             return mergeReducer(state, action.permanentData || [])
 
