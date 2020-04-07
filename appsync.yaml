@@ -521,8 +521,8 @@ Resources:
                 #end
                 #set($prev = $ctx.prev.result)
                 {
-                    "Name": $util.toJson($prev.Name)
-                    #if($prev.PermanentId), "PermanentId": $util.toJson($prev.PermanentId)#end
+                    "Name": $util.toJson($prev.Name),
+                    "PermanentId": $util.toJson($prev.PermanentId)
                     #if($prev.Description), "Description": $util.toJson($prev.Description)#end
                     #if($prev.ParentId), "ParentId": $util.toJson($prev.ParentId)#end
                     #if ($util.isMap($ctx.result))
@@ -543,7 +543,7 @@ Resources:
                 #set( $ddb = $util.dynamodb )
                 #set( $args = $ctx.prev.result )
                 #set( $PermanentId = $args.PermanentId )
-                #if(!$PermanentId)
+                #if($util.isNullOrEmpty($PermanentId))
                     #set( $PermanentId = $util.autoId() )
                 #end
                 #if($args.ParentAncestry)
@@ -569,6 +569,7 @@ Resources:
                 {
                     "PermanentId": $util.toJson($ctx.result.permanentId),
                     "ParentId": $util.toJson($ctx.result.parentId),
+                    "Type": "NEIGHBORHOOD",
                     "Ancestry": $util.toJson($ctx.result.ancestry),
                     "Name": $util.toJson($ctx.result.name),
                     "Description": $util.toJson($ctx.result.description)

@@ -1,5 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getNeighborhood } from '../graphql/queries'
+import { putNeighborhood } from '../graphql/mutations'
 
 import { HTTPS_ADDRESS } from '../config'
 import { fetchAllNeighborhoods, neighborhoodMerge } from './neighborhoods'
@@ -68,7 +69,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             Name,
             Description
         }) => ({
-            permanentId: PermanentId,
+            neighborhoodId: PermanentId,
             type: Type,
             parentId: ParentId,
             ancestry: Ancestry,
@@ -80,26 +81,13 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
 }
 
 export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch) => {
-    return fetch(`${HTTPS_ADDRESS}/neighborhood`,{
-        method: 'PUT',
-        body: JSON.stringify(neighborhoodData),
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw response.error
-        }
-        return response.json()
-    })
-    .then((permanentId) => ({
-        ...neighborhoodData,
-        type: 'NEIGHBORHOOD',
-        permanentId,
-        ancestry: neighborhoodData.parentAncestry ? `${neighborhoodData.parentAncestry}:${permanentId}` : permanentId
-    }))
-    .then((neighborhoodData) => dispatch(neighborhoodMerge([neighborhoodData])))
+    const { neighborhoodId, parentId, name, description } = neighborhoodData
+    return API.graphql(graphqlOperation(putNeighborhood, {
+            PermanentId: neighborhoodId,
+            ParentId: parentId,
+            Name: name,
+            Description: description
+        }))
     .then(() => dispatch(closeNeighborhoodDialog()))
     .catch((err) => { console.log(err)})
 }

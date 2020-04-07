@@ -485,13 +485,12 @@ Resources:
         \   \"permanentId\": $util.dynamodb.toStringJson($ctx.prev.result.ParentId)\n\
         \    }\n} #else\n    #return($ctx.prev.result)\n#end\n"
       ResponseMappingTemplate: "#if ($ctx.error)\n    $util.error($ctx.error.message,\
-        \ $ctx.error.type)\n#end #set($prev = $ctx.prev.result) {\n    \"Name\": $util.toJson($prev.Name)\n\
-        \    #if($prev.PermanentId), \"PermanentId\": $util.toJson($prev.PermanentId)#end\n\
-        \    #if($prev.Description), \"Description\": $util.toJson($prev.Description)#end\n\
-        \    #if($prev.ParentId), \"ParentId\": $util.toJson($prev.ParentId)#end\n\
-        \    #if ($util.isMap($ctx.result))\n        #if ($ctx.result.ancestry)\n\
-        \            , \"ParentAncestry\": $util.toJson($ctx.result.ancestry)\n  \
-        \      #end\n    #end    \n}\n"
+        \ $ctx.error.type)\n#end #set($prev = $ctx.prev.result) {\n    \"Name\": $util.toJson($prev.Name),\n\
+        \    \"PermanentId\": $util.toJson($prev.PermanentId)\n    #if($prev.Description),\
+        \ \"Description\": $util.toJson($prev.Description)#end\n    #if($prev.ParentId),\
+        \ \"ParentId\": $util.toJson($prev.ParentId)#end\n    #if ($util.isMap($ctx.result))\n\
+        \        #if ($ctx.result.ancestry)\n            , \"ParentAncestry\": $util.toJson($ctx.result.ancestry)\n\
+        \        #end\n    #end    \n}\n"
   MutationPutNeighborhoodFunction:
     Type: AWS::AppSync::FunctionConfiguration
     Properties:
@@ -507,19 +506,20 @@ Resources:
         - PermanentsDynamoDBTableDataSource
         - Name
       RequestMappingTemplate: "#set( $ddb = $util.dynamodb ) #set( $args = $ctx.prev.result\
-        \ ) #set( $PermanentId = $args.PermanentId ) #if(!$PermanentId)\n    #set(\
-        \ $PermanentId = $util.autoId() )\n#end #if($args.ParentAncestry)\n    #set($ancestry\
-        \ = \"${args.ParentAncestry}:${PermanentId}\")\n#else\n    #set($ancestry\
-        \ = $PermanentId)\n#end {\n    \"version\": \"2017-02-28\",\n    \"operation\"\
-        : \"PutItem\",\n    \"key\": {\n        \"permanentId\": $ddb.toDynamoDBJson($PermanentId)\n\
-        \    },\n    \"attributeValues\": {\n        \"name\": $ddb.toDynamoDBJson($args.Name),\n\
-        \        \"type\": $ddb.toStringJson(\"NEIGHBORHOOD\"),\n        \"ancestry\"\
-        : $ddb.toStringJson($ancestry)\n        #if($args.Description), \"description\"\
-        : $ddb.toStringJson($args.Description) #end\n        #if($args.ParentId),\
-        \ \"parentId\": $ddb.toStringJson($args.ParentId) #end\n    }\n}\n"
+        \ ) #set( $PermanentId = $args.PermanentId ) #if($util.isNullOrEmpty($PermanentId))\n\
+        \    #set( $PermanentId = $util.autoId() )\n#end #if($args.ParentAncestry)\n\
+        \    #set($ancestry = \"${args.ParentAncestry}:${PermanentId}\")\n#else\n\
+        \    #set($ancestry = $PermanentId)\n#end {\n    \"version\": \"2017-02-28\"\
+        ,\n    \"operation\": \"PutItem\",\n    \"key\": {\n        \"permanentId\"\
+        : $ddb.toDynamoDBJson($PermanentId)\n    },\n    \"attributeValues\": {\n\
+        \        \"name\": $ddb.toDynamoDBJson($args.Name),\n        \"type\": $ddb.toStringJson(\"\
+        NEIGHBORHOOD\"),\n        \"ancestry\": $ddb.toStringJson($ancestry)\n   \
+        \     #if($args.Description), \"description\": $ddb.toStringJson($args.Description)\
+        \ #end\n        #if($args.ParentId), \"parentId\": $ddb.toStringJson($args.ParentId)\
+        \ #end\n    }\n}\n"
       ResponseMappingTemplate: "{\n    \"PermanentId\": $util.toJson($ctx.result.permanentId),\n\
-        \    \"ParentId\": $util.toJson($ctx.result.parentId),\n    \"Ancestry\":\
-        \ $util.toJson($ctx.result.ancestry),\n    \"Name\": $util.toJson($ctx.result.name),\n\
+        \    \"ParentId\": $util.toJson($ctx.result.parentId),\n    \"Type\": \"NEIGHBORHOOD\"\
+        ,\n    \"Ancestry\": $util.toJson($ctx.result.ancestry),\n    \"Name\": $util.toJson($ctx.result.name),\n\
         \    \"Description\": $util.toJson($ctx.result.description)\n}\n"
   MutationPutNeighborhood:
     Type: AWS::AppSync::Resolver
