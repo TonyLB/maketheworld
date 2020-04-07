@@ -36,7 +36,7 @@ import { activateRoomDialog } from '../../actions/UI/roomDialog'
 import { activateNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { fetchAndOpenRoomDialog, fetchAndOpenNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
-import { getNeighborhoods } from '../../selectors/neighborhoods'
+import { getNeighborhoodTree } from '../../selectors/neighborhoodTree'
 import useStyles from '../styles'
 
 const useTreeItemStyles = makeStyles(theme => ({
@@ -204,7 +204,7 @@ const NeighborhoodItem = ({ item }) => {
 
 export const WorldDialog = () => {
     const { open } = useSelector(getWorldDialogUI)
-    const neighborhoods = useSelector(getNeighborhoods)
+    const neighborhoodTree = useSelector(getNeighborhoodTree)
     const dispatch = useDispatch()
 
     const classes = useStyles()
@@ -262,7 +262,7 @@ export const WorldDialog = () => {
                             defaultExpandIcon={<ChevronRightIcon />}
                         >
                             {
-                                Object.values(neighborhoods)
+                                Object.values(neighborhoodTree)
                                     .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
                             }
                         </TreeView>

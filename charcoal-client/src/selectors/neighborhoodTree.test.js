@@ -1,4 +1,4 @@
-import { getNeighborhoodSubtree, getExternalTree, getByAncestry } from './neighborhoods'
+import { getNeighborhoodSubtree, getExternalTree, getByAncestry } from './neighborhoodTree'
 
 const testTree = {
     neighborhoods: {

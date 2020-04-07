@@ -96,8 +96,8 @@ export const putNeighborhood = /* GraphQL */ `
       ParentId: $ParentId
     ) {
       PermanentId
-      Name
       Type
+      Name
       Ancestry
       Description
       ParentId

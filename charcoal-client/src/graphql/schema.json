@@ -96,6 +96,30 @@
           },
           "isDeprecated" : false,
           "deprecationReason" : null
+        }, {
+          "name" : "getNeighborhood",
+          "description" : null,
+          "args" : [ {
+            "name" : "PermanentId",
+            "description" : null,
+            "type" : {
+              "kind" : "NON_NULL",
+              "name" : null,
+              "ofType" : {
+                "kind" : "SCALAR",
+                "name" : "String",
+                "ofType" : null
+              }
+            },
+            "defaultValue" : null
+          } ],
+          "type" : {
+            "kind" : "OBJECT",
+            "name" : "Neighborhood",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
         } ],
         "inputFields" : null,
         "interfaces" : [ ],
@@ -306,7 +330,7 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "Name",
+          "name" : "Type",
           "description" : null,
           "args" : [ ],
           "type" : {
@@ -321,7 +345,7 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "Type",
+          "name" : "Name",
           "description" : null,
           "args" : [ ],
           "type" : {
@@ -380,7 +404,106 @@
           "kind" : "OBJECT",
           "name" : "Neighborhood",
           "ofType" : null
+        }, {
+          "kind" : "OBJECT",
+          "name" : "Room",
+          "ofType" : null
         } ]
+      }, {
+        "kind" : "OBJECT",
+        "name" : "Neighborhood",
+        "description" : null,
+        "fields" : [ {
+          "name" : "PermanentId",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "NON_NULL",
+            "name" : null,
+            "ofType" : {
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
+            }
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "Type",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "NON_NULL",
+            "name" : null,
+            "ofType" : {
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
+            }
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "Name",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "NON_NULL",
+            "name" : null,
+            "ofType" : {
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
+            }
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "Ancestry",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "NON_NULL",
+            "name" : null,
+            "ofType" : {
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
+            }
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "Description",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "SCALAR",
+            "name" : "String",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "ParentId",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "SCALAR",
+            "name" : "String",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        } ],
+        "inputFields" : null,
+        "interfaces" : [ {
+          "kind" : "INTERFACE",
+          "name" : "PermanentTreeNode",
+          "ofType" : null
+        } ],
+        "enumValues" : null,
+        "possibleTypes" : null
       }, {
         "kind" : "OBJECT",
         "name" : "Mutation",
@@ -610,7 +733,38 @@
         "possibleTypes" : null
       }, {
         "kind" : "OBJECT",
-        "name" : "Neighborhood",
+        "name" : "Subscription",
+        "description" : null,
+        "fields" : [ {
+          "name" : "changedCharacter",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "OBJECT",
+            "name" : "Character",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "changedCharactersInPlay",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "OBJECT",
+            "name" : "CharacterInPlay",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        } ],
+        "inputFields" : null,
+        "interfaces" : [ ],
+        "enumValues" : null,
+        "possibleTypes" : null
+      }, {
+        "kind" : "OBJECT",
+        "name" : "Room",
         "description" : null,
         "fields" : [ {
           "name" : "PermanentId",
@@ -628,7 +782,7 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "Name",
+          "name" : "Type",
           "description" : null,
           "args" : [ ],
           "type" : {
@@ -643,7 +797,7 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "Type",
+          "name" : "Name",
           "description" : null,
           "args" : [ ],
           "type" : {
@@ -701,37 +855,6 @@
           "name" : "PermanentTreeNode",
           "ofType" : null
         } ],
-        "enumValues" : null,
-        "possibleTypes" : null
-      }, {
-        "kind" : "OBJECT",
-        "name" : "Subscription",
-        "description" : null,
-        "fields" : [ {
-          "name" : "changedCharacter",
-          "description" : null,
-          "args" : [ ],
-          "type" : {
-            "kind" : "OBJECT",
-            "name" : "Character",
-            "ofType" : null
-          },
-          "isDeprecated" : false,
-          "deprecationReason" : null
-        }, {
-          "name" : "changedCharactersInPlay",
-          "description" : null,
-          "args" : [ ],
-          "type" : {
-            "kind" : "OBJECT",
-            "name" : "CharacterInPlay",
-            "ofType" : null
-          },
-          "isDeprecated" : false,
-          "deprecationReason" : null
-        } ],
-        "inputFields" : null,
-        "interfaces" : [ ],
         "enumValues" : null,
         "possibleTypes" : null
       }, {
@@ -1606,14 +1729,6 @@
         "onFragment" : false,
         "onField" : false
       }, {
-        "name" : "aws_api_key",
-        "description" : "Tells the service this field/object has access authorized by an API key.",
-        "locations" : [ "OBJECT", "FIELD_DEFINITION" ],
-        "args" : [ ],
-        "onOperation" : false,
-        "onFragment" : false,
-        "onField" : false
-      }, {
         "name" : "deprecated",
         "description" : null,
         "locations" : [ "FIELD_DEFINITION", "ENUM_VALUE" ],
@@ -1627,6 +1742,14 @@
           },
           "defaultValue" : "\"No longer supported\""
         } ],
+        "onOperation" : false,
+        "onFragment" : false,
+        "onField" : false
+      }, {
+        "name" : "aws_api_key",
+        "description" : "Tells the service this field/object has access authorized by an API key.",
+        "locations" : [ "OBJECT", "FIELD_DEFINITION" ],
+        "args" : [ ],
         "onOperation" : false,
         "onFragment" : false,
         "onField" : false

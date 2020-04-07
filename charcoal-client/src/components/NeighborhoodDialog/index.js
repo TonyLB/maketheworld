@@ -21,6 +21,7 @@ import {
 import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { putAndCloseNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getNeighborhoodDialogUI } from '../../selectors/UI/neighborhoodDialog.js'
+import { getPermanentHeaders } from '../../selectors/permanentHeaders.js'
 import useStyles from '../styles'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
@@ -51,10 +52,12 @@ const neighborhoodDialogReducer = (state, action) => {
 
 export const NeighborhoodDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getNeighborhoodDialogUI)
+    const permanentHeaders = useSelector(getPermanentHeaders)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
     const dispatch = useDispatch()
 
-    const { name = '', description = '', parentName='' } = formValues
+    const { name = '', description = '', parentId = '' } = formValues
+    const parentName = (permanentHeaders && permanentHeaders[parentId] && permanentHeaders[parentId].name) || ''
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const saveHandler = () => {

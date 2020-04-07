@@ -273,6 +273,35 @@ Resources:
                     }))
                 #end
                 $util.toJson($output)
+    QueryGetNeighborhood:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Query
+            FieldName: getNeighborhood
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "GetItem",
+                    "key": {
+                        "permanentId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                    }
+                }
+            ResponseMappingTemplate: >
+                #if($ctx.result.type == "NEIGHBORHOOD")
+                    {
+                        "PermanentId": $util.toJson($ctx.result.permanentId),
+                        "ParentId": $util.toJson($ctx.result.parentId),
+                        "PermanentId": $util.toJson($ctx.result.permanentId),
+                        "Name": $util.toJson($ctx.result.name),
+                        "Type": $util.toJson($ctx.result.type),
+                        "Ancestry": $util.toJson($ctx.result.ancestry),
+                        "Description": $util.toJson($ctx.result.description)
+                    }
+                #else
+                    $util.error("PermanentId must specify a NEIGHBORHOOD type permanent")
+                #end
     MutationPreQueryCharacterInPlay:
         Type: AWS::AppSync::FunctionConfiguration
         Properties:
@@ -633,6 +662,7 @@ Resources:
                     getPlayerCharacters: [Character]
                     getCharactersInPlay: [CharacterInPlay]
                     getNeighborhoodTree: [PermanentTreeNode]
+                    getNeighborhood(PermanentId: String!): Neighborhood
                 }
                 type Subscription {
                     changedCharacter: Character

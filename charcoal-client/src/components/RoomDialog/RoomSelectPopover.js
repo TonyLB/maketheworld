@@ -21,7 +21,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 // Local code imports
 import useStyles from '../styles'
-import { getByAncestry } from '../../selectors/neighborhoods'
+import { getByAncestry } from '../../selectors/neighborhoodTree'
 
 export const NeighborhoodListItem = ({
         type,

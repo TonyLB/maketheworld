@@ -1,3 +1,6 @@
+import { API, graphqlOperation } from 'aws-amplify'
+import { getNeighborhood } from '../graphql/queries'
+
 import { HTTPS_ADDRESS } from '../config'
 import { fetchAllNeighborhoods, neighborhoodMerge } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
@@ -54,19 +57,24 @@ export const fetchAndOpenWorldDialog = () => (dispatch) => {
 }
 
 export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => (dispatch) => {
-    return fetch(`${HTTPS_ADDRESS}/neighborhood/${neighborhoodId}`,{
-            method: 'GET',
-            headers: {
-                'accept': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw response.error
-            }
-            return response
-        })
-        .then(response => response.json())
+    return API.graphql(graphqlOperation(getNeighborhood, { 'PermanentId': neighborhoodId }))
+        .then(({ data }) => (data || {}))
+        .then(({ getNeighborhood }) => (getNeighborhood || {}))
+        .then(({
+            PermanentId,
+            Type,
+            ParentId,
+            Ancestry,
+            Name,
+            Description
+        }) => ({
+            permanentId: PermanentId,
+            type: Type,
+            parentId: ParentId,
+            ancestry: Ancestry,
+            name: Name,
+            description: Description
+        }))
         .then(response => dispatch(activateNeighborhoodDialog({ nested, ...response })))
         .catch((err) => { console.log(err)})
 }

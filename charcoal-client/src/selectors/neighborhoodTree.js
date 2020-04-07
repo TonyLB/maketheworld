@@ -1,37 +1,37 @@
-export const getNeighborhoods = ({ neighborhoods }) => (neighborhoods)
+export const getNeighborhoodTree = ({ neighborhoodTree }) => (neighborhoodTree)
 
-const findSubtree = ({ ancestryList, neighborhoods }) => {
+const findSubtree = ({ ancestryList, neighborhoodTree }) => {
     if (ancestryList.length) {
         return findSubtree({
             ancestryList: ancestryList.slice(1),
-            neighborhoods: (neighborhoods[ancestryList[0]] || {}).children || {}
+            neighborhoodTree: (neighborhoodTree[ancestryList[0]] || {}).children || {}
         })
     }
-    return neighborhoods
+    return neighborhoodTree
 }
 
-export const getNeighborhoodSubtree = ({ roomId, ancestry }) => ({ neighborhoods={} }) => {
+export const getNeighborhoodSubtree = ({ roomId, ancestry }) => ({ neighborhoodTree={} }) => {
     if (!ancestry) {
         return {}
     }
     const ancestryList = ancestry.split(':').slice(0, -1)
-    const siblingNeighborhoods = findSubtree({ neighborhoods, ancestryList })
+    const siblingNeighborhoods = findSubtree({ neighborhoodTree, ancestryList })
     return Object.entries(siblingNeighborhoods)
         .filter(([key]) => (!roomId || (key !== roomId) ))
         .reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
 }
 
-const excludeSubtree = ({ ancestryList, neighborhoods }) => {
+const excludeSubtree = ({ ancestryList, neighborhoodTree }) => {
     if (ancestryList.length) {
-        const { [ancestryList[0]]: pullOut, ...restOfNeighborhoods } = neighborhoods
+        const { [ancestryList[0]]: pullOut, ...restOfNeighborhoodTree } = neighborhoodTree
         return {
-            ...restOfNeighborhoods,
+            ...restOfNeighborhoodTree,
             ...((ancestryList.length > 1) ? {
                     [ancestryList[0]]: {
                         ...pullOut,
                         children: excludeSubtree({
                             ancestryList: ancestryList.slice(1),
-                            neighborhoods: (neighborhoods[ancestryList[0]] || {}).children || {}
+                            neighborhoodTree: (neighborhoodTree[ancestryList[0]] || {}).children || {}
                         })
                     }
                 } : {})
@@ -40,12 +40,12 @@ const excludeSubtree = ({ ancestryList, neighborhoods }) => {
     return {}
 }
 
-export const getExternalTree = ({ roomId, ancestry }) => ({ neighborhoods={} }) => {
+export const getExternalTree = ({ roomId, ancestry }) => ({ neighborhoodTree={} }) => {
     if (!ancestry) {
-        return neighborhoods
+        return neighborhoodTree
     }
     const ancestryList = ancestry.split(':').slice(0, -1)
-    return excludeSubtree({ neighborhoods, ancestryList })
+    return excludeSubtree({ neighborhoodTree, ancestryList })
 }
 
 const searchTreeByAncestryList = ({ ancestryList, neighborhoods={} }) => {
@@ -60,9 +60,9 @@ const searchTreeByAncestryList = ({ ancestryList, neighborhoods={} }) => {
     }
 }
 
-export const getByAncestry = (ancestry) => ({ neighborhoods={} }) => {
+export const getByAncestry = (ancestry) => ({ neighborhoodTree={} }) => {
     return searchTreeByAncestryList({
         ancestryList: ancestry.split(':'),
-        neighborhoods
+        neighborhoodTree
     })
 }

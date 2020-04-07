@@ -1,4 +1,4 @@
-import neighborhoods from './neighborhoods.js'
+import neighborhoodTree from './neighborhoodTree.js'
 import { NEIGHBORHOOD_MERGE } from '../actions/neighborhoods.js'
 
 const testTree = {
@@ -50,11 +50,11 @@ const testTree = {
 
 describe('Neighborhoods reducer', () => {
     it('should return an empty map by default', () => {
-        expect(neighborhoods()).toEqual({})
+        expect(neighborhoodTree()).toEqual({})
     })
 
     it('should add a new permanent at the room of the tree', () => {
-        expect(neighborhoods(testTree, {
+        expect(neighborhoodTree(testTree, {
             type: NEIGHBORHOOD_MERGE,
             permanentData: [{
                 ancestry: '543',
@@ -76,7 +76,7 @@ describe('Neighborhoods reducer', () => {
     })
 
     it('should add a new permanent in the middle of the tree', () => {
-        expect(neighborhoods(testTree, {
+        expect(neighborhoodTree(testTree, {
             type: NEIGHBORHOOD_MERGE,
             permanentData: [{
                 ancestry: '123:234:543',

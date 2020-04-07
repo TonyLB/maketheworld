@@ -290,6 +290,30 @@ Resources:
         \   \"Type\": $node.type,\n        \"PermanentId\": $node.permanentId,\n \
         \       \"ParentId\": $node.parentId,\n        \"Ancestry\": $node.ancestry\n\
         \    }))\n#end $util.toJson($output)\n"
+  QueryGetNeighborhood:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncAPI
+        - ApiId
+      TypeName: Query
+      FieldName: getNeighborhood
+      DataSourceName:
+        Fn::GetAtt:
+        - PermanentsDynamoDBTableDataSource
+        - Name
+      RequestMappingTemplate: "{\n    \"version\": \"2017-02-28\",\n    \"operation\"\
+        : \"GetItem\",\n    \"key\": {\n        \"permanentId\": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)\n\
+        \    }\n}\n"
+      ResponseMappingTemplate: "#if($ctx.result.type == \"NEIGHBORHOOD\")\n    {\n\
+        \        \"PermanentId\": $util.toJson($ctx.result.permanentId),\n       \
+        \ \"ParentId\": $util.toJson($ctx.result.parentId),\n        \"PermanentId\"\
+        : $util.toJson($ctx.result.permanentId),\n        \"Name\": $util.toJson($ctx.result.name),\n\
+        \        \"Type\": $util.toJson($ctx.result.type),\n        \"Ancestry\":\
+        \ $util.toJson($ctx.result.ancestry),\n        \"Description\": $util.toJson($ctx.result.description)\n\
+        \    }\n#else\n    $util.error(\"PermanentId must specify a NEIGHBORHOOD type\
+        \ permanent\")\n#end\n"
   MutationPreQueryCharacterInPlay:
     Type: AWS::AppSync::FunctionConfiguration
     Properties:
@@ -546,9 +570,9 @@ Resources:
         \        Description: String\n        ParentId: String\n    ): Neighborhood\n\
         } type Query {\n    getCharacter(playerName: String!, name: String!): Character\n\
         \    getPlayerCharacters: [Character]\n    getCharactersInPlay: [CharacterInPlay]\n\
-        \    getNeighborhoodTree: [PermanentTreeNode]\n} type Subscription {\n   \
-        \ changedCharacter: Character\n    @aws_subscribe(mutations: [\"putCharacter\"\
-        ])\n    changedCharactersInPlay: CharacterInPlay\n    @aws_subscribe(mutations:\
-        \ [\"addCharacterInPlay\", \"deleteCharacterInPlay\", \"moveCharacter\"])\n\
-        } schema {\n    mutation: Mutation\n    query: Query\n    subscription: Subscription\n\
-        }\n"
+        \    getNeighborhoodTree: [PermanentTreeNode]\n    getNeighborhood(PermanentId:\
+        \ String!): Neighborhood\n} type Subscription {\n    changedCharacter: Character\n\
+        \    @aws_subscribe(mutations: [\"putCharacter\"])\n    changedCharactersInPlay:\
+        \ CharacterInPlay\n    @aws_subscribe(mutations: [\"addCharacterInPlay\",\
+        \ \"deleteCharacterInPlay\", \"moveCharacter\"])\n} schema {\n    mutation:\
+        \ Mutation\n    query: Query\n    subscription: Subscription\n}\n"

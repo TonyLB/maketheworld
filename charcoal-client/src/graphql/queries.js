@@ -49,8 +49,20 @@ export const getNeighborhoodTree = /* GraphQL */ `
   query GetNeighborhoodTree {
     getNeighborhoodTree {
       PermanentId
-      Name
       Type
+      Name
+      Ancestry
+      Description
+      ParentId
+    }
+  }
+`;
+export const getNeighborhood = /* GraphQL */ `
+  query GetNeighborhood($PermanentId: String!) {
+    getNeighborhood(PermanentId: $PermanentId) {
+      PermanentId
+      Type
+      Name
       Ancestry
       Description
       ParentId

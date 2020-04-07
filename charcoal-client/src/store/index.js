@@ -4,7 +4,8 @@ import connection from '../reducers/connection.js'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
 import name from '../reducers/name.js'
-import neighborhoods from '../reducers/neighborhoods.js'
+import permanentHeaders from '../reducers/permanentHeaders.js'
+import neighborhoodTree from '../reducers/neighborhoodTree.js'
 import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
 import subscriptions from '../reducers/subscriptions'
@@ -19,7 +20,8 @@ export const store = createStore(
         colorMap,
         messages,
         name,
-        neighborhoods,
+        permanentHeaders,
+        neighborhoodTree,
         subscriptions,
         UI: uiReducer,
         webSocket
