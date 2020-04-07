@@ -1,6 +1,5 @@
 // Foundational imports (React, Redux, etc.)
 import React, { useState } from 'react'
-import { useSelector } from 'react-redux'
 
 // MaterialUI imports
 import {
@@ -21,7 +20,6 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 // Local code imports
 import useStyles from '../styles'
-import { getByAncestry } from '../../selectors/neighborhoodTree'
 
 export const NeighborhoodListItem = ({
         type,
@@ -33,21 +31,11 @@ export const NeighborhoodListItem = ({
     }) => {
     const classes = useStyles()
     const [open, setOpen] = useState(false)
-    const { ancestry } = rest
-    const parentAncestry = ancestry.split(':').slice(0, -1).join(':')
-    const { name: roomParentName } = useSelector(getByAncestry(parentAncestry))
 
     if (type === 'ROOM') {
-        const { parentId } = rest
         return <ListItem
             button
-            onClick={addHandler({
-                roomId: permanentId,
-                roomName: name,
-                roomParentId: parentId,
-                roomParentName,
-                roomAncestry: ancestry
-            })}
+            onClick={addHandler(permanentId)}
             {...rest}
         >
             <ListItemIcon>
@@ -73,13 +61,12 @@ export const NeighborhoodListItem = ({
                     <List component="div" disablePadding>
                         {
                             Object.entries(children)
-                                .map(([key, { type, name, permanentId, children, ancestry }]) => (
+                                .map(([key, { type, name, permanentId, children }]) => (
                                     <NeighborhoodListItem
                                         key={key}
                                         type={type}
                                         name={name}
                                         permanentId={permanentId}
-                                        ancestry={ancestry}
                                         children={children}
                                         className={classes.nested}
                                         addHandler={addHandler}
@@ -128,13 +115,12 @@ export const RoomSelectPopover = ({ onClose, neighborhoods = {}, addHandler=()=>
                 <List component="div" disablePadding>
                     {
                         Object.entries(neighborhoods)
-                        .map(([key, { type, name, permanentId, children, ancestry }]) => (
+                        .map(([key, { type, name, permanentId, children }]) => (
                             <NeighborhoodListItem
                                 key={key}
                                 type={type}
                                 name={name}
                                 permanentId={permanentId}
-                                ancestry={ancestry}
                                 children={children}
                                 addHandler={addHandler}
                             />

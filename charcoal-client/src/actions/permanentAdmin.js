@@ -1,28 +1,37 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { getNeighborhood } from '../graphql/queries'
+import { getNeighborhood, getRoom } from '../graphql/queries'
 import { putNeighborhood } from '../graphql/mutations'
 
 import { HTTPS_ADDRESS } from '../config'
-import { fetchAllNeighborhoods, neighborhoodMerge } from './neighborhoods'
+import { fetchAllNeighborhoods } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { activateWorldDialog } from './UI/worldDialog'
 import { activateNeighborhoodDialog, closeNeighborhoodDialog } from './UI/neighborhoodDialog'
 
 export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
-    dispatch(fetchAllNeighborhoods())
-    return fetch(`${HTTPS_ADDRESS}/room/${roomId}`,{
-            method: 'GET',
-            headers: {
-                'accept': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw response.error
-            }
-            return response
-        })
-        .then(response => response.json())
+    console.log(`Looking up room ID: ${roomId}`)
+    return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
+        .then(({ data }) => (data || {}))
+        .then(({ getRoom }) => (getRoom || {}))
+        .then(({
+            PermanentId,
+            Type,
+            ParentId,
+            Ancestry,
+            Name,
+            Description,
+            Exits,
+            Entries
+        }) => ({
+            roomId: PermanentId,
+            type: Type,
+            parentId: ParentId,
+            ancestry: Ancestry,
+            name: Name,
+            description: Description,
+            exits: Exits.map(({ PermanentId, Name, RoomId }) => ({ permanentId: PermanentId, name: Name, roomId: RoomId })),
+            entries: Entries.map(({ PermanentId, Name, RoomId }) => ({ permanentId: PermanentId, name: Name, roomId: RoomId })),
+        }))
         .then(response => dispatch(activateRoomDialog({ nested, ...response })))
         .catch((err) => { console.log(err)})
 }
@@ -47,7 +56,6 @@ export const putAndCloseRoomDialog = (roomData) => (dispatch) => {
         permanentId,
         ancestry: roomData.parentAncestry ? `${roomData.parentAncestry}:${permanentId}` : permanentId
     }))
-    .then((roomData) => dispatch(neighborhoodMerge([roomData])))
     .then(() => dispatch(closeRoomDialog()))
     .catch((err) => { console.log(err)})
 }

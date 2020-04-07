@@ -54,6 +54,20 @@ export const getNeighborhoodTree = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      ... on Room {
+        Exits {
+          PermanentId
+          Name
+          RoomId
+          Ancestry
+        }
+        Entries {
+          PermanentId
+          Name
+          RoomId
+          Ancestry
+        }
+      }
     }
   }
 `;
@@ -66,6 +80,54 @@ export const getNeighborhood = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+    }
+  }
+`;
+export const getRoom = /* GraphQL */ `
+  query GetRoom($PermanentId: String!) {
+    getRoom(PermanentId: $PermanentId) {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
+      Exits {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+      Entries {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+    }
+  }
+`;
+export const getRoomByCharacter = /* GraphQL */ `
+  query GetRoomByCharacter($CharacterId: String!) {
+    getRoomByCharacter(CharacterId: $CharacterId) {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
+      Exits {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+      Entries {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
     }
   }
 `;

@@ -24,6 +24,7 @@ import { closeRoomDialog } from '../../actions/UI/roomDialog'
 import { putAndCloseRoomDialog } from '../../actions/permanentAdmin'
 import { getRoomDialogUI } from '../../selectors/UI/roomDialog.js'
 import { getNeighborhoodSubtree, getExternalTree } from '../../selectors/neighborhoodTree'
+import { getPermanentHeaders } from '../../selectors/permanentHeaders.js'
 import useStyles from '../styles'
 import ExitList from './ExitList'
 import RoomSelectPopover from './RoomSelectPopover'
@@ -62,22 +63,14 @@ const updateEntryName = (roomId, name) => ({
     name
 })
 const ADD_EXIT = 'ADD_EXIT'
-const addExit = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => ({
+const addExit = (roomId) => ({
     type: ADD_EXIT,
-    roomId,
-    roomName,
-    roomParentId,
-    roomParentName,
-    roomAncestry
+    roomId
 })
 const ADD_ENTRY = 'ADD_ENTRY'
-const addEntry = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => ({
+const addEntry = (roomId) => ({
     type: ADD_ENTRY,
-    roomId,
-    roomName,
-    roomParentId,
-    roomParentName,
-    roomAncestry
+    roomId
 })
 const roomDialogReducer = (state, action) => {
     switch(action.type) {
@@ -133,11 +126,7 @@ const roomDialogReducer = (state, action) => {
                         {
                             name: '',
                             id: '',
-                            roomId: action.roomId,
-                            roomName: action.roomName,
-                            roomParentId: action.roomParentId,
-                            roomParentName: action.roomParentName,
-                            roomAncestry: action.roomAncestry
+                            roomId: action.roomId
                         }
                     ]
                 }
@@ -154,11 +143,7 @@ const roomDialogReducer = (state, action) => {
                         {
                             name: '',
                             id: '',
-                            roomId: action.roomId,
-                            roomName: action.roomName,
-                            roomParentId: action.roomParentId,
-                            roomParentName: action.roomParentName,
-                            roomAncestry: action.roomAncestry
+                            roomId: action.roomId
                         }
                     ]
                 }
@@ -174,6 +159,7 @@ const roomDialogReducer = (state, action) => {
 export const RoomDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getRoomDialogUI)
     const [formValues, formDispatch] = useReducer(roomDialogReducer, {})
+
     const neighborhoodRooms = useSelector(getNeighborhoodSubtree({
         roomId: defaultValues.roomId,
         ancestry: defaultValues.ancestry
@@ -182,11 +168,13 @@ export const RoomDialog = ({ nested=false }) => {
         roomId: defaultValues.roomId,
         ancestry: defaultValues.ancestry
     }))
+    const permanentHeaders = useSelector(getPermanentHeaders)
     const dispatch = useDispatch()
     const [ neighborhoodAddAnchorEl, setNeighborhoodAddAnchorEl ] = useState(null)
     const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
 
-    const { name = '', description = '', exits=[], entries=[], parentName='' } = formValues
+    const { name = '', description = '', exits=[], entries=[], parentId='' } = formValues
+    const { name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const onPathDeleteHandler = (type, roomId) => () => {
@@ -201,15 +189,15 @@ export const RoomDialog = ({ nested=false }) => {
             : updateEntryName(roomId, event.target.value)
         )
     }
-    const onPathAddHandler = ({ roomId, roomName, roomParentId, roomParentName, roomAncestry }) => () => {
-        formDispatch(addExit({ roomId, roomName, roomParentId, roomParentName, roomAncestry }))
-        formDispatch(addEntry({ roomId, roomName, roomParentId, roomParentName, roomAncestry }))
+    const onPathAddHandler = (roomId) => () => {
+        formDispatch(addExit(roomId))
+        formDispatch(addEntry(roomId))
         setNeighborhoodAddAnchorEl(null)
         setExternalAddAnchorEl(null)
     }
     const saveHandler = () => {
-        const { name, description, parentId, roomId, exits, entries, parentAncestry } = formValues
-        const roomData = { name, description, parentId, roomId, exits, entries, parentAncestry }
+        const { name, description, parentId, roomId, exits, entries } = formValues
+        const roomData = { name, description, parentId, roomId, exits, entries }
         dispatch(putAndCloseRoomDialog(roomData))
     }
 
@@ -219,8 +207,8 @@ export const RoomDialog = ({ nested=false }) => {
     ].sort(({ roomId: roomIdA }, { roomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
     const parentAncestry = defaultValues.ancestry && defaultValues.ancestry.split(':').slice(0, -1).join(':')
 
-    const neighborhoodPaths = paths.filter(({ roomAncestry }) => (roomAncestry.startsWith(parentAncestry)))
-    const externalPaths = paths.filter(({ roomAncestry }) => (!roomAncestry.startsWith(parentAncestry)))
+    const neighborhoodPaths = paths.filter(({ roomId }) => (!parentAncestry || (permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].ancestry && permanentHeaders[roomId].ancestry.startsWith(parentAncestry))))
+    const externalPaths = paths.filter(({ roomId }) => (!(permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].ancestry && permanentHeaders[roomId].ancestry.startsWith(parentAncestry))))
 
     const classes = useStyles()
     return(

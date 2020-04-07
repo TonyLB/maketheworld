@@ -302,6 +302,95 @@ Resources:
                 #else
                     $util.error("PermanentId must specify a NEIGHBORHOOD type permanent")
                 #end
+    QueryGetRoom:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Query
+            FieldName: getRoom
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "GetItem",
+                    "key": {
+                        "permanentId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                    }
+                }
+            ResponseMappingTemplate: >
+                #if($ctx.result.type == "ROOM")
+                    {
+                        "PermanentId": $util.toJson($ctx.result.permanentId),
+                        "ParentId": $util.toJson($ctx.result.parentId),
+                        "PermanentId": $util.toJson($ctx.result.permanentId),
+                        "Name": $util.toJson($ctx.result.name),
+                        "Type": $util.toJson($ctx.result.type),
+                        "Ancestry": $util.toJson($ctx.result.ancestry),
+                        "Description": $util.toJson($ctx.result.description)
+                    }
+                #else
+                    $util.error("PermanentId must specify a ROOM type permanent")
+                #end
+    QueryGetRoomExits:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Room
+            FieldName: Exits
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "Query",
+                    "query": {
+                        "expression": "fromRoomId = :RoomId",
+                        "expressionValues": {
+                            ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.source.PermanentId)
+                        }
+                    },
+                    "index": "fromRoomIndex"
+                }
+            ResponseMappingTemplate: >
+                [
+                    #foreach($exit in $ctx.result.items)
+                        {
+                            "PermanentId": $util.toJson($exit.permanentId),
+                            "Name": $util.toJson($exit.name),
+                            "RoomId": $util.toJson($exit.parentId),
+                            "Ancestry": $util.toJson($exit.ancestry)
+                        }#if($foreach.hasNext),#end
+                    #end
+                ]
+    QueryGetRoomEntries:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Room
+            FieldName: Entries
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "Query",
+                    "query": {
+                        "expression": "parentId = :RoomId",
+                        "expressionValues": {
+                            ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.source.PermanentId)
+                        }
+                    },
+                    "index": "parentIndex"
+                }
+            ResponseMappingTemplate: >
+                [
+                    #foreach($entry in $ctx.result.items)
+                        {
+                            "PermanentId": $util.toJson($entry.permanentId),
+                            "Name": $util.toJson($entry.name),
+                            "RoomId": $util.toJson($entry.fromRoomId),
+                            "Ancestry": $util.toJson($entry.ancestry)
+                        }#if($foreach.hasNext),#end
+                    #end
+                ]
     MutationPreQueryCharacterInPlay:
         Type: AWS::AppSync::FunctionConfiguration
         Properties:
@@ -623,6 +712,24 @@ Resources:
                     Description: String
                     ParentId: String
                 }
+                interface RoomPath {
+                    PermanentId: String!
+                    Name: String!
+                    RoomId: String!
+                    Ancestry: String!
+                }
+                type Exit implements RoomPath {
+                    PermanentId: String!
+                    Name: String!
+                    RoomId: String!
+                    Ancestry: String!
+                }
+                type Entry implements RoomPath {
+                    PermanentId: String!
+                    Name: String!
+                    RoomId: String!
+                    Ancestry: String!
+                }
                 type Room implements PermanentTreeNode {
                     PermanentId: String!
                     Type: String!
@@ -630,6 +737,8 @@ Resources:
                     Ancestry: String!
                     Description: String
                     ParentId: String
+                    Exits: [Exit]
+                    Entries: [Entry]
                 }
                 type Mutation {
                     putCharacter(
@@ -664,6 +773,8 @@ Resources:
                     getCharactersInPlay: [CharacterInPlay]
                     getNeighborhoodTree: [PermanentTreeNode]
                     getNeighborhood(PermanentId: String!): Neighborhood
+                    getRoom(PermanentId: String!): Room
+                    getRoomByCharacter(CharacterId: String!): Room
                 }
                 type Subscription {
                     changedCharacter: Character
