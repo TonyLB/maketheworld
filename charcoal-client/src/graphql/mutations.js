@@ -104,3 +104,41 @@ export const putNeighborhood = /* GraphQL */ `
     }
   }
 `;
+export const putRoom = /* GraphQL */ `
+  mutation PutRoom(
+    $PermanentId: String
+    $Name: String!
+    $Description: String
+    $ParentId: String
+    $Exits: [PathInput]
+    $Entries: [PathInput]
+  ) {
+    putRoom(
+      PermanentId: $PermanentId
+      Name: $Name
+      Description: $Description
+      ParentId: $ParentId
+      Exits: $Exits
+      Entries: $Entries
+    ) {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
+      Exits {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+      Entries {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+    }
+  }
+`;

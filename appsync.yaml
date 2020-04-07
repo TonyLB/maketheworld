@@ -101,6 +101,14 @@ Resources:
                         Action:
                             - "dynamodb:Query"
                         Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
+              - PolicyName: PutRoomPathsPolicy
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: "Allow"
+                        Action:
+                            - "lambda:InvokeFunction"
+                        Resource: !GetAtt PutRoomPathsFunction.Arn
     CharacterDynamoDBTableDataSource:
         Type: AWS::AppSync::DataSource
         Properties:
@@ -676,6 +684,138 @@ Resources:
                     - !GetAtt MutationPutNeighborhoodFunction.FunctionId
             RequestMappingTemplate: "$utils.toJson($ctx.args)"
             ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+    UUIDLambdaLayer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+            LayerName: uuid-layer
+            Description: Lambda layer to import the uuid library
+            ContentUri: lambda/uuidLayer/
+            CompatibleRuntimes:
+                - nodejs12.x
+    PutRoomPathsFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: lambda/permanents/putRoomPaths/
+            Handler: app.handler
+            MemorySize: 256
+            Runtime: nodejs12.x
+            Layers:
+                - !Ref UUIDLambdaLayer
+            Environment:
+                Variables:
+                    TABLE_PREFIX: !Ref TablePrefix
+            Policies:
+              - DynamoDBCrudPolicy:
+                    TableName: !Sub '${TablePrefix}_permanents'
+    PutRoomPermission:
+        Type: AWS::Lambda::Permission
+        DependsOn:
+            - PutRoomPathsFunction
+        Properties:
+            Action: lambda:InvokeFunction
+            FunctionName: !Ref PutRoomPathsFunction
+            Principal: appsync.amazonaws.com
+    MutationPutRoomBaseFunction:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PutRoomBase
+            Description: Puts a room record into the Permanents table
+            DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+            RequestMappingTemplate: >
+                #set( $ddb = $util.dynamodb )
+                #set( $args = $ctx.prev.result )
+                #set( $PermanentId = $args.PermanentId )
+                #if($util.isNullOrEmpty($PermanentId))
+                    #set( $PermanentId = $util.autoId() )
+                #end
+                #if($args.ParentAncestry)
+                    #set($ancestry = "${args.ParentAncestry}:${PermanentId}")
+                #else
+                    #set($ancestry = $PermanentId)
+                #end
+                {
+                    "version": "2017-02-28",
+                    "operation": "PutItem",
+                    "key": {
+                        "permanentId": $ddb.toDynamoDBJson($PermanentId)
+                    },
+                    "attributeValues": {
+                        "name": $ddb.toDynamoDBJson($args.Name),
+                        "type": $ddb.toStringJson("ROOM"),
+                        "ancestry": $ddb.toStringJson($ancestry)
+                        #if($args.Description), "description": $ddb.toStringJson($args.Description) #end
+                        #if($args.ParentId), "parentId": $ddb.toStringJson($args.ParentId) #end
+                    }
+                }
+            ResponseMappingTemplate: >
+                #set($output = {
+                    "PermanentId": $ctx.result.permanentId,
+                    "Type": "ROOM",
+                    "Ancestry": $ctx.result.ancestry,
+                    "Name": $ctx.result.name,
+                    "Exits": $ctx.prev.result.Exits,
+                    "Entries": $ctx.prev.result.Entries
+                })
+                #if($ctx.prev.result.ParentId)$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
+                #if($ctx.prev.result.Description)$util.qr($output.put("Description", $ctx.prev.result.Description))#end
+                $util.toJson($output)
+    PutRoomPathsDataSource:
+        Type: AWS::AppSync::DataSource
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PutRoomPath
+            Type: AWS_LAMBDA
+            ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+            LambdaConfig:
+                LambdaFunctionArn: !GetAtt PutRoomPathsFunction.Arn
+    MutationPutRoomPathsFunction:
+        Type: AWS::AppSync::FunctionConfiguration
+        Properties:
+            FunctionVersion: "2018-05-29"
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            Name: PutRoomPaths
+            Description: Puts the needed entry records into the Permanents table
+            DataSourceName: !GetAtt PutRoomPathsDataSource.Name
+            RequestMappingTemplate: >
+                {
+                    "version": "2017-02-28",
+                    "operation": "Invoke",
+                    "payload": {
+                        "source": {
+                            "PermanentId": $util.toJson($ctx.prev.result.PermanentId),
+                            "Ancestry": $util.toJson($ctx.prev.result.Ancestry)
+                        },
+                        "Exits": $util.toJson($ctx.prev.result.Exits),
+                        "Entries": $util.toJson($ctx.prev.result.Entries)
+                    }
+                }
+            ResponseMappingTemplate: >
+                #set($output = {
+                    "PermanentId": $ctx.prev.result.PermanentId,
+                    "Type": "ROOM",
+                    "Ancestry": $ctx.prev.result.Ancestry,
+                    "Name": $ctx.prev.result.Name,
+                    "Exits": $ctx.prev.result.Exits,
+                    "Entries": $ctx.prev.result.Entries
+                })
+                #if($ctx.prev.result.ParentId)$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
+                #if($ctx.prev.result.Description)$util.qr($output.put("Description", $ctx.prev.result.Description))#end
+                $util.toJson($output)
+    MutationPutRoom:
+        Type: AWS::AppSync::Resolver
+        Properties:
+            ApiId: !GetAtt AppSyncAPI.ApiId
+            TypeName: Mutation
+            FieldName: putRoom
+            Kind: PIPELINE
+            PipelineConfig:
+                Functions:
+                  - !GetAtt MutationPutRoomBaseFunction.FunctionId
+                  - !GetAtt MutationPutRoomPathsFunction.FunctionId
+            RequestMappingTemplate: "$utils.toJson($ctx.args)"
+            ResponseMappingTemplate: "$utils.toJson($ctx.result)"
     Schema:
         Type: AWS::AppSync::GraphQLSchema
         Properties:
@@ -713,10 +853,10 @@ Resources:
                     ParentId: String
                 }
                 interface RoomPath {
-                    PermanentId: String!
+                    PermanentId: String
                     Name: String!
-                    RoomId: String!
-                    Ancestry: String!
+                    RoomId: String
+                    Ancestry: String
                 }
                 type Exit implements RoomPath {
                     PermanentId: String!
@@ -729,6 +869,11 @@ Resources:
                     Name: String!
                     RoomId: String!
                     Ancestry: String!
+                }
+                input PathInput {
+                    PermanentId: String
+                    Name: String!
+                    RoomId: String
                 }
                 type Room implements PermanentTreeNode {
                     PermanentId: String!
@@ -766,6 +911,14 @@ Resources:
                         Description: String
                         ParentId: String
                     ): Neighborhood
+                    putRoom(
+                        PermanentId: String
+                        Name: String!
+                        Description: String
+                        ParentId: String
+                        Exits: [PathInput]
+                        Entries: [PathInput]
+                    ): Room
                 }
                 type Query {
                     getCharacter(playerName: String!, name: String!): Character

@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getNeighborhood, getRoom } from '../graphql/queries'
-import { putNeighborhood } from '../graphql/mutations'
+import { putNeighborhood, putRoom } from '../graphql/mutations'
 
 import { HTTPS_ADDRESS } from '../config'
 import { fetchAllNeighborhoods } from './neighborhoods'
@@ -9,7 +9,6 @@ import { activateWorldDialog } from './UI/worldDialog'
 import { activateNeighborhoodDialog, closeNeighborhoodDialog } from './UI/neighborhoodDialog'
 
 export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
-    console.log(`Looking up room ID: ${roomId}`)
     return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
         .then(({ data }) => (data || {}))
         .then(({ getRoom }) => (getRoom || {}))
@@ -36,26 +35,50 @@ export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
         .catch((err) => { console.log(err)})
 }
 
-export const putAndCloseRoomDialog = (roomData) => (dispatch) => {
-    return fetch(`${HTTPS_ADDRESS}/room`,{
-        method: 'PUT',
-        body: JSON.stringify(roomData),
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw response.error
-        }
-        return response.json()
-    })
-    .then((permanentId) => ({
-        ...roomData,
-        type: 'ROOM',
-        permanentId,
-        ancestry: roomData.parentAncestry ? `${roomData.parentAncestry}:${permanentId}` : permanentId
-    }))
+export const putAndCloseRoomDialog = ({
+        roomId: PermanentId,
+        name: Name,
+        description: Description,
+        parentId: ParentId,
+        ancestry: Ancestry,
+        exits: Exits = [],
+        entries: Entries = []
+    }) => (dispatch) => {
+    return API.graphql(graphqlOperation(putRoom, {
+            PermanentId,
+            ParentId,
+            Ancestry,
+            Name,
+            Description,
+            Exits: Exits.map(({
+                permanentId, name, roomId
+            }) => ({ PermanentId: permanentId, Name: name, RoomId: roomId })),
+            Entries: Entries.map(({
+                permanentId, name, roomId
+            }) => ({ PermanentId: permanentId, Name: name, RoomId: roomId }))
+
+        }))
+        .then(({ data }) => (data || {}))
+        .then(({ getRoom }) => (getRoom || {}))
+        .then(({
+            PermanentId,
+            Type,
+            ParentId,
+            Ancestry,
+            Name,
+            Description,
+            // Exits,
+            // Entries
+        }) => ({
+            roomId: PermanentId,
+            type: Type,
+            parentId: ParentId,
+            ancestry: Ancestry,
+            name: Name,
+            description: Description,
+            // exits: Exits.map(({ PermanentId, Name, RoomId }) => ({ permanentId: PermanentId, name: Name, roomId: RoomId })),
+            // entries: Entries.map(({ PermanentId, Name, RoomId }) => ({ permanentId: PermanentId, name: Name, roomId: RoomId })),
+        }))
     .then(() => dispatch(closeRoomDialog()))
     .catch((err) => { console.log(err)})
 }
