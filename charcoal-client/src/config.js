@@ -1,5 +1,4 @@
 export const WSS_ADDRESS="wss://hi5j51s286.execute-api.us-east-1.amazonaws.com/Prod"
-export const HTTPS_ADDRESS="https://czgn9cuinc.execute-api.us-east-1.amazonaws.com/Prod"
 
 export const AuthConfig = {
     Auth: {

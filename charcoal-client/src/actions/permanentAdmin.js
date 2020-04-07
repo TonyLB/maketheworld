@@ -2,7 +2,6 @@ import { API, graphqlOperation } from 'aws-amplify'
 import { getNeighborhood, getRoom } from '../graphql/queries'
 import { putNeighborhood, putRoom } from '../graphql/mutations'
 
-import { HTTPS_ADDRESS } from '../config'
 import { fetchAllNeighborhoods } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { activateWorldDialog } from './UI/worldDialog'
