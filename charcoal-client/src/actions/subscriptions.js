@@ -11,6 +11,7 @@ export const removeAllSubscriptions = () => ({
 })
 
 export const unsubscribeAll = () => (dispatch, getState) => {
+    console.log('UNSUBSCRIBING')
     const { subscriptions } = getState()
     Object.values(subscriptions).forEach((subscription) => subscription.unsubscribe())
     dispatch(removeAllSubscriptions())

@@ -95,7 +95,9 @@ export const subscribeMyCharacterChanges = () => (dispatch) => {
                 }
             }
         })
-    return addSubscription({ myCharacter: subscription })
+
+    dispatch(addSubscription({ myCharacters: subscription }))
+    dispatch(fetchMyCharacters())
 }
 
 export const fetchCharactersInPlayAttempt = () => ({
@@ -142,5 +144,7 @@ export const subscribeCharactersInPlayChanges = () => (dispatch) => {
                 dispatch(receiveCharactersInPlayChange(changedCharactersInPlay))
             }
         })
-    return addSubscription({ charactersInPlay: subscription })
+
+    dispatch(addSubscription({ charactersInPlay: subscription }))
+    dispatch(fetchCharactersInPlay())
 }

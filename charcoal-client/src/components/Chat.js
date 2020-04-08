@@ -28,7 +28,6 @@ import MenuIcon from '@material-ui/icons/Menu'
 import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { connectionRegister } from '../actions/connection.js'
-import { unsubscribeAll } from '../actions/subscriptions.js'
 import { setName, registerName } from '../actions/name.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
@@ -36,15 +35,7 @@ import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getName } from '../selectors/name.js'
-import { getSubscriptions } from '../selectors/subscriptions'
-import {
-    fetchMyCharacters,
-    subscribeMyCharacterChanges,
-    fetchCharactersInPlay,
-    subscribeCharactersInPlayChanges
-} from '../actions/characters.js'
-import { getMyCharacterFetchNeeded, getMyCharacters } from '../selectors/myCharacters.js'
-import { getCharactersInPlayFetchNeeded } from '../selectors/charactersInPlay.js'
+import { getMyCharacters } from '../selectors/myCharacters'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
@@ -54,6 +45,7 @@ import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
 import MyCharacterDialog from './MyCharacterDialog'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
+import useAppSyncSubscriptions from './useAppSyncSubscriptions'
 
 const CharacterPicker = ({ open, onClose = () => {} }) => {
     const myCharacters = useSelector(getMyCharacters)
@@ -96,8 +88,8 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
 }
 
 export const Chat = () => {
+    useAppSyncSubscriptions()
     const webSocket = useSelector(getWebSocket)
-    const subscriptions = useSelector(getSubscriptions)
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
     const name = useSelector(getName)
@@ -146,28 +138,6 @@ export const Chat = () => {
           dispatch(registerWebSocket(setupSocket))
         }
     }, [webSocket, dispatch])
-
-    useEffect(() => {
-        if (!(subscriptions.myCharacters && subscriptions.charactersInPlay)) {
-            dispatch(subscribeMyCharacterChanges())
-            dispatch(subscribeCharactersInPlayChanges())
-        }
-        return () => { dispatch(unsubscribeAll()) }
-    }, [subscriptions, dispatch])
-
-    const myCharacterFetchNeeded = useSelector(getMyCharacterFetchNeeded)
-    useEffect(() => {
-        if (myCharacterFetchNeeded) {
-            dispatch(fetchMyCharacters())
-        }
-    }, [myCharacterFetchNeeded, dispatch])
-
-    const charactersInPlayFetchNeeded = useSelector(getCharactersInPlayFetchNeeded)
-    useEffect(() => {
-        if (charactersInPlayFetchNeeded) {
-            dispatch(fetchCharactersInPlay())
-        }
-    }, [charactersInPlayFetchNeeded, dispatch])
 
     return (
         <React.Fragment>

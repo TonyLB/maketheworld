@@ -624,13 +624,13 @@ Resources:
     Properties:
       LayerName: uuid-layer
       Description: Lambda layer to import the uuid library
-      ContentUri: s3://burned-over-mush-development/0eb28da04a6e3f9fd3420d3cbe905115
+      ContentUri: s3://burned-over-mush-development/686cf8ad286bd1064146ad5a56565d03
       CompatibleRuntimes:
       - nodejs12.x
   PutRoomPathsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://burned-over-mush-development/d5047bf4849031d2d63f232c9b649d93
+      CodeUri: s3://burned-over-mush-development/3d451e0d973068ada42f251b1c50ff6a
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
@@ -790,5 +790,7 @@ Resources:
         \ Subscription {\n    changedCharacter: Character\n    @aws_subscribe(mutations:\
         \ [\"putCharacter\"])\n    changedCharactersInPlay: CharacterInPlay\n    @aws_subscribe(mutations:\
         \ [\"addCharacterInPlay\", \"deleteCharacterInPlay\", \"moveCharacter\"])\n\
-        } schema {\n    mutation: Mutation\n    query: Query\n    subscription: Subscription\n\
-        }\n"
+        \    changedNeighborhood: Neighborhood\n    @aws_subscribe(mutations: [\"\
+        putNeighborhood\"])\n    changedRoom: Room\n    @aws_subscribe(mutations:\
+        \ [\"putRoom\"])\n} schema {\n    mutation: Mutation\n    query: Query\n \
+        \   subscription: Subscription\n}\n"

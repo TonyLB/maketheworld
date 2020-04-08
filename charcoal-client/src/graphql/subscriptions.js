@@ -32,3 +32,39 @@ export const changedCharactersInPlay = /* GraphQL */ `
     }
   }
 `;
+export const changedNeighborhood = /* GraphQL */ `
+  subscription ChangedNeighborhood {
+    changedNeighborhood {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
+    }
+  }
+`;
+export const changedRoom = /* GraphQL */ `
+  subscription ChangedRoom {
+    changedRoom {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
+      Exits {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+      Entries {
+        PermanentId
+        Name
+        RoomId
+        Ancestry
+      }
+    }
+  }
+`;

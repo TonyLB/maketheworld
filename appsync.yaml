@@ -934,6 +934,10 @@ Resources:
                     @aws_subscribe(mutations: ["putCharacter"])
                     changedCharactersInPlay: CharacterInPlay
                     @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
+                    changedNeighborhood: Neighborhood
+                    @aws_subscribe(mutations: ["putNeighborhood"])
+                    changedRoom: Room
+                    @aws_subscribe(mutations: ["putRoom"])
                 }
                 schema {
                     mutation: Mutation
