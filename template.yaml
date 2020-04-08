@@ -348,6 +348,922 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref RegisterNameFunction
       Principal: apigateway.amazonaws.com
+  AppSyncAPI:
+      Type: AWS::AppSync::GraphQLApi
+      Properties:
+          Name: !Sub ${TablePrefix}AppSyncAPI
+          AuthenticationType: AMAZON_COGNITO_USER_POOLS
+          UserPoolConfig:
+              AwsRegion: us-east-1
+              UserPoolId: !Ref UserPool
+              DefaultAction: ALLOW
+  AppSyncAPIExecutionRole:
+      Type: AWS::IAM::Role
+      Properties:
+          AssumeRolePolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Principal:
+                      Service: appsync.amazonaws.com
+                  Action:
+                      - sts:AssumeRole
+          Policies:
+            - PolicyName: CharactersPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:GetItem"
+                          - "dynamodb:BatchGetItem"
+                          - "dynamodb:Query"
+                          - "dynamodb:PutItem"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters"
+            - PolicyName: CharacterIndexPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:Query"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters/*"
+            - PolicyName: CharactersInPlayPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:GetItem"
+                          - "dynamodb:BatchGetItem"
+                          - "dynamodb:Query"
+                          - "dynamodb:PutItem"
+                          - "dynamodb:UpdateItem"
+                          - "dynamodb:Scan"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
+            - PolicyName: PermanentsPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:GetItem"
+                          - "dynamodb:BatchGetItem"
+                          - "dynamodb:Query"
+                          - "dynamodb:PutItem"
+                          - "dynamodb:UpdateItem"
+                          - "dynamodb:Scan"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
+            - PolicyName: PermanentsIndexPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:Query"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
+            - PolicyName: PutRoomPathsPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "lambda:InvokeFunction"
+                      Resource: !GetAtt PutRoomPathsFunction.Arn
+  CharacterDynamoDBTableDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: Character
+          Type: AMAZON_DYNAMODB
+          ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
+          DynamoDBConfig:
+              AwsRegion: us-east-1
+              TableName: !Sub ${TablePrefix}_characters
+  CharactersInPlayDynamoDBTableDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: CharactersInPlay
+          Type: AMAZON_DYNAMODB
+          ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
+          DynamoDBConfig:
+              AwsRegion: us-east-1
+              TableName: !Sub ${TablePrefix}_characters_in_play
+  PermanentsDynamoDBTableDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: Permanents
+          Type: AMAZON_DYNAMODB
+          ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
+          DynamoDBConfig:
+              AwsRegion: us-east-1
+              TableName: !Sub ${TablePrefix}_permanents
+  QueryGetCharacterResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getCharacter
+          DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "GetItem",
+                  "key": {
+                      "PlayerName": $util.dynamodb.toDynamoDBJson($ctx.args.playerName),
+                      "Name": $util.dynamodb.toDynamoDBJson($ctx.args.name)
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  QueryPlayerCharactersResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getPlayerCharacters
+          DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Query",
+                  "query": {
+                      "expression": "PlayerName = :PlayerName",
+                      "expressionValues": {
+                          ":PlayerName": $util.dynamodb.toDynamoDBJson($context.identity.username)
+                      }
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+  PutCharacterResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: putCharacter
+          DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #if(!($ctx.args.CharacterId))
+                  $util.qr($ctx.args.put("CharacterId", $util.autoId()))
+              #end
+              #set( $ddb = $util.dynamodb )
+              {
+                  "version": "2017-02-28",
+                  "operation": "PutItem",
+                  "key": {
+                      "PlayerName": $ddb.toStringJson($context.identity.username),
+                      "Name": $ddb.toStringJson($ctx.args.Name)
+                  },
+                  "attributeValues": {
+                      "CharacterId": $ddb.toStringJson($ctx.args.CharacterId)
+                      #if($ctx.args.Pronouns), "Pronouns": $ddb.toStringJson($ctx.args.Pronouns) #end
+                      #if($ctx.args.FirstImpression), "FirstImpression": $ddb.toStringJson($ctx.args.FirstImpression) #end
+                      #if($ctx.args.OneCoolThing), "OneCoolThing": $ddb.toStringJson($ctx.args.OneCoolThing) #end
+                      #if($ctx.args.Outfit), "Outfit": $ddb.toStringJson($ctx.args.Outfit) #end
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  CharacterInPlayGetCharacter:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: CharacterInPlay
+          FieldName: Character
+          DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "GetItem",
+                  "key": {
+                      "PlayerName": $util.dynamodb.toDynamoDBJson($context.source.PlayerName),
+                      "Name": $util.dynamodb.toDynamoDBJson($context.source.Name)
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  QueryGetCharactersInPlay:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getCharactersInPlay
+          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Scan",
+                  "filter": {
+                      "expression": "attribute_exists(ConnectionId)",
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+  QueryGetNeighborhoodTree:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getNeighborhoodTree
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2018-05-29",
+                  "operation": "Scan",
+                  "filter": {
+                      "expression": "#t = :neighborhood or #t = :room",
+                      "expressionNames": {
+                          "#t": "type"
+                      },
+                      "expressionValues": {
+                          ":neighborhood": $util.dynamodb.toStringJson("NEIGHBORHOOD"),
+                          ":room": $util.dynamodb.toStringJson("ROOM")
+                      }
+                  }
+              }
+          ResponseMappingTemplate: >
+              #set($output = [])
+              #foreach($node in $ctx.result.items)
+                  #if($node.type == "NEIGHBORHOOD")
+                      #set($typeName = "Neighborhood")
+                  #else
+                      #set($typeName = "Room")
+                  #end
+                  $util.qr($output.add({
+                      "__typename": $typeName,
+                      "Name": $node.name,
+                      "Type": $node.type,
+                      "PermanentId": $node.permanentId,
+                      "ParentId": $node.parentId,
+                      "Ancestry": $node.ancestry
+                  }))
+              #end
+              $util.toJson($output)
+  QueryGetNeighborhood:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getNeighborhood
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "GetItem",
+                  "key": {
+                      "permanentId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                  }
+              }
+          ResponseMappingTemplate: >
+              #if($ctx.result.type == "NEIGHBORHOOD")
+                  {
+                      "PermanentId": $util.toJson($ctx.result.permanentId),
+                      "ParentId": $util.toJson($ctx.result.parentId),
+                      "PermanentId": $util.toJson($ctx.result.permanentId),
+                      "Name": $util.toJson($ctx.result.name),
+                      "Type": $util.toJson($ctx.result.type),
+                      "Ancestry": $util.toJson($ctx.result.ancestry),
+                      "Description": $util.toJson($ctx.result.description)
+                  }
+              #else
+                  $util.error("PermanentId must specify a NEIGHBORHOOD type permanent")
+              #end
+  QueryGetRoom:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getRoom
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "GetItem",
+                  "key": {
+                      "permanentId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                  }
+              }
+          ResponseMappingTemplate: >
+              #if($ctx.result.type == "ROOM")
+                  {
+                      "PermanentId": $util.toJson($ctx.result.permanentId),
+                      "ParentId": $util.toJson($ctx.result.parentId),
+                      "PermanentId": $util.toJson($ctx.result.permanentId),
+                      "Name": $util.toJson($ctx.result.name),
+                      "Type": $util.toJson($ctx.result.type),
+                      "Ancestry": $util.toJson($ctx.result.ancestry),
+                      "Description": $util.toJson($ctx.result.description)
+                  }
+              #else
+                  $util.error("PermanentId must specify a ROOM type permanent")
+              #end
+  QueryGetRoomExits:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Room
+          FieldName: Exits
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Query",
+                  "query": {
+                      "expression": "fromRoomId = :RoomId",
+                      "expressionValues": {
+                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.source.PermanentId)
+                      }
+                  },
+                  "index": "fromRoomIndex"
+              }
+          ResponseMappingTemplate: >
+              [
+                  #foreach($exit in $ctx.result.items)
+                      {
+                          "PermanentId": $util.toJson($exit.permanentId),
+                          "Name": $util.toJson($exit.name),
+                          "RoomId": $util.toJson($exit.parentId),
+                          "Ancestry": $util.toJson($exit.ancestry)
+                      }#if($foreach.hasNext),#end
+                  #end
+              ]
+  QueryGetRoomEntries:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Room
+          FieldName: Entries
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Query",
+                  "query": {
+                      "expression": "parentId = :RoomId",
+                      "expressionValues": {
+                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.source.PermanentId)
+                      }
+                  },
+                  "index": "parentIndex"
+              }
+          ResponseMappingTemplate: >
+              [
+                  #foreach($entry in $ctx.result.items)
+                      {
+                          "PermanentId": $util.toJson($entry.permanentId),
+                          "Name": $util.toJson($entry.name),
+                          "RoomId": $util.toJson($entry.fromRoomId),
+                          "Ancestry": $util.toJson($entry.ancestry)
+                      }#if($foreach.hasNext),#end
+                  #end
+              ]
+  MutationPreQueryCharacterInPlay:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PreQueryCharacterInPlay
+          Description: Checks before adding a character to see if a past record exists to reactivate
+          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #if (!$ctx.prev.result.CharacterId)
+                  $ctx.error("CharacterId required")
+              #end
+              {
+                  "version": "2017-02-28",
+                  "operation": "GetItem",
+                  "key": {
+                      "CharacterId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                  }
+              }
+          ResponseMappingTemplate: >
+              #if ($ctx.result.PlayerName)
+                  {
+                      "CharacterId": "$ctx.prev.result.CharacterId",
+                      "ConnectionId": "$ctx.prev.result.ConnectionId",
+                      "PlayerName": "$ctx.result.PlayerName",
+                      "Name": "$ctx.result.Name",
+                      "RoomId": "$ctx.result.RoomId",
+                      "Reactivate": true
+                  }
+              #else
+                  {
+                      "CharacterId": "$ctx.prev.result.CharacterId",
+                      "ConnectionId": "$ctx.prev.result.ConnectionId",
+                      "Reactivate": false
+                  }
+              #end
+  MutationPreQueryCharacterIfNeeded:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PreQueryCharacterIfNeeded
+          Description: Checks if needed before adding a character to find PlayerName and Name
+          DataSourceName: !GetAtt CharacterDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #if ($ctx.prev.result.Reactivate)
+                  #return($ctx.prev.result)
+              #else
+              {
+                  "version": "2017-02-28",
+                  "operation": "Query",
+                  "query": {
+                      "expression": "CharacterId = :characterId",
+                      "expressionValues": {
+                          ":characterId": $util.dynamodb.toStringJson($ctx.prev.result.CharacterId)
+                      }
+                  },
+                  "index": "CharacterIdIndex"
+              }
+              #end
+          ResponseMappingTemplate: >
+              #if ($ctx.error)
+                  $util.error($ctx.error.message, $ctx.error.type)
+              #end
+              #if ($ctx.result.Reactivate)
+                  $util.toJson($ctx.result)
+              #else
+                  #set($item = $ctx.result.items[0])
+                  {
+                      "CharacterId": "$ctx.prev.result.CharacterId",
+                      "ConnectionId": "$ctx.prev.result.ConnectionId",
+                      "PlayerName": "$item.PlayerName",
+                      "Name": "$item.Name",
+                      "RoomId": "VORTEX",
+                      "Reactivate": false
+                  }
+              #end
+  MutationAddCharacterInPlayPutFunction:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: AddCharacterInPlay
+          Description: Adds or activates a CharacterInPlay record
+          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #set( $ddb = $util.dynamodb )
+              {
+                  #if ($ctx.prev.result.Reactivate)
+                      "version": "2018-05-29",
+                      "operation": "UpdateItem",
+                      "key": {
+                          "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                      },
+                      "update": {
+                          "expression": "SET #connectionfield = :connectionId",
+                          "expressionNames": {
+                              "#connectionfield": "ConnectionId"
+                          },
+                          "expressionValues": {
+                              ":connectionId": $ddb.toDynamoDBJson($ctx.prev.result.ConnectionId)
+                          }
+                      }
+                  #else
+                      "version" : "2017-02-28",
+                      "operation": "PutItem",
+                      "key": {
+                          "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                      },
+                      "attributeValues": {
+                          "PlayerName": $ddb.toDynamoDBJson($ctx.prev.result.PlayerName),
+                          "Name": $ddb.toDynamoDBJson($ctx.prev.result.Name),
+                          "RoomId": $ddb.toDynamoDBJson($ctx.prev.result.RoomId),
+                          "ConnectionId": $ddb.toDynamoDBJson($ctx.prev.result.ConnectionId)
+                      }
+                  #end
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  MutationAddCharacterInPlay:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: addCharacterInPlay
+          Kind: PIPELINE
+          PipelineConfig:
+              Functions:
+                  - !GetAtt MutationPreQueryCharacterInPlay.FunctionId
+                  - !GetAtt MutationPreQueryCharacterIfNeeded.FunctionId
+                  - !GetAtt MutationAddCharacterInPlayPutFunction.FunctionId
+          RequestMappingTemplate: >
+              {
+                  "CharacterId": $util.toJson($ctx.args.CharacterId),
+                  "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  MutationDeleteCharacterInPlayResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: deleteCharacterInPlay
+          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #if(!($ctx.args.CharacterId))
+                  $util.error("CharacterId field required")
+              #end
+              #set( $ddb = $util.dynamodb )
+              {
+                  "version": "2018-05-29",
+                  "operation": "UpdateItem",
+                  "key": {
+                      "CharacterId": $ddb.toDynamoDBJson($ctx.args.CharacterId)
+                  },
+                  "update": {
+                      "expression": "REMOVE #connectionfield",
+                      "expressionNames": {
+                          "#connectionfield": "ConnectionId"
+                      }
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  MutationMoveCharacterResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: moveCharacter
+          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #if(!($ctx.args.CharacterId))
+                  $util.error("CharacterId field required")
+              #end
+              #set( $ddb = $util.dynamodb )
+              {
+                  "version": "2018-05-29",
+                  "operation": "UpdateItem",
+                  "key": {
+                      "CharacterId": $ddb.toDynamoDBJson($ctx.args.CharacterId)
+                  },
+                  "update": {
+                      "expression": "SET #roomfield = :roomId",
+                      "expressionNames": {
+                          "#roomfield": "RoomId"
+                      },
+                      "expressionValues": {
+                          ":roomId": $ddb.toDynamoDBJson($ctx.args.RoomId)
+                      }
+                  }
+              }
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  MutationPreQueryPermanentParentFunction:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PreQueryPermanentParent
+          Description: Gets the parent node in order to construct ancestry
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #if($ctx.prev.result.ParentId)
+              {
+                  "version": "2017-02-28",
+                  "operation": "GetItem",
+                  "key": {
+                      "permanentId": $util.dynamodb.toStringJson($ctx.prev.result.ParentId)
+                  }
+              }
+              #else
+                  #return($ctx.prev.result)
+              #end
+          ResponseMappingTemplate: >
+              #if ($ctx.error)
+                  $util.error($ctx.error.message, $ctx.error.type)
+              #end
+              #set($prev = $ctx.prev.result)
+              {
+                  "Name": $util.toJson($prev.Name),
+                  "PermanentId": $util.toJson($prev.PermanentId)
+                  #if($prev.Description), "Description": $util.toJson($prev.Description)#end
+                  #if($prev.ParentId), "ParentId": $util.toJson($prev.ParentId)#end
+                  #if ($util.isMap($ctx.result))
+                      #if ($ctx.result.ancestry)
+                          , "ParentAncestry": $util.toJson($ctx.result.ancestry)
+                      #end
+                  #end
+              }
+  MutationPutNeighborhoodFunction:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PutNeighborhood
+          Description: Puts a neighborhood into the Permanents table
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #set( $ddb = $util.dynamodb )
+              #set( $args = $ctx.prev.result )
+              #set( $PermanentId = $args.PermanentId )
+              #if($util.isNullOrEmpty($PermanentId))
+                  #set( $PermanentId = $util.autoId() )
+              #end
+              #if($args.ParentAncestry)
+                  #set($ancestry = "${args.ParentAncestry}:${PermanentId}")
+              #else
+                  #set($ancestry = $PermanentId)
+              #end
+              {
+                  "version": "2017-02-28",
+                  "operation": "PutItem",
+                  "key": {
+                      "permanentId": $ddb.toDynamoDBJson($PermanentId)
+                  },
+                  "attributeValues": {
+                      "name": $ddb.toDynamoDBJson($args.Name),
+                      "type": $ddb.toStringJson("NEIGHBORHOOD"),
+                      "ancestry": $ddb.toStringJson($ancestry)
+                      #if($args.Description), "description": $ddb.toStringJson($args.Description) #end
+                      #if($args.ParentId), "parentId": $ddb.toStringJson($args.ParentId) #end
+                  }
+              }
+          ResponseMappingTemplate: >
+              {
+                  "PermanentId": $util.toJson($ctx.result.permanentId),
+                  "ParentId": $util.toJson($ctx.result.parentId),
+                  "Type": "NEIGHBORHOOD",
+                  "Ancestry": $util.toJson($ctx.result.ancestry),
+                  "Name": $util.toJson($ctx.result.name),
+                  "Description": $util.toJson($ctx.result.description)
+              }
+  MutationPutNeighborhood:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: putNeighborhood
+          Kind: PIPELINE
+          PipelineConfig:
+              Functions:
+                  - !GetAtt MutationPreQueryPermanentParentFunction.FunctionId
+                  - !GetAtt MutationPutNeighborhoodFunction.FunctionId
+          RequestMappingTemplate: "$utils.toJson($ctx.args)"
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  UUIDLambdaLayer:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+          LayerName: uuid-layer
+          Description: Lambda layer to import the uuid library
+          ContentUri: lambda/uuidLayer/
+          CompatibleRuntimes:
+              - nodejs12.x
+  PutRoomPathsFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/putRoomPaths/
+          Handler: app.handler
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
+  PutRoomPermission:
+      Type: AWS::Lambda::Permission
+      DependsOn:
+          - PutRoomPathsFunction
+      Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref PutRoomPathsFunction
+          Principal: appsync.amazonaws.com
+  MutationPutRoomBaseFunction:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PutRoomBase
+          Description: Puts a room record into the Permanents table
+          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          RequestMappingTemplate: >
+              #set( $ddb = $util.dynamodb )
+              #set( $args = $ctx.prev.result )
+              #set( $PermanentId = $args.PermanentId )
+              #if($util.isNullOrEmpty($PermanentId))
+                  #set( $PermanentId = $util.autoId() )
+              #end
+              #if($args.ParentAncestry)
+                  #set($ancestry = "${args.ParentAncestry}:${PermanentId}")
+              #else
+                  #set($ancestry = $PermanentId)
+              #end
+              {
+                  "version": "2017-02-28",
+                  "operation": "PutItem",
+                  "key": {
+                      "permanentId": $ddb.toDynamoDBJson($PermanentId)
+                  },
+                  "attributeValues": {
+                      "name": $ddb.toDynamoDBJson($args.Name),
+                      "type": $ddb.toStringJson("ROOM"),
+                      "ancestry": $ddb.toStringJson($ancestry)
+                      #if($args.Description), "description": $ddb.toStringJson($args.Description) #end
+                      #if($args.ParentId), "parentId": $ddb.toStringJson($args.ParentId) #end
+                  }
+              }
+          ResponseMappingTemplate: >
+              #set($output = {
+                  "PermanentId": $ctx.result.permanentId,
+                  "Type": "ROOM",
+                  "Ancestry": $ctx.result.ancestry,
+                  "Name": $ctx.result.name,
+                  "Exits": $ctx.prev.result.Exits,
+                  "Entries": $ctx.prev.result.Entries
+              })
+              #if($ctx.prev.result.ParentId)$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
+              #if($ctx.prev.result.Description)$util.qr($output.put("Description", $ctx.prev.result.Description))#end
+              $util.toJson($output)
+  PutRoomPathsDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PutRoomPath
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt PutRoomPathsFunction.Arn
+  MutationPutRoomPathsFunction:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PutRoomPaths
+          Description: Puts the needed entry records into the Permanents table
+          DataSourceName: !GetAtt PutRoomPathsDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                      "source": {
+                          "PermanentId": $util.toJson($ctx.prev.result.PermanentId),
+                          "Ancestry": $util.toJson($ctx.prev.result.Ancestry)
+                      },
+                      "Exits": $util.toJson($ctx.prev.result.Exits),
+                      "Entries": $util.toJson($ctx.prev.result.Entries)
+                  }
+              }
+          ResponseMappingTemplate: >
+              #set($output = {
+                  "PermanentId": $ctx.prev.result.PermanentId,
+                  "Type": "ROOM",
+                  "Ancestry": $ctx.prev.result.Ancestry,
+                  "Name": $ctx.prev.result.Name,
+                  "Exits": $ctx.prev.result.Exits,
+                  "Entries": $ctx.prev.result.Entries
+              })
+              #if($ctx.prev.result.ParentId)$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
+              #if($ctx.prev.result.Description)$util.qr($output.put("Description", $ctx.prev.result.Description))#end
+              $util.toJson($output)
+  MutationPutRoom:
+      Type: AWS::AppSync::Resolver
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: putRoom
+          Kind: PIPELINE
+          PipelineConfig:
+              Functions:
+                - !GetAtt MutationPutRoomBaseFunction.FunctionId
+                - !GetAtt MutationPutRoomPathsFunction.FunctionId
+          RequestMappingTemplate: "$utils.toJson($ctx.args)"
+          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+  Schema:
+      Type: AWS::AppSync::GraphQLSchema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Definition: >
+              type Character {
+                  PlayerName: String!
+                  Name: String!
+                  CharacterId: ID!
+                  Pronouns: String
+                  FirstImpression: String
+                  Outfit: String
+                  OneCoolThing: String
+              }
+              type CharacterInPlay {
+                  CharacterId: ID!
+                  Character: Character!
+                  RoomId: String!
+                  ConnectionId: String!
+              }
+              interface PermanentTreeNode {
+                  PermanentId: String!
+                  Type: String!
+                  Name: String!
+                  Ancestry: String!
+                  Description: String
+                  ParentId: String
+              }
+              type Neighborhood implements PermanentTreeNode {
+                  PermanentId: String!
+                  Type: String!
+                  Name: String!
+                  Ancestry: String!
+                  Description: String
+                  ParentId: String
+              }
+              interface RoomPath {
+                  PermanentId: String
+                  Name: String!
+                  RoomId: String
+                  Ancestry: String
+              }
+              type Exit implements RoomPath {
+                  PermanentId: String!
+                  Name: String!
+                  RoomId: String!
+                  Ancestry: String!
+              }
+              type Entry implements RoomPath {
+                  PermanentId: String!
+                  Name: String!
+                  RoomId: String!
+                  Ancestry: String!
+              }
+              input PathInput {
+                  PermanentId: String
+                  Name: String!
+                  RoomId: String
+              }
+              type Room implements PermanentTreeNode {
+                  PermanentId: String!
+                  Type: String!
+                  Name: String!
+                  Ancestry: String!
+                  Description: String
+                  ParentId: String
+                  Exits: [Exit]
+                  Entries: [Entry]
+              }
+              type Mutation {
+                  putCharacter(
+                      Name: String!,
+                      CharacterId: String,
+                      Pronouns: String,
+                      FirstImpression: String,
+                      Outfit: String,
+                      OneCoolThing: String
+                  ): Character
+                  addCharacterInPlay(
+                      CharacterId: String!
+                      ConnectionId: String!
+                  ): CharacterInPlay
+                  deleteCharacterInPlay(
+                      CharacterId: String!
+                  ): CharacterInPlay
+                  moveCharacter(
+                      CharacterId: String!
+                      RoomId: String!
+                  ): CharacterInPlay
+                  putNeighborhood(
+                      PermanentId: String
+                      Name: String!
+                      Description: String
+                      ParentId: String
+                  ): Neighborhood
+                  putRoom(
+                      PermanentId: String
+                      Name: String!
+                      Description: String
+                      ParentId: String
+                      Exits: [PathInput]
+                      Entries: [PathInput]
+                  ): Room
+              }
+              type Query {
+                  getCharacter(playerName: String!, name: String!): Character
+                  getPlayerCharacters: [Character]
+                  getCharactersInPlay: [CharacterInPlay]
+                  getNeighborhoodTree: [PermanentTreeNode]
+                  getNeighborhood(PermanentId: String!): Neighborhood
+                  getRoom(PermanentId: String!): Room
+                  getRoomByCharacter(CharacterId: String!): Room
+              }
+              type Subscription {
+                  changedCharacter: Character
+                  @aws_subscribe(mutations: ["putCharacter"])
+                  changedCharactersInPlay: CharacterInPlay
+                  @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
+                  changedNeighborhood: Neighborhood
+                  @aws_subscribe(mutations: ["putNeighborhood"])
+                  changedRoom: Room
+                  @aws_subscribe(mutations: ["putRoom"])
+              }
+              schema {
+                  mutation: Mutation
+                  query: Query
+                  subscription: Subscription
+              }
 
 Outputs:
   WebSocketURI:
@@ -361,3 +1277,7 @@ Outputs:
   UserPoolClient:
     Description: The client ID for the player user pool
     Value: !Ref UserPoolClient
+
+  AppSyncAPI:
+    Description: The ID of the AppSync Api
+    Value: !Ref AppSyncAPI
