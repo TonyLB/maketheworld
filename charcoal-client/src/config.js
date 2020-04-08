@@ -1,4 +1,4 @@
-export const WSS_ADDRESS="wss://hi5j51s286.execute-api.us-east-1.amazonaws.com/Prod"
+export const WSS_ADDRESS="wss://0xz2rqndy3.execute-api.us-east-1.amazonaws.com/Prod"
 
 export const AuthConfig = {
     Auth: {
@@ -6,10 +6,10 @@ export const AuthConfig = {
         region: 'us-east-1',
 
         // OPTIONAL - Amazon Cognito User Pool ID
-        userPoolId: 'us-east-1_legdibKxO',
+        userPoolId: 'us-east-1_I2uHjWnAW',
 
         // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
-        userPoolWebClientId: '6h5qu9kboujj893l4cnhrccp6o',
+        userPoolWebClientId: '3s0q18r5d5pukm8annb7j2n9t6',
 
         // OPTIONAL - Enforce user authentication prior to accessing AWS resources or not
         mandatorySignIn: true,

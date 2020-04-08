@@ -328,6 +328,7 @@ Resources:
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
+          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
       Policies:
       - DynamoDBCrudPolicy:
           TableName: !Sub '${TablePrefix}_players'
@@ -339,6 +340,10 @@ Resources:
           - 'execute-api:ManageConnections'
           Resource:
           - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
+      - Statement:
+        - Effect: Allow
+          Action: appsync:GraphQL
+          Resource: !Sub '${AppSyncAPI}/*'
   RegisterNamePermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -357,6 +362,8 @@ Resources:
               AwsRegion: us-east-1
               UserPoolId: !Ref UserPool
               DefaultAction: ALLOW
+          AdditionalAuthenticationProviders:
+              - AuthenticationType: AWS_IAM
   AppSyncAPIExecutionRole:
       Type: AWS::IAM::Role
       Properties:
@@ -472,11 +479,10 @@ Resources:
                   "version": "2017-02-28",
                   "operation": "GetItem",
                   "key": {
-                      "PlayerName": $util.dynamodb.toDynamoDBJson($ctx.args.playerName),
-                      "Name": $util.dynamodb.toDynamoDBJson($ctx.args.name)
+                      "CharacterId": $util.dynamodb.toDynamoDBJson($ctx.args.characterId)
                   }
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryPlayerCharactersResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -494,9 +500,10 @@ Resources:
                       "expressionValues": {
                           ":PlayerName": $util.dynamodb.toDynamoDBJson($context.identity.username)
                       }
-                  }
+                  },
+                  "index": "PlayerAndNameIndex"
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result.items)"
   PutCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -514,18 +521,18 @@ Resources:
                   "version": "2017-02-28",
                   "operation": "PutItem",
                   "key": {
-                      "PlayerName": $ddb.toStringJson($context.identity.username),
-                      "Name": $ddb.toStringJson($ctx.args.Name)
+                      "CharacterId": $ddb.toStringJson($ctx.args.CharacterId)
                   },
                   "attributeValues": {
-                      "CharacterId": $ddb.toStringJson($ctx.args.CharacterId)
+                      "PlayerName": $ddb.toStringJson($context.identity.username),
+                      "Name": $ddb.toStringJson($ctx.args.Name)
                       #if($ctx.args.Pronouns), "Pronouns": $ddb.toStringJson($ctx.args.Pronouns) #end
                       #if($ctx.args.FirstImpression), "FirstImpression": $ddb.toStringJson($ctx.args.FirstImpression) #end
                       #if($ctx.args.OneCoolThing), "OneCoolThing": $ddb.toStringJson($ctx.args.OneCoolThing) #end
                       #if($ctx.args.Outfit), "Outfit": $ddb.toStringJson($ctx.args.Outfit) #end
                   }
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   CharacterInPlayGetCharacter:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -539,11 +546,10 @@ Resources:
                   "version": "2017-02-28",
                   "operation": "GetItem",
                   "key": {
-                      "PlayerName": $util.dynamodb.toDynamoDBJson($context.source.PlayerName),
-                      "Name": $util.dynamodb.toDynamoDBJson($context.source.Name)
+                      "CharacterId": $util.dynamodb.toDynamoDBJson($context.source.CharacterId)
                   }
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetCharactersInPlay:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -560,7 +566,7 @@ Resources:
                       "expression": "attribute_exists(ConnectionId)",
                   }
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result.items)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result.items)"
   QueryGetNeighborhoodTree:
       Type: AWS::AppSync::Resolver
       Properties:
@@ -766,36 +772,26 @@ Resources:
           RequestMappingTemplate: >
               #if ($ctx.prev.result.Reactivate)
                   #return($ctx.prev.result)
-              #else
+              #end
               {
                   "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                      "expression": "CharacterId = :characterId",
-                      "expressionValues": {
-                          ":characterId": $util.dynamodb.toStringJson($ctx.prev.result.CharacterId)
-                      }
-                  },
-                  "index": "CharacterIdIndex"
+                  "operation": "GetItem",
+                  "key": {
+                      "CharacterId": $util.dynamodb.toStringJson($ctx.prev.result.CharacterId)
+                  }
               }
-              #end
           ResponseMappingTemplate: >
               #if ($ctx.error)
                   $util.error($ctx.error.message, $ctx.error.type)
               #end
-              #if ($ctx.result.Reactivate)
-                  $util.toJson($ctx.result)
-              #else
-                  #set($item = $ctx.result.items[0])
-                  {
-                      "CharacterId": "$ctx.prev.result.CharacterId",
-                      "ConnectionId": "$ctx.prev.result.ConnectionId",
-                      "PlayerName": "$item.PlayerName",
-                      "Name": "$item.Name",
-                      "RoomId": "VORTEX",
-                      "Reactivate": false
-                  }
-              #end
+              $util.toJson({
+                  "CharacterId": "$ctx.prev.result.CharacterId",
+                  "ConnectionId": "$ctx.prev.result.ConnectionId",
+                  "PlayerName": "$ctx.result.PlayerName",
+                  "Name": "$ctx.result.Name",
+                  "RoomId": "VORTEX",
+                  "Reactivate": false
+              })
   MutationAddCharacterInPlayPutFunction:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -836,7 +832,7 @@ Resources:
                       }
                   #end
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.prev.result)"
   MutationAddCharacterInPlay:
       Type: AWS::AppSync::Resolver
       Properties:
@@ -854,7 +850,7 @@ Resources:
                   "CharacterId": $util.toJson($ctx.args.CharacterId),
                   "ConnectionId": $util.toJson($ctx.args.ConnectionId)
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationDeleteCharacterInPlayResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -881,7 +877,7 @@ Resources:
                       }
                   }
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationMoveCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -911,7 +907,7 @@ Resources:
                       }
                   }
               }
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPreQueryPermanentParentFunction:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -1002,8 +998,8 @@ Resources:
               Functions:
                   - !GetAtt MutationPreQueryPermanentParentFunction.FunctionId
                   - !GetAtt MutationPutNeighborhoodFunction.FunctionId
-          RequestMappingTemplate: "$utils.toJson($ctx.args)"
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          RequestMappingTemplate: "$util.toJson($ctx.args)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   UUIDLambdaLayer:
       Type: AWS::Serverless::LayerVersion
       Properties:
@@ -1134,14 +1130,14 @@ Resources:
               Functions:
                 - !GetAtt MutationPutRoomBaseFunction.FunctionId
                 - !GetAtt MutationPutRoomPathsFunction.FunctionId
-          RequestMappingTemplate: "$utils.toJson($ctx.args)"
-          ResponseMappingTemplate: "$utils.toJson($ctx.result)"
+          RequestMappingTemplate: "$util.toJson($ctx.args)"
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           Definition: >
-              type Character {
+              type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String!
                   Name: String!
                   CharacterId: ID!
@@ -1150,7 +1146,7 @@ Resources:
                   Outfit: String
                   OneCoolThing: String
               }
-              type CharacterInPlay {
+              type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: ID!
                   Character: Character!
                   RoomId: String!
@@ -1218,6 +1214,7 @@ Resources:
                       CharacterId: String!
                       ConnectionId: String!
                   ): CharacterInPlay
+                  @aws_iam @aws_cognito_user_pools
                   deleteCharacterInPlay(
                       CharacterId: String!
                   ): CharacterInPlay
@@ -1253,7 +1250,7 @@ Resources:
                   changedCharacter: Character
                   @aws_subscribe(mutations: ["putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
-                  @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
+                  @aws_subscribe(mutations: ["addCharacterInPlay"])
                   changedNeighborhood: Neighborhood
                   @aws_subscribe(mutations: ["putNeighborhood"])
                   changedRoom: Room

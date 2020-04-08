@@ -5,6 +5,24 @@ const { dbHandler } = require('/opt/dbHandler')
 const { socketHandler } = require('/opt/sockets')
 const { worldHandler } = require('/opt/world')
 
+const appsync = require('aws-appsync')
+const gql = require('graphql-tag')
+require('cross-fetch/polyfill')
+
+const graphqlClient = new appsync.AWSAppSyncClient({
+  url: process.env.APPSYNC_ENDPOINT_URL,
+  region: process.env.AWS_REGION,
+  auth: {
+    type: 'AWS_IAM',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      sessionToken: process.env.AWS_SESSION_TOKEN
+    }
+  },
+  disableOffline: true
+})
+
 exports.handler = (event) => {
 
   const dbh = new dbHandler(process.env)
@@ -18,10 +36,39 @@ exports.handler = (event) => {
     CharacterId: characterId,
     roomId: "VORTEX"
   }
+
+  //
+  // Create the mutation:  Make sure that it returns absolutely everything in the schema,
+  // because the fields it selects are the fields that will be delivered to subscriptions,
+  // and the subscription fields are all REQUIRED by the front end client, so if they
+  // are not requested in the mutation then the subscription will fail.
+  //
+  const mutation = gql`mutation AddCharacterInPlay {
+    addCharacterInPlay(
+      CharacterId: "${characterId}"
+      ConnectionId: "${event.requestContext.connectionId}"
+    ) {
+      CharacterId
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+      }
+      RoomId
+      ConnectionId
+    }
+  }`
   //
   // Update the name in the Connection record
   //
   return dbh.putConnection(playerData)
+    .then(() => { console.log('Gate 1')})
+    .then(() => (graphqlClient.mutate({ mutation })))
+    .then(() => { console.log('Gate 2')})
     .then(() => (
       //
       // Move the player to the Vortex
