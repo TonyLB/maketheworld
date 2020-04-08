@@ -66,9 +66,7 @@ exports.handler = (event) => {
   // Update the name in the Connection record
   //
   return dbh.putConnection(playerData)
-    .then(() => { console.log('Gate 1')})
     .then(() => (graphqlClient.mutate({ mutation })))
-    .then(() => { console.log('Gate 2')})
     .then(() => (
       //
       // Move the player to the Vortex

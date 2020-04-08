@@ -6,6 +6,9 @@
   "author": "SAM CLI",
   "license": "MIT",
   "dependencies": {
-    "aws-sdk": "^2.434.0"
+    "aws-appsync": "^3.0.2",
+    "aws-sdk": "^2.434.0",
+    "cross-fetch": "^3.0.4",
+    "graphql-tag": "^2.10.3"
   }
 }

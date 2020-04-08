@@ -191,6 +191,8 @@ Resources:
         AttributeType: "S"
       - AttributeName: "RoomId"
         AttributeType: "S"
+      - AttributeName: "ConnectionId"
+        AttributeType: "S"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
       - AttributeName: "CharacterId"
@@ -199,6 +201,14 @@ Resources:
         - IndexName: RoomIndex
           KeySchema:
             - AttributeName: RoomId
+              KeyType: HASH
+            - AttributeName: CharacterId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ConnectionIndex
+          KeySchema:
+            - AttributeName: ConnectionId
               KeyType: HASH
             - AttributeName: CharacterId
               KeyType: RANGE
@@ -264,6 +274,7 @@ Resources:
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
+          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
       Policies:
       - DynamoDBCrudPolicy:
           TableName: !Sub '${TablePrefix}_players'
@@ -275,6 +286,10 @@ Resources:
           - 'execute-api:ManageConnections'
           Resource:
           - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
+      - Statement:
+        - Effect: Allow
+          Action: appsync:GraphQL
+          Resource: !Sub '${AppSyncAPI}/*'
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -407,6 +422,14 @@ Resources:
                           - "dynamodb:UpdateItem"
                           - "dynamodb:Scan"
                       Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
+            - PolicyName: ConnectonsIndexPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:Query"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play/*"
             - PolicyName: PermanentsPolicy
               PolicyDocument:
                   Version: "2012-10-17"
@@ -851,6 +874,61 @@ Resources:
                   "ConnectionId": $util.toJson($ctx.args.ConnectionId)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationDeleteCharacterPreFetchFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+        FunctionVersion: "2018-05-29"
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        Name: DeleteCharacterPreFetch
+        Description: Finds the CharactedId for the first CharacterInPlay record of a given ConnectionId
+        DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            {
+              "version": "2017-02-28",
+              "operation": "Query",
+              "query": {
+                  "expression": "ConnectionId = :ConnectionId",
+                  "expressionValues": {
+                      ":ConnectionId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.ConnectionId)
+                  }
+              },
+              "index": "ConnectionIndex"
+            }
+        ResponseMappingTemplate: >
+            #if ($ctx.result.items)
+              $util.toJson({
+                "CharacterId": "$ctx.result.items[0].CharacterId"
+              })
+            #else
+              {}
+            #end
+  MutationDeleteCharacterFunction:
+    Type: AWS::AppSync::FunctionConfiguration
+    Properties:
+        FunctionVersion: "2018-05-29"
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        Name: DeleteCharacterPreFetch
+        Description: Finds the CharactedId for the first CharacterInPlay record of a given ConnectionId
+        DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            #if(!($ctx.prev.result.CharacterId))
+                $util.error("CharacterId field required")
+            #end
+            #set( $ddb = $util.dynamodb )
+            {
+                "version": "2018-05-29",
+                "operation": "UpdateItem",
+                "key": {
+                    "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
+                },
+                "update": {
+                    "expression": "REMOVE #connectionfield",
+                    "expressionNames": {
+                        "#connectionfield": "ConnectionId"
+                    }
+                }
+            }
+        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationDeleteCharacterInPlayResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -858,24 +936,14 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: deleteCharacterInPlay
-          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          Kind: PIPELINE
+          PipelineConfig:
+            Functions:
+                - !GetAtt MutationDeleteCharacterPreFetchFunction.FunctionId
+                - !GetAtt MutationDeleteCharacterFunction.FunctionId
           RequestMappingTemplate: >
-              #if(!($ctx.args.CharacterId))
-                  $util.error("CharacterId field required")
-              #end
-              #set( $ddb = $util.dynamodb )
               {
-                  "version": "2018-05-29",
-                  "operation": "UpdateItem",
-                  "key": {
-                      "CharacterId": $ddb.toDynamoDBJson($ctx.args.CharacterId)
-                  },
-                  "update": {
-                      "expression": "REMOVE #connectionfield",
-                      "expressionNames": {
-                          "#connectionfield": "ConnectionId"
-                      }
-                  }
+                  "ConnectionId": $util.toJson($ctx.args.ConnectionId)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationMoveCharacterResolver:
@@ -1150,7 +1218,7 @@ Resources:
                   CharacterId: ID!
                   Character: Character!
                   RoomId: String!
-                  ConnectionId: String!
+                  ConnectionId: String
               }
               interface PermanentTreeNode {
                   PermanentId: String!
@@ -1216,8 +1284,9 @@ Resources:
                   ): CharacterInPlay
                   @aws_iam @aws_cognito_user_pools
                   deleteCharacterInPlay(
-                      CharacterId: String!
+                      ConnectionId: String!
                   ): CharacterInPlay
+                  @aws_iam @aws_cognito_user_pools
                   moveCharacter(
                       CharacterId: String!
                       RoomId: String!
@@ -1250,7 +1319,7 @@ Resources:
                   changedCharacter: Character
                   @aws_subscribe(mutations: ["putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
-                  @aws_subscribe(mutations: ["addCharacterInPlay"])
+                  @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay"])
                   changedNeighborhood: Neighborhood
                   @aws_subscribe(mutations: ["putNeighborhood"])
                   changedRoom: Room
