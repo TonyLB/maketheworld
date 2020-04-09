@@ -2,6 +2,7 @@ import React from 'react'
 import { Provider } from 'react-redux'
 import Amplify from 'aws-amplify'
 import { withAuthenticator } from 'aws-amplify-react'
+import { CssBaseline } from '@material-ui/core'
 
 import { store } from './store/index.js'
 import Chat from './components/Chat.js'
@@ -14,6 +15,7 @@ Amplify.configure(AuthConfig)
 
 export const App = () => (
   <Provider store={store}>
+    <CssBaseline />
     <Chat />
   </Provider>
 )

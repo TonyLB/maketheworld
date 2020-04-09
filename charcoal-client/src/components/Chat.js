@@ -44,6 +44,7 @@ import RoomDialog from './RoomDialog/'
 import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
 import MyCharacterDialog from './MyCharacterDialog'
+import WhoDrawer from './WhoDrawer'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 import useAppSyncSubscriptions from './useAppSyncSubscriptions'
 
@@ -139,33 +140,48 @@ export const Chat = () => {
         }
     }, [webSocket, dispatch])
 
+    const [whoDrawerOpen, setWhoDrawerOpen] = useState(false)
+
     return (
         <React.Fragment>
-            <AppBar position="fixed" color="primary" className={classes.topAppBar}>
-                {
-                    mostRecentRoomMessage && <Container maxWidth="lg">
-                         <List>
-                            <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={mostRecentRoomMessage} />
-                        </List>
-                    </Container>
-                }
+        <div style={{ width: "100%", height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
+            <AppBar position="relative" color="primary" className={classes.topAppBar}>
+                <Toolbar>
+                    {
+                        mostRecentRoomMessage && <Container maxWidth="lg">
+                            <List>
+                                <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={mostRecentRoomMessage} />
+                            </List>
+                        </Container>
+                    }
+                </Toolbar>
             </AppBar>
-            <Container className={classes.messageContainer} maxWidth="lg">
-                <Paper className={classes.messagePaper}>
-                    <List className={classes.messageList}>
-                        {
-                            messages.map((message, index) => (
-                                <Message
-                                    key={`Message-${index}`}
-                                    { ...( message === mostRecentRoomMessage ? { mostRecent: true } : {})}
-                                    message={message}
-                                />
-                            ))
-                        }
-                    </List>
-                </Paper>
-            </Container>
-            <AppBar position="fixed" color="primary" className={classes.bottomAppBar}>
+            <div style={{ position: "relative", height: "100%", width: "100%", overflowY: "hidden" }}>
+                <div style={{ height: "100%", pointerEvents: "none" }}/>
+                <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%" }}>
+                    <Container className={classes.messageContainer}  maxWidth="lg">
+                        <Paper className={classes.messagePaper}>
+                            <List className={classes.messageList}>
+                                {
+                                    messages.map((message, index) => (
+                                        <Message
+                                            key={`Message-${index}`}
+                                            { ...( message === mostRecentRoomMessage ? { mostRecent: true } : {})}
+                                            message={message}
+                                        />
+                                    ))
+                                }
+                            </List>
+                        </Paper>
+                    </Container>
+                </div>
+                <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%", pointerEvents: "none" }}>
+                    <div style={{ width: "100%" }}/>
+                    <WhoDrawer open={whoDrawerOpen} toggleOpen={() => { setWhoDrawerOpen(!whoDrawerOpen) }} />
+                </div>
+            </div>
+
+            <AppBar position="relative" color="primary" className={classes.bottomAppBar}>
                 <Container className={classes.container} maxWidth="lg">
                     <Toolbar>
                         <IconButton
@@ -186,13 +202,13 @@ export const Chat = () => {
                             anchorOrigin={{
                                 vertical: 'top',
                                 horizontal: 'left',
-                              }}
-                              keepMounted
-                              transformOrigin={{
+                            }}
+                            keepMounted
+                            transformOrigin={{
                                 vertical: 'bottom',
                                 horizontal: 'left',
-                              }}
-                              onClose={handleMenuClose}
+                            }}
+                            onClose={handleMenuClose}
                         >
                             <MenuItem onClick={handleCharacterOverview}>
                                 My Characters
@@ -204,6 +220,7 @@ export const Chat = () => {
                     </Toolbar>
                 </Container>
             </AppBar>
+
             <AllCharactersDialog />
             <WorldDialog />
             <RoomDialog />
@@ -217,6 +234,8 @@ export const Chat = () => {
             <Backdrop open={(name && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>
+        </div>
+
         </React.Fragment>
     );
   }
