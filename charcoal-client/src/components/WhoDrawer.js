@@ -52,7 +52,7 @@ export const WhoDrawer = ({
                 </TableHead>
                 <TableBody>
                     {
-                        whoIsActive.map(({ Name, RoomId }) => {
+                        whoIsActive.map(({ CharacterId, Name, RoomId }) => {
                             const color = Name && colorMap && colorMap[Name]
                             const neighborhoodName = (permanentHeaders &&
                                 RoomId &&
@@ -66,7 +66,7 @@ export const WhoDrawer = ({
                                     permanentHeaders[RoomId].name
                                 )) || '??????'
                             return (
-                                <TableRow>
+                                <TableRow key={CharacterId}>
                                     <TableCell>
                                         <Avatar className={color && classes[color.primary]}>
                                             { Name[0].toUpperCase() }

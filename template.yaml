@@ -985,7 +985,9 @@ Resources:
           Description: Gets the parent node in order to construct ancestry
           DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
           RequestMappingTemplate: >
-              #if($ctx.prev.result.ParentId)
+              #if($util.isNullOrEmpty($ctx.prev.result.ParentId))
+                  #return($ctx.prev.result)
+              #end
               {
                   "version": "2017-02-28",
                   "operation": "GetItem",
@@ -993,9 +995,6 @@ Resources:
                       "permanentId": $util.dynamodb.toStringJson($ctx.prev.result.ParentId)
                   }
               }
-              #else
-                  #return($ctx.prev.result)
-              #end
           ResponseMappingTemplate: >
               #if ($ctx.error)
                   $util.error($ctx.error.message, $ctx.error.type)
@@ -1004,10 +1003,10 @@ Resources:
               {
                   "Name": $util.toJson($prev.Name),
                   "PermanentId": $util.toJson($prev.PermanentId)
-                  #if($prev.Description), "Description": $util.toJson($prev.Description)#end
-                  #if($prev.ParentId), "ParentId": $util.toJson($prev.ParentId)#end
+                  #if(!$util.isNullOrEmpty($prev.Description)), "Description": $util.toJson($prev.Description)#end
+                  #if(!$util.isNullOrEmpty($prev.ParentId)), "ParentId": $util.toJson($prev.ParentId)#end
                   #if ($util.isMap($ctx.result))
-                      #if ($ctx.result.ancestry)
+                      #if (!$util.isNullOrEmpty($ctx.result.ancestry))
                           , "ParentAncestry": $util.toJson($ctx.result.ancestry)
                       #end
                   #end
@@ -1042,8 +1041,8 @@ Resources:
                       "name": $ddb.toDynamoDBJson($args.Name),
                       "type": $ddb.toStringJson("NEIGHBORHOOD"),
                       "ancestry": $ddb.toStringJson($ancestry)
-                      #if($args.Description), "description": $ddb.toStringJson($args.Description) #end
-                      #if($args.ParentId), "parentId": $ddb.toStringJson($args.ParentId) #end
+                      #if(!$util.isNullOrEmpty($args.Description)), "description": $ddb.toStringJson($args.Description) #end
+                      #if(!$util.isNullOrEmpty($args.ParentId)), "parentId": $ddb.toStringJson($args.ParentId) #end
                   }
               }
           ResponseMappingTemplate: >
@@ -1129,8 +1128,8 @@ Resources:
                       "name": $ddb.toDynamoDBJson($args.Name),
                       "type": $ddb.toStringJson("ROOM"),
                       "ancestry": $ddb.toStringJson($ancestry)
-                      #if($args.Description), "description": $ddb.toStringJson($args.Description) #end
-                      #if($args.ParentId), "parentId": $ddb.toStringJson($args.ParentId) #end
+                      #if(!$util.isNullOrEmpty($args.Description)), "description": $ddb.toStringJson($args.Description) #end
+                      #if(!$util.isNullOrEmpty($args.ParentId)), "parentId": $ddb.toStringJson($args.ParentId) #end
                   }
               }
           ResponseMappingTemplate: >
@@ -1142,8 +1141,8 @@ Resources:
                   "Exits": $ctx.prev.result.Exits,
                   "Entries": $ctx.prev.result.Entries
               })
-              #if($ctx.prev.result.ParentId)$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
-              #if($ctx.prev.result.Description)$util.qr($output.put("Description", $ctx.prev.result.Description))#end
+              #if(!$util.isNullOrEmpty($ctx.prev.result.ParentId))$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
+              #if(!$util.isNullOrEmpty($ctx.prev.result.Description))$util.qr($output.put("Description", $ctx.prev.result.Description))#end
               $util.toJson($output)
   PutRoomPathsDataSource:
       Type: AWS::AppSync::DataSource
@@ -1184,8 +1183,8 @@ Resources:
                   "Exits": $ctx.prev.result.Exits,
                   "Entries": $ctx.prev.result.Entries
               })
-              #if($ctx.prev.result.ParentId)$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
-              #if($ctx.prev.result.Description)$util.qr($output.put("Description", $ctx.prev.result.Description))#end
+              #if(!$util.isNullOrEmpty($ctx.prev.result.ParentId))$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
+              #if(!$util.isNullOrEmpty($ctx.prev.result.Description))$util.qr($output.put("Description", $ctx.prev.result.Description))#end
               $util.toJson($output)
   MutationPutRoom:
       Type: AWS::AppSync::Resolver
@@ -1196,6 +1195,7 @@ Resources:
           Kind: PIPELINE
           PipelineConfig:
               Functions:
+                - !GetAtt MutationPreQueryPermanentParentFunction.FunctionId
                 - !GetAtt MutationPutRoomBaseFunction.FunctionId
                 - !GetAtt MutationPutRoomPathsFunction.FunctionId
           RequestMappingTemplate: "$util.toJson($ctx.args)"
