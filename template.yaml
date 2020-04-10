@@ -220,6 +220,42 @@ Resources:
         AttributeName: "ExpirationTime"
         Enabled: True
       TableName: !Sub '${TablePrefix}_characters_in_play'
+  MessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "MessageId"
+        AttributeType: "S"
+      - AttributeName: "CharacterId"
+        AttributeType: "S"
+      - AttributeName: "RoomId"
+        AttributeType: "S"
+      - AttributeName: "CreatedTime"
+        AttributeType: "N"
+      BillingMode: "PAY_PER_REQUEST"
+      KeySchema:
+      - AttributeName: "MessageId"
+        KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        - IndexName: RoomIndex
+          KeySchema:
+            - AttributeName: RoomId
+              KeyType: HASH
+            - AttributeName: CreatedTime
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: CharacterIndex
+          KeySchema:
+            - AttributeName: CharacterId
+              KeyType: HASH
+            - AttributeName: CreatedTime
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: False
+      TableName: !Sub '${TablePrefix}_messages'
   SharedLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -451,6 +487,27 @@ Resources:
                       Action:
                           - "dynamodb:Query"
                       Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
+            - PolicyName: MessagesPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:GetItem"
+                          - "dynamodb:BatchGetItem"
+                          - "dynamodb:Query"
+                          - "dynamodb:PutItem"
+                          - "dynamodb:UpdateItem"
+                          - "dynamodb:Scan"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages"
+            - PolicyName: MessagesIndexPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "dynamodb:Query"
+                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages/*"
             - PolicyName: PutRoomPathsPolicy
               PolicyDocument:
                   Version: "2012-10-17"
@@ -489,6 +546,16 @@ Resources:
           DynamoDBConfig:
               AwsRegion: us-east-1
               TableName: !Sub ${TablePrefix}_permanents
+  MessagesDynamoDBTableDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        Name: Messages
+        Type: AMAZON_DYNAMODB
+        ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
+        DynamoDBConfig:
+            AwsRegion: us-east-1
+            TableName: !Sub ${TablePrefix}_messages
   QueryGetCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -748,6 +815,35 @@ Resources:
                       }#if($foreach.hasNext),#end
                   #end
               ]
+  QueryGetRoomRecap:
+      Type: AWS::AppSync::Resolver
+      Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Query
+        FieldName: getRoomRecap
+        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "Query",
+                "query": {
+                    "expression": "RoomId = :RoomId ",
+                    "expressionValues": {
+                        ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.args.RoomId)
+                    }
+                },
+                "index": "RoomIndex",
+                "scanIndexForward": false,
+                "limit": 10
+            }
+        ResponseMappingTemplate: >
+            #set($output = [])
+            #foreach($msg in $ctx.result.items)
+                #set($msgMap = $msg)
+                $util.qr($msgMap.put("Recap", true))
+                $util.qr($output.add($msgMap))
+            #end
+            $util.toJson($output)
   MutationPreQueryCharacterInPlay:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -1200,6 +1296,36 @@ Resources:
                 - !GetAtt MutationPutRoomPathsFunction.FunctionId
           RequestMappingTemplate: "$util.toJson($ctx.args)"
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationPutRoomMessage:
+      Type: AWS::AppSync::Resolver
+      Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: putRoomMessage
+        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            #set($args = $ctx.args)
+            #if($util.isNullOrEmpty($args.RoomId))
+                $util.error("RoomId field required")
+            #end
+            #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
+            #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
+            #set( $ddb = $util.dynamodb )
+            {
+                "version": "2018-05-29",
+                "operation": "PutItem",
+                "key": {
+                    "MessageId": $ddb.toDynamoDBJson($MessageId)
+                },
+                "attributeValues": {
+                    "CreatedTime": $ddb.toNumberJson($CreatedTime),
+                    "RoomId": $ddb.toDynamoDBJson($args.RoomId),
+                    "Type": $ddb.toStringJson("ROOM")
+                    #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
+                    #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
+                }
+            }
+        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:
@@ -1269,6 +1395,17 @@ Resources:
                   Exits: [Exit]
                   Entries: [Entry]
               }
+              interface Message {
+                  MessageId: String!
+                  CreatedTime: Long!
+              }
+              type RoomMessage implements Message {
+                  MessageId: String!
+                  CreatedTime: Long!
+                  RoomId: String!
+                  Message: String!
+                  Recap: Boolean
+              }
               type Mutation {
                   putCharacter(
                       Name: String!,
@@ -1305,6 +1442,13 @@ Resources:
                       Exits: [PathInput]
                       Entries: [PathInput]
                   ): Room
+                  putRoomMessage(
+                      RoomId: String!
+                      Message: String!
+                      FromCharacterId: String
+                      MessageId: String
+                      CreatedTime: Long
+                  ): RoomMessage
               }
               type Query {
                   getCharacter(playerName: String!, name: String!): Character
@@ -1314,6 +1458,7 @@ Resources:
                   getNeighborhood(PermanentId: String!): Neighborhood
                   getRoom(PermanentId: String!): Room
                   getRoomByCharacter(CharacterId: String!): Room
+                  getRoomRecap(RoomId: String!): [RoomMessage]
               }
               type Subscription {
                   changedCharacter: Character
@@ -1324,6 +1469,8 @@ Resources:
                   @aws_subscribe(mutations: ["putNeighborhood"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
+                  addedRoomMessage: RoomMessage
+                  @aws_subscribe(mutations: ["putRoomMessage"])
               }
               schema {
                   mutation: Mutation
