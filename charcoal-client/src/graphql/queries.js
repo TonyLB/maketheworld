@@ -131,3 +131,14 @@ export const getRoomByCharacter = /* GraphQL */ `
     }
   }
 `;
+export const getRoomRecap = /* GraphQL */ `
+  query GetRoomRecap($RoomId: String!) {
+    getRoomRecap(RoomId: $RoomId) {
+      MessageId
+      CreatedTime
+      RoomId
+      Message
+      Recap
+    }
+  }
+`;

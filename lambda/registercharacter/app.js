@@ -87,7 +87,8 @@ exports.handler = (event) => {
         world.sockets.messageToSelf(JSON.stringify({
           type: 'connectionregister',
           connectionId: event.requestContext.connectionId,
-          characterId
+          characterId,
+          roomId: "VORTEX"
         }))
       ))
     ))

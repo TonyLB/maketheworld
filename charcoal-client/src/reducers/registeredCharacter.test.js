@@ -1,7 +1,7 @@
-import name from './name.js'
-import { SET_NAME } from '../actions/name.js'
+import name from './registeredCharacter.js'
+import { SET_NAME } from '../actions/registeredCharacter.js'
 
-describe('Name reducer', () => {
+describe('RegisteredCharacter reducer', () => {
     it('should return an empty string by default', () => {
         expect(name()).toEqual('')
     })

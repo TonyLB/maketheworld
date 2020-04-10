@@ -3,7 +3,7 @@ import thunk from 'redux-thunk'
 import connection from '../reducers/connection.js'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
-import name from '../reducers/name.js'
+import registeredCharacter from '../reducers/registeredCharacter.js'
 import permanentHeaders from '../reducers/permanentHeaders.js'
 import neighborhoodTree from '../reducers/neighborhoodTree.js'
 import myCharacters from '../reducers/myCharacters.js'
@@ -19,7 +19,7 @@ export const store = createStore(
         myCharacters,
         colorMap,
         messages,
-        name,
+        registeredCharacter,
         permanentHeaders,
         neighborhoodTree,
         subscriptions,

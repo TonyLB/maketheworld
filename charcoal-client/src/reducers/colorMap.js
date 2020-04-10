@@ -1,5 +1,5 @@
 import { RECEIVE_MESSAGE } from '../actions/messages.js'
-import { SET_NAME } from '../actions/name.js'
+import { SET_NAME } from '../actions/registeredCharacter.js'
 
 const colorSequence = ['pink', 'purple', 'green']
     .map(color => ({

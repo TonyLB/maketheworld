@@ -28,13 +28,13 @@ import MenuIcon from '@material-ui/icons/Menu'
 import { WSS_ADDRESS } from '../config'
 import { receiveMessage, sendMessage } from '../actions/messages.js'
 import { connectionRegister } from '../actions/connection.js'
-import { setName, registerName } from '../actions/name.js'
+import { registerCharacter } from '../actions/registeredCharacter.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
-import { getName } from '../selectors/name.js'
+import { getCharacterId } from '../selectors/connection'
 import { getMyCharacters } from '../selectors/myCharacters'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
@@ -93,7 +93,7 @@ export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
-    const name = useSelector(getName)
+    const characterId = useSelector(getCharacterId)
 
     const dispatch = useDispatch()
 
@@ -126,10 +126,6 @@ export const Chat = () => {
                     break
                 case 'connectionregister':
                     dispatch(connectionRegister(rest))
-                    break
-                case 'registername':
-                    dispatch(setName(rest.name))
-                    break
                 default:
             }
           }
@@ -226,12 +222,12 @@ export const Chat = () => {
             <RoomDialog />
             <MyCharacterDialog />
             <CharacterPicker
-                open={!name}
+                open={!characterId}
                 onClose={({ name, characterId }) => () => {
-                    dispatch(registerName({ name, characterId }))
+                    dispatch(registerCharacter({ name, characterId }))
                 }}
             />
-            <Backdrop open={(name && !webSocket) ? true : false}>
+            <Backdrop open={(characterId && !webSocket) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>
         </div>

@@ -47,8 +47,8 @@ export const addCharacterInPlay = /* GraphQL */ `
   }
 `;
 export const deleteCharacterInPlay = /* GraphQL */ `
-  mutation DeleteCharacterInPlay($CharacterId: String!) {
-    deleteCharacterInPlay(CharacterId: $CharacterId) {
+  mutation DeleteCharacterInPlay($ConnectionId: String!) {
+    deleteCharacterInPlay(ConnectionId: $ConnectionId) {
       CharacterId
       Character {
         PlayerName
@@ -139,6 +139,29 @@ export const putRoom = /* GraphQL */ `
         RoomId
         Ancestry
       }
+    }
+  }
+`;
+export const putRoomMessage = /* GraphQL */ `
+  mutation PutRoomMessage(
+    $RoomId: String!
+    $Message: String!
+    $FromCharacterId: String
+    $MessageId: String
+    $CreatedTime: Long
+  ) {
+    putRoomMessage(
+      RoomId: $RoomId
+      Message: $Message
+      FromCharacterId: $FromCharacterId
+      MessageId: $MessageId
+      CreatedTime: $CreatedTime
+    ) {
+      MessageId
+      CreatedTime
+      RoomId
+      Message
+      Recap
     }
   }
 `;

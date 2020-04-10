@@ -68,3 +68,14 @@ export const changedRoom = /* GraphQL */ `
     }
   }
 `;
+export const addedRoomMessage = /* GraphQL */ `
+  subscription AddedRoomMessage {
+    addedRoomMessage {
+      MessageId
+      CreatedTime
+      RoomId
+      Message
+      Recap
+    }
+  }
+`;

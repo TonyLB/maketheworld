@@ -134,18 +134,18 @@ Resources:
       IntegrationUri: 
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendMessageFunction.Arn}/invocations
-  RegisterNameRoute:
+  RegisterCharacterRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      RouteKey: registername
+      RouteKey: registercharacter
       AuthorizationType: NONE
-      OperationName: RegisterNameRoute
+      OperationName: RegisterCharacterRoute
       Target: !Join
         - '/'
         - - 'integrations'
-          - !Ref RegisterNameInteg
-  RegisterNameInteg:
+          - !Ref RegisterCharacterInteg
+  RegisterCharacterInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref RealTimeWebSocket
@@ -153,13 +153,13 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri:
         Fn::Sub:
-            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterNameFunction.Arn}/invocations
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterCharacterFunction.Arn}/invocations
   RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - ConnectRoute
     - SendRoute
-    - RegisterNameRoute
+    - RegisterCharacterRoute
     - DisconnectRoute
     Properties:
       ApiId: !Ref RealTimeWebSocket
@@ -367,10 +367,10 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref SendMessageFunction
       Principal: apigateway.amazonaws.com
-  RegisterNameFunction:
+  RegisterCharacterFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: lambda/registername/
+      CodeUri: lambda/registercharacter/
       Handler: app.handler
       MemorySize: 256
       Runtime: nodejs12.x
@@ -395,14 +395,14 @@ Resources:
         - Effect: Allow
           Action: appsync:GraphQL
           Resource: !Sub '${AppSyncAPI}/*'
-  RegisterNamePermission:
+  RegisterCharacterPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
       - RealTimeWebSocket
-      - RegisterNameFunction
+      - RegisterCharacterFunction
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref RegisterNameFunction
+      FunctionName: !Ref RegisterCharacterFunction
       Principal: apigateway.amazonaws.com
   AppSyncAPI:
       Type: AWS::AppSync::GraphQLApi

@@ -1,7 +1,7 @@
 {
-  "name": "register-name",
+  "name": "register-character",
   "version": "1.0.0",
-  "description": "registername handler for BurnedOverMUSH",
+  "description": "registercharacter handler for BurnedOverMUSH",
   "main": "src/app.js",
   "author": "SAM CLI",
   "license": "MIT",

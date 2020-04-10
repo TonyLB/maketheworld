@@ -7,7 +7,7 @@ export const setName = (name) => ({
     payload: name
 })
 
-export const registerName = ({ name, characterId }) => (dispatch) => {
-    dispatch(socketDispatch('registername')({ name, characterId }))
+export const registerCharacter = ({ name, characterId }) => (dispatch) => {
+    dispatch(socketDispatch('registercharacter')({ name, characterId }))
     dispatch(setName(name))
 }

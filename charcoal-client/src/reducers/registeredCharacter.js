@@ -1,4 +1,8 @@
-import { SET_NAME } from '../actions/name.js'
+//
+// TODO:  Remove this entire module and the colorMap dependencies upon it
+//
+
+import { SET_NAME } from '../actions/registeredCharacter.js'
 
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
