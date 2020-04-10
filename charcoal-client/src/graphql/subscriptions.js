@@ -69,8 +69,8 @@ export const changedRoom = /* GraphQL */ `
   }
 `;
 export const addedRoomMessage = /* GraphQL */ `
-  subscription AddedRoomMessage {
-    addedRoomMessage {
+  subscription AddedRoomMessage($RoomId: String!) {
+    addedRoomMessage(RoomId: $RoomId) {
       MessageId
       CreatedTime
       RoomId

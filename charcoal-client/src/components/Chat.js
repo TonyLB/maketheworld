@@ -26,7 +26,8 @@ import MenuIcon from '@material-ui/icons/Menu'
 
 // Local code imports
 import { WSS_ADDRESS } from '../config'
-import { receiveMessage, sendMessage } from '../actions/messages.js'
+import { parseCommand } from '../actions/behaviors'
+import { receiveMessage } from '../actions/messages.js'
 import { connectionRegister } from '../actions/connection.js'
 import { registerCharacter } from '../actions/registeredCharacter.js'
 import { registerWebSocket } from '../actions/webSocket.js'
@@ -126,6 +127,7 @@ export const Chat = () => {
                     break
                 case 'connectionregister':
                     dispatch(connectionRegister(rest))
+                    break
                 default:
             }
           }
@@ -190,7 +192,7 @@ export const Chat = () => {
                         </IconButton>
                         <LineEntry
                             className={classes.lineEntry}
-                            callback={ (entry) => { dispatch(sendMessage(entry)) }}
+                            callback={ (entry) => { dispatch(parseCommand(entry)) }}
                         />
                         <Menu
                             open={menuOpen}

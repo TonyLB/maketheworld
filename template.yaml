@@ -1320,7 +1320,8 @@ Resources:
                 "attributeValues": {
                     "CreatedTime": $ddb.toNumberJson($CreatedTime),
                     "RoomId": $ddb.toDynamoDBJson($args.RoomId),
-                    "Type": $ddb.toStringJson("ROOM")
+                    "Type": $ddb.toStringJson("ROOM"),
+                    "Recap": $ddb.toBooleanJson(false)
                     #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
                     #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
                 }
@@ -1469,7 +1470,7 @@ Resources:
                   @aws_subscribe(mutations: ["putNeighborhood"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
-                  addedRoomMessage: RoomMessage
+                  addedRoomMessage (RoomId: String!): RoomMessage
                   @aws_subscribe(mutations: ["putRoomMessage"])
               }
               schema {

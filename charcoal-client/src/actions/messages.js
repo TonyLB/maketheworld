@@ -7,4 +7,9 @@ export const receiveMessage = (message) => ({
     payload: message
 })
 
+export const worldMessageAdded = (message) => (receiveMessage({
+    protocol: 'worldMessage',
+    message
+}))
+
 export const sendMessage = socketDispatch('sendmessage')
