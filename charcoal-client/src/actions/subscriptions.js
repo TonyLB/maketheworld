@@ -33,8 +33,6 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
                 const { data = {} } = value
                 const { addedRoomMessage = {} } = data
                 const { Message } = addedRoomMessage
-                console.log('Room message')
-                console.log(addedRoomMessage)
                 dispatch(worldMessageAdded(Message))
             }
         })

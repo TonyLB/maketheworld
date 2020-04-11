@@ -5,20 +5,9 @@ const parseCommand = ({
     world
 }) => {
     const name = playerData && playerData.name
-    const connectionId = playerData && playerData.connectionId
-    const dbh = world.dbh
-    const sockets = world.sockets
     const exits = (roomData && roomData.exits) || []
     const strippedMessage = message.trim()
 
-    if (strippedMessage === 'l' || strippedMessage === 'look') {
-        return sockets.messageToSelf(JSON.stringify({
-            type: 'sendmessage',
-            protocol: 'roomDescription',
-            ...roomData
-        }))
-        .then(() => (true))
-    }
     const firstMatchedExit = exits.filter(({ name }) => (name === strippedMessage))
     if (firstMatchedExit.length) {
         const { roomId } = roomData

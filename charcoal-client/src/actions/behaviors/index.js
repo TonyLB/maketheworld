@@ -6,5 +6,7 @@ export const parseCommand = (entry) => (dispatch, getState) => {
     if (entry === 'l' || entry === 'look') {
         dispatch(lookRoom())
     }
-    dispatch(socketDispatch('sendmessage')(entry))
+    else {
+        dispatch(socketDispatch('sendmessage')(entry))
+    }
 }

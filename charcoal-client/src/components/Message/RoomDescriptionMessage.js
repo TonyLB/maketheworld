@@ -47,20 +47,20 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
     const colorMap = useSelector(getColorMap)
     const charactersInPlay = useSelector(getCharactersInPlay)
     const classes = useStyles()
-    const { roomId='', name='', exits=[], players=[], description='' } = message
+    const { RoomId='', Name='', Exits=[], Players=[], Description='' } = message
 
     const dispatch = useDispatch()
-    const clickHandler = mostRecent ? (name) => () => { dispatch(sendMessage(name)) } : () => () => {}
+    const clickHandler = mostRecent ? (Name) => () => { dispatch(sendMessage(Name)) } : () => () => {}
     return <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
         <ListItemIcon>
             <HouseIcon />
         </ListItemIcon>
         <ListItemText>
             <Typography variant='h5' align='left'>
-                { name }
+                { Name }
             </Typography>
             <Typography variant='body1' align='left'>
-                { description }
+                { Description }
             </Typography>
             { detailsOpen && <React.Fragment>
                 <Divider />
@@ -69,11 +69,11 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                         <Typography variant='subtitle1' align='center'>
                             Exits:
                         </Typography>
-                        { exits.map((exit) => (
+                        { Exits.map((exit) => (
                             <Chip
-                                key={exit.name}
-                                label={exit.name}
-                                onClick={clickHandler(exit.name)}
+                                key={exit.Name}
+                                label={exit.Name}
+                                onClick={clickHandler(exit.Name)}
                             />
                         ))}
                     </Grid>
@@ -81,7 +81,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                         <Typography variant='subtitle1' align='center'>
                             Characters:
                         </Typography>
-                        { players
+                        { Players
                             .map(({ CharacterId }) => {
                                 const {
                                     Name = 'DEFAULT',
@@ -122,7 +122,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                     ? detailsOpen
                         ? <ExpandLessIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
                         : <ExpandMoreIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
-                    : <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(roomId)) }} />
+                    : <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
             }
         </ListItemSecondaryAction>
     </ListItem>

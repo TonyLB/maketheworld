@@ -107,6 +107,17 @@ export const getRoom = /* GraphQL */ `
     }
   }
 `;
+export const getRoomRecap = /* GraphQL */ `
+  query GetRoomRecap($PermanentId: String!) {
+    getRoomRecap(PermanentId: $PermanentId) {
+      MessageId
+      CreatedTime
+      RoomId
+      Message
+      Recap
+    }
+  }
+`;
 export const getRoomByCharacter = /* GraphQL */ `
   query GetRoomByCharacter($CharacterId: String!) {
     getRoomByCharacter(CharacterId: $CharacterId) {
@@ -128,17 +139,6 @@ export const getRoomByCharacter = /* GraphQL */ `
         RoomId
         Ancestry
       }
-    }
-  }
-`;
-export const getRoomRecap = /* GraphQL */ `
-  query GetRoomRecap($RoomId: String!) {
-    getRoomRecap(RoomId: $RoomId) {
-      MessageId
-      CreatedTime
-      RoomId
-      Message
-      Recap
     }
   }
 `;

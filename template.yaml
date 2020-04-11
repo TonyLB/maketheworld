@@ -659,6 +659,7 @@ Resources:
           ResponseMappingTemplate: "$util.toJson($ctx.result.items)"
   QueryGetNeighborhoodTree:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
@@ -699,6 +700,7 @@ Resources:
               $util.toJson($output)
   QueryGetNeighborhood:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
@@ -728,6 +730,7 @@ Resources:
               #end
   QueryGetRoom:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
@@ -755,12 +758,12 @@ Resources:
               #else
                   $util.error("PermanentId must specify a ROOM type permanent")
               #end
-  QueryGetRoomExits:
-      Type: AWS::AppSync::Resolver
+  QueryGetRoomExitsFunction:
+      Type: AWS::AppSync::FunctionConfiguration
       Properties:
+          FunctionVersion: "2018-05-29"
           ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Room
-          FieldName: Exits
+          Name: GetRoomExitsFunction
           DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
           RequestMappingTemplate: >
               {
@@ -769,7 +772,7 @@ Resources:
                   "query": {
                       "expression": "fromRoomId = :RoomId",
                       "expressionValues": {
-                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.source.PermanentId)
+                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.PermanentId)
                       }
                   },
                   "index": "fromRoomIndex"
@@ -785,12 +788,28 @@ Resources:
                       }#if($foreach.hasNext),#end
                   #end
               ]
-  QueryGetRoomEntries:
+  QueryRoomGetRoomExits:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Room
+        FieldName: Exits
+        Kind: PIPELINE
+        PipelineConfig:
+            Functions:
+                - !GetAtt QueryGetRoomExitsFunction.FunctionId
+        RequestMappingTemplate: >
+            {
+                "PermanentId": $util.toJson($ctx.source.PermanentId)
+            }
+        ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  QueryGetRoomEntriesFunction:
+      Type: AWS::AppSync::FunctionConfiguration
+      Properties:
+          FunctionVersion: "2018-05-29"
           ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Room
-          FieldName: Entries
+          Name: GetRoomEntriesFunction
           DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
           RequestMappingTemplate: >
               {
@@ -799,7 +818,7 @@ Resources:
                   "query": {
                       "expression": "parentId = :RoomId",
                       "expressionValues": {
-                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.source.PermanentId)
+                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.PermanentId)
                       }
                   },
                   "index": "parentIndex"
@@ -815,35 +834,22 @@ Resources:
                       }#if($foreach.hasNext),#end
                   #end
               ]
-  QueryGetRoomRecap:
+  QueryRoomGetRoomEntries:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Query
-        FieldName: getRoomRecap
-        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "Query",
-                "query": {
-                    "expression": "RoomId = :RoomId ",
-                    "expressionValues": {
-                        ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.args.RoomId)
-                    }
-                },
-                "index": "RoomIndex",
-                "scanIndexForward": false,
-                "limit": 10
-            }
-        ResponseMappingTemplate: >
-            #set($output = [])
-            #foreach($msg in $ctx.result.items)
-                #set($msgMap = $msg)
-                $util.qr($msgMap.put("Recap", true))
-                $util.qr($output.add($msgMap))
-            #end
-            $util.toJson($output)
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Room
+          FieldName: Entries
+          Kind: PIPELINE
+          PipelineConfig:
+              Functions:
+                  - !GetAtt QueryGetRoomEntriesFunction.FunctionId
+          RequestMappingTemplate: >
+              {
+                  "PermanentId": $util.toJson($ctx.source.PermanentId)
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPreQueryCharacterInPlay:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -954,6 +960,7 @@ Resources:
           ResponseMappingTemplate: "$util.toJson($ctx.prev.result)"
   MutationAddCharacterInPlay:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
@@ -1152,6 +1159,7 @@ Resources:
               }
   MutationPutNeighborhood:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
@@ -1284,6 +1292,7 @@ Resources:
               $util.toJson($output)
   MutationPutRoom:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
@@ -1298,6 +1307,7 @@ Resources:
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
+      DependsOn: Schema
       Properties:
         ApiId: !GetAtt AppSyncAPI.ApiId
         TypeName: Mutation
@@ -1458,14 +1468,14 @@ Resources:
                   getNeighborhoodTree: [PermanentTreeNode]
                   getNeighborhood(PermanentId: String!): Neighborhood
                   getRoom(PermanentId: String!): Room
+                  getRoomRecap(PermanentId: String!): [RoomMessage]
                   getRoomByCharacter(CharacterId: String!): Room
-                  getRoomRecap(RoomId: String!): [RoomMessage]
               }
               type Subscription {
                   changedCharacter: Character
                   @aws_subscribe(mutations: ["putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
-                  @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay"])
+                  @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedNeighborhood: Neighborhood
                   @aws_subscribe(mutations: ["putNeighborhood"])
                   changedRoom: Room

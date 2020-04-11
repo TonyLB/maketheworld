@@ -1,6 +1,7 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import thunk from 'redux-thunk'
 import connection from '../reducers/connection.js'
+import currentRoom from '../reducers/currentRoom'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
 import registeredCharacter from '../reducers/registeredCharacter.js'
@@ -15,6 +16,7 @@ import uiReducer from '../reducers/UI'
 export const store = createStore(
     combineReducers({
         connection,
+        currentRoom,
         charactersInPlay,
         myCharacters,
         colorMap,

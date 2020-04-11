@@ -1,4 +1,5 @@
 import { moveRoomSubscription } from './subscriptions'
+import { fetchCurrentRoom } from './currentRoom'
 
 export const CONNECTION_REGISTER = 'CONNECTION_REGISTER'
 
@@ -12,4 +13,5 @@ export const connectionRegister = ({ connectionId, characterId, roomId }) => (di
             roomId
         }
     })
+    dispatch(fetchCurrentRoom())
 }

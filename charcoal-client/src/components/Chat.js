@@ -33,6 +33,7 @@ import { registerCharacter } from '../actions/registeredCharacter.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
+import { getCurrentRoom } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getCharacterId } from '../selectors/connection'
@@ -48,6 +49,7 @@ import MyCharacterDialog from './MyCharacterDialog'
 import WhoDrawer from './WhoDrawer'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 import useAppSyncSubscriptions from './useAppSyncSubscriptions'
+import { roomDescription } from '../store/messages'
 
 const CharacterPicker = ({ open, onClose = () => {} }) => {
     const myCharacters = useSelector(getMyCharacters)
@@ -94,6 +96,7 @@ export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
+    const currentRoom = useSelector(getCurrentRoom)
     const characterId = useSelector(getCharacterId)
 
     const dispatch = useDispatch()
@@ -146,9 +149,9 @@ export const Chat = () => {
             <AppBar position="relative" color="primary" className={classes.topAppBar}>
                 <Toolbar>
                     {
-                        mostRecentRoomMessage && <Container maxWidth="lg">
+                        currentRoom && <Container maxWidth="lg">
                             <List>
-                                <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={mostRecentRoomMessage} />
+                                <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={new roomDescription(currentRoom)} />
                             </List>
                         </Container>
                     }
