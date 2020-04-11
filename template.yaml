@@ -1061,6 +1061,9 @@ Resources:
               #if(!($ctx.args.CharacterId))
                   $util.error("CharacterId field required")
               #end
+              #if(!($ctx.args.RoomId))
+                  $util.error("RoomId field required")
+              #end
               #set( $ddb = $util.dynamodb )
               {
                   "version": "2018-05-29",

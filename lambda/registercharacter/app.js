@@ -68,29 +68,11 @@ exports.handler = (event) => {
   return dbh.putConnection(playerData)
     .then(() => (graphqlClient.mutate({ mutation })))
     .then(() => (
-      //
-      // Move the player to the Vortex
-      //
-      world.movePlayerToRoom({ playerData, roomId: "VORTEX" })
-      //
-      // Then message everyone there (now including the player) that they have connected.
-      //
-      .then(() => (world.messageRoom({
-          roomId: "VORTEX",
-          postData: JSON.stringify({
-            type: 'sendmessage',
-            protocol: 'worldMessage',
-            message: `${playerData.name} has connected.`
-          })
-        })))
-      .then(() => (
-        world.sockets.messageToSelf(JSON.stringify({
-          type: 'connectionregister',
-          connectionId: event.requestContext.connectionId,
-          characterId,
-          roomId: "VORTEX"
-        }))
-      ))
+      world.sockets.messageToSelf(JSON.stringify({
+        type: 'connectionregister',
+        connectionId: event.requestContext.connectionId,
+        characterId
+      }))
     ))
     .then(() => ({ statusCode: 200, body: 'Data sent.' }))
     //

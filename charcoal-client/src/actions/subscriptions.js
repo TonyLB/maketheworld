@@ -2,6 +2,8 @@ import { API, graphqlOperation } from 'aws-amplify'
 import { addedRoomMessage } from '../graphql/subscriptions'
 import { worldMessageAdded } from './messages'
 
+import { getCurrentRoomId } from '../selectors/connection'
+
 export const ADD_SUBSCRIPTION = 'ADD_SUBSCRIPTION'
 export const REMOVE_ALL_SUBSCRIPTIONS = 'REMOVE_ALL_SUBSCRIPTIONS'
 
@@ -21,12 +23,18 @@ export const unsubscribeAll = () => (dispatch, getState) => {
 }
 
 export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
-    const { subscriptions } = getState()
+    const state = getState()
+    const { subscriptions } = state
     const { currentRoom } = subscriptions || {}
     if (currentRoom) {
         currentRoom.unsubscribe()
     }
-    const newRoomSubscription = API.graphql(graphqlOperation(addedRoomMessage, { RoomId }))
+    const currentRoomId = RoomId || getCurrentRoomId(state)
+    if (!currentRoomId) {
+        console.log('Cannot yet subscribe to room messages')
+    }
+    else {
+        const newRoomSubscription = API.graphql(graphqlOperation(addedRoomMessage, { RoomId: currentRoomId }))
         .subscribe({
             next: (messageData) => {
                 const { value = {} } = messageData
@@ -36,5 +44,6 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
                 dispatch(worldMessageAdded(Message))
             }
         })
-    dispatch(addSubscription({ currentRoom: newRoomSubscription }))
+        dispatch(addSubscription({ currentRoom: newRoomSubscription }))
+    }
 }

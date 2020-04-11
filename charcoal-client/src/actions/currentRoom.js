@@ -13,14 +13,21 @@ export const fetchCurrentRoomSuccess = (payload) => ({
     payload
 })
 
-export const fetchCurrentRoom = () => (dispatch, getState) => {
-    const { connection, currentRoom } = getState()
+export const fetchCurrentRoom = (overrideRoomId) => (dispatch, getState) => {
+    const { connection, charactersInPlay, currentRoom } = getState()
 
-    if (!(currentRoom && currentRoom.meta && currentRoom.meta.fetching) && connection.roomId){
+    const currentRoomId = overrideRoomId || (connection && connection.characterId && charactersInPlay && charactersInPlay[connection.characterId] && charactersInPlay[connection.characterId].RoomId)
+    if (!(currentRoom && currentRoom.meta && currentRoom.meta.fetching) && currentRoomId){
         dispatch(fetchCurrentRoomAttempt())
-        return API.graphql(graphqlOperation(getRoom, { PermanentId: connection.roomId }))
+        return API.graphql(graphqlOperation(getRoom, { PermanentId: currentRoomId }))
             .then(({ data }) => (data || {}))
             .then(({ getRoom }) => (getRoom || []))
-            .then((payload) => (dispatch(fetchCurrentRoomSuccess(payload))))
+            .then((payload) => {
+                dispatch(fetchCurrentRoomSuccess(payload))
+                return payload
+            })
+    }
+    else {
+        return Promise.resolve({})
     }
 }

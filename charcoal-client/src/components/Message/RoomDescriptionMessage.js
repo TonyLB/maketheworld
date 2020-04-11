@@ -21,7 +21,7 @@ import CreateIcon from '@material-ui/icons/Create'
 import useStyles from '../styles'
 
 import { getColorMap } from '../../selectors/colorMap.js'
-import { sendMessage } from '../../actions/messages.js'
+import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 
@@ -50,7 +50,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
     const { RoomId='', Name='', Exits=[], Players=[], Description='' } = message
 
     const dispatch = useDispatch()
-    const clickHandler = mostRecent ? (Name) => () => { dispatch(sendMessage(Name)) } : () => () => {}
+    const clickHandler = mostRecent ? (RoomId) => () => { dispatch(moveCharacter(RoomId)) } : () => () => {}
     return <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
         <ListItemIcon>
             <HouseIcon />
@@ -73,7 +73,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                             <Chip
                                 key={exit.Name}
                                 label={exit.Name}
-                                onClick={clickHandler(exit.Name)}
+                                onClick={clickHandler(exit.RoomId)}
                             />
                         ))}
                     </Grid>

@@ -8,6 +8,8 @@ import { changedCharacter, changedCharactersInPlay } from '../graphql/subscripti
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { addSubscription } from './subscriptions'
+import { fetchCurrentRoom } from './currentRoom'
+import { lookRoom } from './behaviors/lookRoom'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -128,11 +130,26 @@ export const addCharacterInPlay = ({ characterId, connectionId }) => (dispatch, 
     }))
 }
 
-export const receiveCharactersInPlayChange = (payload) => ({
-    type: RECEIVE_CHARACTERS_IN_PLAY_CHANGE,
-    payload
-})
+export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) => {
+    const { connection, charactersInPlay } = getState()
+    const myCharacter = connection && connection.characterId && charactersInPlay && charactersInPlay[connection.characterId]
+    //
+    // Update the store in any event
+    //
+    dispatch({
+        type: RECEIVE_CHARACTERS_IN_PLAY_CHANGE,
+        payload
+    })
+    if (connection && connection.connectionId && connection.connectionId === payload.ConnectionId) {
+        //
+        // Handle actions that depend upon changes in the state of your own character.
+        //
+        if (!(myCharacter && myCharacter.RoomId === payload.RoomId)) {
+            dispatch(fetchCurrentRoom(payload.RoomId)).then(() => (dispatch(lookRoom())))
+        }
+    }
 
+}
 
 export const subscribeCharactersInPlayChanges = () => (dispatch) => {
     const subscription = API.graphql(graphqlOperation(changedCharactersInPlay))
