@@ -1,15 +1,20 @@
 import { receiveMessage } from '../messages'
+import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
+import { getCharacterId } from '../../selectors/connection'
 
 export const lookRoom = () => (dispatch, getState) => {
-    const { currentRoom = {} } = getState()
+    const state = getState()
+    const { currentRoom = {} } = state
+    const myCharacterId = getCharacterId(state)
 
     if (currentRoom && currentRoom.Name) {
+        const Players = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId })(state)
         const roomDescription = {
             Description: currentRoom.Description,
             Name: currentRoom.Name,
             RoomId: currentRoom.RoomId,
             Exits: currentRoom.Exits,
-            Players: []
+            Players
         }
         dispatch(receiveMessage({
             protocol: 'roomDescription',

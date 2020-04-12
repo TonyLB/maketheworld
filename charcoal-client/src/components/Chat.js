@@ -37,6 +37,7 @@ import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getCharacterId } from '../selectors/connection'
 import { getMyCharacters } from '../selectors/myCharacters'
+import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
@@ -97,6 +98,7 @@ export const Chat = () => {
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
     const currentRoom = useSelector(getCurrentRoom)
     const characterId = useSelector(getCharacterId)
+    const Players = useSelector(getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId }))
 
     const dispatch = useDispatch()
 
@@ -150,7 +152,11 @@ export const Chat = () => {
                     {
                         currentRoom && <Container maxWidth="lg">
                             <List>
-                                <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={new roomDescription(currentRoom)} />
+                                <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={new roomDescription({
+                                        ...currentRoom,
+                                        Players
+                                    })}
+                                />
                             </List>
                         </Container>
                     }
