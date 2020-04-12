@@ -10,7 +10,6 @@ import neighborhoodTree from '../reducers/neighborhoodTree.js'
 import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
 import subscriptions from '../reducers/subscriptions'
-import colorMap from '../reducers/colorMap.js'
 import uiReducer from '../reducers/UI'
 
 export const store = createStore(
@@ -19,7 +18,6 @@ export const store = createStore(
         currentRoom,
         charactersInPlay,
         myCharacters,
-        colorMap,
         messages,
         registeredCharacter,
         permanentHeaders,
