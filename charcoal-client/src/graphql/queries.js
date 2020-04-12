@@ -116,6 +116,7 @@ export const getRoomRecap = /* GraphQL */ `
       Message
       FromCharacterId
       Recap
+      ExpirationTime
     }
   }
 `;

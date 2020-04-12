@@ -77,6 +77,7 @@ export const addedRoomMessage = /* GraphQL */ `
       Message
       FromCharacterId
       Recap
+      ExpirationTime
     }
   }
 `;

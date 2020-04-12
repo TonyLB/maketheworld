@@ -211,6 +211,8 @@ Resources:
         AttributeType: "S"
       - AttributeName: "CreatedTime"
         AttributeType: "N"
+      - AttributeName: "ExpirationTime"
+        AttributeType: "N"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
       - AttributeName: "MessageId"
@@ -235,6 +237,9 @@ Resources:
       SSESpecification:
         SSEEnabled: False
       TableName: !Sub '${TablePrefix}_messages'
+      TimeToLiveSpecification:
+        AttributeName: ExpirationTime
+        Enabled: True
   SharedLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -1290,6 +1295,7 @@ Resources:
             #end
             #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
             #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
+            #set ($ExpirationTime = $util.time.nowEpochSeconds() + 600)
             #set( $ddb = $util.dynamodb )
             {
                 "version": "2018-05-29",
@@ -1299,6 +1305,7 @@ Resources:
                 },
                 "attributeValues": {
                     "CreatedTime": $ddb.toNumberJson($CreatedTime),
+                    "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
                     "RoomId": $ddb.toDynamoDBJson($args.RoomId),
                     "Type": $ddb.toStringJson("ROOM"),
                     "Recap": $ddb.toBooleanJson(false)
@@ -1387,6 +1394,7 @@ Resources:
                   Message: String!
                   FromCharacterId: String
                   Recap: Boolean
+                  ExpirationTime: Long
               }
               type Mutation {
                   putCharacter(

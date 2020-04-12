@@ -163,6 +163,7 @@ export const putRoomMessage = /* GraphQL */ `
       Message
       FromCharacterId
       Recap
+      ExpirationTime
     }
   }
 `;
