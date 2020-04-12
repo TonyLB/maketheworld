@@ -114,26 +114,6 @@ Resources:
       IntegrationUri: 
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
-  SendRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      RouteKey: sendmessage
-      AuthorizationType: NONE
-      OperationName: SendRoute
-      Target: !Join
-        - '/'
-        - - 'integrations'
-          - !Ref SendInteg
-  SendInteg:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      Description: Send Integration
-      IntegrationType: AWS_PROXY
-      IntegrationUri: 
-        Fn::Sub:
-            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendMessageFunction.Arn}/invocations
   RegisterCharacterRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -158,7 +138,6 @@ Resources:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - ConnectRoute
-    - SendRoute
     - RegisterCharacterRoute
     - DisconnectRoute
     Properties:
@@ -334,38 +313,6 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref OnDisconnectFunction
-      Principal: apigateway.amazonaws.com
-  SendMessageFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: lambda/sendmessage/
-      Handler: app.handler
-      MemorySize: 256
-      Runtime: nodejs12.x
-      Layers:
-        - !Ref SharedLambdaLayer
-      Environment:
-        Variables:
-          TABLE_PREFIX: !Ref TablePrefix
-      Policies:
-      - DynamoDBCrudPolicy:
-          TableName: !Sub '${TablePrefix}_players'
-      - DynamoDBReadPolicy:
-          TableName: !Sub '${TablePrefix}_permanents'
-      - Statement:
-        - Effect: Allow
-          Action:
-          - 'execute-api:ManageConnections'
-          Resource:
-          - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
-  SendMessagePermission:
-    Type: AWS::Lambda::Permission
-    DependsOn:
-      - RealTimeWebSocket
-      - SendMessageFunction
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref SendMessageFunction
       Principal: apigateway.amazonaws.com
   RegisterCharacterFunction:
     Type: AWS::Serverless::Function

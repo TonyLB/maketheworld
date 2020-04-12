@@ -125,9 +125,9 @@ export const Chat = () => {
           setupSocket.onmessage = (message) => {
             const { type, ...rest } = JSON.parse(message.data)
             switch(type) {
-                case 'sendmessage':
-                    dispatch(receiveMessage(rest))
-                    break
+                // case 'sendmessage':
+                //     dispatch(receiveMessage(rest))
+                //     break
                 case 'connectionregister':
                     dispatch(connectionRegister(rest))
                     break
