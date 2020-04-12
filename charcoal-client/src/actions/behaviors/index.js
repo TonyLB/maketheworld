@@ -1,4 +1,4 @@
-import { socketDispatch } from '../webSocket.js'
+import { sendMessage } from '../messages.js'
 import lookRoom from './lookRoom'
 import moveCharacter from './moveCharacter'
 
@@ -7,10 +7,15 @@ export const parseCommand = (entry) => (dispatch, getState) => {
     if (entry === 'l' || entry === 'look') {
         return dispatch(lookRoom())
     }
-    const { currentRoom } = getState()
+    const state = getState()
+    const { currentRoom, connection } = state
     const matchedExit = currentRoom.Exits.find(({ Name }) => ( entry.toLowerCase() === Name.toLowerCase() || entry.toLowerCase() === `go ${Name.toLowerCase()}`))
     if (matchedExit) {
-        return dispatch(moveCharacter(matchedExit.RoomId))
+        return dispatch(moveCharacter({ ExitName: matchedExit.Name, RoomId: matchedExit.RoomId }))
     }
-    return dispatch(socketDispatch('sendmessage')(entry))
+    return sendMessage({
+        RoomId: currentRoom.PermanentId,
+        FromCharacterId: connection.characterId,
+        Message: entry
+    })
 }

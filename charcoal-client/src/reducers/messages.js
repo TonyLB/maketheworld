@@ -12,8 +12,8 @@ export const reducer = (state = [], action) => {
             const { protocol = '', ...rest } = payload
             switch (protocol) {
                 case 'playerMessage':
-                    const { message } = rest
-                    if (message) {
+                    const { Message } = rest
+                    if (Message) {
                         return [ ...state, new playerMessage(rest) ]
                     }
                     else {

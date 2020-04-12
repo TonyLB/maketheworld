@@ -161,6 +161,7 @@ export const putRoomMessage = /* GraphQL */ `
       CreatedTime
       RoomId
       Message
+      FromCharacterId
       Recap
     }
   }

@@ -1413,11 +1413,12 @@ Resources:
                   MessageId: String!
                   CreatedTime: Long!
               }
-              type RoomMessage implements Message {
+              type RoomMessage implements Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
                   CreatedTime: Long!
                   RoomId: String!
                   Message: String!
+                  FromCharacterId: String
                   Recap: Boolean
               }
               type Mutation {
@@ -1463,6 +1464,7 @@ Resources:
                       MessageId: String
                       CreatedTime: Long
                   ): RoomMessage
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getCharacter(playerName: String!, name: String!): Character

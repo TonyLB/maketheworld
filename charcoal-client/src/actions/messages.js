@@ -1,4 +1,6 @@
-import { socketDispatch } from './webSocket.js'
+import { API, graphqlOperation } from 'aws-amplify'
+import { putRoomMessage } from '../graphql/mutations'
+
 
 export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE'
 
@@ -12,4 +14,20 @@ export const worldMessageAdded = (message) => (receiveMessage({
     message
 }))
 
-export const sendMessage = socketDispatch('sendmessage')
+export const playerMessageAdded = ({ CharacterId, Message }) => (receiveMessage({
+    protocol: 'playerMessage',
+    CharacterId,
+    Message
+}))
+
+export const sendMessage = ({RoomId, Message, FromCharacterId}) => {
+    if (RoomId && Message) {
+        return API.graphql(graphqlOperation(putRoomMessage, {
+            RoomId,
+            Message,
+            FromCharacterId
+        }))
+        .catch((err) => { console.log(err)})
+    }
+    return Promise.resolve({})
+}

@@ -11,24 +11,27 @@ import {
 } from '@material-ui/core'
 
 import { getColorMap } from '../../selectors/colorMap.js'
+import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 import useStyles from '../styles'
 
 export const PlayerMessage = ({ message, ...rest }) => {
-    const name = message.name
+    const CharacterId = message.CharacterId
     const colorMap = useSelector(getColorMap)
-    const color = name && colorMap && colorMap[name]
+    const charactersInPlay = useSelector(getCharactersInPlay)
+    const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
+    const color = Name && colorMap && colorMap[Name]
     const classes = useStyles()
     return <ListItem className={ color && classes[color.light] } alignItems="flex-start" {...rest} >
         <ListItemAvatar>
-            <Tooltip title={name}>
+            <Tooltip title={Name}>
                 <Avatar className={color && classes[color.primary]}>
-                    { name[0].toUpperCase() }
+                    { Name[0].toUpperCase() }
                 </Avatar>
             </Tooltip>
         </ListItemAvatar>
         <ListItemText>
             <Typography variant='body1' align='left'>
-                { message.message }
+                { message.Message }
             </Typography>
         </ListItemText>
     </ListItem>

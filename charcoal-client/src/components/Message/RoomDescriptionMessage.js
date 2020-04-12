@@ -50,7 +50,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
     const { RoomId='', Name='', Exits=[], Players=[], Description='' } = message
 
     const dispatch = useDispatch()
-    const clickHandler = mostRecent ? (RoomId) => () => { dispatch(moveCharacter(RoomId)) } : () => () => {}
+    const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
         <ListItemIcon>
             <HouseIcon />
@@ -73,7 +73,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                             <Chip
                                 key={exit.Name}
                                 label={exit.Name}
-                                onClick={clickHandler(exit.RoomId)}
+                                onClick={clickHandler({ RoomId: exit.RoomId, ExitName: exit.Name })}
                             />
                         ))}
                     </Grid>

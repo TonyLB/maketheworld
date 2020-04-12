@@ -35,7 +35,7 @@ exports.handler = event => {
   // and the subscription fields are all REQUIRED by the front end client, so if they
   // are not requested in the mutation then the subscription will fail.
   //
-  const mutation = gql`mutation DeleteCharacterInPlay {
+  const deleteCharacterInPlayMutation = gql`mutation DeleteCharacterInPlay {
     deleteCharacterInPlay(
       ConnectionId: "${connectionId}"
     ) {
@@ -54,20 +54,28 @@ exports.handler = event => {
     }
   }`
 
-  return graphqlClient.mutate({ mutation })
-    .then(({ Name, RoomId }) => {
-        return Promise.all([
-          dbh.deleteConnection(connectionId),
-          world.messageRoomExceptMe({
-            RoomId,
-            postData: JSON.stringify({
-              type: 'sendmessage',
-              protocol: 'worldMessage',
-              message: `${Name} has disconnected.`
-            })
-          })
-        ])
-      })
+  return graphqlClient.mutate({ mutation: deleteCharacterInPlayMutation })
+    .then(({ data = {} }) => data)
+    .then(({ deleteCharacterInPlay = {} }) => deleteCharacterInPlay)
+    .then(({ Character = {}, RoomId = '' }) => {
+      if (Character.Name && RoomId) {
+        const disconnectMessageMutation = gql`mutation DisconnectMessage {
+          putRoomMessage(
+            RoomId: "${RoomId}",
+            Message: "${Character.Name} has disconnected."
+          ) {
+            MessageId
+            CreatedTime
+            RoomId
+            Message
+            FromCharacterId
+            Recap
+          }
+        }`
+        return graphqlClient.mutate({ mutation: disconnectMessageMutation })
+      }
+      return {}
+    })
     .then(() => ({ statusCode: 200, body: 'Disconnected.' }))
     .catch((err) => ({ statusCode: 500, body: err.stack }))
 

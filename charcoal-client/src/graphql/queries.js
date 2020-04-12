@@ -114,6 +114,7 @@ export const getRoomRecap = /* GraphQL */ `
       CreatedTime
       RoomId
       Message
+      FromCharacterId
       Recap
     }
   }

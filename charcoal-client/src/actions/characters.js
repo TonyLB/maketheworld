@@ -7,9 +7,10 @@ import {
 import { changedCharacter, changedCharactersInPlay } from '../graphql/subscriptions'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
-import { addSubscription } from './subscriptions'
+import { addSubscription, moveRoomSubscription } from './subscriptions'
 import { fetchCurrentRoom } from './currentRoom'
 import { lookRoom } from './behaviors/lookRoom'
+import { sendMessage } from './messages'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -144,11 +145,17 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         //
         // Handle actions that depend upon changes in the state of your own character.
         //
-        if (!(myCharacter && myCharacter.RoomId === payload.RoomId)) {
-            dispatch(fetchCurrentRoom(payload.RoomId)).then(() => (dispatch(lookRoom())))
+        if (!(myCharacter && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
+            return dispatch(fetchCurrentRoom(payload.RoomId))
+                .then(() => (dispatch(moveRoomSubscription(payload.RoomId))))
+                .then(() => {
+                    dispatch(lookRoom())
+                    const { Character = {} } = payload
+                    const { Name = 'Someone' } = Character
+                    return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })
+                })
         }
     }
-
 }
 
 export const subscribeCharactersInPlayChanges = () => (dispatch) => {

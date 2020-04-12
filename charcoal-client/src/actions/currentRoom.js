@@ -28,6 +28,6 @@ export const fetchCurrentRoom = (overrideRoomId) => (dispatch, getState) => {
             })
     }
     else {
-        return Promise.resolve({})
+        return Promise.resolve()
     }
 }

@@ -75,6 +75,7 @@ export const addedRoomMessage = /* GraphQL */ `
       CreatedTime
       RoomId
       Message
+      FromCharacterId
       Recap
     }
   }

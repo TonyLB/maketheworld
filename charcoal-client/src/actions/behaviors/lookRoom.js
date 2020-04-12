@@ -3,7 +3,7 @@ import { receiveMessage } from '../messages'
 export const lookRoom = () => (dispatch, getState) => {
     const { currentRoom = {} } = getState()
 
-    if (currentRoom) {
+    if (currentRoom && currentRoom.Name) {
         const roomDescription = {
             Description: currentRoom.Description,
             Name: currentRoom.Name,
@@ -15,6 +15,9 @@ export const lookRoom = () => (dispatch, getState) => {
             protocol: 'roomDescription',
             ...roomDescription
         }))
+    }
+    else {
+        console.log('No currentRoom data!')
     }
 }
 

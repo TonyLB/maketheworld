@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { addedRoomMessage } from '../graphql/subscriptions'
-import { worldMessageAdded } from './messages'
+import { worldMessageAdded, playerMessageAdded } from './messages'
 
 import { getCurrentRoomId } from '../selectors/connection'
 
@@ -40,8 +40,13 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
                 const { value = {} } = messageData
                 const { data = {} } = value
                 const { addedRoomMessage = {} } = data
-                const { Message } = addedRoomMessage
-                dispatch(worldMessageAdded(Message))
+                const { Message, FromCharacterId } = addedRoomMessage
+                if (FromCharacterId) {
+                    dispatch(playerMessageAdded({ Message, CharacterId: FromCharacterId }))
+                }
+                else {
+                    dispatch(worldMessageAdded(Message))
+                }
             }
         })
         dispatch(addSubscription({ currentRoom: newRoomSubscription }))
