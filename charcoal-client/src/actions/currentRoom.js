@@ -1,5 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { getRoom } from '../graphql/queries'
+import { getRoom, getRoomRecap } from '../graphql/queries'
 
 export const FETCH_CURRENT_ROOM_SUCCESS = 'FETCH_CURRENT_ROOM_SUCCESS'
 export const FETCH_CURRENT_ROOM_ATTEMPT = 'FETCH_CURRENT_ROOM_ATTEMPT'
@@ -21,10 +21,16 @@ export const fetchCurrentRoom = (overrideRoomId) => (dispatch, getState) => {
         dispatch(fetchCurrentRoomAttempt())
         return API.graphql(graphqlOperation(getRoom, { PermanentId: currentRoomId }))
             .then(({ data }) => (data || {}))
-            .then(({ getRoom }) => (getRoom || []))
-            .then((payload) => {
-                dispatch(fetchCurrentRoomSuccess(payload))
-                return payload
+            .then(({ getRoom }) => (getRoom || {}))
+            .then((room) => {
+                const getRecap = API.graphql(graphqlOperation(getRoomRecap, { PermanentId: currentRoomId }))
+                    .then(({ data }) => (data || {}))
+                    .then(({ getRoomRecap }) => (getRoomRecap || []))
+                return getRecap.then((Recap) => {
+                    const finalResult = { ...room, Recap }
+                    dispatch(fetchCurrentRoomSuccess(finalResult))
+                    return finalResult
+                })
             })
     }
     else {

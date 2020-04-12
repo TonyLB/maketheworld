@@ -7,7 +7,9 @@ import {
 const colorSequence = ['pink', 'purple', 'green']
     .map(color => ({
         primary: color,
-        light: `light${color}`
+        light: `light${color}`,
+        recap: `recap${color}`,
+        recapLight: `recapLight${color}`
     }))
 
 export const reducer = (state = '', action = {}) => {

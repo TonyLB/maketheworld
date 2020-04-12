@@ -598,10 +598,7 @@ Resources:
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
-                  "operation": "Scan",
-                  "filter": {
-                      "expression": "attribute_exists(ConnectionId)",
-                  }
+                  "operation": "Scan"
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result.items)"
   QueryGetNeighborhoodTree:
@@ -797,6 +794,29 @@ Resources:
                   "PermanentId": $util.toJson($ctx.source.PermanentId)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  QueryGetRoomRecap:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Query
+        FieldName: getRoomRecap
+        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "Query",
+                "query": {
+                  "expression": "RoomId = :RoomId",
+                  "expressionValues": {
+                      ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                  }
+                },
+                "index": "RoomIndex",
+                "scanIndexForward": false,
+                "limit": 10
+            }
+        ResponseMappingTemplate: $util.toJson($ctx.result.items)
   MutationPreQueryCharacterInPlay:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:

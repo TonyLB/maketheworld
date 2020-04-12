@@ -154,7 +154,8 @@ export const Chat = () => {
                             <List>
                                 <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={new roomDescription({
                                         ...currentRoom,
-                                        Players
+                                        Players,
+                                        Recap: []
                                     })}
                                 />
                             </List>

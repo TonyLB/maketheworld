@@ -145,11 +145,11 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         //
         // Handle actions that depend upon changes in the state of your own character.
         //
-        if (!(myCharacter && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
+        if (!(myCharacter && myCharacter.ConnectionId && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
             return dispatch(fetchCurrentRoom(payload.RoomId))
                 .then(() => (dispatch(moveRoomSubscription(payload.RoomId))))
                 .then(() => {
-                    dispatch(lookRoom())
+                    dispatch(lookRoom({ Recap: true }))
                     const { Character = {} } = payload
                     const { Name = 'Someone' } = Character
                     return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })

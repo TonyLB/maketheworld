@@ -2,9 +2,11 @@ import {
     blue,
     pink,
     purple,
-    green
+    green,
+    grey
 } from "@material-ui/core/colors"
 import { makeStyles } from "@material-ui/core/styles"
+import tinycolor from 'tinycolor2'
 
 const drawerWidth = 400;
 
@@ -18,11 +20,22 @@ export const useStyles = makeStyles(theme => ({
             color: theme.palette.getContrastText(color[50]),
             backgroundColor: color[50]
         },
+        [`recap${colorName}`]:{
+            backgroundColor: tinycolor(color[500]).darken(10).desaturate(60).toHexString()
+        },
+        [`recapLight${colorName}`]:{
+            backgroundColor: tinycolor(color[50]).darken(10).desaturate(60).toHexString(),
+            paddingLeft: theme.spacing(8)
+        },
         [`chip-${colorName}`]: {
             color: theme.palette.getContrastText(color[50]),
             backgroundColor: color[50]
         }
     })).reduce((prev, item) => ({ ...prev, ...item }), {})),
+    recap: {
+        backgroundColor: grey[200],
+        paddingLeft: theme.spacing(8)
+    },
     root: {
         '& .MuiTextField-root': {
             margin: theme.spacing(1),
