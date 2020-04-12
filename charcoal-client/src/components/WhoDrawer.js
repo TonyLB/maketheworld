@@ -15,7 +15,7 @@ import OpenArrowIcon from '@material-ui/icons/ChevronLeft'
 import CloseArrowIcon from '@material-ui/icons/ChevronRight'
 
 import { getActiveCharacterList } from '../selectors/charactersInPlay'
-import { getColorMap } from '../selectors/colorMap'
+import { getCharacterId } from '../selectors/connection'
 import { getPermanentHeaders } from '../selectors/permanentHeaders'
 import { useStyles } from './styles'
 
@@ -25,7 +25,7 @@ export const WhoDrawer = ({
 }) => {
 
     const whoIsActive = useSelector(getActiveCharacterList)
-    const colorMap = useSelector(getColorMap)
+    const myCharacterId = useSelector(getCharacterId)
     const classes = useStyles()
     const permanentHeaders = useSelector(getPermanentHeaders)
 
@@ -52,8 +52,7 @@ export const WhoDrawer = ({
                 </TableHead>
                 <TableBody>
                     {
-                        whoIsActive.map(({ CharacterId, Name, RoomId }) => {
-                            const color = Name && colorMap && colorMap[Name]
+                        whoIsActive.map(({ CharacterId, Name, RoomId, color }) => {
                             const neighborhoodName = (permanentHeaders &&
                                 RoomId &&
                                 permanentHeaders[RoomId] &&
@@ -68,7 +67,7 @@ export const WhoDrawer = ({
                             return (
                                 <TableRow key={CharacterId}>
                                     <TableCell>
-                                        <Avatar className={color && classes[color.primary]}>
+                                        <Avatar className={(myCharacterId === CharacterId) ? classes.blue : (color && classes[color.primary])}>
                                             { Name[0].toUpperCase() }
                                         </Avatar>
                                     </TableCell>

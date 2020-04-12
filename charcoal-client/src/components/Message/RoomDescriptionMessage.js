@@ -20,10 +20,10 @@ import CreateIcon from '@material-ui/icons/Create'
 
 import useStyles from '../styles'
 
-import { getColorMap } from '../../selectors/colorMap.js'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharacterId } from '../../selectors/connection'
 
 export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false, ...rest }) => {
     const [{ detailsOpen, timeoutId }, setDetailStatus] = useState({ detailsOpen: true, timeoutId: null })
@@ -44,13 +44,16 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
         }
     }, [detailsOpen, inline, timeoutId])
 
-    const colorMap = useSelector(getColorMap)
     const charactersInPlay = useSelector(getCharactersInPlay)
+    const myCharacterId = useSelector(getCharacterId)
     const classes = useStyles()
-    const { RoomId='', Name='', Exits=[], Players=[], Description='' } = message
+    const { RoomId='', Name='', Exits=[], Description='' } = message
 
     const dispatch = useDispatch()
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
+    const Players = Object.values(charactersInPlay)
+        .filter(({ ConnectionId, RoomId: CharacterRoomId }) => (ConnectionId && (RoomId === CharacterRoomId) ))
+        .map(({ color, CharacterId, ...rest }) => ({ CharacterId, color: (CharacterId === myCharacterId) ? { primary: 'blue', light: 'lightblue' } : color, ...rest }))
     return <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
         <ListItemIcon>
             <HouseIcon />
@@ -82,15 +85,15 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                             Characters:
                         </Typography>
                         { Players
-                            .map(({ CharacterId }) => {
-                                const {
-                                    Name = 'DEFAULT',
-                                    Pronouns = '',
-                                    FirstImpression = '',
-                                    OneCoolThing = '',
-                                    Outfit = ''
-                                } = (charactersInPlay && charactersInPlay[CharacterId]) || {}
-                                const color = colorMap[Name] || 'blue'
+                            .map(({
+                                CharacterId,
+                                Name,
+                                Pronouns,
+                                FirstImpression,
+                                OneCoolThing,
+                                Outfit,
+                                color
+                            }) => {
                                 return (
                                     <Tooltip key={Name} interactive arrow title={<React.Fragment>
                                         <Typography variant='subtitle1' align='center'>
