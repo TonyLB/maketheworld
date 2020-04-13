@@ -10,7 +10,8 @@ import {
     subscribePermanentHeaderChanges
 } from '../actions/neighborhoods'
 import {
-    unsubscribeAll
+    unsubscribeAll,
+    subscribeRealtimePings
 } from '../actions/subscriptions'
 
 export const useAppSyncSubscriptions = () => {
@@ -26,6 +27,9 @@ export const useAppSyncSubscriptions = () => {
         }
         if (!(subscriptions.rooms && subscriptions.neighborhoods)) {
             dispatch(subscribePermanentHeaderChanges())
+        }
+        if (!subscriptions.ping) {
+            dispatch(subscribeRealtimePings())
         }
     }, [subscriptions, dispatch])
 

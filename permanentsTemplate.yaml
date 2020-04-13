@@ -72,6 +72,49 @@ Resources:
               Projection:
                 ProjectionType: ALL
           TableName: !Sub '${TablePrefix}_characters'
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: !Sub ${TablePrefix}-user-UserPool
+        AutoVerifiedAttributes:
+          - email
+        MfaConfiguration: "OFF"
+        AccountRecoverySetting:
+          RecoveryMechanisms:
+            - Name: verified_email
+              Priority: 1
+        EmailVerificationSubject: Welcome to BurnedOverMUSH
+        EmailVerificationMessage: >
+            Thank you for signing up for BurnedOverMUSH.  Here is your verification code (the system will ask for it): {####}
+        Schema:
+          - Name: email
+            AttributeDataType: String
+            Mutable: false
+            Required: true
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: !Sub ${TablePrefix}-client
+        GenerateSecret: false
+        UserPoolId: !Ref UserPool
+        AllowedOAuthFlows:
+          - code
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthScopes:
+          - email
+          - openid
+          - profile
+          - aws.cognito.signin.user.admin
+        ExplicitAuthFlows:
+          - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_SRP_AUTH
+        CallbackURLs:
+          - http://localhost:3000
+    UserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        UserPoolId: !Ref UserPool
+        Domain: !Sub ${TablePrefix}-auth
 
 Outputs:
     TablePrefix:
@@ -79,13 +122,27 @@ Outputs:
         Value: !Sub ${TablePrefix}
         Export:
             Name: !Sub "${AWS::StackName}-TablePrefix"
+
     PermanentsArn:
-        Description: The Arn of the table
+        Description: The Arn of the permanents table
         Value: !GetAtt "PermanentsTable.Arn"
         Export:
             Name: !Sub "${AWS::StackName}-PermanentsArn"
+
     CharactersArn:
-      Description: The Arn of the table
-      Value: !GetAtt "CharactersTable.Arn"
-      Export:
-          Name: !Sub "${AWS::StackName}-CharactersArn"
+        Description: The Arn of the characters table
+        Value: !GetAtt "CharactersTable.Arn"
+        Export:
+            Name: !Sub "${AWS::StackName}-CharactersArn"
+
+    UserPoolClient:
+        Description: The client ID for the player user pool
+        Value: !Ref UserPoolClient
+        Export:
+          Name: !Sub "${AWS::StackName}-UserPoolClient"
+
+    UserPoolId:
+        Description: The internal ID for the player user pool
+        Value: !Ref UserPool
+        Export:
+          Name: !Sub "${AWS::StackName}-UserPoolId"

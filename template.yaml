@@ -25,49 +25,6 @@ Parameters:
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
 Resources:
-  UserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      UserPoolName: !Sub ${TablePrefix}-user-UserPool
-      AutoVerifiedAttributes:
-        - email
-      MfaConfiguration: "OFF"
-      AccountRecoverySetting:
-        RecoveryMechanisms:
-          - Name: verified_email
-            Priority: 1
-      EmailVerificationSubject: Welcome to BurnedOverMUSH
-      EmailVerificationMessage: >
-          Thank you for signing up for BurnedOverMUSH.  Here is your verification code (the system will ask for it): {####}
-      Schema:
-        - Name: email
-          AttributeDataType: String
-          Mutable: false
-          Required: true
-  UserPoolClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties:
-      ClientName: !Sub ${TablePrefix}-client
-      GenerateSecret: false
-      UserPoolId: !Ref UserPool
-      AllowedOAuthFlows:
-        - code
-      AllowedOAuthFlowsUserPoolClient: true
-      AllowedOAuthScopes:
-        - email
-        - openid
-        - profile
-        - aws.cognito.signin.user.admin
-      ExplicitAuthFlows:
-        - ALLOW_REFRESH_TOKEN_AUTH
-        - ALLOW_USER_SRP_AUTH
-      CallbackURLs:
-        - http://localhost:3000
-  UserPoolDomain:
-    Type: AWS::Cognito::UserPoolDomain
-    Properties:
-      UserPoolId: !Ref UserPool
-      Domain: !Sub ${TablePrefix}-auth
   RealTimeWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -114,6 +71,43 @@ Resources:
       IntegrationUri: 
         Fn::Sub:
             arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  PingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: ping
+      AuthorizationType: NONE
+      OperationName: PingRoute
+      RouteResponseSelectionExpression: "$default"
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref PingInteg
+  PingInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Ping Integration
+      IntegrationType: MOCK
+      PassthroughBehavior: WHEN_NO_MATCH
+      TemplateSelectionExpression: "application/json"
+      RequestTemplates:
+        application/json: "{\"statusCode\": 200 }"
+  PingIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref PingInteg
+      TemplateSelectionExpression: "$integration.response.statuscode"
+      IntegrationResponseKey: "/200/"
+      ResponseTemplates:
+        "200": "{\"statusCode\": 200, \"type\": \"pong\" }"
+  PingResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref PingRoute
+      RouteResponseKey: "$default"
   RegisterCharacterRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -138,12 +132,15 @@ Resources:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - ConnectRoute
+    - PingRoute
     - RegisterCharacterRoute
     - DisconnectRoute
     Properties:
       ApiId: !Ref RealTimeWebSocket
   RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - RealTimeDeployment
     Properties:
       StageName: Prod
       Description: Prod Stage
@@ -210,8 +207,6 @@ Resources:
       - AttributeName: "RoomId"
         AttributeType: "S"
       - AttributeName: "CreatedTime"
-        AttributeType: "N"
-      - AttributeName: "ExpirationTime"
         AttributeType: "N"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
@@ -363,7 +358,9 @@ Resources:
           AuthenticationType: AMAZON_COGNITO_USER_POOLS
           UserPoolConfig:
               AwsRegion: us-east-1
-              UserPoolId: !Ref UserPool
+              UserPoolId:
+                Fn::ImportValue:
+                  !Sub "${PermanentsStack}-UserPoolId"
               DefaultAction: ALLOW
           AdditionalAuthenticationProviders:
               - AuthenticationType: AWS_IAM
@@ -1473,14 +1470,6 @@ Outputs:
   WebSocketURI:
     Description: "The WSS Protocol URI to connect to for realtime messages"
     Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
-
-  UserPoolArn:
-    Description: The ARN for the player user pool"
-    Value: !GetAtt 'UserPool.Arn'
-
-  UserPoolClient:
-    Description: The client ID for the player user pool
-    Value: !Ref UserPoolClient
 
   AppSyncAPI:
     Description: The ID of the AppSync Api
