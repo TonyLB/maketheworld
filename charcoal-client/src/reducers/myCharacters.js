@@ -26,7 +26,7 @@ export const reducer = (state = '', action = {}) => {
             return {
                 ...state,
                 data: [
-                    ...state.data.filter(({ Name }) => (Name !== payload.Name)),
+                    ...state.data.filter(({ CharacterId }) => (CharacterId !== payload.CharacterId)),
                     payload
                 ].sort(({ Name: nameA }, { Name: nameB }) => (nameA.localeCompare(nameB)))
             }
