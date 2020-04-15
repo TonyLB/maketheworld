@@ -1,10 +1,6 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { dbHandler } = require('/opt/dbHandler')
-const { socketHandler } = require('/opt/sockets')
-const { worldHandler } = require('/opt/world')
-
 const appsync = require('aws-appsync')
 const gql = require('graphql-tag')
 require('cross-fetch/polyfill')
@@ -24,9 +20,6 @@ const graphqlClient = new appsync.AWSAppSyncClient({
 })
 
 exports.handler = event => {
-  const dbh = new dbHandler(process.env)
-  const sockets = new socketHandler({ dbh, event })
-  const world = new worldHandler(sockets)
   const connectionId = event.requestContext.connectionId
 
   //

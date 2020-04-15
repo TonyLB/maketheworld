@@ -29,13 +29,7 @@ exports.handler = (event) => {
   const sockets = new socketHandler({ dbh, event })
   const world = new worldHandler(sockets)
 
-  const { name, characterId } = JSON.parse(event.body).data
-  const playerData = {
-    connectionId: event.requestContext.connectionId,
-    name,
-    CharacterId: characterId,
-    roomId: "VORTEX"
-  }
+  const { characterId } = JSON.parse(event.body).data
 
   //
   // Create the mutation:  Make sure that it returns absolutely everything in the schema,
@@ -65,8 +59,7 @@ exports.handler = (event) => {
   //
   // Update the name in the Connection record
   //
-  return dbh.putConnection(playerData)
-    .then(() => (graphqlClient.mutate({ mutation })))
+  return graphqlClient.mutate({ mutation })
     .then(() => (
       world.sockets.messageToSelf(JSON.stringify({
         type: 'connectionregister',
