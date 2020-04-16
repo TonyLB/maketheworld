@@ -494,6 +494,62 @@ Resources:
         DynamoDBConfig:
             AwsRegion: us-east-1
             TableName: !Sub ${TablePrefix}_messages
+  QueryGetPlayerResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Query
+        FieldName: getPlayer
+        DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "GetItem",
+                "key": {
+                    "PlayerName": $util.dynamodb.toStringJson($ctx.args.PlayerName),
+                    "DataCategory": $util.dynamodb.toStringJson("Details")
+                }
+            }
+        ResponseMappingTemplate: >
+            #set($Consent = false)
+            #if ($ctx.result && $util.isBoolean($ctx.result.CodeOfConductConsent))
+                #set($Consent = $ctx.result.CodeOfConductConsent)
+            #end
+            $util.toJson({
+                "PlayerName": $ctx.args.PlayerName,
+                "CodeOfConductConsent": $Consent
+            })
+  MutationPutPlayerResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: putPlayer
+        DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            #set($PlayerName = $ctx.args.PlayerName)
+            #if ($util.isNullOrEmpty($PlayerName))
+              #set($PlayerName = $context.identity.username)
+            #end
+            {
+                "version": "2017-02-28",
+                "operation": "PutItem",
+                "key": {
+                    "PlayerName": $util.dynamodb.toStringJson($PlayerName),
+                    "DataCategory": $util.dynamodb.toStringJson("Details")
+                },
+                "attributeValues": {
+                    "CodeOfConductConsent":
+                      #if($ctx.args.CodeOfConductConsent)
+                        $util.dynamodb.toBooleanJson($ctx.args.CodeOfConductConsent)
+                      #else
+                        $util.dynamodb.toBooleanJson(false)
+                      #end
+                }
+            }
+        ResponseMappingTemplate: $util.toJson($ctx.result)
   QueryGetCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -563,7 +619,7 @@ Resources:
                 "OneCoolThing": "$item.OneCoolThing"
               }))
             #end
-            $utils.toJson($result)
+            $util.toJson($result)
   PutCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1378,6 +1434,10 @@ Resources:
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           Definition: >
+              type Player {
+                  PlayerName: String!
+                  CodeOfConductConsent: Boolean
+              }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String!
                   Name: String!
@@ -1456,6 +1516,10 @@ Resources:
                   ExpirationTime: Long
               }
               type Mutation {
+                  putPlayer(
+                      PlayerName: String,
+                      CodeOfConductConsent: Boolean
+                    ): Player
                   putCharacter(
                       Name: String!,
                       CharacterId: String,
@@ -1501,6 +1565,7 @@ Resources:
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
+                  getPlayer(PlayerName: String!): Player
                   getCharacter(playerName: String!, name: String!): Character
                   getPlayerCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
@@ -1511,6 +1576,7 @@ Resources:
                   getRoomByCharacter(CharacterId: String!): Room
               }
               type Subscription {
+                  changedPlayer: Player
                   changedCharacter: Character
                   @aws_subscribe(mutations: ["putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
