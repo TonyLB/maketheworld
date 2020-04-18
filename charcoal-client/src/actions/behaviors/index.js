@@ -2,6 +2,7 @@ import { sendMessage } from '../messages.js'
 import lookRoom from './lookRoom'
 import moveCharacter from './moveCharacter'
 import goHome from './home'
+import announce from './announce'
 
 export const parseCommand = (entry) => (dispatch, getState) => {
     console.log(`Command: ${entry}`)
@@ -10,6 +11,9 @@ export const parseCommand = (entry) => (dispatch, getState) => {
     }
     if (entry === 'home') {
         return dispatch(goHome())
+    }
+    if (entry === 'announce') {
+        return dispatch(announce())
     }
     const state = getState()
     const { currentRoom, connection } = state

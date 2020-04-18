@@ -49,6 +49,7 @@ import RoomDialog from './RoomDialog/'
 import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
 import MyCharacterDialog from './MyCharacterDialog'
+import ConfirmDialog from './ConfirmDialog'
 import WhoDrawer from './WhoDrawer'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
@@ -242,6 +243,7 @@ export const Chat = () => {
                 </Container>
             </AppBar>
 
+            <ConfirmDialog />
             <AllCharactersDialog />
             <WorldDialog />
             <RoomDialog />
