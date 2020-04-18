@@ -9,6 +9,7 @@ export const reducer = (state = { open: false }, action) => {
         firstImpression = '',
         outfit = '',
         oneCoolThing = '',
+        homeId = '',
         nested = false
     } = action
 
@@ -29,7 +30,8 @@ export const reducer = (state = { open: false }, action) => {
                 pronouns,
                 firstImpression,
                 outfit,
-                oneCoolThing
+                oneCoolThing,
+                homeId
             }
         default:
             return state

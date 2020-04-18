@@ -10,6 +10,7 @@ export const getAvailableBehaviors = ({ currentRoom }) => {
     return [
         'l',
         'look',
+        'home',
         ...(exitNames),
         ...(exitNames.map((name) => (`go ${name}`)))
     ]

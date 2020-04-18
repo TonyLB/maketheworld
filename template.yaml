@@ -574,15 +574,12 @@ Resources:
           ResponseMappingTemplate: >
               #if($ctx.result.items)
                 #set($result = $ctx.result.items[0])
-                $util.toJson({
-                  "PlayerName": "$result.PlayerName",
-                  "Name": "$result.Name",
-                  "CharacterId": "$ctx.args.characterId",
-                  "Pronouns": "$result.Pronouns",
-                  "FirstImpression": "$result.FirstImpression",
-                  "Outfit": "$result.Outfit",
-                  "OneCoolThing": "$result.OneCoolThing"
-                })
+                #if($util.isNull($result.Pronouns)) $util.qr($result.put("Pronouns", "")) #end
+                #if($util.isNull($result.FirstImpression)) $util.qr($result.put("FirstImpression", "")) #end
+                #if($util.isNull($result.Outfit)) $util.qr($result.put("Outfit", "")) #end
+                #if($util.isNull($result.OneCoolThing)) $util.qr($result.put("OneCoolThing", "")) #end
+                #if($util.isNull($result.HomeId)) $util.qr($result.put("HomeId", "")) #end
+                $util.toJson($result)
               #else
                 $util.toJson({})
               #end
@@ -609,15 +606,12 @@ Resources:
           ResponseMappingTemplate: >
             #set($result = [])
             #foreach($item in $ctx.result.items)
-              $util.qr($result.add({
-                "PlayerName": "$item.PlayerName",
-                "Name": "$item.Name",
-                "CharacterId": "$item.CharacterId",
-                "Pronouns": "$item.Pronouns",
-                "FirstImpression": "$item.FirstImpression",
-                "Outfit": "$item.Outfit",
-                "OneCoolThing": "$item.OneCoolThing"
-              }))
+              #if($util.isNull($item.Pronouns)) $util.qr($item.put("Pronouns", "")) #end
+              #if($util.isNull($item.FirstImpression)) $util.qr($item.put("FirstImpression", "")) #end
+              #if($util.isNull($item.Outfit)) $util.qr($item.put("Outfit", "")) #end
+              #if($util.isNull($item.OneCoolThing)) $util.qr($item.put("OneCoolThing", "")) #end
+              #if($util.isNull($item.HomeId)) $util.qr($item.put("HomeId", "")) #end
+              $util.qr($result.add($item))
             #end
             $util.toJson($result)
   PutCharacterResolver:
@@ -647,20 +641,18 @@ Resources:
                       #if($ctx.args.FirstImpression), "FirstImpression": $ddb.toStringJson($ctx.args.FirstImpression) #end
                       #if($ctx.args.OneCoolThing), "OneCoolThing": $ddb.toStringJson($ctx.args.OneCoolThing) #end
                       #if($ctx.args.Outfit), "Outfit": $ddb.toStringJson($ctx.args.Outfit) #end
+                      #if($ctx.args.HomeId), "HomeId": $ddb.toStringJson($ctx.args.HomeId) #end
                   }
               }
           ResponseMappingTemplate: >
             #if($ctx.result)
               #set($result = $ctx.result)
-              $util.toJson({
-                "PlayerName": "$result.PlayerName",
-                "Name": "$result.Name",
-                "CharacterId": "$result.CharacterId",
-                "Pronouns": "$result.Pronouns",
-                "FirstImpression": "$result.FirstImpression",
-                "Outfit": "$result.Outfit",
-                "OneCoolThing": "$result.OneCoolThing"
-              })
+              #if($util.isNull($result.Pronouns)) $util.qr($result.put("Pronouns", "")) #end
+              #if($util.isNull($result.FirstImpression)) $util.qr($result.put("FirstImpression", "")) #end
+              #if($util.isNull($result.Outfit)) $util.qr($result.put("Outfit", "")) #end
+              #if($util.isNull($result.OneCoolThing)) $util.qr($result.put("OneCoolThing", "")) #end
+              #if($util.isNull($result.HomeId)) $util.qr($result.put("HomeId", "")) #end
+              $util.toJson($result)
             #else
               $util.toJson({})
             #end
@@ -691,7 +683,8 @@ Resources:
                   "Pronouns": "$result.Pronouns",
                   "FirstImpression": "$result.FirstImpression",
                   "Outfit": "$result.Outfit",
-                  "OneCoolThing": "$result.OneCoolThing"
+                  "OneCoolThing": "$result.OneCoolThing",
+                  "HomeId": "$result.HomeId"
                 })
               #else
                 $util.toJson({})
@@ -1196,6 +1189,8 @@ Resources:
               {
                   "Name": $util.toJson($prev.Name),
                   "PermanentId": $util.toJson($prev.PermanentId)
+                  #if($util.isList($prev.Exits)), "Exits": $util.toJson($prev.Exits)#end
+                  #if($util.isList($prev.Entries)), "Entries": $util.toJson($prev.Entries)#end
                   #if(!$util.isNullOrEmpty($prev.Description)), "Description": $util.toJson($prev.Description)#end
                   #if(!$util.isNullOrEmpty($prev.ParentId)), "ParentId": $util.toJson($prev.ParentId)#end
                   #if ($util.isMap($ctx.result))
@@ -1446,6 +1441,7 @@ Resources:
                   FirstImpression: String
                   Outfit: String
                   OneCoolThing: String
+                  HomeId: String
               }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: ID!
@@ -1526,7 +1522,8 @@ Resources:
                       Pronouns: String,
                       FirstImpression: String,
                       Outfit: String,
-                      OneCoolThing: String
+                      OneCoolThing: String,
+                      HomeId: String
                   ): Character
                   addCharacterInPlay(
                       CharacterId: String!
@@ -1576,7 +1573,8 @@ Resources:
                   getRoomByCharacter(CharacterId: String!): Room
               }
               type Subscription {
-                  changedPlayer: Player
+                  changedPlayer (PlayerName: String): Player
+                  @aws_subscribe(mutations: ["putPlayer"])
                   changedCharacter: Character
                   @aws_subscribe(mutations: ["putCharacter"])
                   changedCharactersInPlay: CharacterInPlay

@@ -10,6 +10,9 @@ import {
     subscribePermanentHeaderChanges
 } from '../actions/neighborhoods'
 import {
+    subscribePlayerChanges
+} from '../actions/player'
+import {
     unsubscribeAll,
     subscribeRealtimePings
 } from '../actions/subscriptions'
@@ -21,6 +24,9 @@ export const useAppSyncSubscriptions = () => {
     useEffect(() => {
         if (!subscriptions.myCharacters) {
             dispatch(subscribeMyCharacterChanges())
+        }
+        if (!subscriptions.player) {
+            dispatch(subscribePlayerChanges())
         }
         if (!subscriptions.charactersInPlay) {
             dispatch(subscribeCharactersInPlayChanges())

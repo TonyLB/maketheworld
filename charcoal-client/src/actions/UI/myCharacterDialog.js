@@ -10,6 +10,7 @@ export const activateMyCharacterDialog = ({
     firstImpression = '',
     outfit = '',
     oneCoolThing = '',
+    homeId = '',
     nested = false
 }) => ({
     type: ACTIVATE_MY_CHARACTER_DIALOG,
@@ -19,6 +20,7 @@ export const activateMyCharacterDialog = ({
     firstImpression,
     outfit,
     oneCoolThing,
+    homeId,
     nested
 })
 
@@ -36,6 +38,7 @@ export const populateAndActivateMyCharacterDialog = ({
             firstImpression: characterData.FirstImpression,
             outfit: characterData.Outfit,
             oneCoolThing: characterData.OneCoolThing,
+            homeId: characterData.HomeId,
             nested
         }))
     }

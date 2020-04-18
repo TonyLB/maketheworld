@@ -1,11 +1,15 @@
 import { sendMessage } from '../messages.js'
 import lookRoom from './lookRoom'
 import moveCharacter from './moveCharacter'
+import goHome from './home'
 
 export const parseCommand = (entry) => (dispatch, getState) => {
     console.log(`Command: ${entry}`)
     if (entry === 'l' || entry === 'look') {
         return dispatch(lookRoom())
+    }
+    if (entry === 'home') {
+        return dispatch(goHome())
     }
     const state = getState()
     const { currentRoom, connection } = state

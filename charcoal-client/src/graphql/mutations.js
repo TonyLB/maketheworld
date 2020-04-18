@@ -1,6 +1,17 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const putPlayer = /* GraphQL */ `
+  mutation PutPlayer($PlayerName: String, $CodeOfConductConsent: Boolean) {
+    putPlayer(
+      PlayerName: $PlayerName
+      CodeOfConductConsent: $CodeOfConductConsent
+    ) {
+      PlayerName
+      CodeOfConductConsent
+    }
+  }
+`;
 export const putCharacter = /* GraphQL */ `
   mutation PutCharacter(
     $Name: String!
@@ -9,6 +20,7 @@ export const putCharacter = /* GraphQL */ `
     $FirstImpression: String
     $Outfit: String
     $OneCoolThing: String
+    $HomeId: String
   ) {
     putCharacter(
       Name: $Name
@@ -17,6 +29,7 @@ export const putCharacter = /* GraphQL */ `
       FirstImpression: $FirstImpression
       Outfit: $Outfit
       OneCoolThing: $OneCoolThing
+      HomeId: $HomeId
     ) {
       PlayerName
       Name
@@ -25,6 +38,7 @@ export const putCharacter = /* GraphQL */ `
       FirstImpression
       Outfit
       OneCoolThing
+      HomeId
     }
   }
 `;
@@ -40,6 +54,7 @@ export const addCharacterInPlay = /* GraphQL */ `
         FirstImpression
         Outfit
         OneCoolThing
+        HomeId
       }
       RoomId
       ConnectionId
@@ -58,6 +73,7 @@ export const deleteCharacterInPlay = /* GraphQL */ `
         FirstImpression
         Outfit
         OneCoolThing
+        HomeId
       }
       RoomId
       ConnectionId
@@ -76,6 +92,7 @@ export const moveCharacter = /* GraphQL */ `
         FirstImpression
         Outfit
         OneCoolThing
+        HomeId
       }
       RoomId
       ConnectionId

@@ -58,8 +58,8 @@ export const MyCharacterDialog = ({ nested=false }) => {
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const saveHandler = () => {
-        const { name, pronouns, firstImpression, outfit, oneCoolThing, characterId } = formValues
-        const characterData = { name, pronouns, firstImpression, outfit, oneCoolThing, characterId }
+        const { name, pronouns, firstImpression, outfit, oneCoolThing, characterId, homeId } = formValues
+        const characterData = { name, pronouns, firstImpression, outfit, oneCoolThing, characterId, homeId }
         dispatch(putMyCharacterAndCloseDialog(characterData))
     }
 

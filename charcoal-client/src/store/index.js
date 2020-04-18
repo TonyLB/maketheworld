@@ -6,6 +6,7 @@ import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
 import registeredCharacter from '../reducers/registeredCharacter.js'
 import permanentHeaders from '../reducers/permanentHeaders.js'
+import player from '../reducers/player'
 import neighborhoodTree from '../reducers/neighborhoodTree.js'
 import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
@@ -21,6 +22,7 @@ export const store = createStore(
         messages,
         registeredCharacter,
         permanentHeaders,
+        player,
         neighborhoodTree,
         subscriptions,
         UI: uiReducer,

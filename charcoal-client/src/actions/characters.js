@@ -11,6 +11,7 @@ import { addSubscription, moveRoomSubscription } from './subscriptions'
 import { fetchCurrentRoom } from './currentRoom'
 import { lookRoom } from './behaviors/lookRoom'
 import { sendMessage } from './messages'
+import { getMyCurrentCharacter } from '../selectors/myCharacters'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -52,7 +53,8 @@ export const putMyCharacter = ({
     pronouns = '',
     firstImpression = '',
     outfit = '',
-    oneCoolThing = ''
+    oneCoolThing = '',
+    homeId = ''
 }) => (dispatch) => {
     return API.graphql(graphqlOperation(putCharacterGraphQL, {
             Name: name,
@@ -60,7 +62,8 @@ export const putMyCharacter = ({
             ...(pronouns ? { Pronouns: pronouns ? pronouns : null } : {}),
             ...(firstImpression ? { FirstImpression: firstImpression ? firstImpression : null } : {}),
             ...(pronouns ? { Outfit: outfit ? outfit : null } : {}),
-            ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {})
+            ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
+            ...(homeId ? { HomeId: homeId } : {})
         }))
         .then((payload) => {
             dispatch(putMyCharacterSuccess(payload))
@@ -171,4 +174,19 @@ export const subscribeCharactersInPlayChanges = () => (dispatch) => {
 
     dispatch(addSubscription({ charactersInPlay: subscription }))
     dispatch(fetchCharactersInPlay())
+}
+
+export const setCurrentCharacterHome = (HomeId) => (dispatch, getState) => {
+    const state = getState()
+    const currentCharacter = getMyCurrentCharacter()(state)
+    dispatch(putMyCharacter({
+        name: currentCharacter.Name,
+        characterId: currentCharacter.CharacterId,
+        pronouns: currentCharacter.Pronouns,
+        firstImpression: currentCharacter.FirstImpression,
+        outfit: currentCharacter.Outfit,
+        oneCoolThing: currentCharacter.OneCoolThing,
+        homeId: HomeId
+    }))
+
 }

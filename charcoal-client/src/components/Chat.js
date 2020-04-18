@@ -28,16 +28,19 @@ import MenuIcon from '@material-ui/icons/Menu'
 import { WSS_ADDRESS } from '../config'
 import { parseCommand } from '../actions/behaviors'
 import { connectionRegister } from '../actions/connection.js'
+import { setCurrentCharacterHome } from '../actions/characters'
 import { registerCharacter } from '../actions/registeredCharacter.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
+import { putPlayer } from '../actions/player'
 import { getCurrentRoom } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getCharacterId } from '../selectors/connection'
 import { getMyCharacters } from '../selectors/myCharacters'
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
+import { getConsentGiven, getPlayerFetched } from '../selectors/player'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
@@ -47,6 +50,7 @@ import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
 import MyCharacterDialog from './MyCharacterDialog'
 import WhoDrawer from './WhoDrawer'
+import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 import useAppSyncSubscriptions from './useAppSyncSubscriptions'
 import { roomDescription } from '../store/messages'
@@ -98,6 +102,8 @@ export const Chat = () => {
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
     const currentRoom = useSelector(getCurrentRoom)
     const characterId = useSelector(getCharacterId)
+    const consentGiven = useSelector(getConsentGiven)
+    const playerFetched = useSelector(getPlayerFetched)
     const Players = useSelector(getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId }))
 
     const dispatch = useDispatch()
@@ -114,6 +120,10 @@ export const Chat = () => {
     }
     const handleWorldOverview = () => {
         dispatch(fetchAndOpenWorldDialog())
+        handleMenuClose()
+    }
+    const handleSetCharacterHome = () => {
+        dispatch(setCurrentCharacterHome(currentRoom && currentRoom.PermanentId))
         handleMenuClose()
     }
 
@@ -218,6 +228,9 @@ export const Chat = () => {
                             }}
                             onClose={handleMenuClose}
                         >
+                            <MenuItem onClick={handleSetCharacterHome}>
+                                Set home to here
+                            </MenuItem>
                             <MenuItem onClick={handleCharacterOverview}>
                                 My Characters
                             </MenuItem>
@@ -233,13 +246,19 @@ export const Chat = () => {
             <WorldDialog />
             <RoomDialog />
             <MyCharacterDialog />
+            <CodeOfConductConsentDialog
+                open={playerFetched && !consentGiven}
+                onConsent={() => {
+                    dispatch(putPlayer({ CodeOfConductConsent: true }))
+                }}
+            />
             <CharacterPicker
-                open={!characterId}
+                open={(consentGiven && !characterId) || false}
                 onClose={({ name, characterId }) => () => {
                     dispatch(registerCharacter({ name, characterId }))
                 }}
             />
-            <Backdrop open={(characterId && !webSocket) ? true : false}>
+            <Backdrop open={((characterId && !webSocket) || !playerFetched) ? true : false}>
                 <CircularProgress color="inherit" />
             </Backdrop>
         </div>

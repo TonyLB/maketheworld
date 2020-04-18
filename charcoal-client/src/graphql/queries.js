@@ -1,6 +1,14 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const getPlayer = /* GraphQL */ `
+  query GetPlayer($PlayerName: String!) {
+    getPlayer(PlayerName: $PlayerName) {
+      PlayerName
+      CodeOfConductConsent
+    }
+  }
+`;
 export const getCharacter = /* GraphQL */ `
   query GetCharacter($playerName: String!, $name: String!) {
     getCharacter(playerName: $playerName, name: $name) {
@@ -11,6 +19,7 @@ export const getCharacter = /* GraphQL */ `
       FirstImpression
       Outfit
       OneCoolThing
+      HomeId
     }
   }
 `;
@@ -24,6 +33,7 @@ export const getPlayerCharacters = /* GraphQL */ `
       FirstImpression
       Outfit
       OneCoolThing
+      HomeId
     }
   }
 `;
@@ -39,6 +49,7 @@ export const getCharactersInPlay = /* GraphQL */ `
         FirstImpression
         Outfit
         OneCoolThing
+        HomeId
       }
       RoomId
       ConnectionId
