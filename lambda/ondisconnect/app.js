@@ -63,6 +63,9 @@ exports.handler = event => {
             Message
             FromCharacterId
             Recap
+            ExpirationTime
+            Type
+            Title
           }
         }`
         return graphqlClient.mutate({ mutation: disconnectMessageMutation })
