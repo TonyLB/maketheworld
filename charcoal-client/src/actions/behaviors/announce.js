@@ -1,25 +1,47 @@
 import { API, graphqlOperation } from 'aws-amplify'
+import { putRoomMessage } from '../../graphql/mutations'
 
-import { sendMessage } from '../messages'
+import {
+    extractMutation,
+    populateMutationVariables,
+    batchMutations
+} from '../batchQL'
 
-import { getCurrentName, getCurrentRoomId } from '../../selectors/connection'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
+import { getCurrentNeighborhood } from '../../selectors/currentRoom'
+import { getRoomIdsInNeighborhood } from '../../selectors/permanentHeaders'
 
 import { activateConfirmDialog } from '../UI/confirmDialog'
 
-export const announce = () => (dispatch, getState) => {
+export const broadcastMessage = ({ title = 'Announcement', message = '', roomIds = [] }) => (dispatch) => {
+    const messageTemplate = extractMutation(putRoomMessage)
+    const messages = roomIds.map((permanentId) => (populateMutationVariables({
+        template: messageTemplate,
+        RoomId: permanentId,
+        Message: message,
+        Title: title,
+        MessageType: 'ANNOUNCEMENT',
+        FromCharacterId: '',
+        MessageId: '',
+        CreatedTime: ''
+    })))
+    return API.graphql(graphqlOperation(batchMutations(messages))).catch((err) => { console.log(err)})
+}
+
+export const announce = (message = 'Announcement!') => (dispatch, getState) => {
     const state = getState()
-    const { connection } = state
     const currentCharacter = getMyCurrentCharacter()(state)
-    if (connection.characterId) {
-        const currentName = getCurrentName(state)
-        const currentRoomId = getCurrentRoomId(state)
+    const currentNeighborhood = getCurrentNeighborhood(state)
+    const announcementTitle = `Announcement from ${(currentCharacter && currentCharacter.Name) || 'Unknown'} in ${(currentNeighborhood && currentNeighborhood.Name) || 'Vortex'}`
+    if (currentCharacter) {
+        const roomIds = (getRoomIdsInNeighborhood((currentNeighborhood && currentNeighborhood.permanentId) || null)(state)) || []
         dispatch(activateConfirmDialog({
-            title: `Announcement from ${currentName} at ???`,
-            content: `Are you sure you want to post this announcement?`,
+            title: announcementTitle,
+            message,
+            content: `Are you sure you want to post this announcement?  It will be heard in ${roomIds.length} rooms.`,
             resolveButtonTitle: 'Announce!',
             resolve: () => {
-                console.log('Announce!')
+                dispatch(broadcastMessage({ title: announcementTitle, message, roomIds }))
             }
         }))
     }    

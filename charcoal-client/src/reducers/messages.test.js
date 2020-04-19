@@ -15,13 +15,13 @@ describe('Messages reducer', () => {
         expect(messages([], {
             type: RECEIVE_MESSAGE,
             payload: {
-                name: 'Steve Rogers',
+                CharacterId: 'Steve Rogers',
                 protocol: 'playerMessage',
-                message: 'I can do this all day'
+                Message: 'I can do this all day'
             }
         })).toEqual([new playerMessage({
-            name: 'Steve Rogers',
-            message: 'I can do this all day'
+            CharacterId: 'Steve Rogers',
+            Message: 'I can do this all day'
         })])
     })
 
@@ -40,30 +40,30 @@ describe('Messages reducer', () => {
     it('should append a playermessage to an existing array', () => {
         const startingList = [
             new playerMessage({
-                name: 'Tony Stark',
-                message: "I'm bringing the party to you"
+                CharacterId: 'Tony Stark',
+                Message: "I'm bringing the party to you"
             }),
             new worldMessage({
                 message: "A gigantic carrier leviathan crashes through a building and turns toward you."
             }),
             new playerMessage({
-                name: 'Natasha Romanov',
-                message: "I don't see how that's a party"
+                CharacterId: 'Natasha Romanov',
+                Message: "I don't see how that's a party"
             })
         ]
 
         expect(messages(startingList, {
             type: RECEIVE_MESSAGE,
             payload: {
-                name: 'Bruce Banner',
+                CharacterId: 'Bruce Banner',
                 protocol: 'playerMessage',
-                message: "That's my secret, Captain..."
+                Message: "That's my secret, Captain..."
             }
         })).toEqual([
             ...startingList,
             new playerMessage({
-                name: 'Bruce Banner',
-                message: "That's my secret, Captain..."
+                CharacterId: 'Bruce Banner',
+                Message: "That's my secret, Captain..."
             })
         ])
     })

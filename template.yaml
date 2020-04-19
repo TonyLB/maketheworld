@@ -1405,6 +1405,7 @@ Resources:
             #end
             #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
             #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
+            #set ($MessageType = $util.defaultIfNullOrBlank($args.MessageType, "ROOM"))
             #set ($ExpirationTime = $util.time.nowEpochSeconds() + 600)
             #set( $ddb = $util.dynamodb )
             {
@@ -1417,10 +1418,11 @@ Resources:
                     "CreatedTime": $ddb.toNumberJson($CreatedTime),
                     "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
                     "RoomId": $ddb.toDynamoDBJson($args.RoomId),
-                    "Type": $ddb.toStringJson("ROOM"),
+                    "Type": $ddb.toStringJson($MessageType),
                     "Recap": $ddb.toBooleanJson(false)
                     #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
                     #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
+                    #if(!$util.isNullOrEmpty($args.Title)), "Title": $ddb.toStringJson($args.Title) #end
                 }
             }
         ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -1510,6 +1512,8 @@ Resources:
                   FromCharacterId: String
                   Recap: Boolean
                   ExpirationTime: Long
+                  Type: String
+                  Title: String
               }
               type Mutation {
                   putPlayer(
@@ -1555,6 +1559,8 @@ Resources:
                   putRoomMessage(
                       RoomId: String!
                       Message: String!
+                      MessageType: String
+                      Title: String
                       FromCharacterId: String
                       MessageId: String
                       CreatedTime: Long

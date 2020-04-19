@@ -20,6 +20,12 @@ export const playerMessageAdded = ({ CharacterId, Message }) => (receiveMessage(
     Message
 }))
 
+export const announcementAdded = ({ Message, Title }) => (receiveMessage({
+    protocol: 'announcementMessage',
+    Message,
+    Title
+}))
+
 export const sendMessage = ({RoomId, Message, FromCharacterId}) => {
     if (RoomId && Message) {
         return API.graphql(graphqlOperation(putRoomMessage, {

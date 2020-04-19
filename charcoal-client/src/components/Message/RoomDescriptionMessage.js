@@ -23,6 +23,7 @@ import useStyles from '../styles'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import RecapMessage from './RecapMessage'
+import AnnouncementMessage from './AnnouncementMessage'
 
 export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false, ...rest }) => {
     const [{ detailsOpen, timeoutId, manuallyOpened }, setDetailStatus] = useState({ detailsOpen: true, timeoutId: null, manuallyOpened: false })
@@ -127,7 +128,10 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
         {
             detailsOpen && [...Recap]
                 .sort(({ CreatedTime: CreatedTimeA }, { CreatedTime: CreatedTimeB}) => (CreatedTimeA - CreatedTimeB))
-                .map(({ MessageId, ...rest }) => (<RecapMessage key={MessageId} message={{ MessageId, ...rest }} />))
+                .map(({ MessageId, Type, ...rest }) => (Type === "ANNOUNCEMENT"
+                    ? <AnnouncementMessage key={MessageId} Message={rest.Message} Title={rest.Title} Recap />
+                    : <RecapMessage key={MessageId} message={{ MessageId, ...rest }} />
+                ))
         }
     </React.Fragment>
 }

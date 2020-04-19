@@ -36,6 +36,12 @@ export const useStyles = makeStyles(theme => ({
         backgroundColor: grey[200],
         paddingLeft: theme.spacing(8)
     },
+    lightgrey: {
+        backgroundColor: grey[200],
+    },
+    darkgrey: {
+        backgroundColor: grey[400]
+    },
     root: {
         '& .MuiTextField-root': {
             margin: theme.spacing(1),

@@ -26,7 +26,7 @@ export const ConfirmDialog = () => {
             maxWidth="lg"
             open={Boolean(currentDialog)}
         >
-            { currentDialog && currentDialog.title && <DialogTitle id="all-character-dialog-title">{ currentDialog.title }</DialogTitle> }
+            { currentDialog && currentDialog.title && <DialogTitle id="confirm-dialog-title" className={classes.lightblue}>{ currentDialog.title }</DialogTitle> }
             <DialogContent>
                 { currentDialog && currentDialog.content }
             </DialogContent>

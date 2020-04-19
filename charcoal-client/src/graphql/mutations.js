@@ -163,6 +163,8 @@ export const putRoomMessage = /* GraphQL */ `
   mutation PutRoomMessage(
     $RoomId: String!
     $Message: String!
+    $MessageType: String
+    $Title: String
     $FromCharacterId: String
     $MessageId: String
     $CreatedTime: Long
@@ -170,6 +172,8 @@ export const putRoomMessage = /* GraphQL */ `
     putRoomMessage(
       RoomId: $RoomId
       Message: $Message
+      MessageType: $MessageType
+      Title: $Title
       FromCharacterId: $FromCharacterId
       MessageId: $MessageId
       CreatedTime: $CreatedTime
@@ -181,6 +185,8 @@ export const putRoomMessage = /* GraphQL */ `
       FromCharacterId
       Recap
       ExpirationTime
+      Type
+      Title
     }
   }
 `;

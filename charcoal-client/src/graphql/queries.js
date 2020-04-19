@@ -128,6 +128,8 @@ export const getRoomRecap = /* GraphQL */ `
       FromCharacterId
       Recap
       ExpirationTime
+      Type
+      Title
     }
   }
 `;

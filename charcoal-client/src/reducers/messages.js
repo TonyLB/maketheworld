@@ -2,7 +2,8 @@ import { RECEIVE_MESSAGE } from '../actions/messages.js'
 import {
     playerMessage,
     worldMessage,
-    roomDescription
+    roomDescription,
+    announcementMessage
 } from '../store/messages'
 
 export const reducer = (state = [], action) => {
@@ -10,11 +11,18 @@ export const reducer = (state = [], action) => {
     switch (actionType) {
         case RECEIVE_MESSAGE:
             const { protocol = '', ...rest } = payload
+            const { Message } = rest
             switch (protocol) {
                 case 'playerMessage':
-                    const { Message } = rest
                     if (Message) {
                         return [ ...state, new playerMessage(rest) ]
+                    }
+                    else {
+                        return state
+                    }
+                case 'announcementMessage':
+                    if (Message) {
+                        return [ ...state, new announcementMessage(rest) ]
                     }
                     else {
                         return state

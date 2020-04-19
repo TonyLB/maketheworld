@@ -15,3 +15,12 @@ export const getAvailableBehaviors = ({ currentRoom }) => {
         ...(exitNames.map((name) => (`go ${name}`)))
     ]
 }
+
+export const getCurrentNeighborhood = ({ currentRoom, permanentHeaders }) => {
+    if (currentRoom && currentRoom.ParentId) {
+        return permanentHeaders[currentRoom.ParentId]
+    }
+    else {
+        return null
+    }
+}

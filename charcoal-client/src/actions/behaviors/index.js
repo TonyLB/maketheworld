@@ -3,17 +3,25 @@ import lookRoom from './lookRoom'
 import moveCharacter from './moveCharacter'
 import goHome from './home'
 import announce from './announce'
+import shout from './shout'
 
 export const parseCommand = (entry) => (dispatch, getState) => {
-    console.log(`Command: ${entry}`)
     if (entry === 'l' || entry === 'look') {
         return dispatch(lookRoom())
     }
     if (entry === 'home') {
         return dispatch(goHome())
     }
-    if (entry === 'announce') {
-        return dispatch(announce())
+    const re = /^(\w+)\s+(.*)$/
+    const match = re.exec(entry)
+    if (match) {
+        const [verb, object] = match.slice(1)
+        if (verb.toLocaleLowerCase() === 'announce') {
+            return dispatch(announce(object))
+        }
+        if (verb.toLocaleLowerCase() === 'shout') {
+            return dispatch(shout(object))
+        }
     }
     const state = getState()
     const { currentRoom, connection } = state

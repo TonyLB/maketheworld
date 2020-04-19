@@ -88,6 +88,8 @@ export const addedRoomMessage = /* GraphQL */ `
       FromCharacterId
       Recap
       ExpirationTime
+      Type
+      Title
     }
   }
 `;
