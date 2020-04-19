@@ -63,15 +63,23 @@ const updateEntryName = (roomId, name) => ({
     name
 })
 const ADD_EXIT = 'ADD_EXIT'
-const addExit = (roomId) => ({
+const addExit = (roomId, name) => ({
     type: ADD_EXIT,
-    roomId
+    roomId,
+    name
 })
 const ADD_ENTRY = 'ADD_ENTRY'
-const addEntry = (roomId) => ({
+const addEntry = (roomId, name) => ({
     type: ADD_ENTRY,
-    roomId
+    roomId,
+    name
 })
+
+const convertNameForExit = (name) => {
+    const re = /^(?:(?:the|an)\s)*(.*)$/i
+    const match = re.exec(name)
+    return (match ? match[1] : name).toLocaleLowerCase()
+}
 const roomDialogReducer = (state, action) => {
     switch(action.type) {
         case APPEARANCE_UPDATE:
@@ -124,7 +132,7 @@ const roomDialogReducer = (state, action) => {
                     exits: [
                         ...state.exits,
                         {
-                            name: '',
+                            name: convertNameForExit(action.name),
                             id: '',
                             roomId: action.roomId
                         }
@@ -141,7 +149,7 @@ const roomDialogReducer = (state, action) => {
                     entries: [
                         ...state.entries,
                         {
-                            name: '',
+                            name: convertNameForExit(action.name),
                             id: '',
                             roomId: action.roomId
                         }
@@ -189,9 +197,9 @@ export const RoomDialog = ({ nested=false }) => {
             : updateEntryName(roomId, event.target.value)
         )
     }
-    const onPathAddHandler = (roomId) => () => {
-        formDispatch(addExit(roomId))
-        formDispatch(addEntry(roomId))
+    const onPathAddHandler = (roomId, exitName) => () => {
+        formDispatch(addExit(roomId, exitName))
+        formDispatch(addEntry(roomId, name))
         setNeighborhoodAddAnchorEl(null)
         setExternalAddAnchorEl(null)
     }

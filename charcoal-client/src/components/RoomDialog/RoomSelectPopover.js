@@ -35,7 +35,7 @@ export const NeighborhoodListItem = ({
     if (type === 'ROOM') {
         return <ListItem
             button
-            onClick={addHandler(permanentId)}
+            onClick={addHandler(permanentId, name)}
             {...rest}
         >
             <ListItemIcon>
