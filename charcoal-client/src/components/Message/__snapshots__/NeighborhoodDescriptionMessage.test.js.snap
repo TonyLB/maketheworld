@@ -1,0 +1,77 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NeighborhoodDescriptionMessage component should render empty message 1`] = `
+<li
+  class="MuiListItem-root makeStyles-roomMessage-25 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+>
+  <div
+    class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
+  >
+    <svg
+      aria-hidden="true"
+      class="MuiSvgIcon-root"
+      focusable="false"
+      role="presentation"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3l-3-2.7zm-9 .7c0-1.1.9-2 2-2s2 .9 2 2h-4z"
+      />
+    </svg>
+  </div>
+  <div
+    class="MuiListItemText-root"
+  >
+    <span
+      class="MuiTypography-root MuiListItemText-primary MuiTypography-body1"
+    >
+      <h5
+        class="MuiTypography-root MuiTypography-h5 MuiTypography-alignLeft"
+      />
+      <p
+        class="MuiTypography-root MuiTypography-body1 MuiTypography-alignLeft"
+      />
+    </span>
+  </div>
+</li>
+`;
+
+exports[`NeighborhoodDescriptionMessage component should render test message 1`] = `
+<li
+  class="MuiListItem-root makeStyles-roomMessage-128 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+>
+  <div
+    class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
+  >
+    <svg
+      aria-hidden="true"
+      class="MuiSvgIcon-root"
+      focusable="false"
+      role="presentation"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3l-3-2.7zm-9 .7c0-1.1.9-2 2-2s2 .9 2 2h-4z"
+      />
+    </svg>
+  </div>
+  <div
+    class="MuiListItemText-root"
+  >
+    <span
+      class="MuiTypography-root MuiListItemText-primary MuiTypography-body1"
+    >
+      <h5
+        class="MuiTypography-root MuiTypography-h5 MuiTypography-alignLeft"
+      >
+        Test
+      </h5>
+      <p
+        class="MuiTypography-root MuiTypography-body1 MuiTypography-alignLeft"
+      >
+        This is a test
+      </p>
+    </span>
+  </div>
+</li>
+`;

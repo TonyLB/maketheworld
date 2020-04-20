@@ -3,7 +3,8 @@ import {
     playerMessage,
     worldMessage,
     roomDescription,
-    announcementMessage
+    announcementMessage,
+    neighborhoodDescription
 } from '../store/messages'
 
 export const reducer = (state = [], action) => {
@@ -29,6 +30,8 @@ export const reducer = (state = [], action) => {
                     }
                 case 'roomDescription':
                     return [ ...state, new roomDescription(rest) ]
+                case 'neighborhoodDescription':
+                    return [ ...state, new neighborhoodDescription(rest) ]
                 default:
                     return [ ...state, new worldMessage(rest) ]
             }

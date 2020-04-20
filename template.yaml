@@ -741,7 +741,8 @@ Resources:
                       "Type": $node.type,
                       "PermanentId": $node.permanentId,
                       "ParentId": $node.parentId,
-                      "Ancestry": $node.ancestry
+                      "Ancestry": $node.ancestry,
+                      "Description": $node.description
                   }))
               #end
               $util.toJson($output)
