@@ -52,6 +52,10 @@ export const useStyles = makeStyles(theme => ({
         color: theme.palette.getContrastText(theme.palette.primary.main),
         backgroundColor: theme.palette.primary.main,
     },
+    neighborhoodMessage: {
+        color: theme.palette.getContrastText(theme.palette.primary.light),
+        backgroundColor: theme.palette.primary.light,
+    },
     card: {
         margin: "10px"
     },

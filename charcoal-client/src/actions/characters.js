@@ -12,6 +12,7 @@ import { fetchCurrentRoom } from './currentRoom'
 import { lookRoom } from './behaviors/lookRoom'
 import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
+import { getCurrentNeighborhood } from '../selectors/currentRoom'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -135,8 +136,8 @@ export const addCharacterInPlay = ({ characterId, connectionId }) => (dispatch, 
 }
 
 export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) => {
-    const { connection, charactersInPlay } = getState()
-    const myCharacter = connection && connection.characterId && charactersInPlay && charactersInPlay[connection.characterId]
+    const state = getState()
+    const { connection, charactersInPlay } = state
     //
     // Update the store in any event
     //
@@ -148,11 +149,14 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         //
         // Handle actions that depend upon changes in the state of your own character.
         //
+        const myCharacter = connection && connection.characterId && charactersInPlay && charactersInPlay[connection.characterId]
+        const currentNeighborhood = getCurrentNeighborhood(state)
+        const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
         if (!(myCharacter && myCharacter.ConnectionId && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
             return dispatch(fetchCurrentRoom(payload.RoomId))
                 .then(() => (dispatch(moveRoomSubscription(payload.RoomId))))
                 .then(() => {
-                    dispatch(lookRoom({ Recap: true }))
+                    dispatch(lookRoom({ Recap: true, showNeighborhoods: true, previousAncestry }))
                     const { Character = {} } = payload
                     const { Name = 'Someone' } = Character
                     return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })

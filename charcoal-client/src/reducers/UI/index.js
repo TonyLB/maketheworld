@@ -5,6 +5,7 @@ import roomDialog from "./roomDialog"
 import neighborhoodDialog from './neighborhoodDialog'
 import worldDialog from './worldDialog'
 import confirmDialog from './confirmDialog'
+import helpDialog from './helpDialog'
 
 export const reducer = combineReducers({
     allCharactersDialog,
@@ -12,7 +13,8 @@ export const reducer = combineReducers({
     roomDialog,
     worldDialog,
     neighborhoodDialog,
-    confirmDialog
+    confirmDialog,
+    helpDialog
 })
 
 export default reducer

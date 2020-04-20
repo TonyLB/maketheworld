@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import {
     Typography,
@@ -16,10 +16,12 @@ import {
 import HouseIcon from '@material-ui/icons/House'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import ChevronRightIcon from '@material-ui/icons/ChevronRight'
 import CreateIcon from '@material-ui/icons/Create'
 
 import useStyles from '../styles'
 
+import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import RecapMessage from './RecapMessage'
@@ -45,9 +47,10 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
     }, [detailsOpen, inline, timeoutId, manuallyOpened])
 
     const classes = useStyles()
-    const { RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='' } = message
+    const { RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='' } = message
 
     const dispatch = useDispatch()
+    const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry))
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <React.Fragment>
         <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
@@ -56,6 +59,29 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
             </ListItemIcon>
             <ListItemText>
                 <Typography variant='h5' align='left'>
+                    {
+                        !inline &&
+                            neighborhoods.map(({ name, description }) => (
+                                    <React.Fragment key={`Neighborhood-${name}`}>
+                                        <Tooltip
+                                            key={`Neighborhood-${name}`}
+                                            interactive
+                                            arrow
+                                            title={
+                                                <React.Fragment>
+                                                    <Typography variant='subtitle1' align='center'>
+                                                        {name}
+                                                    </Typography>
+                                                    {description}
+                                                </React.Fragment>
+                                            }
+                                        >
+                                            <span>{name}</span>
+                                        </Tooltip>
+                                        &nbsp;&nbsp;<ChevronRightIcon />&nbsp;&nbsp;
+                                    </React.Fragment>
+                                ))
+                    }
                     { Name }
                 </Typography>
                 <Typography variant='body1' align='left'>

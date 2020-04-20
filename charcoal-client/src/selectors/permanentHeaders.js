@@ -7,3 +7,9 @@ export const getRoomIdsInNeighborhood = (NeighborhoodId) => ({ permanentHeaders 
         .filter(({ ancestry }) => (ancestry.startsWith(baseAncestry)))
         .map(({ permanentId }) => permanentId)
 }
+
+export const getNeighborhoodsByAncestry = (Ancestry) => ({ permanentHeaders = {}}) => {
+    const ancestryList = Ancestry ? Ancestry.split(':').slice(0, -1) : []
+    return ancestryList.map((neighborhoodId) => (permanentHeaders && permanentHeaders[neighborhoodId]))
+        .filter((neighborhood) => (neighborhood))
+}
