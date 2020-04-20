@@ -33,6 +33,7 @@ import { registerCharacter } from '../actions/registeredCharacter.js'
 import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
+import { activateHelpDialog } from '../actions/UI/helpDialog'
 import { putPlayer } from '../actions/player'
 import { getCurrentRoom } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
@@ -50,6 +51,7 @@ import AllCharactersDialog from './AllCharactersDialog'
 import WorldDialog from './WorldDialog/'
 import MyCharacterDialog from './MyCharacterDialog'
 import ConfirmDialog from './ConfirmDialog'
+import HelpDialog from './HelpDialog'
 import WhoDrawer from './WhoDrawer'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
@@ -125,6 +127,10 @@ export const Chat = () => {
     }
     const handleSetCharacterHome = () => {
         dispatch(setCurrentCharacterHome(currentRoom && currentRoom.PermanentId))
+        handleMenuClose()
+    }
+    const handleHelpDialog = () => {
+        dispatch(activateHelpDialog())
         handleMenuClose()
     }
 
@@ -238,11 +244,15 @@ export const Chat = () => {
                             <MenuItem onClick={handleWorldOverview}>
                                 World Overview
                             </MenuItem>
+                            <MenuItem onClick={handleHelpDialog}>
+                                Help
+                            </MenuItem>
                         </Menu>
                     </Toolbar>
                 </Container>
             </AppBar>
 
+            <HelpDialog />
             <ConfirmDialog />
             <AllCharactersDialog />
             <WorldDialog />
