@@ -187,35 +187,16 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-      - AttributeName: "MessageId"
+      - AttributeName: "Target"
         AttributeType: "S"
-      - AttributeName: "CharacterId"
+      - AttributeName: "DataCategory"
         AttributeType: "S"
-      - AttributeName: "RoomId"
-        AttributeType: "S"
-      - AttributeName: "CreatedTime"
-        AttributeType: "N"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
-      - AttributeName: "MessageId"
+      - AttributeName: "Target"
         KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        - IndexName: RoomIndex
-          KeySchema:
-            - AttributeName: RoomId
-              KeyType: HASH
-            - AttributeName: CreatedTime
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        - IndexName: CharacterIndex
-          KeySchema:
-            - AttributeName: CharacterId
-              KeyType: HASH
-            - AttributeName: CreatedTime
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
+      - AttributeName: "DataCategory"
+        KeyType: "RANGE"
       SSESpecification:
         SSEEnabled: False
       TableName: !Sub '${TablePrefix}_messages'
@@ -911,16 +892,30 @@ Resources:
                 "version": "2017-02-28",
                 "operation": "Query",
                 "query": {
-                  "expression": "RoomId = :RoomId",
+                  "expression": "Target = :RoomId",
                   "expressionValues": {
-                      ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                      ":RoomId": $util.dynamodb.toDynamoDBJson("ROOM#$ctx.args.PermanentId")
                   }
                 },
-                "index": "RoomIndex",
                 "scanIndexForward": false,
                 "limit": 10
             }
-        ResponseMappingTemplate: $util.toJson($ctx.result.items)
+        ResponseMappingTemplate: >
+            #set($output = [])
+            #foreach($message in $ctx.result.items)
+                #set($split = $message.DataCategory.split("#"))
+                $util.qr($output.add({
+                    "RoomId": "$ctx.args.PermanentId",
+                    "Type": "$util.defaultIfNull($message.Type, 'ROOM')",
+                    "CreatedTime": $split[0],
+                    "MessageId": "$split[1]",
+                    "Recap": true,
+                    "Message": "$message.Message",
+                    "FromCharacterId": "$util.defaultIfNull($message.FromCharacterId, '')",
+                    "Title": "$util.defaultIfNull($message.Title, '')"
+                }))
+            #end
+            $util.toJson($output)
   MutationPreQueryCharacterInPlay:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -1413,20 +1408,30 @@ Resources:
                 "version": "2018-05-29",
                 "operation": "PutItem",
                 "key": {
-                    "MessageId": $ddb.toDynamoDBJson($MessageId)
+                    "Target": $ddb.toDynamoDBJson("ROOM#${args.RoomId}"),
+                    "DataCategory": $ddb.toDynamoDBJson("${CreatedTime}#${MessageId}")
                 },
                 "attributeValues": {
-                    "CreatedTime": $ddb.toNumberJson($CreatedTime),
                     "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
-                    "RoomId": $ddb.toDynamoDBJson($args.RoomId),
-                    "Type": $ddb.toStringJson($MessageType),
-                    "Recap": $ddb.toBooleanJson(false)
+                    "Recap": $ddb.toBooleanJson(false),
+                    "Type": $ddb.toStringJson($MessageType)
                     #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
                     #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
                     #if(!$util.isNullOrEmpty($args.Title)), "Title": $ddb.toStringJson($args.Title) #end
                 }
             }
-        ResponseMappingTemplate: "$util.toJson($ctx.result)"
+        ResponseMappingTemplate: >
+            #set($split = $ctx.result.DataCategory.split("#"))
+            $util.toJson({
+                "RoomId": "$ctx.args.RoomId",
+                "Type": "$util.defaultIfNull($ctx.result.Type, 'ROOM')",
+                "CreatedTime": "$split[0]",
+                "MessageId": "$split[1]",
+                "Recap": true,
+                "Message": "$ctx.result.Message",
+                "FromCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
+                "Title": "$util.defaultIfNull($ctx.result.Title, '')"
+            })
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:

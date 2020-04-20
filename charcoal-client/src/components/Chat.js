@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
+// Amplify imports
+import { Auth } from 'aws-amplify'
+
 // MaterialUI imports
 import {
     Container,
@@ -34,6 +37,7 @@ import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
+import { activateConfirmDialog } from '../actions/UI/confirmDialog'
 import { putPlayer } from '../actions/player'
 import { getCurrentRoom } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
@@ -131,6 +135,17 @@ export const Chat = () => {
     }
     const handleHelpDialog = () => {
         dispatch(activateHelpDialog())
+        handleMenuClose()
+    }
+    const handleSignout = () => {
+        dispatch(activateConfirmDialog({
+            title: 'Sign Out',
+            content: `Are you sure you want to sign out?`,
+            resolveButtonTitle: 'Sign out',
+            resolve: () => {
+                Auth.signOut()
+            }
+        }))
         handleMenuClose()
     }
 
@@ -246,6 +261,9 @@ export const Chat = () => {
                             </MenuItem>
                             <MenuItem onClick={handleHelpDialog}>
                                 Help
+                            </MenuItem>
+                            <MenuItem onClick={handleSignout}>
+                                Sign Out
                             </MenuItem>
                         </Menu>
                     </Toolbar>
