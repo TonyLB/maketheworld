@@ -41,6 +41,7 @@ exports.handler = event => {
         FirstImpression
         Outfit
         OneCoolThing
+        HomeId
       }
       RoomId
       ConnectionId
@@ -55,13 +56,16 @@ exports.handler = event => {
         const disconnectMessageMutation = gql`mutation DisconnectMessage {
           putRoomMessage(
             RoomId: "${RoomId}",
-            Message: "${Character.Name} has disconnected."
+            Message: ${ JSON.stringify(`${Character.Name} has disconnected.`) }
           ) {
             MessageId
             CreatedTime
-            RoomId
+            Target
             Message
+            RoomId
+            CharacterId
             FromCharacterId
+            ToCharacterId
             Recap
             ExpirationTime
             Type

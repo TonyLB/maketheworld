@@ -75,7 +75,7 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
                 const { value = {} } = messageData
                 const { data = {} } = value
                 const { addedMessage = {} } = data
-                const { Message, FromCharacterId, Type, Title } = addedMessage
+                const { Message, FromCharacterId, Type, Title } = addedMessage || {}
                 switch(Type) {
                     case 'ROOM':
                         if (FromCharacterId) {
@@ -137,7 +137,7 @@ export const directMessageSubscription = () => (dispatch, getState) => {
                 const { value = {} } = messageData
                 const { data = {} } = value
                 const { addedMessage = {} } = data
-                const { Message, FromCharacterId, ToCharacterId, Type } = addedMessage
+                const { Message, FromCharacterId, ToCharacterId, Type } = addedMessage || {}
                 switch(Type) {
                     case 'DIRECT':
                         if (FromCharacterId) {
