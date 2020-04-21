@@ -14,7 +14,8 @@ import {
 } from '../actions/player'
 import {
     unsubscribeAll,
-    subscribeRealtimePings
+    subscribeRealtimePings,
+    directMessageSubscription
 } from '../actions/subscriptions'
 
 export const useAppSyncSubscriptions = () => {
@@ -33,6 +34,9 @@ export const useAppSyncSubscriptions = () => {
         }
         if (!(subscriptions.rooms && subscriptions.neighborhoods)) {
             dispatch(subscribePermanentHeaderChanges())
+        }
+        if (!subscriptions.directMessages) {
+            dispatch(directMessageSubscription())
         }
         if (!subscriptions.ping) {
             dispatch(subscribeRealtimePings())

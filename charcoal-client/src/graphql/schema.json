@@ -190,7 +190,7 @@
             "name" : null,
             "ofType" : {
               "kind" : "OBJECT",
-              "name" : "RoomMessage",
+              "name" : "Message",
               "ofType" : null
             }
           },
@@ -993,7 +993,7 @@
         "possibleTypes" : null
       }, {
         "kind" : "OBJECT",
-        "name" : "RoomMessage",
+        "name" : "Message",
         "description" : null,
         "fields" : [ {
           "name" : "MessageId",
@@ -1026,7 +1026,7 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "RoomId",
+          "name" : "Target",
           "description" : null,
           "args" : [ ],
           "type" : {
@@ -1056,7 +1056,40 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
+          "name" : "RoomId",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "SCALAR",
+            "name" : "String",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "CharacterId",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "SCALAR",
+            "name" : "String",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
           "name" : "FromCharacterId",
+          "description" : null,
+          "args" : [ ],
+          "type" : {
+            "kind" : "SCALAR",
+            "name" : "String",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "ToCharacterId",
           "description" : null,
           "args" : [ ],
           "type" : {
@@ -1112,11 +1145,7 @@
           "deprecationReason" : null
         } ],
         "inputFields" : null,
-        "interfaces" : [ {
-          "kind" : "INTERFACE",
-          "name" : "Message",
-          "ofType" : null
-        } ],
+        "interfaces" : [ ],
         "enumValues" : null,
         "possibleTypes" : null
       }, {
@@ -1128,49 +1157,6 @@
         "interfaces" : null,
         "enumValues" : null,
         "possibleTypes" : null
-      }, {
-        "kind" : "INTERFACE",
-        "name" : "Message",
-        "description" : null,
-        "fields" : [ {
-          "name" : "MessageId",
-          "description" : null,
-          "args" : [ ],
-          "type" : {
-            "kind" : "NON_NULL",
-            "name" : null,
-            "ofType" : {
-              "kind" : "SCALAR",
-              "name" : "String",
-              "ofType" : null
-            }
-          },
-          "isDeprecated" : false,
-          "deprecationReason" : null
-        }, {
-          "name" : "CreatedTime",
-          "description" : null,
-          "args" : [ ],
-          "type" : {
-            "kind" : "NON_NULL",
-            "name" : null,
-            "ofType" : {
-              "kind" : "SCALAR",
-              "name" : "Long",
-              "ofType" : null
-            }
-          },
-          "isDeprecated" : false,
-          "deprecationReason" : null
-        } ],
-        "inputFields" : null,
-        "interfaces" : null,
-        "enumValues" : null,
-        "possibleTypes" : [ {
-          "kind" : "OBJECT",
-          "name" : "RoomMessage",
-          "ofType" : null
-        } ]
       }, {
         "kind" : "OBJECT",
         "name" : "Mutation",
@@ -1585,7 +1571,88 @@
           } ],
           "type" : {
             "kind" : "OBJECT",
-            "name" : "RoomMessage",
+            "name" : "Message",
+            "ofType" : null
+          },
+          "isDeprecated" : false,
+          "deprecationReason" : null
+        }, {
+          "name" : "putDirectMessage",
+          "description" : null,
+          "args" : [ {
+            "name" : "CharacterId",
+            "description" : null,
+            "type" : {
+              "kind" : "NON_NULL",
+              "name" : null,
+              "ofType" : {
+                "kind" : "SCALAR",
+                "name" : "String",
+                "ofType" : null
+              }
+            },
+            "defaultValue" : null
+          }, {
+            "name" : "Message",
+            "description" : null,
+            "type" : {
+              "kind" : "NON_NULL",
+              "name" : null,
+              "ofType" : {
+                "kind" : "SCALAR",
+                "name" : "String",
+                "ofType" : null
+              }
+            },
+            "defaultValue" : null
+          }, {
+            "name" : "FromCharacterId",
+            "description" : null,
+            "type" : {
+              "kind" : "NON_NULL",
+              "name" : null,
+              "ofType" : {
+                "kind" : "SCALAR",
+                "name" : "String",
+                "ofType" : null
+              }
+            },
+            "defaultValue" : null
+          }, {
+            "name" : "ToCharacterId",
+            "description" : null,
+            "type" : {
+              "kind" : "NON_NULL",
+              "name" : null,
+              "ofType" : {
+                "kind" : "SCALAR",
+                "name" : "String",
+                "ofType" : null
+              }
+            },
+            "defaultValue" : null
+          }, {
+            "name" : "MessageId",
+            "description" : null,
+            "type" : {
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
+            },
+            "defaultValue" : null
+          }, {
+            "name" : "CreatedTime",
+            "description" : null,
+            "type" : {
+              "kind" : "SCALAR",
+              "name" : "Long",
+              "ofType" : null
+            },
+            "defaultValue" : null
+          } ],
+          "type" : {
+            "kind" : "OBJECT",
+            "name" : "Message",
             "ofType" : null
           },
           "isDeprecated" : false,
@@ -1704,25 +1771,30 @@
           "isDeprecated" : false,
           "deprecationReason" : null
         }, {
-          "name" : "addedRoomMessage",
+          "name" : "addedMessage",
           "description" : null,
           "args" : [ {
             "name" : "RoomId",
             "description" : null,
             "type" : {
-              "kind" : "NON_NULL",
-              "name" : null,
-              "ofType" : {
-                "kind" : "SCALAR",
-                "name" : "String",
-                "ofType" : null
-              }
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
+            },
+            "defaultValue" : null
+          }, {
+            "name" : "CharacterId",
+            "description" : null,
+            "type" : {
+              "kind" : "SCALAR",
+              "name" : "String",
+              "ofType" : null
             },
             "defaultValue" : null
           } ],
           "type" : {
             "kind" : "OBJECT",
-            "name" : "RoomMessage",
+            "name" : "Message",
             "ofType" : null
           },
           "isDeprecated" : false,

@@ -27,6 +27,14 @@ export const useStyles = makeStyles(theme => ({
             backgroundColor: tinycolor(color[50]).darken(10).desaturate(60).toHexString(),
             paddingLeft: theme.spacing(8)
         },
+        [`direct${colorName}`]: {
+            color: theme.palette.getContrastText(color[50]),
+            backgroundColor: color[50],
+            borderRadius: "10px",
+            borderColor: color[500],
+            borderWidth: "1px",
+            borderStyle: "solid"
+        },
         [`chip-${colorName}`]: {
             color: theme.palette.getContrastText(color[50]),
             backgroundColor: color[50]

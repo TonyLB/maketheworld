@@ -9,7 +9,8 @@ const colorSequence = ['pink', 'purple', 'green']
         primary: color,
         light: `light${color}`,
         recap: `recap${color}`,
-        recapLight: `recapLight${color}`
+        recapLight: `recapLight${color}`,
+        direct: `direct${color}`
     }))
 
 export const reducer = (state = '', action = {}) => {

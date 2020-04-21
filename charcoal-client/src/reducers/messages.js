@@ -4,7 +4,8 @@ import {
     worldMessage,
     roomDescription,
     announcementMessage,
-    neighborhoodDescription
+    neighborhoodDescription,
+    directMessage
 } from '../store/messages'
 
 export const reducer = (state = [], action) => {
@@ -28,6 +29,8 @@ export const reducer = (state = [], action) => {
                     else {
                         return state
                     }
+                case 'directMessage':
+                    return Message ? [ ...state, new directMessage(rest) ] : state
                 case 'roomDescription':
                     return [ ...state, new roomDescription(rest) ]
                 case 'neighborhoodDescription':

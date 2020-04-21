@@ -905,6 +905,7 @@ Resources:
             #foreach($message in $ctx.result.items)
                 #set($split = $message.DataCategory.split("#"))
                 $util.qr($output.add({
+                    "Target": "$ctx.result.Target",
                     "RoomId": "$ctx.args.PermanentId",
                     "Type": "$util.defaultIfNull($message.Type, 'ROOM')",
                     "CreatedTime": $split[0],
@@ -1423,14 +1424,67 @@ Resources:
         ResponseMappingTemplate: >
             #set($split = $ctx.result.DataCategory.split("#"))
             $util.toJson({
-                "RoomId": "$ctx.args.RoomId",
+                "Target": "${ctx.result.Target}",
+                "RoomId": "${ctx.args.RoomId}",
                 "Type": "$util.defaultIfNull($ctx.result.Type, 'ROOM')",
                 "CreatedTime": "$split[0]",
                 "MessageId": "$split[1]",
-                "Recap": true,
+                "Recap": false,
                 "Message": "$ctx.result.Message",
                 "FromCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
-                "Title": "$util.defaultIfNull($ctx.result.Title, '')"
+                "ToCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
+                "Title": "$util.defaultIfNull($ctx.result.Title, '')",
+                "CharacterId": "$util.defaultIfNull($ctx.result.CharacterId, '')",
+                "ExpirationTime": "$util.defaultIfNull($ctx.result.ExpirationTime, 0)"
+            })
+  MutationPutDirectMessage:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: putDirectMessage
+        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            #set($args = $ctx.args)
+            #if($util.isNullOrEmpty($args.CharacterId))
+                $util.error("CharacterId field required")
+            #end
+            #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
+            #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
+            #set ($ExpirationTime = $util.time.nowEpochSeconds() + 600)
+            #set( $ddb = $util.dynamodb )
+            {
+                "version": "2018-05-29",
+                "operation": "PutItem",
+                "key": {
+                    "Target": $ddb.toDynamoDBJson("CHARACTER#${args.CharacterId}"),
+                    "DataCategory": $ddb.toDynamoDBJson("${CreatedTime}#${MessageId}")
+                },
+                "attributeValues": {
+                    "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
+                    "Recap": $ddb.toBooleanJson(false),
+                    "Type": $ddb.toStringJson("DIRECT")
+                    #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
+                    #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
+                    #if(!$util.isNullOrEmpty($args.ToCharacterId)), "ToCharacterId": $ddb.toStringJson($args.ToCharacterId) #end
+                }
+            }
+        ResponseMappingTemplate: >
+            #set($split = $ctx.result.DataCategory.split("#"))
+            $util.toJson({
+                "Target": "${ctx.result.Target}",
+                "CharacterId": "${ctx.args.CharacterId}",
+                "Type": "DIRECT",
+                "CreatedTime": "$split[0]",
+                "MessageId": "$split[1]",
+                "Recap": false,
+                "Message": "$ctx.result.Message",
+                "FromCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
+                "ToCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
+                "Title": "$util.defaultIfNull($ctx.result.Title, '')",
+                "RoomId": "$util.defaultIfNull($ctx.result.RoomId, '')",
+                "ExpirationTime": "$util.defaultIfNull($ctx.result.ExpirationTime, 0)"
             })
   Schema:
       Type: AWS::AppSync::GraphQLSchema
@@ -1506,16 +1560,15 @@ Resources:
                   Exits: [Exit]
                   Entries: [Entry]
               }
-              interface Message {
+              type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
                   CreatedTime: Long!
-              }
-              type RoomMessage implements Message @aws_iam @aws_cognito_user_pools {
-                  MessageId: String!
-                  CreatedTime: Long!
-                  RoomId: String!
+                  Target: String!
                   Message: String!
+                  RoomId: String
+                  CharacterId: String
                   FromCharacterId: String
+                  ToCharacterId: String
                   Recap: Boolean
                   ExpirationTime: Long
                   Type: String
@@ -1570,7 +1623,16 @@ Resources:
                       FromCharacterId: String
                       MessageId: String
                       CreatedTime: Long
-                  ): RoomMessage
+                  ): Message
+                  @aws_iam @aws_cognito_user_pools
+                  putDirectMessage(
+                      CharacterId: String!
+                      Message: String!
+                      FromCharacterId: String!
+                      ToCharacterId: String!
+                      MessageId: String
+                      CreatedTime: Long
+                  ): Message
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
@@ -1581,7 +1643,7 @@ Resources:
                   getNeighborhoodTree: [PermanentTreeNode]
                   getNeighborhood(PermanentId: String!): Neighborhood
                   getRoom(PermanentId: String!): Room
-                  getRoomRecap(PermanentId: String!): [RoomMessage]
+                  getRoomRecap(PermanentId: String!): [Message]
                   getRoomByCharacter(CharacterId: String!): Room
               }
               type Subscription {
@@ -1595,8 +1657,11 @@ Resources:
                   @aws_subscribe(mutations: ["putNeighborhood"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
-                  addedRoomMessage (RoomId: String!): RoomMessage
-                  @aws_subscribe(mutations: ["putRoomMessage"])
+                  addedMessage (
+                    RoomId: String
+                    CharacterId: String
+                  ): Message
+                  @aws_subscribe(mutations: ["putRoomMessage", "putDirectMessage"])
               }
               schema {
                   mutation: Mutation

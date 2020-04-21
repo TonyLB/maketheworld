@@ -180,9 +180,44 @@ export const putRoomMessage = /* GraphQL */ `
     ) {
       MessageId
       CreatedTime
-      RoomId
+      Target
       Message
+      RoomId
+      CharacterId
       FromCharacterId
+      ToCharacterId
+      Recap
+      ExpirationTime
+      Type
+      Title
+    }
+  }
+`;
+export const putDirectMessage = /* GraphQL */ `
+  mutation PutDirectMessage(
+    $CharacterId: String!
+    $Message: String!
+    $FromCharacterId: String!
+    $ToCharacterId: String!
+    $MessageId: String
+    $CreatedTime: Long
+  ) {
+    putDirectMessage(
+      CharacterId: $CharacterId
+      Message: $Message
+      FromCharacterId: $FromCharacterId
+      ToCharacterId: $ToCharacterId
+      MessageId: $MessageId
+      CreatedTime: $CreatedTime
+    ) {
+      MessageId
+      CreatedTime
+      Target
+      Message
+      RoomId
+      CharacterId
+      FromCharacterId
+      ToCharacterId
       Recap
       ExpirationTime
       Type

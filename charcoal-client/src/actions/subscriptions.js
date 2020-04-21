@@ -1,9 +1,8 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { addedRoomMessage } from '../graphql/subscriptions'
-import { worldMessageAdded, playerMessageAdded, announcementAdded } from './messages'
+import { worldMessageAdded, playerMessageAdded, announcementAdded, directMessageAdded } from './messages'
 import { socketDispatch } from './webSocket'
 
-import { getCurrentRoomId } from '../selectors/connection'
+import { getCurrentRoomId, getCharacterId } from '../selectors/connection'
 
 export const ADD_SUBSCRIPTION = 'ADD_SUBSCRIPTION'
 export const REMOVE_ALL_SUBSCRIPTIONS = 'REMOVE_ALL_SUBSCRIPTIONS'
@@ -48,13 +47,35 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
         console.log('Cannot yet subscribe to room messages')
     }
     else {
-        const newRoomSubscription = API.graphql(graphqlOperation(addedRoomMessage, { RoomId: currentRoomId }))
+        //
+        // Unfortunately, as of the writing of this code (April 2020), Amplify's codegen
+        // doesn't handle multiply-parametrized subscriptions worth beans, so we need
+        // to explicitly create a subscription (and keep it updated if it is ever
+        // changed in the schema).  Boo.
+        //
+        const roomSubscription = `subscription AddedMessage {
+            addedMessage(RoomId: "${currentRoomId}") {
+              MessageId
+              CreatedTime
+              Target
+              Message
+              RoomId
+              CharacterId
+              FromCharacterId
+              ToCharacterId
+              Recap
+              ExpirationTime
+              Type
+              Title
+            }
+          }`
+        const newRoomSubscription = API.graphql(graphqlOperation(roomSubscription))
         .subscribe({
             next: (messageData) => {
                 const { value = {} } = messageData
                 const { data = {} } = value
-                const { addedRoomMessage = {} } = data
-                const { Message, FromCharacterId, Type, Title } = addedRoomMessage
+                const { addedMessage = {} } = data
+                const { Message, FromCharacterId, Type, Title } = addedMessage
                 switch(Type) {
                     case 'ROOM':
                         if (FromCharacterId) {
@@ -73,5 +94,61 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
             }
         })
         dispatch(addSubscription({ currentRoom: newRoomSubscription }))
+    }
+}
+
+export const directMessageSubscription = () => (dispatch, getState) => {
+    const state = getState()
+    const { subscriptions } = state
+    const { directMessages } = subscriptions || {}
+    if (directMessages) {
+        directMessages.unsubscribe()
+    }
+    const CharacterId = getCharacterId(state)
+    if (!CharacterId) {
+        console.log('Cannot yet subscribe to direct messages')
+    }
+    else {
+        //
+        // Unfortunately, as of the writing of this code (April 2020), Amplify's codegen
+        // doesn't handle multiply-parametrized subscriptions worth beans, so we need
+        // to explicitly create a subscription (and keep it updated if it is ever
+        // changed in the schema).  Boo.
+        //
+        const directSubscription = `subscription AddedMessage {
+            addedMessage(CharacterId: "${CharacterId}") {
+              MessageId
+              CreatedTime
+              Target
+              Message
+              RoomId
+              CharacterId
+              FromCharacterId
+              ToCharacterId
+              Recap
+              ExpirationTime
+              Type
+              Title
+            }
+          }`
+        const newDirectMessageSubscription = API.graphql(graphqlOperation(directSubscription))
+        .subscribe({
+            next: (messageData) => {
+                const { value = {} } = messageData
+                const { data = {} } = value
+                const { addedMessage = {} } = data
+                const { Message, FromCharacterId, ToCharacterId, Type } = addedMessage
+                switch(Type) {
+                    case 'DIRECT':
+                        if (FromCharacterId) {
+                            dispatch(directMessageAdded({ Message, FromCharacterId, ToCharacterId }))
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        })
+        dispatch(addSubscription({ directMessages: newDirectMessageSubscription }))
     }
 }

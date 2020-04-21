@@ -78,14 +78,17 @@ export const changedRoom = /* GraphQL */ `
     }
   }
 `;
-export const addedRoomMessage = /* GraphQL */ `
-  subscription AddedRoomMessage($RoomId: String!) {
-    addedRoomMessage(RoomId: $RoomId) {
+export const addedMessage = /* GraphQL */ `
+  subscription AddedMessage($RoomId: String, $CharacterId: String) {
+    addedMessage(RoomId: $RoomId, CharacterId: $CharacterId) {
       MessageId
       CreatedTime
-      RoomId
+      Target
       Message
+      RoomId
+      CharacterId
       FromCharacterId
+      ToCharacterId
       Recap
       ExpirationTime
       Type

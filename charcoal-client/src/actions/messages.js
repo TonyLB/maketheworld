@@ -20,6 +20,13 @@ export const playerMessageAdded = ({ CharacterId, Message }) => (receiveMessage(
     Message
 }))
 
+export const directMessageAdded = ({ ToCharacterId, FromCharacterId, Message }) => (receiveMessage({
+    protocol: 'directMessage',
+    ToCharacterId,
+    FromCharacterId,
+    Message
+}))
+
 export const announcementAdded = ({ Message, Title }) => (receiveMessage({
     protocol: 'announcementMessage',
     Message,

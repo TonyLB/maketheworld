@@ -123,9 +123,12 @@ export const getRoomRecap = /* GraphQL */ `
     getRoomRecap(PermanentId: $PermanentId) {
       MessageId
       CreatedTime
-      RoomId
+      Target
       Message
+      RoomId
+      CharacterId
       FromCharacterId
+      ToCharacterId
       Recap
       ExpirationTime
       Type

@@ -2,7 +2,7 @@
 
 exports[`NeighborhoodDescriptionMessage component should render empty message 1`] = `
 <li
-  class="MuiListItem-root makeStyles-roomMessage-25 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+  class="MuiListItem-root makeStyles-neighborhoodMessage-30 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
 >
   <div
     class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
@@ -15,7 +15,7 @@ exports[`NeighborhoodDescriptionMessage component should render empty message 1`
       viewBox="0 0 24 24"
     >
       <path
-        d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3l-3-2.7zm-9 .7c0-1.1.9-2 2-2s2 .9 2 2h-4z"
+        d="M15 11V5l-3-3-3 3v2H3v14h18V11h-6zm-8 8H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm6 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm6 12h-2v-2h2v2zm0-4h-2v-2h2v2z"
       />
     </svg>
   </div>
@@ -38,7 +38,7 @@ exports[`NeighborhoodDescriptionMessage component should render empty message 1`
 
 exports[`NeighborhoodDescriptionMessage component should render test message 1`] = `
 <li
-  class="MuiListItem-root makeStyles-roomMessage-128 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+  class="MuiListItem-root makeStyles-neighborhoodMessage-138 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
 >
   <div
     class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
@@ -51,7 +51,7 @@ exports[`NeighborhoodDescriptionMessage component should render test message 1`]
       viewBox="0 0 24 24"
     >
       <path
-        d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3l-3-2.7zm-9 .7c0-1.1.9-2 2-2s2 .9 2 2h-4z"
+        d="M15 11V5l-3-3-3 3v2H3v14h18V11h-6zm-8 8H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm6 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm6 12h-2v-2h2v2zm0-4h-2v-2h2v2z"
       />
     </svg>
   </div>
