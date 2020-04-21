@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 
 import {
     Typography,
@@ -15,6 +15,7 @@ import ReplyIcon from '@material-ui/icons/Reply'
 
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 import { getCharacterId } from '../../selectors/connection'
+import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
 import useStyles from '../styles'
 
 export const DirectMessage = ({ message, ...rest }) => {
@@ -26,6 +27,7 @@ export const DirectMessage = ({ message, ...rest }) => {
     const Name = charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].Name
     const color = (FromCharacterId === myCharacterId) ? { primary: 'blue', light: 'lightblue', direct: 'directblue' } : (charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].color) || ''
     const classes = useStyles()
+    const dispatch = useDispatch()
     return <ListItem className={ color && classes[color.direct] } alignItems="flex-start" {...rest} >
         <ListItemAvatar>
             <Tooltip title={Name}>
@@ -36,7 +38,7 @@ export const DirectMessage = ({ message, ...rest }) => {
         </ListItemAvatar>
         <ListItemText>
             <Typography variant='overline' align='left'>
-                Direct message { FromCharacterId === myCharacterId ? 'to' : 'from'}: { FromCharacterId === ToCharacterId ? 'Yourself' : ((targetCharacter && targetCharacter.Name) || 'Someone') }
+                Direct message { FromCharacterId === myCharacterId ? 'to' : 'from'}: { (FromCharacterId === ToCharacterId) ? 'Yourself' : ((targetCharacter && targetCharacter.Name) || 'Someone') }
             </Typography>
             <Typography variant='body1' align='left'>
                 { message.Message }
@@ -44,7 +46,7 @@ export const DirectMessage = ({ message, ...rest }) => {
         </ListItemText>
         <ListItemSecondaryAction>
             { charactersInPlay[FromCharacterId].ConnectionId &&
-                <IconButton>
+                <IconButton onClick={() => { dispatch(activateDirectMessageDialog(FromCharacterId)) } } >
                     <ReplyIcon />
                 </IconButton>
             }

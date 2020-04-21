@@ -56,6 +56,7 @@ import WorldDialog from './WorldDialog/'
 import MyCharacterDialog from './MyCharacterDialog'
 import ConfirmDialog from './ConfirmDialog'
 import HelpDialog from './HelpDialog'
+import DirectMessageDialog from './DirectMessageDialog'
 import WhoDrawer from './WhoDrawer'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
@@ -270,6 +271,7 @@ export const Chat = () => {
                 </Container>
             </AppBar>
 
+            <DirectMessageDialog />
             <HelpDialog />
             <ConfirmDialog />
             <AllCharactersDialog />

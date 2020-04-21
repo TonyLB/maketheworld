@@ -146,6 +146,7 @@ export const HelpDialog = () => {
                                             <li>What neighborhood they are in</li>
                                         </ul>
                                         Click the arrow to open or close the drawer
+                                        Click a character to send them a direct message
                                     </React.Fragment>
                                 }
                             >

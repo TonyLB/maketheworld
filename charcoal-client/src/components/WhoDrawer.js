@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 
 import {
     Paper,
@@ -17,6 +17,7 @@ import CloseArrowIcon from '@material-ui/icons/ChevronRight'
 import { getActiveCharacterList } from '../selectors/charactersInPlay'
 import { getCharacterId } from '../selectors/connection'
 import { getPermanentHeaders } from '../selectors/permanentHeaders'
+import { activateDirectMessageDialog } from '../actions/UI/directMessageDialog'
 import { useStyles } from './styles'
 
 export const WhoDrawer = ({
@@ -28,6 +29,7 @@ export const WhoDrawer = ({
     const myCharacterId = useSelector(getCharacterId)
     const classes = useStyles()
     const permanentHeaders = useSelector(getPermanentHeaders)
+    const dispatch = useDispatch()
 
     return (
         <Paper
@@ -65,7 +67,7 @@ export const WhoDrawer = ({
                                     permanentHeaders[RoomId].name
                                 )) || '??????'
                             return (
-                                <TableRow key={CharacterId}>
+                                <TableRow key={CharacterId} hover onClick={() => { dispatch(activateDirectMessageDialog(CharacterId)) }}>
                                     <TableCell>
                                         <Avatar className={(myCharacterId === CharacterId) ? classes.blue : (color && classes[color.primary])}>
                                             { Name[0].toUpperCase() }

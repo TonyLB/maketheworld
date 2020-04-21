@@ -1481,7 +1481,7 @@ Resources:
                 "Recap": false,
                 "Message": "$ctx.result.Message",
                 "FromCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
-                "ToCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
+                "ToCharacterId": "$util.defaultIfNull($ctx.result.ToCharacterId, '')",
                 "Title": "$util.defaultIfNull($ctx.result.Title, '')",
                 "RoomId": "$util.defaultIfNull($ctx.result.RoomId, '')",
                 "ExpirationTime": "$util.defaultIfNull($ctx.result.ExpirationTime, 0)"
