@@ -14,7 +14,7 @@ export const populateMutationVariables = ({ template: graphQLTemplate, ...rest }
         .sort(([keyA], [keyB]) => (keyB.localeCompare(keyA)))
         .reduce((previous, [ key, value ]) => {
             const re = new RegExp(`\\$${key}`, 'g')
-            return previous.replace(re, value ? `"${value}"` : 'null')
+            return previous.replace(re, value ? JSON.stringify(value) : 'null')
         }, graphQLTemplate)
 }
 

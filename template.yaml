@@ -1423,20 +1423,20 @@ Resources:
             }
         ResponseMappingTemplate: >
             #set($split = $ctx.result.DataCategory.split("#"))
-            $util.toJson({
-                "Target": "${ctx.result.Target}",
-                "RoomId": "${ctx.args.RoomId}",
-                "Type": "$util.defaultIfNull($ctx.result.Type, 'ROOM')",
-                "CreatedTime": "$split[0]",
-                "MessageId": "$split[1]",
+            {
+                "Target": $util.toJson(${ctx.result.Target}),
+                "RoomId": $util.toJson(${ctx.args.RoomId}),
+                "Type": $util.toJson($util.defaultIfNull($ctx.result.Type, 'ROOM')),
+                "CreatedTime": $util.toJson($split[0]),
+                "MessageId": $util.toJson($split[1]),
                 "Recap": false,
-                "Message": "$ctx.result.Message",
-                "FromCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
-                "ToCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
-                "Title": "$util.defaultIfNull($ctx.result.Title, '')",
-                "CharacterId": "$util.defaultIfNull($ctx.result.CharacterId, '')",
-                "ExpirationTime": "$util.defaultIfNull($ctx.result.ExpirationTime, 0)"
-            })
+                "Message": $util.toJson($ctx.result.Message),
+                "FromCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
+                "ToCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
+                "Title": $util.toJson($util.defaultIfNull($ctx.result.Title, '')),
+                "CharacterId": $util.toJson($util.defaultIfNull($ctx.result.CharacterId, '')),
+                "ExpirationTime": $util.toJson($util.defaultIfNull($ctx.result.ExpirationTime, 0))
+            }
   MutationPutDirectMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1472,20 +1472,20 @@ Resources:
             }
         ResponseMappingTemplate: >
             #set($split = $ctx.result.DataCategory.split("#"))
-            $util.toJson({
-                "Target": "${ctx.result.Target}",
-                "CharacterId": "${ctx.args.CharacterId}",
+            {
+                "Target": $util.toJson(${ctx.result.Target}),
+                "CharacterId": $util.toJson(${ctx.args.CharacterId}),
                 "Type": "DIRECT",
-                "CreatedTime": "$split[0]",
-                "MessageId": "$split[1]",
+                "CreatedTime": $util.toJson($split[0]),
+                "MessageId": $util.toJson($split[1]),
                 "Recap": false,
-                "Message": "$ctx.result.Message",
-                "FromCharacterId": "$util.defaultIfNull($ctx.result.FromCharacterId, '')",
-                "ToCharacterId": "$util.defaultIfNull($ctx.result.ToCharacterId, '')",
-                "Title": "$util.defaultIfNull($ctx.result.Title, '')",
-                "RoomId": "$util.defaultIfNull($ctx.result.RoomId, '')",
-                "ExpirationTime": "$util.defaultIfNull($ctx.result.ExpirationTime, 0)"
-            })
+                "Message": $util.toJson($ctx.result.Message),
+                "FromCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
+                "ToCharacterId": $util.toJson($util.defaultIfNull($ctx.result.ToCharacterId, '')),
+                "Title": $util.toJson($util.defaultIfNull($ctx.result.Title, '')),
+                "RoomId": $util.toJson($util.defaultIfNull($ctx.result.RoomId, '')),
+                "ExpirationTime": $util.toJson($util.defaultIfNull($ctx.result.ExpirationTime, 0))
+            }
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:

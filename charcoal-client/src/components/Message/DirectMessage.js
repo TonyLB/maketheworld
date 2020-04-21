@@ -26,6 +26,7 @@ export const DirectMessage = ({ message, ...rest }) => {
     const targetCharacter = charactersInPlay && charactersInPlay[targetCharacterId]
     const Name = charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].Name
     const color = (FromCharacterId === myCharacterId) ? { primary: 'blue', light: 'lightblue', direct: 'directblue' } : (charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].color) || ''
+    const replyCharacterId = (FromCharacterId === myCharacterId) ? (ToCharacterId === myCharacterId) ? null : ToCharacterId : FromCharacterId
     const classes = useStyles()
     const dispatch = useDispatch()
     return <ListItem className={ color && classes[color.direct] } alignItems="flex-start" {...rest} >
@@ -45,8 +46,8 @@ export const DirectMessage = ({ message, ...rest }) => {
             </Typography>
         </ListItemText>
         <ListItemSecondaryAction>
-            { charactersInPlay[FromCharacterId].ConnectionId &&
-                <IconButton onClick={() => { dispatch(activateDirectMessageDialog(FromCharacterId)) } } >
+            { replyCharacterId && charactersInPlay[replyCharacterId].ConnectionId &&
+                <IconButton onClick={() => { dispatch(activateDirectMessageDialog(replyCharacterId)) } } >
                     <ReplyIcon />
                 </IconButton>
             }
