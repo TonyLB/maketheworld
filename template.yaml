@@ -302,6 +302,58 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref RegisterCharacterFunction
       Principal: apigateway.amazonaws.com
+  CreateBackupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/createBackup/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+          S3_BUCKET: burnedover-admin
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: appsync:GraphQL
+            Resource: !Sub '${AppSyncAPI}/*'
+        - Statement:
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource:
+              - arn:aws:s3:::burnedover-admin/*
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:Scan"
+            Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
+  RestoreBackupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/restoreBackup/
+      Handler: app.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+          S3_BUCKET: burnedover-admin
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: appsync:GraphQL
+            Resource: !Sub '${AppSyncAPI}/*'
+        - Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource:
+              - arn:aws:s3:::burnedover-admin/*
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:BatchWriteItem"
+            Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
   AppSyncAPI:
       Type: AWS::AppSync::GraphQLApi
       Properties:

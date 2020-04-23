@@ -1,0 +1,11 @@
+{
+  "name": "restore-backup",
+  "version": "1.0.0",
+  "description": "Restore a backup of content into the current permanents table",
+  "main": "src/app.js",
+  "author": "SAM CLI",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.434.0"
+  }
+}
