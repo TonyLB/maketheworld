@@ -67,16 +67,12 @@ export const getNeighborhoodTree = /* GraphQL */ `
       ParentId
       ... on Room {
         Exits {
-          PermanentId
           Name
           RoomId
-          Ancestry
         }
         Entries {
-          PermanentId
           Name
           RoomId
-          Ancestry
         }
       }
     }
@@ -104,16 +100,12 @@ export const getRoom = /* GraphQL */ `
       Description
       ParentId
       Exits {
-        PermanentId
         Name
         RoomId
-        Ancestry
       }
       Entries {
-        PermanentId
         Name
         RoomId
-        Ancestry
       }
     }
   }
@@ -146,16 +138,12 @@ export const getRoomByCharacter = /* GraphQL */ `
       Description
       ParentId
       Exits {
-        PermanentId
         Name
         RoomId
-        Ancestry
       }
       Entries {
-        PermanentId
         Name
         RoomId
-        Ancestry
       }
     }
   }

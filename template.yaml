@@ -749,33 +749,28 @@ Resources:
               {
                   "version": "2018-05-29",
                   "operation": "Scan",
-                  "filter": {
-                      "expression": "#t = :neighborhood or #t = :room",
-                      "expressionNames": {
-                          "#t": "type"
-                      },
-                      "expressionValues": {
-                          ":neighborhood": $util.dynamodb.toStringJson("NEIGHBORHOOD"),
-                          ":room": $util.dynamodb.toStringJson("ROOM")
-                      }
-                  }
+                  "index": "AncestryIndex"
               }
           ResponseMappingTemplate: >
               #set($output = [])
               #foreach($node in $ctx.result.items)
-                  #if($node.type == "NEIGHBORHOOD")
+                  #if($node.PermanentId.startsWith("NEIGHBORHOOD"))
                       #set($typeName = "Neighborhood")
+                      #set($type = "NEIGHBORHOOD")
+                      #set($permanentId = $node.PermanentId.substring(13))
                   #else
                       #set($typeName = "Room")
+                      #set($type = "ROOM")
+                      #set($permanentId = $node.PermanentId.substring(5))
                   #end
                   $util.qr($output.add({
                       "__typename": $typeName,
-                      "Name": $node.name,
-                      "Type": $node.type,
-                      "PermanentId": $node.permanentId,
-                      "ParentId": $node.parentId,
-                      "Ancestry": $node.ancestry,
-                      "Description": $node.description
+                      "Name": $node.Name,
+                      "Type": $type,
+                      "PermanentId": $permanentId,
+                      "ParentId": $node.ParentId,
+                      "Ancestry": $node.Ancestry,
+                      "Description": $node.Description
                   }))
               #end
               $util.toJson($output)
@@ -788,27 +783,25 @@ Resources:
           FieldName: getNeighborhood
           DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
           RequestMappingTemplate: >
+              #set($PermanentId = "NEIGHBORHOOD#${ctx.args.PermanentId}")
               {
                   "version": "2017-02-28",
                   "operation": "GetItem",
                   "key": {
-                      "permanentId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                      "PermanentId": $util.dynamodb.toDynamoDBJson($PermanentId),
+                      "DataCategory": $util.dynamodb.toStringJson("Details")
                   }
               }
           ResponseMappingTemplate: >
-              #if($ctx.result.type == "NEIGHBORHOOD")
-                  {
-                      "PermanentId": $util.toJson($ctx.result.permanentId),
-                      "ParentId": $util.toJson($ctx.result.parentId),
-                      "PermanentId": $util.toJson($ctx.result.permanentId),
-                      "Name": $util.toJson($ctx.result.name),
-                      "Type": $util.toJson($ctx.result.type),
-                      "Ancestry": $util.toJson($ctx.result.ancestry),
-                      "Description": $util.toJson($ctx.result.description)
-                  }
-              #else
-                  $util.error("PermanentId must specify a NEIGHBORHOOD type permanent")
-              #end
+              #set($PermanentId = $ctx.result.PermanentId.substring(13))
+              {
+                  "PermanentId": $util.toJson($ctx.result.PermanentId),
+                  "ParentId": $util.toJson($ctx.result.ParentId),
+                  "Name": $util.toJson($ctx.result.Name),
+                  "Type": $util.toJson("NEIGHBORHOOD"),
+                  "Ancestry": $util.toJson($ctx.result.Ancestry),
+                  "Description": $util.toJson($ctx.result.Description)
+              }
   QueryGetRoom:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -818,119 +811,47 @@ Resources:
           FieldName: getRoom
           DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
           RequestMappingTemplate: >
+              #set($PermanentId = "ROOM#${ctx.args.PermanentId}")
               {
                   "version": "2017-02-28",
-                  "operation": "GetItem",
-                  "key": {
-                      "permanentId": $util.dynamodb.toDynamoDBJson($ctx.args.PermanentId)
+                  "operation": "Query",
+                  "query": {
+                      "expression": "PermanentId = :PermanentId",
+                      "expressionValues": {
+                          ":PermanentId": $util.dynamodb.toDynamoDBJson($PermanentId)
+                      }
                   }
               }
           ResponseMappingTemplate: >
-              #if($ctx.result.type == "ROOM")
-                  {
-                      "PermanentId": $util.toJson($ctx.result.permanentId),
-                      "ParentId": $util.toJson($ctx.result.parentId),
-                      "PermanentId": $util.toJson($ctx.result.permanentId),
-                      "Name": $util.toJson($ctx.result.name),
-                      "Type": $util.toJson($ctx.result.type),
-                      "Ancestry": $util.toJson($ctx.result.ancestry),
-                      "Description": $util.toJson($ctx.result.description)
-                  }
-              #else
-                  $util.error("PermanentId must specify a ROOM type permanent")
+              #set($output = { "Type": "ROOM" })
+              #set($entries = [])
+              #set($exits = [])
+              #foreach($row in $ctx.result.items)
+                  #if ($row.DataCategory == 'Details')
+                      $util.qr($output.put("PermanentId", $row.PermanentId.substring(5)))
+                      $util.qr($output.put("ParentId", $row.ParentId))
+                      $util.qr($output.put("Ancestry", $row.Ancestry))
+                      $util.qr($output.put("Name", $row.Name))
+                      $util.qr($output.put("Description", $row.Description))
+                  #end
+                  #if ($row.DataCategory.startsWith('EXIT#'))
+                      #set($roomId = $row.DataCategory.substring(5))
+                      $util.qr($exits.add({
+                          "Name": $row.Name,
+                          "RoomId": $roomId
+                      }))
+                  #end
+                  #if ($row.DataCategory.startsWith('ENTRY#'))
+                      #set($roomId = $row.DataCategory.substring(6))
+                      $util.qr($entries.add({
+                          "Name": $row.Name,
+                          "RoomId": $roomId
+                      }))
+                  #end
               #end
-  QueryGetRoomExitsFunction:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetRoomExitsFunction
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                      "expression": "fromRoomId = :RoomId",
-                      "expressionValues": {
-                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.PermanentId)
-                      }
-                  },
-                  "index": "fromRoomIndex"
-              }
-          ResponseMappingTemplate: >
-              [
-                  #foreach($exit in $ctx.result.items)
-                      {
-                          "PermanentId": $util.toJson($exit.permanentId),
-                          "Name": $util.toJson($exit.name),
-                          "RoomId": $util.toJson($exit.parentId),
-                          "Ancestry": $util.toJson($exit.ancestry)
-                      }#if($foreach.hasNext),#end
-                  #end
-              ]
-  QueryRoomGetRoomExits:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Room
-        FieldName: Exits
-        Kind: PIPELINE
-        PipelineConfig:
-            Functions:
-                - !GetAtt QueryGetRoomExitsFunction.FunctionId
-        RequestMappingTemplate: >
-            {
-                "PermanentId": $util.toJson($ctx.source.PermanentId)
-            }
-        ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetRoomEntriesFunction:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetRoomEntriesFunction
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                      "expression": "parentId = :RoomId",
-                      "expressionValues": {
-                          ":RoomId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.PermanentId)
-                      }
-                  },
-                  "index": "parentIndex"
-              }
-          ResponseMappingTemplate: >
-              [
-                  #foreach($entry in $ctx.result.items)
-                      {
-                          "PermanentId": $util.toJson($entry.permanentId),
-                          "Name": $util.toJson($entry.name),
-                          "RoomId": $util.toJson($entry.fromRoomId),
-                          "Ancestry": $util.toJson($entry.ancestry)
-                      }#if($foreach.hasNext),#end
-                  #end
-              ]
-  QueryRoomGetRoomEntries:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Room
-          FieldName: Entries
-          Kind: PIPELINE
-          PipelineConfig:
-              Functions:
-                  - !GetAtt QueryGetRoomEntriesFunction.FunctionId
-          RequestMappingTemplate: >
-              {
-                  "PermanentId": $util.toJson($ctx.source.PermanentId)
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+              $util.qr($output.put("Exits", $exits))
+              $util.qr($output.put("Entries", $entries))
+              $util.toJson($output)
   QueryGetRoomRecap:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
@@ -1580,22 +1501,16 @@ Resources:
                   ParentId: String
               }
               interface RoomPath {
-                  PermanentId: String
                   Name: String!
                   RoomId: String
-                  Ancestry: String
               }
               type Exit implements RoomPath {
-                  PermanentId: String!
                   Name: String!
                   RoomId: String!
-                  Ancestry: String!
               }
               type Entry implements RoomPath {
-                  PermanentId: String!
                   Name: String!
                   RoomId: String!
-                  Ancestry: String!
               }
               input PathInput {
                   PermanentId: String

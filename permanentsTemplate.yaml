@@ -20,31 +20,33 @@ Resources:
         Type: AWS::DynamoDB::Table
         Properties:
           AttributeDefinitions:
-            - AttributeName: "permanentId"
+            - AttributeName: "PermanentId"
               AttributeType: "S"
-            - AttributeName: "parentId"
+            - AttributeName: "DataCategory"
               AttributeType: "S"
-            - AttributeName: "fromRoomId"
+            - AttributeName: "ProgenitorId"
+              AttributeType: "S"
+            - AttributeName: "Ancestry"
               AttributeType: "S"
           BillingMode: "PAY_PER_REQUEST"
           KeySchema:
-            - AttributeName: "permanentId"
+            - AttributeName: "PermanentId"
               KeyType: "HASH"
+            - AttributeName: "DataCategory"
+              KeyType: "RANGE"
           GlobalSecondaryIndexes:
-            - IndexName: fromRoomIndex
+            - IndexName: DataCategoryIndex
               KeySchema:
-                - AttributeName: fromRoomId
+                - AttributeName: DataCategory
                   KeyType: HASH
               Projection:
-                NonKeyAttributes:
-                  - name
-                  - parentId
-                  - ancestry
-                ProjectionType: INCLUDE
-            - IndexName: parentIndex
+                ProjectionType: ALL
+            - IndexName: AncestryIndex
               KeySchema:
-                - AttributeName: parentId
+                - AttributeName: ProgenitorId
                   KeyType: HASH
+                - AttributeName: Ancestry
+                  KeyType: RANGE
               Projection:
                 ProjectionType: ALL
           TableName: !Sub '${TablePrefix}_permanents'
@@ -81,30 +83,6 @@ Resources:
               ProjectionType: ALL
 
         TableName: !Sub '${TablePrefix}_players'
-    CharactersTable:
-        Type: AWS::DynamoDB::Table
-        Properties:
-          AttributeDefinitions:
-            - AttributeName: "CharacterId"
-              AttributeType: "S"
-            - AttributeName: "PlayerName"
-              AttributeType: "S"
-            - AttributeName: "Name"
-              AttributeType: "S"
-          BillingMode: "PAY_PER_REQUEST"
-          KeySchema:
-            - AttributeName: "CharacterId"
-              KeyType: "HASH"
-          GlobalSecondaryIndexes:
-            - IndexName: PlayerAndNameIndex
-              KeySchema:
-                - AttributeName: "PlayerName"
-                  KeyType: "HASH"
-                - AttributeName: "Name"
-                  KeyType: "RANGE"
-              Projection:
-                ProjectionType: ALL
-          TableName: !Sub '${TablePrefix}_characters'
     UserPool:
       Type: AWS::Cognito::UserPool
       UpdateReplacePolicy: Retain
@@ -164,18 +142,6 @@ Outputs:
         Value: !Sub ${TablePrefix}
         Export:
             Name: !Sub "${AWS::StackName}-TablePrefix"
-
-    PermanentsArn:
-        Description: The Arn of the permanents table
-        Value: !GetAtt "PermanentsTable.Arn"
-        Export:
-            Name: !Sub "${AWS::StackName}-PermanentsArn"
-
-    CharactersArn:
-        Description: The Arn of the characters table
-        Value: !GetAtt "CharactersTable.Arn"
-        Export:
-            Name: !Sub "${AWS::StackName}-CharactersArn"
 
     UserPoolClient:
         Description: The client ID for the player user pool

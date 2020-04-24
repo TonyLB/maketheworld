@@ -64,16 +64,12 @@ export const changedRoom = /* GraphQL */ `
       Description
       ParentId
       Exits {
-        PermanentId
         Name
         RoomId
-        Ancestry
       }
       Entries {
-        PermanentId
         Name
         RoomId
-        Ancestry
       }
     }
   }
