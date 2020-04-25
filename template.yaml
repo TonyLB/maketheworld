@@ -479,14 +479,14 @@ Resources:
                       Action:
                           - "dynamodb:Query"
                       Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages/*"
-            - PolicyName: PutRoomPathsPolicy
+            - PolicyName: PutRoomPolicy
               PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "lambda:InvokeFunction"
-                      Resource: !GetAtt PutRoomPathsFunction.Arn
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Action:
+                        - "lambda:InvokeFunction"
+                    Resource: !GetAtt PutRoomFunction.Arn
             - PolicyName: PutNeighborhoodPolicy
               PolicyDocument:
                   Version: "2012-10-17"
@@ -1155,14 +1155,6 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  PutNeighborhoodPermission:
-      Type: AWS::Lambda::Permission
-      DependsOn:
-          - PutNeighborhoodFunction
-      Properties:
-          Action: lambda:InvokeFunction
-          FunctionName: !Ref PutNeighborhoodFunction
-          Principal: appsync.amazonaws.com
   PutNeighborhoodDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -1172,43 +1164,6 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt PutNeighborhoodFunction.Arn
-  MutationPreQueryPermanentParentFunction:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PreQueryPermanentParent
-          Description: Gets the parent node in order to construct ancestry
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              #if($util.isNullOrEmpty($ctx.prev.result.ParentId))
-                  #return($ctx.prev.result)
-              #end
-              {
-                  "version": "2017-02-28",
-                  "operation": "GetItem",
-                  "key": {
-                      "permanentId": $util.dynamodb.toStringJson($ctx.prev.result.ParentId)
-                  }
-              }
-          ResponseMappingTemplate: >
-              #if ($ctx.error)
-                  $util.error($ctx.error.message, $ctx.error.type)
-              #end
-              #set($prev = $ctx.prev.result)
-              {
-                  "Name": $util.toJson($prev.Name),
-                  "PermanentId": $util.toJson($prev.PermanentId)
-                  #if($util.isList($prev.Exits)), "Exits": $util.toJson($prev.Exits)#end
-                  #if($util.isList($prev.Entries)), "Entries": $util.toJson($prev.Entries)#end
-                  #if(!$util.isNullOrEmpty($prev.Description)), "Description": $util.toJson($prev.Description)#end
-                  #if(!$util.isNullOrEmpty($prev.ParentId)), "ParentId": $util.toJson($prev.ParentId)#end
-                  #if ($util.isMap($ctx.result))
-                      #if (!$util.isNullOrEmpty($ctx.result.ancestry))
-                          , "ParentAncestry": $util.toJson($ctx.result.ancestry)
-                      #end
-                  #end
-              }
   MutationPutNeighborhood:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -1236,10 +1191,10 @@ Resources:
           ContentUri: lambda/uuidLayer/
           CompatibleRuntimes:
               - nodejs12.x
-  PutRoomPathsFunction:
+  PutRoomFunction:
       Type: AWS::Serverless::Function
       Properties:
-          CodeUri: lambda/permanents/putRoomPaths/
+          CodeUri: lambda/permanents/putRoom/
           Handler: app.handler
           MemorySize: 256
           Runtime: nodejs12.x
@@ -1251,117 +1206,34 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  PutRoomPermission:
-      Type: AWS::Lambda::Permission
-      DependsOn:
-          - PutRoomPathsFunction
-      Properties:
-          Action: lambda:InvokeFunction
-          FunctionName: !Ref PutRoomPathsFunction
-          Principal: appsync.amazonaws.com
-  MutationPutRoomBaseFunction:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutRoomBase
-          Description: Puts a room record into the Permanents table
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              #set( $ddb = $util.dynamodb )
-              #set( $args = $ctx.prev.result )
-              #set( $PermanentId = $args.PermanentId )
-              #if($util.isNullOrEmpty($PermanentId))
-                  #set( $PermanentId = $util.autoId() )
-              #end
-              #if($args.ParentAncestry)
-                  #set($ancestry = "${args.ParentAncestry}:${PermanentId}")
-              #else
-                  #set($ancestry = $PermanentId)
-              #end
-              {
-                  "version": "2017-02-28",
-                  "operation": "PutItem",
-                  "key": {
-                      "permanentId": $ddb.toDynamoDBJson($PermanentId)
-                  },
-                  "attributeValues": {
-                      "name": $ddb.toDynamoDBJson($args.Name),
-                      "type": $ddb.toStringJson("ROOM"),
-                      "ancestry": $ddb.toStringJson($ancestry)
-                      #if(!$util.isNullOrEmpty($args.Description)), "description": $ddb.toStringJson($args.Description) #end
-                      #if(!$util.isNullOrEmpty($args.ParentId)), "parentId": $ddb.toStringJson($args.ParentId) #end
-                  }
-              }
-          ResponseMappingTemplate: >
-              #set($output = {
-                  "PermanentId": $ctx.result.permanentId,
-                  "Type": "ROOM",
-                  "Ancestry": $ctx.result.ancestry,
-                  "Name": $ctx.result.name,
-                  "Exits": $ctx.prev.result.Exits,
-                  "Entries": $ctx.prev.result.Entries
-              })
-              #if(!$util.isNullOrEmpty($ctx.prev.result.ParentId))$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
-              #if(!$util.isNullOrEmpty($ctx.prev.result.Description))$util.qr($output.put("Description", $ctx.prev.result.Description))#end
-              $util.toJson($output)
-  PutRoomPathsDataSource:
+  PutRoomDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutRoomPath
+          Name: PutRoom
           Type: AWS_LAMBDA
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
-              LambdaFunctionArn: !GetAtt PutRoomPathsFunction.Arn
-  MutationPutRoomPathsFunction:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutRoomPaths
-          Description: Puts the needed entry records into the Permanents table
-          DataSourceName: !GetAtt PutRoomPathsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "source": {
-                          "PermanentId": $util.toJson($ctx.prev.result.PermanentId),
-                          "Ancestry": $util.toJson($ctx.prev.result.Ancestry)
-                      },
-                      "Exits": $util.toJson($ctx.prev.result.Exits),
-                      "Entries": $util.toJson($ctx.prev.result.Entries)
-                  }
-              }
-          ResponseMappingTemplate: >
-              #set($output = {
-                  "PermanentId": $ctx.prev.result.PermanentId,
-                  "Type": "ROOM",
-                  "Ancestry": $ctx.prev.result.Ancestry,
-                  "Name": $ctx.prev.result.Name,
-                  "Exits": $ctx.prev.result.Exits,
-                  "Entries": $ctx.prev.result.Entries
-              })
-              #if(!$util.isNullOrEmpty($ctx.prev.result.ParentId))$util.qr($output.put("ParentId", $ctx.prev.result.ParentId))#end
-              #if(!$util.isNullOrEmpty($ctx.prev.result.Description))$util.qr($output.put("Description", $ctx.prev.result.Description))#end
-              $util.toJson($output)
+              LambdaFunctionArn: !GetAtt PutRoomFunction.Arn
   MutationPutRoom:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: putRoom
-          Kind: PIPELINE
-          PipelineConfig:
-              Functions:
-                - !GetAtt MutationPreQueryPermanentParentFunction.FunctionId
-                - !GetAtt MutationPutRoomBaseFunction.FunctionId
-                - !GetAtt MutationPutRoomPathsFunction.FunctionId
-          RequestMappingTemplate: "$util.toJson($ctx.args)"
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+      - PutRoomFunction
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: putRoom
+        DataSourceName: !GetAtt PutRoomDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "Invoke",
+                "payload": {
+                    "arguments": $utils.toJson($ctx.args)
+                }
+            }
+        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema

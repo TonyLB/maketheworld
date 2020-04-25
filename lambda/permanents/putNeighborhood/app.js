@@ -11,7 +11,7 @@ exports.handler = (event) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const { PermanentId, ParentId, Description, Name } = event.arguments
+    const { PermanentId = '', ParentId = '', Description = '', Name } = event.arguments
 
     const newPermanentId = PermanentId || uuidv4()
 
