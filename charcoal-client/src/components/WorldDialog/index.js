@@ -36,7 +36,7 @@ import { activateRoomDialog } from '../../actions/UI/roomDialog'
 import { activateNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { fetchAndOpenRoomDialog, fetchAndOpenNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
-import { getNeighborhoodTree } from '../../selectors/neighborhoodTree'
+import { getNeighborhoodTree } from '../../selectors/permanentHeaders'
 import useStyles from '../styles'
 
 const useTreeItemStyles = makeStyles(theme => ({

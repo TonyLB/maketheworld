@@ -27,6 +27,7 @@ export const NeighborhoodListItem = ({
         permanentId,
         children,
         addHandler=()=>{},
+        selectableNeighborhoods,
         ...rest
     }) => {
     const classes = useStyles()
@@ -49,10 +50,17 @@ export const NeighborhoodListItem = ({
             return <React.Fragment>
                 <ListItem
                     button
-                    onClick={() => { setOpen(!open) }}
+                    onClick={
+                        selectableNeighborhoods
+                            ? addHandler(permanentId, name)
+                            : () => { setOpen(!open) }
+                    }
                     { ...rest }
                 >
-                    <ListItemIcon>
+                    <ListItemIcon onClick={(event) => {
+                        setOpen(!open)
+                        event.stopPropagation()
+                    }}>
                         { open ? <ExpandMoreIcon /> : <ChevronRightIcon /> }
                     </ListItemIcon>
                     <ListItemText primary={name} />
@@ -70,6 +78,7 @@ export const NeighborhoodListItem = ({
                                         children={children}
                                         className={classes.nested}
                                         addHandler={addHandler}
+                                        selectableNeighborhoods={selectableNeighborhoods}
                                     />
                                 ))
                         }
@@ -80,6 +89,11 @@ export const NeighborhoodListItem = ({
         else {
             return <ListItem
                     button
+                    onClick={
+                        selectableNeighborhoods
+                            ? addHandler(permanentId, name)
+                            : () => { }
+                    }
                     { ...rest }
                 >
                     <ListItemText primary={name} />
@@ -88,7 +102,7 @@ export const NeighborhoodListItem = ({
     }
 }
 
-export const RoomSelectPopover = ({ onClose, neighborhoods = {}, addHandler=()=>{}, ...rest }) => {
+export const PermanentSelectPopover = ({ onClose, neighborhoods = {}, addHandler=()=>{}, selectableNeighborhoods = false, ...rest }) => {
     const classes = useStyles()
     return <Popover
         anchorOrigin={{
@@ -104,7 +118,7 @@ export const RoomSelectPopover = ({ onClose, neighborhoods = {}, addHandler=()=>
     >
         <Card>
             <CardHeader
-                title="Select Room"
+                title={`Select ${selectableNeighborhoods ? "Neighborhood" : "Room"}`}
                 className={classes.lightblue}
                 action={<IconButton aria-label="close" onClick={onClose}>
                     <CloseIcon />
@@ -123,6 +137,7 @@ export const RoomSelectPopover = ({ onClose, neighborhoods = {}, addHandler=()=>
                                 permanentId={permanentId}
                                 children={children}
                                 addHandler={addHandler}
+                                selectableNeighborhoods={selectableNeighborhoods}
                             />
                         ))
                     }
@@ -132,4 +147,4 @@ export const RoomSelectPopover = ({ onClose, neighborhoods = {}, addHandler=()=>
     </Popover>
 }
 
-export default RoomSelectPopover
+export default PermanentSelectPopover

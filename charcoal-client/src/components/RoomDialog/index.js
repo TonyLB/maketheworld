@@ -17,17 +17,22 @@ import {
     IconButton
 } from '@material-ui/core'
 import AddBoxIcon from '@material-ui/icons/AddBox'
+import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 
 
 // Local code imports
 import { closeRoomDialog } from '../../actions/UI/roomDialog'
 import { putAndCloseRoomDialog } from '../../actions/permanentAdmin'
 import { getRoomDialogUI } from '../../selectors/UI/roomDialog.js'
-import { getNeighborhoodSubtree, getExternalTree } from '../../selectors/neighborhoodTree'
-import { getPermanentHeaders } from '../../selectors/permanentHeaders.js'
+import {
+    getPermanentHeaders,
+    getNeighborhoodOnlyTree,
+    getNeighborhoodSubtree,
+    getExternalTree
+} from '../../selectors/permanentHeaders.js'
 import useStyles from '../styles'
 import ExitList from './ExitList'
-import RoomSelectPopover from './RoomSelectPopover'
+import PermanentSelectPopover from './PermanentSelectPopover'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
 const resetFormValues = (defaultValues) => ({
@@ -172,6 +177,7 @@ export const RoomDialog = ({ nested=false }) => {
         roomId: defaultValues.roomId,
         ancestry: defaultValues.ancestry
     }))
+    const neighborhoodTree = useSelector(getNeighborhoodOnlyTree)
     const externalRooms = useSelector(getExternalTree({
         roomId: defaultValues.roomId,
         ancestry: defaultValues.ancestry
@@ -180,9 +186,10 @@ export const RoomDialog = ({ nested=false }) => {
     const dispatch = useDispatch()
     const [ neighborhoodAddAnchorEl, setNeighborhoodAddAnchorEl ] = useState(null)
     const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
+    const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
 
     const { name = '', description = '', exits=[], entries=[], parentId='' } = formValues
-    const { name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+    const { name: parentName = '', ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const onPathDeleteHandler = (type, roomId) => () => {
@@ -203,6 +210,10 @@ export const RoomDialog = ({ nested=false }) => {
         setNeighborhoodAddAnchorEl(null)
         setExternalAddAnchorEl(null)
     }
+    const onSetParentHandler = (neighborhoodId) => () => {
+        formDispatch(appearanceUpdate({ label: 'parentId', value: neighborhoodId }))
+        setParentSetAnchorEl(null)
+    }
     const saveHandler = () => {
         const { name, description, parentId, roomId, exits, entries } = formValues
         const roomData = { name, description, parentId, roomId, exits, entries }
@@ -213,7 +224,6 @@ export const RoomDialog = ({ nested=false }) => {
         ...(exits.map((exit) => ({ type: 'EXIT', ...exit }))),
         ...(entries.map((entry) => ({ type: 'ENTRY', ...entry })))
     ].sort(({ roomId: roomIdA }, { roomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
-    const parentAncestry = defaultValues.ancestry && defaultValues.ancestry.split(':').slice(0, -1).join(':')
 
     const neighborhoodPaths = paths.filter(({ roomId }) => (!parentAncestry || (permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].ancestry && permanentHeaders[roomId].ancestry.startsWith(parentAncestry))))
     const externalPaths = paths.filter(({ roomId }) => (!(permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].ancestry && permanentHeaders[roomId].ancestry.startsWith(parentAncestry))))
@@ -221,19 +231,27 @@ export const RoomDialog = ({ nested=false }) => {
     const classes = useStyles()
     return(
         <React.Fragment>
-            <RoomSelectPopover
+            <PermanentSelectPopover
                 anchorEl={neighborhoodAddAnchorEl}
                 open={Boolean(neighborhoodAddAnchorEl)}
                 onClose={() => { setNeighborhoodAddAnchorEl(null) }}
                 neighborhoods={neighborhoodRooms}
                 addHandler={onPathAddHandler}
             />
-            <RoomSelectPopover
+            <PermanentSelectPopover
                 anchorEl={externalAddAnchorEl}
                 open={Boolean(externalAddAnchorEl)}
                 onClose={() => { setExternalAddAnchorEl(null) }}
                 neighborhoods={externalRooms}
                 addHandler={onPathAddHandler}
+            />
+            <PermanentSelectPopover
+                anchorEl={parentSetAnchorEl}
+                open={Boolean(parentSetAnchorEl)}
+                onClose={() => { setParentSetAnchorEl(null) }}
+                neighborhoods={neighborhoodTree}
+                selectableNeighborhoods
+                addHandler={onSetParentHandler}
             />
             <Dialog
                 maxWidth="lg"
@@ -266,6 +284,9 @@ export const RoomDialog = ({ nested=false }) => {
                                                 label="Neighborhood"
                                                 value={parentName}
                                             />
+                                            <IconButton onClick={(event) => { setParentSetAnchorEl(event.target) }}>
+                                                <NeighborhoodIcon />
+                                            </IconButton>
                                         </div>
                                         <div>
                                             <TextField
