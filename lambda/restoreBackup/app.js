@@ -75,13 +75,11 @@ const deserializeV1 = ({ Neighborhoods, Rooms }) => {
             }))
         ))
         .reduce((previous, entries) => ([ ...previous, ...entries ]), [])
-    return {
-        [`${process.env.TABLE_PREFIX}_permanents`]: [
+    return [
             ...NeighborhoodAdds,
             ...RoomAdds,
             ...EntryAdds
         ]
-    }
 }
 
 //
@@ -168,16 +166,35 @@ const deserializeV2 = ({ Neighborhoods, Rooms }) => {
             }))
         ))
         .reduce((previous, entries) => ([ ...previous, ...entries ]), [])
-    return {
-        [`${process.env.TABLE_PREFIX}_permanents`]: [
-            ...NeighborhoodAdds,
-            ...RoomAdds,
-            ...EntryAdds,
-            ...ExitAdds
-        ]
-    }
+    return [
+        ...NeighborhoodAdds,
+        ...RoomAdds,
+        ...EntryAdds,
+        ...ExitAdds
+    ]
 }
 
+const batchDispatcher = (documentClient) => (items) => {
+    const groupBatches = items.reduce((({ current, requestLists }, item) => {
+            if (current.length > 23) {
+                return {
+                    requestLists: [ ...requestLists, current ],
+                    current: [item]
+                }
+            }
+            else {
+                return {
+                    requestLists,
+                    current: [...current, item]
+                }
+            }
+        }), { current: [], requestLists: []})
+    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
+        .map((itemList) => (documentClient.batchWrite({ RequestItems: {
+            [`${process.env.TABLE_PREFIX}_permanents`]: itemList
+        } }).promise()))
+    return Promise.all(batchPromises)
+}
 
 exports.handler = (event) => {
 
@@ -188,7 +205,7 @@ exports.handler = (event) => {
         .then((Body) => Body.toString('utf-8'))
         .then((content) => (JSON.parse(content)))
         .then(deserializeV2)
-        .then((content) => (documentClient.batchWrite({ RequestItems: content }).promise()))
+        .then(batchDispatcher(documentClient))
         .then(() => ({ statusCode: 200, body: 'Restore complete.' }))
         .catch((err) => ({ statusCode: 500, body: err.stack }))
 }
