@@ -211,6 +211,14 @@ Resources:
         ContentUri: lambda/shared/
         CompatibleRuntimes:
           - nodejs12.x
+  AppSyncLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: appsync-layer
+        Description: Lambda layer to import the appsync libraries
+        ContentUri: lambda/appSyncLayer/
+        CompatibleRuntimes:
+          - nodejs12.x
   UUIDLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -1149,12 +1157,18 @@ Resources:
           Runtime: nodejs12.x
           Layers:
               - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
+            - Statement:
+              - Effect: Allow
+                Action: appsync:GraphQL
+                Resource: !Sub '${AppSyncAPI}/*'
   PutNeighborhoodDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -1183,6 +1197,30 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  NoneDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        Name: NoneSource
+        Type: NONE
+  MutationExternalPutNeighborhood:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: externalPutNeighborhood
+        DataSourceName: !GetAtt NoneDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "payload": $util.toJson($ctx.args)
+            }
+        ResponseMappingTemplate: >
+            #set($result = $ctx.result)
+            $util.qr($result.put("Type", "NEIGHBORHOOD"))
+            $util.toJson($result)
   UUIDLambdaLayer:
       Type: AWS::Serverless::LayerVersion
       Properties:
@@ -1234,6 +1272,24 @@ Resources:
                 }
             }
         ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationExternalPutRoom:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+    Properties:
+      ApiId: !GetAtt AppSyncAPI.ApiId
+      TypeName: Mutation
+      FieldName: externalPutRoom
+      DataSourceName: !GetAtt NoneDataSource.Name
+      RequestMappingTemplate: >
+          {
+              "version": "2017-02-28",
+              "payload": $util.toJson($ctx.args)
+          }
+      ResponseMappingTemplate: >
+          #set($result = $ctx.result)
+          $util.qr($result.put("Type", "ROOM"))
+          $util.toJson($result)
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1366,6 +1422,14 @@ Resources:
                   Description: String
                   ParentId: String
               }
+              type AnyNode implements PermanentTreeNode @aws_iam @aws_cognito_user_pools {
+                  PermanentId: String!
+                  Type: String!
+                  Name: String!
+                  Ancestry: String!
+                  Description: String
+                  ParentId: String
+              }
               type Neighborhood implements PermanentTreeNode {
                   PermanentId: String!
                   Type: String!
@@ -1447,7 +1511,15 @@ Resources:
                       Name: String!
                       Description: String
                       ParentId: String
-                  ): Neighborhood
+                  ): AnyNode
+                  externalPutNeighborhood(
+                      PermanentId: String!
+                      Name: String!
+                      Ancestry: String!
+                      Description: String
+                      ParentId: String
+                  ): AnyNode
+                  @aws_iam @aws_cognito_user_pools
                   putRoom(
                       PermanentId: String
                       Name: String!
@@ -1456,6 +1528,14 @@ Resources:
                       Exits: [PathInput]
                       Entries: [PathInput]
                   ): Room
+                  externalPutRoom(
+                      PermanentId: String!
+                      Name: String!
+                      Ancestry: String!
+                      Description: String
+                      ParentId: String
+                  ): AnyNode
+                  @aws_iam @aws_cognito_user_pools
                   putRoomMessage(
                       RoomId: String!
                       Message: String!
@@ -1494,8 +1574,8 @@ Resources:
                   @aws_subscribe(mutations: ["putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
-                  changedNeighborhood: Neighborhood
-                  @aws_subscribe(mutations: ["putNeighborhood"])
+                  changedNode: AnyNode
+                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (

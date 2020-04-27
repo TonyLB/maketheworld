@@ -39,15 +39,45 @@ const mergeSubtree = (state, { ancestryList, node }) => {
     }
 }
 
+//
+// As items get reparented, room can be in an old locaton while its neighborhood has moved
+// to a new location (or vice versa), in ways that leave a duplicate merged neighborhood that
+// will get no data.  This function removes those branches from the tree, so that they don't
+// cause a key collision at render time.
+//
+const elideInTransitBranches = (nodeTree) => {
+    const retVal = {
+        ...(Object.values(nodeTree)
+            .filter((node) => (node.permanentId))
+            .map(({ children, ...rest }) => {
+                const elidedChildren = (children && elideInTransitBranches(children)) || null
+                return {
+                    ...rest,
+                    ...((elidedChildren && Object.values(elidedChildren).length) ? { children: elidedChildren } : {})
+                }
+            })
+            .reduce((previous, node) => ({ ...previous, [node.permanentId]: node }), {})
+        )
+    }
+    return retVal
+}
+
 export const treeify = (nodeList) => (
-    nodeList.reduce((previous, node) => {
+    elideInTransitBranches(nodeList.reduce((previous, node) => {
         const ancestryList = (node.ancestry && node.ancestry.split(':').slice(0, -1)) || []
         return mergeSubtree(previous, { ancestryList, node })
-    }, {})
+    }, {}))
 )
 
 export const getNeighborhoodOnlyTree = ({ permanentHeaders }) => (
     treeify(Object.values(permanentHeaders).filter(({ type }) => (type === 'NEIGHBORHOOD')))
+)
+
+export const getNeighborhoodOnlyTreeExcludingSubTree = (ancestryToExclude) => ({ permanentHeaders }) => (
+    treeify(Object.values(permanentHeaders)
+            .filter(({ type }) => (type === 'NEIGHBORHOOD'))
+            .filter(({ ancestry }) => (!ancestry.startsWith(ancestryToExclude)))
+        )
 )
 
 export const getNeighborhoodTree = ({ permanentHeaders }) => (treeify(Object.values(permanentHeaders)))

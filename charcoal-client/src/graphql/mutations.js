@@ -121,6 +121,30 @@ export const putNeighborhood = /* GraphQL */ `
     }
   }
 `;
+export const externalPutNeighborhood = /* GraphQL */ `
+  mutation ExternalPutNeighborhood(
+    $PermanentId: String!
+    $Name: String!
+    $Ancestry: String!
+    $Description: String
+    $ParentId: String
+  ) {
+    externalPutNeighborhood(
+      PermanentId: $PermanentId
+      Name: $Name
+      Ancestry: $Ancestry
+      Description: $Description
+      ParentId: $ParentId
+    ) {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
+    }
+  }
+`;
 export const putRoom = /* GraphQL */ `
   mutation PutRoom(
     $PermanentId: String
@@ -152,6 +176,30 @@ export const putRoom = /* GraphQL */ `
         Name
         RoomId
       }
+    }
+  }
+`;
+export const externalPutRoom = /* GraphQL */ `
+  mutation ExternalPutRoom(
+    $PermanentId: String!
+    $Name: String!
+    $Ancestry: String!
+    $Description: String
+    $ParentId: String
+  ) {
+    externalPutRoom(
+      PermanentId: $PermanentId
+      Name: $Name
+      Ancestry: $Ancestry
+      Description: $Description
+      ParentId: $ParentId
+    ) {
+      PermanentId
+      Type
+      Name
+      Ancestry
+      Description
+      ParentId
     }
   }
 `;

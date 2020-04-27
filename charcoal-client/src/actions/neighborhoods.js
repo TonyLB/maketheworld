@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getNeighborhoodTree } from '../graphql/queries'
-import { changedNeighborhood, changedRoom } from '../graphql/subscriptions'
+import { changedNode, changedRoom } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
 
@@ -41,13 +41,13 @@ export const fetchAllNeighborhoods = () => (dispatch) => {
 }
 
 export const subscribePermanentHeaderChanges = () => (dispatch) => {
-    const neighborhoodSubscription = API.graphql(graphqlOperation(changedNeighborhood))
+    const neighborhoodSubscription = API.graphql(graphqlOperation(changedNode))
         .subscribe({
             next: (neighborhoodData) => {
                 const { value = {} } = neighborhoodData
                 const { data = {} } = value
-                const { changedNeighborhood = {} } = data
-                const { PermanentId, Type, ParentId, Ancestry, Name, Description } = changedNeighborhood
+                const { changedNode = {} } = data
+                const { PermanentId, Type, ParentId, Ancestry, Name, Description } = changedNode
                 dispatch(neighborhoodUpdate([{
                     permanentId: PermanentId,
                     type: Type,
@@ -76,7 +76,7 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
             }
         })
 
-    dispatch(addSubscription({ neighborhoods: neighborhoodSubscription }))
+    dispatch(addSubscription({ nodes: neighborhoodSubscription }))
     dispatch(addSubscription({ rooms: roomSubscription }))
     dispatch(fetchAllNeighborhoods())
 }

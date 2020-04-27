@@ -4,7 +4,8 @@ import {
     treeify,
     getNeighborhoodOnlyTree,
     getNeighborhoodSubtree,
-    getExternalTree
+    getExternalTree,
+    getNeighborhoodOnlyTreeExcludingSubTree
 } from './permanentHeaders'
 
 const testState = {
@@ -104,6 +105,39 @@ describe('permanentHeader selectors', () => {
                         permanentId: 'GHI',
                         ancestry: 'FGH:GHI',
                         type: 'ROOM'
+                    }
+                }
+            }
+        })
+    })
+
+    it('should exclude a ghost sub-branch', () => {
+        expect(treeify([
+            { permanentId: 'ABC' },
+            { permanentId: 'BCD' },
+            { permanentId: 'CDE', ancestry: 'ABC:BCD:CDE' },
+        ])).toEqual({
+            ABC: {
+                permanentId: 'ABC'
+            },
+            BCD: {
+                permanentId: 'BCD'
+            }
+        })
+    })
+
+    it('should exclude a ghost root branch', () => {
+        expect(treeify([
+            { permanentId: 'ABC' },
+            { permanentId: 'BCD', ancestry: 'ABC:BCD' },
+            { permanentId: 'CDE', ancestry: 'BCD:CDE' },
+        ])).toEqual({
+            ABC: {
+                permanentId: 'ABC',
+                children: {
+                    BCD: {
+                        ancestry: 'ABC:BCD',
+                        permanentId: 'BCD'
                     }
                 }
             }
@@ -253,6 +287,21 @@ describe('permanentHeader selectors', () => {
                         type: 'ROOM'
                     }
                 }
+            }
+        })
+    })
+
+    it('should exclude nested subtree on getNeighborhoodOnlyTreeExcludingSubTree', () => {
+        expect(getNeighborhoodOnlyTreeExcludingSubTree('ABC:CDE')(testState)).toEqual({
+            ABC: {
+                permanentId: 'ABC',
+                ancestry: 'ABC',
+                type: 'NEIGHBORHOOD'
+            },
+            FGH: {
+                permanentId: 'FGH',
+                ancestry: 'FGH',
+                type: 'NEIGHBORHOOD'
             }
         })
     })

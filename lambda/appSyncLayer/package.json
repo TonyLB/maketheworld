@@ -1,0 +1,15 @@
+{
+  "name": "appsynclayer",
+  "version": "1.0.0",
+  "description": "A lambda layer to package commonly used AppSync helper libraries",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "aws-appsync": "^3.0.3",
+    "graphql-tag": "^2.10.3"
+  }
+}

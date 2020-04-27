@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useReducer } from 'react'
+import React, { useReducer, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -13,15 +13,18 @@ import {
     DialogActions,
     Button,
     TextField,
-    Grid
+    Grid,
+    IconButton
 } from '@material-ui/core'
+import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 
 
 // Local code imports
 import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { putAndCloseNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getNeighborhoodDialogUI } from '../../selectors/UI/neighborhoodDialog.js'
-import { getPermanentHeaders } from '../../selectors/permanentHeaders.js'
+import { getPermanentHeaders, getNeighborhoodOnlyTreeExcludingSubTree } from '../../selectors/permanentHeaders.js'
+import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
 import useStyles from '../styles'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
@@ -54,10 +57,14 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getNeighborhoodDialogUI)
     const permanentHeaders = useSelector(getPermanentHeaders)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
+    const { name = '', description = '', parentId = '' } = formValues
+    const { ancestry: parentAncestry = '', name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+
+    const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
+    const neighborhoodTree = useSelector(getNeighborhoodOnlyTreeExcludingSubTree(subTreeToExclude))
+    const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
     const dispatch = useDispatch()
 
-    const { name = '', description = '', parentId = '' } = formValues
-    const parentName = (permanentHeaders && permanentHeaders[parentId] && permanentHeaders[parentId].name) || ''
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const saveHandler = () => {
@@ -65,10 +72,28 @@ export const NeighborhoodDialog = ({ nested=false }) => {
         const neighborhoodData = { name, description, parentId, neighborhoodId, exits, entries }
         dispatch(putAndCloseNeighborhoodDialog(neighborhoodData))
     }
+    const onSetParentHandler = (neighborhoodId) => () => {
+        formDispatch(appearanceUpdate({ label: 'parentId', value: neighborhoodId }))
+        setParentSetAnchorEl(null)
+    }
 
     const classes = useStyles()
     return(
         <React.Fragment>
+            <PermanentSelectPopover
+                anchorEl={parentSetAnchorEl}
+                open={Boolean(parentSetAnchorEl)}
+                onClose={() => { setParentSetAnchorEl(null) }}
+                neighborhoods={{
+                    ROOT: {
+                        permanentId: '',
+                        name: "No parent"
+                    },
+                    ...neighborhoodTree
+                }}
+                selectableNeighborhoods
+                addHandler={onSetParentHandler}
+            />
             <Dialog
                 maxWidth="lg"
                 open={(nested ? nestedOpen : open) || false}
@@ -100,6 +125,9 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                                 label="Parent"
                                                 value={parentName}
                                             />
+                                            <IconButton onClick={(event) => { setParentSetAnchorEl(event.target) }}>
+                                                <NeighborhoodIcon />
+                                            </IconButton>
                                         </div>
                                         <div>
                                             <TextField

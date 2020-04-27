@@ -42,9 +42,9 @@ export const changedCharactersInPlay = /* GraphQL */ `
     }
   }
 `;
-export const changedNeighborhood = /* GraphQL */ `
-  subscription ChangedNeighborhood {
-    changedNeighborhood {
+export const changedNode = /* GraphQL */ `
+  subscription ChangedNode {
+    changedNode {
       PermanentId
       Type
       Name
