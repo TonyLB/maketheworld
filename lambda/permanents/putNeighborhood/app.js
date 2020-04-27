@@ -42,8 +42,7 @@ exports.handler = (event) => {
             PermanentId: newPermanentId,
             ParentId,
             Name,
-            Description,
-            PreviousParentId: ParentId
+            Description
         })
         : documentClient.get({
                 TableName: permanentTable,
@@ -166,7 +165,7 @@ exports.handler = (event) => {
         PreviousAncestry,
         PreviousProgenitorId,
         ...rest
-    }) => ((Ancestry === PreviousAncestry)
+    }) => ((newNeighborhood || (Ancestry === PreviousAncestry))
         ? { Ancestry, ProgenitorId, ...rest }
         //
         // A parent change means we need to cascade-update all descendants, and then convey
