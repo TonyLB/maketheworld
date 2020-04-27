@@ -18,7 +18,9 @@ import {
     Paper,
     Tooltip
 } from '@material-ui/core'
-
+import MenuIcon from '@material-ui/icons/Menu'
+import HelpIcon from '@material-ui/icons/Help'
+import SettingsIcon from '@material-ui/icons/Settings'
 
 // Local code imports
 import Map from '../../static/Map.png'
@@ -90,7 +92,25 @@ export const HelpDialog = () => {
                 </AppBar>
                 <TabPanel value={tabValue} index={0}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12}>
+                        <Grid item xs={3}>
+                            <Tooltip
+                                placement="bottom"
+                                arrow
+                                title={
+                                    <React.Fragment>
+                                        This menu allows you to:
+                                        <ul>
+                                            <li>Edit rooms and neighborhoods</li>
+                                        </ul>
+                                    </React.Fragment>
+                                }
+                            >
+                                <Paper className={classes.roomMessage}>
+                                    <MenuIcon />
+                                </Paper>
+                            </Tooltip>
+                        </Grid>
+                        <Grid item xs={6}>
                             <Tooltip
                                 placement="bottom"
                                 arrow
@@ -112,7 +132,32 @@ export const HelpDialog = () => {
                                 </Paper>
                             </Tooltip>
                         </Grid>
-                        <Grid item xs={8}>
+                        <Grid item xs={3}>
+                            <Tooltip
+                                placement="bottom"
+                                arrow
+                                title={
+                                    <React.Fragment>
+                                        These menus allow you to:
+                                        <ul>
+                                            <li>Open this help dialog</li>
+                                            <li>Set your character home</li>
+                                            <li>Add and edit characters</li>
+                                            <li>Sign out of the system</li>
+                                        </ul>
+                                    </React.Fragment>
+                                }
+                            >
+                                <Paper className={classes.roomMessage}>
+                                    <Typography align="right">
+                                        <HelpIcon />
+                                        <SettingsIcon />
+                                    </Typography>
+                                </Paper>
+                            </Tooltip>
+                        </Grid>
+                        <Grid item xs={3} />
+                        <Grid item xs={6}>
                             <Tooltip
                                 placement="right"
                                 arrow
@@ -134,7 +179,7 @@ export const HelpDialog = () => {
                                 </Paper>
                             </Tooltip>
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid item xs={3}>
                             <Tooltip
                                 placement="left"
                                 arrow
@@ -157,30 +202,7 @@ export const HelpDialog = () => {
                                 </Paper>
                             </Tooltip>
                         </Grid>
-                        <Grid item xs={2}>
-                            <Tooltip
-                                placement="top-start"
-                                arrow
-                                title={
-                                    <React.Fragment>
-                                        Things this menu allows you to do:
-                                        <ul>
-                                            <li>Update your characters</li>
-                                            <li>Set your character home</li>
-                                            <li>Update and organize rooms and neighborhoods you have creative authority over</li>
-                                            <li>Access this help message</li>
-                                        </ul>
-                                    </React.Fragment>
-                                }
-                            >
-                                <Paper className={classes.roomMessage}>
-                                    <Typography align="center">
-                                        Menu
-                                    </Typography>
-                                </Paper>
-                            </Tooltip>
-                        </Grid>
-                        <Grid item xs={10}>
+                        <Grid item xs={12}>
                             <Tooltip
                                     placement="top"
                                     arrow
