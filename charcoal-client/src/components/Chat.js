@@ -26,6 +26,8 @@ import {
     MenuItem
 } from '@material-ui/core'
 import MenuIcon from '@material-ui/icons/Menu'
+import HelpIcon from '@material-ui/icons/Help'
+import SettingsIcon from '@material-ui/icons/Settings'
 
 // Local code imports
 import { WSS_ADDRESS } from '../config'
@@ -118,13 +120,19 @@ export const Chat = () => {
 
     const classes = useStyles()
 
-    const [ anchorEl, setAnchorEl ] = useState(null)
-    const menuOpen = Boolean(anchorEl)
-    const handleMenuClose = () => { setAnchorEl(null) }
-    const handleMenuOpen = (event) => { setAnchorEl(event.currentTarget) }
+    const [ menuAnchorEl, setMenuAnchorEl ] = useState(null)
+    const menuOpen = Boolean(menuAnchorEl)
+    const handleMenuClose = () => { setMenuAnchorEl(null) }
+    const handleMenuOpen = (event) => { setMenuAnchorEl(event.currentTarget) }
+
+    const [ settingsAnchorEl, setSettingsAnchorEl ] = useState(null)
+    const settingsOpen = Boolean(settingsAnchorEl)
+    const handleSettingsClose = () => { setSettingsAnchorEl(null) }
+    const handleSettingsOpen = (event) => { setSettingsAnchorEl(event.currentTarget) }
+
     const handleCharacterOverview = () => {
         dispatch(activateAllCharactersDialog())
-        handleMenuClose()
+        handleSettingsClose()
     }
     const handleWorldOverview = () => {
         dispatch(fetchAndOpenWorldDialog())
@@ -132,11 +140,10 @@ export const Chat = () => {
     }
     const handleSetCharacterHome = () => {
         dispatch(setCurrentCharacterHome(currentRoom && currentRoom.PermanentId))
-        handleMenuClose()
+        handleSettingsClose()
     }
     const handleHelpDialog = () => {
         dispatch(activateHelpDialog())
-        handleMenuClose()
     }
     const handleSignout = () => {
         dispatch(activateConfirmDialog({
@@ -147,7 +154,7 @@ export const Chat = () => {
                 Auth.signOut()
             }
         }))
-        handleMenuClose()
+        handleSettingsClose()
     }
 
     useEffect(() => {
@@ -183,9 +190,17 @@ export const Chat = () => {
         <div style={{ width: "100%", height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
             <AppBar position="relative" color="primary" className={classes.topAppBar}>
                 <Toolbar>
-                    {
-                        currentRoom && <Container maxWidth="lg">
-                            <List>
+                    <IconButton
+                        edge="start"
+                        color="inherit"
+                        aria-label="menu icon"
+                        onClick={handleMenuOpen}
+                    >
+                        <MenuIcon />
+                    </IconButton>
+                    <Container maxWidth="lg">
+                        {
+                            currentRoom && <List>
                                 <RoomDescriptionMessage key={`RoomMessage`} mostRecent message={new roomDescription({
                                         ...currentRoom,
                                         Players,
@@ -193,8 +208,68 @@ export const Chat = () => {
                                     })}
                                 />
                             </List>
-                        </Container>
-                    }
+                        }
+                    </Container>
+                    <IconButton
+                        edge="end"
+                        color="inherit"
+                        aria-label="help icon"
+                        onClick={handleHelpDialog}
+                    >
+                        <HelpIcon />
+                    </IconButton>
+                    <IconButton
+                        edge="end"
+                        color="inherit"
+                        aria-label="settings icon"
+                        onClick={handleSettingsOpen}
+                    >
+                        <SettingsIcon />
+                    </IconButton>
+                    <Menu
+                        open={menuOpen}
+                        anchorEl={menuAnchorEl}
+                        getContentAnchorEl={null}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                        }}
+                        keepMounted
+                        transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                        }}
+                        onClose={handleMenuClose}
+                    >
+                        <MenuItem onClick={handleWorldOverview}>
+                            Edit World
+                        </MenuItem>
+                    </Menu>
+                    <Menu
+                        open={settingsOpen}
+                        anchorEl={settingsAnchorEl}
+                        getContentAnchorEl={null}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'right',
+                        }}
+                        keepMounted
+                        transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'right',
+                        }}
+                        onClose={handleSettingsClose}
+                    >
+                        <MenuItem onClick={handleSetCharacterHome}>
+                            Set home to here
+                        </MenuItem>
+                        <MenuItem onClick={handleCharacterOverview}>
+                            My Characters
+                        </MenuItem>
+                        <MenuItem onClick={handleSignout}>
+                            Sign Out
+                        </MenuItem>
+                    </Menu>
                 </Toolbar>
             </AppBar>
             <div style={{ position: "relative", height: "100%", width: "100%", overflowY: "hidden" }}>
@@ -225,48 +300,10 @@ export const Chat = () => {
             <AppBar position="relative" color="primary" className={classes.bottomAppBar}>
                 <Container className={classes.container} maxWidth="lg">
                     <Toolbar>
-                        <IconButton
-                            edge="start"
-                            color="inherit"
-                            aria-label="open drawer"
-                            onClick={handleMenuOpen}
-                        >
-                            <MenuIcon />
-                        </IconButton>
                         <LineEntry
                             className={classes.lineEntry}
                             callback={ (entry) => { dispatch(parseCommand(entry)) }}
                         />
-                        <Menu
-                            open={menuOpen}
-                            anchorEl={anchorEl}
-                            anchorOrigin={{
-                                vertical: 'top',
-                                horizontal: 'left',
-                            }}
-                            keepMounted
-                            transformOrigin={{
-                                vertical: 'bottom',
-                                horizontal: 'left',
-                            }}
-                            onClose={handleMenuClose}
-                        >
-                            <MenuItem onClick={handleSetCharacterHome}>
-                                Set home to here
-                            </MenuItem>
-                            <MenuItem onClick={handleCharacterOverview}>
-                                My Characters
-                            </MenuItem>
-                            <MenuItem onClick={handleWorldOverview}>
-                                World Overview
-                            </MenuItem>
-                            <MenuItem onClick={handleHelpDialog}>
-                                Help
-                            </MenuItem>
-                            <MenuItem onClick={handleSignout}>
-                                Sign Out
-                            </MenuItem>
-                        </Menu>
                     </Toolbar>
                 </Container>
             </AppBar>
