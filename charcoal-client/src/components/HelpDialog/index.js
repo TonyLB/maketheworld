@@ -49,7 +49,7 @@ const TabPanel = ({ value, index, children, ...other }) => (
 const CommandEntry = ({ label='', argument=false, explanation='' }) => (
     <React.Fragment>
         <Grid item xs={4}>
-            <b>{label}</b>{argument ? <React.Fragment>&nbsp;<em>&lt;text&gt;</em></React.Fragment> : null}:
+            <b>{label}</b>{argument ? <React.Fragment>&nbsp;<em>&lt;text&gt;</em></React.Fragment> : null}
         </Grid>
         <Grid item xs={8}>
             { explanation }
@@ -228,9 +228,8 @@ export const HelpDialog = () => {
                 <TabPanel value={tabValue} index={1}>
                     <Typography variant="h4" gutterBottom>Free entry</Typography>
                     <Typography gutterBottom>
-                        If you just type some text then it will appear as a message with your character's name in the room the character occupies actions
-                        that moment (just like a normal chat program).  The only exceptions are some specific commands that can be used from the entry line
-                        for ease of access.
+                        The command line lets you enter any command that the system knows how to parse, including several important ones that
+                        take virtually any entry and convey it as either something your character says or does, or something that just happens.
                     </Typography>
                     <Typography variant="h4" gutterBottom>Commands</Typography>
                     <Typography gutterBottom>
@@ -239,6 +238,9 @@ export const HelpDialog = () => {
                         than just have the text show up in the stream of messages:
                     </Typography>
                     <Grid container spacing={2}>
+                        <CommandEntry label={`"`} argument explanation={`Have your character say whatever you type after the '"' (e.g. 'George says "Hi there!"')`} />
+                        <CommandEntry label={`:`} argument explanation={`Have your character do whatever you type after the ':' (e.g. 'Sydney brushes their hair back.')`} />
+                        <CommandEntry label={`@`} argument explanation={`Directly post whatever you type after the '@' (e.g. 'The bookshelf teeters dangerously.')`} />
                         <CommandEntry label="<any exit name>" explanation="Take that exit, as if you clicked it in the room description at top." />
                         <CommandEntry label="look" explanation="Get a room description message in your message stream." />
                         <CommandEntry label="home" explanation="Instantly go from wherever you are to your characters home room." />

@@ -23,8 +23,10 @@ import {
     Toolbar,
     IconButton,
     Menu,
-    MenuItem
+    MenuItem,
+    Snackbar
 } from '@material-ui/core'
+import { Alert } from '@material-ui/lab'
 import MenuIcon from '@material-ui/icons/Menu'
 import HelpIcon from '@material-ui/icons/Help'
 import SettingsIcon from '@material-ui/icons/Settings'
@@ -129,6 +131,8 @@ export const Chat = () => {
     const settingsOpen = Boolean(settingsAnchorEl)
     const handleSettingsClose = () => { setSettingsAnchorEl(null) }
     const handleSettingsOpen = (event) => { setSettingsAnchorEl(event.currentTarget) }
+
+    const [ errorOpen, setErrorOpen ] = useState(false)
 
     const handleCharacterOverview = () => {
         dispatch(activateAllCharactersDialog())
@@ -302,7 +306,7 @@ export const Chat = () => {
                     <Toolbar>
                         <LineEntry
                             className={classes.lineEntry}
-                            callback={ (entry) => { dispatch(parseCommand(entry)) }}
+                            callback={ (entry) => { return dispatch(parseCommand({ entry, raiseError: () => { setErrorOpen(true) }})) }}
                         />
                     </Toolbar>
                 </Container>
@@ -331,6 +335,15 @@ export const Chat = () => {
                 <CircularProgress color="inherit" />
             </Backdrop>
         </div>
+        <Snackbar open={errorOpen}
+            autoHideDuration={3000}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            onClose={() => setErrorOpen(false)}
+        >
+            <Alert onClose={() => setErrorOpen(false)} severity="error">
+                The system cannot parse your command!
+            </Alert>
+        </Snackbar>
 
         </React.Fragment>
     );

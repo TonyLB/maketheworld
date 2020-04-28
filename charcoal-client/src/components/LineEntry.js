@@ -29,9 +29,11 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
                 setAutocompleteOpen(false)
             }}
             onChange={(_, incomingValue) => {
-                callback(incomingValue || '')
+                const callbackResult = callback(incomingValue || '')
                 setAutocompleteOpen(false)
-                setValue('')
+                if (callbackResult) {
+                    setValue('')
+                }
             }}
             onInputChange={(_, incomingValue, reason) => {
                 if (reason === 'input') {
@@ -44,8 +46,10 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
                     placeholder='Enter your chat text here'
                     onKeyPress={(event) => {
                         if (event.key === 'Enter' && !open) {
-                            callback(value || '')
-                            setValue('')
+                            const callbackResult = callback(value || '')
+                            if (callbackResult) {
+                                setValue('')
+                            }
                         }
                     }}
                     onKeyDown={(event) => {
