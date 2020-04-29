@@ -765,29 +765,39 @@ Resources:
               {
                   "version": "2018-05-29",
                   "operation": "Scan",
-                  "index": "AncestryIndex"
+                  "index": "AncestryIndex",
+                  "filter": {
+                      "expression": "DataCategory = :Details",
+                      "expressionValues": {
+                          ":Details": $util.dynamodb.toStringJson("Details")
+                      }
+                  }
               }
           ResponseMappingTemplate: >
               #set($output = [])
               #foreach($node in $ctx.result.items)
-                  #if($node.PermanentId.startsWith("NEIGHBORHOOD"))
+                  #set($typeName = "")
+                  #if($node.PermanentId.startsWith("NEIGHBORHOOD")  && $node.DataCategory == 'Details')
                       #set($typeName = "Neighborhood")
                       #set($type = "NEIGHBORHOOD")
                       #set($permanentId = $node.PermanentId.substring(13))
-                  #else
+                  #end
+                  #if($node.PermanentId.startsWith("ROOM") && $node.DataCategory == 'Details')
                       #set($typeName = "Room")
                       #set($type = "ROOM")
                       #set($permanentId = $node.PermanentId.substring(5))
                   #end
-                  $util.qr($output.add({
-                      "__typename": $typeName,
-                      "Name": $node.Name,
-                      "Type": $type,
-                      "PermanentId": $permanentId,
-                      "ParentId": $node.ParentId,
-                      "Ancestry": $node.Ancestry,
-                      "Description": $node.Description
-                  }))
+                  #if($typeName)
+                    $util.qr($output.add({
+                        "__typename": $typeName,
+                        "Name": $node.Name,
+                        "Type": $type,
+                        "PermanentId": $permanentId,
+                        "ParentId": $node.ParentId,
+                        "Ancestry": $node.Ancestry,
+                        "Description": $node.Description
+                    }))
+                  #end
               #end
               $util.toJson($output)
   QueryGetNeighborhood:

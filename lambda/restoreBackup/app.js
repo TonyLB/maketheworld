@@ -155,15 +155,24 @@ const deserializeV2 = ({ Neighborhoods, Rooms }) => {
                 ParentId,
                 Name,
                 FromRoomId
-            }) => ({
-                PutRequest: {
-                    Item: {
-                        PermanentId: `ROOM#${FromRoomId}`,
-                        DataCategory: `EXIT#${ParentId}`,
-                        Name: Name
+            }) => {
+                const toRoom = Rooms && Rooms[ParentId]
+                const ancestryList = (toRoom && toRoom.Ancestry && toRoom.Ancestry.split(':')) || [ParentId]
+                const ancestryRecord = toRoom ? {
+                    Ancestry: toRoom.Ancestry,
+                    ProgenitorId: ancestryList[0]
+                } : {}
+                return {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: `ROOM#${FromRoomId}`,
+                            DataCategory: `EXIT#${ParentId}`,
+                            Name: Name,
+                            ...ancestryRecord
+                        }
                     }
                 }
-            }))
+            })
         ))
         .reduce((previous, entries) => ([ ...previous, ...entries ]), [])
     return [

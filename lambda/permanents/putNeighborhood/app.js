@@ -20,6 +20,29 @@ const graphqlClient = new AppSync.AWSAppSyncClient({
     disableOffline: true
   })
 
+const batchDispatcher = (documentClient) => (items) => {
+    const groupBatches = items.reduce((({ current, requestLists }, item) => {
+            if (current.length > 23) {
+                return {
+                    requestLists: [ ...requestLists, current ],
+                    current: [item]
+                }
+            }
+            else {
+                return {
+                    requestLists,
+                    current: [...current, item]
+                }
+            }
+        }), { current: [], requestLists: []})
+    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
+        .map((itemList) => (documentClient.batchWrite({ RequestItems: {
+            [`${process.env.TABLE_PREFIX}_permanents`]: itemList
+        } }).promise()))
+    return Promise.all(batchPromises)
+}
+
+
 exports.handler = (event) => {
 
     const { TABLE_PREFIX, AWS_REGION } = process.env;
@@ -114,14 +137,12 @@ exports.handler = (event) => {
             }))
 
     //
-    // TODO:  Create a Lambda layer to hold the libraries we need to import for AppSync calls, then
-    // attach that layer to this function, and write a translation that creates AppSync call templates
-    // from the update calls in cascaseUpdates, and use that to create one large batch AppSync call
-    // to the externalPutNeighborhood and externalPutRoom functions, to trigger subscription updates.
+    // Create externalPut calls to update the AppSync API with what we're doing behind the scenes.
     //
     const updateToAppSyncCall = (Items) => (
         Items.length
             ? Promise.resolve(Items)
+                .then((Items) => (Items.filter(({ DataCategory }) => (DataCategory === 'Details'))))
                 .then((Items) => (Items.map(({
                     PermanentId,
                     Name,
@@ -130,9 +151,9 @@ exports.handler = (event) => {
                     ParentId,
                 }) => (`externalPut${PermanentId.startsWith("ROOM#") ? "Room" : "Neighborhood" } (
                         PermanentId: "${PermanentId.split("#").slice(1).join("#")}",
-                        Name: "${Name}",
+                        Name: ${JSON.stringify(Name)},
                         Ancestry: "${Ancestry}",
-                        Description: "${Description}",
+                        Description: ${JSON.stringify(Description)},
                         ParentId: "${ParentId}"
                     ) {
                         PermanentId
@@ -202,19 +223,14 @@ exports.handler = (event) => {
                 }))
             ))
             //
-            // TODO:  Create a manual batching function to break the RequestItems list into
-            // chunks of 25 items, and batchWrite them separately in parallel, returning the
-            // joint Promise.all.
+            // Now send maximum-sized parallel batches to update all of these items directly
+            // in DynamoDB
             //
             .then((Items) => {
                 return Items.length
-                    ? documentClient.batchWrite({
-                            RequestItems: {
-                                [permanentTable]: Items.map((Item) => ({
-                                    PutRequest: { Item }
-                                }))
-                            }
-                        }).promise().then(() => (Items))
+                    ? batchDispatcher(documentClient)(Items.map((Item) => ({
+                            PutRequest: { Item }
+                        }))).then(() => (Items))
                     : Items
             })
             .then(updateToAppSyncCall)
