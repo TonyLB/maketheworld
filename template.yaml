@@ -795,7 +795,8 @@ Resources:
                         "PermanentId": $permanentId,
                         "ParentId": $node.ParentId,
                         "Ancestry": $node.Ancestry,
-                        "Description": $node.Description
+                        "Description": $node.Description,
+                        "Visibility": $util.defaultIfNullOrBlank($node.Visibility, "Visible")
                     }))
                   #end
               #end
@@ -826,7 +827,8 @@ Resources:
                   "Name": $util.toJson($ctx.result.Name),
                   "Type": $util.toJson("NEIGHBORHOOD"),
                   "Ancestry": $util.toJson($ctx.result.Ancestry),
-                  "Description": $util.toJson($ctx.result.Description)
+                  "Description": $util.toJson($ctx.result.Description),
+                  "Visibility": $util.toJson($util.defaultIfNullOrBlank($ctx.result.Visibility, "Visible"))
               }
   QueryGetRoom:
       Type: AWS::AppSync::Resolver
@@ -859,6 +861,7 @@ Resources:
                       $util.qr($output.put("Ancestry", $row.Ancestry))
                       $util.qr($output.put("Name", $row.Name))
                       $util.qr($output.put("Description", $row.Description))
+                      $util.qr($output.put("Visibility", "Visible"))
                   #end
                   #if ($row.DataCategory.startsWith('EXIT#'))
                       #set($roomId = $row.DataCategory.substring(5))
@@ -1439,6 +1442,7 @@ Resources:
                   Ancestry: String!
                   Description: String
                   ParentId: String
+                  Visibility: String
               }
               type Neighborhood implements PermanentTreeNode {
                   PermanentId: String!
@@ -1447,6 +1451,7 @@ Resources:
                   Ancestry: String!
                   Description: String
                   ParentId: String
+                  Visibility: String
               }
               interface RoomPath {
                   Name: String!
@@ -1472,6 +1477,7 @@ Resources:
                   Ancestry: String!
                   Description: String
                   ParentId: String
+                  Visibility: String
                   Exits: [Exit]
                   Entries: [Entry]
               }
@@ -1521,6 +1527,7 @@ Resources:
                       Name: String!
                       Description: String
                       ParentId: String
+                      Visibility: String
                   ): AnyNode
                   externalPutNeighborhood(
                       PermanentId: String!
@@ -1528,6 +1535,7 @@ Resources:
                       Ancestry: String!
                       Description: String
                       ParentId: String
+                      Visibility: String
                   ): AnyNode
                   @aws_iam @aws_cognito_user_pools
                   putRoom(
@@ -1535,6 +1543,7 @@ Resources:
                       Name: String!
                       Description: String
                       ParentId: String
+                      Visibility: String
                       Exits: [PathInput]
                       Entries: [PathInput]
                   ): Room
@@ -1544,6 +1553,7 @@ Resources:
                       Ancestry: String!
                       Description: String
                       ParentId: String
+                      Visibility: String
                   ): AnyNode
                   @aws_iam @aws_cognito_user_pools
                   putRoomMessage(

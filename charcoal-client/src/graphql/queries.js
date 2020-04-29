@@ -65,7 +65,11 @@ export const getNeighborhoodTree = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      ... on Neighborhood {
+        Visibility
+      }
       ... on Room {
+        Visibility
         Exits {
           Name
           RoomId
@@ -74,6 +78,9 @@ export const getNeighborhoodTree = /* GraphQL */ `
           Name
           RoomId
         }
+      }
+      ... on AnyNode {
+        Visibility
       }
     }
   }
@@ -87,6 +94,7 @@ export const getNeighborhood = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
     }
   }
 `;
@@ -99,6 +107,7 @@ export const getRoom = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
       Exits {
         Name
         RoomId
@@ -137,6 +146,7 @@ export const getRoomByCharacter = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
       Exits {
         Name
         RoomId

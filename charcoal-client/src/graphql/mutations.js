@@ -105,12 +105,14 @@ export const putNeighborhood = /* GraphQL */ `
     $Name: String!
     $Description: String
     $ParentId: String
+    $Visibility: String
   ) {
     putNeighborhood(
       PermanentId: $PermanentId
       Name: $Name
       Description: $Description
       ParentId: $ParentId
+      Visibility: $Visibility
     ) {
       PermanentId
       Type
@@ -118,6 +120,7 @@ export const putNeighborhood = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
     }
   }
 `;
@@ -128,6 +131,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
     $Ancestry: String!
     $Description: String
     $ParentId: String
+    $Visibility: String
   ) {
     externalPutNeighborhood(
       PermanentId: $PermanentId
@@ -135,6 +139,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
       Ancestry: $Ancestry
       Description: $Description
       ParentId: $ParentId
+      Visibility: $Visibility
     ) {
       PermanentId
       Type
@@ -142,6 +147,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
     }
   }
 `;
@@ -151,6 +157,7 @@ export const putRoom = /* GraphQL */ `
     $Name: String!
     $Description: String
     $ParentId: String
+    $Visibility: String
     $Exits: [PathInput]
     $Entries: [PathInput]
   ) {
@@ -159,6 +166,7 @@ export const putRoom = /* GraphQL */ `
       Name: $Name
       Description: $Description
       ParentId: $ParentId
+      Visibility: $Visibility
       Exits: $Exits
       Entries: $Entries
     ) {
@@ -168,6 +176,7 @@ export const putRoom = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
       Exits {
         Name
         RoomId
@@ -186,6 +195,7 @@ export const externalPutRoom = /* GraphQL */ `
     $Ancestry: String!
     $Description: String
     $ParentId: String
+    $Visibility: String
   ) {
     externalPutRoom(
       PermanentId: $PermanentId
@@ -193,6 +203,7 @@ export const externalPutRoom = /* GraphQL */ `
       Ancestry: $Ancestry
       Description: $Description
       ParentId: $ParentId
+      Visibility: $Visibility
     ) {
       PermanentId
       Type
@@ -200,6 +211,7 @@ export const externalPutRoom = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
     }
   }
 `;

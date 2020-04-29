@@ -51,6 +51,7 @@ export const changedNode = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
     }
   }
 `;
@@ -63,6 +64,7 @@ export const changedRoom = /* GraphQL */ `
       Ancestry
       Description
       ParentId
+      Visibility
       Exits {
         Name
         RoomId

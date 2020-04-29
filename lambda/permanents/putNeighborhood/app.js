@@ -149,12 +149,14 @@ exports.handler = (event) => {
                     Ancestry,
                     Description,
                     ParentId,
+                    Visibility
                 }) => (`externalPut${PermanentId.startsWith("ROOM#") ? "Room" : "Neighborhood" } (
                         PermanentId: "${PermanentId.split("#").slice(1).join("#")}",
                         Name: ${JSON.stringify(Name)},
                         Ancestry: "${Ancestry}",
                         Description: ${JSON.stringify(Description)},
-                        ParentId: "${ParentId}"
+                        ParentId: "${ParentId}",
+                        Visibility: "${ Visibility || 'Visible' }"
                     ) {
                         PermanentId
                         Type
@@ -162,6 +164,7 @@ exports.handler = (event) => {
                         Ancestry
                         Description
                         ParentId
+                        Visibility
                     }
                     `))
                 ))
@@ -243,7 +246,8 @@ exports.handler = (event) => {
         Ancestry,
         ProgenitorId,
         Name,
-        Description
+        Description,
+        Visibility = 'Visible'
     }) => (documentClient.put({
         TableName: permanentTable,
         Item: {
@@ -253,7 +257,8 @@ exports.handler = (event) => {
             Ancestry,
             ProgenitorId,
             Name,
-            ...(Description ? { Description } : {})
+            ...(Description ? { Description } : {}),
+            ...(Visibility ? { Visibility } : {})
         },
         ReturnValues: "ALL_OLD"
     }).promise()
@@ -266,7 +271,8 @@ exports.handler = (event) => {
             Ancestry,
             ProgenitorId,
             Name,
-            Description
+            Description,
+            Visibility
         }))
     )
 
@@ -282,7 +288,7 @@ exports.handler = (event) => {
         })
         .then(cascadeUpdates)
         .then(putNeighborhood)
-        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description }))
+        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility }))
         .then((result) => {
             console.log(result)
             return result

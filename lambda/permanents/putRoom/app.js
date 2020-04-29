@@ -150,6 +150,7 @@ exports.handler = (event) => {
         ProgenitorId,
         Name,
         Description,
+        Visibility = 'Visible',
         Exits,
         Entries,
         ExitsToDelete,
@@ -165,7 +166,8 @@ exports.handler = (event) => {
                         Ancestry,
                         ProgenitorId,
                         Name,
-                        Description
+                        Description,
+                        ...(Visibility ? { Visibility } : {})
                     }
                 }
             },
@@ -289,6 +291,7 @@ exports.handler = (event) => {
             ProgenitorId,
             Name,
             Description,
+            Visibility,
             Entries,
             Exits
         }))
