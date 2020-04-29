@@ -73,6 +73,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
         Exits {
           Name
           RoomId
+          Ancestry
         }
         Entries {
           Name
@@ -111,6 +112,7 @@ export const getRoom = /* GraphQL */ `
       Exits {
         Name
         RoomId
+        Ancestry
       }
       Entries {
         Name
@@ -150,6 +152,7 @@ export const getRoomByCharacter = /* GraphQL */ `
       Exits {
         Name
         RoomId
+        Ancestry
       }
       Entries {
         Name

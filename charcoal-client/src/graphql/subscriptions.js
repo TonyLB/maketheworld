@@ -68,6 +68,7 @@ export const changedRoom = /* GraphQL */ `
       Exits {
         Name
         RoomId
+        Ancestry
       }
       Entries {
         Name

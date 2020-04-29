@@ -293,7 +293,15 @@ exports.handler = (event) => {
             Description,
             Visibility,
             Entries,
-            Exits
+            Exits: Exits.map(({ Name, RoomId }) => ({
+                //
+                // Exits must have the Ancestry and of their destination room
+                // denormalized into their structure.
+                //
+                RoomId,
+                Name,
+                Ancestry: (RoomLookupsForExits && RoomLookupsForExits[RoomId] && RoomLookupsForExits[RoomId].Ancestry) || ''
+            }))
         }))
     )
 

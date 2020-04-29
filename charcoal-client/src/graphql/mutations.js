@@ -180,6 +180,7 @@ export const putRoom = /* GraphQL */ `
       Exits {
         Name
         RoomId
+        Ancestry
       }
       Entries {
         Name
