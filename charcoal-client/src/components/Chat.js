@@ -43,7 +43,7 @@ import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
 import { activateConfirmDialog } from '../actions/UI/confirmDialog'
 import { putPlayer } from '../actions/player'
-import { getCurrentRoom } from '../selectors/currentRoom'
+import { getCurrentRoom, getVisibleExits } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getCharacterId } from '../selectors/connection'
@@ -112,7 +112,12 @@ export const Chat = () => {
     const webSocket = useSelector(getWebSocket)
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
-    const currentRoom = useSelector(getCurrentRoom)
+    const currentRoomAllExits = useSelector(getCurrentRoom)
+    const visibleExits = useSelector(getVisibleExits) || []
+    const currentRoom = {
+        ...currentRoomAllExits,
+        Exits: visibleExits
+    }
     const characterId = useSelector(getCharacterId)
     const consentGiven = useSelector(getConsentGiven)
     const playerFetched = useSelector(getPlayerFetched)

@@ -27,14 +27,16 @@ export const fetchAllNeighborhoods = () => (dispatch) => {
         ParentId,
         Ancestry,
         Name,
-        Description
+        Description,
+        Visibility
     }) => ({
         permanentId: PermanentId,
         type: Type,
         parentId: ParentId,
         ancestry: Ancestry,
         name: Name,
-        description: Description
+        description: Description,
+        visibility: Visibility
     }))))
     .then(response => dispatch(neighborhoodUpdate(response)))
     .catch((err) => { console.log(err)})
@@ -64,14 +66,15 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
                 const { value = {} } = roomData
                 const { data = {} } = value
                 const { changedRoom = {} } = data
-                const { PermanentId, Type, ParentId, Ancestry, Name, Description } = changedRoom
+                const { PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility } = changedRoom
                 dispatch(neighborhoodUpdate([{
                     permanentId: PermanentId,
                     type: Type,
                     parentId: ParentId,
                     ancestry: Ancestry,
                     name: Name,
-                    description: Description
+                    description: Description,
+                    visibility: Visibility
                 }]))
             }
         })
