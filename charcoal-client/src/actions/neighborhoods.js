@@ -49,14 +49,15 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
                 const { value = {} } = neighborhoodData
                 const { data = {} } = value
                 const { changedNode = {} } = data
-                const { PermanentId, Type, ParentId, Ancestry, Name, Description } = changedNode
+                const { PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility } = changedNode
                 dispatch(neighborhoodUpdate([{
                     permanentId: PermanentId,
                     type: Type,
                     parentId: ParentId,
                     ancestry: Ancestry,
                     name: Name,
-                    description: Description
+                    description: Description,
+                    visibility: Visibility
                 }]))
             }
         })

@@ -14,7 +14,8 @@ import {
     Button,
     TextField,
     Grid,
-    IconButton
+    IconButton,
+    Switch
 } from '@material-ui/core'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 
@@ -57,7 +58,7 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getNeighborhoodDialogUI)
     const permanentHeaders = useSelector(getPermanentHeaders)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
-    const { name = '', description = '', parentId = '' } = formValues
+    const { name = '', description = '', parentId = '', visibility = 'Visible' } = formValues
     const { ancestry: parentAncestry = '', name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
@@ -68,8 +69,8 @@ export const NeighborhoodDialog = ({ nested=false }) => {
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const saveHandler = () => {
-        const { name, description, parentId, neighborhoodId, exits, entries } = formValues
-        const neighborhoodData = { name, description, parentId, neighborhoodId, exits, entries }
+        const { name, description, visibility, parentId, neighborhoodId, exits, entries } = formValues
+        const neighborhoodData = { name, description, visibility, parentId, neighborhoodId, exits, entries }
         dispatch(putAndCloseNeighborhoodDialog(neighborhoodData))
     }
     const onSetParentHandler = (neighborhoodId) => () => {
@@ -140,6 +141,13 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                                 fullWidth
                                                 onChange={onShallowChangeHandler('description')}
                                             />
+                                        </div>
+                                        <div>
+                                            Visible <Switch
+                                                checked={visibility === 'Hidden'}
+                                                onChange={() => { formDispatch(appearanceUpdate({ label: 'visibility', value: visibility === 'Hidden' ? 'Visible' : 'Hidden' })) }}
+                                                color="primary"
+                                            /> Hidden
                                         </div>
                                     </form>
                                 </CardContent>

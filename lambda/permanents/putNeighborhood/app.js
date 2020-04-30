@@ -50,7 +50,7 @@ exports.handler = (event) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const { PermanentId = '', ParentId = '', Description = '', Name } = event.arguments
+    const { PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Name } = event.arguments
 
     const newNeighborhood = !Boolean(PermanentId)
     const newPermanentId = PermanentId || uuidv4()
@@ -65,7 +65,8 @@ exports.handler = (event) => {
             PermanentId: newPermanentId,
             ParentId,
             Name,
-            Description
+            Description,
+            Visibility
         })
         : documentClient.get({
                 TableName: permanentTable,
@@ -81,6 +82,7 @@ exports.handler = (event) => {
                 ParentId,
                 Name,
                 Description,
+                Visibility,
                 PreviousParentId: FetchedParentId,
                 PreviousAncestry: Ancestry,
                 PreviousProgenitorId: ProgenitorId

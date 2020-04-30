@@ -6,7 +6,7 @@ export const getVisibleExits = ({ currentRoom, permanentHeaders }) => {
             const ancestryList = Ancestry.split(':')
             const roomAncestryList = currentRoom.Ancestry.split(':')
             return !Boolean(ancestryList.find((PermanentId, index) => (
-                PermanentId !== roomAncestryList[index] &&
+                (roomAncestryList.length < index || PermanentId !== roomAncestryList[index]) &&
                 permanentHeaders &&
                 permanentHeaders[PermanentId] &&
                 permanentHeaders[PermanentId].visibility === 'Hidden')
