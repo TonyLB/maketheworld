@@ -85,7 +85,46 @@ const deserializeV1 = ({ Neighborhoods, Rooms }) => {
 //
 // Deserialize a backup file's format into V2 database format.
 //
-const deserializeV2 = ({ Neighborhoods, Rooms }) => {
+const deserializeV2 = ({ Neighborhoods, Rooms, Players }) => {
+    const PlayerAdds = Object.values(Players)
+        .map(({
+            PlayerName,
+            Characters,
+            ...rest
+        }) => {
+            return [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: `PLAYER#${PlayerName}`,
+                            DataCategory: 'Details',
+                            ...rest
+                        }
+                    }
+                },
+                ...((Characters || [])
+                    .map(({ CharacterId, ...rest }) => ([{
+                        PutRequest: {
+                            Item: {
+                                PermanentId: `PLAYER#${PlayerName}`,
+                                DataCategory: `CHARACTER#${CharacterId}`,
+                            }
+                        }
+                    },
+                    {
+                        PutRequest: {
+                            Item: {
+                                PermanentId: `CHARACTER#${CharacterId}`,
+                                DataCategory: 'Details',
+                                ...rest
+                            }
+                        }
+                    }]))
+                    .reduce((previous, putList) => ([...previous, ...putList]), [])
+                )
+             ]
+        })
+        .reduce((previous, putList) => ([...previous, ...putList]), [])
     const NeighborhoodAdds = Object.values(Neighborhoods)
         .map(({
             PermanentId,
@@ -176,6 +215,7 @@ const deserializeV2 = ({ Neighborhoods, Rooms }) => {
         ))
         .reduce((previous, entries) => ([ ...previous, ...entries ]), [])
     return [
+        ...PlayerAdds,
         ...NeighborhoodAdds,
         ...RoomAdds,
         ...EntryAdds,

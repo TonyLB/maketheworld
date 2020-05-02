@@ -336,6 +336,10 @@ Resources:
             Action:
               - "dynamodb:Scan"
             Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
+          - Effect: "Allow"
+            Action:
+              - "dynamodb:Scan"
+            Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_players"
   RestoreBackupFunction:
     Type: AWS::Serverless::Function
     Properties:
