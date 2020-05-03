@@ -531,16 +531,6 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource: !GetAtt PutCharacterFunction.Arn
-  PlayerDynamoDBTableDataSource:
-    Type: AWS::AppSync::DataSource
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        Name: Player
-        Type: AMAZON_DYNAMODB
-        ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
-        DynamoDBConfig:
-            AwsRegion: us-east-1
-            TableName: !Sub ${TablePrefix}_players
   CharactersInPlayDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -762,32 +752,15 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: CharacterInPlay
           FieldName: Character
-          DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt GetCharacterDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
-                  "operation": "GetItem",
-                  "key": {
-                      "PlayerName": $util.dynamodb.toStringJson($context.source.PlayerName),
-                      "DataCategory": $util.dynamodb.toStringJson("Character#$context.source.CharacterId")
+                  "operation": "Invoke",
+                  "payload": {
+                    "CharacterId": $utils.toJson($context.source.CharacterId)
                   }
               }
-          ResponseMappingTemplate: >
-              #if($ctx.result.items)
-                #set($result = $ctx.result.items[0])
-                $util.toJson({
-                  "PlayerName": "$result.PlayerName",
-                  "Name": "$result.Name",
-                  "CharacterId": "$ctx.args.characterId",
-                  "Pronouns": "$result.Pronouns",
-                  "FirstImpression": "$result.FirstImpression",
-                  "Outfit": "$result.Outfit",
-                  "OneCoolThing": "$result.OneCoolThing",
-                  "HomeId": "$result.HomeId"
-                })
-              #else
-                $util.toJson({})
-              #end
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetCharactersInPlay:
       Type: AWS::AppSync::Resolver
@@ -1013,35 +986,30 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           Name: PreQueryCharacterIfNeeded
           Description: Checks if needed before adding a character to find PlayerName and Name
-          DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt GetCharacterDataSource.Name
           RequestMappingTemplate: >
               #if ($ctx.prev.result.Reactivate)
                   #return($ctx.prev.result)
               #end
               {
                   "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                    "expression": "DataCategory = :CharacterLookup",
-                    "expressionValues": {
-                      ":CharacterLookup": $util.dynamodb.toStringJson("Character#$ctx.prev.result.CharacterId")
-                    }
-                  },
-                  "index": "CategoryIndex",
-                  "limit": 1
+                  "operation": "Invoke",
+                  "payload": {
+                    "CharacterId": $utils.toJson($ctx.prev.result.CharacterId)
+                  }
               }
           ResponseMappingTemplate: >
               #if ($ctx.error)
                   $util.error($ctx.error.message, $ctx.error.type)
               #end
-              #if($ctx.result.scannedCount)
-                #set($result = $ctx.result.items[0])
+              #if($ctx.result)
+                #set($result = $ctx.result)
                 $util.toJson({
                   "CharacterId": "$ctx.prev.result.CharacterId",
                   "ConnectionId": "$ctx.prev.result.ConnectionId",
                   "PlayerName": "$result.PlayerName",
                   "Name": "$result.Name",
-                  "RoomId": "VORTEX",
+                  "RoomId": "$util.defaultIfNullOrBlank($result.HomeId, 'VORTEX')",
                   "Reactivate": false
                 })
               #else
