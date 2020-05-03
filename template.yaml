@@ -507,6 +507,30 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource: !GetAtt PutNeighborhoodFunction.Arn
+            - PolicyName: GetCharacterPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "lambda:InvokeFunction"
+                      Resource: !GetAtt GetCharacterFunction.Arn
+            - PolicyName: GetPlayerCharactersPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "lambda:InvokeFunction"
+                      Resource: !GetAtt GetPlayerCharactersFunction.Arn
+            - PolicyName: PutCharacterPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "lambda:InvokeFunction"
+                      Resource: !GetAtt PutCharacterFunction.Arn
   PlayerDynamoDBTableDataSource:
     Type: AWS::AppSync::DataSource
     Properties:
@@ -554,13 +578,13 @@ Resources:
         ApiId: !GetAtt AppSyncAPI.ApiId
         TypeName: Query
         FieldName: getPlayer
-        DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+        DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
         RequestMappingTemplate: >
             {
                 "version": "2017-02-28",
                 "operation": "GetItem",
                 "key": {
-                    "PlayerName": $util.dynamodb.toStringJson($ctx.args.PlayerName),
+                    "PermanentId": $util.dynamodb.toStringJson("PLAYER#${ctx.args.PlayerName}"),
                     "DataCategory": $util.dynamodb.toStringJson("Details")
                 }
             }
@@ -580,7 +604,7 @@ Resources:
         ApiId: !GetAtt AppSyncAPI.ApiId
         TypeName: Mutation
         FieldName: putPlayer
-        DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+        DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
         RequestMappingTemplate: >
             #set($PlayerName = $ctx.args.PlayerName)
             #if ($util.isNullOrEmpty($PlayerName))
@@ -590,7 +614,7 @@ Resources:
                 "version": "2017-02-28",
                 "operation": "PutItem",
                 "key": {
-                    "PlayerName": $util.dynamodb.toStringJson($PlayerName),
+                    "PermanentId": $util.dynamodb.toStringJson("PLAYER#${PlayerName}"),
                     "DataCategory": $util.dynamodb.toStringJson("Details")
                 },
                 "attributeValues": {
@@ -602,7 +626,36 @@ Resources:
                       #end
                 }
             }
-        ResponseMappingTemplate: $util.toJson($ctx.result)
+        ResponseMappingTemplate: >
+          #set($PlayerName = $ctx.result.PermanentId && $ctx.result.PermanentId.slice(7))
+          $util.toJson({
+            "PlayerName": $PlayerName,
+            "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false)
+          })
+  GetCharacterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+        CodeUri: lambda/permanents/characters/
+        Handler: app.getCharacter
+        MemorySize: 256
+        Runtime: nodejs12.x
+        Layers:
+            - !Ref UUIDLambdaLayer
+        Environment:
+            Variables:
+                TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_permanents'
+  GetCharacterDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: GetCharacter
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt GetCharacterFunction.Arn
   QueryGetCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -610,32 +663,40 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getCharacter
-          DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt GetCharacterDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                    "expression": "DataCategory = :CharacterLookup",
-                    "expressionValues": {
-                      ":CharacterLookup": $util.dynamodb.toStringJson("Character#$ctx.args.characterId")
-                    }
-                  },
-                  "index": "CategoryIndex",
-                  "limit": 1
+                  "operation": "Invoke",
+                  "payload": {
+                      "CharacterId": $utils.toJson($ctx.args.CharacterId)
+                  }
               }
-          ResponseMappingTemplate: >
-              #if($ctx.result.items)
-                #set($result = $ctx.result.items[0])
-                #if($util.isNull($result.Pronouns)) $util.qr($result.put("Pronouns", "")) #end
-                #if($util.isNull($result.FirstImpression)) $util.qr($result.put("FirstImpression", "")) #end
-                #if($util.isNull($result.Outfit)) $util.qr($result.put("Outfit", "")) #end
-                #if($util.isNull($result.OneCoolThing)) $util.qr($result.put("OneCoolThing", "")) #end
-                #if($util.isNull($result.HomeId)) $util.qr($result.put("HomeId", "")) #end
-                $util.toJson($result)
-              #else
-                $util.toJson({})
-              #end
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  GetPlayerCharactersFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/characters/
+          Handler: app.getPlayerCharacters
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
+  GetPlayerCharactersDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: GetPlayerCharacters
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt GetPlayerCharactersFunction.Arn
   QueryPlayerCharactersResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -643,30 +704,40 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getPlayerCharacters
-          DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt GetPlayerCharactersDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                      "expression": "PlayerName = :PlayerName and begins_with(DataCategory, :CharacterPrefix)",
-                      "expressionValues": {
-                          ":PlayerName": $util.dynamodb.toDynamoDBJson($context.identity.username),
-                          ":CharacterPrefix": $util.dynamodb.toStringJson("Character#")
-                      }
+                  "operation": "Invoke",
+                  "payload": {
+                    "PlayerName": $util.toJson($context.identity.username)
                   }
               }
-          ResponseMappingTemplate: >
-            #set($result = [])
-            #foreach($item in $ctx.result.items)
-              #if($util.isNull($item.Pronouns)) $util.qr($item.put("Pronouns", "")) #end
-              #if($util.isNull($item.FirstImpression)) $util.qr($item.put("FirstImpression", "")) #end
-              #if($util.isNull($item.Outfit)) $util.qr($item.put("Outfit", "")) #end
-              #if($util.isNull($item.OneCoolThing)) $util.qr($item.put("OneCoolThing", "")) #end
-              #if($util.isNull($item.HomeId)) $util.qr($item.put("HomeId", "")) #end
-              $util.qr($result.add($item))
-            #end
-            $util.toJson($result)
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  PutCharacterFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/characters/
+          Handler: app.putCharacter
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
+  PutCharacterDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: PutCharacter
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt PutCharacterFunction.Arn
   PutCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -674,41 +745,16 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putCharacter
-          DataSourceName: !GetAtt PlayerDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt PutCharacterDataSource.Name
           RequestMappingTemplate: >
-              #if(!($ctx.args.CharacterId))
-                  $util.qr($ctx.args.put("CharacterId", $util.autoId()))
-              #end
-              #set( $ddb = $util.dynamodb )
-              {
+              #set($arguments = $ctx.args)
+              $util.qr($arguments.put("PlayerName", $context.identity.username))
+              $util.toJson({
                   "version": "2017-02-28",
-                  "operation": "PutItem",
-                  "key": {
-                      "PlayerName": $ddb.toStringJson($context.identity.username),
-                      "DataCategory": $ddb.toStringJson("Character#$ctx.args.CharacterId")
-                  },
-                  "attributeValues": {
-                      "CharacterId": $ddb.toStringJson($ctx.args.CharacterId),
-                      "Name": $ddb.toStringJson($ctx.args.Name)
-                      #if($ctx.args.Pronouns), "Pronouns": $ddb.toStringJson($ctx.args.Pronouns) #end
-                      #if($ctx.args.FirstImpression), "FirstImpression": $ddb.toStringJson($ctx.args.FirstImpression) #end
-                      #if($ctx.args.OneCoolThing), "OneCoolThing": $ddb.toStringJson($ctx.args.OneCoolThing) #end
-                      #if($ctx.args.Outfit), "Outfit": $ddb.toStringJson($ctx.args.Outfit) #end
-                      #if($ctx.args.HomeId), "HomeId": $ddb.toStringJson($ctx.args.HomeId) #end
-                  }
-              }
-          ResponseMappingTemplate: >
-            #if($ctx.result)
-              #set($result = $ctx.result)
-              #if($util.isNull($result.Pronouns)) $util.qr($result.put("Pronouns", "")) #end
-              #if($util.isNull($result.FirstImpression)) $util.qr($result.put("FirstImpression", "")) #end
-              #if($util.isNull($result.Outfit)) $util.qr($result.put("Outfit", "")) #end
-              #if($util.isNull($result.OneCoolThing)) $util.qr($result.put("OneCoolThing", "")) #end
-              #if($util.isNull($result.HomeId)) $util.qr($result.put("HomeId", "")) #end
-              $util.toJson($result)
-            #else
-              $util.toJson({})
-            #end
+                  "operation": "Invoke",
+                  "payload": $arguments
+              })
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   CharacterInPlayGetCharacter:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
