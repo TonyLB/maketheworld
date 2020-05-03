@@ -39,6 +39,10 @@ export const putCharacter = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
+      Grants {
+        Resource
+        Action
+      }
     }
   }
 `;

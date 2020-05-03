@@ -20,6 +20,10 @@ export const changedCharacter = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
+      Grants {
+        Resource
+        Action
+      }
     }
   }
 `;

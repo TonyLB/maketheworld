@@ -20,6 +20,10 @@ export const getCharacter = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
+      Grants {
+        Resource
+        Action
+      }
     }
   }
 `;
@@ -34,6 +38,10 @@ export const getPlayerCharacters = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
+      Grants {
+        Resource
+        Action
+      }
     }
   }
 `;

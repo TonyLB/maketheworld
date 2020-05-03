@@ -1010,6 +1010,7 @@ Resources:
                   "PlayerName": "$result.PlayerName",
                   "Name": "$result.Name",
                   "RoomId": "$util.defaultIfNullOrBlank($result.HomeId, 'VORTEX')",
+                  "Grants": $util.defaultIfNull($result.Grants, []),
                   "Reactivate": false
                 })
               #else
@@ -1430,6 +1431,10 @@ Resources:
                   PlayerName: String!
                   CodeOfConductConsent: Boolean
               }
+              type Grant @aws_iam @aws_cognito_user_pools {
+                  Resource: String!
+                  Actions: String!
+              }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String!
                   Name: String!
@@ -1439,6 +1444,7 @@ Resources:
                   Outfit: String
                   OneCoolThing: String
                   HomeId: String
+                  Grants: [Grant]
               }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: ID!

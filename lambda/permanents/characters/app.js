@@ -56,6 +56,41 @@ const batchDispatcher = (documentClient) => (items) => {
     return Promise.all(batchPromises)
 }
 
+const getCharacterInfo = ({ documentClient, CharacterId }) => (
+    documentClient.query({
+        TableName: `${process.env.TABLE_PREFIX}_permanents`,
+        KeyConditionExpression: 'PermanentId = :CharacterId',
+        ExpressionAttributeValues: {
+            ":CharacterId": `CHARACTER#${CharacterId}`
+        }
+    }).promise()
+    .then(({ Items }) => (Items.reduce((previous, { DataCategory, PermanentId, ...rest }) => {
+        if (DataCategory === 'Details') {
+            return {
+                ...previous,
+                CharacterId: PermanentId.slice(10),
+                Grants: rest.Grants || [],
+                ...rest
+            }
+        }
+        if (DataCategory.startsWith('GRANT#')) {
+            const Resource = DataCategory.slice(6)
+            const Actions = rest.Actions
+            return Actions
+                ? {
+                    ...previous,
+                    Grants: [
+                        ...(previous.Grants || []),
+                        {
+                            Resource,
+                            Actions
+                        }
+                    ]
+                }
+                : previous
+        }
+    }, {})))
+)
 exports.getCharacter = (event) => {
 
     const { TABLE_PREFIX, AWS_REGION } = process.env;
@@ -66,16 +101,9 @@ exports.getCharacter = (event) => {
     const { CharacterId } = event
 
     return CharacterId
-        ? (documentClient.get({
-                TableName: permanentTable,
-                Key: {
-                    PermanentId: `CHARACTER#${CharacterId}`,
-                    DataCategory: 'Details'
-                }
-            }).promise())
-            .then(({ Item }) => Item)
-            .then(({ Name, Pronouns, FirstImpression, OneCoolThing, Outfit, HomeId }) => ({
-                CharacterId, Name, Pronouns, FirstImpression, OneCoolThing, Outfit, HomeId
+        ? (getCharacterInfo({ documentClient, CharacterId }))
+            .then(({ Name, Pronouns, FirstImpression, OneCoolThing, Outfit, HomeId, Grants }) => ({
+                CharacterId, Name, Pronouns, FirstImpression, OneCoolThing, Outfit, HomeId, Grants
             }))
             .then(({ CharacterId, ...rest }) => (documentClient.query({
                     TableName: permanentTable,
@@ -115,14 +143,20 @@ exports.getPlayerCharacters = (event) => {
                 },
             }).promise())
             .then(({ Items }) => Items.map(({ DataCategory }) => (DataCategory.slice(10))))
-            .then((Items) => batchGetDispatcher(documentClient)
-                (Items.map((characterId) => ({ PermanentId: `CHARACTER#${characterId}`, DataCategory: 'Details' })))
-            )
-            .then((Items) => (Items.map(({ PermanentId, ...rest }) => ({
-                CharacterId: PermanentId.slice(10),
+            .then((result) => {
+                console.log(JSON.stringify(result, null, 4))
+                return result
+            })
+            .then((Items) => (Promise.all(Items.map((CharacterId) => (getCharacterInfo({ documentClient, CharacterId }))))))
+            .then((result) => {
+                console.log(JSON.stringify(result, null, 4))
+                return result
+            })
+            .then((Items) => (Items.map((Item) => ({
                 PlayerName,
-                ...rest
+                ...Item
             }))))
+            .then((Items) => (Items.map((Item) => ({ ...Item }))))
             .catch((err) => ({ error: err.stack }))
         : Promise.resolve({ error: "No PlayerName specified"})
 
@@ -165,15 +199,16 @@ exports.putCharacter = ({
                 }
             }
         }])
-        .then(() => ({
-            CharacterId,
+        .then(() => (getCharacterInfo({ documentClient, CharacterId })))
+        .then(({ Grants }) => ({
             PlayerName,
             Name,
             Pronouns,
             FirstImpression,
             OneCoolThing,
             Outfit,
-            HomeId
+            HomeId,
+            Grants
         }))
         .catch((err) => ({ error: err.stack }))
 
