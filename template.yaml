@@ -804,11 +804,13 @@ Resources:
                       #set($typeName = "Neighborhood")
                       #set($type = "NEIGHBORHOOD")
                       #set($permanentId = $node.PermanentId.substring(13))
+                      #set($visibility = $util.defaultIfNullOrBlank($node.Visibility, "Private"))
                   #end
                   #if($node.PermanentId.startsWith("ROOM") && $node.DataCategory == 'Details')
                       #set($typeName = "Room")
                       #set($type = "ROOM")
                       #set($permanentId = $node.PermanentId.substring(5))
+                      #set($visibility = $util.defaultIfNullOrBlank($node.Visibility, "Public"))
                   #end
                   #if($typeName)
                     $util.qr($output.add({
@@ -819,7 +821,7 @@ Resources:
                         "ParentId": $node.ParentId,
                         "Ancestry": $node.Ancestry,
                         "Description": $node.Description,
-                        "Visibility": $util.defaultIfNullOrBlank($node.Visibility, "Visible")
+                        "Visibility": $visibility
                     }))
                   #end
               #end
@@ -851,7 +853,7 @@ Resources:
                   "Type": $util.toJson("NEIGHBORHOOD"),
                   "Ancestry": $util.toJson($ctx.result.Ancestry),
                   "Description": $util.toJson($ctx.result.Description),
-                  "Visibility": $util.toJson($util.defaultIfNullOrBlank($ctx.result.Visibility, "Visible"))
+                  "Visibility": $util.toJson($util.defaultIfNullOrBlank($ctx.result.Visibility, "Private"))
               }
   QueryGetRoom:
       Type: AWS::AppSync::Resolver
@@ -884,7 +886,7 @@ Resources:
                       $util.qr($output.put("Ancestry", $row.Ancestry))
                       $util.qr($output.put("Name", $row.Name))
                       $util.qr($output.put("Description", $row.Description))
-                      $util.qr($output.put("Visibility", "Visible"))
+                      $util.qr($output.put("Visibility", "Public"))
                   #end
                   #if ($row.DataCategory.startsWith('EXIT#'))
                       #set($roomId = $row.DataCategory.substring(5))

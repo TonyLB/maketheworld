@@ -143,11 +143,11 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                             />
                                         </div>
                                         <div>
-                                            Visible <Switch
-                                                checked={visibility === 'Hidden'}
-                                                onChange={() => { formDispatch(appearanceUpdate({ label: 'visibility', value: visibility === 'Hidden' ? 'Visible' : 'Hidden' })) }}
+                                            Private <Switch
+                                                checked={visibility === 'Public'}
+                                                onChange={() => { formDispatch(appearanceUpdate({ label: 'visibility', value: visibility === 'Public' ? 'Private' : 'Public' })) }}
                                                 color="primary"
-                                            /> Hidden
+                                            /> Public
                                         </div>
                                     </form>
                                 </CardContent>

@@ -1,16 +1,22 @@
+import { getMyCurrentCharacter } from './myCharacters'
+
 export const getCurrentRoom = ({ currentRoom }) => (currentRoom)
 
-export const getVisibleExits = ({ currentRoom, permanentHeaders }) => {
+export const getVisibleExits = (state) => {
+    const { Grants = [] } = getMyCurrentCharacter()(state)
+    const { currentRoom, permanentHeaders } = state
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
         currentRoom.Exits.filter(({ Ancestry }) => {
             const ancestryList = Ancestry.split(':')
             const roomAncestryList = currentRoom.Ancestry.split(':')
-            return !Boolean(ancestryList.find((PermanentId, index) => (
+            const returnVal = (ancestryList.find((PermanentId, index) => (
                 (roomAncestryList.length < index || PermanentId !== roomAncestryList[index]) &&
                 permanentHeaders &&
                 permanentHeaders[PermanentId] &&
-                permanentHeaders[PermanentId].visibility === 'Hidden')
+                permanentHeaders[PermanentId].visibility === 'Private' &&
+                !(Grants.find(({ Resource, Actions }) => ((Resource === PermanentId) && Actions.includes('View')))))
             ))
+            return !Boolean(returnVal)
         })
 }
 //
@@ -18,8 +24,9 @@ export const getVisibleExits = ({ currentRoom, permanentHeaders }) => {
 // directly from the text line.  This is used to populate the autoComplete on
 // the LineEntry component, to give people text help.
 //
-export const getAvailableBehaviors = ({ currentRoom, permanentHeaders }) => {
-    const exitNames = (getVisibleExits({ currentRoom, permanentHeaders }) && currentRoom.Exits.map(({ Name }) => (Name.toLowerCase()))) || []
+export const getAvailableBehaviors = (state) => {
+    const { currentRoom } = state
+    const exitNames = (getVisibleExits(state) && currentRoom.Exits.map(({ Name }) => (Name.toLowerCase()))) || []
     return [
         'l',
         'look',
