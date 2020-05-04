@@ -243,6 +243,7 @@ export const HelpDialog = () => {
                         <CommandEntry label={`@`} argument explanation={`Directly post whatever you type after the '@' (e.g. 'The bookshelf teeters dangerously.')`} />
                         <CommandEntry label="<any exit name>" explanation="Take that exit, as if you clicked it in the room description at top." />
                         <CommandEntry label="look" explanation="Get a room description message in your message stream." />
+                        <CommandEntry label="help" explanation="Open this help window." />
                         <CommandEntry label="home" explanation="Instantly go from wherever you are to your characters home room." />
                         <CommandEntry label="shout" argument explanation="Shouts your message to your room and any adjacent room." />
                         <CommandEntry label="announce" argument explanation="Posts an announcement of your text to every room in the smallest neighborhood you occupy." />

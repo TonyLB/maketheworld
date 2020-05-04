@@ -30,6 +30,7 @@ export const getAvailableBehaviors = (state) => {
     return [
         'l',
         'look',
+        'help',
         'home',
         ...(exitNames),
         ...(exitNames.map((name) => (`go ${name}`)))

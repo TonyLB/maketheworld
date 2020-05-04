@@ -6,6 +6,7 @@ import moveCharacter from './moveCharacter'
 import goHome from './home'
 import announce from './announce'
 import shout from './shout'
+import help from './help'
 
 export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     if (entry === 'l' || entry === 'look') {
@@ -13,6 +14,9 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     }
     if (entry === 'home') {
         return dispatch(goHome())
+    }
+    if (entry === 'help') {
+        return dispatch(help())
     }
     const re = /^(\w+)\s+(.*)$/
     const match = re.exec(entry)
