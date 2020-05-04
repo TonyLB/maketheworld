@@ -1,4 +1,5 @@
 import { getMyCurrentCharacter } from './myCharacters'
+import { getActiveCharactersInRoom } from './charactersInPlay'
 
 export const getCurrentRoom = ({ currentRoom }) => (currentRoom)
 
@@ -27,13 +28,15 @@ export const getVisibleExits = (state) => {
 export const getAvailableBehaviors = (state) => {
     const { currentRoom } = state
     const exitNames = (getVisibleExits(state) && currentRoom.Exits.map(({ Name }) => (Name.toLowerCase()))) || []
+    const characterNames = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId })(state)
     return [
         'l',
         'look',
         'help',
         'home',
         ...(exitNames),
-        ...(exitNames.map((name) => (`go ${name}`)))
+        ...(exitNames.map((name) => (`go ${name}`))),
+        ...(characterNames.map(({ Name }) => (`look ${Name.toLowerCase()}`)))
     ]
 }
 

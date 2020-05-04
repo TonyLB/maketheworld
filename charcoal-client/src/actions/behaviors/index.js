@@ -1,7 +1,9 @@
 import { getCurrentName, getCharacterId } from '../../selectors/connection'
+import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 
 import { sendMessage } from '../messages.js'
 import lookRoom from './lookRoom'
+import lookCharacter from './lookCharacter'
 import moveCharacter from './moveCharacter'
 import goHome from './home'
 import announce from './announce'
@@ -33,6 +35,13 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     const { currentRoom } = state
     const currentName = getCurrentName(state)
     const characterId = getCharacterId(state)
+    const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId })(state)
+    if (entry.startsWith('look ')) {
+        const characterMatch = charactersInRoom.find(({ Name }) => (Name.toLowerCase() === entry.slice(5).toLowerCase()))
+        if (characterMatch) {
+            return dispatch(lookCharacter(characterMatch))
+        }
+    }
     const matchedExit = currentRoom.Exits.find(({ Name }) => ( entry.toLowerCase() === Name.toLowerCase() || entry.toLowerCase() === `go ${Name.toLowerCase()}`))
     if (matchedExit) {
         return dispatch(moveCharacter({ ExitName: matchedExit.Name, RoomId: matchedExit.RoomId }))
