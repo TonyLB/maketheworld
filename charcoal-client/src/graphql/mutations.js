@@ -41,7 +41,7 @@ export const putCharacter = /* GraphQL */ `
       HomeId
       Grants {
         Resource
-        Action
+        Actions
       }
     }
   }
@@ -105,6 +105,7 @@ export const moveCharacter = /* GraphQL */ `
 `;
 export const putNeighborhood = /* GraphQL */ `
   mutation PutNeighborhood(
+    $CharacterId: String!
     $PermanentId: String
     $Name: String!
     $Description: String
@@ -112,6 +113,7 @@ export const putNeighborhood = /* GraphQL */ `
     $Visibility: String
   ) {
     putNeighborhood(
+      CharacterId: $CharacterId
       PermanentId: $PermanentId
       Name: $Name
       Description: $Description

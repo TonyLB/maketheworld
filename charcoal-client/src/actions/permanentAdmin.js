@@ -6,6 +6,7 @@ import { fetchAllNeighborhoods } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { activateWorldDialog } from './UI/worldDialog'
 import { activateNeighborhoodDialog, closeNeighborhoodDialog } from './UI/neighborhoodDialog'
+import { getCharacterId } from '../selectors/connection'
 
 export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
     return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
@@ -112,16 +113,21 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
         .catch((err) => { console.log(err)})
 }
 
-export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch) => {
+export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, getState) => {
+    const state = getState()
+    const CharacterId = getCharacterId(state)
     const { neighborhoodId, parentId, name, description, visibility } = neighborhoodData
-    return API.graphql(graphqlOperation(putNeighborhood, {
-            PermanentId: neighborhoodId,
-            ParentId: parentId,
-            Name: name,
-            Description: description,
-            Visibility: visibility
-        }))
-    .then(() => dispatch(closeNeighborhoodDialog()))
-    .catch((err) => { console.log(err)})
+    if (CharacterId) {
+        return API.graphql(graphqlOperation(putNeighborhood, {
+                CharacterId,
+                PermanentId: neighborhoodId,
+                ParentId: parentId,
+                Name: name,
+                Description: description,
+                Visibility: visibility
+            }))
+        .then(() => dispatch(closeNeighborhoodDialog()))
+        .catch((err) => { console.log(err)})
+    }
 }
 

@@ -1549,6 +1549,7 @@ Resources:
                       RoomId: String!
                   ): CharacterInPlay
                   putNeighborhood(
+                      CharacterId: String!
                       PermanentId: String
                       Name: String!
                       Description: String

@@ -22,7 +22,7 @@ export const getCharacter = /* GraphQL */ `
       HomeId
       Grants {
         Resource
-        Action
+        Actions
       }
     }
   }
@@ -40,7 +40,7 @@ export const getPlayerCharacters = /* GraphQL */ `
       HomeId
       Grants {
         Resource
-        Action
+        Actions
       }
     }
   }

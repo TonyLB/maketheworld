@@ -50,7 +50,7 @@ exports.handler = (event) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const { PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Name } = event.arguments
+    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Name } = event.arguments
 
     const newNeighborhood = !Boolean(PermanentId)
     const newPermanentId = PermanentId || uuidv4()
@@ -62,6 +62,7 @@ exports.handler = (event) => {
     //
     const preCheckLookup = newNeighborhood
         ? Promise.resolve({
+            CharacterId,
             PermanentId: newPermanentId,
             ParentId,
             Name,
@@ -243,58 +244,57 @@ exports.handler = (event) => {
     )
 
     const putNeighborhood = ({
+        CharacterId,
         PermanentId,
         ParentId,
         Ancestry,
         ProgenitorId,
         Name,
         Description,
-        Visibility = 'Visible'
-    }) => (documentClient.put({
-        TableName: permanentTable,
-        Item: {
-            PermanentId: `NEIGHBORHOOD#${PermanentId}`,
-            DataCategory: 'Details',
-            ...(ParentId ? { ParentId } : {}),
-            Ancestry,
-            ProgenitorId,
-            Name,
-            ...(Description ? { Description } : {}),
-            ...(Visibility ? { Visibility } : {})
-        },
-        ReturnValues: "ALL_OLD"
-    }).promise()
-        .then((old) => ((old && old.Attributes) || {}))
-        .then(({ DataCategory, ...rest }) => ({
-            ...rest,
-            Type: "NEIGHBORHOOD",
-            PermanentId,
-            ParentId,
-            Ancestry,
-            ProgenitorId,
-            Name,
-            Description,
-            Visibility
-        }))
-    )
+        Visibility = 'Private'
+    }) => (newNeighborhood
+            ? documentClient.put({
+                    TableName: permanentTable,
+                    Item: {
+                        PermanentId: `CHARACTER#${CharacterId}`,
+                        DataCategory: `GRANT#${PermanentId}`,
+                        Actions: 'View,Edit,Moderate,ExtendPrivate,ExtendPublic'
+                    }
+                }).promise()
+            : Promise.resolve({}))
+        .then(() => (documentClient.put({
+                TableName: permanentTable,
+                Item: {
+                    PermanentId: `NEIGHBORHOOD#${PermanentId}`,
+                    DataCategory: 'Details',
+                    ...(ParentId ? { ParentId } : {}),
+                    Ancestry,
+                    ProgenitorId,
+                    Name,
+                    ...(Description ? { Description } : {}),
+                    ...(Visibility ? { Visibility } : {})
+                },
+                ReturnValues: "ALL_OLD"
+            }).promise()
+                .then((old) => ((old && old.Attributes) || {}))
+                .then(({ DataCategory, ...rest }) => ({
+                    ...rest,
+                    Type: "NEIGHBORHOOD",
+                    PermanentId,
+                    ParentId,
+                    Ancestry,
+                    ProgenitorId,
+                    Name,
+                    Description,
+                    Visibility
+                }))
+            ))
 
     return preCheckLookup
-        .then((result) => {
-            console.log(result)
-            return result
-        })
         .then(ancestryLookup)
-        .then((result) => {
-            console.log(result)
-            return result
-        })
         .then(cascadeUpdates)
         .then(putNeighborhood)
         .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility }))
-        .then((result) => {
-            console.log(result)
-            return result
-        })
         .catch((err) => ({ error: err.stack }))
 
 }

@@ -22,7 +22,7 @@ export const changedCharacter = /* GraphQL */ `
       HomeId
       Grants {
         Resource
-        Action
+        Actions
       }
     }
   }
