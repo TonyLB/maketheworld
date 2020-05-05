@@ -17,6 +17,8 @@ import HouseIcon from '@material-ui/icons/House'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import CreateIcon from '@material-ui/icons/Create'
+import ExitIcon from '@material-ui/icons/ExitToApp'
+import HiddenIcon from '@material-ui/icons/VisibilityOff'
 
 import useStyles from '../styles'
 
@@ -97,6 +99,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                                 <Chip
                                     key={exit.Name}
                                     label={exit.Name}
+                                    icon={exit.Visibility === 'Public' ? <ExitIcon /> : <HiddenIcon /> }
                                     onClick={clickHandler({ RoomId: exit.RoomId, ExitName: exit.Name })}
                                 />
                             ))}
