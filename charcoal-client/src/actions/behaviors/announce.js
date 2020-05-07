@@ -30,7 +30,7 @@ export const broadcastMessage = ({ title = 'Announcement', message = '', roomIds
 
 export const announce = (message = 'Announcement!') => (dispatch, getState) => {
     const state = getState()
-    const currentCharacter = getMyCurrentCharacter()(state)
+    const currentCharacter = getMyCurrentCharacter(state)
     const currentNeighborhood = getCurrentNeighborhood(state)
     const announcementTitle = `Announcement from ${(currentCharacter && currentCharacter.Name) || 'Unknown'} in ${(currentNeighborhood && currentNeighborhood.Name) || 'Vortex'}`
     if (currentCharacter) {

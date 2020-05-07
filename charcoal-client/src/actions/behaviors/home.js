@@ -9,7 +9,7 @@ import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 export const goHome = () => (_, getState) => {
     const state = getState()
     const { connection } = state
-    const currentCharacter = getMyCurrentCharacter()(state)
+    const currentCharacter = getMyCurrentCharacter(state)
     const homeId = (currentCharacter && currentCharacter.HomeId) || 'VORTEX'
     if (connection.characterId) {
         const currentName = getCurrentName(state)

@@ -10,7 +10,7 @@ export const getCurrentRoom = ({ currentRoom }) => (currentRoom)
 // grant to view.
 //
 export const getVisibleExits = (state) => {
-    const { Grants = {} } = getMyCurrentCharacter()(state)
+    const { Grants = {} } = getMyCurrentCharacter(state)
     const { currentRoom, permanentHeaders } = state
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
         currentRoom.Exits.map(({ Ancestry, ...rest }) => {

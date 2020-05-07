@@ -182,7 +182,7 @@ export const subscribeCharactersInPlayChanges = () => (dispatch) => {
 
 export const setCurrentCharacterHome = (HomeId) => (dispatch, getState) => {
     const state = getState()
-    const currentCharacter = getMyCurrentCharacter()(state)
+    const currentCharacter = getMyCurrentCharacter(state)
     dispatch(putMyCharacter({
         name: currentCharacter.Name,
         characterId: currentCharacter.CharacterId,

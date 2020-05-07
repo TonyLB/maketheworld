@@ -46,7 +46,7 @@ const inheritanceProxy = (headers) => ({
     }
 })
 
-export const getMyCurrentCharacter = () => (state) => {
+export const getMyCurrentCharacter = (state) => {
     const { connection, permanentHeaders }  = state || {}
     const { characterId } = connection || {}
     if (characterId) {

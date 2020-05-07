@@ -221,7 +221,7 @@ const NeighborhoodItem = ({ item }) => {
 export const WorldDialog = () => {
     const { open } = useSelector(getWorldDialogUI)
     const neighborhoodTree = useSelector(getNeighborhoodTree)
-    const { Grants = new Proxy({}, { get: () => ({}) }) } = useSelector(getMyCurrentCharacter())
+    const { Grants = new Proxy({}, { get: () => ({}) }) } = useSelector(getMyCurrentCharacter)
     const dispatch = useDispatch()
 
     const classes = useStyles()

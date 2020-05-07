@@ -29,7 +29,7 @@ export const broadcastMessage = ({ message = '', roomIds = [] }) => (dispatch) =
 
 export const shout = (message = 'Arrgh!') => (dispatch, getState) => {
     const state = getState()
-    const currentCharacter = getMyCurrentCharacter()(state)
+    const currentCharacter = getMyCurrentCharacter(state)
     const currentRoom = getCurrentRoom(state)
     const shoutMessage = `From ${(currentRoom && currentRoom.Name) || 'Unknown'}, ${(currentCharacter && currentCharacter.Name) || 'Someone'} shouts: ${message}`
     if (currentCharacter) {
