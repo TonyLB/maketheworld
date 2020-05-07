@@ -47,7 +47,7 @@ const inheritanceProxy = (headers) => ({
 })
 
 export const getMyCurrentCharacter = (state) => {
-    const { connection, permanentHeaders }  = state || {}
+    const { connection, permanentHeaders, role = {} }  = state || {}
     const { characterId } = connection || {}
     if (characterId) {
         const { Grants = [], ...rest } = getMyCharacterById(characterId)(state)
@@ -58,7 +58,10 @@ export const getMyCurrentCharacter = (state) => {
         //
         const grantMap = Grants.reduce((previous, grant) => ({
             ...previous,
-            [grant.Resource]: stringToBooleanMap(grant.Actions)
+            [grant.Resource]: ((grant.Roles && grant.Roles.split(',').map((role) => (role.trim()))) || []).reduce((previous, roleId) => ({
+                ...previous,
+                ...stringToBooleanMap((role && role[roleId] && role[roleId].Actions) || '')
+            }), stringToBooleanMap(grant.Actions || ''))
         }), {})
         return {
             ...rest,

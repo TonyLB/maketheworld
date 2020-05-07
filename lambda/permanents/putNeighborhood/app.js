@@ -258,7 +258,7 @@ exports.handler = (event) => {
                     Item: {
                         PermanentId: `CHARACTER#${CharacterId}`,
                         DataCategory: `GRANT#${PermanentId}`,
-                        Actions: 'View,Edit,Moderate,ExtendPrivate,ExtendPublic'
+                        Roles: 'EDITOR'
                     }
                 }).promise()
             : Promise.resolve({}))

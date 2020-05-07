@@ -76,14 +76,16 @@ const getCharacterInfo = ({ documentClient, CharacterId }) => (
         if (DataCategory.startsWith('GRANT#')) {
             const Resource = DataCategory.slice(6)
             const Actions = rest.Actions
-            return Actions
+            const Roles = rest.Roles
+            return (Actions || Roles)
                 ? {
                     ...previous,
                     Grants: [
                         ...(previous.Grants || []),
                         {
                             Resource,
-                            Actions
+                            Actions,
+                            Roles
                         }
                     ]
                 }
@@ -207,7 +209,7 @@ exports.putCharacter = ({
                 Item: {
                     PermanentId: `CHARACTER#${CharacterId}`,
                     DataCategory: 'GRANT#MINIMUM',
-                    Actions: 'ExtendPrivate'
+                    Roles: 'Player'
                 }
             }
         }]) || [])

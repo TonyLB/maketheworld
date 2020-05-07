@@ -23,6 +23,7 @@ export const changedCharacter = /* GraphQL */ `
       Grants {
         Resource
         Actions
+        Roles
       }
     }
   }
@@ -96,6 +97,15 @@ export const addedMessage = /* GraphQL */ `
       ExpirationTime
       Type
       Title
+    }
+  }
+`;
+export const changedRole = /* GraphQL */ `
+  subscription ChangedRole {
+    changedRole {
+      RoleId
+      Name
+      Actions
     }
   }
 `;

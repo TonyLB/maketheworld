@@ -42,6 +42,7 @@ export const putCharacter = /* GraphQL */ `
       Grants {
         Resource
         Actions
+        Roles
       }
     }
   }
@@ -285,6 +286,15 @@ export const putDirectMessage = /* GraphQL */ `
       ExpirationTime
       Type
       Title
+    }
+  }
+`;
+export const putRole = /* GraphQL */ `
+  mutation PutRole($RoleId: String!, $Name: String!, $Actions: String!) {
+    putRole(RoleId: $RoleId, Name: $Name, Actions: $Actions) {
+      RoleId
+      Name
+      Actions
     }
   }
 `;

@@ -945,6 +945,37 @@ Resources:
                 }))
             #end
             $util.toJson($output)
+  QueryGetRoles:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Query
+        FieldName: getRoles
+        DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "Query",
+                "query": {
+                  "expression": "PermanentId = :Admin and begins_with(DataCategory, :Role)",
+                  "expressionValues": {
+                      ":Admin": $util.dynamodb.toStringJson("ADMIN"),
+                      ":Role": $util.dynamodb.toStringJson("ROLE#")
+                  }
+                }
+            }
+        ResponseMappingTemplate: >
+            #set($output = [])
+            #foreach($role in $ctx.result.items)
+                #set($roleId = $role.DataCategory.split("#")[1])
+                $util.qr($output.add({
+                    "RoleId": $roleId,
+                    "Name": $role.Name,
+                    "Actions": $role.Actions
+                }))
+            #end
+            $util.toJson($output)
   MutationPreQueryCharacterInPlay:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -1433,9 +1464,15 @@ Resources:
                   PlayerName: String!
                   CodeOfConductConsent: Boolean
               }
+              type Role @aws_iam @aws_cognito_user_pools {
+                  RoleId: String!
+                  Name: String!
+                  Actions: String!
+              }
               type Grant @aws_iam @aws_cognito_user_pools {
                   Resource: String!
-                  Actions: String!
+                  Actions: String
+                  Roles: String
               }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String!
@@ -1604,6 +1641,12 @@ Resources:
                       CreatedTime: Long
                   ): Message
                   @aws_iam @aws_cognito_user_pools
+                  putRole(
+                      RoleId: String!
+                      Name: String!
+                      Actions: String!
+                  ): Role
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
@@ -1615,6 +1658,7 @@ Resources:
                   getRoom(PermanentId: String!): Room
                   getRoomRecap(PermanentId: String!): [Message]
                   getRoomByCharacter(CharacterId: String!): Room
+                  getRoles: [Role]
               }
               type Subscription {
                   changedPlayer (PlayerName: String): Player
@@ -1632,6 +1676,8 @@ Resources:
                     CharacterId: String
                   ): Message
                   @aws_subscribe(mutations: ["putRoomMessage", "putDirectMessage"])
+                  changedRole : Role
+                  @aws_subscribe(mutations: ["putRole"])
               }
               schema {
                   mutation: Mutation

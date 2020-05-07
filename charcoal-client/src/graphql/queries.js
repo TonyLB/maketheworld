@@ -23,6 +23,7 @@ export const getCharacter = /* GraphQL */ `
       Grants {
         Resource
         Actions
+        Roles
       }
     }
   }
@@ -41,6 +42,7 @@ export const getPlayerCharacters = /* GraphQL */ `
       Grants {
         Resource
         Actions
+        Roles
       }
     }
   }
@@ -166,6 +168,15 @@ export const getRoomByCharacter = /* GraphQL */ `
         Name
         RoomId
       }
+    }
+  }
+`;
+export const getRoles = /* GraphQL */ `
+  query GetRoles {
+    getRoles {
+      RoleId
+      Name
+      Actions
     }
   }
 `;

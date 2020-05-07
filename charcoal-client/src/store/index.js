@@ -7,6 +7,7 @@ import webSocket from '../reducers/webSocket.js'
 import registeredCharacter from '../reducers/registeredCharacter.js'
 import permanentHeaders from '../reducers/permanentHeaders.js'
 import player from '../reducers/player'
+import role from '../reducers/role'
 import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
 import subscriptions from '../reducers/subscriptions'
@@ -20,6 +21,7 @@ export const store = createStore(
         myCharacters,
         messages,
         registeredCharacter,
+        role,
         permanentHeaders,
         player,
         subscriptions,
