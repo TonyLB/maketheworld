@@ -163,7 +163,7 @@ exports.getPlayerCharacters = (event) => {
 }
 
 exports.putCharacter = ({
-    CharacterId = uuidv4(),
+    CharacterId: passedCharacterId,
     PlayerName,
     Name,
     Pronouns,
@@ -176,6 +176,9 @@ exports.putCharacter = ({
     const { AWS_REGION } = process.env;
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+
+    const newCharacter = !Boolean(passedCharacterId)
+    const CharacterId = passedCharacterId || uuidv4()
 
     return batchDispatcher(documentClient)([{
             PutRequest: {
@@ -198,9 +201,20 @@ exports.putCharacter = ({
                     DataCategory: `CHARACTER#${CharacterId}`
                 }
             }
-        }])
+        },
+        ...((newCharacter && [{
+            PutRequest: {
+                Item: {
+                    PermanentId: `CHARACTER#${CharacterId}`,
+                    DataCategory: 'GRANT#MINIMUM',
+                    Actions: 'ExtendPrivate'
+                }
+            }
+        }]) || [])
+        ])
         .then(() => (getCharacterInfo({ documentClient, CharacterId })))
         .then(({ Grants }) => ({
+            CharacterId,
             PlayerName,
             Name,
             Pronouns,
