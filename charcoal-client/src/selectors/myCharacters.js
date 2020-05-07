@@ -18,19 +18,6 @@ export const getMyCharacterById = (searchId) => ({ myCharacters }) => {
     return matchingCharacters[0]
 }
 
-export const getMyCurrentCharacter = () => (state) => {
-    const { connection }  = state || {}
-    const { characterId } = connection || {}
-    if (characterId) {
-        return getMyCharacterById(characterId)(state)
-    }
-    else {
-        return {}
-    }
-}
-
-export const getMyCharacterFetchNeeded = ({ myCharacters }) => (!(myCharacters && myCharacters.meta && (myCharacters.meta.fetching || myCharacters.meta.fetched)))
-
 const stringToBooleanMap = (grants = '') => (
     grants
         .split(',')
@@ -39,14 +26,48 @@ const stringToBooleanMap = (grants = '') => (
         .reduce((previous, action) => ({ ...previous, [action]: true }), {})
 )
 
-export const getMyCurrentCharacterGrantRegister = (state) => {
-    const { Grants = [] } = getMyCurrentCharacter()(state)
-    const minimumGrants = stringToBooleanMap((Grants.find(({ Resource }) => (Resource === 'MINIMUM')) || {}).Actions)
-    return (PermanentId) => {
-        const grantMatch = Grants.find(({ Resource }) => (Resource === PermanentId))
+const inheritanceProxy = (headers) => ({
+    get: (grants, resource) => {
+        const ancestryList = [
+            'ROOT',
+            ...((headers && headers[resource] && headers[resource].ancestry && headers[resource].ancestry.split(':')) || [])
+        ]
+        const ancestryGrants = ancestryList
+            .map((resource) => (`${resource}#MINIMUM`))
+            .reduce((previous, resource) => ({
+                ...previous,
+                ...((grants && grants[resource]) || {})
+            }), {})
         return {
-            ...stringToBooleanMap((grantMatch && grantMatch.Actions) || ''),
-            ...minimumGrants
+            ...((grants && grants['MINIMUM']) || {}),
+            ...(ancestryGrants || {}),
+            ...((grants && grants[resource]) || {})
         }
     }
+})
+
+export const getMyCurrentCharacter = () => (state) => {
+    const { connection, permanentHeaders }  = state || {}
+    const { characterId } = connection || {}
+    if (characterId) {
+        const { Grants = [], ...rest } = getMyCharacterById(characterId)(state)
+        //
+        // ToDo: Make Minimum grants an accumulation of every minimum in the ancestry of the resource,
+        // and apply them everywhere relevant, or make a global lookup function to take the grantMap
+        // and calculate grants on a given resource.
+        //
+        const grantMap = Grants.reduce((previous, grant) => ({
+            ...previous,
+            [grant.Resource]: stringToBooleanMap(grant.Actions)
+        }), {})
+        return {
+            ...rest,
+            Grants: new Proxy(grantMap, inheritanceProxy(permanentHeaders))
+        }
+    }
+    else {
+        return {}
+    }
 }
+
+export const getMyCharacterFetchNeeded = ({ myCharacters }) => (!(myCharacters && myCharacters.meta && (myCharacters.meta.fetching || myCharacters.meta.fetched)))

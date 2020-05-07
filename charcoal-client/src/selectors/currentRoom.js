@@ -10,7 +10,7 @@ export const getCurrentRoom = ({ currentRoom }) => (currentRoom)
 // grant to view.
 //
 export const getVisibleExits = (state) => {
-    const { Grants = [] } = getMyCurrentCharacter()(state)
+    const { Grants = {} } = getMyCurrentCharacter()(state)
     const { currentRoom, permanentHeaders } = state
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
         currentRoom.Exits.map(({ Ancestry, ...rest }) => {
@@ -22,7 +22,7 @@ export const getVisibleExits = (state) => {
                     permanentHeaders[PermanentId] &&
                     permanentHeaders[PermanentId].visibility === 'Private'))
                 const returnVal = checkNeighborhoods.reduce((previous, PermanentId) => (
-                    Grants.find(({ Resource, Actions }) => ((Resource === PermanentId) && Actions.includes('View')))
+                    (Grants[PermanentId] || {}).View
                         ? { ...previous, Visibility: 'Private' }
                         : { Visibility: 'Private', visible: false }
                 ), { Visibility: 'Public', visible: true })

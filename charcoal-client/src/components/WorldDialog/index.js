@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React from 'react'
+import React, { createContext, useContext } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -37,8 +37,10 @@ import { activateNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { fetchAndOpenRoomDialog, fetchAndOpenNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
 import { getNeighborhoodTree } from '../../selectors/permanentHeaders'
-import { getMyCurrentCharacterGrantRegister } from '../../selectors/myCharacters'
+import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import useStyles from '../styles'
+
+const GrantContext = createContext({})
 
 const useTreeItemStyles = makeStyles(theme => ({
     root: {
@@ -100,9 +102,10 @@ const OverviewTreeItem = ({ labelText, ActionIcons, ...rest }) => {
     />
 }
 
-const NeighborhoodTreeItem = ({ nodeId, name, grantRegister, ...rest }) => {
+const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
     const dispatch = useDispatch()
-    const grants = grantRegister(nodeId)
+    const grantMap = useContext(GrantContext)
+    const grants = grantMap[nodeId]
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
@@ -166,9 +169,10 @@ const NeighborhoodTreeItem = ({ nodeId, name, grantRegister, ...rest }) => {
     />
 }
 
-const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, grantRegister, ...rest }) => {
+const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest }) => {
     const dispatch = useDispatch()
-    const grants = grantRegister(parentId || 'ROOT') || {}
+    const grantMap = useContext(GrantContext)
+    const grants = grantMap[parentId || 'ROOT']
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
@@ -188,7 +192,7 @@ const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, grantReg
     />
 }
 
-const NeighborhoodItem = ({ item, grantRegister }) => {
+const NeighborhoodItem = ({ item }) => {
     const { type, permanentId, name, children, parentId, parentAncestry, ...rest } = item
     switch(type) {
         case 'ROOM':
@@ -197,7 +201,6 @@ const NeighborhoodItem = ({ item, grantRegister }) => {
                 nodeId={permanentId}
                 name={name}
                 parentId={parentId}
-                grantRegister={grantRegister}
                 {...rest}
             />
         default:
@@ -205,12 +208,11 @@ const NeighborhoodItem = ({ item, grantRegister }) => {
                 key={permanentId}
                 nodeId={permanentId}
                 name={name}
-                grantRegister={grantRegister}
                 {...rest}
             >
                 {
                     Object.values(children || {})
-                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} grantRegister={grantRegister} />))
+                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
                 }
             </NeighborhoodTreeItem>
     }
@@ -219,7 +221,7 @@ const NeighborhoodItem = ({ item, grantRegister }) => {
 export const WorldDialog = () => {
     const { open } = useSelector(getWorldDialogUI)
     const neighborhoodTree = useSelector(getNeighborhoodTree)
-    const grantRegister = useSelector(getMyCurrentCharacterGrantRegister)
+    const { Grants = new Proxy({}, { get: () => ({}) }) } = useSelector(getMyCurrentCharacter())
     const dispatch = useDispatch()
 
     const classes = useStyles()
@@ -238,7 +240,7 @@ export const WorldDialog = () => {
                         className={classes.lightblue}
                         titleTypographyProps={{ variant: "overline" }}
                         action={<React.Fragment>
-                                { (grantRegister('ROOT') || {}).ExtendPrivate &&
+                                { Grants.ROOT.ExtendPrivate &&
                                     <Tooltip title={"Add Neighborhood"}>
                                         <IconButton
                                             aria-label="add neighborhood"
@@ -255,7 +257,7 @@ export const WorldDialog = () => {
                                         </IconButton>
                                     </Tooltip>
                                 }
-                                { (grantRegister('ROOT') || {}).Edit &&
+                                { Grants.ROOT.Edit &&
                                     <Tooltip title={"Add Room"}>
                                         <IconButton
                                             aria-label="add room"
@@ -275,17 +277,19 @@ export const WorldDialog = () => {
                             </React.Fragment>}
                     />
                     <CardContent className={classes.scrollingCardContent} >
-                        <TreeView
-                            className={classes.treeView}
-                            defaultCollapseIcon={<ExpandMoreIcon />}
-                            defaultExpandIcon={<ChevronRightIcon />}
-                        >
-                            {
-                                Object.values(neighborhoodTree)
-                                    .map(({ permanentId, ...rest }) => ({ permanentId, ...rest }))
-                                    .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} grantRegister={grantRegister} />))
-                            }
-                        </TreeView>
+                        <GrantContext.Provider value={Grants}>
+                            <TreeView
+                                className={classes.treeView}
+                                defaultCollapseIcon={<ExpandMoreIcon />}
+                                defaultExpandIcon={<ChevronRightIcon />}
+                            >
+                                {
+                                    Object.values(neighborhoodTree)
+                                        .map(({ permanentId, ...rest }) => ({ permanentId, ...rest }))
+                                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
+                                }
+                            </TreeView>
+                        </GrantContext.Provider>
                     </CardContent>
                 </Card>
             </DialogContent>
