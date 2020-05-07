@@ -37,6 +37,7 @@ import { activateNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { fetchAndOpenRoomDialog, fetchAndOpenNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
 import { getNeighborhoodTree } from '../../selectors/permanentHeaders'
+import { getMyCurrentCharacterGrantRegister } from '../../selectors/myCharacters'
 import useStyles from '../styles'
 
 const useTreeItemStyles = makeStyles(theme => ({
@@ -99,70 +100,80 @@ const OverviewTreeItem = ({ labelText, ActionIcons, ...rest }) => {
     />
 }
 
-const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
+const NeighborhoodTreeItem = ({ nodeId, name, grantRegister, ...rest }) => {
     const dispatch = useDispatch()
+    const grants = grantRegister(nodeId)
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
         endIcon={<ChevronRightIcon />}
         ActionIcons={<React.Fragment>
-            <Tooltip title={"Add Neighborhood"}>
-                <IconButton
-                    aria-label="add neighborhood"
-                    onClick={(event) => {
-                        event.stopPropagation()
-                        dispatch(activateNeighborhoodDialog({
-                            parentId: nodeId,
-                            parentName: name,
-                            ancestry: `${rest.ancestry}:`,
-                            parentAncestry: rest.ancestry,
-                            nested: true
-                        }))
-                    }}
-                >
-                    <NeighborhoodAddIcon fontSize="inherit" />
-                </IconButton>
-            </Tooltip>
-            <Tooltip title={"Add Room"}>
-                <IconButton
-                    aria-label="add room"
-                    onClick={(event) => {
-                        event.stopPropagation()
-                        dispatch(activateRoomDialog({
-                            parentId: nodeId,
-                            parentName: name,
-                            ancestry: `${rest.ancestry}:`,
-                            parentAncestry: rest.ancestry,
-                            nested: true
-                        }))
-                    }}
-                >
-                    <RoomAddIcon fontSize="inherit" />
-                </IconButton>
-            </Tooltip>
-            <Tooltip title={"Edit Neighborhood"}>
-                <IconButton
-                    aria-label="edit room"
-                    onClick={(event) => {
-                        event.stopPropagation()
-                        dispatch(fetchAndOpenNeighborhoodDialog(nodeId, true))
-                    }}
-                >
-                    <CreateIcon fontSize="inherit" />
-                </IconButton>
-            </Tooltip>
+            { grants.ExtendPrivate &&
+                <Tooltip title={"Add Neighborhood"}>
+                    <IconButton
+                        aria-label="add neighborhood"
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            dispatch(activateNeighborhoodDialog({
+                                parentId: nodeId,
+                                parentName: name,
+                                ancestry: `${rest.ancestry}:`,
+                                parentAncestry: rest.ancestry,
+                                nested: true
+                            }))
+                        }}
+                    >
+                        <NeighborhoodAddIcon fontSize="inherit" />
+                    </IconButton>
+                </Tooltip>
+            }
+            {
+                grants.Edit &&
+                <Tooltip title={"Add Room"}>
+                    <IconButton
+                        aria-label="add room"
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            dispatch(activateRoomDialog({
+                                parentId: nodeId,
+                                parentName: name,
+                                ancestry: `${rest.ancestry}:`,
+                                parentAncestry: rest.ancestry,
+                                nested: true
+                            }))
+                        }}
+                    >
+                        <RoomAddIcon fontSize="inherit" />
+                    </IconButton>
+                </Tooltip>
+            }
+            {
+                grants.Edit &&
+                <Tooltip title={"Edit Neighborhood"}>
+                    <IconButton
+                        aria-label="edit neighborhood"
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            dispatch(fetchAndOpenNeighborhoodDialog(nodeId, true))
+                        }}
+                    >
+                        <CreateIcon fontSize="inherit" />
+                    </IconButton>
+                </Tooltip>
+            }
         </React.Fragment>}
         {...rest}
     />
 }
 
-const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest }) => {
+const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, grantRegister, ...rest }) => {
     const dispatch = useDispatch()
+    const grants = grantRegister(parentId || 'ROOT') || {}
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
         endIcon={<HouseIcon />}
-        ActionIcons={<Tooltip title={"Edit Room"}>
+        ActionIcons={grants.Edit && <Tooltip title={"Edit Room"}>
             <IconButton
                 aria-label="edit room"
                 onClick={(event) => {
@@ -177,7 +188,7 @@ const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest 
     />
 }
 
-const NeighborhoodItem = ({ item }) => {
+const NeighborhoodItem = ({ item, grantRegister }) => {
     const { type, permanentId, name, children, parentId, parentAncestry, ...rest } = item
     switch(type) {
         case 'ROOM':
@@ -185,6 +196,8 @@ const NeighborhoodItem = ({ item }) => {
                 key={permanentId}
                 nodeId={permanentId}
                 name={name}
+                parentId={parentId}
+                grantRegister={grantRegister}
                 {...rest}
             />
         default:
@@ -192,11 +205,12 @@ const NeighborhoodItem = ({ item }) => {
                 key={permanentId}
                 nodeId={permanentId}
                 name={name}
+                grantRegister={grantRegister}
                 {...rest}
             >
                 {
                     Object.values(children || {})
-                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
+                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} grantRegister={grantRegister} />))
                 }
             </NeighborhoodTreeItem>
     }
@@ -205,6 +219,7 @@ const NeighborhoodItem = ({ item }) => {
 export const WorldDialog = () => {
     const { open } = useSelector(getWorldDialogUI)
     const neighborhoodTree = useSelector(getNeighborhoodTree)
+    const grantRegister = useSelector(getMyCurrentCharacterGrantRegister)
     const dispatch = useDispatch()
 
     const classes = useStyles()
@@ -223,36 +238,40 @@ export const WorldDialog = () => {
                         className={classes.lightblue}
                         titleTypographyProps={{ variant: "overline" }}
                         action={<React.Fragment>
-                                <Tooltip title={"Add Neighborhood"}>
-                                    <IconButton
-                                        aria-label="add neighborhood"
-                                        onClick={(event) => {
-                                            event.stopPropagation()
-                                            dispatch(activateNeighborhoodDialog({
-                                                parentId: '',
-                                                parentName: '',
-                                                nested: true
-                                            }))
-                                        }}
-                                    >
-                                        <NeighborhoodAddIcon fontSize="inherit" />
-                                    </IconButton>
-                                </Tooltip>
-                                <Tooltip title={"Add Room"}>
-                                    <IconButton
-                                        aria-label="add room"
-                                        onClick={(event) => {
-                                            event.stopPropagation()
-                                            dispatch(activateRoomDialog({
-                                                parentId: '',
-                                                parentName: '',
-                                                nested: true
-                                            }))
-                                        }}
-                                    >
-                                        <RoomAddIcon fontSize="inherit" />
-                                    </IconButton>
-                                </Tooltip>
+                                { (grantRegister('ROOT') || {}).ExtendPrivate &&
+                                    <Tooltip title={"Add Neighborhood"}>
+                                        <IconButton
+                                            aria-label="add neighborhood"
+                                            onClick={(event) => {
+                                                event.stopPropagation()
+                                                dispatch(activateNeighborhoodDialog({
+                                                    parentId: '',
+                                                    parentName: '',
+                                                    nested: true
+                                                }))
+                                            }}
+                                        >
+                                            <NeighborhoodAddIcon fontSize="inherit" />
+                                        </IconButton>
+                                    </Tooltip>
+                                }
+                                { (grantRegister('ROOT') || {}).Edit &&
+                                    <Tooltip title={"Add Room"}>
+                                        <IconButton
+                                            aria-label="add room"
+                                            onClick={(event) => {
+                                                event.stopPropagation()
+                                                dispatch(activateRoomDialog({
+                                                    parentId: '',
+                                                    parentName: '',
+                                                    nested: true
+                                                }))
+                                            }}
+                                        >
+                                            <RoomAddIcon fontSize="inherit" />
+                                        </IconButton>
+                                    </Tooltip>
+                                }
                             </React.Fragment>}
                     />
                     <CardContent className={classes.scrollingCardContent} >
@@ -263,7 +282,8 @@ export const WorldDialog = () => {
                         >
                             {
                                 Object.values(neighborhoodTree)
-                                    .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
+                                    .map(({ permanentId, ...rest }) => ({ permanentId, ...rest }))
+                                    .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} grantRegister={grantRegister} />))
                             }
                         </TreeView>
                     </CardContent>

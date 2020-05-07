@@ -30,3 +30,23 @@ export const getMyCurrentCharacter = () => (state) => {
 }
 
 export const getMyCharacterFetchNeeded = ({ myCharacters }) => (!(myCharacters && myCharacters.meta && (myCharacters.meta.fetching || myCharacters.meta.fetched)))
+
+const stringToBooleanMap = (grants = '') => (
+    grants
+        .split(',')
+        .map((action) => (action.trim()))
+        .filter((action) => (action.length))
+        .reduce((previous, action) => ({ ...previous, [action]: true }), {})
+)
+
+export const getMyCurrentCharacterGrantRegister = (state) => {
+    const { Grants = [] } = getMyCurrentCharacter()(state)
+    const minimumGrants = stringToBooleanMap((Grants.find(({ Resource }) => (Resource === 'MINIMUM')) || {}).Actions)
+    return (PermanentId) => {
+        const grantMatch = Grants.find(({ Resource }) => (Resource === PermanentId))
+        return {
+            ...stringToBooleanMap((grantMatch && grantMatch.Actions) || ''),
+            ...minimumGrants
+        }
+    }
+}
