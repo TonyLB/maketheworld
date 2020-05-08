@@ -15,16 +15,9 @@ import {
     TextField,
     Grid,
     IconButton,
-    Switch,
-    TableContainer,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell
+    Switch
 } from '@material-ui/core'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
-
 
 // Local code imports
 import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
@@ -34,6 +27,7 @@ import { getPermanentHeaders, getNeighborhoodOnlyTreeExcludingSubTree } from '..
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
 import useStyles from '../styles'
+import GrantTable from './GrantTable'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
 const resetFormValues = (defaultValues) => ({
@@ -47,6 +41,25 @@ const appearanceUpdate = ({ label, value }) => ({
     value
 })
 
+const GRANT_UPDATE = 'GRANT_UPDATE'
+const grantUpdate = ({ CharacterId, Roles }) => ({
+    type: GRANT_UPDATE,
+    CharacterId,
+    Roles
+})
+
+const GRANT_ADD = 'GRANT_ADD'
+const grantAdd = (CharacterId) => ({
+    type: GRANT_ADD,
+    CharacterId
+})
+
+const GRANT_DELETE = 'GRANT_DELETE'
+const grantDelete = (CharacterId) => ({
+    type: GRANT_DELETE,
+    CharacterId
+})
+
 const neighborhoodDialogReducer = (state, action) => {
     switch(action.type) {
         case APPEARANCE_UPDATE:
@@ -54,55 +67,38 @@ const neighborhoodDialogReducer = (state, action) => {
                 ...state,
                 [action.label]: action.value
             }
+        case GRANT_UPDATE:
+            return {
+                ...state,
+                grants: [
+                    ...(state.grants.filter(({ CharacterId }) => (CharacterId !== action.CharacterId))),
+                    {
+                        CharacterId: action.CharacterId,
+                        Roles: action.Roles.join(',')
+                    }
+                ]
+            }
+        case GRANT_ADD:
+            return {
+                ...state,
+                grants: [
+                    ...(state.grants || []),
+                    {
+                        CharacterId: action.CharacterId,
+                        Roles: ''
+                    }
+                ]
+            }
+        case GRANT_DELETE:
+            return {
+                ...state,
+                grants: (state.grants || []).filter(({ CharacterId }) => (CharacterId !== action.CharacterId))
+            }
         case RESET_FORM_VALUES:
             return action.defaultValues
         default:
             return state
     }
-}
-
-const GrantsTable = ({ grants = [] }) => {
-    const columns = [{
-        id: 'CharacterId',
-        label: 'Character',
-        minWidth: 170,
-    },
-    {
-        id: 'Roles',
-        label: 'Roles',
-        minWidth: 170
-    }]
-    return <TableContainer>
-        <Table stickyHeader aria-label="Grants">
-            <TableHead>
-                <TableRow>
-                    { columns.map((column) => (
-                        <TableCell
-                            key={column.id}
-                            align={column.align}
-                            style={{ minWidth: column.minWidth }}
-                        >
-                            {column.label}
-                        </TableCell>
-                    ))}
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                { grants.map((row) => (
-                    <TableRow hover role="nav" tabIndex={-1} key={row.CharacterId}>
-                        {columns.map((column) => {
-                            const value = row[column.id];
-                            return (
-                                <TableCell key={column.id} align={column.align}>
-                                    { value }
-                                </TableCell>
-                            )
-                        })}
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    </TableContainer>
 }
 
 export const NeighborhoodDialog = ({ nested=false }) => {
@@ -120,6 +116,9 @@ export const NeighborhoodDialog = ({ nested=false }) => {
 
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
+    const onGrantChangeHandler = (CharacterId) => (event) => { formDispatch(grantUpdate({ CharacterId, Roles: event.target.value })) }
+    const onGrantAddHandler = (CharacterId) => () => { formDispatch(grantAdd(CharacterId))}
+    const onGrantDeleteHandler = (CharacterId) => () => { formDispatch(grantDelete(CharacterId))}
     const saveHandler = () => {
         const { name, description, visibility, parentId, neighborhoodId, exits, entries } = formValues
         const neighborhoodData = { name, description, visibility, parentId, neighborhoodId, exits, entries }
@@ -213,7 +212,12 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                         titleTypographyProps={{ variant: "overline" }}
                                     />
                                     <CardContent>
-                                        <GrantsTable grants={formValues.grants} />
+                                        <GrantTable
+                                            grants={formValues.grants}
+                                            changeHandler={onGrantChangeHandler}
+                                            addHandler={onGrantAddHandler}
+                                            deleteHandler={onGrantDeleteHandler}
+                                        />
                                     </CardContent>
                                 </Card>
                             }
