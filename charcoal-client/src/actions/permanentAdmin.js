@@ -99,7 +99,8 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             Ancestry,
             Name,
             Description,
-            Visibility
+            Visibility,
+            Grants
         }) => ({
             neighborhoodId: PermanentId,
             type: Type,
@@ -107,7 +108,8 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             ancestry: Ancestry,
             name: Name,
             description: Description,
-            visibility: Visibility
+            visibility: Visibility,
+            grants: Grants
         }))
         .then(response => dispatch(activateNeighborhoodDialog({ nested, ...response })))
         .catch((err) => { console.log(err)})

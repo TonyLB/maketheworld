@@ -6,7 +6,8 @@ export const reducer = (state = { open: false }, action) => {
         neighborhoodId = '',
         name = '',
         description = '',
-        visibility = 'Visible',
+        visibility = 'Private',
+        grants = [],
         parentId = '',
         parentName = '',
         parentAncestry = '',
@@ -29,6 +30,7 @@ export const reducer = (state = { open: false }, action) => {
                 name,
                 description,
                 visibility,
+                grants,
                 parentId,
                 parentName,
                 parentAncestry

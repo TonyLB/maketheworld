@@ -15,7 +15,13 @@ import {
     TextField,
     Grid,
     IconButton,
-    Switch
+    Switch,
+    TableContainer,
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableCell
 } from '@material-ui/core'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 
@@ -25,6 +31,7 @@ import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { putAndCloseNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getNeighborhoodDialogUI } from '../../selectors/UI/neighborhoodDialog.js'
 import { getPermanentHeaders, getNeighborhoodOnlyTreeExcludingSubTree } from '../../selectors/permanentHeaders.js'
+import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
 import useStyles from '../styles'
 
@@ -54,9 +61,54 @@ const neighborhoodDialogReducer = (state, action) => {
     }
 }
 
+const GrantsTable = ({ grants = [] }) => {
+    const columns = [{
+        id: 'CharacterId',
+        label: 'Character',
+        minWidth: 170,
+    },
+    {
+        id: 'Roles',
+        label: 'Roles',
+        minWidth: 170
+    }]
+    return <TableContainer>
+        <Table stickyHeader aria-label="Grants">
+            <TableHead>
+                <TableRow>
+                    { columns.map((column) => (
+                        <TableCell
+                            key={column.id}
+                            align={column.align}
+                            style={{ minWidth: column.minWidth }}
+                        >
+                            {column.label}
+                        </TableCell>
+                    ))}
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                { grants.map((row) => (
+                    <TableRow hover role="nav" tabIndex={-1} key={row.CharacterId}>
+                        {columns.map((column) => {
+                            const value = row[column.id];
+                            return (
+                                <TableCell key={column.id} align={column.align}>
+                                    { value }
+                                </TableCell>
+                            )
+                        })}
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    </TableContainer>
+}
+
 export const NeighborhoodDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getNeighborhoodDialogUI)
     const permanentHeaders = useSelector(getPermanentHeaders)
+    const { Grants: myGrants } = useSelector(getMyCurrentCharacter)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
     const { name = '', description = '', parentId = '', visibility = 'Visible' } = formValues
     const { ancestry: parentAncestry = '', name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
@@ -152,6 +204,19 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                     </form>
                                 </CardContent>
                             </Card>
+                            {
+                                (!formValues.neighborhoodId || myGrants[formValues.neighborhoodId].Moderate) &&
+                                <Card className={classes.card} >
+                                    <CardHeader
+                                        title="Grants"
+                                        className={classes.lightblue}
+                                        titleTypographyProps={{ variant: "overline" }}
+                                    />
+                                    <CardContent>
+                                        <GrantsTable grants={formValues.grants} />
+                                    </CardContent>
+                                </Card>
+                            }
                         </Grid>
                     </Grid>
                 </DialogContent>
