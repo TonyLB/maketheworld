@@ -1567,6 +1567,11 @@ Resources:
                   Name: String!
                   RoomId: String
               }
+              input ResourceGrantInput {
+                CharacterId: String!
+                Actions: String
+                Roles: String
+              }
               type Room implements PermanentTreeNode {
                   PermanentId: String!
                   Type: String!
@@ -1627,6 +1632,7 @@ Resources:
                       Description: String
                       ParentId: String
                       Visibility: String
+                      Grants: [ResourceGrantInput]
                   ): AnyNode
                   externalPutNeighborhood(
                       PermanentId: String!

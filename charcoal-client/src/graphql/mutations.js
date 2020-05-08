@@ -112,6 +112,7 @@ export const putNeighborhood = /* GraphQL */ `
     $Description: String
     $ParentId: String
     $Visibility: String
+    $Grants: [ResourceGrantInput]
   ) {
     putNeighborhood(
       CharacterId: $CharacterId
@@ -120,6 +121,7 @@ export const putNeighborhood = /* GraphQL */ `
       Description: $Description
       ParentId: $ParentId
       Visibility: $Visibility
+      Grants: $Grants
     ) {
       PermanentId
       Type
