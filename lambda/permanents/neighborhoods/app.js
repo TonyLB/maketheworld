@@ -42,8 +42,35 @@ const batchDispatcher = (documentClient) => (items) => {
     return Promise.all(batchPromises)
 }
 
+exports.getNeighborhood = ({ PermanentId }) => {
+    const { TABLE_PREFIX, AWS_REGION } = process.env;
+    const permanentTable = `${TABLE_PREFIX}_permanents`
 
-exports.handler = (event) => {
+    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+
+    const neighborhoodLookup = documentClient.get({
+        TableName: permanentTable,
+        Key: {
+            PermanentId: `NEIGHBORHOOD#${PermanentId}`,
+            DataCategory: 'Details'
+        }
+    }).promise()
+    .then(({ Item = {} }) => (Item))
+    .then(({ PermanentId: FetchedPermanentId, ParentId, Ancestry, ProgenitorId, Name, Description, Visibility, ...rest }) => ({
+        PermanentId,
+        ParentId,
+        Ancestry,
+        Name,
+        Description,
+        Visibility,
+        Type: 'NEIGHBORHOOD',
+        ...rest
+    }))
+
+    return neighborhoodLookup
+}
+
+exports.putNeighborhood = (event) => {
 
     const { TABLE_PREFIX, AWS_REGION } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`

@@ -507,6 +507,14 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource: !GetAtt PutNeighborhoodFunction.Arn
+            - PolicyName: GetNeighborhoodPolicy
+              PolicyDocument:
+                  Version: "2012-10-17"
+                  Statement:
+                    - Effect: "Allow"
+                      Action:
+                          - "lambda:InvokeFunction"
+                      Resource: !GetAtt GetNeighborhoodFunction.Arn
             - PolicyName: GetCharacterPolicy
               PolicyDocument:
                   Version: "2012-10-17"
@@ -826,35 +834,51 @@ Resources:
                   #end
               #end
               $util.toJson($output)
-  QueryGetNeighborhood:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
+  GetNeighborhoodFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/neighborhoods/
+          Handler: app.getNeighborhood
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+          Policies:
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
+  GetNeighborhoodDataSource:
+      Type: AWS::AppSync::DataSource
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getNeighborhood
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              #set($PermanentId = "NEIGHBORHOOD#${ctx.args.PermanentId}")
-              {
-                  "version": "2017-02-28",
-                  "operation": "GetItem",
-                  "key": {
-                      "PermanentId": $util.dynamodb.toDynamoDBJson($PermanentId),
-                      "DataCategory": $util.dynamodb.toStringJson("Details")
-                  }
-              }
-          ResponseMappingTemplate: >
-              #set($PermanentId = $ctx.result.PermanentId.substring(13))
-              {
-                  "PermanentId": $util.toJson($PermanentId),
-                  "ParentId": $util.toJson($ctx.result.ParentId),
-                  "Name": $util.toJson($ctx.result.Name),
-                  "Type": $util.toJson("NEIGHBORHOOD"),
-                  "Ancestry": $util.toJson($ctx.result.Ancestry),
-                  "Description": $util.toJson($ctx.result.Description),
-                  "Visibility": $util.toJson($util.defaultIfNullOrBlank($ctx.result.Visibility, "Private"))
-              }
+          Name: GetNeighborhood
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt GetNeighborhoodFunction.Arn
+  QueryGetNeighborhood:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+      - GetNeighborhoodFunction
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Query
+        FieldName: getNeighborhood
+        DataSourceName: !GetAtt GetNeighborhoodDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "Invoke",
+                "payload": {
+                    "PermanentId": $utils.toJson($ctx.args.PermanentId)
+                }
+            }
+        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetRoom:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1217,8 +1241,8 @@ Resources:
   PutNeighborhoodFunction:
       Type: AWS::Serverless::Function
       Properties:
-          CodeUri: lambda/permanents/putNeighborhood/
-          Handler: app.handler
+          CodeUri: lambda/permanents/neighborhoods/
+          Handler: app.putNeighborhood
           MemorySize: 256
           Runtime: nodejs12.x
           Layers:
