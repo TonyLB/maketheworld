@@ -77,6 +77,11 @@ export const getNeighborhoodTree = /* GraphQL */ `
       ParentId
       ... on Neighborhood {
         Visibility
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
       }
       ... on Room {
         Visibility
@@ -89,9 +94,19 @@ export const getNeighborhoodTree = /* GraphQL */ `
           Name
           RoomId
         }
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
       }
       ... on AnyNode {
         Visibility
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
       }
     }
   }
@@ -106,6 +121,11 @@ export const getNeighborhood = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -127,6 +147,11 @@ export const getRoom = /* GraphQL */ `
       Entries {
         Name
         RoomId
+      }
+      Grants {
+        CharacterId
+        Actions
+        Roles
       }
     }
   }
@@ -167,6 +192,11 @@ export const getRoomByCharacter = /* GraphQL */ `
       Entries {
         Name
         RoomId
+      }
+      Grants {
+        CharacterId
+        Actions
+        Roles
       }
     }
   }

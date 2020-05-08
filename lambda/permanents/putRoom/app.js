@@ -292,6 +292,7 @@ exports.handler = (event) => {
             Name,
             Description,
             Visibility,
+            Grants: [],
             Entries,
             Exits: Exits.map(({ Name, RoomId }) => ({
                 //

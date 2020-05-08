@@ -930,6 +930,7 @@ Resources:
               #end
               $util.qr($output.put("Exits", $exits))
               $util.qr($output.put("Entries", $entries))
+              $util.qr($output.put("Grants", []))
               $util.toJson($output)
   QueryGetRoomRecap:
     Type: AWS::AppSync::Resolver
@@ -1498,6 +1499,11 @@ Resources:
                   Actions: String
                   Roles: String
               }
+              type ResourceGrant @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  Actions: String
+                  Roles: String
+              }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String!
                   Name: String!
@@ -1531,6 +1537,7 @@ Resources:
                   Description: String
                   ParentId: String
                   Visibility: String
+                  Grants: [ResourceGrant]
               }
               type Neighborhood implements PermanentTreeNode {
                   PermanentId: String!
@@ -1540,6 +1547,7 @@ Resources:
                   Description: String
                   ParentId: String
                   Visibility: String
+                  Grants: [ResourceGrant]
               }
               interface RoomPath {
                   Name: String!
@@ -1569,6 +1577,7 @@ Resources:
                   Visibility: String
                   Exits: [Exit]
                   Entries: [Entry]
+                  Grants: [ResourceGrant]
               }
               type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!

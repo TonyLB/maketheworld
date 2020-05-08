@@ -128,6 +128,11 @@ export const putNeighborhood = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -155,6 +160,11 @@ export const externalPutNeighborhood = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -193,6 +203,11 @@ export const putRoom = /* GraphQL */ `
         Name
         RoomId
       }
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -220,6 +235,11 @@ export const externalPutRoom = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
     }
   }
 `;

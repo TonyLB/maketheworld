@@ -57,6 +57,11 @@ export const changedNode = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -78,6 +83,11 @@ export const changedRoom = /* GraphQL */ `
       Entries {
         Name
         RoomId
+      }
+      Grants {
+        CharacterId
+        Actions
+        Roles
       }
     }
   }

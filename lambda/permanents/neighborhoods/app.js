@@ -56,7 +56,22 @@ exports.getNeighborhood = ({ PermanentId }) => {
         }
     }).promise()
     .then(({ Item = {} }) => (Item))
-    .then(({ PermanentId: FetchedPermanentId, ParentId, Ancestry, ProgenitorId, Name, Description, Visibility, ...rest }) => ({
+    .then((neighborhood) => (documentClient.query({
+            TableName: permanentTable,
+            KeyConditionExpression: 'DataCategory = :Category',
+            ExpressionAttributeValues: {
+                ":Category": `GRANT#${PermanentId}`
+            },
+            IndexName: "DataCategoryIndex"
+        }).promise()
+        .then(({ Items = [] }) => (Items.map(({ PermanentId: CharacterId, Actions, Roles }) => ({
+            CharacterId: (CharacterId || '').split('#').slice(1).join('#'),
+            Actions,
+            Roles
+        }))))
+        .then((Grants) => ({ ...neighborhood, Grants }))
+    ))
+    .then(({ PermanentId: FetchedPermanentId, ParentId, Ancestry, ProgenitorId, Name, Description, Visibility, Grants, ...rest }) => ({
         PermanentId,
         ParentId,
         Ancestry,
@@ -64,6 +79,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         Description,
         Visibility,
         Type: 'NEIGHBORHOOD',
+        Grants,
         ...rest
     }))
 
@@ -313,7 +329,8 @@ exports.putNeighborhood = (event) => {
                     ProgenitorId,
                     Name,
                     Description,
-                    Visibility
+                    Visibility,
+                    Grants: []
                 }))
             ))
 
@@ -321,7 +338,7 @@ exports.putNeighborhood = (event) => {
         .then(ancestryLookup)
         .then(cascadeUpdates)
         .then(putNeighborhood)
-        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility }))
+        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Grants }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Grants }))
         .catch((err) => ({ error: err.stack }))
 
 }
