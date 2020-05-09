@@ -18,11 +18,10 @@ import ArrowBackIcon from '@material-ui/icons/ArrowBack'
 import HouseIcon from '@material-ui/icons/House'
 
 // Local code imports
-import useStyles from '../styles'
-import { getPermanentHeaders } from '../../selectors/permanentHeaders.js'
+import useStyles from './styles'
+import { getPermanentHeaders } from '../selectors/permanentHeaders.js'
 
-
-export const ExitList = ({ paths=[], nameHandler=()=>{}, deleteHandler=()=>{} }) => {
+export const ExitList = ({ role='Room', paths=[], nameHandler=()=>{}, deleteHandler=()=>{} }) => {
     const classes = useStyles()
     const permanentHeaders = useSelector(getPermanentHeaders)
     return <TableContainer>
@@ -30,31 +29,46 @@ export const ExitList = ({ paths=[], nameHandler=()=>{}, deleteHandler=()=>{} })
             <TableHead>
                 <TableRow>
                     <TableCell>Name</TableCell>
+                    {
+                        (role === 'Neighborhood') && <TableCell>
+                            Local Room
+                        </TableCell>
+                    }
                     <TableCell>To/From</TableCell>
                     <TableCell>Neighborhood</TableCell>
                     <TableCell align="right">Room</TableCell>
-                    <TableCell align="right" />
+                    {
+                        (role === 'Room') && <TableCell align="right" />
+                    }
                 </TableRow>
             </TableHead>
             <TableBody>
                 { paths.map(({
-                        name,
-                        id,
+                        Name,
                         type,
-                        roomId
+                        RoomId,
+                        OriginId = ''
                     }) => {
-                        const roomData = (permanentHeaders && permanentHeaders[roomId]) || {}
+                        const roomData = (permanentHeaders && permanentHeaders[RoomId]) || {}
                         const { Name: roomName = '', ParentId = '' } = roomData
                         const { Name: roomParentName = '' } = (permanentHeaders && permanentHeaders[ParentId]) || {}
-                        return <TableRow key={`${type}:${roomId}`}>
+                        const { Name: localName = '' } = (permanentHeaders && OriginId && permanentHeaders[OriginId]) || {}
+                        return <TableRow key={`${type}:${RoomId}`}>
                             <TableCell>
-                                <TextField
-                                    required
-                                    value={name}
-                                    onChange={nameHandler({ type, roomId })}
-                                    className={classes.pathTextField}
-                                />
+                                {
+                                    (role === 'Room' && <TextField
+                                        required
+                                        value={Name}
+                                        onChange={nameHandler({ type, RoomId })}
+                                        className={classes.pathTextField}
+                                    />) || Name
+                                }
                             </TableCell>
+                            {
+                                (role === 'Neighborhood') && <TableCell>
+                                    {localName}
+                                </TableCell>
+                            }
                             <TableCell>
                                 { type === 'EXIT' && <ArrowForwardIcon /> }
                                 { type === 'ENTRY' && <ArrowBackIcon /> }
@@ -62,9 +76,11 @@ export const ExitList = ({ paths=[], nameHandler=()=>{}, deleteHandler=()=>{} })
                             </TableCell>
                             <TableCell>{roomParentName}</TableCell>
                             <TableCell align="right">{roomName}</TableCell>
-                            <TableCell align="right">
-                                <DeleteForeverIcon onClick={deleteHandler(type, roomId)} />
-                            </TableCell>
+                            {
+                                (role === 'Room') && <TableCell align="right">
+                                    <DeleteForeverIcon onClick={deleteHandler(type, RoomId)} />
+                                </TableCell>
+                            }
                         </TableRow>
                     })
                 }

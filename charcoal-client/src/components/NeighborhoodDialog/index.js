@@ -15,17 +15,21 @@ import {
     TextField,
     Grid,
     IconButton,
-    Switch
+    Switch,
+    Collapse
 } from '@material-ui/core'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 
 // Local code imports
 import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { putAndCloseNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getNeighborhoodDialogUI } from '../../selectors/UI/neighborhoodDialog.js'
-import { getPermanentHeaders, getNeighborhoodOnlyTreeExcludingSubTree } from '../../selectors/permanentHeaders.js'
+import { getPermanentHeaders, getNeighborhoodOnlyTreeExcludingSubTree, getNeighborhoodPaths } from '../../selectors/permanentHeaders.js'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
+import ExitList from '../ExitList'
 import useStyles from '../styles'
 import GrantTable from './GrantTable'
 
@@ -112,8 +116,15 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
     const neighborhoodTree = useSelector(getNeighborhoodOnlyTreeExcludingSubTree(subTreeToExclude))
     const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
+    const [ exitsOpen, setExitsOpen] = useState(false)
+    const [ grantsOpen, setGrantsOpen] = useState(false)
     const dispatch = useDispatch()
 
+    const { Exits = [], Entries = [] } = useSelector(getNeighborhoodPaths(formValues.neighborhoodId))
+    const neighborhoodPaths = [
+        ...(Exits.map((rest) => ({ type: 'EXIT', ...rest}))),
+        ...(Entries.map((rest) => ({ type: 'ENTRY', ...rest})))
+    ]
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const onGrantChangeHandler = (CharacterId) => (event) => { formDispatch(grantUpdate({ CharacterId, Roles: event.target.value })) }
@@ -204,20 +215,44 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                 </CardContent>
                             </Card>
                             {
+                                (neighborhoodPaths.length > 0) &&
+                                    <Card className={classes.card} >
+                                        <CardHeader
+                                            title="Exits"
+                                            className={classes.lightblue}
+                                            titleTypographyProps={{ variant: "overline" }}
+                                            onClick={() => { setExitsOpen(!exitsOpen)}}
+                                            action={exitsOpen ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+                                        />
+                                        <CardContent>
+                                            <Collapse in={exitsOpen}>
+                                                <ExitList
+                                                    paths={neighborhoodPaths}
+                                                    role="Neighborhood"
+                                                />
+                                            </Collapse>
+                                        </CardContent>
+                                    </Card>
+                            }
+                            {
                                 (!formValues.neighborhoodId || myGrants[formValues.neighborhoodId].Moderate) &&
                                 <Card className={classes.card} >
                                     <CardHeader
-                                        title="Grants"
+                                        title="Grant Permissions"
                                         className={classes.lightblue}
                                         titleTypographyProps={{ variant: "overline" }}
+                                        onClick={() => { setGrantsOpen(!grantsOpen)}}
+                                        action={grantsOpen ? <ExpandMoreIcon /> : <ExpandLessIcon />}
                                     />
                                     <CardContent>
-                                        <GrantTable
-                                            grants={formValues.grants}
-                                            changeHandler={onGrantChangeHandler}
-                                            addHandler={onGrantAddHandler}
-                                            deleteHandler={onGrantDeleteHandler}
-                                        />
+                                        <Collapse in={grantsOpen}>
+                                            <GrantTable
+                                                grants={formValues.grants}
+                                                changeHandler={onGrantChangeHandler}
+                                                addHandler={onGrantAddHandler}
+                                                deleteHandler={onGrantDeleteHandler}
+                                            />
+                                        </Collapse>
                                     </CardContent>
                                 </Card>
                             }

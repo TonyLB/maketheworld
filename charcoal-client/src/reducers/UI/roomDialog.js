@@ -3,15 +3,15 @@ import { ACTIVATE_ROOM_DIALOG, CLOSE_ROOM_DIALOG } from '../../actions/UI/roomDi
 export const reducer = (state = { open: false }, action) => {
     const {
         type,
-        roomId = '',
-        name = '',
-        description = '',
-        ancestry = '',
-        parentId = '',
+        RoomId = '',
+        Name = '',
+        Description = '',
+        Ancestry = '',
+        ParentId = '',
         parentName = '',
         parentAncestry = '',
-        exits = [],
-        entries = [],
+        Exits = [],
+        Entries = [],
         nested = false
     } = action
     
@@ -27,15 +27,15 @@ export const reducer = (state = { open: false }, action) => {
             return {
                 open: !nested,
                 nestedOpen: nested,
-                roomId,
-                name,
-                description,
-                ancestry,
-                parentId,
+                RoomId,
+                Name,
+                Description,
+                Ancestry,
+                ParentId,
                 parentName,
                 parentAncestry,
-                exits,
-                entries
+                Exits,
+                Entries
             }
         default:
             return state

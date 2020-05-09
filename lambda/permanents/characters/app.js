@@ -209,7 +209,7 @@ exports.putCharacter = ({
                 Item: {
                     PermanentId: `CHARACTER#${CharacterId}`,
                     DataCategory: 'GRANT#MINIMUM',
-                    Roles: 'Player'
+                    Roles: 'PLAYER'
                 }
             }
         }]) || [])

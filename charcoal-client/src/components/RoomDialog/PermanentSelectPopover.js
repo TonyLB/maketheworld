@@ -69,12 +69,12 @@ export const NeighborhoodListItem = ({
                     <List component="div" disablePadding>
                         {
                             Object.entries(children)
-                                .map(([key, { type, name, permanentId, children }]) => (
+                                .map(([key, { Type, Name, PermanentId, children }]) => (
                                     <NeighborhoodListItem
                                         key={key}
-                                        type={type}
-                                        name={name}
-                                        permanentId={permanentId}
+                                        type={Type}
+                                        name={Name}
+                                        permanentId={PermanentId}
                                         children={children}
                                         className={classes.nested}
                                         addHandler={addHandler}
@@ -129,12 +129,12 @@ export const PermanentSelectPopover = ({ onClose, neighborhoods = {}, addHandler
                 <List component="div" disablePadding>
                     {
                         Object.entries(neighborhoods)
-                        .map(([key, { type, name, permanentId, children }]) => (
+                        .map(([key, { Type, Name, PermanentId, children }]) => (
                             <NeighborhoodListItem
                                 key={key}
-                                type={type}
-                                name={name}
-                                permanentId={permanentId}
+                                type={Type}
+                                name={Name}
+                                permanentId={PermanentId}
                                 children={children}
                                 addHandler={addHandler}
                                 selectableNeighborhoods={selectableNeighborhoods}

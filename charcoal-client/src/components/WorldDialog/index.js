@@ -79,7 +79,7 @@ const useTreeItemStyles = makeStyles(theme => ({
       }
 }))
 
-const OverviewTreeItem = ({ labelText, ActionIcons, ...rest }) => {
+const OverviewTreeItem = ({ nodeId, labelText, ActionIcons, ...rest }) => {
     const classes = useTreeItemStyles()
 
     return <TreeItem
@@ -98,11 +98,12 @@ const OverviewTreeItem = ({ labelText, ActionIcons, ...rest }) => {
             content: classes.content,
             label: classes.label,
         }}
+        nodeId={nodeId}
         {...rest}
     />
 }
 
-const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
+const NeighborhoodTreeItem = ({ nodeId, name, Ancestry = '', children }) => {
     const dispatch = useDispatch()
     const grantMap = useContext(GrantContext)
     const grants = grantMap[nodeId]
@@ -110,6 +111,7 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
         nodeId={nodeId}
         labelText={name}
         endIcon={<ChevronRightIcon />}
+        children={children}
         ActionIcons={<React.Fragment>
             { grants.ExtendPrivate &&
                 <Tooltip title={"Add Neighborhood"}>
@@ -118,10 +120,10 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                         onClick={(event) => {
                             event.stopPropagation()
                             dispatch(activateNeighborhoodDialog({
-                                parentId: nodeId,
+                                ParentId: nodeId,
                                 parentName: name,
-                                ancestry: `${rest.Ancestry}:`,
-                                parentAncestry: rest.Ancestry,
+                                Ancestry: `${Ancestry}:`,
+                                parentAncestry: Ancestry,
                                 nested: true
                             }))
                         }}
@@ -138,10 +140,10 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                         onClick={(event) => {
                             event.stopPropagation()
                             dispatch(activateRoomDialog({
-                                parentId: nodeId,
+                                ParentId: nodeId,
                                 parentName: name,
-                                ancestry: `${rest.Ancestry}:`,
-                                parentAncestry: rest.Ancestry,
+                                Ancestry: `${Ancestry}:`,
+                                parentAncestry: Ancestry,
                                 nested: true
                             }))
                         }}
@@ -165,11 +167,10 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                 </Tooltip>
             }
         </React.Fragment>}
-        {...rest}
     />
 }
 
-const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest }) => {
+const RoomTreeItem = ({ nodeId, name, parentId }) => {
     const dispatch = useDispatch()
     const grantMap = useContext(GrantContext)
     const grants = grantMap[parentId || 'ROOT']
@@ -188,12 +189,11 @@ const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest 
                 <CreateIcon fontSize="inherit" />
             </IconButton>
         </Tooltip>}
-        {...rest}
     />
 }
 
 const NeighborhoodItem = ({ item }) => {
-    const { Type, PermanentId, Name, children, ParentId, parentAncestry, ...rest } = item
+    const { Type, PermanentId, Name, ParentId, children } = item
     switch(Type) {
         case 'ROOM':
             return <RoomTreeItem
@@ -201,14 +201,12 @@ const NeighborhoodItem = ({ item }) => {
                 nodeId={PermanentId}
                 name={Name}
                 parentId={ParentId}
-                {...rest}
             />
         default:
             return <NeighborhoodTreeItem
                 key={PermanentId}
                 nodeId={PermanentId}
                 name={Name}
-                {...rest}
             >
                 {
                     Object.values(children || {})

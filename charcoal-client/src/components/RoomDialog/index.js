@@ -31,7 +31,7 @@ import {
     getExternalTree
 } from '../../selectors/permanentHeaders.js'
 import useStyles from '../styles'
-import ExitList from './ExitList'
+import ExitList from '../ExitList'
 import PermanentSelectPopover from './PermanentSelectPopover'
 
 const RESET_FORM_VALUES = 'RESET_FORM_VALUES'
@@ -46,38 +46,38 @@ const appearanceUpdate = ({ label, value }) => ({
     value
 })
 const REMOVE_EXIT = 'REMOVE_EXIT'
-const removeExit = (roomId) => ({
+const removeExit = (RoomId) => ({
     type: REMOVE_EXIT,
-    roomId
+    RoomId
 })
 const REMOVE_ENTRY = 'REMOVE_ENTRY'
-const removeEntry = (roomId) => ({
+const removeEntry = (RoomId) => ({
     type: REMOVE_ENTRY,
-    roomId
+    RoomId
 })
 const UPDATE_EXIT_NAME = 'UPDATE_EXIT_NAME'
-const updateExitName = (roomId, name) => ({
+const updateExitName = (RoomId, Name) => ({
     type: UPDATE_EXIT_NAME,
-    roomId,
-    name
+    RoomId,
+    Name
 })
 const UPDATE_ENTRY_NAME = 'UPDATE_ENTRY_NAME'
-const updateEntryName = (roomId, name) => ({
+const updateEntryName = (RoomId, Name) => ({
     type: UPDATE_ENTRY_NAME,
-    roomId,
-    name
+    RoomId,
+    Name
 })
 const ADD_EXIT = 'ADD_EXIT'
-const addExit = (roomId, name) => ({
+const addExit = (RoomId, Name) => ({
     type: ADD_EXIT,
-    roomId,
-    name
+    RoomId,
+    Name
 })
 const ADD_ENTRY = 'ADD_ENTRY'
-const addEntry = (roomId, name) => ({
+const addEntry = (RoomId, Name) => ({
     type: ADD_ENTRY,
-    roomId,
-    name
+    RoomId,
+    Name
 })
 
 const convertNameForExit = (name) => {
@@ -97,49 +97,49 @@ const roomDialogReducer = (state, action) => {
         case REMOVE_EXIT:
             return {
                 ...state,
-                exits: state.exits.filter(exit => (exit.roomId !== action.roomId))
+                Exits: state.Exits.filter(exit => (exit.RoomId !== action.RoomId))
             }
         case REMOVE_ENTRY:
             return {
                 ...state,
-                entries: state.entries.filter(entry => (entry.roomId !== action.roomId))
+                Entries: state.Entries.filter(entry => (entry.RoomId !== action.RoomId))
             }
         case UPDATE_EXIT_NAME:
-            const findExit = state.exits.find(exit => (exit.roomId === action.roomId))
-            const otherExits = state.exits.filter(exit => (exit.roomId !== action.roomId))
+            const findExit = state.Exits.find(exit => (exit.RoomId === action.RoomId))
+            const otherExits = state.Exits.filter(exit => (exit.RoomId !== action.RoomId))
             return {
                 ...state,
-                exits: [
+                Exits: [
                     ...otherExits,
                     {
                         ...findExit,
-                        name: action.name
+                        Name: action.Name
                     }
                 ]
             }
         case UPDATE_ENTRY_NAME:
-            const findEntry = state.entries.find(entry => (entry.roomId === action.roomId))
-            const otherEntries = state.entries.filter(entry => (entry.roomId !== action.roomId))
+            const findEntry = state.Entries.find(entry => (entry.RoomId === action.RoomId))
+            const otherEntries = state.Entries.filter(entry => (entry.RoomId !== action.RoomId))
             return {
                 ...state,
-                entries: [
+                Entries: [
                     ...otherEntries,
                     {
                         ...findEntry,
-                        name: action.name
+                        Name: action.Name
                     }
                 ]
             }
         case ADD_EXIT:
-            if (!state.exits.find(exit => (exit.roomId === action.roomId))) {
+            if (!state.Exits.find(exit => (exit.roomId === action.roomId))) {
                 return {
                     ...state,
-                    exits: [
-                        ...state.exits,
+                    Exits: [
+                        ...state.Exits,
                         {
-                            name: convertNameForExit(action.name),
+                            Name: convertNameForExit(action.Name),
                             id: '',
-                            roomId: action.roomId
+                            RoomId: action.RoomId
                         }
                     ]
                 }
@@ -148,15 +148,14 @@ const roomDialogReducer = (state, action) => {
                 return state
             }
         case ADD_ENTRY:
-            if (!state.entries.find(entry => (entry.roomId === action.roomId))) {
+            if (!state.Entries.find(entry => (entry.RoomId === action.RoomId))) {
                 return {
                     ...state,
-                    entries: [
-                        ...state.entries,
+                    Entries: [
+                        ...state.Entries,
                         {
-                            name: convertNameForExit(action.name),
-                            id: '',
-                            roomId: action.roomId
+                            Name: convertNameForExit(action.Name),
+                            RoomId: action.RoomId
                         }
                     ]
                 }
@@ -188,8 +187,8 @@ export const RoomDialog = ({ nested=false }) => {
     const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
     const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
 
-    const { name = '', description = '', exits=[], entries=[], parentId='' } = formValues
-    const { Name: parentName = '', Ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+    const { Name = '', Description = '', Exits=[], Entries=[], ParentId='' } = formValues
+    const { Name: parentName = '', Ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[ParentId]) || {}
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const onPathDeleteHandler = (type, roomId) => () => {
@@ -206,24 +205,30 @@ export const RoomDialog = ({ nested=false }) => {
     }
     const onPathAddHandler = (roomId, exitName) => () => {
         formDispatch(addExit(roomId, exitName))
-        formDispatch(addEntry(roomId, name))
+        formDispatch(addEntry(roomId, Name))
         setNeighborhoodAddAnchorEl(null)
         setExternalAddAnchorEl(null)
     }
     const onSetParentHandler = (neighborhoodId) => () => {
-        formDispatch(appearanceUpdate({ label: 'parentId', value: neighborhoodId }))
+        formDispatch(appearanceUpdate({ label: 'ParentId', value: neighborhoodId }))
         setParentSetAnchorEl(null)
     }
     const saveHandler = () => {
-        const { name, description, parentId, roomId, exits, entries } = formValues
-        const roomData = { name, description, parentId, roomId, exits, entries }
-        dispatch(putAndCloseRoomDialog(roomData))
+        const { Name, Description, ParentId, RoomId, Exits, Entries } = formValues
+        dispatch(putAndCloseRoomDialog({
+            RoomId,
+            ParentId,
+            Name,
+            Description,
+            Exits: Exits.map(({ Ancestry, ...rest }) => (rest)),
+            Entries
+        }))
     }
 
     const paths = [
-        ...(exits.map((exit) => ({ type: 'EXIT', ...exit }))),
-        ...(entries.map((entry) => ({ type: 'ENTRY', ...entry })))
-    ].sort(({ roomId: roomIdA }, { roomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
+        ...(Exits.map((exit) => ({ type: 'EXIT', ...exit }))),
+        ...(Entries.map((entry) => ({ type: 'ENTRY', ...entry })))
+    ].sort(({ RoomId: roomIdA }, { RoomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
 
     const neighborhoodPaths = paths.filter(({ roomId }) => (!parentAncestry || (permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].Ancestry && permanentHeaders[roomId].Ancestry.startsWith(parentAncestry))))
     const externalPaths = paths.filter(({ roomId }) => (!(permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].Ancestry && permanentHeaders[roomId].Ancestry.startsWith(parentAncestry))))
@@ -273,10 +278,10 @@ export const RoomDialog = ({ nested=false }) => {
                                         <div>
                                             <TextField
                                                 required
-                                                id="name"
+                                                id="Name"
                                                 label="Name"
-                                                value={name}
-                                                onChange={onShallowChangeHandler('name')}
+                                                value={Name}
+                                                onChange={onShallowChangeHandler('Name')}
                                             />
                                             <TextField
                                                 disabled
@@ -291,13 +296,13 @@ export const RoomDialog = ({ nested=false }) => {
                                         <div>
                                             <TextField
                                                 required
-                                                id="description"
+                                                id="Description"
                                                 label="Description"
-                                                value={description}
+                                                value={Description}
                                                 multiline
                                                 rows={3}
                                                 fullWidth
-                                                onChange={onShallowChangeHandler('description')}
+                                                onChange={onShallowChangeHandler('Description')}
                                             />
                                         </div>
                                     </form>

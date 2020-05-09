@@ -5,7 +5,8 @@ import {
     getNeighborhoodOnlyTree,
     getNeighborhoodSubtree,
     getExternalTree,
-    getNeighborhoodOnlyTreeExcludingSubTree
+    getNeighborhoodOnlyTreeExcludingSubTree,
+    getNeighborhoodPaths
 } from './permanentHeaders'
 
 const testState = {
@@ -306,4 +307,97 @@ describe('permanentHeader selectors', () => {
         })
     })
 
+    it('should find all external paths on getNeighborhoodPaths', () => {
+        const neighborhoodTest = {
+            ABC: {
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'ROOM',
+                Exits: [{
+                    RoomId: 'CDE',
+                    Name: 'cde'
+                }],
+                Entries: [{
+                    RoomId: 'CDE',
+                    Name: 'abc'
+                }]
+            },
+            BCD: {
+                PermanentId: 'BCD',
+                Ancestry: 'BCD',
+                Type: 'NEIGHBORHOOD'
+            },
+            CDE: {
+                PermanentId: 'CDE',
+                ParentId: 'BCD',
+                Ancestry: 'BCD:CDE',
+                Type: 'ROOM',
+                Exits: [{
+                    RoomId: 'ABC',
+                    Name: 'abc',
+                }],
+                Entries: [{
+                    RoomId: 'ABC',
+                    Name: 'cde'
+                }]
+            },
+            DEF: {
+                PermanentId: 'DEF',
+                Ancestry: 'DEF',
+                Type: 'NEIGHBORHOOD'
+            },
+            EFG: {
+                PermanentId: 'EFG',
+                Ancestry: 'DEF:EFG',
+                Type: 'ROOM',
+                Exits: [{
+                    RoomId: 'GHI',
+                    Name: 'ghi'
+                }],
+                Entries: [{
+                    RoomId: 'GHI',
+                    Name: 'efg'
+                }]
+            },
+            FGH: {
+                PermanentId: 'FGH',
+                Ancestry: 'DEF:FGH',
+                Type: 'NEIGHBORHOOD'
+            },
+            GHI: {
+                PermanentId: 'GHI',
+                Ancestry: 'DEF:FGH:GHI',
+                Type: 'ROOM',
+                Exits: [{
+                    RoomId: 'EFG',
+                    Name: 'efg'
+                },
+                {
+                    RoomId: 'ABC',
+                    Name: 'abc'
+                }],
+                Entries: [{
+                    RoomId: 'EFG',
+                    Name: 'ghi'
+                },
+                {
+                    RoomId: 'ABC',
+                    Name: 'ghi'
+                }]
+            }
+        }
+
+        expect(getNeighborhoodPaths('DEF')({ permanentHeaders: neighborhoodTest })).toEqual({
+            Exits: [{
+                OriginId: 'GHI',
+                RoomId: 'ABC',
+                Name: 'abc'
+            }],
+            Entries: [{
+                OriginId: 'GHI',
+                RoomId: 'ABC',
+                Name: 'ghi'
+            }]
+        })
+    })
 })

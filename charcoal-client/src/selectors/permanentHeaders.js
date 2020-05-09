@@ -94,3 +94,32 @@ export const getExternalTree = ({ roomId, ancestry }) => ({ permanentHeaders }) 
     return treeify(Object.values(permanentHeaders)
         .filter(({ Ancestry }) => (parentAncestry && !((Ancestry || '').startsWith(parentAncestry)))))
 }
+
+//
+// For a given Neighborhood, find all the paths to and from descendants that
+// pass out of the neighborhood.
+//
+export const getNeighborhoodPaths = (PermanentId) => ({ permanentHeaders }) => {
+    if (!PermanentId) {
+        return {
+            Exits: [],
+            Entries: []
+        }
+    }
+    const { Ancestry: rootAncestry = '' } = permanentHeaders && permanentHeaders[PermanentId]
+    const descendants = Object.values(permanentHeaders).filter(({ Ancestry }) => (Ancestry.startsWith(rootAncestry)))
+    const descendantExits = descendants
+        .filter(({ Exits }) => Exits)
+        .map(({ PermanentId, Exits }) => (Exits.map((exit) => ({ ...exit, OriginId: PermanentId }))))
+        .reduce((previous, itemList) => ([...previous, ...itemList]), [])
+        .filter(({ RoomId }) => (!(permanentHeaders[RoomId] && (permanentHeaders[RoomId].Ancestry || '').startsWith(rootAncestry) )))
+    const descendantEntries = descendants
+        .filter(({ Entries }) => Entries)
+        .map(({ PermanentId, Entries }) => (Entries.map((entry) => ({ ...entry, OriginId: PermanentId }))))
+        .reduce((previous, itemList) => ([...previous, ...itemList]), [])
+        .filter(({ RoomId }) => (!(permanentHeaders[RoomId] && (permanentHeaders[RoomId].Ancestry || '').startsWith(rootAncestry) )))
+    return {
+        Exits: descendantExits,
+        Entries: descendantEntries
+    }
+}
