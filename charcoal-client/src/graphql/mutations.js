@@ -112,6 +112,7 @@ export const putNeighborhood = /* GraphQL */ `
     $Description: String
     $ParentId: String
     $Visibility: String
+    $Topology: String
     $Grants: [ResourceGrantInput]
   ) {
     putNeighborhood(
@@ -121,6 +122,7 @@ export const putNeighborhood = /* GraphQL */ `
       Description: $Description
       ParentId: $ParentId
       Visibility: $Visibility
+      Topology: $Topology
       Grants: $Grants
     ) {
       PermanentId
@@ -130,6 +132,7 @@ export const putNeighborhood = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Grants {
         CharacterId
         Actions
@@ -146,6 +149,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
     $Description: String
     $ParentId: String
     $Visibility: String
+    $Topology: String
   ) {
     externalPutNeighborhood(
       PermanentId: $PermanentId
@@ -154,6 +158,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
       Description: $Description
       ParentId: $ParentId
       Visibility: $Visibility
+      Topology: $Topology
     ) {
       PermanentId
       Type
@@ -162,6 +167,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Grants {
         CharacterId
         Actions
@@ -177,6 +183,7 @@ export const putRoom = /* GraphQL */ `
     $Description: String
     $ParentId: String
     $Visibility: String
+    $Topology: String
     $Exits: [PathInput]
     $Entries: [PathInput]
   ) {
@@ -186,6 +193,7 @@ export const putRoom = /* GraphQL */ `
       Description: $Description
       ParentId: $ParentId
       Visibility: $Visibility
+      Topology: $Topology
       Exits: $Exits
       Entries: $Entries
     ) {
@@ -196,6 +204,7 @@ export const putRoom = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Exits {
         Name
         RoomId
@@ -221,6 +230,7 @@ export const externalPutRoom = /* GraphQL */ `
     $Description: String
     $ParentId: String
     $Visibility: String
+    $Topology: String
   ) {
     externalPutRoom(
       PermanentId: $PermanentId
@@ -229,6 +239,7 @@ export const externalPutRoom = /* GraphQL */ `
       Description: $Description
       ParentId: $ParentId
       Visibility: $Visibility
+      Topology: $Topology
     ) {
       PermanentId
       Type
@@ -237,6 +248,7 @@ export const externalPutRoom = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Grants {
         CharacterId
         Actions

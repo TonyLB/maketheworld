@@ -127,6 +127,7 @@ export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, ge
                 Name: name,
                 Description: description,
                 Visibility: visibility,
+                Topology: 'Dead-End',
                 Grants: grants
             }))
         .then(() => dispatch(closeNeighborhoodDialog()))

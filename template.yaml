@@ -1537,6 +1537,7 @@ Resources:
                   Description: String
                   ParentId: String
                   Visibility: String
+                  Topology: String
                   Grants: [ResourceGrant]
               }
               type Neighborhood implements PermanentTreeNode {
@@ -1547,6 +1548,7 @@ Resources:
                   Description: String
                   ParentId: String
                   Visibility: String
+                  Topology: String
                   Grants: [ResourceGrant]
               }
               interface RoomPath {
@@ -1580,6 +1582,7 @@ Resources:
                   Description: String
                   ParentId: String
                   Visibility: String
+                  Topology: String
                   Exits: [Exit]
                   Entries: [Entry]
                   Grants: [ResourceGrant]
@@ -1632,6 +1635,7 @@ Resources:
                       Description: String
                       ParentId: String
                       Visibility: String
+                      Topology: String
                       Grants: [ResourceGrantInput]
                   ): AnyNode
                   externalPutNeighborhood(
@@ -1641,6 +1645,7 @@ Resources:
                       Description: String
                       ParentId: String
                       Visibility: String
+                      Topology: String
                   ): AnyNode
                   @aws_iam @aws_cognito_user_pools
                   putRoom(
@@ -1649,6 +1654,7 @@ Resources:
                       Description: String
                       ParentId: String
                       Visibility: String
+                      Topology: String
                       Exits: [PathInput]
                       Entries: [PathInput]
                   ): Room
@@ -1659,6 +1665,7 @@ Resources:
                       Description: String
                       ParentId: String
                       Visibility: String
+                      Topology: String
                   ): AnyNode
                   @aws_iam @aws_cognito_user_pools
                   putRoomMessage(

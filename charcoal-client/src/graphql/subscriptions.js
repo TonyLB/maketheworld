@@ -57,6 +57,7 @@ export const changedNode = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Grants {
         CharacterId
         Actions
@@ -75,6 +76,7 @@ export const changedRoom = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Exits {
         Name
         RoomId

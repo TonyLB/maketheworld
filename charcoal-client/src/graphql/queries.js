@@ -77,6 +77,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
       ParentId
       ... on Neighborhood {
         Visibility
+        Topology
         Grants {
           CharacterId
           Actions
@@ -85,6 +86,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
       }
       ... on Room {
         Visibility
+        Topology
         Exits {
           Name
           RoomId
@@ -102,6 +104,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
       }
       ... on AnyNode {
         Visibility
+        Topology
         Grants {
           CharacterId
           Actions
@@ -121,6 +124,7 @@ export const getNeighborhood = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Grants {
         CharacterId
         Actions
@@ -139,6 +143,7 @@ export const getRoom = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Exits {
         Name
         RoomId
@@ -184,6 +189,7 @@ export const getRoomByCharacter = /* GraphQL */ `
       Description
       ParentId
       Visibility
+      Topology
       Exits {
         Name
         RoomId
