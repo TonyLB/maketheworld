@@ -428,7 +428,7 @@ Resources:
                       Action:
                           - "dynamodb:Query"
                       Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_players/*"
-            - PolicyName: CharactersInPlayPolicy
+            - PolicyName: TablesPolicy
               PolicyDocument:
                   Version: "2012-10-17"
                   Statement:
@@ -440,97 +440,21 @@ Resources:
                           - "dynamodb:PutItem"
                           - "dynamodb:UpdateItem"
                           - "dynamodb:Scan"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
-            - PolicyName: ConnectonsIndexPolicy
+                      Resource:
+                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
+                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
+                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages"
+            - PolicyName: IndexesPolicy
               PolicyDocument:
                   Version: "2012-10-17"
                   Statement:
                     - Effect: "Allow"
                       Action:
                           - "dynamodb:Query"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play/*"
-            - PolicyName: PermanentsPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:GetItem"
-                          - "dynamodb:BatchGetItem"
-                          - "dynamodb:Query"
-                          - "dynamodb:PutItem"
-                          - "dynamodb:UpdateItem"
-                          - "dynamodb:Scan"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
-            - PolicyName: PermanentsIndexPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:Query"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
-            - PolicyName: MessagesPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:GetItem"
-                          - "dynamodb:BatchGetItem"
-                          - "dynamodb:Query"
-                          - "dynamodb:PutItem"
-                          - "dynamodb:UpdateItem"
-                          - "dynamodb:Scan"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages"
-            - PolicyName: MessagesIndexPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:Query"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages/*"
-            - PolicyName: PutRoomPolicy
-              PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                  - Effect: "Allow"
-                    Action:
-                        - "lambda:InvokeFunction"
-                    Resource: !GetAtt PutRoomFunction.Arn
-            - PolicyName: PutNeighborhoodPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "lambda:InvokeFunction"
-                      Resource: !GetAtt PutNeighborhoodFunction.Arn
-            - PolicyName: GetNeighborhoodPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "lambda:InvokeFunction"
-                      Resource: !GetAtt GetNeighborhoodFunction.Arn
-            - PolicyName: GetCharacterPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "lambda:InvokeFunction"
-                      Resource: !GetAtt GetCharacterFunction.Arn
-            - PolicyName: GetPlayerCharactersPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "lambda:InvokeFunction"
-                      Resource: !GetAtt GetPlayerCharactersFunction.Arn
+                      Resource:
+                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play/*"
+                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
+                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages/*"
             - PolicyName: AppSyncLambdasPolicy
               PolicyDocument:
                   Version: "2012-10-17"
@@ -541,6 +465,11 @@ Resources:
                       Resource:
                         - !GetAtt PutCharacterFunction.Arn
                         - !GetAtt GetNodeTreeFunction.Arn
+                        - !GetAtt GetPlayerCharactersFunction.Arn
+                        - !GetAtt GetCharacterFunction.Arn
+                        - !GetAtt GetNeighborhoodFunction.Arn
+                        - !GetAtt PutNeighborhoodFunction.Arn
+                        - !GetAtt PutRoomFunction.Arn
   CharactersInPlayDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
