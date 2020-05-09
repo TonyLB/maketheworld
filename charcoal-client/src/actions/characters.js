@@ -8,7 +8,6 @@ import { changedCharacter, changedCharactersInPlay } from '../graphql/subscripti
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { addSubscription, moveRoomSubscription } from './subscriptions'
-import { fetchCurrentRoom } from './currentRoom'
 import { lookRoom } from './behaviors/lookRoom'
 import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
@@ -153,8 +152,7 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         const currentNeighborhood = getCurrentNeighborhood(state)
         const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
         if (!(myCharacter && myCharacter.ConnectionId && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
-            return dispatch(fetchCurrentRoom(payload.RoomId))
-                .then(() => (dispatch(moveRoomSubscription(payload.RoomId))))
+            return dispatch(moveRoomSubscription(payload.RoomId))
                 .then(() => {
                     dispatch(lookRoom({ Recap: true, showNeighborhoods: true, previousAncestry }))
                     const { Character = {} } = payload

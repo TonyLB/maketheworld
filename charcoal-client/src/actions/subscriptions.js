@@ -95,6 +95,7 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
         })
         dispatch(addSubscription({ currentRoom: newRoomSubscription }))
     }
+    return Promise.resolve({})
 }
 
 export const directMessageSubscription = () => (dispatch, getState) => {

@@ -1,5 +1,6 @@
 import { getCurrentName, getCharacterId } from '../../selectors/connection'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
+import { getCurrentRoom } from '../../selectors/currentRoom'
 
 import { sendMessage } from '../messages.js'
 import lookRoom from './lookRoom'
@@ -32,7 +33,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
         }
     }
     const state = getState()
-    const { currentRoom } = state
+    const currentRoom = getCurrentRoom(state)
     const currentName = getCurrentName(state)
     const characterId = getCharacterId(state)
     const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId })(state)

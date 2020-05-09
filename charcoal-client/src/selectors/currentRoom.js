@@ -5,7 +5,7 @@ import { getCurrentRoomId } from './connection'
 export const getCurrentRoom = (state) => {
     const { permanentHeaders } = state
     const RoomId = getCurrentRoomId(state)
-    return permanentHeaders && permanentHeaders[RoomId]
+    return permanentHeaders && RoomId && permanentHeaders[RoomId]
 }
 
 //
@@ -15,10 +15,9 @@ export const getCurrentRoom = (state) => {
 // grant to view.
 //
 export const getVisibleExits = (state) => {
-    const { Grants = {} } = getMyCurrentCharacter(state)
-    const RoomId = getCurrentRoomId(state)
     const { permanentHeaders } = state
-    const currentRoom = permanentHeaders && permanentHeaders[RoomId]
+    const { Grants = {} } = getMyCurrentCharacter(state)
+    const currentRoom = getCurrentRoom(state)
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
         currentRoom.Exits.map(({ Ancestry, ...rest }) => {
                 const ancestryList = Ancestry.split(':')
@@ -45,9 +44,7 @@ export const getVisibleExits = (state) => {
 // the LineEntry component, to give people text help.
 //
 export const getAvailableBehaviors = (state) => {
-    const RoomId = getCurrentRoomId(state)
-    const { permanentHeaders } = state
-    const currentRoom = (permanentHeaders && permanentHeaders[RoomId]) || {}
+    const currentRoom = getCurrentRoom(state)
     const exitNames = (getVisibleExits(state) && currentRoom.Exits.map(({ Name }) => (Name.toLowerCase()))) || []
     const characterNames = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId })(state)
     return [
@@ -61,7 +58,9 @@ export const getAvailableBehaviors = (state) => {
     ]
 }
 
-export const getCurrentNeighborhood = ({ currentRoom, permanentHeaders }) => {
+export const getCurrentNeighborhood = (state) => {
+    const currentRoom = getCurrentRoom(state)
+    const { permanentHeaders } = state
     if (currentRoom && currentRoom.ParentId) {
         return permanentHeaders[currentRoom.ParentId]
     }
