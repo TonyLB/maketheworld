@@ -531,14 +531,16 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource: !GetAtt GetPlayerCharactersFunction.Arn
-            - PolicyName: PutCharacterPolicy
+            - PolicyName: AppSyncLambdasPolicy
               PolicyDocument:
                   Version: "2012-10-17"
                   Statement:
                     - Effect: "Allow"
                       Action:
                           - "lambda:InvokeFunction"
-                      Resource: !GetAtt PutCharacterFunction.Arn
+                      Resource:
+                        - !GetAtt PutCharacterFunction.Arn
+                        - !GetAtt GetNodeTreeFunction.Arn
   CharactersInPlayDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -784,6 +786,28 @@ Resources:
                   "operation": "Scan"
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result.items)"
+  GetNodeTreeFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/nodeTree/
+          Handler: app.getNodeTree
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
+  GetNodeTreeDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: GetNodeTree
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt GetNodeTreeFunction.Arn
   QueryGetNeighborhoodTree:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -791,49 +815,14 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getNeighborhoodTree
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt GetNodeTreeDataSource.Name
           RequestMappingTemplate: >
               {
-                  "version": "2018-05-29",
-                  "operation": "Scan",
-                  "index": "AncestryIndex",
-                  "filter": {
-                      "expression": "DataCategory = :Details",
-                      "expressionValues": {
-                          ":Details": $util.dynamodb.toStringJson("Details")
-                      }
-                  }
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {}
               }
-          ResponseMappingTemplate: >
-              #set($output = [])
-              #foreach($node in $ctx.result.items)
-                  #set($typeName = "")
-                  #if($node.PermanentId.startsWith("NEIGHBORHOOD")  && $node.DataCategory == 'Details')
-                      #set($typeName = "Neighborhood")
-                      #set($type = "NEIGHBORHOOD")
-                      #set($permanentId = $node.PermanentId.substring(13))
-                      #set($visibility = $util.defaultIfNullOrBlank($node.Visibility, "Private"))
-                  #end
-                  #if($node.PermanentId.startsWith("ROOM") && $node.DataCategory == 'Details')
-                      #set($typeName = "Room")
-                      #set($type = "ROOM")
-                      #set($permanentId = $node.PermanentId.substring(5))
-                      #set($visibility = $util.defaultIfNullOrBlank($node.Visibility, "Public"))
-                  #end
-                  #if($typeName)
-                    $util.qr($output.add({
-                        "__typename": $typeName,
-                        "Name": $node.Name,
-                        "Type": $type,
-                        "PermanentId": $permanentId,
-                        "ParentId": $node.ParentId,
-                        "Ancestry": $node.Ancestry,
-                        "Description": $node.Description,
-                        "Visibility": $visibility
-                    }))
-                  #end
-              #end
-              $util.toJson($output)
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   GetNeighborhoodFunction:
       Type: AWS::Serverless::Function
       Properties:
