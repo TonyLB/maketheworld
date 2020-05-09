@@ -12,7 +12,7 @@ const itemReducer = (previous, {
     Ancestry,
     Name,
     Description,
-    Visibility = 'Private',
+    Visibility,
     Topology = 'Dead-End'
 }) => {
     const [typeLabel, PermanentId] = breakOutType(FetchedPermanentId)
@@ -28,33 +28,39 @@ const itemReducer = (previous, {
                 Ancestry,
                 Name,
                 Description,
-                Visibility,
+                Visibility: Visibility || (typeLabel === 'NEIGHBORHOOD' ? 'Private' : 'Public'),
                 Topology
             }
         }
     }
-    //
-    // TODO:  Handle exits and update existing map.
-    //
 
-    // const [dataTypeLabel, RoomId] = breakOutType(DataCategory)
-    // if (typeLabel === 'ROOM' && dataTypeLabel === 'EXIT') {
-    //     return {
-    //         ...previous,
-    //         [PermanentId]: {
-    //             ...(previous[PermanentId] || {}),
-    //             Exits: [
-    //                 ???
-    //             ]
-    //         },
-    //         [RoomId]: {
-    //             ...(previous[RoomId] || {}),
-    //             Entries: [
-    //                 ???
-    //             ]
-    //         }
-    //     }
-    // }
+    const [dataTypeLabel, RoomId] = breakOutType(DataCategory)
+    if (typeLabel === 'ROOM' && dataTypeLabel === 'EXIT') {
+        return {
+            ...previous,
+            [PermanentId]: {
+                ...(previous[PermanentId] || {}),
+                Exits: [
+                    ...((previous[PermanentId] && previous[PermanentId].Exits) || []),
+                    {
+                        RoomId,
+                        Name,
+                        Ancestry
+                    }
+                ]
+            },
+            [RoomId]: {
+                ...(previous[RoomId] || {}),
+                Entries: [
+                    ...((previous[RoomId] && previous[RoomId].Entries) || []),
+                    {
+                        RoomId: PermanentId,
+                        Name
+                    }
+                ]
+            }
+        }
+    }
     return previous
 }
 
@@ -71,5 +77,6 @@ exports.getNodeTree = () => {
         }).promise()
         .then(({ Items = [] }) => (Items.reduce(itemReducer, {})))
         .then((itemMap) => (Object.values(itemMap)))
+        .then((items) => (items.filter(({ PermanentId }) => (PermanentId))))
 
 }
