@@ -11,39 +11,39 @@ import {
 const testState = {
     permanentHeaders: {
         ABC: {
-            permanentId: 'ABC',
-            ancestry: 'ABC',
-            type: 'NEIGHBORHOOD'
+            PermanentId: 'ABC',
+            Ancestry: 'ABC',
+            Type: 'NEIGHBORHOOD'
         },
         BCD: {
-            permanentId: 'BCD',
-            ancestry: 'ABC:BCD',
-            type: 'ROOM'
+            PermanentId: 'BCD',
+            Ancestry: 'ABC:BCD',
+            Type: 'ROOM'
         },
         CDE: {
-            permanentId: 'CDE',
-            ancestry: 'ABC:CDE',
-            type: 'NEIGHBORHOOD'
+            PermanentId: 'CDE',
+            Ancestry: 'ABC:CDE',
+            Type: 'NEIGHBORHOOD'
         },
         DEF: {
-            permanentId: 'DEF',
-            ancestry: 'ABC:CDE:DEF',
-            type: 'ROOM'
+            PermanentId: 'DEF',
+            Ancestry: 'ABC:CDE:DEF',
+            Type: 'ROOM'
         },
         EFG: {
-            permanentId: 'EFG',
-            ancestry: 'ABC:CDE:EFG',
-            type: 'ROOM'
+            PermanentId: 'EFG',
+            Ancestry: 'ABC:CDE:EFG',
+            Type: 'ROOM'
         },
         FGH: {
-            permanentId: 'FGH',
-            ancestry: 'FGH',
-            type: 'NEIGHBORHOOD'
+            PermanentId: 'FGH',
+            Ancestry: 'FGH',
+            Type: 'NEIGHBORHOOD'
         },
         GHI: {
-            permanentId: 'GHI',
-            ancestry: 'FGH:GHI',
-            type: 'ROOM'
+            PermanentId: 'GHI',
+            Ancestry: 'FGH:GHI',
+            Type: 'ROOM'
         }
     }
 }
@@ -68,43 +68,43 @@ describe('permanentHeader selectors', () => {
     it('should correctly return a tree', () => {
         expect(treeify(Object.values(testState.permanentHeaders))).toEqual({
             ABC: {
-                permanentId: 'ABC',
-                ancestry: 'ABC',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     BCD: {
-                        permanentId: 'BCD',
-                        ancestry: 'ABC:BCD',
-                        type: 'ROOM'
+                        PermanentId: 'BCD',
+                        Ancestry: 'ABC:BCD',
+                        Type: 'ROOM'
                     },
                     CDE: {
-                        permanentId: 'CDE',
-                        ancestry: 'ABC:CDE',
-                        type: 'NEIGHBORHOOD',
+                        PermanentId: 'CDE',
+                        Ancestry: 'ABC:CDE',
+                        Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
-                                permanentId: 'DEF',
-                                ancestry: 'ABC:CDE:DEF',
-                                type: 'ROOM'
+                                PermanentId: 'DEF',
+                                Ancestry: 'ABC:CDE:DEF',
+                                Type: 'ROOM'
                             },
                             EFG: {
-                                permanentId: 'EFG',
-                                ancestry: 'ABC:CDE:EFG',
-                                type: 'ROOM'
+                                PermanentId: 'EFG',
+                                Ancestry: 'ABC:CDE:EFG',
+                                Type: 'ROOM'
                             }
                         }
                     },
                 }
             },
             FGH: {
-                permanentId: 'FGH',
-                ancestry: 'FGH',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'FGH',
+                Ancestry: 'FGH',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
-                        permanentId: 'GHI',
-                        ancestry: 'FGH:GHI',
-                        type: 'ROOM'
+                        PermanentId: 'GHI',
+                        Ancestry: 'FGH:GHI',
+                        Type: 'ROOM'
                     }
                 }
             }
@@ -113,31 +113,31 @@ describe('permanentHeader selectors', () => {
 
     it('should exclude a ghost sub-branch', () => {
         expect(treeify([
-            { permanentId: 'ABC' },
-            { permanentId: 'BCD' },
-            { permanentId: 'CDE', ancestry: 'ABC:BCD:CDE' },
+            { PermanentId: 'ABC' },
+            { PermanentId: 'BCD' },
+            { PermanentId: 'CDE', Ancestry: 'ABC:BCD:CDE' },
         ])).toEqual({
             ABC: {
-                permanentId: 'ABC'
+                PermanentId: 'ABC'
             },
             BCD: {
-                permanentId: 'BCD'
+                PermanentId: 'BCD'
             }
         })
     })
 
     it('should exclude a ghost root branch', () => {
         expect(treeify([
-            { permanentId: 'ABC' },
-            { permanentId: 'BCD', ancestry: 'ABC:BCD' },
-            { permanentId: 'CDE', ancestry: 'BCD:CDE' },
+            { PermanentId: 'ABC' },
+            { PermanentId: 'BCD', Ancestry: 'ABC:BCD' },
+            { PermanentId: 'CDE', Ancestry: 'BCD:CDE' },
         ])).toEqual({
             ABC: {
-                permanentId: 'ABC',
+                PermanentId: 'ABC',
                 children: {
                     BCD: {
-                        ancestry: 'ABC:BCD',
-                        permanentId: 'BCD'
+                        Ancestry: 'ABC:BCD',
+                        PermanentId: 'BCD'
                     }
                 }
             }
@@ -147,65 +147,65 @@ describe('permanentHeader selectors', () => {
     it('should correctly return a neighborhood only tree', () => {
         expect(getNeighborhoodOnlyTree(testState)).toEqual({
             ABC: {
-                permanentId: 'ABC',
-                ancestry: 'ABC',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     CDE: {
-                        permanentId: 'CDE',
-                        ancestry: 'ABC:CDE',
-                        type: 'NEIGHBORHOOD'
+                        PermanentId: 'CDE',
+                        Ancestry: 'ABC:CDE',
+                        Type: 'NEIGHBORHOOD'
                     },
                 }
             },
             FGH: {
-                permanentId: 'FGH',
-                ancestry: 'FGH',
-                type: 'NEIGHBORHOOD'
+                PermanentId: 'FGH',
+                Ancestry: 'FGH',
+                Type: 'NEIGHBORHOOD'
             }
         })
     })
 
     it('should return tree except room on getNeighborhoodSubtree for root room', () => {
-        expect(getNeighborhoodSubtree({ roomId: 'VORTEX', ancestry: 'VORTEX' })({ permanentHeaders: { ...testState.permanentHeaders, VORTEX: { permanentId: 'VORTEX', ancestry: 'VORTEX' } }})).toEqual({
+        expect(getNeighborhoodSubtree({ roomId: 'VORTEX', ancestry: 'VORTEX' })({ permanentHeaders: { ...testState.permanentHeaders, VORTEX: { PermanentId: 'VORTEX', Ancestry: 'VORTEX' } }})).toEqual({
             ABC: {
-                permanentId: 'ABC',
-                ancestry: 'ABC',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     BCD: {
-                        permanentId: 'BCD',
-                        ancestry: 'ABC:BCD',
-                        type: 'ROOM'
+                        PermanentId: 'BCD',
+                        Ancestry: 'ABC:BCD',
+                        Type: 'ROOM'
                     },
                     CDE: {
-                        permanentId: 'CDE',
-                        ancestry: 'ABC:CDE',
-                        type: 'NEIGHBORHOOD',
+                        PermanentId: 'CDE',
+                        Ancestry: 'ABC:CDE',
+                        Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
-                                permanentId: 'DEF',
-                                ancestry: 'ABC:CDE:DEF',
-                                type: 'ROOM'
+                                PermanentId: 'DEF',
+                                Ancestry: 'ABC:CDE:DEF',
+                                Type: 'ROOM'
                             },
                             EFG: {
-                                permanentId: 'EFG',
-                                ancestry: 'ABC:CDE:EFG',
-                                type: 'ROOM'
+                                PermanentId: 'EFG',
+                                Ancestry: 'ABC:CDE:EFG',
+                                Type: 'ROOM'
                             }
                         }
                     },
                 }
             },
             FGH: {
-                permanentId: 'FGH',
-                ancestry: 'FGH',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'FGH',
+                Ancestry: 'FGH',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
-                        permanentId: 'GHI',
-                        ancestry: 'FGH:GHI',
-                        type: 'ROOM'
+                        PermanentId: 'GHI',
+                        Ancestry: 'FGH:GHI',
+                        Type: 'ROOM'
                     }
                 }
             }
@@ -215,24 +215,24 @@ describe('permanentHeader selectors', () => {
     it('should return subtree for getNeighborhoodSubtree', () => {
         expect(getNeighborhoodSubtree({ roomId: 'BCD', ancestry: 'ABC:BCD' })(testState)).toEqual({
             ABC: {
-                permanentId: 'ABC',
-                ancestry: 'ABC',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     CDE: {
-                        permanentId: 'CDE',
-                        ancestry: 'ABC:CDE',
-                        type: 'NEIGHBORHOOD',
+                        PermanentId: 'CDE',
+                        Ancestry: 'ABC:CDE',
+                        Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
-                                permanentId: 'DEF',
-                                ancestry: 'ABC:CDE:DEF',
-                                type: 'ROOM'
+                                PermanentId: 'DEF',
+                                Ancestry: 'ABC:CDE:DEF',
+                                Type: 'ROOM'
                             },
                             EFG: {
-                                permanentId: 'EFG',
-                                ancestry: 'ABC:CDE:EFG',
-                                type: 'ROOM'
+                                PermanentId: 'EFG',
+                                Ancestry: 'ABC:CDE:EFG',
+                                Type: 'ROOM'
                             }
                         }
                     },
@@ -248,14 +248,14 @@ describe('permanentHeader selectors', () => {
     it('should exclude toplevel subtree on getExternalTree', () => {
         expect(getExternalTree({ roomId: 'BCD', ancestry: 'ABC:BCD' })(testState)).toEqual({
             FGH: {
-                permanentId: 'FGH',
-                ancestry: 'FGH',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'FGH',
+                Ancestry: 'FGH',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
-                        permanentId: 'GHI',
-                        ancestry: 'FGH:GHI',
-                        type: 'ROOM'
+                        PermanentId: 'GHI',
+                        Ancestry: 'FGH:GHI',
+                        Type: 'ROOM'
                     }
                 }
             }
@@ -265,26 +265,26 @@ describe('permanentHeader selectors', () => {
     it('should exclude nested subtree on getExternalTree', () => {
         expect(getExternalTree({ roomId: 'DEF', ancestry: 'ABC:CDE:DEF' })(testState)).toEqual({
             ABC: {
-                permanentId: 'ABC',
-                ancestry: 'ABC',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     BCD: {
-                        permanentId: 'BCD',
-                        ancestry: 'ABC:BCD',
-                        type: 'ROOM'
+                        PermanentId: 'BCD',
+                        Ancestry: 'ABC:BCD',
+                        Type: 'ROOM'
                     }
                 }
             },
             FGH: {
-                permanentId: 'FGH',
-                ancestry: 'FGH',
-                type: 'NEIGHBORHOOD',
+                PermanentId: 'FGH',
+                Ancestry: 'FGH',
+                Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
-                        permanentId: 'GHI',
-                        ancestry: 'FGH:GHI',
-                        type: 'ROOM'
+                        PermanentId: 'GHI',
+                        Ancestry: 'FGH:GHI',
+                        Type: 'ROOM'
                     }
                 }
             }
@@ -294,14 +294,14 @@ describe('permanentHeader selectors', () => {
     it('should exclude nested subtree on getNeighborhoodOnlyTreeExcludingSubTree', () => {
         expect(getNeighborhoodOnlyTreeExcludingSubTree('ABC:CDE')(testState)).toEqual({
             ABC: {
-                permanentId: 'ABC',
-                ancestry: 'ABC',
-                type: 'NEIGHBORHOOD'
+                PermanentId: 'ABC',
+                Ancestry: 'ABC',
+                Type: 'NEIGHBORHOOD'
             },
             FGH: {
-                permanentId: 'FGH',
-                ancestry: 'FGH',
-                type: 'NEIGHBORHOOD'
+                PermanentId: 'FGH',
+                Ancestry: 'FGH',
+                Type: 'NEIGHBORHOOD'
             }
         })
     })

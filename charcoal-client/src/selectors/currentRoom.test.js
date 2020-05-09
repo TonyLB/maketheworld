@@ -4,31 +4,41 @@ describe('CurrentRoom Selectors', () => {
     const testState = {
         permanentHeaders: {
             '987': {
-                permanentId: '987',
-                type: 'ROOM',
-                ancestry: '987'
+                PermanentId: '987',
+                Type: 'ROOM',
+                Ancestry: '987',
+                Exits: [
+                    {
+                        Name: 'TestOne',
+                        Ancestry: '123:234'
+                    },
+                    {
+                        Name: 'TestTwo',
+                        Ancestry: '345:456'
+                    }
+                ]
             },
             '123': {
-                permanentId: '123',
-                type: 'NEIGHBORHOOD',
-                ancestry: '123',
-                visibility: 'Private'
+                PermanentId: '123',
+                Type: 'NEIGHBORHOOD',
+                Ancestry: '123',
+                Visibility: 'Private'
             },
             '234': {
-                permanentId: '234',
-                type: 'ROOM',
-                ancestry: '123:234'
+                PermanentId: '234',
+                Type: 'ROOM',
+                Ancestry: '123:234'
             },
             '345': {
-                permanentId: '345',
-                type: 'NEIGHBORHOOD',
-                ancestry: '345',
-                visibility: 'Public'
+                PermanentId: '345',
+                Type: 'NEIGHBORHOOD',
+                Ancestry: '345',
+                Visibility: 'Public'
             },
             '456': {
-                permanentId: '456',
-                type: 'ROOM',
-                ancestry: '345:456'
+                PermanentId: '456',
+                Type: 'ROOM',
+                Ancestry: '345:456'
             }
         },
         myCharacters: {
@@ -46,18 +56,15 @@ describe('CurrentRoom Selectors', () => {
                 }
             ]
         },
-        currentRoom: {
-            Ancestry: '987',
-            Exits: [
-                {
-                    Name: 'TestOne',
-                    Ancestry: '123:234'
-                },
-                {
-                    Name: 'TestTwo',
-                    Ancestry: '345:456'
-                }
-            ]
+        charactersInPlay: {
+            'ABC': {
+                CharacterId: 'ABC',
+                RoomId: '987'
+            },
+            'BCD': {
+                CharacterId: 'BCD',
+                RoomId: '987'
+            },
         }
     }
 

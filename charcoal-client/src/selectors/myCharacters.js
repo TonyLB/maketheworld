@@ -30,7 +30,7 @@ const inheritanceProxy = (headers) => ({
     get: (grants, resource) => {
         const ancestryList = [
             'ROOT',
-            ...((headers && headers[resource] && headers[resource].ancestry && headers[resource].ancestry.split(':')) || [])
+            ...((headers && headers[resource] && headers[resource].Ancestry && headers[resource].Ancestry.split(':')) || [])
         ]
         const ancestryGrants = ancestryList
             .map((resource) => (`${resource}#MINIMUM`))

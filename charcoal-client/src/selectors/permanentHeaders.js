@@ -1,11 +1,11 @@
 export const getPermanentHeaders = ({ permanentHeaders }) => (permanentHeaders)
 
 export const getRoomIdsInNeighborhood = (NeighborhoodId) => ({ permanentHeaders = {} }) => {
-    const baseAncestry = (NeighborhoodId && permanentHeaders[NeighborhoodId] && permanentHeaders[NeighborhoodId].ancestry) || ''
+    const baseAncestry = (NeighborhoodId && permanentHeaders[NeighborhoodId] && permanentHeaders[NeighborhoodId].Ancestry) || ''
     return Object.values(permanentHeaders)
-        .filter(({ type }) => (type === 'ROOM'))
-        .filter(({ ancestry }) => (ancestry.startsWith(baseAncestry)))
-        .map(({ permanentId }) => permanentId)
+        .filter(({ Type }) => (Type === 'ROOM'))
+        .filter(({ Ancestry }) => (Ancestry.startsWith(baseAncestry)))
+        .map(({ PermanentId }) => PermanentId)
 }
 
 export const getNeighborhoodsByAncestry = (Ancestry) => ({ permanentHeaders = {}}) => {
@@ -31,8 +31,8 @@ const mergeSubtree = (state, { ancestryList, node }) => {
     else {
         return {
             ...state,
-            [node.permanentId]: {
-                ...(state[node.permanentId] || {}),
+            [node.PermanentId]: {
+                ...(state[node.PermanentId] || {}),
                 ...node
             }
         }
@@ -48,7 +48,7 @@ const mergeSubtree = (state, { ancestryList, node }) => {
 const elideInTransitBranches = (nodeTree) => {
     const retVal = {
         ...(Object.values(nodeTree)
-            .filter((node) => (node.permanentId))
+            .filter((node) => (node.PermanentId))
             .map(({ children, ...rest }) => {
                 const elidedChildren = (children && elideInTransitBranches(children)) || null
                 return {
@@ -56,7 +56,7 @@ const elideInTransitBranches = (nodeTree) => {
                     ...((elidedChildren && Object.values(elidedChildren).length) ? { children: elidedChildren } : {})
                 }
             })
-            .reduce((previous, node) => ({ ...previous, [node.permanentId]: node }), {})
+            .reduce((previous, node) => ({ ...previous, [node.PermanentId]: node }), {})
         )
     }
     return retVal
@@ -64,19 +64,19 @@ const elideInTransitBranches = (nodeTree) => {
 
 export const treeify = (nodeList) => (
     elideInTransitBranches(nodeList.reduce((previous, node) => {
-        const ancestryList = (node.ancestry && node.ancestry.split(':').slice(0, -1)) || []
+        const ancestryList = (node.Ancestry && node.Ancestry.split(':').slice(0, -1)) || []
         return mergeSubtree(previous, { ancestryList, node })
     }, {}))
 )
 
 export const getNeighborhoodOnlyTree = ({ permanentHeaders }) => (
-    treeify(Object.values(permanentHeaders).filter(({ type }) => (type === 'NEIGHBORHOOD')))
+    treeify(Object.values(permanentHeaders).filter(({ Type }) => (Type === 'NEIGHBORHOOD')))
 )
 
 export const getNeighborhoodOnlyTreeExcludingSubTree = (ancestryToExclude) => ({ permanentHeaders }) => (
     treeify(Object.values(permanentHeaders)
-            .filter(({ type }) => (type === 'NEIGHBORHOOD'))
-            .filter(({ ancestry }) => (!ancestry.startsWith(ancestryToExclude)))
+            .filter(({ Type }) => (Type === 'NEIGHBORHOOD'))
+            .filter(({ Ancestry }) => (!Ancestry.startsWith(ancestryToExclude)))
         )
 )
 
@@ -85,12 +85,12 @@ export const getNeighborhoodTree = ({ permanentHeaders }) => (treeify(Object.val
 export const getNeighborhoodSubtree = ({ roomId, ancestry }) => ({ permanentHeaders }) => {
     const parentAncestry = ((ancestry && ancestry.split(':').slice(0, -1)) || []).join(':')
     return treeify(Object.values(permanentHeaders)
-        .filter(({ ancestry }) => (!parentAncestry || (ancestry || '').startsWith(parentAncestry)))
-        .filter(({ permanentId }) => (permanentId !== roomId)))
+        .filter(({ Ancestry }) => (!parentAncestry || (Ancestry || '').startsWith(parentAncestry)))
+        .filter(({ PermanentId }) => (PermanentId !== roomId)))
 }
 
 export const getExternalTree = ({ roomId, ancestry }) => ({ permanentHeaders }) => {
     const parentAncestry = ((ancestry && ancestry.split(':').slice(0, -1)) || []).join(':')
     return treeify(Object.values(permanentHeaders)
-        .filter(({ ancestry }) => (parentAncestry && !((ancestry || '').startsWith(parentAncestry)))))
+        .filter(({ Ancestry }) => (parentAncestry && !((Ancestry || '').startsWith(parentAncestry)))))
 }

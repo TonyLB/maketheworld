@@ -189,7 +189,7 @@ export const RoomDialog = ({ nested=false }) => {
     const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
 
     const { name = '', description = '', exits=[], entries=[], parentId='' } = formValues
-    const { name: parentName = '', ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+    const { Name: parentName = '', Ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
     const onPathDeleteHandler = (type, roomId) => () => {
@@ -225,8 +225,8 @@ export const RoomDialog = ({ nested=false }) => {
         ...(entries.map((entry) => ({ type: 'ENTRY', ...entry })))
     ].sort(({ roomId: roomIdA }, { roomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
 
-    const neighborhoodPaths = paths.filter(({ roomId }) => (!parentAncestry || (permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].ancestry && permanentHeaders[roomId].ancestry.startsWith(parentAncestry))))
-    const externalPaths = paths.filter(({ roomId }) => (!(permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].ancestry && permanentHeaders[roomId].ancestry.startsWith(parentAncestry))))
+    const neighborhoodPaths = paths.filter(({ roomId }) => (!parentAncestry || (permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].Ancestry && permanentHeaders[roomId].Ancestry.startsWith(parentAncestry))))
+    const externalPaths = paths.filter(({ roomId }) => (!(permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].Ancestry && permanentHeaders[roomId].Ancestry.startsWith(parentAncestry))))
 
     const classes = useStyles()
     return(

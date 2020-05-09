@@ -63,23 +63,23 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                     { Name }
                     {
                         !inline &&
-                            neighborhoods.map(({ name, description }) => (
-                                <React.Fragment key={`Neighborhood-${name}`}>
+                            neighborhoods.map(({ Name, Description }) => (
+                                <React.Fragment key={`Neighborhood-${Name}`}>
                                     &nbsp;&nbsp;:&nbsp;&nbsp;
                                     <Tooltip
-                                        key={`Neighborhood-${name}`}
+                                        key={`Neighborhood-${Name}`}
                                         interactive
                                         arrow
                                         title={
                                             <React.Fragment>
                                                 <Typography variant='subtitle1' align='center'>
-                                                    {name}
+                                                    {Name}
                                                 </Typography>
-                                                {description}
+                                                {Description}
                                             </React.Fragment>
                                         }
                                     >
-                                        <span>{name}</span>
+                                        <span>{Name}</span>
                                     </Tooltip>
                                 </React.Fragment>
                             ))

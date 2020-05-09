@@ -1,7 +1,12 @@
 import { getMyCurrentCharacter } from './myCharacters'
 import { getActiveCharactersInRoom } from './charactersInPlay'
+import { getCurrentRoomId } from './connection'
 
-export const getCurrentRoom = ({ currentRoom }) => (currentRoom)
+export const getCurrentRoom = (state) => {
+    const { permanentHeaders } = state
+    const RoomId = getCurrentRoomId(state)
+    return permanentHeaders && permanentHeaders[RoomId]
+}
 
 //
 // getVisibleExits checks all exits from the room, and their Neighborhood ancestry,
@@ -11,7 +16,9 @@ export const getCurrentRoom = ({ currentRoom }) => (currentRoom)
 //
 export const getVisibleExits = (state) => {
     const { Grants = {} } = getMyCurrentCharacter(state)
-    const { currentRoom, permanentHeaders } = state
+    const RoomId = getCurrentRoomId(state)
+    const { permanentHeaders } = state
+    const currentRoom = permanentHeaders && permanentHeaders[RoomId]
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
         currentRoom.Exits.map(({ Ancestry, ...rest }) => {
                 const ancestryList = Ancestry.split(':')
@@ -20,7 +27,7 @@ export const getVisibleExits = (state) => {
                     (roomAncestryList.length < index || PermanentId !== roomAncestryList[index]) &&
                     permanentHeaders &&
                     permanentHeaders[PermanentId] &&
-                    permanentHeaders[PermanentId].visibility === 'Private'))
+                    permanentHeaders[PermanentId].Visibility === 'Private'))
                 const returnVal = checkNeighborhoods.reduce((previous, PermanentId) => (
                     (Grants[PermanentId] || {}).View
                         ? { ...previous, Visibility: 'Private' }
@@ -38,7 +45,9 @@ export const getVisibleExits = (state) => {
 // the LineEntry component, to give people text help.
 //
 export const getAvailableBehaviors = (state) => {
-    const { currentRoom } = state
+    const RoomId = getCurrentRoomId(state)
+    const { permanentHeaders } = state
+    const currentRoom = (permanentHeaders && permanentHeaders[RoomId]) || {}
     const exitNames = (getVisibleExits(state) && currentRoom.Exits.map(({ Name }) => (Name.toLowerCase()))) || []
     const characterNames = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId })(state)
     return [

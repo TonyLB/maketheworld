@@ -120,8 +120,8 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                             dispatch(activateNeighborhoodDialog({
                                 parentId: nodeId,
                                 parentName: name,
-                                ancestry: `${rest.ancestry}:`,
-                                parentAncestry: rest.ancestry,
+                                ancestry: `${rest.Ancestry}:`,
+                                parentAncestry: rest.Ancestry,
                                 nested: true
                             }))
                         }}
@@ -140,8 +140,8 @@ const NeighborhoodTreeItem = ({ nodeId, name, ...rest }) => {
                             dispatch(activateRoomDialog({
                                 parentId: nodeId,
                                 parentName: name,
-                                ancestry: `${rest.ancestry}:`,
-                                parentAncestry: rest.ancestry,
+                                ancestry: `${rest.Ancestry}:`,
+                                parentAncestry: rest.Ancestry,
                                 nested: true
                             }))
                         }}
@@ -193,26 +193,26 @@ const RoomTreeItem = ({ nodeId, name, roomId, parentId, parentAncestry, ...rest 
 }
 
 const NeighborhoodItem = ({ item }) => {
-    const { type, permanentId, name, children, parentId, parentAncestry, ...rest } = item
-    switch(type) {
+    const { Type, PermanentId, Name, children, ParentId, parentAncestry, ...rest } = item
+    switch(Type) {
         case 'ROOM':
             return <RoomTreeItem
-                key={permanentId}
-                nodeId={permanentId}
-                name={name}
-                parentId={parentId}
+                key={PermanentId}
+                nodeId={PermanentId}
+                name={Name}
+                parentId={ParentId}
                 {...rest}
             />
         default:
             return <NeighborhoodTreeItem
-                key={permanentId}
-                nodeId={permanentId}
-                name={name}
+                key={PermanentId}
+                nodeId={PermanentId}
+                name={Name}
                 {...rest}
             >
                 {
                     Object.values(children || {})
-                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
+                        .map((item) => (<NeighborhoodItem key={item.PermanentId} item={item} />))
                 }
             </NeighborhoodTreeItem>
     }
@@ -285,8 +285,7 @@ export const WorldDialog = () => {
                             >
                                 {
                                     Object.values(neighborhoodTree)
-                                        .map(({ permanentId, ...rest }) => ({ permanentId, ...rest }))
-                                        .map((item) => (<NeighborhoodItem key={item.permanentId} item={item} />))
+                                        .map((item) => (<NeighborhoodItem key={item.PermanentId} item={item} />))
                                 }
                             </TreeView>
                         </GrantContext.Provider>

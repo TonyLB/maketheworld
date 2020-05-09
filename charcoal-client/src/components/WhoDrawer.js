@@ -60,11 +60,11 @@ export const WhoDrawer = ({
                                 permanentHeaders[RoomId] &&
                                 (
                                     (
-                                        permanentHeaders[RoomId].parentId &&
-                                        permanentHeaders[permanentHeaders[RoomId].parentId] &&
-                                        permanentHeaders[permanentHeaders[RoomId].parentId].name
+                                        permanentHeaders[RoomId].ParentId &&
+                                        permanentHeaders[permanentHeaders[RoomId].ParentId] &&
+                                        permanentHeaders[permanentHeaders[RoomId].ParentId].Name
                                     ) ||
-                                    permanentHeaders[RoomId].name
+                                    permanentHeaders[RoomId].Name
                                 )) || '??????'
                             return (
                                 <TableRow key={CharacterId} hover onClick={() => { dispatch(activateDirectMessageDialog(CharacterId)) }}>

@@ -107,7 +107,7 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const { Grants: myGrants } = useSelector(getMyCurrentCharacter)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
     const { name = '', description = '', parentId = '', visibility = 'Visible' } = formValues
-    const { ancestry: parentAncestry = '', name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+    const { Ancestry: parentAncestry = '', Name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
     const neighborhoodTree = useSelector(getNeighborhoodOnlyTreeExcludingSubTree(subTreeToExclude))

@@ -44,8 +44,8 @@ export const ExitList = ({ paths=[], nameHandler=()=>{}, deleteHandler=()=>{} })
                         roomId
                     }) => {
                         const roomData = (permanentHeaders && permanentHeaders[roomId]) || {}
-                        const { name: roomName = '', parentId = '' } = roomData
-                        const { name: roomParentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+                        const { Name: roomName = '', ParentId = '' } = roomData
+                        const { Name: roomParentName = '' } = (permanentHeaders && permanentHeaders[ParentId]) || {}
                         return <TableRow key={`${type}:${roomId}`}>
                             <TableCell>
                                 <TextField

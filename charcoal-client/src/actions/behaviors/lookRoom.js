@@ -29,8 +29,8 @@ export const lookRoom = (props) => (dispatch, getState) => {
             if (neighborhoodData) {
                 dispatch(receiveMessage({
                     protocol: 'neighborhoodDescription',
-                    Description: neighborhoodData.description,
-                    Name: neighborhoodData.name,
+                    Description: neighborhoodData.Description,
+                    Name: neighborhoodData.Name,
                     NeighborhoodId
                 }))
             }

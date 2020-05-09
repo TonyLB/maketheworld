@@ -21,29 +21,6 @@ export const fetchAllNeighborhoods = () => (dispatch) => {
     return API.graphql(graphqlOperation(getNeighborhoodTree))
     .then(({ data }) => (data || {}))
     .then(({ getNeighborhoodTree }) => (getNeighborhoodTree || []))
-    .then((neighborhoodTree) => (neighborhoodTree.map(({
-        PermanentId,
-        Type,
-        ParentId,
-        Ancestry,
-        Name,
-        Description,
-        Visibility,
-        Topology,
-        Exits,
-        Entries
-    }) => ({
-        permanentId: PermanentId,
-        type: Type,
-        parentId: ParentId,
-        ancestry: Ancestry,
-        name: Name,
-        description: Description,
-        visibility: Visibility,
-        topology: Topology,
-        exits: Exits,
-        entries: Entries
-    }))))
     .then(response => dispatch(neighborhoodUpdate(response)))
     .catch((err) => { console.log(err)})
 }
@@ -55,19 +32,7 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
                 const { value = {} } = neighborhoodData
                 const { data = {} } = value
                 const { changedNode = {} } = data
-                const { PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, Exits, Entries } = changedNode
-                dispatch(neighborhoodUpdate([{
-                    permanentId: PermanentId,
-                    type: Type,
-                    parentId: ParentId,
-                    ancestry: Ancestry,
-                    name: Name,
-                    description: Description,
-                    visibility: Visibility,
-                    topology: Topology,
-                    exits: Exits,
-                    entries: Entries
-                }]))
+                dispatch(neighborhoodUpdate([changedNode]))
             }
         })
     const roomSubscription = API.graphql(graphqlOperation(changedRoom))
@@ -76,19 +41,7 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
                 const { value = {} } = roomData
                 const { data = {} } = value
                 const { changedRoom = {} } = data
-                const { PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, Exits, Entries } = changedRoom
-                dispatch(neighborhoodUpdate([{
-                    permanentId: PermanentId,
-                    type: Type,
-                    parentId: ParentId,
-                    ancestry: Ancestry,
-                    name: Name,
-                    description: Description,
-                    visibility: Visibility,
-                    topology: Topology,
-                    exits: Exits,
-                    entries: Entries
-                }]))
+                dispatch(neighborhoodUpdate([changedRoom]))
             }
         })
 
