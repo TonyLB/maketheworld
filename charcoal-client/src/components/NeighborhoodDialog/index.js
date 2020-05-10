@@ -15,7 +15,11 @@ import {
     TextField,
     Grid,
     IconButton,
-    Switch,
+    FormControl,
+    FormLabel,
+    FormControlLabel,
+    RadioGroup,
+    Radio,
     Collapse
 } from '@material-ui/core'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
@@ -110,7 +114,7 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
     const { Grants: myGrants } = useSelector(getMyCurrentCharacter)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
-    const { name = '', description = '', parentId = '', visibility = 'Visible' } = formValues
+    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End' } = formValues
     const { Ancestry: parentAncestry = '', Name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
@@ -131,8 +135,8 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const onGrantAddHandler = (CharacterId) => () => { formDispatch(grantAdd(CharacterId))}
     const onGrantDeleteHandler = (CharacterId) => () => { formDispatch(grantDelete(CharacterId))}
     const saveHandler = () => {
-        const { name, description, visibility, parentId, neighborhoodId, exits, entries, grants } = formValues
-        const neighborhoodData = { name, description, visibility, parentId, neighborhoodId, grants, exits, entries }
+        const { name, description, visibility, topology, parentId, neighborhoodId, exits, entries, grants } = formValues
+        const neighborhoodData = { name, description, visibility, topology, parentId, neighborhoodId, grants, exits, entries }
         dispatch(putAndCloseNeighborhoodDialog(neighborhoodData))
     }
     const onSetParentHandler = (neighborhoodId) => () => {
@@ -205,11 +209,40 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                             />
                                         </div>
                                         <div>
-                                            Private <Switch
-                                                checked={visibility === 'Public'}
-                                                onChange={() => { formDispatch(appearanceUpdate({ label: 'visibility', value: visibility === 'Public' ? 'Private' : 'Public' })) }}
-                                                color="primary"
-                                            /> Public
+                                            <FormControl component="fieldset">
+                                                <FormLabel component="legend">Visibility</FormLabel>
+                                                <RadioGroup
+                                                    aria-label="visibility"
+                                                    name="visibility"
+                                                    value={visibility}
+                                                    onChange={(event) => {
+                                                        formDispatch(appearanceUpdate({
+                                                            label: 'visibility',
+                                                            value: event.target.value
+                                                        }))
+                                                    }}
+                                                >
+                                                    <FormControlLabel value="Private" control={<Radio color="primary" />} label="Private" />
+                                                    <FormControlLabel value="Public" control={<Radio color="primary" />} label="Public" />
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormControl component="fieldset">
+                                                <FormLabel component="legend">Topology</FormLabel>
+                                                <RadioGroup
+                                                    aria-label="topology"
+                                                    name="topology"
+                                                    value={topology}
+                                                    onChange={(event) => {
+                                                        formDispatch(appearanceUpdate({
+                                                            label: 'topology',
+                                                            value: event.target.value
+                                                        }))
+                                                    }}
+                                                >
+                                                    <FormControlLabel value="Dead-End" control={<Radio color="primary" />} label="Dead-End" />
+                                                    <FormControlLabel value="Connected" control={<Radio color="primary" />} label="Connected" />
+                                                </RadioGroup>
+                                            </FormControl>
                                         </div>
                                     </form>
                                 </CardContent>

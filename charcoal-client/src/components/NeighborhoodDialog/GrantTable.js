@@ -87,6 +87,7 @@ const GrantTable = ({ grants = [], changeHandler = () => {}, addHandler = () => 
                                                     onChange={changeHandler(row.CharacterId)}
                                                     input={<Input id="role" />}
                                                     placeholder="Roles"
+                                                    MenuProps={{ variant: 'menu' }}
                                                     renderValue={(selected) => {
                                                         if (selected.length === 0) {
                                                             return <em>Roles</em>

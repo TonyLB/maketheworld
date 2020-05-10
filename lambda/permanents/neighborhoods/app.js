@@ -371,7 +371,8 @@ exports.putNeighborhood = (event) => {
                     ProgenitorId,
                     Name,
                     ...(Description ? { Description } : {}),
-                    ...(Visibility ? { Visibility } : {})
+                    ...(Visibility ? { Visibility } : {}),
+                    ...(Topology ? { Topology } : {})
                 },
                 ReturnValues: "ALL_OLD"
             }).promise()

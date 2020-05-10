@@ -57,6 +57,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             Name,
             Description,
             Visibility,
+            Topology,
             Grants
         }) => ({
             neighborhoodId: PermanentId,
@@ -66,6 +67,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             name: Name,
             description: Description,
             visibility: Visibility,
+            topology: Topology,
             grants: Grants
         }))
         .then(response => dispatch(activateNeighborhoodDialog({ nested, ...response })))
@@ -75,7 +77,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
 export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, getState) => {
     const state = getState()
     const CharacterId = getCharacterId(state)
-    const { neighborhoodId, parentId, name, description, visibility, grants=[] } = neighborhoodData
+    const { neighborhoodId, parentId, name, description, visibility, topology = 'Dead-End', grants=[] } = neighborhoodData
     if (CharacterId) {
         return API.graphql(graphqlOperation(putNeighborhood, {
                 CharacterId,
@@ -84,7 +86,7 @@ export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, ge
                 Name: name,
                 Description: description,
                 Visibility: visibility,
-                Topology: 'Dead-End',
+                Topology: topology,
                 Grants: grants
             }))
         .then(() => dispatch(closeNeighborhoodDialog()))
