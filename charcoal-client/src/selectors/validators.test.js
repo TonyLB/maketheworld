@@ -1,4 +1,4 @@
-import { getNeighborhoodUpdateValidator } from './validators'
+import { getNeighborhoodUpdateValidator, getRoomUpdateValidator } from './validators'
 
 const createTestStateWithGrants = (Grants) => ({
     permanentHeaders: {
@@ -375,6 +375,196 @@ describe('getNeighborhoodUpdateValidator selector', () => {
         })).toEqual({
             valid: false,
             error: "Reparenting this way would make too many external paths on Alpha"
+        })
+    })
+
+})
+
+describe('getRoomUpdateValidator selector', () => {
+
+    it('should prevent making a new exit that exceeds Dead-End restrictions', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'SubNeighborhoodAlphaOne',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'GreenRoom',
+            ParentId: 'SubNeighborhoodAlphaOne',
+            Exits: [{
+                RoomId: 'BlueRoom',
+                Name: 'blue'
+            },
+            {
+                RoomId: 'RootRoom',
+                Name: 'root'
+            },
+            {
+                RoomId: 'AlternateRoom',
+                Name: 'alternate'
+            }],
+            Entries: [{
+                RoomId: 'BlueRoom',
+                Name: 'green'
+            },
+            {
+                RoomId: 'RootRoom',
+                Name: 'green'
+            }]
+        })).toEqual({
+            valid: false,
+            error: 'Editing this way would make too many external paths on Alpha'
+        })
+    })
+
+    it('should prevent making a new entry that exceeds Dead-End restrictions', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'SubNeighborhoodAlphaOne',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'GreenRoom',
+            ParentId: 'SubNeighborhoodAlphaOne',
+            Exits: [{
+                RoomId: 'BlueRoom',
+                Name: 'blue'
+            },
+            {
+                RoomId: 'RootRoom',
+                Name: 'root'
+            }],
+            Entries: [{
+                RoomId: 'BlueRoom',
+                Name: 'green'
+            },
+            {
+                RoomId: 'RootRoom',
+                Name: 'green'
+            },
+            {
+                RoomId: 'AlternateRoom',
+                Name: 'green'
+            }]
+        })).toEqual({
+            valid: false,
+            error: 'Editing this way would make too many external paths on Alpha'
+        })
+    })
+
+    it('should prevent switching one exit for another in a way that violates Dead-End restrictions', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'SubNeighborhoodAlphaOne',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'GreenRoom',
+            ParentId: 'SubNeighborhoodAlphaOne',
+            Exits: [{
+                RoomId: 'BlueRoom',
+                Name: 'blue'
+            },
+            {
+                RoomId: 'AlternateRoom',
+                Name: 'alternate'
+            }],
+            Entries: [{
+                RoomId: 'BlueRoom',
+                Name: 'green'
+            },
+            {
+                RoomId: 'AlternateRoom',
+                Name: 'green'
+            }]
+        })).toEqual({
+            valid: false,
+            error: 'Editing this way would make too many external paths on Alpha'
+        })
+    })
+
+    it('should allow switching one exit for another in a way that preserves Dead-End restrictions', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'SubNeighborhoodAlphaTwo',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'GoldRoom',
+            ParentId: 'SubNeighborhoodAlphaTwo',
+            Exits: [{
+                RoomId: 'GreenRoom',
+                Name: 'green'
+            }],
+            Entries: [{
+                RoomId: 'GreenRoom',
+                Name: 'gold'
+            }]
+        })).toEqual({
+            valid: true
+        })
+    })
+
+    it('should prevent reparenting a room in a way that violates Dead-End restrictions on the destination', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'SubNeighborhoodAlphaOne',
+            Roles: 'EDITOR'
+        },
+        {
+            Resource: 'NeighborhoodBeta',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'GreenRoom',
+            ParentId: 'NeighborhoodBeta'
+        })).toEqual({
+            valid: false,
+            error: 'Editing this way would make too many external paths on Beta'
+        })
+    })
+
+    it('should prevent reparenting a room in a way that violates Dead-End restrictions on the source', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'SubNeighborhoodAlphaOne',
+            Roles: 'EDITOR'
+        },
+        {
+            Resource: 'NeighborhoodDelta',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'GreenRoom',
+            ParentId: 'NeighborhoodDelta'
+        })).toEqual({
+            valid: false,
+            error: 'Editing this way would make too many external paths on Alpha'
+        })
+    })
+
+    it('should prevent reparenting a room to a neighborhood you cannot edit', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'ROOT',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'AlternateRoom',
+            ParentId: 'NeighborhoodDelta'
+        })).toEqual({
+            valid: false,
+            error: 'You do not have permission to reparent rooms to Delta'
+        })
+    })
+
+    it('should allow reparenting a room to a neighborhood you can edit', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'ROOT',
+            Roles: 'EDITOR'
+        },
+        {
+            Resource: 'NeighborhoodDelta',
+            Roles: 'EDITOR'
+        }])
+        expect(getRoomUpdateValidator(testState)({
+            PermanentId: 'AlternateRoom',
+            ParentId: 'NeighborhoodDelta'
+        })).toEqual({
+            valid: true
         })
     })
 

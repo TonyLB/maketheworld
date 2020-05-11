@@ -138,7 +138,7 @@ export const getNeighborhoodPaths = (PermanentId) => ({ permanentHeaders }) => {
         }
     }
     const { Ancestry: rootAncestry = '' } = permanentHeaders && permanentHeaders[PermanentId]
-    const descendants = Object.values(permanentHeaders).filter(({ Ancestry }) => (Ancestry.startsWith(rootAncestry)))
+    const descendants = Object.values(permanentHeaders).filter(({ Ancestry = '' }) => (Ancestry.startsWith(rootAncestry)))
     const descendantExits = descendants
         .filter(({ Exits }) => Exits)
         .map(({ PermanentId, Exits }) => (Exits.map((exit) => ({ ...exit, OriginId: PermanentId }))))

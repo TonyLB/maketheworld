@@ -35,6 +35,66 @@ const predictReparent = ({ PermanentId, ...change }) => ({ permanentHeaders, ...
     }
 }
 
+//
+// Calculate what the state will look like after a room edit (mostly exit and entry remapping in
+// other rooms that have denormalized links)
+//
+const predictRoomEdit = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change }) => ({ permanentHeaders, ...rest }) => {
+    const removedPaths = Object.values(permanentHeaders)
+        .map(({ Type, Exits = [], Entries = [], ...rest }) => (Type === 'ROOM'
+            ? {
+                ...rest,
+                Type,
+                Exits: Exits.filter(({ RoomId }) => (RoomId !== PermanentId)),
+                Entries: Entries.filter(({ RoomId }) => (RoomId !== PermanentId))
+            }
+            : { Type, ...rest }
+        ))
+        .reduce((previous, { PermanentId, ...rest }) => ({ ...previous, [PermanentId]: {
+            PermanentId,
+            ...rest
+        }}), {})
+    const addedExits = Exits.reduce((previous, { RoomId, Name }) => ({
+        ...previous,
+        [RoomId]: {
+            ...(previous[RoomId] || {}),
+            Entries: [
+                ...((previous[RoomId] || {}).Entries || []),
+                {
+                    RoomId: PermanentId,
+                    Name
+                }
+            ]
+        }
+    }), removedPaths)
+    const addedEntries = Entries.reduce((previous, { RoomId, Name }) => ({
+        ...previous,
+        [RoomId]: {
+            ...(previous[RoomId] || {}),
+            Exits: [
+                ...((previous[RoomId] || {}).Exits || []),
+                {
+                    RoomId: PermanentId,
+                    Name
+                }
+            ]
+        }
+    }), addedExits)
+    return {
+        permanentHeaders: {
+            ...addedEntries,
+            [PermanentId]: {
+                ...change,
+                PermanentId,
+                ParentId,
+                Ancestry: `${permanentHeaders[ParentId].Ancestry || ''}:${PermanentId}`,
+                Exits,
+                Entries,
+            }
+        }
+    }
+}
+
 const branchInconsistencies = (branchAncestry) => (state) => {
     const { permanentHeaders } = state
     const neighborhoodConsistency = (PermanentId) => {
@@ -42,7 +102,7 @@ const branchInconsistencies = (branchAncestry) => (state) => {
             return true
         }
         const paths = getNeighborhoodPaths(PermanentId)(state)
-        const uniquePathRooms = Object.values([...paths.Exits, ...paths.Entries].reduce((previous, { RoomId }) => ({ ...previous, [RoomId]: true }), {}))
+        const uniquePathRooms = Object.keys([...paths.Exits, ...paths.Entries].reduce((previous, { RoomId }) => ({ ...previous, [RoomId]: true }), {}))
         return uniquePathRooms.length < 2
     }
     return branchAncestry.split(':')
@@ -147,5 +207,63 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
         }
         
     }
+    return { valid: true }
+}
+
+export const getRoomUpdateValidator = (state) => ({ PermanentId, ParentId, Exits, Entries }) => {
+    const character = getMyCurrentCharacter(state)
+    const { Grants } = character
+
+    const permanentHeaders = getPermanentHeaders(state)
+    const previousRoom = permanentHeaders[PermanentId]
+
+    const predictedState = predictRoomEdit({ PermanentId, ParentId, Exits: Exits || previousRoom.Exits, Entries: Entries || previousRoom.Entries })(state)
+    // console.log(JSON.stringify(predictedState, null, 4))
+
+    //
+    // Check for ParentId update
+    //
+    if (ParentId && (ParentId !== previousRoom.ParentId)) {
+        if (!Grants[previousRoom.ParentId || 'ROOT'].Edit) {
+            return {
+                valid: false,
+                error: `You do not have permission to reparent ${previousRoom.Name}`
+            }
+        }
+        if (!Grants[ParentId || 'ROOT'].Edit) {
+            return {
+                valid: false,
+                error: `You do not have permission to reparent rooms to ${permanentHeaders[ParentId].Name || 'root'}`
+            }
+        }
+    }
+    const newAncestry = permanentHeaders[ParentId || previousRoom.ParentId].Ancestry
+    //
+    // Check if the neighborhood the room is IN would be in violation
+    //
+    const directInconsistencies = branchInconsistencies(newAncestry)(predictedState)
+    if (directInconsistencies.length) {
+        return {
+            valid: false,
+            error: `Editing this way would make too many external paths on ${directInconsistencies[0].Name}`
+        }
+    }
+    //
+    // Check if neighborhoods connected to would be in violation
+    //
+    const uniquePathRooms = Object.keys([...(Exits || previousRoom.Exits || []), ...(Entries || previousRoom.Entries || [])]
+        .reduce((previous, { RoomId }) => ({ ...previous, [RoomId]: true }), {}))
+    const inconsistentOutgoingViolations = uniquePathRooms
+        .map((RoomId) => (predictedState.permanentHeaders[RoomId] && predictedState.permanentHeaders[RoomId].Ancestry))
+        .filter((Ancestry) => (Ancestry))
+        .map((Ancestry) => (branchInconsistencies(Ancestry)(predictedState)))
+        .find((inconsistencies) => (inconsistencies.length))
+    if (inconsistentOutgoingViolations) {
+        return {
+            valid: false,
+            error: `Editing this way would make too many external paths on ${inconsistentOutgoingViolations[0].Name}`
+        }
+    }
+
     return { valid: true }
 }
