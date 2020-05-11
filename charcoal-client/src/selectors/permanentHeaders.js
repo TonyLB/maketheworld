@@ -1,4 +1,35 @@
-export const getPermanentHeaders = ({ permanentHeaders }) => (permanentHeaders)
+export const rawAncestryCalculation = ({ permanentHeaders = {}}) => ({ ParentId, PermanentId, ...rest }) => {
+    if (!(ParentId && permanentHeaders[ParentId])) {
+        return {
+            ParentId,
+            PermanentId,
+            ...rest,
+            Ancestry: PermanentId
+        }
+    }
+    else {
+        const parent = rawAncestryCalculation({ permanentHeaders })(permanentHeaders[ParentId])
+        return {
+            ParentId,
+            PermanentId,
+            ...rest,
+            Ancestry: `${parent.Ancestry}:${PermanentId}`
+        }
+    }
+}
+
+//
+// TODO:  Figure out how to properly cache calculations so that getPermanentHeaders uses
+// rawAncestryCalculation to generate the Ancestry from the tree dynamically.
+//
+export const getPermanentHeaders = ({ permanentHeaders = {} }) => {
+    return new Proxy(
+        permanentHeaders,
+            {
+                get: (obj, prop) => ((obj && obj[prop]) || {})
+            }
+    )
+}
 
 export const getRoomIdsInNeighborhood = (NeighborhoodId) => ({ permanentHeaders = {} }) => {
     const baseAncestry = (NeighborhoodId && permanentHeaders[NeighborhoodId] && permanentHeaders[NeighborhoodId].Ancestry) || ''

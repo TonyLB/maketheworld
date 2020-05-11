@@ -1,4 +1,5 @@
 import {
+    rawAncestryCalculation,
     getPermanentHeaders,
     getRoomIdsInNeighborhood,
     treeify,
@@ -18,21 +19,25 @@ const testState = {
         },
         BCD: {
             PermanentId: 'BCD',
+            ParentId: 'ABC',
             Ancestry: 'ABC:BCD',
             Type: 'ROOM'
         },
         CDE: {
             PermanentId: 'CDE',
+            ParentId: 'ABC',
             Ancestry: 'ABC:CDE',
             Type: 'NEIGHBORHOOD'
         },
         DEF: {
             PermanentId: 'DEF',
+            ParentId: 'CDE',
             Ancestry: 'ABC:CDE:DEF',
             Type: 'ROOM'
         },
         EFG: {
             PermanentId: 'EFG',
+            ParentId: 'CDE',
             Ancestry: 'ABC:CDE:EFG',
             Type: 'ROOM'
         },
@@ -43,6 +48,7 @@ const testState = {
         },
         GHI: {
             PermanentId: 'GHI',
+            ParentId: 'FGH',
             Ancestry: 'FGH:GHI',
             Type: 'ROOM'
         }
@@ -50,6 +56,17 @@ const testState = {
 }
 
 describe('permanentHeader selectors', () => {
+
+    it('should correctly recalculate Ancestry', () => {
+        const recalculatedAncestry = Object.values(testState.permanentHeaders)
+            .map((item) => (rawAncestryCalculation(testState)(item)))
+            .reduce((previous, item) => ({
+                ...previous,
+                [item.PermanentId]: item
+            }), {})
+        expect(recalculatedAncestry).toEqual(testState.permanentHeaders)
+    })
+
     it('should extract permanentHeaders', () => {
         expect(getPermanentHeaders(testState)).toEqual(testState.permanentHeaders)
     })
@@ -75,21 +92,25 @@ describe('permanentHeader selectors', () => {
                 children: {
                     BCD: {
                         PermanentId: 'BCD',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:BCD',
                         Type: 'ROOM'
                     },
                     CDE: {
                         PermanentId: 'CDE',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
                         Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
                                 PermanentId: 'DEF',
+                                ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:DEF',
                                 Type: 'ROOM'
                             },
                             EFG: {
                                 PermanentId: 'EFG',
+                                ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:EFG',
                                 Type: 'ROOM'
                             }
@@ -104,6 +125,7 @@ describe('permanentHeader selectors', () => {
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
+                        ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
                         Type: 'ROOM'
                     }
@@ -154,6 +176,7 @@ describe('permanentHeader selectors', () => {
                 children: {
                     CDE: {
                         PermanentId: 'CDE',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
                         Type: 'NEIGHBORHOOD'
                     },
@@ -176,21 +199,25 @@ describe('permanentHeader selectors', () => {
                 children: {
                     BCD: {
                         PermanentId: 'BCD',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:BCD',
                         Type: 'ROOM'
                     },
                     CDE: {
                         PermanentId: 'CDE',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
                         Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
                                 PermanentId: 'DEF',
+                                ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:DEF',
                                 Type: 'ROOM'
                             },
                             EFG: {
                                 PermanentId: 'EFG',
+                                ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:EFG',
                                 Type: 'ROOM'
                             }
@@ -205,6 +232,7 @@ describe('permanentHeader selectors', () => {
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
+                        ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
                         Type: 'ROOM'
                     }
@@ -222,16 +250,19 @@ describe('permanentHeader selectors', () => {
                 children: {
                     CDE: {
                         PermanentId: 'CDE',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
                         Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
                                 PermanentId: 'DEF',
+                                ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:DEF',
                                 Type: 'ROOM'
                             },
                             EFG: {
                                 PermanentId: 'EFG',
+                                ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:EFG',
                                 Type: 'ROOM'
                             }
@@ -255,6 +286,7 @@ describe('permanentHeader selectors', () => {
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
+                        ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
                         Type: 'ROOM'
                     }
@@ -272,6 +304,7 @@ describe('permanentHeader selectors', () => {
                 children: {
                     BCD: {
                         PermanentId: 'BCD',
+                        ParentId: 'ABC',
                         Ancestry: 'ABC:BCD',
                         Type: 'ROOM'
                     }
@@ -284,6 +317,7 @@ describe('permanentHeader selectors', () => {
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
+                        ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
                         Type: 'ROOM'
                     }
@@ -400,4 +434,5 @@ describe('permanentHeader selectors', () => {
             }]
         })
     })
+
 })
