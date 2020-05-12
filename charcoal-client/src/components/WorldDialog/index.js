@@ -120,9 +120,9 @@ const NeighborhoodTreeItem = ({ nodeId, name, Ancestry = '', children }) => {
                         onClick={(event) => {
                             event.stopPropagation()
                             dispatch(activateNeighborhoodDialog({
-                                ParentId: nodeId,
+                                parentId: nodeId,
                                 parentName: name,
-                                Ancestry: `${Ancestry}:`,
+                                ancestry: `${Ancestry}:`,
                                 parentAncestry: Ancestry,
                                 nested: true
                             }))

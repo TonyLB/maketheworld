@@ -96,7 +96,7 @@ const predictRoomEdit = ({ PermanentId, ParentId, Exits = [], Entries = [], ...c
 }
 
 const branchInconsistencies = (branchAncestry) => (state) => {
-    const { permanentHeaders } = state
+    const permanentHeaders = getPermanentHeaders(state)
     const neighborhoodConsistency = (PermanentId) => {
         if (permanentHeaders[PermanentId].Topology === 'Connected') {
             return true
@@ -107,7 +107,7 @@ const branchInconsistencies = (branchAncestry) => (state) => {
     }
     return branchAncestry.split(':')
         .map((PermanentId) => (permanentHeaders[PermanentId]))
-        .filter(({ Type }) => (Type === 'NEIGHBORHOOD'))
+        .filter(({ Type = '' }) => (Type === 'NEIGHBORHOOD'))
         .filter(({ PermanentId }) => (!neighborhoodConsistency(PermanentId)))        
 }
 
@@ -120,7 +120,11 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
 
     const parentLookup = ParentId || previousNeighborhood.ParentId || 'ROOT'
 
-    if (((Topology && Topology !== previousNeighborhood.Topology) || (Visibility && Visibility !== previousNeighborhood.Visibility)) &&
+    if (PermanentId &&
+        (
+            (Topology && Topology !== previousNeighborhood.Topology) ||
+            (Visibility && Visibility !== previousNeighborhood.Visibility)
+        ) &&
         !(Grants[parentLookup].Moderate || Grants[PermanentId].Edit)) {
         return {
             valid: false,
@@ -134,7 +138,7 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
         if (Topology === 'Connected' && !Grants[parentLookup].ExtendConnected) {
             return {
                 valid: false,
-                error: `You do not have permission to make a connected neighborhood within ${permanentHeaders[parentLookup].Name}`
+                error: `You do not have permission to make a connected neighborhood within ${permanentHeaders[parentLookup].Name || 'root'}`
             }
         }
         if (Topology === 'Dead-End') {
@@ -161,14 +165,20 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
         if (Visibility === 'Public' && !Grants[parentLookup].ExtendPublic) {
             return {
                 valid: false,
-                error: `You do not have permission to make a public neighborhood within ${permanentHeaders[parentLookup].Name}`
+                error: `You do not have permission to make a public neighborhood within ${permanentHeaders[parentLookup].Name || 'root'}`
+            }
+        }
+        if (Visibility === 'Private' && !Grants[parentLookup].ExtendPrivate) {
+            return {
+                valid: false,
+                error: `You do not have permission to make a private neighborhood within ${permanentHeaders[parentLookup].Name || 'root'}`
             }
         }
     }
     //
     // Check for ParentId update
     //
-    if (ParentId && (ParentId !== previousNeighborhood.ParentId)) {
+    if (PermanentId && ParentId !== undefined && ((ParentId || '') !== previousNeighborhood.ParentId)) {
         if (!Grants[PermanentId].Moderate) {
             return {
                 valid: false,
@@ -193,7 +203,7 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
         //
         const newPaths = getNeighborhoodPaths(PermanentId)(predictedState)
         const uniquePathRooms = Object.keys([...newPaths.Exits, ...newPaths.Entries]
-            .reduce((previous, { RoomId }) => ({ ...previous, [RoomId]: true })))
+            .reduce((previous, { RoomId }) => ({ ...previous, [RoomId]: true }), {}))
         const inconsistentOutgoingViolations = uniquePathRooms
             .map((RoomId) => (predictedState.permanentHeaders[RoomId] && predictedState.permanentHeaders[RoomId].Ancestry))
             .filter((Ancestry) => (Ancestry))

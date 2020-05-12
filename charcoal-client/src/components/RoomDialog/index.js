@@ -14,8 +14,11 @@ import {
     Button,
     TextField,
     Grid,
-    IconButton
+    IconButton,
+    Portal,
+    Snackbar
 } from '@material-ui/core'
+import { Alert } from '@material-ui/lab'
 import AddBoxIcon from '@material-ui/icons/AddBox'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 
@@ -30,6 +33,7 @@ import {
     getNeighborhoodSubtree,
     getExternalTree
 } from '../../selectors/permanentHeaders.js'
+import { getRoomUpdateValidator } from '../../selectors/validators'
 import useStyles from '../styles'
 import ExitList from '../ExitList'
 import PermanentSelectPopover from './PermanentSelectPopover'
@@ -85,29 +89,34 @@ const convertNameForExit = (name) => {
     const match = re.exec(name)
     return (match ? match[1] : name).toLocaleLowerCase()
 }
-const roomDialogReducer = (state, action) => {
+const roomDialogReducer = (validator) => (state, action) => {
+    let returnVal = state
     switch(action.type) {
         case APPEARANCE_UPDATE:
-            return {
+            returnVal = {
                 ...state,
                 [action.label]: action.value
             }
+            break
         case RESET_FORM_VALUES:
-            return action.defaultValues
+            returnVal = action.defaultValues
+            break
         case REMOVE_EXIT:
-            return {
+            returnVal = {
                 ...state,
                 Exits: state.Exits.filter(exit => (exit.RoomId !== action.RoomId))
             }
+            break
         case REMOVE_ENTRY:
-            return {
+            returnVal= {
                 ...state,
                 Entries: state.Entries.filter(entry => (entry.RoomId !== action.RoomId))
             }
+            break
         case UPDATE_EXIT_NAME:
             const findExit = state.Exits.find(exit => (exit.RoomId === action.RoomId))
             const otherExits = state.Exits.filter(exit => (exit.RoomId !== action.RoomId))
-            return {
+            returnVal = {
                 ...state,
                 Exits: [
                     ...otherExits,
@@ -117,10 +126,11 @@ const roomDialogReducer = (state, action) => {
                     }
                 ]
             }
+            break
         case UPDATE_ENTRY_NAME:
             const findEntry = state.Entries.find(entry => (entry.RoomId === action.RoomId))
             const otherEntries = state.Entries.filter(entry => (entry.RoomId !== action.RoomId))
-            return {
+            returnVal= {
                 ...state,
                 Entries: [
                     ...otherEntries,
@@ -130,26 +140,27 @@ const roomDialogReducer = (state, action) => {
                     }
                 ]
             }
+            break
         case ADD_EXIT:
             if (!state.Exits.find(exit => (exit.roomId === action.roomId))) {
-                return {
+                returnVal = {
                     ...state,
                     Exits: [
                         ...state.Exits,
                         {
                             Name: convertNameForExit(action.Name),
-                            id: '',
                             RoomId: action.RoomId
                         }
                     ]
                 }
             }
             else {
-                return state
+                returnVal = state
             }
+            break
         case ADD_ENTRY:
             if (!state.Entries.find(entry => (entry.RoomId === action.RoomId))) {
-                return {
+                returnVal = {
                     ...state,
                     Entries: [
                         ...state.Entries,
@@ -161,16 +172,24 @@ const roomDialogReducer = (state, action) => {
                 }
             }
             else {
-                return state
+                returnVal = state
             }
+            break
         default:
-            return state
     }
+    const { RoomId: PermanentId, ParentId = '', Exits, Entries } = returnVal
+    const validation = validator({ PermanentId, ParentId, Exits, Entries }) || {}
+    return {
+        ...returnVal,
+        error: validation.error
+    }
+
 }
 
 export const RoomDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getRoomDialogUI)
-    const [formValues, formDispatch] = useReducer(roomDialogReducer, {})
+    const roomValidator = useSelector(getRoomUpdateValidator)
+    const [formValues, formDispatch] = useReducer(roomDialogReducer(roomValidator), {})
 
     const neighborhoodRooms = useSelector(getNeighborhoodSubtree({
         roomId: defaultValues.roomId,
@@ -187,7 +206,7 @@ export const RoomDialog = ({ nested=false }) => {
     const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
     const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
 
-    const { Name = '', Description = '', Exits=[], Entries=[], ParentId='' } = formValues
+    const { Name = '', Description = '', Exits=[], Entries=[], ParentId='', error } = formValues
     const { Name: parentName = '', Ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[ParentId]) || {}
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
@@ -236,6 +255,12 @@ export const RoomDialog = ({ nested=false }) => {
     const classes = useStyles()
     return(
         <React.Fragment>
+            <Portal>
+                <Snackbar open={Boolean(error)}>
+                    <Alert severity="error">{error}</Alert>
+                </Snackbar>
+            </Portal>
+
             <PermanentSelectPopover
                 anchorEl={neighborhoodAddAnchorEl}
                 open={Boolean(neighborhoodAddAnchorEl)}
@@ -365,7 +390,7 @@ export const RoomDialog = ({ nested=false }) => {
                     <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
                         Cancel
                     </Button>
-                    <Button onClick={saveHandler}>
+                    <Button onClick={saveHandler} disabled={Boolean(error)}>
                         Save
                     </Button>
                 </DialogActions>

@@ -32,7 +32,7 @@ const inheritanceProxy = (headers) => ({
 export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeaders, role }) => {
     const { data = [] } = myCharacters || {}
     const matchingCharacters = data.filter(({ CharacterId }) => (CharacterId === searchId))
-    if (!matchingCharacters) {
+    if (!matchingCharacters.length) {
         return {}
     }
     const { Grants = [], ...rest } = matchingCharacters[0]

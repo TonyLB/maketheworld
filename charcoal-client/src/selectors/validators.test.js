@@ -210,6 +210,61 @@ const createTestStateWithGrants = (Grants) => ({
 
 describe('getNeighborhoodUpdateValidator selector', () => {
 
+    it('should forbit a player from making a new private sub-neighborhood without permission', () => {
+        const testState = createTestStateWithGrants([])
+        expect(getNeighborhoodUpdateValidator(testState)({
+            ParentId: 'NeighborhoodAlpha',
+            Visibility: 'Private',
+            Topology: 'Dead-End'
+        })).toEqual({
+            valid: false,
+            error: 'You do not have permission to make a private neighborhood within Alpha'
+        })
+    })
+
+    it('should allow a player to make a new Dead-end private sub-neighborhood with permission', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'NeighborhoodAlpha',
+            Roles: 'PLAYER'
+        }])
+        expect(getNeighborhoodUpdateValidator(testState)({
+            ParentId: 'NeighborhoodAlpha',
+            Visibility: 'Private',
+            Topology: 'Dead-End'
+        })).toEqual({
+            valid: true
+        })
+    })
+
+    it('should forbid a player from making a new public sub-neighborhood without permission', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'NeighborhoodAlpha',
+            Roles: 'PLAYER'
+        }])
+        expect(getNeighborhoodUpdateValidator(testState)({
+            ParentId: 'NeighborhoodAlpha',
+            Visibility: 'Public',
+            Topology: 'Dead-End'
+        })).toEqual({
+            valid: false,
+            error: 'You do not have permission to make a public neighborhood within Alpha'
+        })
+    })
+
+    it('should allow a player to make a new Dead-end private sub-neighborhood with permission', () => {
+        const testState = createTestStateWithGrants([{
+            Resource: 'NeighborhoodAlpha',
+            Actions: 'ExtendPublic'
+        }])
+        expect(getNeighborhoodUpdateValidator(testState)({
+            ParentId: 'NeighborhoodAlpha',
+            Visibility: 'Public',
+            Topology: 'Dead-End'
+        })).toEqual({
+            valid: true
+        })
+    })
+
     it('should allow a moderator to make a Dead-end sub-neighborhood Connected', () => {
         const testState = createTestStateWithGrants([{
             Resource: 'NeighborhoodAlpha',

@@ -20,8 +20,11 @@ import {
     FormControlLabel,
     RadioGroup,
     Radio,
-    Collapse
+    Collapse,
+    Portal,
+    Snackbar
 } from '@material-ui/core'
+import { Alert } from '@material-ui/lab'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
@@ -30,7 +33,12 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
 import { putAndCloseNeighborhoodDialog } from '../../actions/permanentAdmin'
 import { getNeighborhoodDialogUI } from '../../selectors/UI/neighborhoodDialog.js'
-import { getPermanentHeaders, getNeighborhoodOnlyTreeExcludingSubTree, getNeighborhoodPaths } from '../../selectors/permanentHeaders.js'
+import {
+    getPermanentHeaders,
+    getNeighborhoodOnlyTreeExcludingSubTree,
+    getNeighborhoodPaths
+} from '../../selectors/permanentHeaders.js'
+import { getNeighborhoodUpdateValidator } from '../../selectors/validators'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
 import ExitList from '../ExitList'
@@ -68,15 +76,17 @@ const grantDelete = (CharacterId) => ({
     CharacterId
 })
 
-const neighborhoodDialogReducer = (state, action) => {
+const neighborhoodDialogReducer = (validator) => (state, action) => {
+    let returnVal = state
     switch(action.type) {
         case APPEARANCE_UPDATE:
-            return {
+            returnVal = {
                 ...state,
                 [action.label]: action.value
             }
+            break
         case GRANT_UPDATE:
-            return {
+            returnVal = {
                 ...state,
                 grants: [
                     ...(state.grants.filter(({ CharacterId }) => (CharacterId !== action.CharacterId))),
@@ -86,8 +96,9 @@ const neighborhoodDialogReducer = (state, action) => {
                     }
                 ]
             }
+            break
         case GRANT_ADD:
-            return {
+            returnVal = {
                 ...state,
                 grants: [
                     ...(state.grants || []),
@@ -97,15 +108,23 @@ const neighborhoodDialogReducer = (state, action) => {
                     }
                 ]
             }
+            break
         case GRANT_DELETE:
-            return {
+            returnVal = {
                 ...state,
                 grants: (state.grants || []).filter(({ CharacterId }) => (CharacterId !== action.CharacterId))
             }
+            break
         case RESET_FORM_VALUES:
-            return action.defaultValues
+            returnVal = action.defaultValues
+            break
         default:
-            return state
+    }
+    const { neighborhoodId: PermanentId, parentId: ParentId = '', visibility: Visibility, topology: Topology } = returnVal
+    const validation = validator({ PermanentId, ParentId, Visibility, Topology }) || {}
+    return {
+        ...returnVal,
+        error: validation.error
     }
 }
 
@@ -113,8 +132,9 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getNeighborhoodDialogUI)
     const permanentHeaders = useSelector(getPermanentHeaders)
     const { Grants: myGrants } = useSelector(getMyCurrentCharacter)
-    const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer, {})
-    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End' } = formValues
+    const updateValidator = useSelector(getNeighborhoodUpdateValidator)
+    const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer(updateValidator), {})
+    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End', error = '' } = formValues
     const { Ancestry: parentAncestry = '', Name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
 
     const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
@@ -147,6 +167,11 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const classes = useStyles()
     return(
         <React.Fragment>
+            <Portal>
+                <Snackbar open={Boolean(error)}>
+                    <Alert severity="error">{error}</Alert>
+                </Snackbar>
+            </Portal>
             <PermanentSelectPopover
                 anchorEl={parentSetAnchorEl}
                 open={Boolean(parentSetAnchorEl)}
@@ -296,7 +321,7 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                     <Button onClick={ () => { dispatch(closeNeighborhoodDialog()) } }>
                         Cancel
                     </Button>
-                    <Button onClick={saveHandler}>
+                    <Button onClick={saveHandler} disabled={Boolean(error)}>
                         Save
                     </Button>
                 </DialogActions>
