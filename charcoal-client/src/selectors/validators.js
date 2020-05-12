@@ -1,99 +1,12 @@
 import { getMyCurrentCharacter } from './myCharacters'
-import { getPermanentHeaders, getNeighborhoodPaths, rawAncestryCalculation } from './permanentHeaders'
+import { getPermanentHeaders, getNeighborhoodPaths } from './permanentHeaders'
+import permanentReducer from '../reducers/permanentHeaders'
+import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods.js'
 
 const countUnique = (itemList) => (Object.values(itemList
     .reduce((previous, item) => ({ ...previous, [item]: true }), {}))
     .length
 )
-
-//
-// Calculate what the state will look like after reparenting.
-//
-// TODO:  Remove denormalized Ancestry requirement from data, and recalculate
-// as needed from underlying ParentId data.
-//
-const predictReparent = ({ PermanentId, ...change }) => ({ permanentHeaders, ...rest }) => {
-    const newPermanentHeaders = {
-        ...permanentHeaders,
-        [PermanentId]: {
-            ...(permanentHeaders[PermanentId] || {}),
-            ...change
-        }
-    }
-    const recalculatedPermanentHeaders = Object.values(newPermanentHeaders)
-        .map((item) => (rawAncestryCalculation({ permanentHeaders: newPermanentHeaders })(item)))
-        .reduce((previous, { PermanentId, ...item }) => ({
-            ...previous,
-            [PermanentId]: {
-                PermanentId,
-                ...item
-            }
-        }), {})
-    return {
-        ...rest,
-        permanentHeaders: recalculatedPermanentHeaders
-    }
-}
-
-//
-// Calculate what the state will look like after a room edit (mostly exit and entry remapping in
-// other rooms that have denormalized links)
-//
-const predictRoomEdit = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change }) => ({ permanentHeaders, ...rest }) => {
-    const removedPaths = Object.values(permanentHeaders)
-        .map(({ Type, Exits = [], Entries = [], ...rest }) => (Type === 'ROOM'
-            ? {
-                ...rest,
-                Type,
-                Exits: Exits.filter(({ RoomId }) => (RoomId !== PermanentId)),
-                Entries: Entries.filter(({ RoomId }) => (RoomId !== PermanentId))
-            }
-            : { Type, ...rest }
-        ))
-        .reduce((previous, { PermanentId, ...rest }) => ({ ...previous, [PermanentId]: {
-            PermanentId,
-            ...rest
-        }}), {})
-    const addedExits = Exits.reduce((previous, { RoomId, Name }) => ({
-        ...previous,
-        [RoomId]: {
-            ...(previous[RoomId] || {}),
-            Entries: [
-                ...((previous[RoomId] || {}).Entries || []),
-                {
-                    RoomId: PermanentId,
-                    Name
-                }
-            ]
-        }
-    }), removedPaths)
-    const addedEntries = Entries.reduce((previous, { RoomId, Name }) => ({
-        ...previous,
-        [RoomId]: {
-            ...(previous[RoomId] || {}),
-            Exits: [
-                ...((previous[RoomId] || {}).Exits || []),
-                {
-                    RoomId: PermanentId,
-                    Name
-                }
-            ]
-        }
-    }), addedExits)
-    return {
-        permanentHeaders: {
-            ...addedEntries,
-            [PermanentId]: {
-                ...change,
-                PermanentId,
-                ParentId,
-                Ancestry: `${permanentHeaders[ParentId].Ancestry || ''}:${PermanentId}`,
-                Exits,
-                Entries,
-            }
-        }
-    }
-}
 
 const branchInconsistencies = (branchAncestry) => (state) => {
     const permanentHeaders = getPermanentHeaders(state)
@@ -186,7 +99,15 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
             }
         }
         const newAncestry = `${permanentHeaders[ParentId].Ancestry}:${PermanentId}`
-        const predictedState = predictReparent({PermanentId, ParentId, Visibility, Topology})(state)
+        const predictedState = {
+            ...state,
+            permanentHeaders: permanentReducer(state.permanentHeaders, {
+                type: NEIGHBORHOOD_UPDATE,
+                data: [{
+                    PermanentId, ParentId, Visibility, Topology, Type: 'NEIGHBORHOOD'
+                }]
+            })
+        }
         //
         // Check if the neighborhood being reparented INTO would be in violation
         //
@@ -227,7 +148,21 @@ export const getRoomUpdateValidator = (state) => ({ PermanentId, ParentId, Exits
     const permanentHeaders = getPermanentHeaders(state)
     const previousRoom = permanentHeaders[PermanentId]
 
-    const predictedState = predictRoomEdit({ PermanentId, ParentId, Exits: Exits || previousRoom.Exits, Entries: Entries || previousRoom.Entries })(state)
+    const predictedState = {
+        ...state,
+        permanentHeaders: permanentReducer(state.permanentHeaders, {
+            type: NEIGHBORHOOD_UPDATE,
+            data: [{
+                PermanentId,
+                ParentId,
+                Type: 'ROOM',
+                Exits: Exits || previousRoom.Exits,
+                Entries: Entries || previousRoom.Entries
+            }]
+        })
+    }
+
+    // const predictedState = predictRoomEdit({ PermanentId, ParentId, Exits: Exits || previousRoom.Exits, Entries: Entries || previousRoom.Entries })(state)
     // console.log(JSON.stringify(predictedState, null, 4))
 
     //

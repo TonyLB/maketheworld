@@ -68,6 +68,7 @@ const createTestStateWithGrants = (Grants) => ({
         SubNeighborhoodAlphaOne: {
             PermanentId: 'SubNeighborhoodAlphaOne',
             ParentId: 'NeighborhoodAlpha',
+            Name: 'Alpha',
             Ancestry: 'NeighborhoodAlpha:SubNeighborhoodAlphaOne',
             Topology: 'Connected'
         },

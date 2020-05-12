@@ -192,13 +192,13 @@ export const RoomDialog = ({ nested=false }) => {
     const [formValues, formDispatch] = useReducer(roomDialogReducer(roomValidator), {})
 
     const neighborhoodRooms = useSelector(getNeighborhoodSubtree({
-        roomId: defaultValues.roomId,
-        ancestry: defaultValues.ancestry
+        roomId: defaultValues.RoomId,
+        ancestry: defaultValues.Ancestry
     }))
     const neighborhoodTree = useSelector(getNeighborhoodOnlyTree)
     const externalRooms = useSelector(getExternalTree({
-        roomId: defaultValues.roomId,
-        ancestry: defaultValues.ancestry
+        roomId: defaultValues.RoomId,
+        ancestry: defaultValues.Ancestry
     }))
     const permanentHeaders = useSelector(getPermanentHeaders)
     const dispatch = useDispatch()

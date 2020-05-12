@@ -1,9 +1,10 @@
 import { getMyCurrentCharacter } from './myCharacters'
 import { getActiveCharactersInRoom } from './charactersInPlay'
 import { getCurrentRoomId } from './connection'
+import { getPermanentHeaders } from './permanentHeaders'
 
 export const getCurrentRoom = (state) => {
-    const { permanentHeaders } = state
+    const permanentHeaders = getPermanentHeaders(state)
     const RoomId = getCurrentRoomId(state)
     return permanentHeaders && RoomId && permanentHeaders[RoomId]
 }
