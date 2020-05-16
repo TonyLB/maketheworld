@@ -6,5 +6,4 @@ characterPackaged.yaml
 appsyncPackaged.yaml
 node_modules/
 charcoal-client/node_modules/
-charcoal-client/src/graphql/
 package-lock.json
