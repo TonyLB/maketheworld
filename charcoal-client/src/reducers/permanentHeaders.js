@@ -97,7 +97,7 @@ const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change
             PermanentId,
             ...rest
         }}), {})
-    const addedExits = Exits.reduce((previous, { RoomId, Name }) => (previous[RoomId] ? {
+    const addedExits = (Exits || []).reduce((previous, { RoomId, Name }) => (previous[RoomId] ? {
         ...previous,
         [RoomId]: {
             ...previous[RoomId],
@@ -110,7 +110,7 @@ const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change
             ]
         }
     } : previous), removedPaths)
-    const addedEntries = Entries.reduce((previous, { RoomId, Name }) => (previous[RoomId] ? {
+    const addedEntries = (Entries || []).reduce((previous, { RoomId, Name }) => (previous[RoomId] ? {
         ...previous,
         [RoomId]: {
             ...previous[RoomId],
@@ -130,8 +130,8 @@ const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change
             PermanentId,
             ParentId,
             Ancestry: permanentHeaders[ParentId] ? `${permanentHeaders[ParentId].Ancestry || ''}:${PermanentId}` : PermanentId,
-            Exits: Exits.filter(({ RoomId }) => (permanentHeaders[RoomId])),
-            Entries: Entries.filter(({ RoomId }) => (permanentHeaders[RoomId]))
+            Exits: (Exits || []).filter(({ RoomId }) => (permanentHeaders[RoomId])),
+            Entries: (Entries || []).filter(({ RoomId }) => (permanentHeaders[RoomId]))
         }
     }
 }

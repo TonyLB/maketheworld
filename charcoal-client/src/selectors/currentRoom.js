@@ -20,7 +20,7 @@ export const getVisibleExits = (state) => {
     const { Grants = {} } = getMyCurrentCharacter(state)
     const currentRoom = getCurrentRoom(state)
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
-        currentRoom.Exits.map(({ Ancestry, ...rest }) => {
+        currentRoom.Exits.map(({ Ancestry = '', ...rest }) => {
                 const ancestryList = Ancestry.split(':')
                 const roomAncestryList = currentRoom.Ancestry.split(':')
                 const checkNeighborhoods = ancestryList.filter((PermanentId, index) => (
