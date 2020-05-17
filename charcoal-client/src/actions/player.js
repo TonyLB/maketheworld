@@ -7,10 +7,22 @@ import { addSubscription } from './subscriptions'
 import { receiveMyCharacterChange, fetchMyCharacters } from './characters'
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
+export const GRANT_UPDATE = 'GRANT_UPDATE'
+export const GRANT_REVOKE = 'GRANT_REVOKE'
 
 export const playerUpdate = (playerData) => ({
     type: PLAYER_UPDATE,
     data: playerData
+})
+
+export const grantUpdate = (grantData) => ({
+    type: GRANT_UPDATE,
+    payload: grantData
+})
+
+export const grantRevoke = (grantData) => ({
+    type: GRANT_REVOKE,
+    payload: grantData
 })
 
 export const fetchPlayer = (username) => (dispatch) => {
@@ -37,12 +49,23 @@ export const subscribePlayerChanges = () => (dispatch) => {
                     const { value = {} } = message
                     const { data = {} } = value
                     const { changedPlayer = {} } = data
-                    const { PlayerInfo, CharacterInfo } = changedPlayer
+                    const { Type, PlayerInfo, CharacterInfo, GrantInfo } = changedPlayer
                     if (PlayerInfo) {
                         dispatch(playerUpdate(PlayerInfo))
                     }
                     if (CharacterInfo) {
                         dispatch(receiveMyCharacterChange(CharacterInfo))
+                    }
+                    if (GrantInfo) {
+                        switch(Type) {
+                            case 'GRANT':
+                                dispatch(grantUpdate(GrantInfo))
+                                break;
+                            case 'REVOKE':
+                                dispatch(grantRevoke(GrantInfo))
+                                break;
+                            default:
+                        }
                     }
                 }
             })

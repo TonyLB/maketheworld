@@ -1235,6 +1235,29 @@ Resources:
             #set($result = $ctx.result)
             $util.qr($result.put("Type", "NEIGHBORHOOD"))
             $util.toJson($result)
+  MutationExternalUpdateGrant:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: externalUpdateGrant
+        DataSourceName: !GetAtt NoneDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "payload": $util.toJson($ctx.args)
+            }
+        ResponseMappingTemplate: >
+            #set($result = $ctx.result)
+            #set($grant = $result.Grant)
+            $util.toJson({
+                  "Type": "$result.Type",
+                  "PlayerName": "$result.PlayerName",
+                  "CharacterId": "$result.CharacterId",
+                  "GrantInfo": $grant
+            })
   UUIDLambdaLayer:
       Type: AWS::Serverless::LayerVersion
       Properties:
@@ -1427,6 +1450,12 @@ Resources:
                   Actions: String
                   Roles: String
               }
+              type ExternalGrant @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  Resource: String!
+                  Actions: String
+                  Roles: String
+              }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String!
                   Name: String!
@@ -1497,6 +1526,12 @@ Resources:
                 Actions: String
                 Roles: String
               }
+              input ExternalGrantInput {
+                CharacterId: String!
+                Resource: String!
+                Actions: String
+                Roles: String
+              }
               type Room implements PermanentTreeNode {
                   PermanentId: String!
                   Type: String!
@@ -1529,6 +1564,7 @@ Resources:
                   PlayerName: String!
                   PlayerInfo: Player
                   CharacterInfo: Character
+                  GrantInfo: ExternalGrant
               }
               type Mutation {
                   putPlayer(
@@ -1597,6 +1633,13 @@ Resources:
                       Topology: String
                   ): AnyNode
                   @aws_iam @aws_cognito_user_pools
+                  externalUpdateGrant(
+                      PlayerName: String!
+                      CharacterId: String!
+                      Type: String!
+                      Grant: ExternalGrantInput!
+                  ): PlayerSubscription
+                  @aws_iam @aws_cognito_user_pools
                   putRoomMessage(
                       RoomId: String!
                       Message: String!
@@ -1637,7 +1680,7 @@ Resources:
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
-                  @aws_subscribe(mutations: ["putPlayer", "putCharacter"])
+                  @aws_subscribe(mutations: ["putPlayer", "putCharacter", "externalUpdateGrant"])
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedNode: AnyNode

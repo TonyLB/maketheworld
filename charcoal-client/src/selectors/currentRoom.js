@@ -6,7 +6,7 @@ import { getPermanentHeaders } from './permanentHeaders'
 export const getCurrentRoom = (state) => {
     const permanentHeaders = getPermanentHeaders(state)
     const RoomId = getCurrentRoomId(state)
-    return permanentHeaders && RoomId && permanentHeaders[RoomId]
+    return (permanentHeaders && RoomId && permanentHeaders[RoomId]) || {}
 }
 
 //

@@ -83,7 +83,7 @@ const GrantTable = ({ grants = [], changeHandler = () => {}, addHandler = () => 
                                                     id="role"
                                                     multiple
                                                     displayEmpty
-                                                    value={value.split(',').map((role) => (role.trim())).filter((role) => (role))}
+                                                    value={(value || '').split(',').map((role) => (role.trim())).filter((role) => (role))}
                                                     onChange={changeHandler(row.CharacterId)}
                                                     input={<Input id="role" />}
                                                     placeholder="Roles"

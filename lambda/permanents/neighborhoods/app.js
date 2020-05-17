@@ -20,6 +20,11 @@ const graphqlClient = new AppSync.AWSAppSyncClient({
     disableOffline: true
   })
 
+const promiseDebug = (label) => (result) => {
+    console.log(`${label}: ${JSON.stringify(result, null, 4)}`)
+    return result
+}
+
 const batchDispatcher = (documentClient) => (items) => {
     const groupBatches = items.reduce((({ current, requestLists }, item) => {
             if (current.length > 23) {
@@ -285,6 +290,121 @@ exports.putNeighborhood = (event) => {
             .then(() => ({ Ancestry, ProgenitorId, ...rest }))
     )
 
+    //
+    // Create externalUpdate calls to update the AppSync API with what we're doing to grants (so people
+    // can subscribe to the updates of their own grants, and get live permission changes)
+    //
+    const updateGrantsInAppSyncCall = (documentClient) => ({ grantsToDelete, grantsToPut }) => {
+        const findPlayer = (CharacterId) => (
+            documentClient.query({
+                TableName: permanentTable,
+                KeyConditionExpression: 'DataCategory = :CharacterId',
+                ExpressionAttributeValues: {
+                    ":CharacterId": `CHARACTER#${CharacterId}`
+                },
+                IndexName: "DataCategoryIndex"
+
+            }).promise()
+                .then(({ Items }) => ((Items && Items.length && Items[0]) || { PermanentId: 'PLAYER#'}))
+                .then(({ PermanentId }) => (PermanentId && PermanentId.slice(7)))
+        )
+        return Promise.all([
+            ...(grantsToDelete.map(({ CharacterId, Resource }) => (
+                    findPlayer(CharacterId).then((PlayerName) => {
+                        if (!PlayerName) {
+                            return ''
+                        }
+                        return `externalUpdateGrant (
+                            PlayerName: ${JSON.stringify(PlayerName)},
+                            CharacterId: "${CharacterId}",
+                            Type: "REVOKE",
+                            Grant: {
+                                CharacterId: "${CharacterId}",
+                                Resource: "${Resource}"
+                            }
+                        ) {
+                            Type
+                            PlayerName
+                            PlayerInfo {
+                              PlayerName
+                              CodeOfConductConsent
+                            }
+                            CharacterInfo {
+                              PlayerName
+                              Name
+                              CharacterId
+                              Pronouns
+                              FirstImpression
+                              Outfit
+                              OneCoolThing
+                              HomeId
+                            }
+                            GrantInfo {
+                              CharacterId
+                              Resource
+                              Actions
+                              Roles
+                            }
+                        }`
+                    })
+                ))),
+                ...(grantsToPut.map(({ CharacterId, Resource, Roles = '', Actions = '' }) => (
+                    findPlayer(CharacterId).then((PlayerName) => {
+                        if (!PlayerName) {
+                            return ''
+                        }
+                        return `externalUpdateGrant (
+                            PlayerName: ${JSON.stringify(PlayerName)},
+                            CharacterId: "${CharacterId}",
+                            Type: "GRANT",
+                            Grant: {
+                                CharacterId: "${CharacterId}",
+                                Resource: "${Resource}",
+                                Roles: ${JSON.stringify(Roles)},
+                                Actions: ${JSON.stringify(Actions)}
+                            }
+                        ) {
+                            Type
+                            PlayerName
+                            PlayerInfo {
+                              PlayerName
+                              CodeOfConductConsent
+                            }
+                            CharacterInfo {
+                              PlayerName
+                              Name
+                              CharacterId
+                              Pronouns
+                              FirstImpression
+                              Outfit
+                              OneCoolThing
+                              HomeId
+                            }
+                            GrantInfo {
+                              CharacterId
+                              Resource
+                              Actions
+                              Roles
+                            }
+                        }`
+                    })
+                )))
+        ]).then((Items) => (Items.filter((item) => (item)).reduce((previous, item, index) => (
+                `${previous}\nupdate${index+1}: ${item}`
+            ), '')))
+            .then((aggregateUpdates) => (`mutation GrantUpdates { ${aggregateUpdates} }`))
+            .then((result) => {
+                console.log(result)
+                return result
+            })
+            .then((mutation) => (
+                mutation.trim().length
+                    ? graphqlClient.mutate({ mutation: gql`${mutation}`})
+                    : {}
+            ))
+            .then(() => ({ grantsToDelete, grantsToPut }))
+    }
+
     const updateGrants = ({
         PermanentId,
         Grants,
@@ -304,38 +424,38 @@ exports.putNeighborhood = (event) => {
             CharacterId: PermanentId.split('#').slice(1).join('#'),
             ...rest
         }))))
-        .then((OldGrants) => {
-            const grantsToDelete = OldGrants.filter(({ CharacterId }) => (!Grants.find((grant) => (CharacterId === grant.CharacterId))))
-            const grantsToPut = Grants.filter(({ CharacterId, Roles, Actions }) => (!OldGrants.find((oldGrant) => (
-                CharacterId === oldGrant.CharacterId &&
-                ((Actions === oldGrant.Actions) || (!Actions && !oldGrant.Actions)) &&
-                ((Roles === oldGrant.Roles) || (!Roles && !oldGrant.Roles))
-            ))))
-            return [
-                ...(grantsToDelete.map(({ CharacterId }) => ({
+        .then((OldGrants) => ({
+            grantsToDelete: OldGrants
+                .filter(({ CharacterId }) => (!Grants.find((grant) => (CharacterId === grant.CharacterId))))
+                .map((item) => ({ ...item, Resource: PermanentId })),
+            grantsToPut: Grants.filter(({ CharacterId, Roles, Actions }) => (!OldGrants.find((oldGrant) => (
+                    CharacterId === oldGrant.CharacterId &&
+                    ((Actions === oldGrant.Actions) || (!Actions && !oldGrant.Actions)) &&
+                    ((Roles === oldGrant.Roles) || (!Roles && !oldGrant.Roles))
+                ))))
+                .map((item) => ({ ...item, Resource: PermanentId }))
+            }))
+        .then(updateGrantsInAppSyncCall(documentClient))
+        .then(({ grantsToDelete, grantsToPut }) => ([
+                ...(grantsToDelete.map(({ Resource, CharacterId }) => ({
                     DeleteRequest: {
                         Key: {
                             PermanentId: `CHARACTER#${CharacterId}`,
-                            DataCategory: `GRANT#${PermanentId}`
+                            DataCategory: `GRANT#${Resource}`
                         }
                     }
                 }))),
-                ...(grantsToPut.map(({ CharacterId, Roles, Actions }) => ({
+                ...(grantsToPut.map(({ CharacterId, Resource, Roles, Actions }) => ({
                     PutRequest: {
                         Item: {
                             PermanentId: `CHARACTER#${CharacterId}`,
-                            DataCategory: `GRANT#${PermanentId}`,
+                            DataCategory: `GRANT#${Resource}`,
                             ...(Roles ? { Roles } : {} ),
                             ...(Actions ? { Actions } : {} ),
                         }
                     }
                 })))
-            ]
-        })
-        .then((result) => {
-            console.log(JSON.stringify(result, null, 4))
-            return result
-        })
+            ]))
         .then(batchDispatcher(documentClient))
         .then(() => ({ PermanentId, Grants, ...rest }))
     )

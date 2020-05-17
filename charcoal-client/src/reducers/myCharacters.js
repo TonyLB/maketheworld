@@ -1,4 +1,5 @@
 import { FETCH_MY_CHARACTERS_ATTEMPT, FETCH_MY_CHARACTERS_SUCCESS, RECEIVE_MY_CHARACTER_CHANGE } from '../actions/characters.js'
+import { GRANT_UPDATE, GRANT_REVOKE } from '../actions/player'
 
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
@@ -23,11 +24,39 @@ export const reducer = (state = '', action = {}) => {
                 data: payload
             }
         case RECEIVE_MY_CHARACTER_CHANGE:
+        case GRANT_REVOKE:
+        case GRANT_UPDATE:
+            const previousCharacter = state.data.find(({ CharacterId }) => (CharacterId === payload.CharacterId)) || {}
+            let characterData = null
+            switch(actionType) {
+                case GRANT_REVOKE:
+                    characterData = {
+                        ...previousCharacter,
+                        Grants: (previousCharacter.Grants || []).filter(({ Resource }) => (Resource !== payload.Resource))
+                    }
+                    break
+                case GRANT_UPDATE:
+                    characterData = {
+                        ...previousCharacter,
+                        Grants: [
+                            ...(previousCharacter.Grants || []).filter(({ Resource }) => (Resource !== payload.Resource)),
+                            payload
+                        ]
+                    }
+                    break
+                case RECEIVE_MY_CHARACTER_CHANGE:
+                    characterData = payload
+                    break
+                default:
+            }
+            if (!characterData) {
+                return state
+            }
             return {
                 ...state,
                 data: [
                     ...state.data.filter(({ CharacterId }) => (CharacterId !== payload.CharacterId)),
-                    payload
+                    characterData
                 ].sort(({ Name: nameA }, { Name: nameB }) => (nameA.localeCompare(nameB)))
             }
         default: return state
