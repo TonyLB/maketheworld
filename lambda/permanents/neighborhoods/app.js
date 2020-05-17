@@ -392,7 +392,7 @@ exports.putNeighborhood = (event) => {
         ]).then((Items) => (Items.filter((item) => (item)).reduce((previous, item, index) => (
                 `${previous}\nupdate${index+1}: ${item}`
             ), '')))
-            .then((aggregateUpdates) => (`mutation GrantUpdates { ${aggregateUpdates} }`))
+            .then((aggregateUpdates) => (aggregateUpdates.trim().length ? `mutation GrantUpdates { ${aggregateUpdates} }` : ''))
             .then((result) => {
                 console.log(result)
                 return result
@@ -406,24 +406,37 @@ exports.putNeighborhood = (event) => {
     }
 
     const updateGrants = ({
+        CharacterId,
         PermanentId,
-        Grants,
+        Grants: sentGrants,
         ...rest
-    }) => (newNeighborhood
-        ? { PermanentId, Grants, ...rest }
-        : documentClient.query({
-            TableName: permanentTable,
-            KeyConditionExpression: 'DataCategory = :GrantId',
-            ExpressionAttributeValues: {
-                ":GrantId": `GRANT#${PermanentId}`
-            },
-            IndexName: "DataCategoryIndex"
-        }).promise()
-        .then(({ Items }) => (Items || []))
-        .then((Items) => (Items.map(({ PermanentId, DataCategory, ...rest }) => ({
-            CharacterId: PermanentId.split('#').slice(1).join('#'),
-            ...rest
-        }))))
+    }) => {
+        const Grants = newNeighborhood
+            ? [
+                ...sentGrants.filter(({ CharacterId: grantCharacterId }) => (grantCharacterId !== CharacterId)),
+                {
+                    CharacterId,
+                    Resource: PermanentId,
+                    Roles: 'EDITOR'
+                }
+            ]
+            : sentGrants
+        return (newNeighborhood
+            ? Promise.resolve([])
+            : documentClient.query({
+                TableName: permanentTable,
+                KeyConditionExpression: 'DataCategory = :GrantId',
+                ExpressionAttributeValues: {
+                    ":GrantId": `GRANT#${PermanentId}`
+                },
+                IndexName: "DataCategoryIndex"
+            }).promise()
+            .then(({ Items }) => (Items || []))
+            .then((Items) => (Items.map(({ PermanentId, DataCategory, ...rest }) => ({
+                CharacterId: PermanentId.split('#').slice(1).join('#'),
+                ...rest
+            }))))
+        )
         .then((OldGrants) => ({
             grantsToDelete: OldGrants
                 .filter(({ CharacterId }) => (!Grants.find((grant) => (CharacterId === grant.CharacterId))))
@@ -457,8 +470,8 @@ exports.putNeighborhood = (event) => {
                 })))
             ]))
         .then(batchDispatcher(documentClient))
-        .then(() => ({ PermanentId, Grants, ...rest }))
-    )
+        .then(() => ({ CharacterId, PermanentId, Grants, ...rest }))
+    }
 
     const putNeighborhood = ({
         CharacterId,
@@ -471,46 +484,36 @@ exports.putNeighborhood = (event) => {
         Visibility = 'Private',
         Topology = 'Dead-End',
         Grants = []
-    }) => (newNeighborhood
-            ? documentClient.put({
-                    TableName: permanentTable,
-                    Item: {
-                        PermanentId: `CHARACTER#${CharacterId}`,
-                        DataCategory: `GRANT#${PermanentId}`,
-                        Roles: 'EDITOR'
-                    }
-                }).promise()
-            : Promise.resolve({}))
-        .then(() => (documentClient.put({
-                TableName: permanentTable,
-                Item: {
-                    PermanentId: `NEIGHBORHOOD#${PermanentId}`,
-                    DataCategory: 'Details',
-                    ...(ParentId ? { ParentId } : {}),
-                    Ancestry,
-                    ProgenitorId,
-                    Name,
-                    ...(Description ? { Description } : {}),
-                    ...(Visibility ? { Visibility } : {}),
-                    ...(Topology ? { Topology } : {})
-                },
-                ReturnValues: "ALL_OLD"
-            }).promise()
-                .then((old) => ((old && old.Attributes) || {}))
-                .then(({ DataCategory, ...rest }) => ({
-                    ...rest,
-                    Type: "NEIGHBORHOOD",
-                    PermanentId,
-                    ParentId,
-                    Ancestry,
-                    ProgenitorId,
-                    Name,
-                    Description,
-                    Visibility,
-                    Topology,
-                    Grants
-                }))
-            ))
+    }) => (documentClient.put({
+            TableName: permanentTable,
+            Item: {
+                PermanentId: `NEIGHBORHOOD#${PermanentId}`,
+                DataCategory: 'Details',
+                ...(ParentId ? { ParentId } : {}),
+                Ancestry,
+                ProgenitorId,
+                Name,
+                ...(Description ? { Description } : {}),
+                ...(Visibility ? { Visibility } : {}),
+                ...(Topology ? { Topology } : {})
+            },
+            ReturnValues: "ALL_OLD"
+        }).promise()
+            .then((old) => ((old && old.Attributes) || {}))
+            .then(({ DataCategory, ...rest }) => ({
+                ...rest,
+                Type: "NEIGHBORHOOD",
+                PermanentId,
+                ParentId,
+                Ancestry,
+                ProgenitorId,
+                Name,
+                Description,
+                Visibility,
+                Topology,
+                Grants
+            }))
+    )
 
     return preCheckLookup
         .then(ancestryLookup)
