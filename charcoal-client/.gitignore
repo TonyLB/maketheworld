@@ -24,7 +24,7 @@ yarn-error.log*
 
 #amplify
 amplify/
-.graphqlconfig.yaml
+.graphqlconfig.yml
 build/
 dist/
 node_modules/
