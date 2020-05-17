@@ -535,15 +535,15 @@ Resources:
         FieldName: putPlayer
         DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
         RequestMappingTemplate: >
-            #set($PlayerName = $ctx.args.PlayerName)
+            $util.qr($ctx.stash.put("PlayerName", $ctx.args.PlayerName))
             #if ($util.isNullOrEmpty($PlayerName))
-              #set($PlayerName = $context.identity.username)
+              $util.qr($ctx.stash.put("PlayerName", $context.identity.username))
             #end
             {
                 "version": "2017-02-28",
                 "operation": "PutItem",
                 "key": {
-                    "PermanentId": $util.dynamodb.toStringJson("PLAYER#${PlayerName}"),
+                    "PermanentId": $util.dynamodb.toStringJson("PLAYER#${ctx.stash.PlayerName}"),
                     "DataCategory": $util.dynamodb.toStringJson("Details")
                 },
                 "attributeValues": {
@@ -556,10 +556,13 @@ Resources:
                 }
             }
         ResponseMappingTemplate: >
-          #set($PlayerName = $ctx.result.PermanentId && $ctx.result.PermanentId.slice(7))
           $util.toJson({
-            "PlayerName": $PlayerName,
-            "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false)
+            "Type": "PLAYER",
+            "PlayerName": $ctx.stash.PlayerName,
+            "PlayerInfo": {
+              "PlayerName": $ctx.stash.PlayerName,
+              "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false)
+            }
           })
   GetCharacterFunction:
     Type: AWS::Serverless::Function
@@ -1208,6 +1211,8 @@ Resources:
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   NoneDataSource:
     Type: AWS::AppSync::DataSource
+    DependsOn:
+      - Schema
     Properties:
         ApiId: !GetAtt AppSyncAPI.ApiId
         Name: NoneSource
@@ -1519,11 +1524,17 @@ Resources:
                   Type: String
                   Title: String
               }
+              type PlayerSubscription @aws_iam @aws_cognito_user_pools {
+                  Type: String!
+                  PlayerName: String!
+                  PlayerInfo: Player
+                  CharacterInfo: Character
+              }
               type Mutation {
                   putPlayer(
                       PlayerName: String,
                       CodeOfConductConsent: Boolean
-                    ): Player
+                    ): PlayerSubscription
                   putCharacter(
                       Name: String!,
                       CharacterId: String,
@@ -1532,7 +1543,7 @@ Resources:
                       Outfit: String,
                       OneCoolThing: String,
                       HomeId: String
-                  ): Character
+                  ): PlayerSubscription
                   addCharacterInPlay(
                       CharacterId: String!
                       ConnectionId: String!
@@ -1625,10 +1636,8 @@ Resources:
                   getRoles: [Role]
               }
               type Subscription {
-                  changedPlayer (PlayerName: String): Player
-                  @aws_subscribe(mutations: ["putPlayer"])
-                  changedCharacter: Character
-                  @aws_subscribe(mutations: ["putCharacter"])
+                  changedPlayer (PlayerName: String): PlayerSubscription
+                  @aws_subscribe(mutations: ["putPlayer", "putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedNode: AnyNode

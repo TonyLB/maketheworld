@@ -3,8 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { getSubscriptions } from '../selectors/subscriptions'
 import {
-    subscribeMyCharacterChanges,
-    subscribeCharactersInPlayChanges,
+    subscribeCharactersInPlayChanges
 } from '../actions/characters.js'
 import {
     subscribePermanentHeaderChanges
@@ -26,9 +25,6 @@ export const useAppSyncSubscriptions = () => {
     const subscriptions = useSelector(getSubscriptions)
 
     useEffect(() => {
-        if (!subscriptions.myCharacters) {
-            dispatch(subscribeMyCharacterChanges())
-        }
         if (!subscriptions.player) {
             dispatch(subscribePlayerChanges())
         }

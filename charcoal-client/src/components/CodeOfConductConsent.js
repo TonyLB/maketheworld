@@ -17,7 +17,7 @@ export const CodeOfConductConsentDialog = ({ onConsent = () => {}, open=false })
             open={open}
         >
             <DialogTitle className={classes.lightblue} >
-                <Typography variant="h5" align="center">Welcome to the Burned Over MUSH</Typography>
+                <Typography align="center">Welcome to the Burned Over MUSH</Typography>
             </DialogTitle>
             <DialogContent>
 

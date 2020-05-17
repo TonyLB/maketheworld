@@ -4,6 +4,7 @@ import { putPlayer as putPlayerQL } from '../graphql/mutations'
 import { changedPlayer } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
+import { receiveMyCharacterChange, fetchMyCharacters } from './characters'
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
 
@@ -33,18 +34,22 @@ export const subscribePlayerChanges = () => (dispatch) => {
             const playerSubscription = API.graphql(graphqlOperation(changedPlayer, { PlayerName: username}))
             .subscribe({
                 next: (message) => {
-                    console.log(`Subscription event`)
-                    console.log(message)
                     const { value = {} } = message
                     const { data = {} } = value
                     const { changedPlayer = {} } = data
-                    const { PlayerName, CodeOfConductConsent } = changedPlayer
-                    dispatch(playerUpdate({ PlayerName, CodeOfConductConsent }))
+                    const { PlayerInfo, CharacterInfo } = changedPlayer
+                    if (PlayerInfo) {
+                        dispatch(playerUpdate(PlayerInfo))
+                    }
+                    if (CharacterInfo) {
+                        dispatch(receiveMyCharacterChange(CharacterInfo))
+                    }
                 }
             })
 
             dispatch(addSubscription({ player: playerSubscription }))
             dispatch(fetchPlayer(username))
+            dispatch(fetchMyCharacters())
         
         })
 

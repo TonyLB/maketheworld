@@ -1,10 +1,10 @@
-import { Auth, API, graphqlOperation } from 'aws-amplify'
+import { API, graphqlOperation } from 'aws-amplify'
 import { getPlayerCharacters, getCharactersInPlay } from '../graphql/queries'
 import {
     putCharacter as putCharacterGraphQL,
     addCharacterInPlay as addCharacterInPlayGraphQL
 } from '../graphql/mutations'
-import { changedCharacter, changedCharactersInPlay } from '../graphql/subscriptions'
+import { changedCharactersInPlay } from '../graphql/subscriptions'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { addSubscription, moveRoomSubscription } from './subscriptions'
@@ -81,30 +81,6 @@ export const receiveMyCharacterChange = (payload) => ({
     type: RECEIVE_MY_CHARACTER_CHANGE,
     payload
 })
-
-export const subscribeMyCharacterChanges = () => (dispatch) => {
-    const subscription = API.graphql(graphqlOperation(changedCharacter))
-        .subscribe({
-            next: (characterData) => {
-                const { value = {} } = characterData
-                const { data = {} } = value
-                const { changedCharacter = {} } = data
-                const { PlayerName } = changedCharacter
-                if (PlayerName) {
-                    Auth.currentAuthenticatedUser()
-                        .then(({ username = '' }) => {
-                            if (username === PlayerName) {
-                                dispatch(receiveMyCharacterChange(changedCharacter))
-                            }
-                        })
-                        .catch()
-                }
-            }
-        })
-
-    dispatch(addSubscription({ myCharacters: subscription }))
-    dispatch(fetchMyCharacters())
-}
 
 export const fetchCharactersInPlayAttempt = () => ({
     type: FETCH_CHARACTERS_IN_PLAY_ATTEMPT

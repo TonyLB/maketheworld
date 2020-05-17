@@ -216,15 +216,19 @@ exports.putCharacter = ({
         ])
         .then(() => (getCharacterInfo({ documentClient, CharacterId })))
         .then(({ Grants }) => ({
-            CharacterId,
+            Type: "CHARACTER",
             PlayerName,
-            Name,
-            Pronouns,
-            FirstImpression,
-            OneCoolThing,
-            Outfit,
-            HomeId,
-            Grants
+            CharacterInfo: {
+                CharacterId,
+                PlayerName,
+                Name,
+                Pronouns,
+                FirstImpression,
+                OneCoolThing,
+                Outfit,
+                HomeId,
+                Grants
+            }
         }))
         .catch((err) => ({ error: err.stack }))
 
