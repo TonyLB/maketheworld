@@ -7,6 +7,7 @@ import worldDialog from './worldDialog'
 import confirmDialog from './confirmDialog'
 import helpDialog from './helpDialog'
 import directMessageDialog from './directMessageDialog'
+import mapDialog from './mapDialog'
 
 export const reducer = combineReducers({
     allCharactersDialog,
@@ -16,7 +17,8 @@ export const reducer = combineReducers({
     neighborhoodDialog,
     confirmDialog,
     helpDialog,
-    directMessageDialog
+    directMessageDialog,
+    mapDialog
 })
 
 export default reducer

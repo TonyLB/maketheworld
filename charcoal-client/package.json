@@ -11,10 +11,12 @@
     "@testing-library/user-event": "^7.2.1",
     "aws-amplify": "^2.2.7",
     "aws-amplify-react": "^3.1.8",
+    "gojs": "^2.1.16",
+    "gojs-react": "^1.0.7",
     "react": "^16.13.0",
     "react-dom": "^16.13.0",
     "react-redux": "^7.2.0",
-    "react-scripts": "3.4.0",
+    "react-scripts": "3.4.1",
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
     "tinycolor2": "^1.4.1"

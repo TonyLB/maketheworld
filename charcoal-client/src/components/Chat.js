@@ -30,6 +30,7 @@ import { Alert } from '@material-ui/lab'
 import MenuIcon from '@material-ui/icons/Menu'
 import HelpIcon from '@material-ui/icons/Help'
 import SettingsIcon from '@material-ui/icons/Settings'
+import MapIcon from '@material-ui/icons/Explore'
 
 // Local code imports
 import { WSS_ADDRESS } from '../config'
@@ -42,6 +43,7 @@ import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
 import { activateConfirmDialog } from '../actions/UI/confirmDialog'
+import { activateMapDialog } from '../actions/UI/mapDialog'
 import { putPlayer } from '../actions/player'
 import { getCurrentRoom, getVisibleExits } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
@@ -61,6 +63,7 @@ import MyCharacterDialog from './MyCharacterDialog'
 import ConfirmDialog from './ConfirmDialog'
 import HelpDialog from './HelpDialog'
 import DirectMessageDialog from './DirectMessageDialog'
+import MapDialog from './Map'
 import WhoDrawer from './WhoDrawer'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
@@ -154,6 +157,9 @@ export const Chat = () => {
     const handleHelpDialog = () => {
         dispatch(activateHelpDialog())
     }
+    const handleMapDialog = () => {
+        dispatch(activateMapDialog())
+    }
     const handleSignout = () => {
         dispatch(activateConfirmDialog({
             title: 'Sign Out',
@@ -206,6 +212,14 @@ export const Chat = () => {
                         onClick={handleMenuOpen}
                     >
                         <MenuIcon />
+                    </IconButton>
+                    <IconButton
+                        edge="start"
+                        color="inherit"
+                        aria-label="map icon"
+                        onClick={handleMapDialog}
+                    >
+                        <MapIcon />
                     </IconButton>
                     <Container maxWidth="lg">
                         {
@@ -324,6 +338,7 @@ export const Chat = () => {
             <WorldDialog />
             <RoomDialog />
             <MyCharacterDialog />
+            <MapDialog />
             <CodeOfConductConsentDialog
                 open={playerFetched && !consentGiven}
                 onConsent={() => {
