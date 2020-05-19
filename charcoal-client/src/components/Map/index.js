@@ -13,6 +13,7 @@ import {
 
 import { getMapDialogUI } from '../../selectors/UI/mapDialog'
 import { closeMapDialog } from '../../actions/UI/mapDialog'
+import MapCanvas from './MapCanvas'
 import useStyles from '../styles'
 
 export const MapDialog = () => {
@@ -29,7 +30,7 @@ export const MapDialog = () => {
         >
             <DialogTitle id="help-dialog-title" className={classes.lightblue}>Map</DialogTitle>
             <DialogContent>
-
+                <MapCanvas />
             </DialogContent>
             <DialogActions>
                 <Button onClick={closeHandler}>
