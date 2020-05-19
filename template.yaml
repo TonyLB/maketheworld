@@ -1709,3 +1709,7 @@ Outputs:
   AppSyncAPI:
     Description: The ID of the AppSync Api
     Value: !Ref AppSyncAPI
+
+  AppSyncURL:
+    Description: The URL of the AppSync GraphQL endpoint
+    Value: !GetAtt AppSyncAPI.GraphQLUrl

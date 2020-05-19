@@ -1,6 +1,10 @@
 export const WSS_ADDRESS="wss://w9eoi2q3f9.execute-api.us-east-1.amazonaws.com/Prod"
 
 export const AuthConfig = {
+    aws_project_region: "us-east-1",
+    aws_appsync_graphqlEndpoint: "https://ukcxnqmvt5f2hlkk6xy66zmsnu.appsync-api.us-east-1.amazonaws.com/graphql",
+    aws_appsync_region: "us-east-1",
+    aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
     Auth: {
         // REQUIRED - Amazon Cognito Region
         region: 'us-east-1',
