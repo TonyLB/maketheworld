@@ -1,14 +1,8 @@
 import React from 'react'
+import { useSelector } from 'react-redux'
 
-const graph = {
-  nodes: [
-    { id: 1, label: "Node 1", color: "#e04141", position: { x: 100, y: 100 } },
-    { id: 2, label: "Node 2", color: "#e09c41", position: { x: 200, y: 100 } },
-    { id: 3, label: "Node 3", color: "#e0df41", position: { x: 100, y: 200 } },
-    { id: 4, label: "Really extremelylongindeed", color: "#7be041", position: { x: 250, y: 200 } }
-  ],
-  edges: [{ from: 1, to: 2 }, { from: 1, to: 3 }, { from: 2, to: 4 }]
-};
+import { getMaps } from '../../selectors/maps'
+import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 
 const MapEdge = ({ fromPosition, toPosition }) => {
     const { x: fromX, y: fromY } = fromPosition
@@ -70,6 +64,26 @@ const MapRoom = ({ label, color, position }) => {
 }
 
 export const MapCanvas = () => {
+    const map = useSelector(getMaps).Test
+    const permanentHeaders = useSelector(getPermanentHeaders)
+    const graph = {
+        nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => ({
+            id: PermanentId,
+            label: permanentHeaders[PermanentId].Name || '',
+            color: "lightblue",
+            position: {
+                x: X,
+                y: Y
+            }
+        })),
+        edges: Object.values(map.Rooms)
+            .map(({ PermanentId }) => (permanentHeaders[PermanentId]))
+            .map(({ Exits = [], PermanentId }) => (
+                Exits.filter(({ RoomId }) => (map.Rooms[RoomId]))
+                    .map(({ RoomId }) => ({ from: PermanentId, to: RoomId }))
+            ))
+            .reduce((previous, exitList) => ([ ...previous, ...exitList ]), [])
+    }
     return <svg width="600" height="400">
         <defs>
             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'

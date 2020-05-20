@@ -5,6 +5,7 @@ import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
 import registeredCharacter from '../reducers/registeredCharacter.js'
 import permanentHeaders from '../reducers/permanentHeaders.js'
+import maps from '../reducers/maps.js'
 import player from '../reducers/player'
 import role from '../reducers/role'
 import myCharacters from '../reducers/myCharacters.js'
@@ -21,6 +22,7 @@ export const store = createStore(
         registeredCharacter,
         role,
         permanentHeaders,
+        maps,
         player,
         subscriptions,
         UI: uiReducer,
