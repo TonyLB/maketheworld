@@ -470,6 +470,7 @@ Resources:
                         - !GetAtt GetNeighborhoodFunction.Arn
                         - !GetAtt PutNeighborhoodFunction.Arn
                         - !GetAtt PutRoomFunction.Arn
+                        - !GetAtt GetMapsFunction.Arn
   CharactersInPlayDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -922,6 +923,43 @@ Resources:
                 }))
             #end
             $util.toJson($output)
+  GetMapsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+        CodeUri: lambda/permanents/maps/
+        Handler: app.getMaps
+        MemorySize: 256
+        Runtime: nodejs12.x
+        Environment:
+            Variables:
+                TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_permanents'
+  GetMapsDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: GetMaps
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt GetMapsFunction.Arn
+  QueryGetMapsResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getMaps
+          DataSourceName: !GetAtt GetMapsDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {}
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPreQueryCharacterInPlay:
       Type: AWS::AppSync::FunctionConfiguration
       Properties:
@@ -1566,6 +1604,16 @@ Resources:
                   CharacterInfo: Character
                   GrantInfo: ExternalGrant
               }
+              type MapRoomEntry {
+                  PermanentId: String!
+                  X: Int!
+                  Y: Int!
+              }
+              type Map @aws_iam @aws_cognito_user_pools {
+                  MapId: String!
+                  Name: String
+                  Rooms: [MapRoomEntry]
+              }
               type Mutation {
                   putPlayer(
                       PlayerName: String,
@@ -1677,6 +1725,7 @@ Resources:
                   getRoomRecap(PermanentId: String!): [Message]
                   getRoomByCharacter(CharacterId: String!): Room
                   getRoles: [Role]
+                  getMaps: [Map]
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
