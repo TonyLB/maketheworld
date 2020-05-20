@@ -45,7 +45,8 @@ const MapRoom = ({ label, color, position }) => {
         <text
             style={{
                 fontFamily: "Roboto",
-                fontSize: "10px"
+                fontSize: "10px",
+                pointerEvents: "none"
             }}
             textAnchor="middle"
             x={position.x}

@@ -166,6 +166,35 @@ export const useStyles = makeStyles(theme => ({
         width: theme.spacing(8) + 1,
         pointerEvents: 'auto'
     },
+    mapDrawerOpen: {
+        width: 600,
+        height: 400,
+        flexShrink: 0,
+        position: "relative",
+        left: 0,
+        top: 0,
+        overflowY: "hidden",
+        overflowX: "hidden",
+        transition: theme.transitions.create(['width', 'height'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+        }),
+        pointerEvents: 'auto'
+    },
+    mapDrawerClose: {
+        transition: theme.transitions.create(['width', 'height'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+        }),
+        position: "relative",
+        left: 0,
+        top: 0,
+        overflowY: "hidden",
+        overflowX: 'hidden',
+        width: theme.spacing(14) + 1,
+        height: theme.spacing(8),
+        pointerEvents: 'auto'
+    },
     toolbar: {
         display: 'flex',
         alignItems: 'center',
