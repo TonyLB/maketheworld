@@ -3,6 +3,7 @@ import { getNeighborhoodTree } from '../graphql/queries'
 import { changedNode, changedRoom } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
+import { fetchMaps } from './maps'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 export const NEIGHBORHOOD_MERGE = 'NEIGHBORHOOD_MERGE'
@@ -48,4 +49,5 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
     dispatch(addSubscription({ rooms: roomSubscription }))
     dispatch(fetchAllNeighborhoods())
+    dispatch(fetchMaps)
 }

@@ -64,7 +64,7 @@ const MapRoom = ({ label, color, position }) => {
 }
 
 export const MapCanvas = () => {
-    const map = useSelector(getMaps).Test
+    const map = useSelector(getMaps).TEST
     const permanentHeaders = useSelector(getPermanentHeaders)
     const graph = {
         nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => ({

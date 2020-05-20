@@ -1,24 +1,86 @@
 import maps from './maps.js'
+import { MAPS_UPDATE } from '../actions/maps'
 
-describe('Maps reducer', () => {
-    it('should return the test map by default', () => {
-        expect(maps()).toEqual({
+const testState = {
+    Test: {
+        MapId: 'Test',
+        Name: 'Test Map',
+        Rooms: {}
+    }
+}
+
+describe('maps reducer', () => {
+    it('should return empty map by default', () => {
+        expect(maps()).toEqual({})
+    })
+
+    it('should return unchanged map on empty array', () => {
+        expect(maps(testState, {
+            type: MAPS_UPDATE,
+            data: []
+        })).toEqual(testState)
+    })
+
+    it('should return unchanged map on other action type', () => {
+        expect(maps(testState, {
+            type: 'NO-OP',
+            data: []
+        })).toEqual(testState)
+    })
+
+    it('should update map on new passed data', () => {
+        expect(maps(testState, {
+            type: MAPS_UPDATE,
+            data: [{
+                MapId: 'Test',
+                Name: 'New Test Name',
+                Rooms: [{
+                    PermanentId: 'VORTEX',
+                    X: 100,
+                    Y: 100
+                }]
+            }]
+        })).toEqual({
             Test: {
+                MapId: 'Test',
+                Name: 'New Test Name',
                 Rooms: {
                     VORTEX: {
-                        PermanentId: "VORTEX",
+                        PermanentId: 'VORTEX',
                         X: 100,
                         Y: 100
-                    },
-                    "be39870d-f011-48b4-a890-f178a3797d16": {
-                        PermanentId: "be39870d-f011-48b4-a890-f178a3797d16",
-                        X: 200,
+                    }
+                }
+            }
+        })
+    })
+
+    it('should update map on added data', () => {
+        expect(maps(testState, {
+            type: MAPS_UPDATE,
+            data: [{
+                MapId: 'TestTwo',
+                Name: 'New Test Name',
+                Rooms: [{
+                    PermanentId: 'VORTEX',
+                    X: 100,
+                    Y: 100
+                }]
+            }]
+        })).toEqual({
+            Test: {
+                MapId: 'Test',
+                Name: 'Test Map',
+                Rooms: {}
+            },
+            TestTwo: {
+                MapId: 'TestTwo',
+                Name: 'New Test Name',
+                Rooms: {
+                    VORTEX: {
+                        PermanentId: 'VORTEX',
+                        X: 100,
                         Y: 100
-                    },
-                    "6ff26c6e-d67d-49dd-9110-f76e77336453": {
-                        PermanentId: "6ff26c6e-d67d-49dd-9110-f76e77336453",
-                        X: 200,
-                        Y: 200
                     }
                 }
             }
