@@ -206,6 +206,18 @@ export const useStyles = makeStyles(theme => ({
     content: {
         flexGrow: 1,
         padding: theme.spacing(3),
+    },
+    svgBlue: {
+        fill: blue[500]
+    },
+    svgBlueContrast: {
+        fill: theme.palette.getContrastText(blue[500])
+    },
+    svgLightBlue: {
+        fill: blue[50]
+    },
+    svgLightBlueContrast: {
+        fill: theme.palette.getContrastText(blue[50])
     }
 }))
 

@@ -2,6 +2,8 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
+import { getCurrentRoomId } from '../../selectors/connection'
+import useStyles from '../styles'
 
 const MapEdge = ({ fromPosition, toPosition }) => {
     const { x: fromX, y: fromY } = fromPosition
@@ -24,7 +26,8 @@ const MapEdge = ({ fromPosition, toPosition }) => {
     />
 }
 
-const MapRoom = ({ label, color, position }) => {
+const MapRoom = ({ label, className, position }) => {
+    const classes = useStyles()
     const lineBreakout = label.split(/\s+/)
         .reduce(({ currentLine, lines }, word) => (
             ((`${currentLine} ${word}`.length < 10) || !currentLine)
@@ -40,7 +43,7 @@ const MapRoom = ({ label, color, position }) => {
     const lines = [ ...lineBreakout.lines, lineBreakout.currentLine ]
                 .map((word) => (word.length > 10 ? `${word.slice(0, 7)}...` : word))
     return <React.Fragment>
-        <circle cx={position.x} cy={position.y} r={30} fill={color} />
+        <circle cx={position.x} cy={position.y} r={30} className={classes[className]} />
         <text
             style={{
                 fontFamily: "Roboto",
@@ -50,7 +53,7 @@ const MapRoom = ({ label, color, position }) => {
             textAnchor="middle"
             x={position.x}
             y={position.y + 3}
-            fill="#000000"
+            className={classes[`${className}Contrast`]}
         >
             {lines.length === 1 && lines[0]}
             {lines.length > 1 &&
@@ -65,11 +68,12 @@ const MapRoom = ({ label, color, position }) => {
 
 export const MapCanvas = ({ map }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
+    const currentRoomId = useSelector(getCurrentRoomId)
     const graph = {
         nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => ({
             id: PermanentId,
             label: permanentHeaders[PermanentId].Name || '',
-            color: "lightblue",
+            className: (PermanentId === currentRoomId) ? "svgBlue" : "svgLightBlue",
             position: {
                 x: X,
                 y: Y
@@ -100,8 +104,8 @@ export const MapCanvas = ({ map }) => {
             ))
         }
         {
-            graph.nodes.map(({ id, label, color, position }) => (
-                <MapRoom key={id} color={color} position={position} label={label} />
+            graph.nodes.map(({ id, label, className, position }) => (
+                <MapRoom key={id} className={className} position={position} label={label} />
             ))
         }
     </svg>
