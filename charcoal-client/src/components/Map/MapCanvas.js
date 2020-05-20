@@ -1,8 +1,9 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 
+import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
-import { getCurrentRoomId } from '../../selectors/connection'
+import { getCurrentRoom } from '../../selectors/currentRoom'
 import useStyles from '../styles'
 
 const MapEdge = ({ fromPosition, toPosition }) => {
@@ -26,8 +27,9 @@ const MapEdge = ({ fromPosition, toPosition }) => {
     />
 }
 
-const MapRoom = ({ label, className, position }) => {
+const MapRoom = ({ id, label, className, position, exitName,  }) => {
     const classes = useStyles()
+    const dispatch = useDispatch()
     const lineBreakout = label.split(/\s+/)
         .reduce(({ currentLine, lines }, word) => (
             ((`${currentLine} ${word}`.length < 10) || !currentLine)
@@ -42,8 +44,16 @@ const MapRoom = ({ label, className, position }) => {
         ), { currentLine: '', lines: []})
     const lines = [ ...lineBreakout.lines, lineBreakout.currentLine ]
                 .map((word) => (word.length > 10 ? `${word.slice(0, 7)}...` : word))
+    const onClick = exitName ? () => { dispatch(moveCharacter({ ExitName: exitName, RoomId: id }))} : () => {}
     return <React.Fragment>
-        <circle cx={position.x} cy={position.y} r={30} className={classes[className]} />
+        <circle
+            cx={position.x}
+            cy={position.y}
+            r={30}
+            className={classes[className]}
+            onClick={onClick}
+            style={{ cursor: exitName ? 'pointer' : '' }}
+        />
         <text
             style={{
                 fontFamily: "Roboto",
@@ -68,17 +78,21 @@ const MapRoom = ({ label, className, position }) => {
 
 export const MapCanvas = ({ map }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
-    const currentRoomId = useSelector(getCurrentRoomId)
+    const currentRoom = useSelector(getCurrentRoom)
     const graph = {
-        nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => ({
-            id: PermanentId,
-            label: permanentHeaders[PermanentId].Name || '',
-            className: (PermanentId === currentRoomId) ? "svgBlue" : "svgLightBlue",
-            position: {
-                x: X,
-                y: Y
+        nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => {
+            const exit = (currentRoom.Exits || []).find(({ RoomId }) => (RoomId === PermanentId))
+            return {
+                id: PermanentId,
+                label: permanentHeaders[PermanentId].Name || '',
+                className: (PermanentId === currentRoom.PermanentId) ? "svgBlue" : "svgLightBlue",
+                exitName: (exit && exit.Name) || null,
+                position: {
+                    x: X,
+                    y: Y
+                }
             }
-        })),
+        }),
         edges: Object.values(map.Rooms)
             .map(({ PermanentId }) => (permanentHeaders[PermanentId]))
             .map(({ Exits = [], PermanentId }) => (
@@ -104,8 +118,15 @@ export const MapCanvas = ({ map }) => {
             ))
         }
         {
-            graph.nodes.map(({ id, label, className, position }) => (
-                <MapRoom key={id} className={className} position={position} label={label} />
+            graph.nodes.map(({ id, label, className, position, exitName }) => (
+                <MapRoom
+                    key={id}
+                    id={id}
+                    className={className}
+                    exitName={exitName}
+                    position={position}
+                    label={label}
+                />
             ))
         }
     </svg>
