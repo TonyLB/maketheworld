@@ -77,7 +77,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         }))))
         .then((Grants) => ({ ...neighborhood, Grants }))
     ))
-    .then(({ PermanentId: FetchedPermanentId, ParentId, Ancestry, ProgenitorId, Name, Description, Visibility, Topology, Grants, ...rest }) => ({
+    .then(({ PermanentId: FetchedPermanentId, ParentId, Ancestry, ProgenitorId, Name, Description, Visibility, Topology, ContextMapId, Grants, ...rest }) => ({
         PermanentId,
         ParentId,
         Ancestry,
@@ -85,6 +85,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         Description,
         Visibility,
         Topology,
+        ContextMapId,
         Type: 'NEIGHBORHOOD',
         Grants,
         ...rest
@@ -100,7 +101,7 @@ exports.putNeighborhood = (event) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Topology = 'Dead-End', Grants = [], Name } = event.arguments
+    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Topology = 'Dead-End', ContextMapId, Grants = [], Name } = event.arguments
 
     const newNeighborhood = !Boolean(PermanentId)
     const newPermanentId = PermanentId || uuidv4()
@@ -119,6 +120,7 @@ exports.putNeighborhood = (event) => {
             Description,
             Visibility,
             Topology,
+            ContextMapId,
             Grants
         })
         : documentClient.get({
@@ -137,6 +139,7 @@ exports.putNeighborhood = (event) => {
                 Description,
                 Visibility,
                 Topology,
+                ContextMapId,
                 Grants,
                 PreviousParentId: FetchedParentId,
                 PreviousAncestry: Ancestry,
@@ -207,7 +210,8 @@ exports.putNeighborhood = (event) => {
                     Description,
                     ParentId,
                     Visibility,
-                    Topology
+                    Topology,
+                    ContextMapId
                 }) => (`externalPut${PermanentId.startsWith("ROOM#") ? "Room" : "Neighborhood" } (
                         PermanentId: "${PermanentId.split("#").slice(1).join("#")}",
                         Name: ${JSON.stringify(Name)},
@@ -216,6 +220,7 @@ exports.putNeighborhood = (event) => {
                         ParentId: "${ParentId}",
                         Visibility: "${ Visibility || 'Visible' }"
                         Topology: "${ Topology || 'Dead-End'}"
+                        ContextMapId: "${ContextMapId}"
                     ) {
                         PermanentId
                         Type
@@ -225,6 +230,7 @@ exports.putNeighborhood = (event) => {
                         ParentId
                         Visibility
                         Topology
+                        ContextMapId
                     }
                     `))
                 ))
@@ -483,6 +489,7 @@ exports.putNeighborhood = (event) => {
         Description,
         Visibility = 'Private',
         Topology = 'Dead-End',
+        ContextMapId,
         Grants = []
     }) => (documentClient.put({
             TableName: permanentTable,
@@ -496,6 +503,7 @@ exports.putNeighborhood = (event) => {
                 ...(Description ? { Description } : {}),
                 ...(Visibility ? { Visibility } : {}),
                 ...(Topology ? { Topology } : {})
+                ...(ContextMapId ? { ContextMapId } : {})
             },
             ReturnValues: "ALL_OLD"
         }).promise()
@@ -511,6 +519,7 @@ exports.putNeighborhood = (event) => {
                 Description,
                 Visibility,
                 Topology,
+                ContextMapId,
                 Grants
             }))
     )
@@ -520,7 +529,7 @@ exports.putNeighborhood = (event) => {
         .then(cascadeUpdates)
         .then(updateGrants)
         .then(putNeighborhood)
-        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, Grants }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, Grants }))
+        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, ContextMapId, Grants }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, ContextMapId, Grants }))
         .catch((err) => ({ error: err.stack }))
 
 }

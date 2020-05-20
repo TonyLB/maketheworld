@@ -1,7 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 
-import { getMaps } from '../../selectors/maps'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 
 const MapEdge = ({ fromPosition, toPosition }) => {
@@ -64,8 +63,7 @@ const MapRoom = ({ label, color, position }) => {
     </React.Fragment>
 }
 
-export const MapCanvas = () => {
-    const map = useSelector(getMaps).TEST
+export const MapCanvas = ({ map }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
     const graph = {
         nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => ({

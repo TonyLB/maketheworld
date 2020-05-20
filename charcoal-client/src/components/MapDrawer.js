@@ -1,4 +1,5 @@
 import React from 'react'
+import { useSelector } from 'react-redux'
 
 import {
     Paper,
@@ -8,6 +9,7 @@ import OpenArrowIcon from '@material-ui/icons/ChevronRight'
 import CloseArrowIcon from '@material-ui/icons/ChevronLeft'
 import MapIcon from '@material-ui/icons/Explore'
 
+import { getCurrentMap } from '../selectors/maps'
 import MapCanvas from './Map/MapCanvas'
 import { useStyles } from './styles'
 
@@ -17,6 +19,7 @@ export const MapDrawer = ({
 }) => {
 
     const classes = useStyles()
+    const currentMap = useSelector(getCurrentMap)
 
     return (
         <Paper
@@ -32,7 +35,7 @@ export const MapDrawer = ({
                     { open ? <CloseArrowIcon /> : <OpenArrowIcon /> }
                 </IconButton>
             </div>
-            <MapCanvas />
+            <MapCanvas map={currentMap} />
         </Paper>
     )
 }

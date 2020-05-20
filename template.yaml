@@ -1528,6 +1528,7 @@ Resources:
                   ParentId: String
                   Visibility: String
                   Topology: String
+                  ContextMapId: String
                   Grants: [ResourceGrant]
               }
               type Neighborhood implements PermanentTreeNode {
@@ -1539,6 +1540,7 @@ Resources:
                   ParentId: String
                   Visibility: String
                   Topology: String
+                  ContextMapId: String
                   Grants: [ResourceGrant]
               }
               interface RoomPath {
@@ -1649,6 +1651,7 @@ Resources:
                       ParentId: String
                       Visibility: String
                       Topology: String
+                      ContextMapId: String
                       Grants: [ResourceGrantInput]
                   ): AnyNode
                   externalPutNeighborhood(

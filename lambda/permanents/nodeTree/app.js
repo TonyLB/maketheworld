@@ -13,7 +13,8 @@ const itemReducer = (previous, {
     Name,
     Description,
     Visibility,
-    Topology = 'Dead-End'
+    Topology = 'Dead-End',
+    ContextMapId
 }) => {
     const [typeLabel, PermanentId] = breakOutType(FetchedPermanentId)
     if (DataCategory === 'Details') {
@@ -29,7 +30,8 @@ const itemReducer = (previous, {
                 Name,
                 Description,
                 Visibility: Visibility || (typeLabel === 'NEIGHBORHOOD' ? 'Private' : 'Public'),
-                Topology
+                Topology,
+                ContextMapId
             }
         }
     }
