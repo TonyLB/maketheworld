@@ -8,6 +8,7 @@ import confirmDialog from './confirmDialog'
 import helpDialog from './helpDialog'
 import directMessageDialog from './directMessageDialog'
 import mapDialog from './mapDialog'
+import editMapDialog from './editMapDialog'
 
 export const reducer = combineReducers({
     allCharactersDialog,
@@ -18,7 +19,8 @@ export const reducer = combineReducers({
     confirmDialog,
     helpDialog,
     directMessageDialog,
-    mapDialog
+    mapDialog,
+    editMapDialog
 })
 
 export default reducer

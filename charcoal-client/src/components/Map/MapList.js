@@ -8,22 +8,32 @@ import {
 } from '@material-ui/core'
 
 import { getMaps } from '../../selectors/maps'
-import { NavigationMap } from './NavigationMap'
+import MapDisplay from './MapDisplay'
+import { EditMapDialog } from './EditMap'
+import { activateEditMapDialog } from '../../actions/UI/mapDialog'
 
 export const MapList = () => {
     const maps = useSelector(getMaps)
-    return <GridList cellHeight={200}>
-        {
-            (Object.values(maps) || []).map((map) => (
-                <GridListTile key={map.PermanentId}>
-                    <NavigationMap width={300} height={200} navigation={false} map={map} />
-                    <GridListTileBar
-                        title={map.Name}
-                    />
-                </GridListTile>
-            ))
-        }
-    </GridList>
+    const dispatch = useDispatch()
+    return <React.Fragment>
+        <EditMapDialog />
+        <GridList cellHeight={200}>
+            {
+                (Object.values(maps) || []).map((map) => (
+                    <GridListTile
+                        key={map.MapId || 'None'}
+                        onClick={() => { dispatch(activateEditMapDialog(map))} }
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <MapDisplay width={300} height={200} map={map} />
+                        <GridListTileBar
+                            title={map.Name}
+                        />
+                    </GridListTile>
+                ))
+            }
+        </GridList>
+    </React.Fragment>
 }
 
 export default MapList

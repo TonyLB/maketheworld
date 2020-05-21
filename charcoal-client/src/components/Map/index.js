@@ -13,7 +13,6 @@ import {
 
 import { getMapDialogUI } from '../../selectors/UI/mapDialog'
 import { closeMapDialog } from '../../actions/UI/mapDialog'
-import { getMaps } from '../../selectors/maps'
 import useStyles from '../styles'
 
 import MapList from './MapList'
@@ -22,7 +21,6 @@ export const MapDialog = () => {
     const open = useSelector(getMapDialogUI)
     const dispatch = useDispatch()
     const classes = useStyles()
-    const map = useSelector(getMaps).Test
 
     const closeHandler = () => { dispatch(closeMapDialog()) }
     return(
