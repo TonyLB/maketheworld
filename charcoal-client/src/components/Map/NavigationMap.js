@@ -27,9 +27,8 @@ const MapEdge = ({ fromPosition, toPosition }) => {
     />
 }
 
-const MapRoom = ({ id, label, className, position, exitName,  }) => {
+const MapRoom = ({ id, label, className, position, onClick, clickable=false }) => {
     const classes = useStyles()
-    const dispatch = useDispatch()
     const lineBreakout = label.split(/\s+/)
         .reduce(({ currentLine, lines }, word) => (
             ((`${currentLine} ${word}`.length < 10) || !currentLine)
@@ -44,7 +43,6 @@ const MapRoom = ({ id, label, className, position, exitName,  }) => {
         ), { currentLine: '', lines: []})
     const lines = [ ...lineBreakout.lines, lineBreakout.currentLine ]
                 .map((word) => (word.length > 10 ? `${word.slice(0, 7)}...` : word))
-    const onClick = exitName ? () => { dispatch(moveCharacter({ ExitName: exitName, RoomId: id }))} : () => {}
     return <React.Fragment>
         <circle
             cx={position.x}
@@ -52,7 +50,7 @@ const MapRoom = ({ id, label, className, position, exitName,  }) => {
             r={30}
             className={classes[className]}
             onClick={onClick}
-            style={{ cursor: exitName ? 'pointer' : '' }}
+            style={{ cursor: clickable ? 'pointer' : '' }}
         />
         <text
             style={{
@@ -76,9 +74,11 @@ const MapRoom = ({ id, label, className, position, exitName,  }) => {
     </React.Fragment>
 }
 
-export const MapCanvas = ({ map }) => {
+export const NavigationMap = ({ map, navigation = true, width=600, height=400 }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
     const currentRoom = useSelector(getCurrentRoom)
+    const dispatch = useDispatch()
+
     const graph = {
         nodes: Object.values(map.Rooms).map(({ PermanentId, X, Y }) => {
             const exit = (currentRoom.Exits || []).find(({ RoomId }) => (RoomId === PermanentId))
@@ -101,7 +101,7 @@ export const MapCanvas = ({ map }) => {
             ))
             .reduce((previous, exitList) => ([ ...previous, ...exitList ]), [])
     }
-    return <svg width="600" height="400">
+    return <svg width={width} height={height} viewBox="0 0 600 400">
         <defs>
             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                     refX='10' refY='5'>
@@ -126,10 +126,12 @@ export const MapCanvas = ({ map }) => {
                     exitName={exitName}
                     position={position}
                     label={label}
+                    clickable={exitName && navigation}
+                    onClick={ (exitName && navigation) ? () => { dispatch(moveCharacter({ ExitName: exitName, RoomId: id }))} : () => {} }
                 />
             ))
         }
     </svg>
 }
 
-export default MapCanvas
+export default NavigationMap

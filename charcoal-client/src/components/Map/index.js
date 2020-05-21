@@ -14,8 +14,9 @@ import {
 import { getMapDialogUI } from '../../selectors/UI/mapDialog'
 import { closeMapDialog } from '../../actions/UI/mapDialog'
 import { getMaps } from '../../selectors/maps'
-import MapCanvas from './MapCanvas'
 import useStyles from '../styles'
+
+import MapList from './MapList'
 
 export const MapDialog = () => {
     const open = useSelector(getMapDialogUI)
@@ -30,9 +31,9 @@ export const MapDialog = () => {
             open={open}
             onClose={closeHandler}
         >
-            <DialogTitle id="help-dialog-title" className={classes.lightblue}>Map</DialogTitle>
+            <DialogTitle id="help-dialog-title" className={classes.lightblue}>Choose a Map to Edit</DialogTitle>
             <DialogContent>
-                <MapCanvas map={map} />
+                <MapList />
             </DialogContent>
             <DialogActions>
                 <Button onClick={closeHandler}>

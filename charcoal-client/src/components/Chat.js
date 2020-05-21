@@ -42,6 +42,7 @@ import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
 import { activateConfirmDialog } from '../actions/UI/confirmDialog'
+import { activateMapDialog } from '../actions/UI/mapDialog'
 import { putPlayer } from '../actions/player'
 import { getCurrentRoom, getVisibleExits } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
@@ -61,6 +62,7 @@ import MyCharacterDialog from './MyCharacterDialog'
 import ConfirmDialog from './ConfirmDialog'
 import HelpDialog from './HelpDialog'
 import DirectMessageDialog from './DirectMessageDialog'
+import MapDialog from './Map/'
 import WhoDrawer from './WhoDrawer'
 import MapDrawer from './MapDrawer'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
@@ -146,6 +148,10 @@ export const Chat = () => {
     }
     const handleWorldOverview = () => {
         dispatch(fetchAndOpenWorldDialog())
+        handleMenuClose()
+    }
+    const handleMapOverview = () => {
+        dispatch(activateMapDialog())
         handleMenuClose()
     }
     const handleSetCharacterHome = () => {
@@ -253,7 +259,10 @@ export const Chat = () => {
                         onClose={handleMenuClose}
                     >
                         <MenuItem onClick={handleWorldOverview}>
-                            Edit World
+                            Place Edit
+                        </MenuItem>
+                        <MenuItem onClick={handleMapOverview}>
+                            Map Edit
                         </MenuItem>
                     </Menu>
                     <Menu
@@ -328,6 +337,7 @@ export const Chat = () => {
             <ConfirmDialog />
             <AllCharactersDialog />
             <WorldDialog />
+            <MapDialog />
             <RoomDialog />
             <MyCharacterDialog />
             <CodeOfConductConsentDialog

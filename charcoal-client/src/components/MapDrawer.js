@@ -10,7 +10,7 @@ import CloseArrowIcon from '@material-ui/icons/ChevronLeft'
 import MapIcon from '@material-ui/icons/Explore'
 
 import { getCurrentMap } from '../selectors/maps'
-import MapCanvas from './Map/MapCanvas'
+import NavigationMap from './Map/NavigationMap'
 import { useStyles } from './styles'
 
 export const MapDrawer = ({
@@ -35,7 +35,7 @@ export const MapDrawer = ({
                     { open ? <CloseArrowIcon /> : <OpenArrowIcon /> }
                 </IconButton>
             </div>
-            <MapCanvas map={currentMap} />
+            <NavigationMap map={currentMap} />
         </Paper>
     )
 }
