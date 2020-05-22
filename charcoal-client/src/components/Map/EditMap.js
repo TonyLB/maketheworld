@@ -112,8 +112,8 @@ const mapDisplayReducer = (state, action) => {
             const force = forceSimulation(newNodes)
                 .alphaDecay(0.15)
                 .force("boundingBox", boundingForceFactory(newNodes))
-                .force("gridDrift", gridInfluenceForceFactory(newNodes, 100.0))
-                .force("link", forceFlexLink(links).minDistance(70).maxDistance(150))
+                .force("gridDrift", gridInfluenceForceFactory(newNodes, 50.0))
+                .force("link", forceFlexLink(links).minDistance(70).maxDistance(180))
                 .force("collision", forceCollide(40).iterations(3))
             force.on('tick', () => {
                 action.localDispatch({ type: TICK })
