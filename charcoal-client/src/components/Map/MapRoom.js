@@ -32,7 +32,8 @@ export const MapRoom = ({ PermanentId, Name, className='svgLightBlue', position,
             style={{
                 fontFamily: "Roboto",
                 fontSize: "10px",
-                pointerEvents: "none"
+                pointerEvents: "none",
+                userSelect: "none"
             }}
             textAnchor="middle"
             x={position.x}
