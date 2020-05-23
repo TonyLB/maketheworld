@@ -104,7 +104,12 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
             permanentHeaders: permanentReducer(state.permanentHeaders, {
                 type: NEIGHBORHOOD_UPDATE,
                 data: [{
-                    PermanentId, ParentId, Visibility, Topology, Type: 'NEIGHBORHOOD'
+                    Neighborhood: {
+                        PermanentId,
+                        ParentId,
+                        Visibility,
+                        Topology
+                    }
                 }]
             })
         }
@@ -153,11 +158,12 @@ export const getRoomUpdateValidator = (state) => ({ PermanentId, ParentId, Exits
         permanentHeaders: permanentReducer(state.permanentHeaders, {
             type: NEIGHBORHOOD_UPDATE,
             data: [{
-                PermanentId,
-                ParentId,
-                Type: 'ROOM',
-                Exits: Exits || previousRoom.Exits,
-                Entries: Entries || previousRoom.Entries
+                Room: {
+                    PermanentId,
+                    ParentId,
+                    Exits: Exits || previousRoom.Exits,
+                    Entries: Entries || previousRoom.Entries
+                }
             }]
         })
     }

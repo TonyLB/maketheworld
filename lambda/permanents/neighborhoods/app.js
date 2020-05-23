@@ -86,9 +86,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         Visibility,
         Topology,
         ContextMapId,
-        Type: 'NEIGHBORHOOD',
-        Grants,
-        ...rest
+        Grants
     }))
 
     return neighborhoodLookup
@@ -220,17 +218,55 @@ exports.putNeighborhood = (event) => {
                         ParentId: "${ParentId}",
                         Visibility: "${ Visibility || 'Visible' }"
                         Topology: "${ Topology || 'Dead-End'}"
-                        ContextMapId: "${ContextMapId}"
+                        ${ PermanentId.startsWith('NEIGHBORHOOD#') ? `ContextMapId: "${ContextMapId}"` : ''}
                     ) {
-                        PermanentId
-                        Type
-                        Name
-                        Ancestry
-                        Description
-                        ParentId
-                        Visibility
-                        Topology
-                        ContextMapId
+                        Neighborhood {
+                            PermanentId
+                            Name
+                            Ancestry
+                            Description
+                            ParentId
+                            Visibility
+                            Topology
+                            ContextMapId
+                            Grants {
+                                CharacterId
+                                Actions
+                                Roles
+                            }
+                        }
+                        Room {
+                            PermanentId
+                            Name
+                            Ancestry
+                            Description
+                            ParentId
+                            Visibility
+                            Topology
+                            Exits {
+                                Name
+                                RoomId
+                                Ancestry
+                            }
+                            Entries {
+                                Name
+                                RoomId
+                            }
+                            Grants {
+                                CharacterId
+                                Actions
+                                Roles
+                            }
+                        }
+                        Map {
+                            MapId
+                            Name
+                            Rooms {
+                                PermanentId
+                                X
+                                Y
+                            }
+                        }
                     }
                     `))
                 ))
@@ -502,7 +538,7 @@ exports.putNeighborhood = (event) => {
                 Name,
                 ...(Description ? { Description } : {}),
                 ...(Visibility ? { Visibility } : {}),
-                ...(Topology ? { Topology } : {})
+                ...(Topology ? { Topology } : {}),
                 ...(ContextMapId ? { ContextMapId } : {})
             },
             ReturnValues: "ALL_OLD"
@@ -510,7 +546,6 @@ exports.putNeighborhood = (event) => {
             .then((old) => ((old && old.Attributes) || {}))
             .then(({ DataCategory, ...rest }) => ({
                 ...rest,
-                Type: "NEIGHBORHOOD",
                 PermanentId,
                 ParentId,
                 Ancestry,
@@ -529,7 +564,31 @@ exports.putNeighborhood = (event) => {
         .then(cascadeUpdates)
         .then(updateGrants)
         .then(putNeighborhood)
-        .then(({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, ContextMapId, Grants }) => ({ PermanentId, Type, ParentId, Ancestry, Name, Description, Visibility, Topology, ContextMapId, Grants }))
+        .then(({
+            PermanentId,
+            ParentId,
+            Ancestry,
+            Name,
+            Description,
+            Visibility,
+            Topology,
+            ContextMapId,
+            Grants
+        }) => ([{
+            Neighborhood: {
+                PermanentId,
+                ParentId,
+                Ancestry,
+                Name,
+                Description,
+                Visibility,
+                Topology,
+                ContextMapId,
+                Grants
+            },
+            Room: null,
+            Map: null
+        }]))
         .catch((err) => ({ error: err.stack }))
 
 }

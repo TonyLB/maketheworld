@@ -1311,8 +1311,7 @@ Resources:
             }
         ResponseMappingTemplate: >
             #set($result = $ctx.result)
-            $util.qr($result.put("Type", "NEIGHBORHOOD"))
-            $util.toJson($result)
+            $util.toJson([{ Neighborhood: $result }])
   MutationExternalUpdateGrant:
     Type: AWS::AppSync::Resolver
     DependsOn:
@@ -1403,8 +1402,7 @@ Resources:
           }
       ResponseMappingTemplate: >
           #set($result = $ctx.result)
-          $util.qr($result.put("Type", "ROOM"))
-          $util.toJson($result)
+          $util.toJson([{ Room: $result }])
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1553,27 +1551,13 @@ Resources:
               }
               interface PermanentTreeNode {
                   PermanentId: String!
-                  Type: String!
                   Name: String!
                   Ancestry: String!
                   Description: String
                   ParentId: String
-              }
-              type AnyNode implements PermanentTreeNode @aws_iam @aws_cognito_user_pools {
-                  PermanentId: String!
-                  Type: String!
-                  Name: String!
-                  Ancestry: String!
-                  Description: String
-                  ParentId: String
-                  Visibility: String
-                  Topology: String
-                  ContextMapId: String
-                  Grants: [ResourceGrant]
               }
               type Neighborhood implements PermanentTreeNode {
                   PermanentId: String!
-                  Type: String!
                   Name: String!
                   Ancestry: String!
                   Description: String
@@ -1614,7 +1598,6 @@ Resources:
               }
               type Room implements PermanentTreeNode {
                   PermanentId: String!
-                  Type: String!
                   Name: String!
                   Ancestry: String!
                   Description: String
@@ -1655,6 +1638,11 @@ Resources:
                   MapId: String!
                   Name: String
                   Rooms: [MapRoomEntry]
+              }
+              type ChangedPermanent @aws_iam @aws_cognito_user_pools {
+                Neighborhood: Neighborhood
+                Room: Room
+                Map: Map
               }
               input MapRoomInput {
                   PermanentId: String!
@@ -1698,7 +1686,7 @@ Resources:
                       Topology: String
                       ContextMapId: String
                       Grants: [ResourceGrantInput]
-                  ): AnyNode
+                  ): [ChangedPermanent]
                   externalPutNeighborhood(
                       PermanentId: String!
                       Name: String!
@@ -1707,7 +1695,9 @@ Resources:
                       ParentId: String
                       Visibility: String
                       Topology: String
-                  ): AnyNode
+                      ContextMapId: String
+                      Grants: [ResourceGrantInput]
+                  ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
                   putRoom(
                       PermanentId: String
@@ -1727,7 +1717,7 @@ Resources:
                       ParentId: String
                       Visibility: String
                       Topology: String
-                  ): AnyNode
+                  ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
                   externalUpdateGrant(
                       PlayerName: String!
@@ -1773,7 +1763,7 @@ Resources:
                   getCharacter(playerName: String!, name: String!): Character
                   getPlayerCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
-                  getNeighborhoodTree: [PermanentTreeNode]
+                  getNeighborhoodTree: [ChangedPermanent]
                   getNeighborhood(PermanentId: String!): Neighborhood
                   getRoom(PermanentId: String!): Room
                   getRoomRecap(PermanentId: String!): [Message]
@@ -1786,7 +1776,7 @@ Resources:
                   @aws_subscribe(mutations: ["putPlayer", "putCharacter", "externalUpdateGrant"])
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
-                  changedNode: AnyNode
+                  changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])

@@ -23,7 +23,6 @@ const itemReducer = (previous, {
             [PermanentId]: {
                 ...(previous[PermanentId] || {}),
                 ["__typename"]: typeLabel === 'NEIGHBORHOOD' ? 'Neighborhood' : 'Room',
-                Type: typeLabel,
                 PermanentId,
                 ParentId,
                 Ancestry,
@@ -80,5 +79,8 @@ exports.getNodeTree = () => {
         .then(({ Items = [] }) => (Items.reduce(itemReducer, {})))
         .then((itemMap) => (Object.values(itemMap)))
         .then((items) => (items.filter(({ PermanentId }) => (PermanentId))))
+        .then((items) => (items.map(({ __typename, ...rest }) => ({
+            [__typename]: rest
+        }))))
 
 }

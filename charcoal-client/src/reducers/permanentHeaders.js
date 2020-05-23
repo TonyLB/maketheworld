@@ -11,6 +11,7 @@ const neighborhoodUpdate = ({ PermanentId = 'PLACEHOLDER', ParentId, ...change }
         [PermanentId]: rawAncestryCalculation({ permanentHeaders })({
             ...(permanentHeaders[PermanentId] || {}),
             PermanentId,
+            Type: 'NEIGHBORHOOD',
             ...(ParentId !== undefined ? { ParentId } : {}),
             ...change
         })
@@ -67,6 +68,7 @@ const neighborhoodUpdate = ({ PermanentId = 'PLACEHOLDER', ParentId, ...change }
                         ...previous,
                         [PermanentId]: {
                             PermanentId,
+                            Type: 'NEIGHBORHOOD',
                             ...item
                         }
                     }), {})
@@ -129,6 +131,7 @@ const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change
             ...change,
             PermanentId,
             ParentId,
+            Type: 'ROOM',
             Ancestry: permanentHeaders[ParentId] ? `${permanentHeaders[ParentId].Ancestry || ''}:${PermanentId}` : PermanentId,
             Exits: (Exits || []).filter(({ RoomId }) => (permanentHeaders[RoomId])),
             Entries: (Entries || []).filter(({ RoomId }) => (permanentHeaders[RoomId]))
@@ -137,16 +140,14 @@ const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change
 }
 
 const mergeReducer = (state, data) => (
-    data.reduce((previous, node) => {
-        const { Type } = node
-        switch(Type) {
-            case 'NEIGHBORHOOD':
-                return neighborhoodUpdate(node)(previous)
-            case 'ROOM':
-                return roomUpdate(node)(previous)
-            default:
-                return previous
+    data.reduce((previous, { Neighborhood, Room }) => {
+        if (Neighborhood) {
+            return neighborhoodUpdate(Neighborhood)(previous)
         }
+        if (Room) {
+            return roomUpdate(Room)(previous)
+        }
+        return previous
     }, state)
 )
 
