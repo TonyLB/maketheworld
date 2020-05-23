@@ -995,9 +995,7 @@ Resources:
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": {
-                      "arguments": $utils.toJson($ctx.args)
-                  }
+                  "payload": $utils.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPreQueryCharacterInPlay:
@@ -1755,7 +1753,7 @@ Resources:
                       MapId: String!
                       Name: String
                       Rooms: [MapRoomInput]
-                  ): Map
+                  ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
@@ -1777,7 +1775,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom"])
+                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (

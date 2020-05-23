@@ -133,5 +133,5 @@ exports.putMap = async (payload) => {
         })))
     ])
         .then(batchDispatcher(documentClient))
-        .then(() => payload)
+        .then(() => ([{ Map: payload }]))
 }
