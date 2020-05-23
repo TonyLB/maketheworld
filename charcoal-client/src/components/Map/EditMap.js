@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useReducer, useEffect } from 'react'
+import React, { useReducer, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useGesture } from 'react-use-gesture'
 import { forceSimulation, forceCollide } from 'd3-force'
@@ -15,6 +15,7 @@ import {
 
 import { getEditMapDialogUI } from '../../selectors/UI/mapDialog'
 import { closeEditMapDialog } from '../../actions/UI/mapDialog'
+import { putAndCloseEditMapDialog } from '../../actions/maps'
 import MapDisplay from './MapDisplay'
 import MapRoom from './MapRoom'
 import useStyles from '../styles'
@@ -160,7 +161,7 @@ const gridInfluenceForceFactory = (nodes, granularity) => (alpha) => {
     })
 }
 
-export const EditMapDisplay = ({ map }) => {
+export const EditMapDisplay = ({ map, onStable = () => {}, onUnstable = () => {} }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
     const [state, localDispatch] = useReducer(mapDisplayReducer, {
         ...map,
@@ -174,6 +175,23 @@ export const EditMapDisplay = ({ map }) => {
                 }
             }), {})
     })
+    const [ stable, setStable ] = useState(false)
+    const { DThree } = state
+    const shouldBeStable = DThree && DThree.alpha() < 0.1
+    useEffect(() => {
+        if (!stable && shouldBeStable) {
+            setStable(true)
+            onStable({
+                MapId: state.MapId,
+                Name: state.Name,
+                Rooms: Object.values(state.Rooms).map(({ PermanentId, X, Y }) => ({ PermanentId, X: Math.round(X), Y: Math.round(Y) }))
+            })
+        }
+        if (stable && !shouldBeStable) {
+            setStable(false)
+            onUnstable()
+        }
+    }, [stable, shouldBeStable, setStable, onStable, onUnstable, state])
     useEffect(() => {
         localDispatch({
             type: REGISTER_D_THREE,
@@ -191,10 +209,12 @@ export const EditMapDisplay = ({ map }) => {
 
 export const EditMapDialog = () => {
     const { open, map } = useSelector(getEditMapDialogUI)
+    const [ stableState, setStable ] = useState(null)
     const dispatch = useDispatch()
     const classes = useStyles()
 
     const closeHandler = () => { dispatch(closeEditMapDialog()) }
+    const saveHandler = () => { dispatch(putAndCloseEditMapDialog(stableState)) }
     return(
         <Dialog
             maxWidth="lg"
@@ -203,11 +223,18 @@ export const EditMapDialog = () => {
         >
             <DialogTitle id="help-dialog-title" className={classes.lightblue}>Edit Map</DialogTitle>
             <DialogContent>
-                <EditMapDisplay map={map} />
+                <EditMapDisplay
+                    map={map}
+                    onStable={(state) => { setStable(state) }}
+                    onUnstable={() => { setStable(null) }}
+                />
             </DialogContent>
             <DialogActions>
                 <Button onClick={closeHandler}>
                     Close
+                </Button>
+                <Button onClick={saveHandler} disabled={stableState === null} >
+                    Save
                 </Button>
             </DialogActions>
         </Dialog>
