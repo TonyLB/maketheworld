@@ -2,7 +2,7 @@ import React from 'react'
 
 import useStyles from '../styles'
 
-export const MapRoom = ({ PermanentId, Name, className='svgLightBlue', position, onClick, clickable=false, ...rest }) => {
+export const MapRoom = ({ PermanentId, Name, className, contrastClassName, position, onClick, clickable=false, ...rest }) => {
     const classes = useStyles()
     const lineBreakout = Name.split(/\s+/)
         .reduce(({ currentLine, lines }, word) => (
@@ -23,7 +23,7 @@ export const MapRoom = ({ PermanentId, Name, className='svgLightBlue', position,
             cx={position.x}
             cy={position.y}
             r={30}
-            className={classes[className]}
+            className={className || classes.svgLightBlue}
             onClick={onClick}
             style={{ cursor: clickable ? 'pointer' : '' }}
             {...rest}
@@ -38,7 +38,7 @@ export const MapRoom = ({ PermanentId, Name, className='svgLightBlue', position,
             textAnchor="middle"
             x={position.x}
             y={position.y + 3}
-            className={classes[`${className}Contrast`]}
+            className={contrastClassName || classes.svgLightBlueContrast}
         >
             {lines.length === 1 && lines[0]}
             {lines.length > 1 &&

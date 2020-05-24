@@ -11,7 +11,7 @@ export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, 
     if (!map) {
         return <svg width={width} height={height} viewBox="0 0 600 400" />
     }
-    const nodes = Object.values((map && map.Rooms) || {}).map(({ PermanentId, X, Y }) => {
+    const nodes = Object.values((map && map.Rooms) || {}).map(({ PermanentId, X, Y, ...rest }) => {
             return {
                 PermanentId,
                 key: PermanentId,
@@ -19,7 +19,8 @@ export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, 
                 position: {
                     x: X,
                     y: Y
-                }
+                },
+                ...rest
             }
         })
         .reduce((previous, { PermanentId, ...rest }) => ({ ...previous, [PermanentId]: { PermanentId, ...rest } }), {})

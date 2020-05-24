@@ -21,50 +21,129 @@ import MapRoom from './MapRoom'
 import useStyles from '../styles'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 import forceFlexLink from './forceFlexLink'
+import { objectMap } from '../../lib/objects'
 
 const END_DRAG = 'END_DRAG'
+const CLEAR_DRAG_FLAG = 'CLEAR_DRAG_FLAG'
 const DRAG = 'DRAG'
+const DRAG_TIMER_SET = 'DRAG_TIMER_SET'
+const DRAG_TIMER_FIRE = 'DRAG_TIMER_FIRE'
 const REGISTER_D_THREE = 'REGISTER_D_THREE'
 const UNREGISTER_D_THREE = 'UNREGISTER_D_THREE'
+const CLEAR_SELECT = 'CLEAR_SELECT'
+const SELECT_ROOM = 'SELECT_ROOM'
 const TICK = 'TICK'
 
 const EditableRoom = (props) => {
-    const { localDispatch, PermanentId, ...rest } = props
+    const classes = useStyles()
+    const {
+        localDispatch,
+        PermanentId,
+        selected,
+        className=classes.svgLightBlue,
+        contrastClassName=classes.svgLightBlueContrast,
+        selectedClassName=classes.svgBlue,
+        selectedContrastClassName=classes.svgBlueContrast,
+        ...rest
+    } = props
     const bind = useGesture({
-        onDrag: ({ down, movement }) => {
-            if (down) {
-                localDispatch({ type: DRAG, PermanentId, movement })
-            }
-            else {
-                localDispatch({ type: END_DRAG, PermanentId })
+        onDragStart: () => {
+            localDispatch({ type: DRAG_TIMER_SET, localDispatch })
+        },
+        onDrag: ({ movement }) => {
+            localDispatch({ type: DRAG, PermanentId, movement })
+        },
+        onDragEnd: () => {
+            localDispatch({ type: END_DRAG, PermanentId })
+            setTimeout(() => { localDispatch({ type: CLEAR_DRAG_FLAG })}, 10)
+        },
+        onClick: () => {
+            localDispatch({ type: CLEAR_SELECT })
+            if (!selected) {
+                localDispatch({ type: SELECT_ROOM, PermanentId })
             }
         }
     })
-    return <MapRoom PermanentId={PermanentId} {...rest} {...bind()} />
+    return <MapRoom
+        PermanentId={PermanentId}
+        className={selected ? selectedClassName : className}
+        contrastClassName={selected ? selectedContrastClassName : contrastClassName}
+        {...rest}
+        {...bind()}
+    />
 }
 
 const mapDisplayReducer = (state, action) => {
     const { type, PermanentId } = action
+    const updateState = (props) => ({
+        ...state,
+        Rooms: {
+            ...(state.Rooms || {}),
+            [PermanentId]: {
+                ...((state.Rooms && state.Rooms[PermanentId]) || {}),
+                ...props
+            }
+        }
+    })
     const { DThree, nodes, ...restOfState } = state
     const currentNode = ((nodes || []).find((node) => (node.PermanentId === PermanentId))) || {}
     switch(type) {
+        case CLEAR_SELECT:
+            if (!state.dragging) {
+                return {
+                    ...state,
+                    Rooms: objectMap(state.Rooms || {}, ({ selected, ...rest }) => (rest))
+                }
+            }
+            return state
+        case SELECT_ROOM:
+            if (!state.dragging) {
+                return {
+                    ...state,
+                    Rooms: {
+                        ...(state.Rooms || {}),
+                        [PermanentId]: {
+                            ...((state.Rooms || {})[PermanentId] || {}),
+                            selected: true
+                        }
+                    }
+                }
+            }
+            return state
+        //
+        // We set a timer and fire event that sets state.dragging to TRUE only after a second of
+        // drag (so that shorter mouse-down/mouse-up sequences can be interpreted as onClick events)
+        //
+        case DRAG_TIMER_SET:
+            if (!state.dragTimer) {
+                return {
+                    ...state,
+                    dragTimer: setTimeout(() => { action.localDispatch({ type: DRAG_TIMER_FIRE }) }, 100)
+                }
+            }
+            return state
+        case DRAG_TIMER_FIRE:
+            return {
+                ...state,
+                dragging: true,
+                dragTimer: null
+            }
+        case CLEAR_DRAG_FLAG:
+            if (state.dragTimer) {
+                clearTimeout(state.dragTimer)
+            }
+            return {
+                ...state,
+                dragging: false,
+                dragTimer: null
+            }
         case END_DRAG:
             currentNode.fx = null
             currentNode.fy = null
             if (DThree) {
                 DThree.alphaTarget(0)
             }
-            return {
-                ...state,
-                Rooms: {
-                    ...state.Rooms,
-                    [PermanentId]: {
-                        ...(state.Rooms[PermanentId] || { PermanentId }),
-                        dragOriginX: undefined,
-                        dragOriginY: undefined
-                    }
-                }
-            }
+            return updateState({ dragOriginX: undefined, dragOriginY: undefined })
         case DRAG:
             const { movement: [X, Y] } = action
             const dragRoom = state.Rooms[PermanentId]
@@ -79,19 +158,12 @@ const mapDisplayReducer = (state, action) => {
                 DThree.alphaTarget(0.5)
                 DThree.restart()
             }
-            return {
-                ...state,
-                Rooms: {
-                    ...state.Rooms,
-                    [PermanentId]: {
-                        ...state.Rooms[PermanentId],
-                        X: fixedX,
-                        Y: fixedY,
-                        dragOriginX,
-                        dragOriginY
-                    }
-                }
-            }
+            return updateState({
+                X: fixedX,
+                Y: fixedY,
+                dragOriginX,
+                dragOriginY
+            })
         case REGISTER_D_THREE:
             let newNodes = Object.values(state.Rooms)
                 .map(({ PermanentId, X, Y }, index) => ({
@@ -165,15 +237,11 @@ export const EditMapDisplay = ({ map, onStable = () => {}, onUnstable = () => {}
     const permanentHeaders = useSelector(getPermanentHeaders)
     const [state, localDispatch] = useReducer(mapDisplayReducer, {
         ...map,
-        Rooms: Object.values(map.Rooms)
-            .reduce((previous, { PermanentId, ...rest }) => ({
-                ...previous,
-                [PermanentId]: {
-                    PermanentId,
-                    Exits: (permanentHeaders[PermanentId] || { Exits: [] }).Exits || [],
-                    ...rest
-                }
-            }), {})
+        Rooms: objectMap(map.Rooms || {}, ({ PermanentId, ...rest }) => ({
+            PermanentId,
+            Exits: (permanentHeaders[PermanentId] || { Exits: [] }).Exits || [],
+            ...rest
+        }))
     })
     const [ stable, setStable ] = useState(false)
     const { DThree } = state
@@ -202,7 +270,10 @@ export const EditMapDisplay = ({ map, onStable = () => {}, onUnstable = () => {}
         }
     }, [localDispatch])
     return <MapDisplay
-        map={state}
+        map={{
+            ...state,
+            Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, selected }) => ({ PermanentId, X, Y, selected }))
+        }}
         roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
     />
 }
