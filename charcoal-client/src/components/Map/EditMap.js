@@ -11,7 +11,8 @@ import {
     DialogContent,
     DialogActions,
     Button,
-    IconButton
+    IconButton,
+    TextField
 } from '@material-ui/core'
 import RoomAddIcon from '@material-ui/icons/AddBox'
 import RoomDeleteIcon from '@material-ui/icons/Delete'
@@ -38,6 +39,7 @@ const CLEAR_SELECT = 'CLEAR_SELECT'
 const SELECT_ROOM = 'SELECT_ROOM'
 const REMOVE_SELECTED_ROOMS = 'REMOVE_SELECTED_ROOMS'
 const ADD_ROOM = 'ADD_ROOM'
+const SET_NAME = 'SET_NAME'
 const TICK = 'TICK'
 
 const EditableRoom = (props) => {
@@ -185,7 +187,11 @@ const mapDisplayReducer = (state, action) => {
                 nodes: addedNodes,
                 links: addedLinks
             }
-
+        case SET_NAME:
+            return {
+                ...state,
+                Name: action.Name
+            }
 
         //
         // We set a timer and fire event that sets state.dragging to TRUE only after a second of
@@ -344,38 +350,43 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
     const addRoomHandler = (PermanentId) => () => {
         localDispatch({ type: 'ADD_ROOM', PermanentId, Exits: (permanentHeaders[PermanentId] || {}).Exits || [] })
     }
-    return <div style={{ display: "flex", flexDirection: "row" }}>
-        <PermanentSelectPopover
-            anchorEl={roomAddAnchorEl}
-            open={Boolean(roomAddAnchorEl)}
-            onClose={() => { setRoomAddAnchorEl(null) }}
-            neighborhoods={neighborhoodTree}
-            addHandler={addRoomHandler}
-        />
-        <div style={{ display: "flex", flexDirection: "column" }}>
-            <div>
-                <IconButton onClick={(event) => { setRoomAddAnchorEl(event.target) }}>
-                    <RoomAddIcon />
-                </IconButton>
-            </div>
-            <div>
-                <IconButton onClick={() => { localDispatch({ type: REMOVE_SELECTED_ROOMS }) }}>
-                    <RoomDeleteIcon />
-                </IconButton>
-            </div>
-        </div>
-        <div>
-            <MapDisplay
-                map={{
-                    ...state,
-                    Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, selected }) => ({ PermanentId, X, Y, selected }))
-                }}
-                classes={classes}
-                roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
+    return <React.Fragment>
+        <TextField id="map-name" label="Name" value={state.Name} onChange={(event) => {
+            localDispatch({ type: SET_NAME, Name: event.target.value })
+            setStable(false)
+        }} />
+        <div style={{ display: "flex", flexDirection: "row" }}>
+            <PermanentSelectPopover
+                anchorEl={roomAddAnchorEl}
+                open={Boolean(roomAddAnchorEl)}
+                onClose={() => { setRoomAddAnchorEl(null) }}
+                neighborhoods={neighborhoodTree}
+                addHandler={addRoomHandler}
             />
+            <div style={{ display: "flex", flexDirection: "column" }}>
+                <div>
+                    <IconButton onClick={(event) => { setRoomAddAnchorEl(event.target) }}>
+                        <RoomAddIcon />
+                    </IconButton>
+                </div>
+                <div>
+                    <IconButton onClick={() => { localDispatch({ type: REMOVE_SELECTED_ROOMS }) }}>
+                        <RoomDeleteIcon />
+                    </IconButton>
+                </div>
+            </div>
+            <div>
+                <MapDisplay
+                    map={{
+                        ...state,
+                        Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, selected }) => ({ PermanentId, X, Y, selected }))
+                    }}
+                    classes={classes}
+                    roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
+                />
+            </div>
         </div>
-    </div>
-
+    </React.Fragment>
 }
 
 export const EditMapDialog = () => {
@@ -405,7 +416,7 @@ export const EditMapDialog = () => {
                 <Button onClick={closeHandler}>
                     Close
                 </Button>
-                <Button onClick={saveHandler} disabled={stableState === null} >
+                <Button onClick={saveHandler} disabled={(stableState === null) || (!stableState.Name.trim())} >
                     Save
                 </Button>
             </DialogActions>
