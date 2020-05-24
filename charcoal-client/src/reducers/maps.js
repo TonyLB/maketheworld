@@ -12,7 +12,7 @@ const mergeMap = (state, { MapId, Rooms, ...rest }) => ({
                 PermanentId,
                 ...roomRest
             }
-        }), (state[MapId] || {}).Rooms || {}),
+        }), {}),
         ...rest
     }
 })

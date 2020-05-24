@@ -4,7 +4,11 @@ export const MapEdge = ({ fromPosition, toPosition, fromNode, toNode }) => {
     const { x: fromX, y: fromY } = fromPosition
     const { x: toX, y: toY } = toPosition
     const edgeLength = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2))
-    if (edgeLength < 60) {
+    if (edgeLength < 60 ||
+        fromX === undefined || Number.isNaN(fromX) ||
+        fromY === undefined || Number.isNaN(fromY) ||
+        toX === undefined || Number.isNaN(toX) ||
+        toY === undefined || Number.isNaN(toY)) {
         return null
     }
     const multiplier = 30.0 / edgeLength

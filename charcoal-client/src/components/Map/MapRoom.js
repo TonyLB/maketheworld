@@ -1,9 +1,6 @@
 import React from 'react'
 
-import useStyles from '../styles'
-
 export const MapRoom = ({ PermanentId, Name, className, contrastClassName, position, onClick, clickable=false, ...rest }) => {
-    const classes = useStyles()
     const lineBreakout = Name.split(/\s+/)
         .reduce(({ currentLine, lines }, word) => (
             ((`${currentLine} ${word}`.length < 10) || !currentLine)
@@ -18,12 +15,15 @@ export const MapRoom = ({ PermanentId, Name, className, contrastClassName, posit
         ), { currentLine: '', lines: []})
     const lines = [ ...lineBreakout.lines, lineBreakout.currentLine ]
                 .map((word) => (word.length > 10 ? `${word.slice(0, 7)}...` : word))
+    if (position.x === undefined || Number.isNaN(position.x) || position.y === undefined || Number.isNaN(position.y)) {
+        return null
+    }
     return <React.Fragment key={PermanentId}>
         <circle
             cx={position.x}
             cy={position.y}
             r={30}
-            className={className || classes.svgLightBlue}
+            className={className}
             onClick={onClick}
             style={{ cursor: clickable ? 'pointer' : '' }}
             {...rest}
@@ -38,7 +38,7 @@ export const MapRoom = ({ PermanentId, Name, className, contrastClassName, posit
             textAnchor="middle"
             x={position.x}
             y={position.y + 3}
-            className={contrastClassName || classes.svgLightBlueContrast}
+            className={contrastClassName}
         >
             {lines.length === 1 && lines[0]}
             {lines.length > 1 &&

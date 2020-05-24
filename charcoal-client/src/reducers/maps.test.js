@@ -87,4 +87,48 @@ describe('maps reducer', () => {
         })
     })
 
+    it('should remove room from map on update', () => {
+        expect(maps({
+            Test: {
+                MapId: 'Test',
+                Name: 'Test Map',
+                Rooms: {
+                    VORTEX: {
+                        PermanentId: 'VORTEX',
+                        X: 100,
+                        Y: 100
+                    }
+                }
+            }
+        }, {
+            type: MAPS_UPDATE,
+            data: [{
+                MapId: 'Test',
+                Name: 'Test Map',
+                Rooms: [{
+                    PermanentId: 'TEST',
+                    X: 200,
+                    Y: 100
+                }]
+            }]
+        })).toEqual({
+            Test: {
+                MapId: 'Test',
+                Name: 'Test Map',
+                Rooms: {
+                    VORTEX: {
+                        PermanentId: 'VORTEX',
+                        X: 100,
+                        Y: 100
+                    },
+                    TEST: {
+                        PermanentId: 'TEST',
+                        X: 200,
+                        Y: 100
+                    }
+                }
+            }
+        })
+    })
+
 })

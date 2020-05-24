@@ -5,7 +5,7 @@ import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 import MapEdge from './MapEdge'
 import MapRoom from './MapRoom'
 
-export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, width=600, height=400 }) => {
+export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, width=600, height=400, classes={} }) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
 
     if (!map) {
@@ -49,7 +49,13 @@ export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, 
             edges.map(edgeComponent)
         }
         {
-            Object.values(nodes).map(roomComponent)
+            Object.values(nodes)
+                .map((node) => ({
+                    className: classes.svgLightBlue,
+                    contrastClassName: classes.svgLightBlueContrast,
+                    ...node
+                }))
+                .map(roomComponent)
         }
     </svg>
 }

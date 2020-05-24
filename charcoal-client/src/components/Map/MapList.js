@@ -11,8 +11,10 @@ import { getMaps } from '../../selectors/maps'
 import MapDisplay from './MapDisplay'
 import { EditMapDialog } from './EditMap'
 import { activateEditMapDialog } from '../../actions/UI/mapDialog'
+import useStyles from '../styles'
 
 export const MapList = () => {
+    const classes = useStyles()
     const maps = useSelector(getMaps)
     const dispatch = useDispatch()
     return <React.Fragment>
@@ -25,7 +27,7 @@ export const MapList = () => {
                         onClick={() => { dispatch(activateEditMapDialog(map))} }
                         style={{ cursor: 'pointer' }}
                     >
-                        <MapDisplay width={300} height={200} map={map} />
+                        <MapDisplay classes={classes} width={300} height={200} map={map} />
                         <GridListTileBar
                             title={map.Name}
                         />
