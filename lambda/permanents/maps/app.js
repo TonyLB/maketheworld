@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT-0
 
 const AWS = require('aws-sdk')
+const { v4: uuidv4 } = require('/opt/uuid')
+
 
 exports.getMaps = () => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
@@ -80,7 +82,7 @@ exports.putMap = async (payload) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const PermanentId = `MAP#${payload.MapId}`
+    const PermanentId = `MAP#${payload.MapId || uuidv4()}`
     const desiredState = [
         {
             PermanentId,
@@ -133,5 +135,8 @@ exports.putMap = async (payload) => {
         })))
     ])
         .then(batchDispatcher(documentClient))
-        .then(() => ([{ Map: payload }]))
+        .then(() => ([{ Map: {
+            ...payload,
+            MapId: PermanentId.slice(4)
+        }}]))
 }

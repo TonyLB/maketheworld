@@ -6,6 +6,7 @@ import {
     GridListTile,
     GridListTileBar
 } from '@material-ui/core'
+import AddIcon from '@material-ui/icons/AddCircleOutline'
 
 import { getMaps } from '../../selectors/maps'
 import MapDisplay from './MapDisplay'
@@ -34,6 +35,16 @@ export const MapList = () => {
                     </GridListTile>
                 ))
             }
+            <GridListTile
+                key='New'
+                onClick={() => { dispatch(activateEditMapDialog({ Name: 'New Map', Rooms: [] }))} }
+                style={{ cursor: 'pointer' }}
+            >
+                <div style={{display: "flex", justifyContent: "center", alignItems: "center", width: "100%", height: "100%"}}>
+                    <AddIcon fontSize="large" />
+                </div>
+                <GridListTileBar title="New Map" />
+            </GridListTile>
         </GridList>
     </React.Fragment>
 }

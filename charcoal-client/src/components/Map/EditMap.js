@@ -54,6 +54,7 @@ const EditableRoom = (props) => {
     } = props
     const bind = useGesture({
         onDragStart: () => {
+            localDispatch({ type: CLEAR_SELECT })
             localDispatch({ type: DRAG_TIMER_SET, localDispatch })
         },
         onDrag: ({ movement }) => {
@@ -225,8 +226,8 @@ const mapDisplayReducer = (state, action) => {
             const dragRoom = state.Rooms[PermanentId]
             const dragOriginX = dragRoom.dragOriginX || dragRoom.X
             const dragOriginY = dragRoom.dragOriginY || dragRoom.Y
-            const fixedX = dragOriginX + X
-            const fixedY = dragOriginY + Y
+            const fixedX = Math.max(35, Math.min(565, dragOriginX + X))
+            const fixedY = Math.max(35, Math.min(365, dragOriginY + Y))
             currentNode.fx = fixedX - 300
             currentNode.fy = fixedY - 200
             if (DThree && DThree.alpha() < 0.1) {
