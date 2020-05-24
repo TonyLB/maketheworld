@@ -10,8 +10,11 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Button
+    Button,
+    IconButton
 } from '@material-ui/core'
+import RoomAddIcon from '@material-ui/icons/AddBox'
+import RoomDeleteIcon from '@material-ui/icons/Delete'
 
 import { getEditMapDialogUI } from '../../selectors/UI/mapDialog'
 import { closeEditMapDialog } from '../../actions/UI/mapDialog'
@@ -21,7 +24,7 @@ import MapRoom from './MapRoom'
 import useStyles from '../styles'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 import forceFlexLink from './forceFlexLink'
-import { objectMap } from '../../lib/objects'
+import { objectMap, objectFilter } from '../../lib/objects'
 
 const END_DRAG = 'END_DRAG'
 const CLEAR_DRAG_FLAG = 'CLEAR_DRAG_FLAG'
@@ -32,6 +35,7 @@ const REGISTER_D_THREE = 'REGISTER_D_THREE'
 const UNREGISTER_D_THREE = 'UNREGISTER_D_THREE'
 const CLEAR_SELECT = 'CLEAR_SELECT'
 const SELECT_ROOM = 'SELECT_ROOM'
+const REMOVE_SELECTED_ROOMS = 'REMOVE_SELECTED_ROOMS'
 const TICK = 'TICK'
 
 const EditableRoom = (props) => {
@@ -73,6 +77,19 @@ const EditableRoom = (props) => {
     />
 }
 
+const linksFromNodesAndRooms = (nodes, rooms) => {
+    const idToNodeIndex = nodes
+        .reduce((previous, { PermanentId, index }) => ({ ...previous, [PermanentId]: index }), {})
+    return Object.values(rooms)
+        .reduce((previous, { PermanentId, Exits }) => ([ ...previous, ...(Exits || []).map(({ RoomId }) => ({ from: PermanentId, to: RoomId })) ]), [])
+        .filter(({ to }) => (idToNodeIndex[to]))
+        .map(({ from, to }, index) => ({
+            source: idToNodeIndex[from],
+            target: idToNodeIndex[to],
+            index
+        }))
+}
+
 const mapDisplayReducer = (state, action) => {
     const { type, PermanentId } = action
     const updateState = (props) => ({
@@ -110,6 +127,22 @@ const mapDisplayReducer = (state, action) => {
                 }
             }
             return state
+        case REMOVE_SELECTED_ROOMS:
+            if (!DThree) {
+                return state
+            }
+            const trimmedNodes = nodes.filter(({ PermanentId }) => (!(state.Rooms && state.Rooms[PermanentId] && state.Rooms[PermanentId].selected)))
+            const trimmedRooms = state.Rooms && objectFilter(state.Rooms, ({ selected }) => (!selected))
+            const trimmedLinks = linksFromNodesAndRooms(trimmedNodes, trimmedRooms)
+            DThree
+                .nodes(trimmedNodes)
+                .force("link", forceFlexLink(trimmedLinks).minDistance(70).maxDistance(180))
+            return {
+                ...state,
+                Rooms: trimmedRooms,
+                nodes: trimmedNodes,
+                links: trimmedLinks
+            }
         //
         // We set a timer and fire event that sets state.dragging to TRUE only after a second of
         // drag (so that shorter mouse-down/mouse-up sequences can be interpreted as onClick events)
@@ -172,16 +205,7 @@ const mapDisplayReducer = (state, action) => {
                     x: X - 300,
                     y: Y - 200
                 }))
-            const idToNodeIndex = newNodes
-                .reduce((previous, { PermanentId, index }) => ({ ...previous, [PermanentId]: index }), {})
-            let links = Object.values(state.Rooms)
-                .reduce((previous, { PermanentId, Exits }) => ([ ...previous, ...(Exits || []).map(({ RoomId }) => ({ from: PermanentId, to: RoomId })) ]), [])
-                .filter(({ to }) => (idToNodeIndex[to]))
-                .map(({ from, to }, index) => ({
-                    source: idToNodeIndex[from],
-                    target: idToNodeIndex[to],
-                    index
-                }))
+            let links = linksFromNodesAndRooms(newNodes, state.Room || {})
             const force = forceSimulation(newNodes)
                 .alphaDecay(0.15)
                 .force("boundingBox", boundingForceFactory(newNodes))
@@ -194,7 +218,8 @@ const mapDisplayReducer = (state, action) => {
             return {
                 ...state,
                 DThree: force,
-                nodes: newNodes
+                nodes: newNodes,
+                links
             }
         case UNREGISTER_D_THREE:
             DThree.stop()
@@ -269,13 +294,30 @@ export const EditMapDisplay = ({ map, onStable = () => {}, onUnstable = () => {}
             localDispatch({ type: UNREGISTER_D_THREE })
         }
     }, [localDispatch])
-    return <MapDisplay
-        map={{
-            ...state,
-            Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, selected }) => ({ PermanentId, X, Y, selected }))
-        }}
-        roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
-    />
+    return <div style={{ display: "flex", flexDirection: "row" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+            <div>
+                <IconButton>
+                    <RoomAddIcon />
+                </IconButton>
+            </div>
+            <div>
+                <IconButton onClick={() => { localDispatch({ type: REMOVE_SELECTED_ROOMS }) }}>
+                    <RoomDeleteIcon />
+                </IconButton>
+            </div>
+        </div>
+        <div>
+            <MapDisplay
+                map={{
+                    ...state,
+                    Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, selected }) => ({ PermanentId, X, Y, selected }))
+                }}
+                roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
+            />
+        </div>
+    </div>
+
 }
 
 export const EditMapDialog = () => {

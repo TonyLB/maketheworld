@@ -1,4 +1,4 @@
-import { objectMap } from './objects.js'
+import { objectMap, objectFilter } from './objects.js'
 
 describe('Objects utility functions', () => {
 
@@ -6,7 +6,7 @@ describe('Objects utility functions', () => {
         expect(objectMap({}, ({ Test }) => ({ Test: Test * 2 }))).toEqual({})
     })
 
-    it('should correctly map an empty object with objectMap', () => {
+    it('should correctly map an object with objectMap', () => {
         expect(objectMap({ One: { Test: 1 }, Two: { Test: 2 }}, ({ Test }) => ({ Test: Test * 2 })))
             .toEqual({
                 One: {
@@ -17,4 +17,18 @@ describe('Objects utility functions', () => {
                 }
             })
     })
+
+    it('should correctly filter an empty object with objectFilter', () => {
+        expect(objectFilter({}, ({ Test }) => (Test))).toEqual({})
+    })
+
+    it('should correctly filter an object with objectFilter', () => {
+        expect(objectFilter({ One: { Test: 1 }, Two: { Test: 2 }}, ({ Test }) => ( Test === 1 )))
+            .toEqual({
+                One: {
+                    Test: 1
+                }
+            })
+    })
+
 })
