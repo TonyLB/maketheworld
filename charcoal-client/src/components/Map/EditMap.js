@@ -16,6 +16,7 @@ import {
 } from '@material-ui/core'
 import RoomAddIcon from '@material-ui/icons/AddBox'
 import RoomDeleteIcon from '@material-ui/icons/Delete'
+import LockIcon from '@material-ui/icons/Lock'
 
 import { getEditMapDialogUI } from '../../selectors/UI/mapDialog'
 import { closeEditMapDialog } from '../../actions/UI/mapDialog'
@@ -40,6 +41,7 @@ const SELECT_ROOM = 'SELECT_ROOM'
 const REMOVE_SELECTED_ROOMS = 'REMOVE_SELECTED_ROOMS'
 const ADD_ROOM = 'ADD_ROOM'
 const SET_NAME = 'SET_NAME'
+const TOGGLE_LINK_LOCK = 'TOGGLE_LINK_LOCK'
 const TICK = 'TICK'
 
 const EditableRoom = (props) => {
@@ -52,11 +54,11 @@ const EditableRoom = (props) => {
         contrastClassName=classes.svgLightBlueContrast,
         selectedClassName=classes.svgBlue,
         selectedContrastClassName=classes.svgBlueContrast,
+        Locked,
         ...rest
     } = props
     const bind = useGesture({
         onDragStart: () => {
-            localDispatch({ type: CLEAR_SELECT })
             localDispatch({ type: DRAG_TIMER_SET, localDispatch })
         },
         onDrag: ({ movement }) => {
@@ -67,16 +69,23 @@ const EditableRoom = (props) => {
             setTimeout(() => { localDispatch({ type: CLEAR_DRAG_FLAG })}, 10)
         },
         onClick: () => {
-            localDispatch({ type: CLEAR_SELECT })
-            if (!selected) {
+            if (selected) {
+                localDispatch({ type: CLEAR_SELECT })
+            }
+            else {
+                localDispatch({ type: CLEAR_SELECT})
                 localDispatch({ type: SELECT_ROOM, PermanentId })
             }
+        },
+        onDoubleClick: () => {
+            localDispatch({ type: TOGGLE_LINK_LOCK, PermanentId })
         }
     })
     return <MapRoom
         PermanentId={PermanentId}
         className={selected ? selectedClassName : className}
         contrastClassName={selected ? selectedContrastClassName : contrastClassName}
+        icon={(Locked && <LockIcon color="disabled" />) || null}
         {...rest}
         {...bind()}
     />
@@ -88,6 +97,8 @@ const linksFromNodesAndRooms = (nodes, rooms) => {
     return Object.values(rooms)
         .reduce((previous, { PermanentId, Exits }) => ([ ...previous, ...(Exits || []).map(({ RoomId }) => ({ from: PermanentId, to: RoomId })) ]), [])
         .filter(({ to, from }) => (idToNodeIndex[to] !== undefined && idToNodeIndex[from] !== undefined))
+        .filter(({ to }) => (!rooms[to].Locked))
+        .filter(({ from }) => (!rooms[from].Locked))
         .map(({ from, to }, index) => ({
             source: idToNodeIndex[from],
             target: idToNodeIndex[to],
@@ -120,16 +131,7 @@ const mapDisplayReducer = (state, action) => {
             return state
         case SELECT_ROOM:
             if (!state.dragging) {
-                return {
-                    ...state,
-                    Rooms: {
-                        ...(state.Rooms || {}),
-                        [PermanentId]: {
-                            ...((state.Rooms || {})[PermanentId] || {}),
-                            selected: true
-                        }
-                    }
-                }
+                return updateState({ selected: true })
             }
             return state
         case REMOVE_SELECTED_ROOMS:
@@ -187,6 +189,16 @@ const mapDisplayReducer = (state, action) => {
                 nodes: addedNodes,
                 links: addedLinks
             }
+        case TOGGLE_LINK_LOCK:
+            const updatedState = updateState({ Locked: !state.Rooms[PermanentId].Locked })
+            if (DThree) {
+                const lockedLinks = linksFromNodesAndRooms(nodes, updatedState.Rooms || {})
+                DThree
+                    .force("link", forceFlexLink(lockedLinks).minDistance(70).maxDistance(180))
+                    .alpha(1.0)
+                    .restart()
+            }
+            return updatedState
         case SET_NAME:
             return {
                 ...state,
@@ -209,7 +221,8 @@ const mapDisplayReducer = (state, action) => {
             return {
                 ...state,
                 dragging: true,
-                dragTimer: null
+                dragTimer: null,
+                Rooms: objectMap(state.Rooms || {}, ({ selected, ...rest }) => (rest))
             }
         case CLEAR_DRAG_FLAG:
             if (state.dragTimer) {
@@ -379,7 +392,7 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
                 <MapDisplay
                     map={{
                         ...state,
-                        Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, selected }) => ({ PermanentId, X, Y, selected }))
+                        Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, Locked, selected }) => ({ PermanentId, X, Y, Locked, selected }))
                     }}
                     classes={classes}
                     roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
