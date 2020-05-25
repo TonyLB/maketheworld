@@ -25,6 +25,7 @@ exports.getMaps = () => {
                 [MapId]: {
                     ...(previous[MapId] || {}),
                     MapId: PermanentId.slice(4),
+                    Rooms: (previous[MapId] && previous[MapId].Rooms) || [],
                     ...rest
                 }
             }

@@ -279,7 +279,13 @@ export const RoomDialog = ({ nested=false }) => {
                 anchorEl={parentSetAnchorEl}
                 open={Boolean(parentSetAnchorEl)}
                 onClose={() => { setParentSetAnchorEl(null) }}
-                neighborhoods={neighborhoodTree}
+                neighborhoods={{
+                    ROOT: {
+                        PermanentId: '',
+                        Name: "No parent"
+                    },
+                    ...neighborhoodTree
+                }}
                 selectableNeighborhoods
                 addHandler={onSetParentHandler}
             />
