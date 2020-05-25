@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useRef } from 'react'
+
+import useContextMenu from '../useContextMenu'
 
 export const MapRoom = ({
         PermanentId,
@@ -9,7 +11,11 @@ export const MapRoom = ({
         onClick,
         clickable=false,
         icon,
+        openContextMenu = null,
+        Locked,
         ...rest }) => {
+    const ref = useRef(null)
+    useContextMenu(ref, openContextMenu)
     const lineBreakout = Name.split(/\s+/)
         .reduce(({ currentLine, lines }, word) => (
             ((`${currentLine} ${word}`.length < 10) || !currentLine)
@@ -29,6 +35,7 @@ export const MapRoom = ({
     }
     return <g key={PermanentId} transform={`translate(${position.x}, ${position.y})`}>
         <circle
+            ref={ref}
             cx={0}
             cy={0}
             r={30}

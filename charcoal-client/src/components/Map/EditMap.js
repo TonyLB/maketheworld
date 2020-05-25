@@ -28,6 +28,7 @@ import { getPermanentHeaders, getNeighborhoodTree } from '../../selectors/perman
 import forceFlexLink from './forceFlexLink'
 import { objectMap, objectFilter } from '../../lib/objects'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
+import EditMapContextMenu from './EditMapContextMenu'
 
 const END_DRAG = 'END_DRAG'
 const CLEAR_DRAG_FLAG = 'CLEAR_DRAG_FLAG'
@@ -40,6 +41,7 @@ const CLEAR_SELECT = 'CLEAR_SELECT'
 const SELECT_ROOM = 'SELECT_ROOM'
 const REMOVE_SELECTED_ROOMS = 'REMOVE_SELECTED_ROOMS'
 const ADD_ROOM = 'ADD_ROOM'
+const REMOVE_ROOM = 'REMOVE_ROOM'
 const SET_NAME = 'SET_NAME'
 const TOGGLE_LINK_LOCK = 'TOGGLE_LINK_LOCK'
 const TICK = 'TICK'
@@ -76,9 +78,6 @@ const EditableRoom = (props) => {
                 localDispatch({ type: CLEAR_SELECT})
                 localDispatch({ type: SELECT_ROOM, PermanentId })
             }
-        },
-        onDoubleClick: () => {
-            localDispatch({ type: TOGGLE_LINK_LOCK, PermanentId })
         }
     })
     return <MapRoom
@@ -156,6 +155,29 @@ const mapDisplayReducer = (state, action) => {
                 Rooms: trimmedRooms,
                 nodes: trimmedNodes,
                 links: trimmedLinks
+            }
+        case REMOVE_ROOM:
+            const excisedRooms = state.Rooms && objectFilter(state.Rooms, (room) => (room.PermanentId !== PermanentId))
+            if (!DThree) {
+                return {
+                    ...state,
+                    Rooms: excisedRooms
+                }
+            }
+            const excisedNodes = nodes.filter((node) => (node.PermanentId !== PermanentId))
+            const excisedLinks = linksFromNodesAndRooms(excisedNodes, excisedRooms)
+            DThree
+                .nodes(excisedNodes)
+                .force("boundingBox", boundingForceFactory(excisedNodes))
+                .force("gridDrift", gridInfluenceForceFactory(excisedNodes, 50.0))
+                .force("link", forceFlexLink(excisedLinks).minDistance(70).maxDistance(180))
+                .alpha(1.0)
+                .restart()
+            return {
+                ...state,
+                Rooms: excisedRooms,
+                nodes: excisedNodes,
+                links: excisedLinks
             }
         case ADD_ROOM:
             if (state.Rooms && state.Rooms[PermanentId]) {
@@ -334,6 +356,7 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
     })
     const [ stable, setStable ] = useState(false)
     const [ roomAddAnchorEl, setRoomAddAnchorEl ] = useState(null)
+    const [ contextMenu, setContextMenu ] = useState(null)
     const { DThree } = state
     const shouldBeStable = DThree && DThree.alpha() < 0.1
     useEffect(() => {
@@ -378,6 +401,20 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
                 neighborhoods={neighborhoodTree}
                 addHandler={addRoomHandler}
             />
+            <EditMapContextMenu
+                anchorEl={contextMenu && contextMenu.anchorEl}
+                open={Boolean(contextMenu)}
+                onClose={() => { setContextMenu(null) }}
+                locked={contextMenu && state && state.Rooms && state.Rooms[contextMenu.PermanentId] && state.Rooms[contextMenu.PermanentId].Locked}
+                onLock={() => {
+                    localDispatch({ type: TOGGLE_LINK_LOCK, PermanentId: contextMenu && contextMenu.PermanentId })
+                    setContextMenu(null)
+                }}
+                onRemove={() => {
+                    localDispatch({ type: REMOVE_ROOM, PermanentId: contextMenu && contextMenu.PermanentId })
+                    setContextMenu(null)
+                }}
+            />
             <div style={{ display: "flex", flexDirection: "column" }}>
                 <div>
                     <IconButton onClick={(event) => { setRoomAddAnchorEl(event.target) }}>
@@ -394,7 +431,23 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
                 <MapDisplay
                     map={{
                         ...state,
-                        Rooms: objectMap(state.Rooms || {}, ({ PermanentId, X, Y, Locked, selected }) => ({ PermanentId, X, Y, Locked, selected }))
+                        Rooms: objectMap(
+                            state.Rooms || {},
+                            ({
+                                PermanentId,
+                                X,
+                                Y,
+                                Locked,
+                                selected
+                            }) => ({
+                                PermanentId,
+                                X,
+                                Y,
+                                Locked,
+                                selected,
+                                openContextMenu: (target) => { setContextMenu({ PermanentId, anchorEl: target }) }
+                            })
+                        )
                     }}
                     classes={classes}
                     roomComponent={(props) => (<EditableRoom localDispatch={localDispatch} {...props} />)}
