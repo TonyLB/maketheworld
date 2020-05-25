@@ -342,7 +342,7 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
             onStable({
                 MapId: state.MapId,
                 Name: state.Name,
-                Rooms: Object.values(state.Rooms).map(({ PermanentId, X, Y }) => ({ PermanentId, X: Math.round(X), Y: Math.round(Y) }))
+                Rooms: Object.values(state.Rooms).map(({ PermanentId, X, Y, Locked }) => ({ PermanentId, X: Math.round(X), Y: Math.round(Y), Locked }))
             })
         }
         if (stable && !shouldBeStable) {
@@ -364,10 +364,12 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
         localDispatch({ type: 'ADD_ROOM', PermanentId, Exits: (permanentHeaders[PermanentId] || {}).Exits || [] })
     }
     return <React.Fragment>
-        <TextField id="map-name" label="Name" value={state.Name} onChange={(event) => {
-            localDispatch({ type: SET_NAME, Name: event.target.value })
-            setStable(false)
-        }} />
+        <div>
+            <TextField id="map-name" label="Name" value={state.Name} onChange={(event) => {
+                localDispatch({ type: SET_NAME, Name: event.target.value })
+                setStable(false)
+            }} />
+        </div>
         <div style={{ display: "flex", flexDirection: "row" }}>
             <PermanentSelectPopover
                 anchorEl={roomAddAnchorEl}

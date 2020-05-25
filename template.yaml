@@ -1635,6 +1635,7 @@ Resources:
                   PermanentId: String!
                   X: Int!
                   Y: Int!
+                  Locked: Boolean
               }
               type Map @aws_iam @aws_cognito_user_pools {
                   MapId: String!
@@ -1650,6 +1651,7 @@ Resources:
                   PermanentId: String!
                   X: Int!
                   Y: Int!
+                  Locked: Boolean
               }
               type Mutation {
                   putPlayer(

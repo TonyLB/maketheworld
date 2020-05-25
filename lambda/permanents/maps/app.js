@@ -32,7 +32,7 @@ exports.getMaps = () => {
         }
         if (DataCategory.startsWith('ROOM#')) {
             const RoomId = DataCategory.slice(5)
-            const { X, Y } = rest
+            const { X, Y, Locked } = rest
             return (RoomId && X && Y)
                 ? {
                     ...previous,
@@ -43,7 +43,8 @@ exports.getMaps = () => {
                             {
                                 PermanentId: RoomId,
                                 X,
-                                Y
+                                Y,
+                                Locked
                             }
                         ]
                     }
@@ -90,11 +91,12 @@ exports.putMap = async (payload) => {
             DataCategory: 'Details',
             Name: payload.Name
         },
-        ...(payload.Rooms.map(({ PermanentId: RoomId, X, Y }) => ({
+        ...(payload.Rooms.map(({ PermanentId: RoomId, X, Y, Locked }) => ({
             PermanentId,
             DataCategory: `ROOM#${RoomId}`,
             X,
-            Y
+            Y,
+            ...(Locked !== undefined ? { Locked } : {})
         })))
     ]
 
@@ -110,7 +112,7 @@ exports.putMap = async (payload) => {
         if (DataCategoryA === 'Details') {
             return propsA.Name === propsB.Name
         }
-        return (propsA.X === propsB.X) && (propsA.Y === propsB.Y)
+        return (propsA.X === propsB.X) && (propsA.Y === propsB.Y) && (propsA.Locked === propsB.Locked)
     }
 
     const deleteEntries = currentState
