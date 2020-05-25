@@ -53,6 +53,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             PermanentId,
             Type,
             ParentId,
+            ContextMapId,
             Ancestry,
             Name,
             Description,
@@ -63,6 +64,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             neighborhoodId: PermanentId,
             type: Type,
             parentId: ParentId,
+            mapId: ContextMapId,
             ancestry: Ancestry,
             name: Name,
             description: Description,
@@ -77,12 +79,13 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
 export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, getState) => {
     const state = getState()
     const CharacterId = getCharacterId(state)
-    const { neighborhoodId, parentId, name, description, visibility, topology = 'Dead-End', grants=[] } = neighborhoodData
+    const { neighborhoodId, parentId, mapId, name, description, visibility, topology = 'Dead-End', grants=[] } = neighborhoodData
     if (CharacterId) {
         return API.graphql(graphqlOperation(putNeighborhood, {
                 CharacterId,
                 PermanentId: neighborhoodId,
                 ParentId: parentId,
+                ContextMapId: mapId,
                 Name: name,
                 Description: description,
                 Visibility: visibility,

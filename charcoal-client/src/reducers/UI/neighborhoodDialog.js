@@ -10,6 +10,7 @@ export const reducer = (state = { open: false }, action) => {
         topology = 'Dead-End',
         grants = [],
         parentId = '',
+        mapId = '',
         parentName = '',
         parentAncestry = '',
         nested = false
@@ -34,6 +35,7 @@ export const reducer = (state = { open: false }, action) => {
                 topology,
                 grants,
                 parentId,
+                mapId,
                 parentName,
                 parentAncestry
             }

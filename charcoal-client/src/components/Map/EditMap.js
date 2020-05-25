@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useReducer, useEffect, useState } from 'react'
+import React, { useReducer, useEffect, useState, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useGesture } from 'react-use-gesture'
 import { forceSimulation, forceCollide } from 'd3-force'
@@ -29,6 +29,7 @@ import forceFlexLink from './forceFlexLink'
 import { objectMap, objectFilter } from '../../lib/objects'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
 import EditMapContextMenu from './EditMapContextMenu'
+import useContextMenu from '../useContextMenu'
 
 const END_DRAG = 'END_DRAG'
 const CLEAR_DRAG_FLAG = 'CLEAR_DRAG_FLAG'
@@ -357,6 +358,13 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
     const [ stable, setStable ] = useState(false)
     const [ roomAddAnchorEl, setRoomAddAnchorEl ] = useState(null)
     const [ contextMenu, setContextMenu ] = useState(null)
+    const ref = useRef(null)
+    useContextMenu(ref, (target) => {
+        const PermanentId = target.getAttribute('data-permanentid')
+        if (PermanentId) {
+            setContextMenu({ PermanentId, anchorEl: target })
+        }
+    })
     const { DThree } = state
     const shouldBeStable = DThree && DThree.alpha() < 0.1
     useEffect(() => {
@@ -429,6 +437,7 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
             </div>
             <div>
                 <MapDisplay
+                    ref={ref}
                     map={{
                         ...state,
                         Rooms: objectMap(
@@ -444,8 +453,7 @@ export const EditMapDisplay = ({ map, classes, onStable = () => {}, onUnstable =
                                 X,
                                 Y,
                                 Locked,
-                                selected,
-                                openContextMenu: (target) => { setContextMenu({ PermanentId, anchorEl: target }) }
+                                selected
                             })
                         )
                     }}

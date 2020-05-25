@@ -5,7 +5,7 @@ import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 import MapEdge from './MapEdge'
 import MapRoom from './MapRoom'
 
-export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, width=600, height=400, classes={} }) => {
+export const MapDisplay = React.forwardRef(({ map, roomComponent=MapRoom, edgeComponent=MapEdge, width=600, height=400, classes={} }, ref) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
 
     if (!map) {
@@ -38,7 +38,7 @@ export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, 
         ))
         .reduce((previous, exitList) => ([ ...previous, ...exitList ]), [])
 
-    return <svg width={width} height={height} viewBox="0 0 600 400">
+    return <svg ref={ref} width={width} height={height} viewBox="0 0 600 400">
         <defs>
             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                     refX='10' refY='5'>
@@ -58,6 +58,6 @@ export const MapDisplay = ({ map, roomComponent=MapRoom, edgeComponent=MapEdge, 
                 .map(roomComponent)
         }
     </svg>
-}
+})
 
 export default MapDisplay

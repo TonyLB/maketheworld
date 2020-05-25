@@ -28,6 +28,7 @@ import { Alert } from '@material-ui/lab'
 import NeighborhoodIcon from '@material-ui/icons/LocationCity'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
+import MapIcon from '@material-ui/icons/Explore'
 
 // Local code imports
 import { closeNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
@@ -38,9 +39,11 @@ import {
     getNeighborhoodOnlyTreeExcludingSubTree,
     getNeighborhoodPaths
 } from '../../selectors/permanentHeaders.js'
+import { getMaps } from '../../selectors/maps'
 import { getNeighborhoodUpdateValidator } from '../../selectors/validators'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import PermanentSelectPopover from '../RoomDialog/PermanentSelectPopover'
+import MapSelectPopover from '../Map/MapSelectPopover'
 import ExitList from '../ExitList'
 import useStyles from '../styles'
 import GrantTable from './GrantTable'
@@ -131,15 +134,18 @@ const neighborhoodDialogReducer = (validator) => (state, action) => {
 export const NeighborhoodDialog = ({ nested=false }) => {
     const { open, nestedOpen, ...defaultValues } = useSelector(getNeighborhoodDialogUI)
     const permanentHeaders = useSelector(getPermanentHeaders)
+    const maps = useSelector(getMaps)
     const { Grants: myGrants } = useSelector(getMyCurrentCharacter)
     const updateValidator = useSelector(getNeighborhoodUpdateValidator)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer(updateValidator), {})
-    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End', error = '' } = formValues
+    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End', error = '', neighborhoodId, mapId } = formValues
     const { Ancestry: parentAncestry = '', Name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
+    const { Name: mapName = '' } = (maps && mapId && maps[mapId]) || {}
 
     const subTreeToExclude = formValues.neighborhoodId ? [...(parentAncestry ? [parentAncestry] : []), formValues.neighborhoodId].join(":") : 'NO EXCLUSION'
     const neighborhoodTree = useSelector(getNeighborhoodOnlyTreeExcludingSubTree(subTreeToExclude))
     const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
+    const [ mapSetAnchorEl, setMapSetAnchorEl ] = useState(null)
     const [ exitsOpen, setExitsOpen] = useState(false)
     const [ grantsOpen, setGrantsOpen] = useState(false)
     const dispatch = useDispatch()
@@ -164,6 +170,11 @@ export const NeighborhoodDialog = ({ nested=false }) => {
         setParentSetAnchorEl(null)
     }
 
+    const onSetMapHandler = (mapId) => () => {
+        formDispatch(appearanceUpdate({ label: 'mapId', value: mapId }))
+        setMapSetAnchorEl(null)
+    }
+
     const classes = useStyles()
     return(
         <React.Fragment>
@@ -185,6 +196,13 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                 }}
                 selectableNeighborhoods
                 addHandler={onSetParentHandler}
+            />
+            <MapSelectPopover
+                anchorEl={mapSetAnchorEl}
+                open={Boolean(mapSetAnchorEl)}
+                onClose={() => { setMapSetAnchorEl(null) }}
+                NeighborhoodId={neighborhoodId}
+                addHandler={onSetMapHandler}
             />
             <Dialog
                 maxWidth="lg"
@@ -219,6 +237,15 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                                             />
                                             <IconButton onClick={(event) => { setParentSetAnchorEl(event.target) }}>
                                                 <NeighborhoodIcon />
+                                            </IconButton>
+                                            <TextField
+                                                disabled
+                                                id="contextMap"
+                                                label="Context Map"
+                                                value={mapName}
+                                            />
+                                            <IconButton onClick={(event) => { setMapSetAnchorEl(event.target) }}>
+                                                <MapIcon />
                                             </IconButton>
                                         </div>
                                         <div>

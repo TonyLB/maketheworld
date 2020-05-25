@@ -10,6 +10,7 @@ export const activateNeighborhoodDialog = ({
     grants = [],
     ancestry = '',
     parentId = '',
+    mapId = '',
     parentName = '',
     parentAncestry = '',
     nested = false
@@ -23,6 +24,7 @@ export const activateNeighborhoodDialog = ({
     grants,
     ancestry,
     parentId,
+    mapId,
     parentName,
     parentAncestry,
     nested
