@@ -20,7 +20,8 @@
     "react-use-gesture": "^7.0.15",
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
-    "tinycolor2": "^1.4.1"
+    "tinycolor2": "^1.4.1",
+    "uuid": "^8.1.0"
   },
   "scripts": {
     "start": "react-scripts start",

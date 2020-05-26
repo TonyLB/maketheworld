@@ -1,5 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { putRoomMessage, putDirectMessage } from '../graphql/mutations'
+import { v4 as uuidv4 } from 'uuid'
 
 import {
     extractMutation,
@@ -9,10 +10,22 @@ import {
 import { getCharacterId } from '../selectors/connection'
 
 export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE'
+export const SET_MESSAGE_OPEN = 'SET_MESSAGE_OPEN'
 
-export const receiveMessage = (message) => ({
+export const receiveMessage = ({ MessageId, ...message }) => ({
     type: RECEIVE_MESSAGE,
-    payload: message
+    payload: {
+        MessageId: MessageId || uuidv4(),
+        ...message
+    }
+})
+
+export const setMessageOpen = ({ MessageId, open }) => ({
+    type: SET_MESSAGE_OPEN,
+    payload: {
+        MessageId,
+        open
+    }
 })
 
 export const worldMessageAdded = ({ MessageId, Message }) => (receiveMessage({

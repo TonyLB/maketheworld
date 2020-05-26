@@ -4,7 +4,7 @@ import { getCharacterId } from '../../selectors/connection'
 import { getCurrentRoom, getVisibleExits } from '../../selectors/currentRoom'
 
 export const lookRoom = (props) => (dispatch, getState) => {
-    const { Recap = false, showNeighborhoods = false, previousAncestry = '' } = props || {}
+    const { Recap = [], showNeighborhoods = false, previousAncestry = '' } = props || {}
     const state = getState()
     const { permanentHeaders = {} } = state
     const currentRoom = {
@@ -43,7 +43,7 @@ export const lookRoom = (props) => (dispatch, getState) => {
             RoomId: currentRoom.RoomId,
             Exits: currentRoom.Exits,
             Players,
-            ...( Recap ? { Recap: currentRoom.Recap } : {})
+            ...( Recap ? { Recap } : {})
         }
         dispatch(receiveMessage({
             protocol: 'roomDescription',

@@ -1,5 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { getPlayerCharacters, getCharactersInPlay } from '../graphql/queries'
+import { getPlayerCharacters, getCharactersInPlay, getRoomRecap } from '../graphql/queries'
 import {
     putCharacter as putCharacterGraphQL,
     addCharacterInPlay as addCharacterInPlayGraphQL
@@ -129,8 +129,11 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
         if (!(myCharacter && myCharacter.ConnectionId && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
             return dispatch(moveRoomSubscription(payload.RoomId))
-                .then(() => {
-                    dispatch(lookRoom({ Recap: true, showNeighborhoods: true, previousAncestry }))
+                .then(() => (API.graphql(graphqlOperation(getRoomRecap, { PermanentId: payload.RoomId }))))
+                .then(({ data }) => (data))
+                .then(({ getRoomRecap }) => (getRoomRecap))
+                .then((Recap) => {
+                    dispatch(lookRoom({ Recap, showNeighborhoods: true, previousAncestry }))
                     const { Character = {} } = payload
                     const { Name = 'Someone' } = Character
                     return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })

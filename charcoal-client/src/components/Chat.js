@@ -214,7 +214,7 @@ export const Chat = () => {
         if (lockToBottom && lastMessageRef.current) {
             lastMessageRef.current.scrollIntoView()
         }
-    }, [lockToBottom, scrollTop, scrollHeight, clientHeight, lastMessageId, newLastMessageId])
+    }, [lockToBottom, scrollTop, scrollHeight, clientHeight, lastMessageId, newLastMessageId, messages])
 
     const [whoDrawerOpen, setWhoDrawerOpen] = useState(false)
     const [mapDrawerOpen, setMapDrawerOpen] = useState(false)

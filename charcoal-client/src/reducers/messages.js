@@ -1,4 +1,4 @@
-import { RECEIVE_MESSAGE } from '../actions/messages.js'
+import { RECEIVE_MESSAGE, SET_MESSAGE_OPEN } from '../actions/messages.js'
 import {
     playerMessage,
     worldMessage,
@@ -38,6 +38,9 @@ export const reducer = (state = [], action) => {
                 default:
                     return [ ...state, new worldMessage(rest) ]
             }
+        case SET_MESSAGE_OPEN:
+            const { MessageId } = payload
+            return state.map((message) => ((message.MessageId === MessageId) ? message.update({ open: payload.open }) : message))
         default: return state
     }
 }

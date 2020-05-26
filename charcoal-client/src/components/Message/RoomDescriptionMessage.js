@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -25,14 +25,14 @@ import useStyles from '../styles'
 import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
+import { setMessageOpen } from '../../actions/messages'
 import RecapMessage from './RecapMessage'
 import AnnouncementMessage from './AnnouncementMessage'
 
 export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
-    const [detailsOpen, setDetailStatus] = useState(false)
 
     const classes = useStyles()
-    const { RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='' } = message
+    const { MessageId, RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='', open=false } = message
 
     const dispatch = useDispatch()
     const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry)).reverse()
@@ -72,73 +72,71 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
                 <Typography variant='body1' align='left'>
                     { Description }
                 </Typography>
-                { detailsOpen && <React.Fragment>
-                    <Divider />
-                    <Grid container>
-                        <Grid item md>
-                            <Typography variant='subtitle1' align='center'>
-                                Exits:
-                            </Typography>
-                            { Exits.map((exit) => (
-                                <Chip
-                                    key={exit.Name}
-                                    label={exit.Name}
-                                    icon={exit.Visibility === 'Public' ? <ExitIcon /> : <HiddenIcon /> }
-                                    onClick={clickHandler({ RoomId: exit.RoomId, ExitName: exit.Name })}
-                                />
-                            ))}
-                        </Grid>
-                        <Grid item md>
-                            <Typography variant='subtitle1' align='center'>
-                                Characters:
-                            </Typography>
-                            { Players
-                                .map(({
-                                    CharacterId,
-                                    Name,
-                                    Pronouns,
-                                    FirstImpression,
-                                    OneCoolThing,
-                                    Outfit,
-                                    color
-                                }) => {
-                                    return (
-                                        <Tooltip key={Name} interactive arrow title={<React.Fragment>
-                                            <Typography variant='subtitle1' align='center'>
-                                                {Name}
-                                            </Typography>
-                                            { Pronouns && <div>Pronouns: {Pronouns}</div> }
-                                            { FirstImpression && <div>First Impression: {FirstImpression}</div> }
-                                            { OneCoolThing && <div>One Cool Thing: {OneCoolThing}</div> }
-                                            { Outfit && <div>Outfit: {Outfit}</div> }
-                                        </React.Fragment>}>
-                                            <Chip
-                                                label={Name}
-                                                classes={{
-                                                    root: classes[`chip-${color.primary}`]
-                                                }}
-                                            />
-                                        </Tooltip>
-                                    )
-
-                                })
-                            }
-                        </Grid>
+                <Divider />
+                <Grid container>
+                    <Grid item md>
+                        <Typography variant='subtitle1' align='center'>
+                            Exits:
+                        </Typography>
+                        { Exits.map((exit) => (
+                            <Chip
+                                key={exit.Name}
+                                label={exit.Name}
+                                icon={exit.Visibility === 'Public' ? <ExitIcon /> : <HiddenIcon /> }
+                                onClick={clickHandler({ RoomId: exit.RoomId, ExitName: exit.Name })}
+                            />
+                        ))}
                     </Grid>
-                </React.Fragment>}
+                    <Grid item md>
+                        <Typography variant='subtitle1' align='center'>
+                            Characters:
+                        </Typography>
+                        { Players
+                            .map(({
+                                CharacterId,
+                                Name,
+                                Pronouns,
+                                FirstImpression,
+                                OneCoolThing,
+                                Outfit,
+                                color
+                            }) => {
+                                return (
+                                    <Tooltip key={Name} interactive arrow title={<React.Fragment>
+                                        <Typography variant='subtitle1' align='center'>
+                                            {Name}
+                                        </Typography>
+                                        { Pronouns && <div>Pronouns: {Pronouns}</div> }
+                                        { FirstImpression && <div>First Impression: {FirstImpression}</div> }
+                                        { OneCoolThing && <div>One Cool Thing: {OneCoolThing}</div> }
+                                        { Outfit && <div>Outfit: {Outfit}</div> }
+                                    </React.Fragment>}>
+                                        <Chip
+                                            label={Name}
+                                            classes={{
+                                                root: classes[`chip-${color.primary}`]
+                                            }}
+                                        />
+                                    </Tooltip>
+                                )
+
+                            })
+                        }
+                    </Grid>
+                </Grid>
             </ListItemText>
             <ListItemSecondaryAction>
                 {
                     inline
-                        ? detailsOpen
-                            ? <ExpandLessIcon onClick={() => { setDetailStatus(false)}} />
-                            : <ExpandMoreIcon onClick={() => { setDetailStatus(true)}} />
+                        ? open
+                            ? <ExpandLessIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: false })) }} />
+                            : <ExpandMoreIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: true })) }} />
                         : <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
                 }
             </ListItemSecondaryAction>
         </ListItem>
         {
-            detailsOpen && [...Recap]
+            open && [...Recap]
                 .sort(({ CreatedTime: CreatedTimeA }, { CreatedTime: CreatedTimeB}) => (CreatedTimeA - CreatedTimeB))
                 .map(({ MessageId, Type, ...rest }) => (Type === "ANNOUNCEMENT"
                     ? <AnnouncementMessage key={MessageId} Message={rest.Message} Title={rest.Title} Recap />
