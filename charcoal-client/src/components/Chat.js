@@ -25,7 +25,8 @@ import {
     Menu,
     MenuItem,
     Snackbar,
-    Fab
+    Fab,
+    Zoom
 } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import MenuIcon from '@material-ui/icons/Menu'
@@ -204,16 +205,16 @@ export const Chat = () => {
     const [ { lockToBottom, lastMessageId }, setScrolling ] = useState({ lockToBottom: true })
     const scrollRef = useRef(null)
     const lastMessageRef = useRef(null)
-    const newLastMessageId = messages.length
+    const newLastMessageId = ((messages && messages.slice(-1)[0]) || {}).MessageId
 
+    const scrollTop = (scrollRef.current && scrollRef.current.scrollTop) || 0
     const scrollHeight = (scrollRef.current && scrollRef.current.scrollHeight) || 0
     const clientHeight = (scrollRef.current && scrollRef.current.clientHeight) || 0
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (lockToBottom && lastMessageRef.current) {
-            console.log('AutoScrolling')
             lastMessageRef.current.scrollIntoView()
         }
-    }, [lockToBottom, scrollHeight, clientHeight, lastMessageId, newLastMessageId])
+    }, [lockToBottom, scrollTop, scrollHeight, clientHeight, lastMessageId, newLastMessageId])
 
     const [whoDrawerOpen, setWhoDrawerOpen] = useState(false)
     const [mapDrawerOpen, setMapDrawerOpen] = useState(false)
@@ -317,12 +318,13 @@ export const Chat = () => {
                                 ref={scrollRef}
                                 className={classes.messagePaper}
                                 onScroll={({ target }) => {
-                                    console.log('OnScroll')
                                     if (target.scrollTop + target.clientHeight + 10 >= target.scrollHeight ) {
-                                        setScrolling({ lockToBottom: true, lastMessageId })
+                                        setScrolling({ lockToBottom: true, lastMessageId: newLastMessageId })
                                     }
                                     else {
-                                        setScrolling({ lockToBottom: false, lastMessageId })
+                                        if (lastMessageId === newLastMessageId) {
+                                            setScrolling({ lockToBottom: false, lastMessageId })
+                                        }
                                     }
                                 }}
                             >
@@ -357,17 +359,17 @@ export const Chat = () => {
                 </div>
                 <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", bottom: "0", left: "0" }}>
                     <div style={{ width: "50%" }} />
-                    { (!lockToBottom) &&
-                        <Fab
-                            color="secondary"
-                            className={classes.messageScrollButtonPlacement}
-                            onClick={() => {
-                                setScrolling({ lockToBottom: true, lastMessageId })
-                            }}
-                        >
-                            <NewMessagesIcon />
-                        </Fab>
-                    }
+                        <Zoom in={(!lockToBottom) && (lastMessageId !== newLastMessageId)}>
+                            <Fab
+                                color="secondary"
+                                className={classes.messageScrollButtonPlacement}
+                                onClick={() => {
+                                    setScrolling({ lockToBottom: true, lastMessageId })
+                                }}
+                            >
+                                <NewMessagesIcon />
+                            </Fab>
+                        </Zoom>
                     <div style={{ width: "50%" }} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%", pointerEvents: "none" }}>
