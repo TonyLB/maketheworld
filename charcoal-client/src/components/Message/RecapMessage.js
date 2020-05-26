@@ -14,7 +14,7 @@ import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 import { getCharacterId } from '../../selectors/connection'
 import useStyles from '../styles'
 
-export const RecapMessage = ({ message, ...rest }) => {
+export const RecapMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const CharacterId = message.FromCharacterId
     const myCharacterId = useSelector(getCharacterId)
     const charactersInPlay = useSelector(getCharactersInPlay)
@@ -23,7 +23,7 @@ export const RecapMessage = ({ message, ...rest }) => {
         ? { primary: 'blue', light: 'lightblue', recap: 'recapblue', recapLight: 'recapLightblue' }
         : (charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].color) || {}
     const classes = useStyles()
-    return <ListItem className={ (color && classes[color.recapLight]) || classes['recap'] } alignItems="flex-start" {...rest} >
+    return <ListItem ref={ref} className={ (color && classes[color.recapLight]) || classes['recap'] } alignItems="flex-start" {...rest} >
         { Name && <ListItemAvatar>
                 <Tooltip title={Name}>
                     <Avatar className={color && classes[color.recap]}>
@@ -38,6 +38,6 @@ export const RecapMessage = ({ message, ...rest }) => {
             </Typography>
         </ListItemText>
     </ListItem>
-}
+})
 
 export default RecapMessage

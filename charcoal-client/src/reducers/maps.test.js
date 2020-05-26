@@ -97,6 +97,11 @@ describe('maps reducer', () => {
                         PermanentId: 'VORTEX',
                         X: 100,
                         Y: 100
+                    },
+                    TEST: {
+                        PermanentId: 'TEST',
+                        X: 200,
+                        Y: 100
                     }
                 }
             }
@@ -116,11 +121,6 @@ describe('maps reducer', () => {
                 MapId: 'Test',
                 Name: 'Test Map',
                 Rooms: {
-                    VORTEX: {
-                        PermanentId: 'VORTEX',
-                        X: 100,
-                        Y: 100
-                    },
                     TEST: {
                         PermanentId: 'TEST',
                         X: 200,

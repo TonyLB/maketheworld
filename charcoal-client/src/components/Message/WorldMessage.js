@@ -20,14 +20,14 @@ const intersperseBrs = (entryList) => (
         : entryList[0]
 )
 
-export const WorldMessage = ({ message, ...rest }) => {
-    return <ListItem alignItems="flex-start" {...rest} >
+export const WorldMessage = React.forwardRef(({ message, ...rest }, ref) => {
+    return <ListItem ref={ref} alignItems="flex-start" {...rest} >
         <ListItemText inset>
             <Typography variant='body1' align='left'>
-                { intersperseBrs((message.message).split('\n')) }
+                { intersperseBrs((message.Message).split('\n')) }
             </Typography>
         </ListItemText>
     </ListItem>
-}
+})
 
 export default WorldMessage

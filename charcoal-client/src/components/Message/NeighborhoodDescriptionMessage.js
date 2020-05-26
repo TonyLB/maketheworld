@@ -10,12 +10,12 @@ import CityIcon from '@material-ui/icons/LocationCity'
 
 import useStyles from '../styles'
 
-export const NeighborhoodDescriptionMessage = ({ message, ...rest }) => {
+export const NeighborhoodDescriptionMessage = React.forwardRef(({ message, ...rest }, ref) => {
 
     const classes = useStyles()
     const { Name='', Description='' } = message || {}
 
-    return <ListItem className={ classes.neighborhoodMessage } alignItems="flex-start" {...rest} >
+    return <ListItem ref={ref} className={ classes.neighborhoodMessage } alignItems="flex-start" {...rest} >
             <ListItemIcon>
                 <CityIcon />
             </ListItemIcon>
@@ -28,6 +28,6 @@ export const NeighborhoodDescriptionMessage = ({ message, ...rest }) => {
                 </Typography>
             </ListItemText>
         </ListItem>
-}
+})
 
 export default NeighborhoodDescriptionMessage

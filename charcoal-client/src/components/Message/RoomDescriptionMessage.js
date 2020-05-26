@@ -28,24 +28,8 @@ import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import RecapMessage from './RecapMessage'
 import AnnouncementMessage from './AnnouncementMessage'
 
-export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false, ...rest }) => {
-    const [{ detailsOpen, timeoutId, manuallyOpened }, setDetailStatus] = useState({ detailsOpen: true, timeoutId: null, manuallyOpened: false })
-
-    useEffect(() => {
-        if (inline && detailsOpen && !manuallyOpened) {
-            if (!timeoutId) {
-                setDetailStatus({
-                    detailsOpen: true,
-                    timeoutId: setTimeout(() => {
-                        setDetailStatus({ detailOpen: false, timeoutId: null })}, 10000)
-                })
-            }
-        }
-        if (!detailsOpen && timeoutId) {
-            clearTimeout(timeoutId)
-            setDetailStatus({ detailOpen: false, timeoutId: null})
-        }
-    }, [detailsOpen, inline, timeoutId, manuallyOpened])
+export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
+    const [detailsOpen, setDetailStatus] = useState(false)
 
     const classes = useStyles()
     const { RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='' } = message
@@ -54,7 +38,7 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
     const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry)).reverse()
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <React.Fragment>
-        <ListItem className={ classes.roomMessage } alignItems="flex-start" {...rest} >
+        <ListItem ref={ref} className={ classes.roomMessage } alignItems="flex-start" {...rest} >
             <ListItemIcon>
                 <HouseIcon />
             </ListItemIcon>
@@ -147,8 +131,8 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                 {
                     inline
                         ? detailsOpen
-                            ? <ExpandLessIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen })}} />
-                            : <ExpandMoreIcon onClick={() => { setDetailStatus({ timeoutId, detailsOpen: !detailsOpen, manuallyOpened: true })}} />
+                            ? <ExpandLessIcon onClick={() => { setDetailStatus(false)}} />
+                            : <ExpandMoreIcon onClick={() => { setDetailStatus(true)}} />
                         : <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
                 }
             </ListItemSecondaryAction>
@@ -162,6 +146,6 @@ export const RoomDescriptionMessage = ({ message, inline=false, mostRecent=false
                 ))
         }
     </React.Fragment>
-}
+})
 
 export default RoomDescriptionMessage

@@ -32,7 +32,7 @@ export const EditMapContextMenuPopover = ({
                 { locked && <ListItemIcon>
                         <LockIcon />
                     </ListItemIcon>}
-                <ListItemText>{ locked ? 'Unlock' : 'Lock' }</ListItemText>
+                <ListItemText>{ locked ? 'Enable rubber-banding' : 'Disable rubber-banding' }</ListItemText>
             </ListItem>
             <ListItem button onClick={onRemove}>
                 <ListItemText>Remove</ListItemText>

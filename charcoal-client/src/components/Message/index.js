@@ -14,23 +14,23 @@ import RoomDescriptionMessage from './RoomDescriptionMessage'
 import NeighborhoodDescriptionMessage from './NeighborhoodDescriptionMessage'
 import AnnouncementMessage from './AnnouncementMessage'
 
-export const Message = ({ message, ...rest }) => {
+export const Message = React.forwardRef(({ message, ...rest }, ref) => {
     if (message instanceof playerMessage) {
-        return <PlayerMessage message={message} {...rest} />
+        return <PlayerMessage ref={ref} message={message} {...rest} />
     }
     else if (message instanceof roomDescription) {
-        return <RoomDescriptionMessage inline message={message} {...rest} />
+        return <RoomDescriptionMessage inline ref={ref} message={message} {...rest} />
     }
     else if (message instanceof neighborhoodDescription) {
-        return <NeighborhoodDescriptionMessage message={message} {...rest} />
+        return <NeighborhoodDescriptionMessage ref={ref} message={message} {...rest} />
     }
     else if (message instanceof announcementMessage) {
-        return <AnnouncementMessage Message={message.Message} Title={message.Title} {...rest} />
+        return <AnnouncementMessage ref={ref} Message={message.Message} Title={message.Title} {...rest} />
     }
     else if (message instanceof directMessage) {
-        return <DirectMessage message={message} {...rest} />
+        return <DirectMessage ref={ref} message={message} {...rest} />
     }
-    return <WorldMessage message={message} {...rest} />
-}
+    return <WorldMessage ref={ref} message={message} {...rest} />
+})
 
 export default Message

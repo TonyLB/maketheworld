@@ -11,7 +11,6 @@ exports[`NeighborhoodDescriptionMessage component should render empty message 1`
       aria-hidden="true"
       class="MuiSvgIcon-root"
       focusable="false"
-      role="presentation"
       viewBox="0 0 24 24"
     >
       <path
@@ -23,7 +22,7 @@ exports[`NeighborhoodDescriptionMessage component should render empty message 1`
     class="MuiListItemText-root"
   >
     <span
-      class="MuiTypography-root MuiListItemText-primary MuiTypography-body1"
+      class="MuiTypography-root MuiListItemText-primary MuiTypography-body1 MuiTypography-displayBlock"
     >
       <h5
         class="MuiTypography-root MuiTypography-h5 MuiTypography-alignLeft"
@@ -38,7 +37,7 @@ exports[`NeighborhoodDescriptionMessage component should render empty message 1`
 
 exports[`NeighborhoodDescriptionMessage component should render test message 1`] = `
 <li
-  class="MuiListItem-root makeStyles-neighborhoodMessage-138 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+  class="MuiListItem-root makeStyles-neighborhoodMessage-146 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
 >
   <div
     class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
@@ -47,7 +46,6 @@ exports[`NeighborhoodDescriptionMessage component should render test message 1`]
       aria-hidden="true"
       class="MuiSvgIcon-root"
       focusable="false"
-      role="presentation"
       viewBox="0 0 24 24"
     >
       <path
@@ -59,7 +57,7 @@ exports[`NeighborhoodDescriptionMessage component should render test message 1`]
     class="MuiListItemText-root"
   >
     <span
-      class="MuiTypography-root MuiListItemText-primary MuiTypography-body1"
+      class="MuiTypography-root MuiListItemText-primary MuiTypography-body1 MuiTypography-displayBlock"
     >
       <h5
         class="MuiTypography-root MuiTypography-h5 MuiTypography-alignLeft"

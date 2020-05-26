@@ -12,9 +12,9 @@ import NewReleasesIcon from '@material-ui/icons/NewReleases'
 
 import useStyles from '../styles'
 
-export const AnnouncementMessage = ({ Message, Title, Recap, ...rest }) => {
+export const AnnouncementMessage = React.forwardRef(({ Message, Title, Recap, ...rest }, ref) => {
     const classes = useStyles()
-    return <ListItem alignItems="flex-start" {...rest} className={Recap ? classes.lightgrey : null}>
+    return <ListItem ref={ref} alignItems="flex-start" {...rest} className={Recap ? classes.lightgrey : null}>
         <ListItemText inset>
             <Card>
                 <CardHeader className={Recap ? classes.darkgrey : classes.lightgrey} avatar={<NewReleasesIcon />} title={Title} />
@@ -26,6 +26,6 @@ export const AnnouncementMessage = ({ Message, Title, Recap, ...rest }) => {
             </Card>
         </ListItemText>
     </ListItem>
-}
+})
 
 export default AnnouncementMessage

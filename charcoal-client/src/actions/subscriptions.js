@@ -75,18 +75,18 @@ export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
                 const { value = {} } = messageData
                 const { data = {} } = value
                 const { addedMessage = {} } = data
-                const { Message, FromCharacterId, Type, Title } = addedMessage || {}
+                const { MessageId, Message, FromCharacterId, Type, Title } = addedMessage || {}
                 switch(Type) {
                     case 'ROOM':
                         if (FromCharacterId) {
-                            dispatch(playerMessageAdded({ Message, CharacterId: FromCharacterId }))
+                            dispatch(playerMessageAdded({ MessageId, Message, CharacterId: FromCharacterId }))
                         }
                         else {
-                            dispatch(worldMessageAdded(Message))
+                            dispatch(worldMessageAdded({ MessageId, Message }))
                         }
                         break;
                     case 'ANNOUNCEMENT':
-                        dispatch(announcementAdded({ Message, Title }))
+                        dispatch(announcementAdded({ MessageId, Message, Title }))
                         break;
                     default:
                         break;

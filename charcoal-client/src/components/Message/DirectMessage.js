@@ -18,7 +18,7 @@ import { getCharacterId } from '../../selectors/connection'
 import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
 import useStyles from '../styles'
 
-export const DirectMessage = ({ message, ...rest }) => {
+export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const { FromCharacterId, ToCharacterId } = message
     const myCharacterId = useSelector(getCharacterId)
     const charactersInPlay = useSelector(getCharactersInPlay)
@@ -29,7 +29,7 @@ export const DirectMessage = ({ message, ...rest }) => {
     const replyCharacterId = (FromCharacterId === myCharacterId) ? (ToCharacterId === myCharacterId) ? null : ToCharacterId : FromCharacterId
     const classes = useStyles()
     const dispatch = useDispatch()
-    return <ListItem className={ color && classes[color.direct] } alignItems="flex-start" {...rest} >
+    return <ListItem ref={ref} className={ color && classes[color.direct] } alignItems="flex-start" {...rest} >
         <ListItemAvatar>
             <Tooltip title={Name}>
                 <Avatar className={color && classes[color.primary]}>
@@ -53,6 +53,6 @@ export const DirectMessage = ({ message, ...rest }) => {
             }
         </ListItemSecondaryAction>
     </ListItem>
-}
+})
 
 export default DirectMessage

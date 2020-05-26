@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 // Amplify imports
@@ -24,12 +24,14 @@ import {
     IconButton,
     Menu,
     MenuItem,
-    Snackbar
+    Snackbar,
+    Fab
 } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import MenuIcon from '@material-ui/icons/Menu'
 import HelpIcon from '@material-ui/icons/Help'
 import SettingsIcon from '@material-ui/icons/Settings'
+import NewMessagesIcon from '@material-ui/icons/FiberNew'
 
 // Local code imports
 import { WSS_ADDRESS } from '../config'
@@ -199,6 +201,20 @@ export const Chat = () => {
         }
     }, [webSocket, dispatch])
 
+    const [ { lockToBottom, lastMessageId }, setScrolling ] = useState({ lockToBottom: true })
+    const scrollRef = useRef(null)
+    const lastMessageRef = useRef(null)
+    const newLastMessageId = messages.length
+
+    const scrollHeight = (scrollRef.current && scrollRef.current.scrollHeight) || 0
+    const clientHeight = (scrollRef.current && scrollRef.current.clientHeight) || 0
+    useEffect(() => {
+        if (lockToBottom && lastMessageRef.current) {
+            console.log('AutoScrolling')
+            lastMessageRef.current.scrollIntoView()
+        }
+    }, [lockToBottom, scrollHeight, clientHeight, lastMessageId, newLastMessageId])
+
     const [whoDrawerOpen, setWhoDrawerOpen] = useState(false)
     const [mapDrawerOpen, setMapDrawerOpen] = useState(false)
 
@@ -296,20 +312,63 @@ export const Chat = () => {
                 <div style={{ height: "100%", pointerEvents: "none" }}/>
                 <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%" }}>
                     <Container className={classes.messageContainer}  maxWidth="lg">
-                        <Paper className={classes.messagePaper}>
-                            <List className={classes.messageList}>
-                                {
-                                    messages.map((message, index) => (
-                                        <Message
-                                            key={`Message-${index}`}
-                                            { ...( message === mostRecentRoomMessage ? { mostRecent: true } : {})}
-                                            message={message}
-                                        />
-                                    ))
-                                }
-                            </List>
-                        </Paper>
+                        <div className={classes.messageBottomSnapper}>
+                            <Paper
+                                ref={scrollRef}
+                                className={classes.messagePaper}
+                                onScroll={({ target }) => {
+                                    console.log('OnScroll')
+                                    if (target.scrollTop + target.clientHeight + 10 >= target.scrollHeight ) {
+                                        setScrolling({ lockToBottom: true, lastMessageId })
+                                    }
+                                    else {
+                                        setScrolling({ lockToBottom: false, lastMessageId })
+                                    }
+                                }}
+                            >
+                                <List className={classes.messageList}>
+                                    {
+                                        messages.slice(0, -1).map((message, index) => (
+                                            <Message
+                                                key={`Message-${index}`}
+                                                { ...( message === mostRecentRoomMessage ? { mostRecent: true } : {})}
+                                                message={message}
+                                            />
+                                        ))
+                                    }
+                                    {
+                                        messages.slice(-1).map((message) => (
+                                            <Message
+                                                key={`Message-${messages.length - 1}`}
+                                                ref={lastMessageRef}
+                                                { ...( message === mostRecentRoomMessage ? { mostRecent: true } : {})}
+                                                message={message}
+                                            />
+                                        ))
+                                    }
+                                    {
+                                        messages.length === 0 &&
+                                            <li ref={lastMessageRef}></li>
+                                    }
+                                </List>
+                            </Paper>
+                        </div>
                     </Container>
+                </div>
+                <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", bottom: "0", left: "0" }}>
+                    <div style={{ width: "50%" }} />
+                    { (!lockToBottom) &&
+                        <Fab
+                            color="secondary"
+                            className={classes.messageScrollButtonPlacement}
+                            onClick={() => {
+                                setScrolling({ lockToBottom: true, lastMessageId })
+                            }}
+                        >
+                            <NewMessagesIcon />
+                        </Fab>
+                    }
+                    <div style={{ width: "50%" }} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%", pointerEvents: "none" }}>
                     <MapDrawer open={mapDrawerOpen} toggleOpen={() => { setMapDrawerOpen(!mapDrawerOpen) }} />

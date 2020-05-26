@@ -15,28 +15,38 @@ export const receiveMessage = (message) => ({
     payload: message
 })
 
-export const worldMessageAdded = (message) => (receiveMessage({
+export const worldMessageAdded = ({ MessageId, Message }) => (receiveMessage({
     protocol: 'worldMessage',
-    message
+    MessageId,
+    Message
 }))
 
-export const playerMessageAdded = ({ CharacterId, Message }) => (receiveMessage({
+export const playerMessageAdded = ({ MessageId, CharacterId, Message }) => (receiveMessage({
     protocol: 'playerMessage',
-    CharacterId,
-    Message
+    payload: {
+        CharacterId,
+        MessageId,
+        Message
+    }
 }))
 
-export const directMessageAdded = ({ ToCharacterId, FromCharacterId, Message }) => (receiveMessage({
+export const directMessageAdded = ({ MessageId, ToCharacterId, FromCharacterId, Message }) => (receiveMessage({
     protocol: 'directMessage',
-    ToCharacterId,
-    FromCharacterId,
-    Message
+    payload: {
+        MessageId,
+        ToCharacterId,
+        FromCharacterId,
+        Message
+    }
 }))
 
-export const announcementAdded = ({ Message, Title }) => (receiveMessage({
+export const announcementAdded = ({ MessageId, Message, Title }) => (receiveMessage({
     protocol: 'announcementMessage',
-    Message,
-    Title
+    payload: {
+        MessageId,
+        Message,
+        Title
+    }
 }))
 
 export const sendMessage = ({RoomId, Message, FromCharacterId}) => {

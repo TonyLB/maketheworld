@@ -96,17 +96,31 @@ export const useStyles = makeStyles(theme => ({
     lineEntry: {
         backgroundColor: theme.palette.background.default
     },
+    // Extra wrappers to sidestep a Firefox bug (as of May 2020)
+    messageBottomSnapper: {
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
+        height: "100%",
+        width: "100%"
+    },
     messageContainer: {
         height: "100%",
         display: "flex",
-        flexDirection: "column-reverse",
-        maxWidth: "lg",
-        overflow: "auto"
+        flexDirection: "column",
+        maxWidth: "lg"
     },
     messagePaper: {
         position: "relative",
         width: "100%",
-        marginBottom: "10px"
+        marginBottom: "10px",
+        overflow: "auto"
+    },
+    messageScrollButtonPlacement: {
+        right: "0",
+        bottom: "0",
+        padding: "20px",
+        marginBottom: "20px"
     },
     neighborhoodPathsCard: {
         margin: "10px",
