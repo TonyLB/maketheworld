@@ -7,7 +7,7 @@ import MapRoom from './MapRoom'
 import MapDisplay from './MapDisplay'
 import useStyles from '../styles'
 
-export const NavigationMap = ({ map, width=600, height=400 }) => {
+export const NavigationMap = ({ map, width="100%", height="100%", open=true }) => {
     const classes = useStyles()
     const currentRoom = useSelector(getCurrentRoom)
     const dispatch = useDispatch()
@@ -24,7 +24,7 @@ export const NavigationMap = ({ map, width=600, height=400 }) => {
         />
     }
 
-    return <MapDisplay map={map} width={width} height={height} roomComponent={roomComponent} />
+    return <MapDisplay open={open} map={map} width={width} height={height} roomComponent={roomComponent} />
 }
 
 export default NavigationMap

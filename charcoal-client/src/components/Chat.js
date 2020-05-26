@@ -374,7 +374,7 @@ export const Chat = () => {
                 </div>
                 <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%", pointerEvents: "none" }}>
                     <MapDrawer open={mapDrawerOpen} toggleOpen={() => { setMapDrawerOpen(!mapDrawerOpen) }} />
-                    <div style={{ width: "100%" }}/>
+                    <div style={{ width: "100%", flexShrink: 100 }}/>
                 </div>
                 <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", top: "0", left: "0", height: "100%", pointerEvents: "none" }}>
                     <div style={{ width: "100%" }}/>

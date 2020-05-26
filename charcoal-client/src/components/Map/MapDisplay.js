@@ -5,7 +5,7 @@ import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 import MapEdge from './MapEdge'
 import MapRoom from './MapRoom'
 
-export const MapDisplay = React.forwardRef(({ map, roomComponent=MapRoom, edgeComponent=MapEdge, width=600, height=400, classes={} }, ref) => {
+export const MapDisplay = React.forwardRef(({ map, roomComponent=MapRoom, edgeComponent=MapEdge, width=600, height=400, classes={}, open=true }, ref) => {
     const permanentHeaders = useSelector(getPermanentHeaders)
 
     if (!map) {
@@ -45,18 +45,20 @@ export const MapDisplay = React.forwardRef(({ map, roomComponent=MapRoom, edgeCo
                 <path d='M0,0 V10 L10,5 Z' fill='#000000' />
             </marker>
         </defs>
-        {
-            edges.map(edgeComponent)
-        }
-        {
-            Object.values(nodes)
-                .map((node) => ({
-                    className: classes.svgLightBlue,
-                    contrastClassName: classes.svgLightBlueContrast,
-                    ...node
-                }))
-                .map(roomComponent)
-        }
+        <g opacity={open ? '1.0' : '0.0'}>
+            {
+                edges.map(edgeComponent)
+            }
+            {
+                Object.values(nodes)
+                    .map((node) => ({
+                        className: classes.svgLightBlue,
+                        contrastClassName: classes.svgLightBlueContrast,
+                        ...node
+                    }))
+                    .map(roomComponent)
+            }
+        </g>
     </svg>
 })
 

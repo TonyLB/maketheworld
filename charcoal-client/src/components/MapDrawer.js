@@ -22,21 +22,26 @@ export const MapDrawer = ({
     const currentMap = useSelector(getCurrentMap)
 
     return (
-        <Paper
-            className={ open ? classes.mapDrawerOpen : classes.mapDrawerClose }
-        >
-            <div style={{ position: 'absolute', bottom: 0, right: 0, paddingRight: "7px", paddingBottom: '7px', verticalAlign: 'center' }}>
-                { !open && <IconButton disabled><MapIcon /></IconButton> }
-                <IconButton
-                    color="inherit"
-                    aria-label="open drawer"
-                    onClick={toggleOpen}
+        <div className={open ? classes.mapDrawerHorizontalOpen : classes.mapDrawerHorizontalClose }>
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", pointerEvents: "none" }}>
+                <Paper
+                    className={ open ? classes.mapDrawerVerticalOpen : classes.mapDrawerVerticalClose }
                 >
-                    { open ? <CloseArrowIcon /> : <OpenArrowIcon /> }
-                </IconButton>
+                    <div style={{ position: 'absolute', bottom: 0, right: 0, paddingRight: "7px", paddingBottom: '7px', verticalAlign: 'center' }}>
+                        { !open && <IconButton disabled><MapIcon /></IconButton> }
+                        <IconButton
+                            color="inherit"
+                            aria-label="open drawer"
+                            onClick={toggleOpen}
+                        >
+                            { open ? <CloseArrowIcon /> : <OpenArrowIcon /> }
+                        </IconButton>
+                    </div>
+                    <NavigationMap map={currentMap} open={open} />
+                </Paper>
+                <div style={{ flexBasis: "100%", flexShrink: 100 }} />
             </div>
-            <NavigationMap map={currentMap} />
-        </Paper>
+        </div>
     )
 }
 
