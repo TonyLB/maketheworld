@@ -2,7 +2,7 @@ import { API, graphqlOperation } from 'aws-amplify'
 import { getSettings } from '../graphql/queries'
 import { putSettings } from '../graphql/mutations'
 
-// import { closeEditMapDialog } from './UI/mapDialog'
+import { closeAdminDialog } from './UI/adminDialog'
 
 export const SETTINGS_UPDATE = 'SETTINGS_UPDATE'
 
@@ -19,9 +19,8 @@ export const fetchSettings = (dispatch) => {
         .catch((err) => { console.log(err)})
 }
 
-// export const putAndCloseEditMapDialog = (mapData) => (dispatch, getState) => {
-//     const { MapId, Name, Rooms = [] } = mapData
-//     return API.graphql(graphqlOperation(putMap, { MapId, Name, Rooms }))
-//     .then(() => dispatch(closeEditMapDialog()))
-//     .catch((err) => { console.log(err)})
-// }
+export const putSettingsAndCloseAdminDialog = ({ ChatPrompt }) => (dispatch) => {
+    return API.graphql(graphqlOperation(putSettings, { ChatPrompt }))
+    .then(() => dispatch(closeAdminDialog()))
+    .catch((err) => { console.log(err)})
+}

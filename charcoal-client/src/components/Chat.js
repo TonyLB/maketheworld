@@ -44,6 +44,7 @@ import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
+import { activateAdminDialog } from '../actions/UI/adminDialog'
 import { activateConfirmDialog } from '../actions/UI/confirmDialog'
 import { activateMapDialog } from '../actions/UI/mapDialog'
 import { putPlayer } from '../actions/player'
@@ -51,7 +52,7 @@ import { getCurrentRoom, getVisibleExits } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getWebSocket } from '../selectors/webSocket.js'
 import { getCharacterId } from '../selectors/connection'
-import { getMyCharacters } from '../selectors/myCharacters'
+import { getMyCharacters, getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
 import { getConsentGiven, getPlayerFetched } from '../selectors/player'
 import LineEntry from '../components/LineEntry.js'
@@ -68,6 +69,7 @@ import DirectMessageDialog from './DirectMessageDialog'
 import MapDialog from './Map/'
 import WhoDrawer from './WhoDrawer'
 import MapDrawer from './MapDrawer'
+import AdminDialog from './AdminDialog'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 import useAppSyncSubscriptions from './useAppSyncSubscriptions'
@@ -125,6 +127,7 @@ export const Chat = () => {
         Exits: visibleExits
     }
     const characterId = useSelector(getCharacterId)
+    const currentCharacter = useSelector(getMyCurrentCharacter)
     const consentGiven = useSelector(getConsentGiven)
     const playerFetched = useSelector(getPlayerFetched)
     const Players = useSelector(getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId }))
@@ -163,6 +166,10 @@ export const Chat = () => {
     }
     const handleHelpDialog = () => {
         dispatch(activateHelpDialog())
+    }
+    const handleAdminDialog = () => {
+        dispatch(activateAdminDialog)
+        handleMenuClose()
     }
     const handleSignout = () => {
         dispatch(activateConfirmDialog({
@@ -281,6 +288,11 @@ export const Chat = () => {
                         <MenuItem onClick={handleMapOverview}>
                             Map Edit
                         </MenuItem>
+                        { currentCharacter && currentCharacter.Grants && currentCharacter.Grants.ROOT.Admin &&
+                            <MenuItem onClick={handleAdminDialog}>
+                                Admin Settings
+                            </MenuItem>
+                        }
                     </Menu>
                     <Menu
                         open={settingsOpen}
@@ -393,6 +405,7 @@ export const Chat = () => {
                 </Container>
             </AppBar>
 
+            <AdminDialog />
             <DirectMessageDialog />
             <HelpDialog />
             <ConfirmDialog />

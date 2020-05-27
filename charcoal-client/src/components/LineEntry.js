@@ -17,7 +17,6 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
     const [value, setValue] = useState('')
     const [open, setAutocompleteOpen] = useState(false)
     const { ChatPrompt } = useSelector(getSettings)
-    console.log(ChatPrompt)
 
     return (
         <Autocomplete
