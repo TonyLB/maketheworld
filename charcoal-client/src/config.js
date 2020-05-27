@@ -1,8 +1,11 @@
-export const WSS_ADDRESS="wss://w9eoi2q3f9.execute-api.us-east-1.amazonaws.com/Prod"
+import configJSON from './config.json'
+
+const config = configJSON.reduce((previous, { OutputKey, OutputValue }) => ({ ...previous, [OutputKey]: OutputValue }), {})
+export const WSS_ADDRESS=config.WebSocketURI
 
 export const AuthConfig = {
     aws_project_region: "us-east-1",
-    aws_appsync_graphqlEndpoint: "https://ukcxnqmvt5f2hlkk6xy66zmsnu.appsync-api.us-east-1.amazonaws.com/graphql",
+    aws_appsync_graphqlEndpoint: config.AppSyncURL,
     aws_appsync_region: "us-east-1",
     aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS",
     Auth: {
@@ -10,10 +13,10 @@ export const AuthConfig = {
         region: 'us-east-1',
 
         // OPTIONAL - Amazon Cognito User Pool ID
-        userPoolId: 'us-east-1_uqDUigCn6',
+        userPoolId: config.UserPoolId,
 
         // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
-        userPoolWebClientId: '36s74tiuedhe3t4v4irl6o3fqv',
+        userPoolWebClientId: config.UserPoolClient,
 
         // OPTIONAL - Enforce user authentication prior to accessing AWS resources or not
         mandatorySignIn: true,

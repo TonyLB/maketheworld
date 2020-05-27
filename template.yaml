@@ -1888,14 +1888,22 @@ Resources:
               }
 
 Outputs:
-  WebSocketURI:
-    Description: "The WSS Protocol URI to connect to for realtime messages"
-    Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+  UserPoolClient:
+      Description: The client ID for the player user pool
+      Value:
+          Fn::ImportValue:
+              !Sub "${PermanentsStack}-UserPoolClient"
 
-  AppSyncAPI:
-    Description: The ID of the AppSync Api
-    Value: !Ref AppSyncAPI
+  UserPoolId:
+      Description: The internal ID for the player user pool
+      Value:
+          Fn::ImportValue:
+              !Sub "${PermanentsStack}-UserPoolId"
+
+  WebSocketURI:
+      Description: "The WSS Protocol URI to connect to for realtime messages"
+      Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
 
   AppSyncURL:
-    Description: The URL of the AppSync GraphQL endpoint
-    Value: !GetAtt AppSyncAPI.GraphQLUrl
+      Description: The URL of the AppSync GraphQL endpoint
+      Value: !GetAtt AppSyncAPI.GraphQLUrl

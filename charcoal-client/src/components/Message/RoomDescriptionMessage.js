@@ -23,6 +23,7 @@ import HiddenIcon from '@material-ui/icons/VisibilityOff'
 import useStyles from '../styles'
 
 import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
+import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import { setMessageOpen } from '../../actions/messages'
@@ -36,6 +37,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
 
     const dispatch = useDispatch()
     const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry)).reverse()
+    const { Grants } = useSelector(getMyCurrentCharacter)
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <React.Fragment>
         <ListItem ref={ref} className={ classes.roomMessage } alignItems="flex-start" {...rest} >
@@ -131,7 +133,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
                         ? open
                             ? <ExpandLessIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: false })) }} />
                             : <ExpandMoreIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: true })) }} />
-                        : <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
+                        : (Grants && Grants[RoomId].Edit) && <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
                 }
             </ListItemSecondaryAction>
         </ListItem>
