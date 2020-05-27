@@ -77,7 +77,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         }))))
         .then((Grants) => ({ ...neighborhood, Grants }))
     ))
-    .then(({ PermanentId: FetchedPermanentId, ParentId, Name, Description, Visibility, Topology, ContextMapId, Grants }) => ({
+    .then(({ ParentId, Name, Description, Visibility, Topology, ContextMapId, Grants }) => ({
         PermanentId,
         ParentId,
         Name,
@@ -102,234 +102,6 @@ exports.putNeighborhood = (event) => {
 
     const newNeighborhood = !Boolean(PermanentId)
     const newPermanentId = PermanentId || uuidv4()
-
-    //
-    // First check the existing Neighborhood to grab calculated values if they
-    // already exist, and see whether this update involves a change of parentage
-    // (which will require cascade updates)
-    //
-    const preCheckLookup = newNeighborhood
-        ? Promise.resolve({
-            CharacterId,
-            PermanentId: newPermanentId,
-            ParentId,
-            Name,
-            Description,
-            Visibility,
-            Topology,
-            ContextMapId,
-            Grants
-        })
-        : documentClient.get({
-                TableName: permanentTable,
-                Key: {
-                    PermanentId: `NEIGHBORHOOD#${newPermanentId}`,
-                    DataCategory: 'Details'
-                }
-            }).promise()
-            .then(({ Item = {} }) => (Item))
-            .then(({ ParentId: FetchedParentId, Ancestry, ProgenitorId, ...rest }) => ({
-                ...rest,
-                PermanentId: newPermanentId,
-                ParentId,
-                Name,
-                Description,
-                Visibility,
-                Topology,
-                ContextMapId,
-                Grants,
-                PreviousParentId: FetchedParentId,
-                PreviousAncestry: Ancestry,
-                PreviousProgenitorId: ProgenitorId
-            }))
-
-    //
-    // Next, if there is a change of parent then find the new parent (if any) in the
-    // database and derive the new Progenitor and Ancestry
-    //
-    const ancestryLookup = ({
-            ParentId,
-            PermanentId,
-            ...rest
-        }) =>
-        (ParentId
-            ? (ParentId !== rest.PreviousParentId)
-                //
-                // On change of parent, get the new parent and construct ancestry
-                //
-                ? documentClient.get({
-                        TableName: permanentTable,
-                        Key: {
-                            PermanentId: `NEIGHBORHOOD#${ParentId}`,
-                            DataCategory: 'Details'
-                        }
-                    }).promise()
-                    .then(({ Item = {} }) => (Item))
-                    .then(({ Ancestry = '', ProgenitorId = '' }) => ({
-                        PermanentId,
-                        ParentId,
-                        ...rest,
-                        Ancestry: `${Ancestry}:${PermanentId}`,
-                        ProgenitorId: ProgenitorId || PermanentId
-                    }))
-                //
-                // No change from previous parent, so use previous ancestry
-                //
-                : Promise.resolve({
-                    PermanentId,
-                    ParentId,
-                    ...rest,
-                    Ancestry: rest.PreviousAncestry,
-                    ProgenitorId: rest.PreviousProgenitorId
-                })
-            //
-            // No parent means new ancestry and primogenitor are the permanent ID.
-            //
-            : Promise.resolve({
-                PermanentId,
-                ParentId,
-                ...rest,
-                Ancestry: PermanentId,
-                ProgenitorId: PermanentId
-            }))
-
-    //
-    // Create externalPut calls to update the AppSync API with what we're doing behind the scenes.
-    //
-    const updateToAppSyncCall = (Items) => (
-        Items.length
-            ? Promise.resolve(Items)
-                .then((Items) => (Items.filter(({ DataCategory }) => (DataCategory === 'Details'))))
-                .then((Items) => (Items.map(({
-                    PermanentId,
-                    Name,
-                    Ancestry,
-                    Description,
-                    ParentId,
-                    Visibility,
-                    Topology,
-                    ContextMapId
-                }) => (`externalPut${PermanentId.startsWith("ROOM#") ? "Room" : "Neighborhood" } (
-                        PermanentId: "${PermanentId.split("#").slice(1).join("#")}",
-                        Name: ${JSON.stringify(Name)},
-                        Ancestry: "${Ancestry}",
-                        Description: ${JSON.stringify(Description)},
-                        ParentId: "${ParentId}",
-                        Visibility: "${ Visibility || 'Visible' }"
-                        Topology: "${ Topology || 'Dead-End'}"
-                        ${ PermanentId.startsWith('NEIGHBORHOOD#') ? `ContextMapId: "${ContextMapId}"` : ''}
-                    ) {
-                        Neighborhood {
-                            PermanentId
-                            Name
-                            Ancestry
-                            Description
-                            ParentId
-                            Visibility
-                            Topology
-                            ContextMapId
-                            Grants {
-                                CharacterId
-                                Actions
-                                Roles
-                            }
-                        }
-                        Room {
-                            PermanentId
-                            Name
-                            Ancestry
-                            Description
-                            ParentId
-                            Visibility
-                            Topology
-                            Exits {
-                                Name
-                                RoomId
-                                Ancestry
-                            }
-                            Entries {
-                                Name
-                                RoomId
-                            }
-                            Grants {
-                                CharacterId
-                                Actions
-                                Roles
-                            }
-                        }
-                        Map {
-                            MapId
-                            Name
-                            Rooms {
-                                PermanentId
-                                X
-                                Y
-                            }
-                        }
-                    }
-                    `))
-                ))
-                .then((Items) => (Items.reduce((previous, item, index) => (
-                        `${previous}\nupdate${index+1}: ${item}`
-                    ), '')
-                ))
-                .then((cascadeUpdate) => {
-                    console.log(cascadeUpdate)
-                    return cascadeUpdate
-                })
-                .then((aggregateString) => (gql`mutation CascadeUpdate {
-                    ${aggregateString}
-                }`))
-                .then((cascadeUpdate) => (graphqlClient.mutate({ mutation: cascadeUpdate })))
-            : []
-    )
-
-    const cascadeUpdates = ({
-        Ancestry,
-        ProgenitorId,
-        PreviousAncestry,
-        PreviousProgenitorId,
-        ...rest
-    }) => ((newNeighborhood || (Ancestry === PreviousAncestry))
-        ? { Ancestry, ProgenitorId, ...rest }
-        //
-        // A parent change means we need to cascade-update all descendants, and then convey
-        // that change to AppSync to service subscriptions on the data change.
-        //
-        : documentClient.query({
-                TableName: permanentTable,
-                KeyConditionExpression: 'ProgenitorId = :ProgenitorId AND begins_with(Ancestry, :RootAncestry)',
-                ExpressionAttributeValues: {
-                    ":ProgenitorId": PreviousProgenitorId,
-                    ":RootAncestry": PreviousAncestry
-                },
-                IndexName: "AncestryIndex"
-            }).promise()
-            .then(({ Items }) => (Items || []))
-            .then((Items) => (Items.filter(({ PermanentId }) => (PermanentId.split('#').slice(1).join('#') !== rest.PermanentId))))
-            .then((Items) => (Items.map(({
-                    Ancestry: FetchedAncestry,
-                    ...rest
-                }) => ({
-                    ...rest,
-                    Ancestry: `${Ancestry}:${FetchedAncestry.slice(PreviousAncestry.length+1)}`,
-                    ProgenitorId
-                }))
-            ))
-            //
-            // Now send maximum-sized parallel batches to update all of these items directly
-            // in DynamoDB
-            //
-            .then((Items) => {
-                return Items.length
-                    ? batchDispatcher(documentClient)(Items.map((Item) => ({
-                            PutRequest: { Item }
-                        }))).then(() => (Items))
-                    : Items
-            })
-            .then(updateToAppSyncCall)
-            .then(() => ({ Ancestry, ProgenitorId, ...rest }))
-    )
 
     //
     // Create externalUpdate calls to update the AppSync API with what we're doing to grants (so people
@@ -446,29 +218,24 @@ exports.putNeighborhood = (event) => {
             .then(() => ({ grantsToDelete, grantsToPut }))
     }
 
-    const updateGrants = ({
-        CharacterId,
-        PermanentId,
-        Grants: sentGrants,
-        ...rest
-    }) => {
-        const Grants = newNeighborhood
-            ? [
-                ...sentGrants.filter(({ CharacterId: grantCharacterId }) => (grantCharacterId !== CharacterId)),
-                {
-                    CharacterId,
-                    Resource: PermanentId,
-                    Roles: 'EDITOR'
-                }
-            ]
-            : sentGrants
-        return (newNeighborhood
+    const newGrants = newNeighborhood
+        ? [
+            ...Grants.filter(({ CharacterId: grantCharacterId }) => (grantCharacterId !== CharacterId)),
+            {
+                CharacterId,
+                Resource: newPermanentId,
+                Roles: 'EDITOR'
+            }
+        ]
+        : Grants
+
+    const updateGrants = (newNeighborhood
             ? Promise.resolve([])
             : documentClient.query({
                 TableName: permanentTable,
                 KeyConditionExpression: 'DataCategory = :GrantId',
                 ExpressionAttributeValues: {
-                    ":GrantId": `GRANT#${PermanentId}`
+                    ":GrantId": `GRANT#${newPermanentId}`
                 },
                 IndexName: "DataCategoryIndex"
             }).promise()
@@ -480,14 +247,14 @@ exports.putNeighborhood = (event) => {
         )
         .then((OldGrants) => ({
             grantsToDelete: OldGrants
-                .filter(({ CharacterId }) => (!Grants.find((grant) => (CharacterId === grant.CharacterId))))
-                .map((item) => ({ ...item, Resource: PermanentId })),
-            grantsToPut: Grants.filter(({ CharacterId, Roles, Actions }) => (!OldGrants.find((oldGrant) => (
+                .filter(({ CharacterId }) => (!newGrants.find((grant) => (CharacterId === grant.CharacterId))))
+                .map((item) => ({ ...item, Resource: newPermanentId })),
+            grantsToPut: newGrants.filter(({ CharacterId, Roles, Actions }) => (!OldGrants.find((oldGrant) => (
                     CharacterId === oldGrant.CharacterId &&
                     ((Actions === oldGrant.Actions) || (!Actions && !oldGrant.Actions)) &&
                     ((Roles === oldGrant.Roles) || (!Roles && !oldGrant.Roles))
                 ))))
-                .map((item) => ({ ...item, Resource: PermanentId }))
+                .map((item) => ({ ...item, Resource: newPermanentId }))
             }))
         .then(updateGrantsInAppSyncCall(documentClient))
         .then(({ grantsToDelete, grantsToPut }) => ([
@@ -511,15 +278,21 @@ exports.putNeighborhood = (event) => {
                 })))
             ]))
         .then(batchDispatcher(documentClient))
-        .then(() => ({ CharacterId, PermanentId, Grants, ...rest }))
-    }
+        .then(() => ({
+            CharacterId,
+            PermanentId: newPermanentId,
+            Grants: newGrants,
+            ParentId,
+            Description,
+            Visibility,
+            Topology,
+            ContextMapId,
+            Name
+        }))
 
     const putNeighborhood = ({
-        CharacterId,
         PermanentId,
         ParentId,
-        Ancestry,
-        ProgenitorId,
         Name,
         Description,
         Visibility = 'Private',
@@ -532,8 +305,6 @@ exports.putNeighborhood = (event) => {
                 PermanentId: `NEIGHBORHOOD#${PermanentId}`,
                 DataCategory: 'Details',
                 ...(ParentId ? { ParentId } : {}),
-                Ancestry,
-                ProgenitorId,
                 Name,
                 ...(Description ? { Description } : {}),
                 ...(Visibility ? { Visibility } : {}),
@@ -547,8 +318,6 @@ exports.putNeighborhood = (event) => {
                 ...rest,
                 PermanentId,
                 ParentId,
-                Ancestry,
-                ProgenitorId,
                 Name,
                 Description,
                 Visibility,
@@ -558,10 +327,7 @@ exports.putNeighborhood = (event) => {
             }))
     )
 
-    return preCheckLookup
-        .then(ancestryLookup)
-        .then(cascadeUpdates)
-        .then(updateGrants)
+    return updateGrants
         .then(putNeighborhood)
         .then(({
             PermanentId,
