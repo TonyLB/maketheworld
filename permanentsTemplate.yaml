@@ -24,10 +24,6 @@ Resources:
               AttributeType: "S"
             - AttributeName: "DataCategory"
               AttributeType: "S"
-            - AttributeName: "ProgenitorId"
-              AttributeType: "S"
-            - AttributeName: "Ancestry"
-              AttributeType: "S"
           BillingMode: "PAY_PER_REQUEST"
           KeySchema:
             - AttributeName: "PermanentId"
@@ -39,14 +35,6 @@ Resources:
               KeySchema:
                 - AttributeName: DataCategory
                   KeyType: HASH
-              Projection:
-                ProjectionType: ALL
-            - IndexName: AncestryIndex
-              KeySchema:
-                - AttributeName: ProgenitorId
-                  KeyType: HASH
-                - AttributeName: Ancestry
-                  KeyType: RANGE
               Projection:
                 ProjectionType: ALL
           TableName: !Sub '${TablePrefix}_permanents'
