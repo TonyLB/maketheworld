@@ -14,7 +14,10 @@ import {
     Button,
     Select,
     MenuItem,
-    Grid
+    Grid,
+    FormGroup,
+    FormControlLabel,
+    Switch
 } from '@material-ui/core'
 
 // Local code imports
@@ -26,7 +29,7 @@ import useStyles from '../styles'
 
 export const AdminDialog = () => {
     const { open } = useSelector(getClientSettingsDialogUI)
-    const { TextEntryLines } = useSelector(getClientSettings)
+    const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
     const dispatch = useDispatch()
 
     const classes = useStyles()
@@ -62,6 +65,21 @@ export const AdminDialog = () => {
                                                 <MenuItem value={4}>Epic (four lines)</MenuItem>
                                                 <MenuItem value={8}>Indulgence (eight lines)</MenuItem>
                                             </Select>
+                                        </div>
+                                        <div>
+                                            <FormGroup row>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Switch
+                                                            checked={ShowNeighborhoodHeaders}
+                                                            onChange={ (event) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: event.target.checked })) } }
+                                                            name="showNeighborhoodHeaders"
+                                                            color="primary"
+                                                        />
+                                                    }
+                                                    label="Show Neighborhoods on movement"
+                                                />
+                                            </FormGroup>
                                         </div>
                                     </form>
                                 </CardContent>

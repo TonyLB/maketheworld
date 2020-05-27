@@ -26,6 +26,7 @@ import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import { setMessageOpen } from '../../actions/messages'
+import { getClientSettings } from '../../selectors/clientSettings'
 import RecapMessage from './RecapMessage'
 import AnnouncementMessage from './AnnouncementMessage'
 
