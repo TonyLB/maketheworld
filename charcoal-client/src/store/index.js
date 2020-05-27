@@ -12,12 +12,14 @@ import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
 import subscriptions from '../reducers/subscriptions'
 import settings from '../reducers/settings'
+import clientSettings from '../reducers/clientSettings'
 import uiReducer from '../reducers/UI'
 
 export const store = createStore(
     combineReducers({
         connection,
         charactersInPlay,
+        clientSettings,
         myCharacters,
         messages,
         registeredCharacter,

@@ -45,6 +45,7 @@ import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
 import { activateAdminDialog } from '../actions/UI/adminDialog'
+import { activateClientSettingsDialog } from '../actions/UI/clientSettingsDialog'
 import { activateConfirmDialog } from '../actions/UI/confirmDialog'
 import { activateMapDialog } from '../actions/UI/mapDialog'
 import { putPlayer } from '../actions/player'
@@ -70,8 +71,10 @@ import MapDialog from './Map/'
 import WhoDrawer from './WhoDrawer'
 import MapDrawer from './MapDrawer'
 import AdminDialog from './AdminDialog'
+import ClientSettingsDialog from './ClientSettingsDialog'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
+import { loadClientSettings } from '../actions/clientSettings'
 import useAppSyncSubscriptions from './useAppSyncSubscriptions'
 import { roomDescription } from '../store/messages'
 
@@ -152,6 +155,10 @@ export const Chat = () => {
         dispatch(activateAllCharactersDialog())
         handleSettingsClose()
     }
+    const handleClientSettings = () => {
+        dispatch(activateClientSettingsDialog)
+        handleSettingsClose()
+    }
     const handleWorldOverview = () => {
         dispatch(fetchAndOpenWorldDialog())
         handleMenuClose()
@@ -208,6 +215,9 @@ export const Chat = () => {
           dispatch(registerWebSocket(setupSocket))
         }
     }, [webSocket, dispatch])
+    useEffect(() => {
+        dispatch(loadClientSettings)
+    }, [dispatch])
 
     const [ { lockToBottom, lastMessageId }, setScrolling ] = useState({ lockToBottom: true })
     const scrollRef = useRef(null)
@@ -315,6 +325,9 @@ export const Chat = () => {
                         <MenuItem onClick={handleCharacterOverview}>
                             My Characters
                         </MenuItem>
+                        <MenuItem onClick={handleClientSettings}>
+                            Client Settings
+                        </MenuItem>
                         <MenuItem onClick={handleSignout}>
                             Sign Out
                         </MenuItem>
@@ -406,6 +419,7 @@ export const Chat = () => {
             </AppBar>
 
             <AdminDialog />
+            <ClientSettingsDialog />
             <DirectMessageDialog />
             <HelpDialog />
             <ConfirmDialog />

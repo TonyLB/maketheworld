@@ -1,0 +1,6 @@
+export const ACTIVATE_CLIENT_SETTINGS_DIALOG = 'ACTIVATE_CLIENT_SETTINGS_DIALOG'
+export const CLOSE_CLIENT_SETTINGS_DIALOG = 'CLOSE_CLIENT_SETTINGS_DIALOG'
+
+export const activateClientSettingsDialog = { type: ACTIVATE_CLIENT_SETTINGS_DIALOG }
+
+export const closeClientSettingsDialog = { type: CLOSE_CLIENT_SETTINGS_DIALOG }

@@ -11,12 +11,14 @@ import HelpIcon from '@material-ui/icons/Help'
 
 import { getAvailableBehaviors } from '../selectors/currentRoom'
 import { getSettings } from '../selectors/settings'
+import { getClientSettings } from '../selectors/clientSettings'
 
 export const LineEntry = ({ callback = () => {}, ...rest }) => {
     const availableBehaviors = useSelector(getAvailableBehaviors)
     const [value, setValue] = useState('')
     const [open, setAutocompleteOpen] = useState(false)
     const { ChatPrompt } = useSelector(getSettings)
+    const { TextEntryLines } = useSelector(getClientSettings)
 
     return (
         <Autocomplete
@@ -24,7 +26,7 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
             freeSolo
             open={open}
             options={availableBehaviors}
-            style={{ width: "100%" }}
+            style={{ width: "100%", margin: "5px" }}
             PopperComponent={(props) => (<Popper {...props} placement={"top"} />)}
             inputValue={value}
             onClose={() => {
@@ -46,6 +48,8 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
                 return <TextField
                     {...params}
                     placeholder={ChatPrompt}
+                    multiline={!(TextEntryLines === 1)}
+                    rows={TextEntryLines || 2}
                     onKeyPress={(event) => {
                         if (event.key === 'Enter' && !open) {
                             const callbackResult = callback(value || '')
