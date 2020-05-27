@@ -9,7 +9,6 @@ const itemReducer = (previous, {
     PermanentId: FetchedPermanentId,
     DataCategory,
     ParentId,
-    Ancestry,
     Name,
     Description,
     Visibility,
@@ -25,7 +24,6 @@ const itemReducer = (previous, {
                 ["__typename"]: typeLabel === 'NEIGHBORHOOD' ? 'Neighborhood' : 'Room',
                 PermanentId,
                 ParentId,
-                Ancestry,
                 Name,
                 Description,
                 Visibility: Visibility || (typeLabel === 'NEIGHBORHOOD' ? 'Private' : 'Public'),
@@ -45,8 +43,7 @@ const itemReducer = (previous, {
                     ...((previous[PermanentId] && previous[PermanentId].Exits) || []),
                     {
                         RoomId,
-                        Name,
-                        Ancestry
+                        Name
                     }
                 ]
             },
@@ -74,7 +71,14 @@ exports.getNodeTree = () => {
 
     return documentClient.scan({
             TableName: permanentTable,
-            IndexName: 'AncestryIndex'
+            FilterExpression: "begins_with(#PermanentId, :Neighborhood) or begins_with(#PermanentId, :Room)",
+            ExpressionAttributeNames: {
+                "#PermanentId": "PermanentId"
+            },
+            ExpressionAttributeValues: {
+                ":Neighborhood": "NEIGHBORHOOD",
+                ":Room": "ROOM"
+            }
         }).promise()
         .then(({ Items = [] }) => (Items.reduce(itemReducer, {})))
         .then((itemMap) => (Object.values(itemMap)))

@@ -832,7 +832,6 @@ Resources:
                   #if ($row.DataCategory == 'Details')
                       $util.qr($output.put("PermanentId", $row.PermanentId.substring(5)))
                       $util.qr($output.put("ParentId", $row.ParentId))
-                      $util.qr($output.put("Ancestry", $row.Ancestry))
                       $util.qr($output.put("Name", $row.Name))
                       $util.qr($output.put("Description", $row.Description))
                       $util.qr($output.put("Visibility", "Public"))
@@ -841,8 +840,7 @@ Resources:
                       #set($roomId = $row.DataCategory.substring(5))
                       $util.qr($exits.add({
                           "Name": $row.Name,
-                          "RoomId": $roomId,
-                          "Ancestry": $row.Ancestry
+                          "RoomId": $roomId
                       }))
                   #end
                   #if ($row.DataCategory.startsWith('ENTRY#'))
@@ -1634,14 +1632,12 @@ Resources:
               interface PermanentTreeNode {
                   PermanentId: String!
                   Name: String!
-                  Ancestry: String!
                   Description: String
                   ParentId: String
               }
               type Neighborhood implements PermanentTreeNode {
                   PermanentId: String!
                   Name: String!
-                  Ancestry: String!
                   Description: String
                   ParentId: String
                   Visibility: String
@@ -1656,7 +1652,6 @@ Resources:
               type Exit implements RoomPath {
                   Name: String!
                   RoomId: String!
-                  Ancestry: String
               }
               type Entry implements RoomPath {
                   Name: String!
@@ -1681,7 +1676,6 @@ Resources:
               type Room implements PermanentTreeNode {
                   PermanentId: String!
                   Name: String!
-                  Ancestry: String!
                   Description: String
                   ParentId: String
                   Visibility: String
@@ -1778,7 +1772,6 @@ Resources:
                   externalPutNeighborhood(
                       PermanentId: String!
                       Name: String!
-                      Ancestry: String!
                       Description: String
                       ParentId: String
                       Visibility: String
@@ -1800,7 +1793,6 @@ Resources:
                   externalPutRoom(
                       PermanentId: String!
                       Name: String!
-                      Ancestry: String!
                       Description: String
                       ParentId: String
                       Visibility: String

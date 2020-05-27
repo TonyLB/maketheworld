@@ -77,10 +77,9 @@ exports.getNeighborhood = ({ PermanentId }) => {
         }))))
         .then((Grants) => ({ ...neighborhood, Grants }))
     ))
-    .then(({ PermanentId: FetchedPermanentId, ParentId, Ancestry, ProgenitorId, Name, Description, Visibility, Topology, ContextMapId, Grants, ...rest }) => ({
+    .then(({ PermanentId: FetchedPermanentId, ParentId, Name, Description, Visibility, Topology, ContextMapId, Grants }) => ({
         PermanentId,
         ParentId,
-        Ancestry,
         Name,
         Description,
         Visibility,
@@ -567,7 +566,6 @@ exports.putNeighborhood = (event) => {
         .then(({
             PermanentId,
             ParentId,
-            Ancestry,
             Name,
             Description,
             Visibility,
@@ -578,7 +576,6 @@ exports.putNeighborhood = (event) => {
             Neighborhood: {
                 PermanentId,
                 ParentId,
-                Ancestry,
                 Name,
                 Description,
                 Visibility,

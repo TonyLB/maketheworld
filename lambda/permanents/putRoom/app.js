@@ -154,8 +154,7 @@ exports.handler = (event) => {
         Exits,
         Entries,
         ExitsToDelete,
-        EntriesToDelete,
-        RoomLookupsForExits
+        EntriesToDelete
     }) => (Promise.resolve([
             {
                 PutRequest: {
@@ -218,22 +217,11 @@ exports.handler = (event) => {
             //
             ...Exits.map(({ Name, RoomId }) => ([
                 {
-                    //
-                    // Exits must have the Ancestry and ProgenitorId of their destination room
-                    // denormalized into their structure.  This is harder for the exits leading
-                    // out of our room ... that's why we had to look these values up prior.
-                    //
                     PutRequest: {
                         Item: {
                             PermanentId: `ROOM#${PermanentId}`,
                             DataCategory: `EXIT#${RoomId}`,
-                            Name,
-                            ...((RoomLookupsForExits && RoomLookupsForExits[RoomId])
-                                ? {
-                                    Ancestry: RoomLookupsForExits[RoomId].Ancestry,
-                                    ProgenitorId: RoomLookupsForExits[RoomId].ProgenitorId
-                                }
-                                : {})
+                            Name
                         }
                     }
                 },
@@ -261,18 +249,11 @@ exports.handler = (event) => {
                     }
                 },
                 {
-                    //
-                    // Exits must have the Ancestry and ProgenitorId of their destination room
-                    // denormalized into their structure.  This is easy for the exits leading to
-                    // our room (we get those passed as arguments)
-                    //
                     PutRequest: {
                         Item: {
                             PermanentId: `ROOM#${RoomId}`,
                             DataCategory: `EXIT#${PermanentId}`,
-                            Name,
-                            Ancestry,
-                            ProgenitorId
+                            Name
                         }
                     }
                 },
@@ -287,8 +268,6 @@ exports.handler = (event) => {
             Type: "ROOM",
             PermanentId,
             ParentId,
-            Ancestry,
-            ProgenitorId,
             Name,
             Description,
             Visibility,
@@ -301,8 +280,7 @@ exports.handler = (event) => {
                 // denormalized into their structure.
                 //
                 RoomId,
-                Name,
-                Ancestry: (RoomLookupsForExits && RoomLookupsForExits[RoomId] && RoomLookupsForExits[RoomId].Ancestry) || ''
+                Name
             }))
         }))
     )

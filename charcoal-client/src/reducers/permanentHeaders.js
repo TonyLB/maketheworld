@@ -132,7 +132,7 @@ const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change
             PermanentId,
             ParentId,
             Type: 'ROOM',
-            Ancestry: permanentHeaders[ParentId] ? `${permanentHeaders[ParentId].Ancestry || ''}:${PermanentId}` : PermanentId,
+            Ancestry: permanentHeaders[ParentId] ? `${permanentHeaders[ParentId].Ancestry || ParentId}:${PermanentId}` : PermanentId,
             Exits: (Exits || []).filter(({ RoomId }) => (permanentHeaders[RoomId])),
             Entries: (Entries || []).filter(({ RoomId }) => (permanentHeaders[RoomId]))
         }
