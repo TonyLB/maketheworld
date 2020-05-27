@@ -11,6 +11,7 @@ import role from '../reducers/role'
 import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
 import subscriptions from '../reducers/subscriptions'
+import settings from '../reducers/settings'
 import uiReducer from '../reducers/UI'
 
 export const store = createStore(
@@ -24,6 +25,7 @@ export const store = createStore(
         permanentHeaders,
         maps,
         player,
+        settings,
         subscriptions,
         UI: uiReducer,
         webSocket

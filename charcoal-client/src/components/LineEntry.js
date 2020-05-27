@@ -10,11 +10,14 @@ import { Autocomplete } from '@material-ui/lab'
 import HelpIcon from '@material-ui/icons/Help'
 
 import { getAvailableBehaviors } from '../selectors/currentRoom'
+import { getSettings } from '../selectors/settings'
 
 export const LineEntry = ({ callback = () => {}, ...rest }) => {
     const availableBehaviors = useSelector(getAvailableBehaviors)
     const [value, setValue] = useState('')
     const [open, setAutocompleteOpen] = useState(false)
+    const { ChatPrompt } = useSelector(getSettings)
+    console.log(ChatPrompt)
 
     return (
         <Autocomplete
@@ -43,7 +46,7 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
             renderInput={(params) => {
                 return <TextField
                     {...params}
-                    placeholder='Enter your chat text here'
+                    placeholder={ChatPrompt}
                     onKeyPress={(event) => {
                         if (event.key === 'Enter' && !open) {
                             const callbackResult = callback(value || '')

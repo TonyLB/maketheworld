@@ -1,0 +1,14 @@
+{
+  "name": "admin",
+  "version": "1.0.0",
+  "description": "Lambda proxy for getting admin settings for global values",
+  "main": "src/app.js",
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.434.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
