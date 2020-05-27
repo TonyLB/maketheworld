@@ -8,7 +8,7 @@ const countUnique = (itemList) => (Object.values(itemList
     .length
 )
 
-const branchInconsistencies = (branchAncestry) => (state) => {
+const branchInconsistencies = (branchAncestry = '') => (state) => {
     const permanentHeaders = getPermanentHeaders(state)
     const neighborhoodConsistency = (PermanentId) => {
         if (permanentHeaders[PermanentId].Topology === 'Connected') {
