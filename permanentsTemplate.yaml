@@ -38,39 +38,6 @@ Resources:
               Projection:
                 ProjectionType: ALL
           TableName: !Sub '${TablePrefix}_permanents'
-    PlayersTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: "PlayerName"
-            AttributeType: "S"
-          - AttributeName: "DataCategory"
-            AttributeType: "S"
-          - AttributeName: "CharacterId"
-            AttributeType: "S"
-        BillingMode: "PAY_PER_REQUEST"
-        KeySchema:
-          - AttributeName: "PlayerName"
-            KeyType: "HASH"
-          - AttributeName: "DataCategory"
-            KeyType: "RANGE"
-        GlobalSecondaryIndexes:
-          - IndexName: CharacterIndex
-            KeySchema:
-              - AttributeName: "CharacterId"
-                KeyType: "HASH"
-              - AttributeName: "DataCategory"
-                KeyType: "RANGE"
-            Projection:
-              ProjectionType: ALL
-          - IndexName: CategoryIndex
-            KeySchema:
-              - AttributeName: "DataCategory"
-                KeyType: "HASH"
-            Projection:
-              ProjectionType: ALL
-
-        TableName: !Sub '${TablePrefix}_players'
     UserPool:
       Type: AWS::Cognito::UserPool
       UpdateReplacePolicy: Retain
