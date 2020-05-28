@@ -1057,7 +1057,7 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: moveCharacter
-          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
           RequestMappingTemplate: >
               #if(!($ctx.args.CharacterId))
                   $util.error("CharacterId field required")
@@ -1065,21 +1065,13 @@ Resources:
               #if(!($ctx.args.RoomId))
                   $util.error("RoomId field required")
               #end
-              #set( $ddb = $util.dynamodb )
               {
-                  "version": "2018-05-29",
-                  "operation": "UpdateItem",
-                  "key": {
-                      "CharacterId": $ddb.toDynamoDBJson($ctx.args.CharacterId)
-                  },
-                  "update": {
-                      "expression": "SET #roomfield = :roomId",
-                      "expressionNames": {
-                          "#roomfield": "RoomId"
-                      },
-                      "expressionValues": {
-                          ":roomId": $ddb.toDynamoDBJson($ctx.args.RoomId)
-                      }
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                    "action": "putCharacterInPlay",
+                    "CharacterId": $util.toJson($ctx.args.CharacterId),
+                    "RoomId": $util.toJson($ctx.args.RoomId)
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"

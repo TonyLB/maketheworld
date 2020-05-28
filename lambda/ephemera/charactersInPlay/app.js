@@ -81,7 +81,7 @@ exports.handler = (event) => {
             return putCharacterInPlay({
                 CharacterId: event.CharacterId,
                 ConnectionId: event.ConnectionId,
-                RoomId: action.RoomId
+                RoomId: event.RoomId
             })
         case 'deleteCharacterInPlay':
             return documentClient.query({
