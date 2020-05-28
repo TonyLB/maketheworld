@@ -5,6 +5,7 @@ import { changedPermanents, changedRoom } from '../graphql/subscriptions'
 import { addSubscription } from './subscriptions'
 import { fetchMaps } from './maps'
 import { fetchSettings } from './settings'
+import { fetchCharacters } from './characters'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 export const NEIGHBORHOOD_MERGE = 'NEIGHBORHOOD_MERGE'
@@ -52,4 +53,5 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
     dispatch(fetchAllNeighborhoods())
     dispatch(fetchMaps)
     dispatch(fetchSettings)
+    dispatch(fetchCharacters)
 }

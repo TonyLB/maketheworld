@@ -1,5 +1,6 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import thunk from 'redux-thunk'
+import characters from '../reducers/characters.js'
 import connection from '../reducers/connection.js'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
@@ -17,6 +18,7 @@ import uiReducer from '../reducers/UI'
 
 export const store = createStore(
     combineReducers({
+        characters,
         connection,
         charactersInPlay,
         clientSettings,

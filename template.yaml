@@ -1,15 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  burnedover-mush-app
+  mtw-app
 
-  SAM Template for burnedover-mush, a serverless multiplayer text roleplaying system,
+  SAM Template for Make The World, a serverless multiplayer text roleplaying system,
   with DynamoDB storage, React front-end and administrative tools.
 
 Parameters:
   TablePrefix:
     Type: String
-    Default: 'burnedover'
+    Default: 'mtw'
     Description: (Required) The name of the new DynamoDB to store connection identifiers for each connected clients. Minimum 3 characters
     MinLength: 3
     MaxLength: 50
@@ -17,7 +17,7 @@ Parameters:
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
   PermanentsStack:
     Type: String
-    Default: 'BurnedOverPermanentsStack'
+    Default: 'MTWPermanentsStack'
     Description: (Required) The name of the stack containing the permanents DynamoDB table.
     MinLength: 3
     MaxLength: 50
@@ -28,7 +28,7 @@ Resources:
   RealTimeWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: BurnedOverRealTimeSocket
+      Name: MTWRealTimeSocket
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.message"
   ConnectRoute:
@@ -443,6 +443,7 @@ Resources:
                         - !GetAtt PutCharacterFunction.Arn
                         - !GetAtt GetNodeTreeFunction.Arn
                         - !GetAtt GetPlayerCharactersFunction.Arn
+                        - !GetAtt GetAllCharactersFunction.Arn
                         - !GetAtt GetCharacterFunction.Arn
                         - !GetAtt GetNeighborhoodFunction.Arn
                         - !GetAtt PutNeighborhoodFunction.Arn
@@ -627,6 +628,45 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  GetAllCharactersFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/characters/
+          Handler: app.getAllCharacters
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
+  GetAllCharactersDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: GetAllCharacters
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt GetAllCharactersFunction.Arn
+  QueryAllCharactersResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getAllCharacters
+          DataSourceName: !GetAtt GetAllCharactersDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {}
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PutCharacterFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -667,23 +707,6 @@ Resources:
                   "operation": "Invoke",
                   "payload": $arguments
               })
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  CharacterInPlayGetCharacter:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: CharacterInPlay
-          FieldName: Character
-          DataSourceName: !GetAtt GetCharacterDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "CharacterId": $utils.toJson($context.source.CharacterId)
-                  }
-              }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetCharactersInPlay:
       Type: AWS::AppSync::Resolver
@@ -1590,7 +1613,7 @@ Resources:
                   Roles: String
               }
               type Character @aws_iam @aws_cognito_user_pools {
-                  PlayerName: String!
+                  PlayerName: String
                   Name: String!
                   CharacterId: ID!
                   Pronouns: String
@@ -1602,7 +1625,6 @@ Resources:
               }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: ID!
-                  Character: Character!
                   RoomId: String!
                   ConnectionId: String
               }
@@ -1823,6 +1845,7 @@ Resources:
                   getPlayer(PlayerName: String!): Player
                   getCharacter(playerName: String!, name: String!): Character
                   getPlayerCharacters: [Character]
+                  getAllCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
                   getNeighborhoodTree: [ChangedPermanent]
                   getNeighborhood(PermanentId: String!): Neighborhood

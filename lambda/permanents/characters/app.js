@@ -4,6 +4,10 @@
 const AWS = require('aws-sdk')
 const { v4: uuidv4 } = require('/opt/uuid')
 
+const { AWS_REGION } = process.env;
+
+const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+
 const batchGetDispatcher = (documentClient, ProjectionExpression = 'PermanentId, DataCategory, Ancestry, ProgenitorId') => (items) => {
     const permanentTable = `${process.env.TABLE_PREFIX}_permanents`
     const groupBatches = items.reduce((({ current, requestLists }, item) => {
@@ -56,7 +60,7 @@ const batchDispatcher = (documentClient) => (items) => {
     return Promise.all(batchPromises)
 }
 
-const getCharacterInfo = ({ documentClient, CharacterId }) => (
+const getCharacterInfo = ({ CharacterId }) => (
     documentClient.query({
         TableName: `${process.env.TABLE_PREFIX}_permanents`,
         KeyConditionExpression: 'PermanentId = :CharacterId',
@@ -98,12 +102,10 @@ exports.getCharacter = (event) => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
 
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
-
     const { CharacterId } = event
 
     return CharacterId
-        ? (getCharacterInfo({ documentClient, CharacterId }))
+        ? (getCharacterInfo({ CharacterId }))
             .then(({ Name, Pronouns, FirstImpression, OneCoolThing, Outfit, HomeId, Grants }) => ({
                 CharacterId, Name, Pronouns, FirstImpression, OneCoolThing, Outfit, HomeId, Grants
             }))
@@ -130,8 +132,6 @@ exports.getPlayerCharacters = (event) => {
 
     const { TABLE_PREFIX, AWS_REGION } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
-
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     const { PlayerName } = event
 
@@ -164,6 +164,58 @@ exports.getPlayerCharacters = (event) => {
 
 }
 
+exports.getAllCharacters = () => {
+
+    return documentClient.scan({
+        TableName: `${process.env.TABLE_PREFIX}_permanents`,
+        FilterExpression: 'begins_with(#PermanentId, :Character)',
+        ExpressionAttributeValues: {
+            ":Character": `CHARACTER#`
+        },
+        ExpressionAttributeNames: {
+            '#PermanentId': 'PermanentId'
+        }
+    }).promise()
+        .then(({ Items }) => (Items.reduce((previous, { DataCategory, PermanentId, ...rest }) => {
+            const CharacterId = PermanentId.slice(10)
+            if (DataCategory === 'Details') {
+                return {
+                    ...previous,
+                    [CharacterId]: {
+                        ...(previous[CharacterId] || {}),
+                        CharacterId,
+                        Grants: (previous[CharacterId] && previous[CharacterId].Grants) || [],
+                        ...rest
+                    }
+                }
+            }
+            if (DataCategory.startsWith('GRANT#')) {
+                const Resource = DataCategory.slice(6)
+                const Actions = rest.Actions
+                const Roles = rest.Roles
+                return (Actions || Roles)
+                    ? {
+                        ...previous,
+                        [CharacterId]: {
+                            ...(previous[CharacterId] || {}),
+                            CharacterId,
+                            Grants: [
+                                ...((previous[CharacterId] && previous[CharacterId].Grants) || []),
+                                {
+                                    Resource,
+                                    Actions,
+                                    Roles
+                                }
+                            ]
+                        }
+                    }
+                    : previous
+            }
+            return previous
+        }, {})))
+        .then((Characters) => (Object.values(Characters)))
+}
+
 exports.putCharacter = ({
     CharacterId: passedCharacterId,
     PlayerName,
@@ -177,7 +229,7 @@ exports.putCharacter = ({
 
     const { AWS_REGION } = process.env;
 
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+    // const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     const newCharacter = !Boolean(passedCharacterId)
     const CharacterId = passedCharacterId || uuidv4()

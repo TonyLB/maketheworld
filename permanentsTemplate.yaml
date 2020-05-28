@@ -1,14 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  burnedover-mush-permanents-table
+  mtw-permanents-table
 
-  SAM Template for the static DynamoDB storage associated with burnedover-mush.
+  SAM Template for the static DynamoDB storage and Cognito pool associated with MakeTheWorld.
 
 Parameters:
   TablePrefix:
     Type: String
-    Default: 'burnedover'
+    Default: 'mtw'
     Description: (Required) The name of the new DynamoDB to store connection identifiers for each connected clients. Minimum 3 characters
     MinLength: 3
     MaxLength: 50
@@ -51,9 +51,9 @@ Resources:
           RecoveryMechanisms:
             - Name: verified_email
               Priority: 1
-        EmailVerificationSubject: Welcome to BurnedOverMUSH
+        EmailVerificationSubject: Welcome to Make The World
         EmailVerificationMessage: >
-            Thank you for signing up for BurnedOverMUSH.  Here is your verification code (the system will ask for it): {####}
+            Thank you for signing up for Make The World.  Here is your verification code (the system will ask for it): {####}
         Schema:
           - Name: email
             AttributeDataType: String

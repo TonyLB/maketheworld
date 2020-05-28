@@ -33,16 +33,6 @@ exports.handler = event => {
       ConnectionId: "${connectionId}"
     ) {
       CharacterId
-      Character {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-      }
       RoomId
       ConnectionId
     }
