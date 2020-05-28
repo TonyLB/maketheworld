@@ -705,6 +705,8 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_characters_in_play'
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
   CharactersInPlayDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -1030,61 +1032,6 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationDeleteCharacterPreFetchFunction:
-    Type: AWS::AppSync::FunctionConfiguration
-    Properties:
-        FunctionVersion: "2018-05-29"
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        Name: DeleteCharacterPreFetch
-        Description: Finds the CharactedId for the first CharacterInPlay record of a given ConnectionId
-        DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            {
-              "version": "2017-02-28",
-              "operation": "Query",
-              "query": {
-                  "expression": "ConnectionId = :ConnectionId",
-                  "expressionValues": {
-                      ":ConnectionId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.ConnectionId)
-                  }
-              },
-              "index": "ConnectionIndex"
-            }
-        ResponseMappingTemplate: >
-            #if ($ctx.result.items)
-              $util.toJson({
-                "CharacterId": "$ctx.result.items[0].CharacterId"
-              })
-            #else
-              {}
-            #end
-  MutationDeleteCharacterFunction:
-    Type: AWS::AppSync::FunctionConfiguration
-    Properties:
-        FunctionVersion: "2018-05-29"
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        Name: DeleteCharacterPreFetch
-        Description: Finds the CharactedId for the first CharacterInPlay record of a given ConnectionId
-        DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            #if(!($ctx.prev.result.CharacterId))
-                $util.error("CharacterId field required")
-            #end
-            #set( $ddb = $util.dynamodb )
-            {
-                "version": "2018-05-29",
-                "operation": "UpdateItem",
-                "key": {
-                    "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
-                },
-                "update": {
-                    "expression": "REMOVE #connectionfield",
-                    "expressionNames": {
-                        "#connectionfield": "ConnectionId"
-                    }
-                }
-            }
-        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationDeleteCharacterInPlayResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1092,14 +1039,15 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: deleteCharacterInPlay
-          Kind: PIPELINE
-          PipelineConfig:
-            Functions:
-                - !GetAtt MutationDeleteCharacterPreFetchFunction.FunctionId
-                - !GetAtt MutationDeleteCharacterFunction.FunctionId
+          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
           RequestMappingTemplate: >
               {
-                  "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                    "action": "deleteCharacterInPlay",
+                    "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                  }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationMoveCharacterResolver:

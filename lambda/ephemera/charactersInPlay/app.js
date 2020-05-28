@@ -25,7 +25,7 @@ const getCharactersInPlay = () => {
 
 }
 
-const putCharacterInPlay = ({ CharacterId, ConnectionId, RoomId }) => {
+const putCharacterInPlay = ({ CharacterId, ConnectionId, RoomId, deleteRecord=false }) => {
 
     return documentClient.get({
             TableName: ephemeraTable,
@@ -33,12 +33,18 @@ const putCharacterInPlay = ({ CharacterId, ConnectionId, RoomId }) => {
                 CharacterId
             }
         }).promise()
-        .then(({ Item = {} }) => ({
-            ...Item,
-            CharacterId,
-            ...(ConnectionId ? { ConnectionId } : {}),
-            ...(RoomId ? { RoomId } : {}),
-        }))
+        .then(({ Item = {} }) => (deleteRecord
+            ? {
+                CharacterId,
+                RoomId: RoomId || Item.RoomId
+            }
+            : {
+                ...Item,
+                CharacterId,
+                ...(ConnectionId ? { ConnectionId } : {}),
+                ...(RoomId ? { RoomId } : {}),
+            }
+        ))
         .then((Item) => {
             if (!Item.RoomId) {
                 return documentClient.get({
@@ -48,8 +54,8 @@ const putCharacterInPlay = ({ CharacterId, ConnectionId, RoomId }) => {
                             DataCategory: 'Details'
                         }
                     }).promise()
-                    .then(({ Items }) => (Items || {}))
-                    .then(({ HomeId = 'VORTEX' }) => ({ ...Item, RoomId }) )
+                    .then(({ Item }) => (Item || {}))
+                    .then(({ HomeId = 'VORTEX' }) => ({ ...Item, RoomId: HomeId }) )
             }
             else {
                 return Item
@@ -77,6 +83,22 @@ exports.handler = (event) => {
                 ConnectionId: event.ConnectionId,
                 RoomId: action.RoomId
             })
+        case 'deleteCharacterInPlay':
+            return documentClient.query({
+                    TableName: ephemeraTable,
+                    KeyConditionExpression: "ConnectionId = :ConnectionId",
+                    ExpressionAttributeValues: {
+                        ":ConnectionId": event.ConnectionId
+                    },
+                    IndexName: 'ConnectionIndex'
+                }).promise()
+                .then(({ Items }) => (Items && Items[0]))
+                .then(({ CharacterId }) => (
+                    (CharacterId && putCharacterInPlay({
+                        CharacterId,
+                        deleteRecord: true
+                    })) || {}
+                ))
         default:
             return { statusCode: 500, error: `Unknown handler key: ${action}`}
     }
