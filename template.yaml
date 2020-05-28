@@ -146,43 +146,28 @@ Resources:
       Description: Prod Stage
       DeploymentId: !Ref RealTimeDeployment
       ApiId: !Ref RealTimeWebSocket
-  CharactersInPlayTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-      - AttributeName: "CharacterId"
-        AttributeType: "S"
-      - AttributeName: "RoomId"
-        AttributeType: "S"
-      - AttributeName: "ConnectionId"
-        AttributeType: "S"
-      BillingMode: "PAY_PER_REQUEST"
-      KeySchema:
-      - AttributeName: "CharacterId"
-        KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        - IndexName: RoomIndex
-          KeySchema:
-            - AttributeName: RoomId
-              KeyType: HASH
-            - AttributeName: CharacterId
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        - IndexName: ConnectionIndex
-          KeySchema:
-            - AttributeName: ConnectionId
-              KeyType: HASH
-            - AttributeName: CharacterId
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-      SSESpecification:
-        SSEEnabled: False
-      TimeToLiveSpecification:
-        AttributeName: "ExpirationTime"
-        Enabled: True
-      TableName: !Sub '${TablePrefix}_characters_in_play'
+  EphemeraTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "EphemeraId"
+            AttributeType: "S"
+          - AttributeName: "DataCategory"
+            AttributeType: "S"
+        BillingMode: "PAY_PER_REQUEST"
+        KeySchema:
+          - AttributeName: "EphemeraId"
+            KeyType: "HASH"
+          - AttributeName: "DataCategory"
+            KeyType: "RANGE"
+        GlobalSecondaryIndexes:
+          - IndexName: DataCategoryIndex
+            KeySchema:
+              - AttributeName: DataCategory
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TableName: !Sub '${TablePrefix}_ephemera'
   MessagesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -399,7 +384,6 @@ Resources:
                           - "dynamodb:UpdateItem"
                           - "dynamodb:Scan"
                       Resource:
-                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play"
                           - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
                           - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages"
             - PolicyName: IndexesPolicy
@@ -410,7 +394,6 @@ Resources:
                       Action:
                           - "dynamodb:Query"
                       Resource:
-                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters_in_play/*"
                           - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
                           - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages/*"
             - PolicyName: AppSyncLambdasPolicy
@@ -434,16 +417,6 @@ Resources:
                         - !GetAtt GetSettingsFunction.Arn
                         - !GetAtt PutSettingsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
-  CharactersInPlayDynamoDBTableDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: CharactersInPlay
-          Type: AMAZON_DYNAMODB
-          ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
-          DynamoDBConfig:
-              AwsRegion: us-east-1
-              TableName: !Sub ${TablePrefix}_characters_in_play
   PermanentsDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -705,6 +678,8 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_characters_in_play'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_ephemera'
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
   CharactersInPlayDataSource:
