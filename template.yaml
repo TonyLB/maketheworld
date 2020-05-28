@@ -386,25 +386,6 @@ Resources:
                   Action:
                       - sts:AssumeRole
           Policies:
-            - PolicyName: CharactersPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:GetItem"
-                          - "dynamodb:BatchGetItem"
-                          - "dynamodb:Query"
-                          - "dynamodb:PutItem"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters"
-            - PolicyName: CharacterIndexPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:Query"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters/*"
             - PolicyName: TablesPolicy
               PolicyDocument:
                   Version: "2012-10-17"
@@ -452,6 +433,7 @@ Resources:
                         - !GetAtt PutMapFunction.Arn
                         - !GetAtt GetSettingsFunction.Arn
                         - !GetAtt PutSettingsFunction.Arn
+                        - !GetAtt CharactersInPlayFunction.Arn
   CharactersInPlayDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -708,6 +690,30 @@ Resources:
                   "payload": $arguments
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  CharactersInPlayFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/ephemera/charactersInPlay/
+          Handler: app.handler
+          MemorySize: 256
+          Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_characters_in_play'
+  CharactersInPlayDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: CharactersInPlayLambda
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt CharactersInPlayFunction.Arn
   QueryGetCharactersInPlay:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -715,13 +721,16 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getCharactersInPlay
-          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
+          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
           RequestMappingTemplate: >
-              {
+              $util.toJson({
                   "version": "2017-02-28",
-                  "operation": "Scan"
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result.items)"
+                  "operation": "Invoke",
+                  "payload": {
+                    "action": "getCharactersInPlay"
+                  }
+              })
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   GetNodeTreeFunction:
       Type: AWS::Serverless::Function
       Properties:
