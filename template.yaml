@@ -336,10 +336,6 @@ Resources:
             Action:
               - "dynamodb:Scan"
             Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
-          - Effect: "Allow"
-            Action:
-              - "dynamodb:Scan"
-            Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_players"
   RestoreBackupFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -409,25 +405,6 @@ Resources:
                       Action:
                           - "dynamodb:Query"
                       Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_characters/*"
-            - PolicyName: PlayersPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:GetItem"
-                          - "dynamodb:BatchGetItem"
-                          - "dynamodb:Query"
-                          - "dynamodb:PutItem"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_players"
-            - PolicyName: PlayerIndexPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:Query"
-                      Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_players/*"
             - PolicyName: TablesPolicy
               PolicyDocument:
                   Version: "2012-10-17"
