@@ -12,6 +12,7 @@ import { lookRoom } from './behaviors/lookRoom'
 import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getCurrentNeighborhood } from '../selectors/currentRoom'
+import { getCharacters } from '../selectors/characters'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -125,6 +126,7 @@ export const addCharacterInPlay = ({ characterId, connectionId }) => (dispatch, 
 
 export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) => {
     const state = getState()
+    const characters = getCharacters(state)
     const { connection, charactersInPlay } = state
     //
     // Update the store in any event
@@ -147,8 +149,7 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
                 .then(({ getRoomRecap }) => (getRoomRecap))
                 .then((Recap) => {
                     dispatch(lookRoom({ Recap, showNeighborhoods: true, previousAncestry }))
-                    const { Character = {} } = payload
-                    const { Name = 'Someone' } = Character
+                    const { Name = 'Someone' } = (connection && connection.characterId && characters[connection.characterId]) || {}
                     return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })
                 })
         }

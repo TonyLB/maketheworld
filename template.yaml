@@ -703,7 +703,7 @@ Resources:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
           Policies:
-            - DynamoDBReadPolicy:
+            - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_characters_in_play'
   CharactersInPlayDataSource:
       Type: AWS::AppSync::DataSource
@@ -1011,120 +1011,6 @@ Resources:
                   "payload": $utils.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationPreQueryCharacterInPlay:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PreQueryCharacterInPlay
-          Description: Checks before adding a character to see if a past record exists to reactivate
-          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              #if (!$ctx.prev.result.CharacterId)
-                  $ctx.error("CharacterId required")
-              #end
-              {
-                  "version": "2017-02-28",
-                  "operation": "GetItem",
-                  "key": {
-                      "CharacterId": $util.dynamodb.toDynamoDBJson($ctx.prev.result.CharacterId)
-                  }
-              }
-          ResponseMappingTemplate: >
-              #if ($ctx.result.PlayerName)
-                  {
-                      "CharacterId": "$ctx.prev.result.CharacterId",
-                      "ConnectionId": "$ctx.prev.result.ConnectionId",
-                      "PlayerName": "$ctx.result.PlayerName",
-                      "Name": "$ctx.result.Name",
-                      "RoomId": "$ctx.result.RoomId",
-                      "Reactivate": true
-                  }
-              #else
-                  {
-                      "CharacterId": "$ctx.prev.result.CharacterId",
-                      "ConnectionId": "$ctx.prev.result.ConnectionId",
-                      "Reactivate": false
-                  }
-              #end
-  MutationPreQueryCharacterIfNeeded:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PreQueryCharacterIfNeeded
-          Description: Checks if needed before adding a character to find PlayerName and Name
-          DataSourceName: !GetAtt GetCharacterDataSource.Name
-          RequestMappingTemplate: >
-              #if ($ctx.prev.result.Reactivate)
-                  #return($ctx.prev.result)
-              #end
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "CharacterId": $utils.toJson($ctx.prev.result.CharacterId)
-                  }
-              }
-          ResponseMappingTemplate: >
-              #if ($ctx.error)
-                  $util.error($ctx.error.message, $ctx.error.type)
-              #end
-              #if($ctx.result)
-                #set($result = $ctx.result)
-                $util.toJson({
-                  "CharacterId": "$ctx.prev.result.CharacterId",
-                  "ConnectionId": "$ctx.prev.result.ConnectionId",
-                  "PlayerName": "$result.PlayerName",
-                  "Name": "$result.Name",
-                  "RoomId": "$util.defaultIfNullOrBlank($result.HomeId, 'VORTEX')",
-                  "Grants": $util.defaultIfNull($result.Grants, []),
-                  "Reactivate": false
-                })
-              #else
-                $util.error("No character found")
-              #end
-  MutationAddCharacterInPlayPutFunction:
-      Type: AWS::AppSync::FunctionConfiguration
-      Properties:
-          FunctionVersion: "2018-05-29"
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: AddCharacterInPlay
-          Description: Adds or activates a CharacterInPlay record
-          DataSourceName: !GetAtt CharactersInPlayDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              #set( $ddb = $util.dynamodb )
-              {
-                  #if ($ctx.prev.result.Reactivate)
-                      "version": "2018-05-29",
-                      "operation": "UpdateItem",
-                      "key": {
-                          "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
-                      },
-                      "update": {
-                          "expression": "SET #connectionfield = :connectionId",
-                          "expressionNames": {
-                              "#connectionfield": "ConnectionId"
-                          },
-                          "expressionValues": {
-                              ":connectionId": $ddb.toDynamoDBJson($ctx.prev.result.ConnectionId)
-                          }
-                      }
-                  #else
-                      "version" : "2017-02-28",
-                      "operation": "PutItem",
-                      "key": {
-                          "CharacterId": $ddb.toDynamoDBJson($ctx.prev.result.CharacterId)
-                      },
-                      "attributeValues": {
-                          "PlayerName": $ddb.toDynamoDBJson($ctx.prev.result.PlayerName),
-                          "Name": $ddb.toDynamoDBJson($ctx.prev.result.Name),
-                          "RoomId": $ddb.toDynamoDBJson($ctx.prev.result.RoomId),
-                          "ConnectionId": $ddb.toDynamoDBJson($ctx.prev.result.ConnectionId)
-                      }
-                  #end
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.prev.result)"
   MutationAddCharacterInPlay:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1132,16 +1018,16 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: addCharacterInPlay
-          Kind: PIPELINE
-          PipelineConfig:
-              Functions:
-                  - !GetAtt MutationPreQueryCharacterInPlay.FunctionId
-                  - !GetAtt MutationPreQueryCharacterIfNeeded.FunctionId
-                  - !GetAtt MutationAddCharacterInPlayPutFunction.FunctionId
+          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
           RequestMappingTemplate: >
               {
-                  "CharacterId": $util.toJson($ctx.args.CharacterId),
-                  "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                    "action": "putCharacterInPlay",
+                    "CharacterId": $util.toJson($ctx.args.CharacterId),
+                    "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                  }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationDeleteCharacterPreFetchFunction:
@@ -1624,7 +1510,7 @@ Resources:
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String
                   Name: String!
-                  CharacterId: ID!
+                  CharacterId: String!
                   Pronouns: String
                   FirstImpression: String
                   Outfit: String
@@ -1633,7 +1519,7 @@ Resources:
                   Grants: [Grant]
               }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
-                  CharacterId: ID!
+                  CharacterId: String!
                   RoomId: String!
                   ConnectionId: String
               }
