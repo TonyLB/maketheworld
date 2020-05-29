@@ -38,6 +38,8 @@ Resources:
               Projection:
                 ProjectionType: ALL
           TableName: !Sub '${TablePrefix}_permanents'
+    StorageBucket:
+        Type: AWS::S3::Bucket
     UserPool:
       Type: AWS::Cognito::UserPool
       UpdateReplacePolicy: Retain
@@ -97,6 +99,12 @@ Outputs:
         Value: !Sub ${TablePrefix}
         Export:
             Name: !Sub "${AWS::StackName}-TablePrefix"
+
+    StorageBucket:
+        Description: The S3 bucket for internal system object storage
+        Value: !Ref StorageBucket
+        Export:
+          Name: !Sub "${AWS::StackName}-StorageBucket"
 
     UserPoolClient:
         Description: The client ID for the player user pool

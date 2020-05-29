@@ -296,7 +296,9 @@ Resources:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
           APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          S3_BUCKET: burnedover-admin
+          S3_BUCKET:
+            Fn::ImportValue:
+              !Sub "${PermanentsStack}-StorageBucket"
       Policies:
         - Statement:
           - Effect: Allow
@@ -306,7 +308,11 @@ Resources:
           - Effect: Allow
             Action: s3:PutObject
             Resource:
-              - arn:aws:s3:::burnedover-admin/*
+              Fn::Sub:
+                  - "arn:aws:s3:::${StorageBucket}/*"
+                  - StorageBucket:
+                      Fn::ImportValue:
+                        !Sub "${PermanentsStack}-StorageBucket"
           - Effect: "Allow"
             Action:
               - "dynamodb:Scan"
@@ -322,7 +328,9 @@ Resources:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
           APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          S3_BUCKET: burnedover-admin
+          S3_BUCKET:
+            Fn::ImportValue:
+              !Sub "${PermanentsStack}-StorageBucket"
       Policies:
         - Statement:
           - Effect: Allow
@@ -332,7 +340,11 @@ Resources:
           - Effect: Allow
             Action: s3:GetObject
             Resource:
-              - arn:aws:s3:::burnedover-admin/*
+              Fn::Sub:
+                - "arn:aws:s3:::${StorageBucket}/*"
+                - StorageBucket:
+                    Fn::ImportValue:
+                      !Sub "${PermanentsStack}-StorageBucket"
           - Effect: "Allow"
             Action:
               - "dynamodb:BatchWriteItem"
