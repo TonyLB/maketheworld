@@ -3,11 +3,12 @@
 
 const AWS = require('aws-sdk')
 
-exports.getSettings = () => {
-    const { TABLE_PREFIX, AWS_REGION } = process.env;
+const { TABLE_PREFIX, AWS_REGION } = process.env;
+const permanentTable = `${TABLE_PREFIX}_permanents`
 
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
+const getSettings = () => {
     return documentClient.get({
         TableName: `${TABLE_PREFIX}_permanents`,
         Key: {
@@ -19,12 +20,7 @@ exports.getSettings = () => {
     .then(({ ChatPrompt = 'What do you do?' }) => ({ ChatPrompt }))
 }
 
-exports.putSettings = (payload) => {
-    const { TABLE_PREFIX, AWS_REGION } = process.env;
-    const permanentTable = `${TABLE_PREFIX}_permanents`
-
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
-
+const putSettings = (payload) => {
     const { ChatPrompt } = payload
 
     return documentClient.put({
@@ -37,4 +33,17 @@ exports.putSettings = (payload) => {
         }).promise()
         .then(() => ([{ Settings: payload }]))
 
+}
+
+exports.handler = (event) => {
+    const { action, ...payload } = event
+
+    switch(action) {
+        case "getSettings":
+            return getSettings()
+        case "putSettings":
+            return putSettings(payload)
+        default:
+            return { statusCode: 500, err: `Unknown action: ${action}` }
+    }
 }

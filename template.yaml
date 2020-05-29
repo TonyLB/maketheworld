@@ -416,8 +416,7 @@ Resources:
                         - !GetAtt PutRoomFunction.Arn
                         - !GetAtt GetMapsFunction.Arn
                         - !GetAtt PutMapFunction.Arn
-                        - !GetAtt GetSettingsFunction.Arn
-                        - !GetAtt PutSettingsFunction.Arn
+                        - !GetAtt AdminFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
   PermanentsDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
@@ -1101,50 +1100,11 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  GetSettingsFunction:
+  AdminFunction:
       Type: AWS::Serverless::Function
       Properties:
           CodeUri: lambda/permanents/admin/
-          Handler: app.getSettings
-          MemorySize: 128
-          Runtime: nodejs12.x
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBReadPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-  GetSettingsDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetSettings
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetSettingsFunction.Arn
-  QueryGetSettings:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - GetSettingsFunction
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getSettings
-          DataSourceName: !GetAtt GetSettingsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {}
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  PutSettingsFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/admin/
-          Handler: app.putSettings
+          Handler: app.handler
           MemorySize: 128
           Runtime: nodejs12.x
           Environment:
@@ -1153,26 +1113,46 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  PutSettingsDataSource:
+  AdminDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutSettings
+          Name: AdminLambda
           Type: AWS_LAMBDA
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
-              LambdaFunctionArn: !GetAtt PutSettingsFunction.Arn
+              LambdaFunctionArn: !GetAtt AdminFunction.Arn
+  QueryGetSettings:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - AdminFunction
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getSettings
+          DataSourceName: !GetAtt AdminDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                      "action": "getSettings"
+                  }
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPutSettings:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - PutSettingsFunction
+        - AdminFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putSettings
-          DataSourceName: !GetAtt PutSettingsDataSource.Name
+          DataSourceName: !GetAtt AdminDataSource.Name
           RequestMappingTemplate: >
+              $util.qr($ctx.args.put("action", "putSettings"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
