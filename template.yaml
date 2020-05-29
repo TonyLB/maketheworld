@@ -285,6 +285,85 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref RegisterCharacterFunction
       Principal: apigateway.amazonaws.com
+
+  StorageAPIExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+        AssumeRolePolicyDocument:
+            Statement:
+              - Effect: Allow
+                Principal:
+                    Service: apigateway.amazonaws.com
+                Action:
+                    - sts:AssumeRole
+        Policies:
+          - PolicyName: StoragePolicy
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: Allow
+                    Action:
+                      - s3:PutObject
+                      - s3:GetObject
+                    Resource:
+                      Fn::Sub:
+                          - "arn:aws:s3:::${StorageBucket}/*"
+                          - StorageBucket:
+                              Fn::ImportValue:
+                                !Sub "${PermanentsStack}-StorageBucket"
+  StorageApi:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: StorageApi
+  BackupPathResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt StorageApi.RootResourceId
+      RestApiId: !Ref StorageApi
+      PathPart: 'backups'
+  BackupResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref BackupPathResource
+      RestApiId: !Ref StorageApi
+      PathPart: '{proxy+}'
+  BackupProxyMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref BackupResource
+      RestApiId: !Ref StorageApi
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.proxy: true
+      Integration:
+        CacheKeyParameters:
+          - 'method.request.path.proxy'
+        RequestParameters:
+          integration.request.path.proxy: 'method.request.path.proxy'
+        IntegrationHttpMethod: GET
+        Type: AWS
+        Credentials: !GetAtt StorageAPIExecutionRole.Arn
+        Uri:
+          Fn::Sub:
+            - "arn:aws:apigateway:${Region}:s3:path/${StorageBucket}/backups/{proxy}"
+            - StorageBucket:
+                Fn::ImportValue:
+                  !Sub "${PermanentsStack}-StorageBucket"
+              Region: !Ref AWS::Region
+        PassthroughBehavior: WHEN_NO_MATCH
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+  StorageDeployment:
+    DependsOn:
+      - BackupProxyMethod
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      RestApiId: !Ref StorageApi
+      StageName: storage
+
   CreateBackupFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -355,7 +434,7 @@ Resources:
           Name: !Sub ${TablePrefix}AppSyncAPI
           AuthenticationType: AMAZON_COGNITO_USER_POOLS
           UserPoolConfig:
-              AwsRegion: us-east-1
+              AwsRegion: !Ref AWS::Region
               UserPoolId:
                 Fn::ImportValue:
                   !Sub "${PermanentsStack}-UserPoolId"
@@ -426,7 +505,7 @@ Resources:
           Type: AMAZON_DYNAMODB
           ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
           DynamoDBConfig:
-              AwsRegion: us-east-1
+              AwsRegion: !Ref AWS::Region
               TableName: !Sub ${TablePrefix}_permanents
   MessagesDynamoDBTableDataSource:
     Type: AWS::AppSync::DataSource
@@ -436,7 +515,7 @@ Resources:
         Type: AMAZON_DYNAMODB
         ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
         DynamoDBConfig:
-            AwsRegion: us-east-1
+            AwsRegion: !Ref AWS::Region
             TableName: !Sub ${TablePrefix}_messages
   QueryGetPlayerResolver:
     Type: AWS::AppSync::Resolver
