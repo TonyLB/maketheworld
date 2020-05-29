@@ -1107,6 +1107,8 @@ Resources:
           Handler: app.handler
           MemorySize: 128
           Runtime: nodejs12.x
+          Layers:
+              - !Ref UUIDLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
@@ -1153,6 +1155,43 @@ Resources:
           DataSourceName: !GetAtt AdminDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "putSettings"))
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": $util.toJson($ctx.args)
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  QueryGetBackups:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - AdminFunction
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getBackups
+          DataSourceName: !GetAtt AdminDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                      "action": "getBackups"
+                  }
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationPutBackup:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - AdminFunction
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: putBackup
+          DataSourceName: !GetAtt AdminDataSource.Name
+          RequestMappingTemplate: >
+              $util.qr($ctx.args.put("action", "putBackup"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
@@ -1510,17 +1549,24 @@ Resources:
               type Settings @aws_iam @aws_cognito_user_pools {
                   ChatPrompt: String
               }
-              type ChangedPermanent @aws_iam @aws_cognito_user_pools {
-                Neighborhood: Neighborhood
-                Room: Room
-                Map: Map
-                Settings: Settings
-              }
               input MapRoomInput {
                   PermanentId: String!
                   X: Int!
                   Y: Int!
                   Locked: Boolean
+              }
+              type Backup {
+                  PermanentId: String!
+                  Name: String!
+                  Description: String
+                  Status: String
+              }
+              type ChangedPermanent @aws_iam @aws_cognito_user_pools {
+                Neighborhood: Neighborhood
+                Room: Room
+                Map: Map
+                Settings: Settings
+                Backup: Backup
               }
               type Mutation {
                   putPlayer(
@@ -1632,6 +1678,13 @@ Resources:
                       ChatPrompt: String
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
+                  putBackup(
+                      PermanentId: String
+                      Name: String
+                      Description: String
+                      Status: String
+                  ): [ChangedPermanent]
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
@@ -1647,6 +1700,7 @@ Resources:
                   getRoles: [Role]
                   getMaps: [Map]
                   getSettings: Settings
+                  getBackups: [Backup]
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
@@ -1654,7 +1708,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings"])
+                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings", "putBackup"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (
