@@ -1,13 +1,12 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk')
+const { documentClient } = require('utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
 
+const { initiateBackup } = require('initiateBackup')
 const { TABLE_PREFIX, AWS_REGION } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
-
-const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
 const getSettings = () => {
     return documentClient.get({
@@ -91,7 +90,6 @@ const putBackup = async ({ PermanentId, Name, Description, Status }) => {
         ...(Status !== undefined ? { Status } : {}),
     }
 
-    console.log(newBackup)
     await documentClient.put({
         TableName: permanentTable,
         Item: {
@@ -103,16 +101,23 @@ const putBackup = async ({ PermanentId, Name, Description, Status }) => {
     return [{ Backup: newBackup }]
 }
 
+const createBackup = ({ PermanentId = uuidv4(), Name, Description }) => {
+    return initiateBackup({ PermanentId, Name, Description })
+        .then(() => (putBackup({ PermanentId, Status: 'Completed.' })))
+}
+
 exports.handler = (event) => {
     const { action, ...payload } = event
 
     switch(action) {
-        case "getSettings":
-            return getSettings()
         case "getBackups":
             return getBackups()
         case "putBackup":
             return putBackup(payload)
+        case "createBackup":
+            return createBackup(payload)
+        case "getSettings":
+            return getSettings()
         case "putSettings":
             return putSettings(payload)
         default:

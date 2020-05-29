@@ -1105,14 +1105,33 @@ Resources:
       Properties:
           CodeUri: lambda/permanents/admin/
           Handler: app.handler
-          MemorySize: 128
+          MemorySize: 256
           Runtime: nodejs12.x
+          Timeout: 30
           Layers:
               - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+                  S3_BUCKET:
+                    Fn::ImportValue:
+                      !Sub "${PermanentsStack}-StorageBucket"
           Policies:
+            - Statement:
+              - Effect: Allow
+                Action: appsync:GraphQL
+                Resource: !Sub '${AppSyncAPI}/*'
+            - Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${StorageBucket}/*"
+                      - StorageBucket:
+                          Fn::ImportValue:
+                            !Sub "${PermanentsStack}-StorageBucket"
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
   AdminDataSource:
@@ -1192,6 +1211,24 @@ Resources:
           DataSourceName: !GetAtt AdminDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "putBackup"))
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": $util.toJson($ctx.args)
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationCreateBackup:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - AdminFunction
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: createBackup
+          DataSourceName: !GetAtt AdminDataSource.Name
+          RequestMappingTemplate: >
+              $util.qr($ctx.args.put("action", "createBackup"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
@@ -1555,7 +1592,7 @@ Resources:
                   Y: Int!
                   Locked: Boolean
               }
-              type Backup {
+              type Backup @aws_iam @aws_cognito_user_pools {
                   PermanentId: String!
                   Name: String!
                   Description: String
@@ -1685,6 +1722,12 @@ Resources:
                       Status: String
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
+                  createBackup(
+                      PermanentId: String
+                      Name: String
+                      Description: String
+                  ): [ChangedPermanent]
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
@@ -1708,7 +1751,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings", "putBackup"])
+                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings", "putBackup", "createBackup"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (
