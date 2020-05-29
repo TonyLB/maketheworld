@@ -1,5 +1,6 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import thunk from 'redux-thunk'
+import backups from '../reducers/backups.js'
 import characters from '../reducers/characters.js'
 import connection from '../reducers/connection.js'
 import messages from '../reducers/messages.js'
@@ -18,6 +19,7 @@ import uiReducer from '../reducers/UI'
 
 export const store = createStore(
     combineReducers({
+        backups,
         characters,
         connection,
         charactersInPlay,
