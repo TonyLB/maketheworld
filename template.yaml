@@ -297,6 +297,15 @@ Resources:
                 Action:
                     - sts:AssumeRole
         Policies:
+          - PolicyName: AdminLambdaPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - lambda:InvokeFunction
+                  Resource:
+                    - !GetAtt AdminFunction.Arn
           - PolicyName: StorageS3Policy
             PolicyDocument:
               Version: "2012-10-17"
@@ -365,6 +374,50 @@ Resources:
         - StatusCode: 200
           ResponseParameters:
             method.response.header.content-disposition: true
+  UploadBackupMethod:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn:
+      - BackupResource
+      - StorageAPIExecutionRole
+      - AdminFunction
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref BackupPathResource
+      RestApiId: !Ref StorageApi
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.PermanentId: true
+      Integration:
+        CacheKeyParameters:
+          - 'method.request.path.PermanentId'
+        RequestParameters:
+            integration.request.path.PermanentId: 'method.request.path.PermanentId'
+        IntegrationHttpMethod: POST
+        Type: AWS
+        Credentials: !GetAtt StorageAPIExecutionRole.Arn
+        Uri:
+            Fn::Sub:
+                - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${AdminArn}/invocations"
+                -
+                    Region: !Ref AWS::Region
+                    AdminArn: !GetAtt AdminFunction.Arn
+        PassthroughBehavior: WHEN_NO_MATCH
+        IntegrationResponses:
+          - StatusCode: 200
+          - StatusCode: 500
+            SelectionPattern: "\"Parsing error.*"
+          - StatusCode: 400
+            SelectionPattern: "\"Error.*"
+        RequestTemplates:
+          application/json: >
+              {
+                "action": "uploadBackup",
+                "body": "$util.escapeJavaScript($input.body)"
+              }
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
   StorageDeployment:
       DependsOn:
         - BackupProxyMethod

@@ -5,6 +5,7 @@ const { documentClient } = require('utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
 
 const { initiateBackup } = require('initiateBackup')
+const { uploadBackup } = require('uploadBackup')
 const { TABLE_PREFIX, AWS_REGION } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
 
@@ -106,7 +107,7 @@ const createBackup = ({ PermanentId = uuidv4(), Name, Description }) => {
         .then(() => (putBackup({ PermanentId, Status: 'Completed.' })))
 }
 
-exports.handler = (event) => {
+exports.handler = (event, context) => {
     const { action, ...payload } = event
 
     switch(action) {
@@ -116,11 +117,14 @@ exports.handler = (event) => {
             return putBackup(payload)
         case "createBackup":
             return createBackup(payload)
+        case "uploadBackup":
+            return uploadBackup(payload, context)
+                .then(({ PermanentId }) => putBackup({ PermanentId, Status: 'Uploaded.'}))
         case "getSettings":
             return getSettings()
         case "putSettings":
             return putSettings(payload)
         default:
-            return { statusCode: 500, err: `Unknown action: ${action}` }
+            context.fail(JSON.stringify(`Unknown action: ${action}`))
     }
 }
