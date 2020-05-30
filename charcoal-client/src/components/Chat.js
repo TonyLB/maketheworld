@@ -300,7 +300,7 @@ export const Chat = () => {
                         </MenuItem>
                         { currentCharacter && currentCharacter.Grants && currentCharacter.Grants.ROOT.Admin &&
                             <MenuItem onClick={handleAdminDialog}>
-                                Admin Settings
+                                Administration
                             </MenuItem>
                         }
                     </Menu>

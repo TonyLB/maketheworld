@@ -21,9 +21,12 @@ import {
     TableBody,
     TablePagination,
     TableRow,
-    TableCell
+    TableCell,
+    IconButton,
+    Tooltip
 } from '@material-ui/core'
 import { useTheme } from '@material-ui/core/styles'
+import DownloadIcon from '@material-ui/icons/SaveAlt'
 
 // Local code imports
 import { closeAdminDialog } from '../../actions/UI/adminDialog'
@@ -31,6 +34,7 @@ import { putSettingsAndCloseAdminDialog } from '../../actions/settings'
 import { getAdminDialogUI } from '../../selectors/UI/adminDialog.js'
 import { getBackups } from '../../selectors/backups'
 import useStyles from '../styles'
+import { STORAGE_API_URI } from '../../config'
 
 const TabPanel = (props) => {
     const { children, value, index, ...other } = props;
@@ -95,7 +99,7 @@ const BackupsTab = () => {
                             <TableCell key="Name" >
                                 Name
                             </TableCell>
-                            <TableCell key="Description" >
+                            <TableCell colSpan={2} key="Description" >
                                 Description
                             </TableCell>
                         </TableRow>
@@ -110,6 +114,13 @@ const BackupsTab = () => {
                                     </TableCell>
                                     <TableCell>
                                         { Description }
+                                    </TableCell>
+                                    <TableCell>
+                                        <Tooltip title={"Download backup"}>
+                                            <IconButton href={`${STORAGE_API_URI}/backups/${PermanentId}.json`} >
+                                                <DownloadIcon />
+                                            </IconButton>
+                                        </Tooltip>
                                     </TableCell>
                                 </TableRow>
                             ))
