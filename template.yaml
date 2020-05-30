@@ -297,20 +297,19 @@ Resources:
                 Action:
                     - sts:AssumeRole
         Policies:
-          - PolicyName: StoragePolicy
+          - PolicyName: StorageS3Policy
             PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                  - Effect: Allow
-                    Action:
-                      - s3:PutObject
-                      - s3:GetObject
-                    Resource:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - s3:GetObject
+                  Resource:
                       Fn::Sub:
-                          - "arn:aws:s3:::${StorageBucket}/*"
-                          - StorageBucket:
-                              Fn::ImportValue:
-                                !Sub "${PermanentsStack}-StorageBucket"
+                        - "arn:aws:s3:::${StorageBucket}/*"
+                        - StorageBucket:
+                            Fn::ImportValue:
+                              !Sub "${PermanentsStack}-StorageBucket"
   StorageApi:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:
@@ -326,43 +325,53 @@ Resources:
     Properties:
       ParentId: !Ref BackupPathResource
       RestApiId: !Ref StorageApi
-      PathPart: '{proxy+}'
+      PathPart: '{PermanentId+}'
   BackupProxyMethod:
     Type: 'AWS::ApiGateway::Method'
+    DependsOn:
+      - BackupResource
+      - StorageAPIExecutionRole
+      - AdminFunction
     Properties:
       HttpMethod: GET
       ResourceId: !Ref BackupResource
       RestApiId: !Ref StorageApi
+      ApiKeyRequired: false
       AuthorizationType: NONE
       RequestParameters:
-        method.request.path.proxy: true
+        method.request.path.PermanentId: true
       Integration:
         CacheKeyParameters:
-          - 'method.request.path.proxy'
+          - 'method.request.path.PermanentId'
         RequestParameters:
-          integration.request.path.proxy: 'method.request.path.proxy'
+            integration.request.path.PermanentId: 'method.request.path.PermanentId'
         IntegrationHttpMethod: GET
         Type: AWS
         Credentials: !GetAtt StorageAPIExecutionRole.Arn
         Uri:
-          Fn::Sub:
-            - "arn:aws:apigateway:${Region}:s3:path/${StorageBucket}/backups/{proxy}"
-            - StorageBucket:
-                Fn::ImportValue:
-                  !Sub "${PermanentsStack}-StorageBucket"
-              Region: !Ref AWS::Region
+            Fn::Sub:
+                - "arn:aws:apigateway:${Region}:s3:path/${StorageBucket}/backups/{PermanentId}"
+                -
+                    Region: !Ref AWS::Region
+                    StorageBucket:
+                        Fn::ImportValue:
+                            !Sub "${PermanentsStack}-StorageBucket"
         PassthroughBehavior: WHEN_NO_MATCH
         IntegrationResponses:
           - StatusCode: 200
+            ResponseParameters:
+              method.response.header.content-disposition: "'attachment'"
       MethodResponses:
         - StatusCode: 200
+          ResponseParameters:
+            method.response.header.content-disposition: true
   StorageDeployment:
-    DependsOn:
-      - BackupProxyMethod
-    Type: 'AWS::ApiGateway::Deployment'
-    Properties:
-      RestApiId: !Ref StorageApi
-      StageName: storage
+      DependsOn:
+        - BackupProxyMethod
+      Type: 'AWS::ApiGateway::Deployment'
+      Properties:
+        RestApiId: !Ref StorageApi
+        StageName: storage
 
   CreateBackupFunction:
     Type: AWS::Serverless::Function
@@ -1863,6 +1872,10 @@ Outputs:
   WebSocketURI:
       Description: "The WSS Protocol URI to connect to for realtime messages"
       Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+
+  StorageApiURI:
+      Description: "The HTTP Protocol URI to connect to proxy to the S3 storage bucket"
+      Value: !Join [ '', [ 'http://', !Ref StorageApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/storage'] ]
 
   AppSyncURL:
       Description: The URL of the AppSync GraphQL endpoint
