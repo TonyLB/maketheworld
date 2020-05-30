@@ -23,7 +23,8 @@ import {
     TableRow,
     TableCell,
     IconButton,
-    Tooltip
+    Tooltip,
+    Grid
 } from '@material-ui/core'
 import { useTheme } from '@material-ui/core/styles'
 import DownloadIcon from '@material-ui/icons/SaveAlt'
@@ -33,6 +34,7 @@ import { closeAdminDialog } from '../../actions/UI/adminDialog'
 import { putSettingsAndCloseAdminDialog } from '../../actions/settings'
 import { getAdminDialogUI } from '../../selectors/UI/adminDialog.js'
 import { getBackups } from '../../selectors/backups'
+import { createBackup } from '../../actions/backups'
 import useStyles from '../styles'
 import { STORAGE_API_URI } from '../../config'
 
@@ -75,22 +77,78 @@ const SettingsTab = ({ classes, ChatPrompt, setValues }) => (
     </form>
 )
 
+const CreateBackupDialog = ({ open, onClose }) => {
+    const classes = useStyles()
+    const dispatch = useDispatch()
+    const [{ Name = '', Description = '' }, setValues] = useState({})
+
+    return <Dialog
+        maxWidth="lg"
+        open={open}
+        onEnter={() => { setValues({ }) }}
+        onClose={onClose}
+    >
+        <DialogTitle
+            id="create-backup-dialog-title"
+            className={classes.lightblue}
+        >
+            <Typography variant="overline">
+                Create Backup
+            </Typography>
+        </DialogTitle>
+        <DialogContent>
+            <TextField
+                required
+                id="name"
+                label="Name"
+                value={Name}
+                onChange={(event) => { setValues({ Name: event.target.value, Description })}}
+            />
+            <TextField
+                id="description"
+                label="Description"
+                value={Description}
+                onChange={(event) => { setValues({ Description: event.target.value, Name })}}
+            />
+        </DialogContent>
+        <DialogActions>
+            <Button onClick={ () => { onClose() } }>
+                Cancel
+            </Button>
+            <Button
+                onClick={() => {
+                    dispatch(createBackup({ Name, Description }))
+                    onClose()
+                }}
+                disabled={!Name}
+            >
+                Create
+            </Button>
+        </DialogActions>
+    </Dialog>
+}
+
 const BackupsTab = () => {
     const classes = useStyles()
     const backups = useSelector(getBackups)
-    const [page, setPage] = React.useState(0);
-    const [rowsPerPage, setRowsPerPage] = React.useState(10);
+    const [page, setPage] = React.useState(0)
+    const [rowsPerPage, setRowsPerPage] = React.useState(10)
+    const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
 
     const handleChangePage = (event, newPage) => {
-        setPage(newPage);
+        setPage(newPage)
     };
 
     const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(+event.target.value);
-        setPage(0);
+        setRowsPerPage(+event.target.value)
+        setPage(0)
     };
 
-    return (
+    return (<React.Fragment>
+        <CreateBackupDialog
+            open={createDialogOpen}
+            onClose={() => setCreateDialogOpen(false)}
+        />
         <Paper className={classes.root}>
             <TableContainer className={classes.container}>
                 <Table stickyHeader aria-label="sticky table">
@@ -137,8 +195,27 @@ const BackupsTab = () => {
                 onChangePage={handleChangePage}
                 onChangeRowsPerPage={handleChangeRowsPerPage}
             />
+            <Grid container>
+                <Grid item xs={6} align="center">
+                    <Button
+                        variant="contained"
+                        style={{ margin: "10px"}}
+                        onClick={() => { setCreateDialogOpen(true) }}
+                    >
+                        Create Backup
+                    </Button>
+                </Grid>
+                <Grid item xs={6} align="center">
+                    <Button
+                        variant="contained"
+                        style={{ margin: "10px"}}
+                    >
+                        Import Backup
+                    </Button>
+                </Grid>
+            </Grid>
         </Paper>
-    )
+    </React.Fragment>)
 }
 
 const AdminTabs = ({ ChatPrompt, setValues }) => {

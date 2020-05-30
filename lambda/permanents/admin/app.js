@@ -102,9 +102,10 @@ const putBackup = async ({ PermanentId, Name, Description, Status }) => {
     return [{ Backup: newBackup }]
 }
 
-const createBackup = ({ PermanentId = uuidv4(), Name, Description }) => {
-    return initiateBackup({ PermanentId, Name, Description })
-        .then(() => (putBackup({ PermanentId, Status: 'Completed.' })))
+const createBackup = ({ PermanentId, Name, Description }) => {
+    const newPermanentId = PermanentId || uuidv4()
+    return initiateBackup({ PermanentId: newPermanentId, Name, Description })
+        .then(() => (putBackup({ PermanentId: newPermanentId, Status: 'Completed.' })))
 }
 
 exports.handler = (event, context) => {
