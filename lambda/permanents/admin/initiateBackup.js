@@ -191,10 +191,47 @@ const serializeV2 = (Items) => {
             }
         }), playerDetails)
 
+    //
+    // Break out the maps
+    //
+
+    const Maps = Items
+        .filter(({ PermanentId}) => (PermanentId.startsWith('MAP#')))
+        .reduce((previous, { PermanentId: dbPermanentId, DataCategory, ...rest }) => {
+            const PermanentId = shearOffFirstTag(dbPermanentId)
+            if (DataCategory === 'Details') {
+                return {
+                    ...previous,
+                    [PermanentId]: {
+                        ...(previous[PermanentId] || {}),
+                        PermanentId,
+                        ...rest
+                    }
+                }
+            }
+            if (DataCategory.startsWith('ROOM#')) {
+                return {
+                    ...previous,
+                    [PermanentId]: {
+                        ...(previous[PermanentId] || {}),
+                        PermanentId,
+                        Rooms: [
+                            ...((previous[PermanentId] && previous[PermanentId].Rooms) || []),
+                            {
+                                RoomId: shearOffFirstTag(DataCategory),
+                                ...rest
+                            }
+                        ]
+                    }
+                }
+            }
+        }, {})
+
     return {
         Neighborhoods: Object.values(newNeighborhoods),
         Rooms: Object.values(newRooms),
-        Players: Object.values(Players)
+        Players: Object.values(Players),
+        Maps: Object.values(Maps)
     }
 
 }
@@ -211,13 +248,14 @@ exports.initiateBackup = async ({ PermanentId, Name, Description }) => {
     const { Items } = await documentClient.scan({ TableName: `${process.env.TABLE_PREFIX}_permanents`})
         .promise()
 
-    const { Neighborhoods, Rooms, Players } = serializeV2(Items)
+    const { Neighborhoods, Rooms, Players, Maps } = serializeV2(Items)
 
     return s3Put(objectName, JSON.stringify({
             version: '2020-05-27',
             Neighborhoods,
             Rooms,
-            Players
+            Players,
+            Maps
         }, null, 4))
 
 }

@@ -24,7 +24,7 @@ const completedGQL = ({PermanentId}) => (gql`mutation PendingBackup {
 //
 // Deserialize a backup file's format into database format.
 //
-const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [] }) => {
+const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }) => {
     const PlayerAdds = Object.values(Players)
         .map(({
             PlayerName,
@@ -94,6 +94,33 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [] }) => {
                 }
             }
         })
+    const MapAdds = Object.values(Maps)
+        .map(({
+            PermanentId,
+            Name,
+            Rooms = []
+        }) => {
+            return [{
+                    PutRequest: {
+                        Item: {
+                            PermanentId: `MAP#${PermanentId}`,
+                            DataCategory: 'Details',
+                            Name
+                        }
+                    }
+                },
+                ...(Rooms.map(({ RoomId, ...rest }) => ({
+                    PutRequest: {
+                        Item: {
+                            PermanentId: `MAP#${PermanentId}`,
+                            DataCategory: `ROOM#${RoomId}`,
+                            ...rest
+                        }
+                    }
+                }))),
+            ]
+        })
+        .reduce((previous, putList) => ([...previous, ...putList]), [])
     const RoomAdds = Object.values(Rooms)
         .map(({
             PermanentId,
@@ -150,6 +177,7 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [] }) => {
     return [
         ...PlayerAdds,
         ...NeighborhoodAdds,
+        ...MapAdds,
         ...RoomAdds,
         ...EntryAdds,
         ...ExitAdds
