@@ -20,7 +20,8 @@ export const getVisibleExits = (state) => {
     const { Grants = {} } = getMyCurrentCharacter(state)
     const currentRoom = getCurrentRoom(state)
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
-        currentRoom.Exits.map(({ Ancestry = '', ...rest }) => {
+        currentRoom.Exits.map(({ RoomId = '', ...rest }) => {
+                const Ancestry = permanentHeaders[RoomId].Ancestry || ''
                 const ancestryList = Ancestry.split(':')
                 const roomAncestryList = currentRoom.Ancestry.split(':')
                 const checkNeighborhoods = ancestryList.filter((PermanentId, index) => (
@@ -33,7 +34,7 @@ export const getVisibleExits = (state) => {
                         ? { ...previous, Visibility: 'Private' }
                         : { Visibility: 'Private', visible: false }
                 ), { Visibility: 'Public', visible: true })
-                return { Ancestry, ...rest, ...returnVal }
+                return { RoomId, ...rest, ...returnVal }
             })
             .filter(({ visible }) => (visible))
             .map(({ visible, ...rest }) => (rest))
