@@ -28,7 +28,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "introspect": "aws cloudformation describe-stacks --output json --query \"Stacks[0].Outputs\""
   },
   "eslintConfig": {
     "extends": "react-app"
