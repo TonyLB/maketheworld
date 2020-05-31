@@ -42,7 +42,7 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [] }) => {
                     }
                 },
                 ...((Characters || [])
-                    .map(({ CharacterId, ...rest }) => ([{
+                    .map(({ CharacterId, Grants = [], ...rest }) => ([{
                         PutRequest: {
                             Item: {
                                 PermanentId: `PLAYER#${PlayerName}`,
@@ -58,7 +58,18 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [] }) => {
                                 ...rest
                             }
                         }
-                    }]))
+                    },
+                    ...(Grants.map(({ Resource, Actions, Roles }) => ({
+                        PutRequest: {
+                            Item: {
+                                PermanentId: `CHARACTER#${CharacterId}`,
+                                DataCategory: `GRANT#${Resource}`,
+                                ...(Actions ? { Actions } : {}),
+                                ...(Roles ? { Roles } : {}),
+                            }
+                        }
+                    })))
+                    ]))
                     .reduce((previous, putList) => ([...previous, ...putList]), [])
                 )
              ]

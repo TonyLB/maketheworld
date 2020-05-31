@@ -138,12 +138,37 @@ const serializeV2 = (Items) => {
     // Break out the characters
     //
     const Characters = Items
-        .filter(({ PermanentId, DataCategory }) => (PermanentId.startsWith('CHARACTER#') && (DataCategory === 'Details')))
-        .map(({ PermanentId, DataCategory, ...rest }) => ({
-            CharacterId: shearOffFirstTag(PermanentId),
-            ...rest
-        }))
-        .reduce((previous, { CharacterId, ...rest }) => ({ ...previous, [CharacterId]: { CharacterId, ...rest } }), {})
+        .filter(({ PermanentId, DataCategory }) => (PermanentId.startsWith('CHARACTER#')))
+        .reduce((previous, { PermanentId: dbPermanentId, DataCategory, ...rest }) => {
+            const PermanentId = shearOffFirstTag(dbPermanentId)
+            if (DataCategory === 'Details') {
+                return {
+                    ...previous,
+                    [PermanentId]: {
+                        ...(previous[PermanentId] || {}),
+                        CharacterId: PermanentId,
+                        ...rest,
+                        Grants: (previous[PermanentId] && previous[PermanentId].Grants) || []
+                    }
+                }
+            }
+            if (DataCategory.startsWith('GRANT#')) {
+                return {
+                    ...previous,
+                    [PermanentId]: {
+                        ...(previous[PermanentId] || {}),
+                        CharacterId: PermanentId,
+                        Grants: [
+                            ...((previous[PermanentId] && previous[PermanentId].Grants) || []),
+                            {
+                                Resource: shearOffFirstTag(DataCategory),
+                                ...rest
+                            }
+                        ]
+                    }
+                }
+            }
+        }, {})
 
     //
     // Nest each character under its player
