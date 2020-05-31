@@ -34,12 +34,13 @@ See the section about [running tests](https://facebook.github.io/create-react-ap
 ### `npm run introspect --stack-name=<your stack name>`
 
 Pulls client-relevant information from the main MTW Cloudformation stack.  This must be run after install of the stack,
-and piped into charcoal-client/src/config.json in UTF-8 format, before the client is ready to start or to build.
+and piped into charcoal-client/src/config.json in UTF-8 format, before the client is ready to start or to build.  AWS
+stack description returns UTF16le, so we've created a helper function to do the conversion, so you can run as follows:
 
-A typical way to do this is to set the PYTHONIOENCODING environment variable to 'UTF-8' (however your local
-environment calls for doing that), and then run:
-
-`npm run --silent introspect --stack-name=(your stack name) > config.json`
+```
+npm run --silent introspect --stack-name=(your stack name) > src/rawConfig.json
+npm run convert
+```
 
 ### `npm run build`
 
