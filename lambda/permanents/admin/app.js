@@ -5,6 +5,7 @@ const { documentClient } = require('utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
 
 const { initiateBackup } = require('initiateBackup')
+const { restoreBackup } = require('restoreBackup')
 const { uploadBackup } = require('uploadBackup')
 const { TABLE_PREFIX, AWS_REGION } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
@@ -118,6 +119,8 @@ exports.handler = (event, context) => {
             return putBackup(payload)
         case "createBackup":
             return createBackup(payload)
+        case "restoreBackup":
+            return restoreBackup(payload)
         case "uploadBackup":
             return uploadBackup(payload, context)
                 .then(({ PermanentId }) => putBackup({ PermanentId, Status: 'Uploaded.'}))

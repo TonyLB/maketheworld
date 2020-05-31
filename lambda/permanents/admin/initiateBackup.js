@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 const { documentClient, s3Client, graphqlClient, gql } = require('utilities')
+const { gqlOutput } = require('gqlOutput')
 
 const s3Put = (filename, contents) => {
     const request = {
@@ -14,61 +15,6 @@ const s3Put = (filename, contents) => {
 }
 
 const shearOffFirstTag = (item) => (item.split('#').slice(1).join('#'))
-
-const gqlOutput = `Neighborhood {
-    PermanentId
-    Name
-    Description
-    ParentId
-    Visibility
-    Topology
-    ContextMapId
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
-  }
-  Room {
-    PermanentId
-    Name
-    Description
-    ParentId
-    Visibility
-    Topology
-    Exits {
-      Name
-      RoomId
-    }
-    Entries {
-      Name
-      RoomId
-    }
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
-  }
-  Map {
-    MapId
-    Name
-    Rooms {
-      PermanentId
-      X
-      Y
-      Locked
-    }
-  }
-  Settings {
-    ChatPrompt
-  }
-  Backup {
-    PermanentId
-    Name
-    Description
-    Status
-  }`
 
 const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingBackup {
     putBackup (PermanentId: "${PermanentId}", Name: "${Name}", Description: "${Description}", Status: "Creating...") {

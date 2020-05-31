@@ -29,13 +29,15 @@ import {
 import { useTheme } from '@material-ui/core/styles'
 import DownloadIcon from '@material-ui/icons/SaveAlt'
 import UploadIcon from '@material-ui/icons/CloudUpload'
+import RestoreIcon from '@material-ui/icons/Restore'
 
 // Local code imports
 import { closeAdminDialog } from '../../actions/UI/adminDialog'
 import { putSettingsAndCloseAdminDialog } from '../../actions/settings'
 import { getAdminDialogUI } from '../../selectors/UI/adminDialog.js'
 import { getBackups } from '../../selectors/backups'
-import { createBackup, uploadBackup } from '../../actions/backups'
+import { createBackup, uploadBackup, restoreBackup } from '../../actions/backups'
+import { activateConfirmDialog } from '../../actions/UI/confirmDialog'
 import useStyles from '../styles'
 import { STORAGE_API_URI } from '../../config'
 
@@ -204,15 +206,28 @@ const BackupsTab = () => {
     const [rowsPerPage, setRowsPerPage] = React.useState(10)
     const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
     const [importDialogOpen, setImportDialogOpen] = React.useState(false)
+    const dispatch = useDispatch()
 
     const handleChangePage = (event, newPage) => {
         setPage(newPage)
-    };
+    }
 
     const handleChangeRowsPerPage = (event) => {
         setRowsPerPage(+event.target.value)
         setPage(0)
-    };
+    }
+
+    const restoreHandler = (PermanentId) => () => {
+        dispatch(activateConfirmDialog({
+            title: 'Shout',
+            message: '',
+            content: `Are you sure you want to restore this backup?  It could effect the database in many ways.`,
+            resolveButtonTitle: 'Restore',
+            resolve: () => {
+                dispatch(restoreBackup({ PermanentId }))
+            }
+        }))
+    }
 
     return (<React.Fragment>
         <CreateBackupDialog
@@ -231,15 +246,18 @@ const BackupsTab = () => {
                             <TableCell key="Name" >
                                 Name
                             </TableCell>
-                            <TableCell colSpan={2} key="Description" >
+                            <TableCell key="Description" >
                                 Description
+                            </TableCell>
+                            <TableCell colSpan={3} key="Status" >
+                                Status
                             </TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         { Object.values(backups)
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            .map(({ Name, Description, PermanentId }) => (
+                            .map(({ Name, Description, PermanentId, Status }) => (
                                 <TableRow hover tabIndex={-1} key={PermanentId}>
                                     <TableCell>
                                         { Name }
@@ -248,9 +266,21 @@ const BackupsTab = () => {
                                         { Description }
                                     </TableCell>
                                     <TableCell>
+                                        { Status }
+                                    </TableCell>
+                                    <TableCell>
                                         <Tooltip title={"Download backup"}>
                                             <IconButton href={`${STORAGE_API_URI}/backups/${PermanentId}.json`} >
                                                 <DownloadIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Tooltip title={"Restore backup"}>
+                                            <IconButton
+                                                onClick={restoreHandler(PermanentId)}
+                                            >
+                                                <RestoreIcon />
                                             </IconButton>
                                         </Tooltip>
                                     </TableCell>

@@ -485,70 +485,6 @@ Resources:
         RestApiId: !Ref StorageApi
         StageName: storage
 
-  CreateBackupFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: lambda/createBackup/
-      Handler: app.handler
-      MemorySize: 256
-      Runtime: nodejs12.x
-      Environment:
-        Variables:
-          TABLE_PREFIX: !Ref TablePrefix
-          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          S3_BUCKET:
-            Fn::ImportValue:
-              !Sub "${PermanentsStack}-StorageBucket"
-      Policies:
-        - Statement:
-          - Effect: Allow
-            Action: appsync:GraphQL
-            Resource: !Sub '${AppSyncAPI}/*'
-        - Statement:
-          - Effect: Allow
-            Action: s3:PutObject
-            Resource:
-              Fn::Sub:
-                  - "arn:aws:s3:::${StorageBucket}/*"
-                  - StorageBucket:
-                      Fn::ImportValue:
-                        !Sub "${PermanentsStack}-StorageBucket"
-          - Effect: "Allow"
-            Action:
-              - "dynamodb:Scan"
-            Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
-  RestoreBackupFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: lambda/restoreBackup/
-      Handler: app.handler
-      MemorySize: 256
-      Runtime: nodejs12.x
-      Environment:
-        Variables:
-          TABLE_PREFIX: !Ref TablePrefix
-          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          S3_BUCKET:
-            Fn::ImportValue:
-              !Sub "${PermanentsStack}-StorageBucket"
-      Policies:
-        - Statement:
-          - Effect: Allow
-            Action: appsync:GraphQL
-            Resource: !Sub '${AppSyncAPI}/*'
-        - Statement:
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource:
-              Fn::Sub:
-                - "arn:aws:s3:::${StorageBucket}/*"
-                - StorageBucket:
-                    Fn::ImportValue:
-                      !Sub "${PermanentsStack}-StorageBucket"
-          - Effect: "Allow"
-            Action:
-              - "dynamodb:BatchWriteItem"
-            Resource: !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
   AppSyncAPI:
       Type: AWS::AppSync::GraphQLApi
       Properties:
@@ -1325,7 +1261,9 @@ Resources:
                 Resource: !Sub '${AppSyncAPI}/*'
             - Statement:
               - Effect: Allow
-                Action: s3:PutObject
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
                 Resource:
                   Fn::Sub:
                       - "arn:aws:s3:::${StorageBucket}/*"
@@ -1429,6 +1367,24 @@ Resources:
           DataSourceName: !GetAtt AdminDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "createBackup"))
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": $util.toJson($ctx.args)
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationRestoreBackup:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - AdminFunction
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: restoreBackup
+          DataSourceName: !GetAtt AdminDataSource.Name
+          RequestMappingTemplate: >
+              $util.qr($ctx.args.put("action", "restoreBackup"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
@@ -1928,6 +1884,10 @@ Resources:
                       Description: String
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
+                  restoreBackup(
+                      PermanentId: String
+                  ): [ChangedPermanent]
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
@@ -1951,7 +1911,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings", "putBackup", "createBackup"])
+                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings", "putBackup", "createBackup", "restoreBackup"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (

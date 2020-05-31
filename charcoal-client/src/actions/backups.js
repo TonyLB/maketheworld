@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getBackups } from '../graphql/queries'
-import { createBackup as createBackupQL } from '../graphql/mutations'
+import { createBackup as createBackupQL, restoreBackup as restoreBackupQL } from '../graphql/mutations'
 import { STORAGE_API_URI } from '../config.js'
 
 export const RECEIVE_BACKUP_CHANGES = 'RECEIVE_BACKUP_CHANGES'
@@ -21,6 +21,10 @@ export const createBackup = ({ Name, Description }) => (dispatch) => {
     return API.graphql(graphqlOperation(createBackupQL, { Name, Description }))
 }
 
+export const restoreBackup = ({ PermanentId }) => (dispatch) => {
+    return API.graphql(graphqlOperation(restoreBackupQL, { PermanentId }))
+}
+
 export const uploadBackup = (file) => (dispatch) => {
     let fileReader = new FileReader()
     fileReader.onload = () => {
@@ -37,3 +41,4 @@ export const uploadBackup = (file) => (dispatch) => {
     }
     fileReader.readAsText(file)
 }
+
