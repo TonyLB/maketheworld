@@ -161,8 +161,8 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const onGrantAddHandler = (CharacterId) => () => { formDispatch(grantAdd(CharacterId))}
     const onGrantDeleteHandler = (CharacterId) => () => { formDispatch(grantDelete(CharacterId))}
     const saveHandler = () => {
-        const { name, description, visibility, topology, parentId, neighborhoodId, exits, entries, grants } = formValues
-        const neighborhoodData = { name, description, visibility, topology, parentId, neighborhoodId, grants, exits, entries }
+        const { name, description, visibility, topology, parentId, neighborhoodId, mapId, exits, entries, grants } = formValues
+        const neighborhoodData = { name, description, visibility, topology, parentId, neighborhoodId, mapId, grants, exits, entries }
         dispatch(putAndCloseNeighborhoodDialog(neighborhoodData))
     }
     const onSetParentHandler = (neighborhoodId) => () => {

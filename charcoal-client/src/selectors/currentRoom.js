@@ -16,7 +16,7 @@ export const getCurrentRoom = (state) => {
 // grant to view.
 //
 export const getVisibleExits = (state) => {
-    const { permanentHeaders } = state
+    const permanentHeaders = getPermanentHeaders(state)
     const { Grants = {} } = getMyCurrentCharacter(state)
     const currentRoom = getCurrentRoom(state)
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
@@ -61,7 +61,7 @@ export const getAvailableBehaviors = (state) => {
 
 export const getCurrentNeighborhood = (state) => {
     const currentRoom = getCurrentRoom(state)
-    const { permanentHeaders } = state
+    const permanentHeaders = getPermanentHeaders(state)
     if (currentRoom && currentRoom.ParentId) {
         return permanentHeaders[currentRoom.ParentId]
     }

@@ -77,7 +77,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         }))))
         .then((Grants) => ({ ...neighborhood, Grants }))
     ))
-    .then(({ ParentId, Name, Description, Visibility, Topology, ContextMapId, Grants }) => ({
+    .then(({ ParentId, Name, Description, Visibility = 'Private', Topology = 'Dead-End', ContextMapId, Grants }) => ({
         PermanentId,
         ParentId,
         Name,

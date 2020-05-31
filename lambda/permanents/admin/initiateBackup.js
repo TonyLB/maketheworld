@@ -36,7 +36,7 @@ const serializeV2 = (Items) => {
 
     const Neighborhoods = Items.filter(({ PermanentId, DataCategory }) => (PermanentId.startsWith('NEIGHBORHOOD#') && DataCategory === 'Details'))
         .map(({ PermanentId, ...rest }) => ({ PermanentId: shearOffFirstTag(PermanentId), ...rest }))
-        .reduce((previous, { PermanentId, DataCategory, ProgenitorId, ...rest }) => ({
+        .reduce((previous, { PermanentId, DataCategory, ...rest }) => ({
             ...previous,
             [PermanentId]: {
                 PermanentId,

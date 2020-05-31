@@ -79,8 +79,11 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
         .map(({
             PermanentId,
             ParentId,
-            Name,
-            Description
+            Description,
+            Visibility = 'Private',
+            Topology = 'Dead-End',
+            ContextMapId,
+            Name
         }) => {
             return {
                 PutRequest: {
@@ -89,7 +92,10 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
                         DataCategory: 'Details',
                         Name,
                         Description,
-                        ParentId
+                        ParentId,
+                        Visibility,
+                        Topology,
+                        ContextMapId
                     }
                 }
             }
@@ -127,6 +133,7 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
             ParentId,
             Name,
             Description,
+            Visibility = 'Public'
         }) => {
             return {
                 PutRequest: {
@@ -135,7 +142,8 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
                         DataCategory: 'Details',
                         Name,
                         Description,
-                        ParentId
+                        ParentId,
+                        Visibility
                     }
                 }
             }
