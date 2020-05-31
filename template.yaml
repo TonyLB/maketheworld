@@ -374,6 +374,35 @@ Resources:
         - StatusCode: 200
           ResponseParameters:
             method.response.header.content-disposition: true
+  UploadBackupOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn:
+      - BackupResource
+    Properties:
+      HttpMethod: OPTIONS
+      ResourceId: !Ref BackupPathResource
+      RestApiId: !Ref StorageApi
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: "{ \"statusCode\": 200 }"
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: "{ \"statusCode\": 200 }"
+            ResponseParameters:
+              method.response.header.X-Requested-With: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.X-Requested-With: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Origin: true
   UploadBackupMethod:
     Type: 'AWS::ApiGateway::Method'
     DependsOn:
@@ -388,8 +417,6 @@ Resources:
       RequestParameters:
         method.request.path.PermanentId: true
       Integration:
-        CacheKeyParameters:
-          - 'method.request.path.PermanentId'
         RequestParameters:
             integration.request.path.PermanentId: 'method.request.path.PermanentId'
         IntegrationHttpMethod: POST
@@ -404,10 +431,25 @@ Resources:
         PassthroughBehavior: WHEN_NO_MATCH
         IntegrationResponses:
           - StatusCode: 200
+            ResponseParameters:
+              method.response.header.X-Requested-With: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
           - StatusCode: 500
             SelectionPattern: "\"Parsing error.*"
+            ResponseParameters:
+              method.response.header.X-Requested-With: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
           - StatusCode: 400
             SelectionPattern: "\"Error.*"
+            ResponseParameters:
+              method.response.header.X-Requested-With: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
         RequestTemplates:
           application/json: >
               {
@@ -416,11 +458,28 @@ Resources:
               }
       MethodResponses:
         - StatusCode: 200
+          ResponseParameters:
+            method.response.header.X-Requested-With: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Origin: true
         - StatusCode: 400
+          ResponseParameters:
+            method.response.header.X-Requested-With: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Origin: true
         - StatusCode: 500
+          ResponseParameters:
+            method.response.header.X-Requested-With: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Origin: true
   StorageDeployment:
       DependsOn:
         - BackupProxyMethod
+        - UploadBackupMethod
+        - UploadBackupOptionsMethod
       Type: 'AWS::ApiGateway::Deployment'
       Properties:
         RestApiId: !Ref StorageApi
@@ -1928,7 +1987,7 @@ Outputs:
 
   StorageApiURI:
       Description: "The HTTP Protocol URI to connect to proxy to the S3 storage bucket"
-      Value: !Join [ '', [ 'http://', !Ref StorageApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/storage'] ]
+      Value: !Join [ '', [ 'https://', !Ref StorageApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/storage'] ]
 
   AppSyncURL:
       Description: The URL of the AppSync GraphQL endpoint

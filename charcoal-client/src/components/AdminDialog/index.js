@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -28,13 +28,14 @@ import {
 } from '@material-ui/core'
 import { useTheme } from '@material-ui/core/styles'
 import DownloadIcon from '@material-ui/icons/SaveAlt'
+import UploadIcon from '@material-ui/icons/CloudUpload'
 
 // Local code imports
 import { closeAdminDialog } from '../../actions/UI/adminDialog'
 import { putSettingsAndCloseAdminDialog } from '../../actions/settings'
 import { getAdminDialogUI } from '../../selectors/UI/adminDialog.js'
 import { getBackups } from '../../selectors/backups'
-import { createBackup } from '../../actions/backups'
+import { createBackup, uploadBackup } from '../../actions/backups'
 import useStyles from '../styles'
 import { STORAGE_API_URI } from '../../config'
 
@@ -128,12 +129,81 @@ const CreateBackupDialog = ({ open, onClose }) => {
     </Dialog>
 }
 
+
+const ImportBackupDialog = ({ open, onClose }) => {
+    const classes = useStyles()
+    const dispatch = useDispatch()
+    const fileRef = useRef()
+    const [file, setFile] = useState(null)
+
+    const fileChangeHandler = (files) => {
+        if (files.length) {
+            setFile(files[0])
+        }
+    }
+    return <Dialog
+        maxWidth="lg"
+        open={open}
+        onEnter={() => { setFile(null) }}
+        onClose={onClose}
+    >
+        <DialogTitle
+            id="import-backup-dialog-title"
+            className={classes.lightblue}
+        >
+            <Typography variant="overline">
+                Import Backup
+            </Typography>
+        </DialogTitle>
+        <DialogContent>
+            <div>
+                <input
+                    type="file"
+                    ref={fileRef}
+                    onChange={(event) => { fileChangeHandler(event.target.files) }}
+                    style={{ display: "none" }}
+                />
+                <TextField
+                    disabled
+                    id="name"
+                    label="Upload File"
+                    value={(file && file.name) || ''}
+                />
+                <IconButton onClick={ () => {
+                        if (fileRef.current) {
+                            fileRef.current.click()
+                        }
+                    }}
+                >
+                    <UploadIcon color="action" />
+                </IconButton>
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <Button onClick={ () => { onClose() } }>
+                Cancel
+            </Button>
+            <Button
+                onClick={() => {
+                    if (file) {
+                        dispatch(uploadBackup(file))
+                    }
+                    onClose()
+                }}
+                disabled={!file}
+            >
+                Import
+            </Button>
+        </DialogActions>
+    </Dialog>
+}
 const BackupsTab = () => {
     const classes = useStyles()
     const backups = useSelector(getBackups)
     const [page, setPage] = React.useState(0)
     const [rowsPerPage, setRowsPerPage] = React.useState(10)
     const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
+    const [importDialogOpen, setImportDialogOpen] = React.useState(false)
 
     const handleChangePage = (event, newPage) => {
         setPage(newPage)
@@ -148,6 +218,10 @@ const BackupsTab = () => {
         <CreateBackupDialog
             open={createDialogOpen}
             onClose={() => setCreateDialogOpen(false)}
+        />
+        <ImportBackupDialog
+            open={importDialogOpen}
+            onClose={() => setImportDialogOpen(false)}
         />
         <Paper className={classes.root}>
             <TableContainer className={classes.container}>
@@ -209,6 +283,7 @@ const BackupsTab = () => {
                     <Button
                         variant="contained"
                         style={{ margin: "10px"}}
+                        onClick={() => { setImportDialogOpen(true) }}
                     >
                         Import Backup
                     </Button>

@@ -121,11 +121,17 @@ exports.handler = (event, context) => {
         case "uploadBackup":
             return uploadBackup(payload, context)
                 .then(({ PermanentId }) => putBackup({ PermanentId, Status: 'Uploaded.'}))
+                .then(() => ({
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        message: "Upload completed."
+                    })
+                }))
         case "getSettings":
             return getSettings()
         case "putSettings":
             return putSettings(payload)
         default:
-            context.fail(JSON.stringify(`Unknown action: ${action}`))
+            context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
     }
 }

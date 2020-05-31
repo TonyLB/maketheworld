@@ -15,8 +15,6 @@ const s3Put = (filename, contents) => {
     return s3Client.putObject(request).promise()
 }
 
-const shearOffFirstTag = (item) => (item.split('#').slice(1).join('#'))
-
 const gqlOutput = `Neighborhood {
     PermanentId
     Name
@@ -73,7 +71,7 @@ const gqlOutput = `Neighborhood {
   }`
 
 const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Name: "${Name}", Description: "${Description}", Status: "Creating...") {
+    putBackup (PermanentId: "${PermanentId}", Name: ${JSON.stringify(Name)}, Description: ${JSON.stringify(Description)}, Status: "Creating...") {
         ${gqlOutput}
     }
 }`)
