@@ -32,7 +32,6 @@ aws-exports.js
 src/aws-exports.js
 src/config.json
 src/rawConfig.json
-src/graphql
 src/models
 awsconfiguration.json
 amplifyconfiguration.json

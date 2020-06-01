@@ -1,0 +1,263 @@
+/* eslint-disable */
+// this is an auto generated file. This will be overwritten
+
+export const getPlayer = /* GraphQL */ `
+  query GetPlayer($PlayerName: String!) {
+    getPlayer(PlayerName: $PlayerName) {
+      PlayerName
+      CodeOfConductConsent
+    }
+  }
+`;
+export const getCharacter = /* GraphQL */ `
+  query GetCharacter($playerName: String!, $name: String!) {
+    getCharacter(playerName: $playerName, name: $name) {
+      PlayerName
+      Name
+      CharacterId
+      Pronouns
+      FirstImpression
+      Outfit
+      OneCoolThing
+      HomeId
+      Grants {
+        Resource
+        Actions
+        Roles
+      }
+    }
+  }
+`;
+export const getPlayerCharacters = /* GraphQL */ `
+  query GetPlayerCharacters {
+    getPlayerCharacters {
+      PlayerName
+      Name
+      CharacterId
+      Pronouns
+      FirstImpression
+      Outfit
+      OneCoolThing
+      HomeId
+      Grants {
+        Resource
+        Actions
+        Roles
+      }
+    }
+  }
+`;
+export const getAllCharacters = /* GraphQL */ `
+  query GetAllCharacters {
+    getAllCharacters {
+      PlayerName
+      Name
+      CharacterId
+      Pronouns
+      FirstImpression
+      Outfit
+      OneCoolThing
+      HomeId
+      Grants {
+        Resource
+        Actions
+        Roles
+      }
+    }
+  }
+`;
+export const getCharactersInPlay = /* GraphQL */ `
+  query GetCharactersInPlay {
+    getCharactersInPlay {
+      CharacterId
+      RoomId
+      ConnectionId
+    }
+  }
+`;
+export const getNeighborhoodTree = /* GraphQL */ `
+  query GetNeighborhoodTree {
+    getNeighborhoodTree {
+      Neighborhood {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        ContextMapId
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+      }
+      Room {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        Exits {
+          Name
+          RoomId
+        }
+        Entries {
+          Name
+          RoomId
+        }
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+      }
+      Map {
+        MapId
+        Name
+        Rooms {
+          PermanentId
+          X
+          Y
+          Locked
+        }
+      }
+      Settings {
+        ChatPrompt
+      }
+      Backup {
+        PermanentId
+        Name
+        Description
+        Status
+      }
+    }
+  }
+`;
+export const getNeighborhood = /* GraphQL */ `
+  query GetNeighborhood($PermanentId: String!) {
+    getNeighborhood(PermanentId: $PermanentId) {
+      PermanentId
+      Name
+      Description
+      ParentId
+      Visibility
+      Topology
+      ContextMapId
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
+    }
+  }
+`;
+export const getRoom = /* GraphQL */ `
+  query GetRoom($PermanentId: String!) {
+    getRoom(PermanentId: $PermanentId) {
+      PermanentId
+      Name
+      Description
+      ParentId
+      Visibility
+      Topology
+      Exits {
+        Name
+        RoomId
+      }
+      Entries {
+        Name
+        RoomId
+      }
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
+    }
+  }
+`;
+export const getRoomRecap = /* GraphQL */ `
+  query GetRoomRecap($PermanentId: String!) {
+    getRoomRecap(PermanentId: $PermanentId) {
+      MessageId
+      CreatedTime
+      Target
+      Message
+      RoomId
+      CharacterId
+      FromCharacterId
+      ToCharacterId
+      Recap
+      ExpirationTime
+      Type
+      Title
+    }
+  }
+`;
+export const getRoomByCharacter = /* GraphQL */ `
+  query GetRoomByCharacter($CharacterId: String!) {
+    getRoomByCharacter(CharacterId: $CharacterId) {
+      PermanentId
+      Name
+      Description
+      ParentId
+      Visibility
+      Topology
+      Exits {
+        Name
+        RoomId
+      }
+      Entries {
+        Name
+        RoomId
+      }
+      Grants {
+        CharacterId
+        Actions
+        Roles
+      }
+    }
+  }
+`;
+export const getRoles = /* GraphQL */ `
+  query GetRoles {
+    getRoles {
+      RoleId
+      Name
+      Actions
+    }
+  }
+`;
+export const getMaps = /* GraphQL */ `
+  query GetMaps {
+    getMaps {
+      MapId
+      Name
+      Rooms {
+        PermanentId
+        X
+        Y
+        Locked
+      }
+    }
+  }
+`;
+export const getSettings = /* GraphQL */ `
+  query GetSettings {
+    getSettings {
+      ChatPrompt
+    }
+  }
+`;
+export const getBackups = /* GraphQL */ `
+  query GetBackups {
+    getBackups {
+      PermanentId
+      Name
+      Description
+      Status
+    }
+  }
+`;
