@@ -137,7 +137,7 @@ you in a month ... after which it will just cut you off.  It's unlikely you'll e
 
 At the end of those tutorials, you will have one account that you still log in to with its root credentials.  You'll need that, long-term, in order to check
 out the Budget, but those credentials can do *anything*.  You want to log in with those very, very seldom.  AWS provides a tool called *IAM* (Identity and
-Access Management) that lets you create a user that is still provisioned to do *almost anything* but is importantly firewalled away from billing matters.
+Access Management) that lets you create a user that is still provisioned to do *almost* anything but is importantly firewalled away from billing matters.
 Do that next (the top part ... you don't need the second bit where they show you an alternate path to do the same thing):
 
 [Make your first IAM user and Administrator Group](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html)
@@ -145,6 +145,16 @@ Do that next (the top part ... you don't need the second bit where they show you
 Now set things up so that you can log in to the AWS web Console using this new, slightly safer, user ... and probably bookmark the login-site:
 
 [Create a sign-in portal](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_how-users-sign-in.html)
+
+You have an AWS account now, so you can start the install process in earnest.  
+
+Before you deploy, you will need to give Amplify permissions to set up infrastructure.  That means creating another IAM *role* (though not another
+user) that holds the permissions you want to grant to Amplify (broadly "almost everything").  Note that you have an existing app, so you will be using
+the instructions at top, then skipping one step that doesn't apply because you have no Amplify-generated back-end, then the instructions at bottom 
+(where it says "If you already have an existing app"):
+
+[Add a service role](https://docs.aws.amazon.com/amplify/latest/userguide/how-to-service-role-amplify-console.html)
+
 
 
 
