@@ -15,6 +15,11 @@ Parameters:
     AllowedPattern: ^[A-Za-z_]+$
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
+  CognitoCallbackURL:
+    Type: String
+    Default: 'http://localhost:3000'
+    Description: (Required) The URL that Cognito should return control to, after authorizing a user.
+
 Resources:
     PermanentsTable:
         Type: AWS::DynamoDB::Table
@@ -86,7 +91,7 @@ Resources:
           - ALLOW_REFRESH_TOKEN_AUTH
           - ALLOW_USER_SRP_AUTH
         CallbackURLs:
-          - http://localhost:3000
+          - !Ref CognitoCallbackURL
     UserPoolDomain:
       Type: AWS::Cognito::UserPoolDomain
       Properties:
