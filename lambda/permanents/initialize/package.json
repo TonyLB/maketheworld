@@ -1,0 +1,14 @@
+{
+  "name": "maps",
+  "version": "1.0.0",
+  "description": "Lambda invoke to initialize required data into an empty permanents table",
+  "main": "src/app.js",
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.434.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

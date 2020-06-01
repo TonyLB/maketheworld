@@ -574,6 +574,20 @@ Resources:
         DynamoDBConfig:
             AwsRegion: !Ref AWS::Region
             TableName: !Sub ${TablePrefix}_messages
+  InitializeFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/permanents/initialize/
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs12.x
+          Timeout: 3
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_permanents'
   QueryGetPlayerResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
@@ -1952,3 +1966,7 @@ Outputs:
   AppSyncURL:
       Description: The URL of the AppSync GraphQL endpoint
       Value: !GetAtt AppSyncAPI.GraphQLUrl
+
+  InitializeLambda:
+      Description: The Lambda function to invoke in order to initialize the MessagesDynamoDBTableDataSource
+      Value: !Ref InitializeFunction
