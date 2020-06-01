@@ -12,7 +12,7 @@ to the Amplify lifecycle (because of the limits around custom Cloudformation, as
 deploy in the way Make The World needed.  So this is a manual Amplify build, which does not need to have
 `amplify init` run ... in fact, it's probably very much better that you don't.  If you tweak the graphQL schema
 of the back-end, however, you will need to use `aws appsync get-introspection-schema` on your API, and pipe it
-in JSON format into src/schema.json, then run `amplify configure` in order to repopulate the graphQL schemata.
+in JSON format into src/schema.json, then run `amplify codegen` in order to repopulate the graphQL schemata.
 
 ## Available Scripts
 
@@ -31,15 +31,15 @@ You will also see any lint errors in the console.
 Launches the test runner in the interactive watch mode.<br />
 See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### `npm run introspect --stack-name=<your stack name>`
+### `npm run introspect <your stack name>`
 
 Pulls client-relevant information from the main MTW Cloudformation stack.  This must be run after install of the stack,
 and piped into charcoal-client/src/config.json in UTF-8 format, before the client is ready to start or to build.  AWS
-stack description returns UTF16le, so we've created a helper function to do the conversion, so you can run as follows:
+stack description sometimes returns UTF16le when executed on the command line, so we've created a helper function to
+do the conversion, which you can run as follows:
 
 ```
-npm run --silent introspect --stack-name=(your stack name) > src/rawConfig.json
-npm run convert
+npm run introspect (your stack name)
 ```
 
 ### `npm run build`
