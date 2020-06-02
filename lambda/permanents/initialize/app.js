@@ -46,6 +46,16 @@ exports.handler = async () => {
                 PutRequest: {
                     Item: {
                         PermanentId: 'ADMIN',
+                        DataCategory: 'ROLE#PLAYER',
+                        Name: 'Player',
+                        Actions: 'ExtendPrivate'
+                    }
+                }
+            },
+            {
+                PutRequest: {
+                    Item: {
+                        PermanentId: 'ADMIN',
                         DataCategory: 'ROLE#VIEWER',
                         Name: 'Viewer',
                         Actions: 'View'

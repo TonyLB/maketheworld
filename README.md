@@ -155,11 +155,44 @@ the instructions at top, then skipping one step that doesn't apply because you h
 
 [Add a service role](https://docs.aws.amazon.com/amplify/latest/userguide/how-to-service-role-amplify-console.html)
 
-Now that you have an AWS account and proper permissions, you can ask the AWS Amplify to read this repository and instantiate Make The World:
+Now that you have an AWS account and proper permissions, you can ask the AWS Amplify to read this repository and instantiate Make The World.  The thing
+is ... it's going to *fail* the first time.  Amplify doesn't know about the Service Role setting until after you've set it, and you can't set it until
+you've tried to deploy (and failed).  So we're consulting with AWS support to find a way around that for version 1.1, but for 1.0 you're going to make a
+first attempt at a deploy, have it fail, set the service role, then redeploy (probably want to open this next link in a new tab, so you watch it in
+parallel with these instructions):
 
 [![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld)
 
-Maybe go get a snack once that has started.  It can take ten minutes or so easily, and sometimes takes longer.
+Amplify will guide you through getting connected to a GitHub account that can access this repository.  Once you've started the deploy, maybe go get a snack.
+It can take five minutes easy to provision all the bits that happen before the failure.
+
+Once it has failed in the Build stage, find the "General" tab on the left, and click it.  There will be an "Edit" button in the upper right, just under
+the "Action" button.  Select that to open the app settings.  Down at the bottom of that page there is a setting for "Service Role".  Select the one you created
+above and save.
+
+You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld"
+to get back to your deployments, and click the Version-One-Zero listing to get into the failed deploy.  In the upper right, you will see a button for "Redeploy
+this version".  Click that.  Click back to "maketheworld" again, and you'll see the install progressing through its phases again.  This time it should succeed!
+
+If you've gotten this far, you have an (empty) Make The World instance running under your own resources.  Congratulations!  Let's make it a bit safer from
+accidental damage:  Click Services, and under "Management and Governance" find the CloudFormation console.  Open it up, and you'll see two stacks (one for
+Permanents and one for everything else).  These groupings hold the AWS resources that are keeping the system running.  Select the Permanents stack.  In the upper
+right there is a button for Stack Actions.  Select that, and click "Edit Termination Protection".  Select 'Enabled' and save.  Now you won't accidentally
+purge all your irrecoverable data.
+
+Now it's time to get into the actual content of your system.  The Amplify console will show you a link to the web-site that it has created.  Head there and
+register with the system.  Once you have a username and password you can log in with, consent to the code of conduct and make a new character to act as your
+administrator identity.  You will be in the Vortex ... currently the only room that exists in your world.  The problem is, you're there as a *character*, and 
+what you wanted was an administrator.  One last AWS task:  In AWS, click Services and under "Database" find "DynamoDB".  Click the "Tables" tab, and you
+will see the three Make The World tables (ephemera, messages and permanents).  Click the permanents table and select the "Items" tab in order to see the contents
+of your database.  There probably won't be much there yet.  You're looking for a record with a PermanentId of 'CHARACTER#blah-blah-blah-unique-id', and a
+DataCategory of "GRANT#MINIMUM".  This represents your character's basic grants, what they are allowed to do everywhere, at all times.  Click the PermanentId
+link to open up an edit screen, and you'll see that it has a data element "Roles" that is currently set to "PLAYER".  Edit that and set it to "ADMIN".
+
+Go back to your window on the game itself, and refresh to log in again (to pick up that database change).  Your character is now an administrator!  That
+gives you access to the Administration panel in the upper left menu, which lets you make backups, import content, all that.  You should also now have the
+ability to make not just private dead-end neighborhoods, but big, connected, public neighborhoods.  Make some neighborhoods, and populate them with connected
+rooms, and you're on your way to having your own fictional world!
 
 
 ### Manual deployment for development
@@ -233,6 +266,22 @@ aws cloudformation describe-stacks \
 Finally, you'll have to dig down into the *charcoal-client* directory, and read its README.md as well.  There are some
 steps that need to be taken there, in order to inform the client about the cloudformation resources you have created, before
 it can be started against the back-end.
+
+### Removing all MakeTheWorld resources
+
+You've tinkered around, and decided this isn't something you want to keep maintaining long-term?  No problem.  It's pretty easy to remove from
+the AWS console.
+
+Go to Amplify:  Select your app, and delete it.
+
+Go to S3:  There is a permanentstack storage bucket there.  It has all your backups, so maybe copy those down if you want to keep them for sentimental
+(or other) reasons.  When you're sure you don't need the data any more, select the bucket and click the 'Empty' button.
+
+Go to CloudFormaton:  There are two stacks there (one for permanents and one for everything else).  Click the 'everything else' stack and delete it.
+Once that is complete, click the permanents stack and delete it.
+
+That's it:  Make The World should be removed completely from your AWS account.
+
 
 ## License Summary
 
