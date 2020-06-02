@@ -153,7 +153,10 @@ const putCharacterInPlay = async ({ CharacterId, ConnectionId, RoomId, deleteRec
                         .then(({ HomeId = 'VORTEX' }) => ({ ...Item, RoomId: HomeId }) )
                 }
                 else {
-                    return Item
+                    return {
+                        ...Item,
+                        RoomId: Item.RoomId || RoomId || 'VORTEX'
+                    }
                 }
             })
 
