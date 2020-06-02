@@ -42,7 +42,7 @@ exports.handler = (event) => {
     // reflected in this update, and should be removed.
     //
     const pathLookup = newRoom
-        ? { PermanentId: uuidv4(), Entries, Exits, ParentId, Description, Name, EntriesToDelete: [], ExitsToDelete: [] }
+        ? Promise.resolve({ PermanentId: uuidv4(), Entries, Exits, ParentId, Description, Name, EntriesToDelete: [], ExitsToDelete: [] })
         : documentClient.query({
             TableName: permanentTable,
             KeyConditionExpression: 'PermanentId = :RoomId AND DataCategory BETWEEN :BeforeEntries AND :AfterExits',

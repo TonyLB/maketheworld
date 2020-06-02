@@ -150,7 +150,7 @@ const putCharacterInPlay = async ({ CharacterId, ConnectionId, RoomId, deleteRec
                             }
                         }).promise()
                         .then(({ Item }) => (Item || {}))
-                        .then(({ HomeId = 'VORTEX' }) => ({ ...Item, RoomId: HomeId }) )
+                        .then(({ HomeId }) => ({ ...Item, RoomId: HomeId || 'VORTEX' }) )
                 }
                 else {
                     return {
