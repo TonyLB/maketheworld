@@ -225,6 +225,8 @@ Resources:
       Principal: apigateway.amazonaws.com
   OnDisconnectFunction:
     Type: AWS::Serverless::Function
+    DependsOn:
+      - AppSyncAPI
     Properties:
       CodeUri: lambda/ondisconnect/
       Handler: app.handler
@@ -256,6 +258,8 @@ Resources:
       Principal: apigateway.amazonaws.com
   RegisterCharacterFunction:
     Type: AWS::Serverless::Function
+    DependsOn:
+      - AppSyncAPI
     Properties:
       CodeUri: lambda/registercharacter/
       Handler: app.handler
@@ -897,6 +901,8 @@ Resources:
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   GetNeighborhoodFunction:
+      DependsOn:
+          - AppSyncAPI
       Type: AWS::Serverless::Function
       Properties:
           CodeUri: lambda/permanents/neighborhoods/
@@ -1203,6 +1209,8 @@ Resources:
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PutNeighborhoodFunction:
       Type: AWS::Serverless::Function
+      DependsOn:
+          - AppSyncAPI
       Properties:
           CodeUri: lambda/permanents/neighborhoods/
           Handler: app.putNeighborhood
@@ -1252,6 +1260,8 @@ Resources:
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   AdminFunction:
       Type: AWS::Serverless::Function
+      DependsOn:
+          - AppSyncAPI
       Properties:
           CodeUri: lambda/permanents/admin/
           Handler: app.handler
