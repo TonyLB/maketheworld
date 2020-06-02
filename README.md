@@ -157,7 +157,7 @@ the instructions at top, then skipping one step that doesn't apply because you h
 
 Now that you have an AWS account and proper permissions, you can ask the AWS Amplify to read this repository and instantiate Make The World:
 
-[![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld/Version-One-Zero/)
+[![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld)
 
 Maybe go get a snack once that has started.  It can take ten minutes or so easily, and sometimes takes longer.
 
