@@ -1453,14 +1453,6 @@ Resources:
                   "CharacterId": "$result.CharacterId",
                   "GrantInfo": $grant
             })
-  UUIDLambdaLayer:
-      Type: AWS::Serverless::LayerVersion
-      Properties:
-          LayerName: uuid-layer
-          Description: Lambda layer to import the uuid library
-          ContentUri: lambda/uuidLayer/
-          CompatibleRuntimes:
-              - nodejs12.x
   PutRoomFunction:
       Type: AWS::Serverless::Function
       Properties:

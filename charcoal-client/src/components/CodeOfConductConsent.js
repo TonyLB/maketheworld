@@ -17,12 +17,12 @@ export const CodeOfConductConsentDialog = ({ onConsent = () => {}, open=false })
             open={open}
         >
             <DialogTitle className={classes.lightblue} >
-                <Typography align="center">Welcome to the Burned Over MUSH</Typography>
+                <Typography align="center">Welcome to Make The World</Typography>
             </DialogTitle>
             <DialogContent>
 
-                Burned Over (by Meguey and Vincent Baker) is a ttrpg designed for players 13 and up, on core concepts of consent, player agency, and communication.
-                In order for everyone to play together in this adaptation, there are some ground rules:
+                Make The World is based on core concepts of consent, player agency, and communication.
+                In order for everyone to play together, there are some ground rules:
 
                 <ul>
                     <li>

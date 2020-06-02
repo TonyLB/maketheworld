@@ -48,7 +48,6 @@ Resources:
     UserPool:
       Type: AWS::Cognito::UserPool
       UpdateReplacePolicy: Retain
-      DeletionPolicy: Retain
       Properties:
         UserPoolName: !Sub ${TablePrefix}-user-UserPool
         AutoVerifiedAttributes:
