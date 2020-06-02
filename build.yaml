@@ -1,0 +1,50 @@
+version: 0.1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd charcoal-client
+        - npm install
+    build:
+      commands:
+        - npm run introspect mtwStack
+        - npm run build
+  artifacts:
+    baseDirectory: charcoal-client/build
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - charcoal-client/node_modules/**/*
+backend:
+  phases:
+    preBuild:
+      commands:
+        - cd lambda/uuidLayer
+        - npm install
+        - cd ../appSyncLayer
+        - npm install
+        - cd ../ondisconnect
+        - npm install
+        - cd ../registercharacter
+        - npm install
+        - cd ../permanents/admin
+        - npm install
+        - cd ../neighborhoods
+        - npm install
+        - cd ../../..
+    build:
+      commands:
+        - export callbackurl='https://Version-One-Zero.${AWS_APP_ID}.amplifyapp.com/'
+        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name mtwPermanentsStack --parameter-overrides CognitoCallbackURL=$callbackurl --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
+        - export s3bucket=$(aws cloudformation describe-stacks --stack-name mtwPermanentsStack --output text --query "Stacks[0].Outputs[?OutputKey=='StorageBucket'].OutputValue")
+        - sam package --template-file template.yaml --output-template-file packaged.yaml --s3-bucket $s3bucket --s3-prefix deploy/
+        - sam deploy --template-file packaged.yaml --stack-name mtwStack --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=mtw PermanentsStack=mtwPermanentsStack --s3-bucket $s3bucket --s3-prefix deploy/
+        - export initializelambda=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='InitializeLambda'].OutputValue")
+        - aws lambda invoke --function-name $initializeLambda response.json
+  artifacts:
+    baseDirectory: /
+    files:
+      - '**/*'
+  cache:
+    paths: []

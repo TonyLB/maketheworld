@@ -141,9 +141,6 @@ const NeighborhoodTreeItem = ({ nodeId, name, Ancestry = '', children }) => {
                             event.stopPropagation()
                             dispatch(activateRoomDialog({
                                 ParentId: nodeId,
-                                parentName: name,
-                                Ancestry: `${Ancestry}:`,
-                                parentAncestry: Ancestry,
                                 nested: true
                             }))
                         }}

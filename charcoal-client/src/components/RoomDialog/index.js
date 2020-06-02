@@ -191,16 +191,16 @@ export const RoomDialog = ({ nested=false }) => {
     const roomValidator = useSelector(getRoomUpdateValidator)
     const [formValues, formDispatch] = useReducer(roomDialogReducer(roomValidator), {})
 
+    const permanentHeaders = useSelector(getPermanentHeaders)
     const neighborhoodRooms = useSelector(getNeighborhoodSubtree({
         roomId: defaultValues.RoomId,
-        ancestry: defaultValues.Ancestry
+        ancestry: permanentHeaders[defaultValues.ParentId].Ancestry || ''
     }))
     const neighborhoodTree = useSelector(getNeighborhoodOnlyTree)
     const externalRooms = useSelector(getExternalTree({
         roomId: defaultValues.RoomId,
-        ancestry: defaultValues.Ancestry
+        ancestry: permanentHeaders[defaultValues.ParentId].Ancestry || ''
     }))
-    const permanentHeaders = useSelector(getPermanentHeaders)
     const dispatch = useDispatch()
     const [ neighborhoodAddAnchorEl, setNeighborhoodAddAnchorEl ] = useState(null)
     const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
