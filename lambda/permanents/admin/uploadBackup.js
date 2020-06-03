@@ -84,13 +84,7 @@ const completedGQL = ({PermanentId }) => (gql`mutation PendingBackup {
 
 exports.uploadBackup = async ({ body }, context) => {
 
-    let data = {}
-    try {
-        data = JSON.parse(body)
-    }
-    catch (err) {
-        context.fail(JSON.stringify(`Parsing error: ${err.message}`))
-    }
+    let data = body
 
     const { version, Neighborhoods = [], Rooms = [], Players = [], Name = 'Imported backup', Description = '', ...rest } = data
 
@@ -118,7 +112,7 @@ exports.uploadBackup = async ({ body }, context) => {
     await graphqlClient.mutate({ mutation: pendingGQL({ PermanentId, Name, Description }) })
 
     const objectName = `backups/${PermanentId}.json`
-    return s3Put(objectName, body)
+    return s3Put(objectName, JSON.stringify(body, null, 4))
         .then(() => ({ PermanentId, Name, Description }))
 
 }

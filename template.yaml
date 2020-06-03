@@ -458,7 +458,7 @@ Resources:
           application/json: >
               {
                 "action": "uploadBackup",
-                "body": "$util.escapeJavaScript($input.body)"
+                "body": $input.body
               }
       MethodResponses:
         - StatusCode: 200
