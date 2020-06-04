@@ -76,17 +76,15 @@ const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingB
     }
 }`)
 
-const completedGQL = ({PermanentId }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Status: "Completed.") {
+const completedGQL = ({PermanentId }) => (gql`mutation CompletedImport {
+    putBackup (PermanentId: "${PermanentId}", Status: "Uploaded.") {
         ${gqlOutput}
     }
 }`)
 
 exports.uploadBackup = async ({ body }, context) => {
 
-    let data = body
-
-    const { version, Neighborhoods = [], Rooms = [], Players = [], Name = 'Imported backup', Description = '', ...rest } = data
+    const { version, Neighborhoods = [], Rooms = [], Players = [], Maps = [], Name = 'Imported backup', Description = '', ...rest } = body
 
     if (Object.keys(rest).length) {
         context.fail(`Parsing error: Unknown keys ${JSON.stringify(Object.keys(rest))}`)
@@ -118,6 +116,7 @@ exports.uploadBackup = async ({ body }, context) => {
 
     const objectName = `backups/${PermanentId}.json`
     return s3Put(objectName, JSON.stringify(body, null, 4))
+        .then(() => graphqlClient.mutate({ mutation: completedGQL({ PermanentId })}))
         .then(() => ({ PermanentId, Name, Description }))
 
 }
