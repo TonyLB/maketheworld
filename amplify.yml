@@ -42,6 +42,8 @@ backend:
         - sam deploy --template-file packaged.yaml --stack-name mtwStack --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=mtw PermanentsStack=mtwPermanentsStack --s3-bucket $s3bucket --s3-prefix deploy/
         - export initializelambda=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='InitializeLambda'].OutputValue")
         - aws lambda invoke --function-name $initializelambda response.json
+        - export storageapi=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='StorageApiId'].OutputValue")
+        - aws apigateway create-deployment --rest-api-id $storageapi --stage-name storage
   artifacts:
     baseDirectory: /
     files:

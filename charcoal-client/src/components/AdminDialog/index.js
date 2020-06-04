@@ -24,8 +24,11 @@ import {
     TableCell,
     IconButton,
     Tooltip,
-    Grid
+    Grid,
+    Portal,
+    Snackbar
 } from '@material-ui/core'
+import { Alert } from '@material-ui/lab'
 import { useTheme } from '@material-ui/core/styles'
 import DownloadIcon from '@material-ui/icons/SaveAlt'
 import UploadIcon from '@material-ui/icons/CloudUpload'
@@ -137,67 +140,76 @@ const ImportBackupDialog = ({ open, onClose }) => {
     const dispatch = useDispatch()
     const fileRef = useRef()
     const [file, setFile] = useState(null)
+    const [errorMessage, setErrorMessage] = useState(null)
 
     const fileChangeHandler = (files) => {
         if (files.length) {
             setFile(files[0])
         }
     }
-    return <Dialog
-        maxWidth="lg"
-        open={open}
-        onEnter={() => { setFile(null) }}
-        onClose={onClose}
-    >
-        <DialogTitle
-            id="import-backup-dialog-title"
-            className={classes.lightblue}
+    return <React.Fragment>
+        <Portal>
+            <Snackbar open={Boolean(errorMessage)}>
+                <Alert severity="error" onClose={ () => { setErrorMessage(null) } }>{errorMessage}</Alert>
+            </Snackbar>
+        </Portal>
+        <Dialog
+            maxWidth="lg"
+            open={open}
+            onEnter={() => { setFile(null) }}
+            onClose={onClose}
         >
-            <Typography variant="overline">
-                Import Backup
-            </Typography>
-        </DialogTitle>
-        <DialogContent>
-            <div>
-                <input
-                    type="file"
-                    ref={fileRef}
-                    onChange={(event) => { fileChangeHandler(event.target.files) }}
-                    style={{ display: "none" }}
-                />
-                <TextField
-                    disabled
-                    id="name"
-                    label="Upload File"
-                    value={(file && file.name) || ''}
-                />
-                <IconButton onClick={ () => {
-                        if (fileRef.current) {
-                            fileRef.current.click()
-                        }
-                    }}
-                >
-                    <UploadIcon color="action" />
-                </IconButton>
-            </div>
-        </DialogContent>
-        <DialogActions>
-            <Button onClick={ () => { onClose() } }>
-                Cancel
-            </Button>
-            <Button
-                onClick={() => {
-                    if (file) {
-                        dispatch(uploadBackup(file))
-                    }
-                    onClose()
-                }}
-                disabled={!file}
+            <DialogTitle
+                id="import-backup-dialog-title"
+                className={classes.lightblue}
             >
-                Import
-            </Button>
-        </DialogActions>
-    </Dialog>
+                <Typography variant="overline">
+                    Import Backup
+                </Typography>
+            </DialogTitle>
+            <DialogContent>
+                <div>
+                    <input
+                        type="file"
+                        ref={fileRef}
+                        onChange={(event) => { fileChangeHandler(event.target.files) }}
+                        style={{ display: "none" }}
+                    />
+                    <TextField
+                        disabled
+                        id="name"
+                        label="Upload File"
+                        value={(file && file.name) || ''}
+                    />
+                    <IconButton onClick={ () => {
+                            if (fileRef.current) {
+                                fileRef.current.click()
+                            }
+                        }}
+                    >
+                        <UploadIcon color="action" />
+                    </IconButton>
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={ () => { onClose() } }>
+                    Cancel
+                </Button>
+                <Button
+                    onClick={() => {
+                        if (file) {
+                            dispatch(uploadBackup({ file, onError: setErrorMessage }))
+                        }
+                        onClose()
+                    }}
+                    disabled={!file}
+                >
+                    Import
+                </Button>
+            </DialogActions>
+        </Dialog>
+    </React.Fragment>
+
 }
 const BackupsTab = () => {
     const classes = useStyles()

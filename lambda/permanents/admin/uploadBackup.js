@@ -76,49 +76,47 @@ const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingB
     }
 }`)
 
-const completedGQL = ({PermanentId }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Status: "Completed.") {
+const completedGQL = ({PermanentId }) => (gql`mutation CompletedImport {
+    putBackup (PermanentId: "${PermanentId}", Status: "Uploaded.") {
         ${gqlOutput}
     }
 }`)
 
 exports.uploadBackup = async ({ body }, context) => {
 
-    let data = {}
-    try {
-        data = JSON.parse(body)
-    }
-    catch (err) {
-        context.fail(JSON.stringify(`Parsing error: ${err.message}`))
-    }
-
-    const { version, Neighborhoods = [], Rooms = [], Players = [], Name = 'Imported backup', Description = '', ...rest } = data
+    const { version, Neighborhoods = [], Rooms = [], Players = [], Maps = [], Name = 'Imported backup', Description = '', ...rest } = body
 
     if (Object.keys(rest).length) {
-        context.fail(JSON.stringify(`Parsing error: Unknown keys ${JSON.stringify(Object.keys(rest))}`))
+        context.fail(`Parsing error: Unknown keys ${JSON.stringify(Object.keys(rest))}`)
+        return {}
     }
 
     if (Neighborhoods.find(({ PermanentId }) => (!PermanentId))) {
-        context.fail(JSON.stringify(`Parsing error: Some neighborhoods have no PermanentId`))
+        context.fail(`Parsing error: Some neighborhoods have no PermanentId`)
+        return {}
     }
 
     if (Neighborhoods.find(({ Name }) => (!Name))) {
-        context.fail(JSON.stringify(`Parsing error: Some neighborhoods have no Name`))
+        context.fail(`Parsing error: Some neighborhoods have no Name`)
+        return {}
     }
 
     if (Rooms.find(({ PermanentId }) => (!PermanentId))) {
-        context.fail(JSON.stringify(`Parsing error: Some rooms have no PermanentId`))
+        context.fail(`Parsing error: Some rooms have no PermanentId`)
+        return {}
     }
 
     if (Rooms.find(({ Name }) => (!Name))) {
-        context.fail(JSON.stringify(`Parsing error: Some rooms have no Name`))
+        context.fail(`Parsing error: Some rooms have no Name`)
+        return {}
     }
     const PermanentId = uuidv4()
 
     await graphqlClient.mutate({ mutation: pendingGQL({ PermanentId, Name, Description }) })
 
     const objectName = `backups/${PermanentId}.json`
-    return s3Put(objectName, body)
+    return s3Put(objectName, JSON.stringify(body, null, 4))
+        .then(() => graphqlClient.mutate({ mutation: completedGQL({ PermanentId })}))
         .then(() => ({ PermanentId, Name, Description }))
 
 }
