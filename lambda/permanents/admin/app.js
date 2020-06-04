@@ -123,7 +123,12 @@ exports.handler = (event, context) => {
             return restoreBackup(payload)
         case "uploadBackup":
             return uploadBackup(payload, context)
-                .then(({ PermanentId }) => putBackup({ PermanentId, Status: 'Uploaded.'}))
+                .then(({ PermanentId }) => {
+                    if (!PermanentId) {
+                        return {}
+                    }
+                    return putBackup({ PermanentId, Status: 'Uploaded.'})
+                })
                 .then(() => ({
                     statusCode: 200,
                     body: JSON.stringify({

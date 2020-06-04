@@ -441,14 +441,14 @@ Resources:
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
               method.response.header.Access-Control-Allow-Origin: "'*'"
           - StatusCode: 500
-            SelectionPattern: "\"Parsing error.*"
+            SelectionPattern: "Parsing error.*"
             ResponseParameters:
               method.response.header.X-Requested-With: "'*'"
               method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
               method.response.header.Access-Control-Allow-Origin: "'*'"
           - StatusCode: 400
-            SelectionPattern: "\"Error.*"
+            SelectionPattern: "Error.*"
             ResponseParameters:
               method.response.header.X-Requested-With: "'*'"
               method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
@@ -458,7 +458,7 @@ Resources:
           application/json: >
               {
                 "action": "uploadBackup",
-                "body": $input.body
+                "body": $input.json('$')
               }
       MethodResponses:
         - StatusCode: 200
@@ -1964,6 +1964,10 @@ Outputs:
   StorageApiURI:
       Description: "The HTTP Protocol URI to connect to proxy to the S3 storage bucket"
       Value: !Join [ '', [ 'https://', !Ref StorageApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/storage'] ]
+
+  StorageApiId:
+      Description: "The ID of the API for S3 storage"
+      Value: !Ref StorageApi
 
   AppSyncURL:
       Description: The URL of the AppSync GraphQL endpoint
