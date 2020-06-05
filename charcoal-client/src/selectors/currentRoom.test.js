@@ -10,35 +10,37 @@ describe('CurrentRoom Selectors', () => {
                 Exits: [
                     {
                         Name: 'TestOne',
-                        Ancestry: '123:234'
+                        RoomId: '234'
                     },
                     {
                         Name: 'TestTwo',
-                        Ancestry: '345:456'
+                        RoomId: '456'
                     }
                 ]
             },
             '123': {
                 PermanentId: '123',
-                Type: 'NEIGHBORHOOD',
                 Ancestry: '123',
+                Type: 'NEIGHBORHOOD',
                 Visibility: 'Private'
             },
             '234': {
                 PermanentId: '234',
+                ParentId: '123',
+                Ancestry: '123:234',
                 Type: 'ROOM',
-                Ancestry: '123:234'
             },
             '345': {
                 PermanentId: '345',
-                Type: 'NEIGHBORHOOD',
                 Ancestry: '345',
+                Type: 'NEIGHBORHOOD',
                 Visibility: 'Public'
             },
             '456': {
                 PermanentId: '456',
+                ParentId: '345',
+                Ancestry: '345:456',
                 Type: 'ROOM',
-                Ancestry: '345:456'
             }
         },
         myCharacters: {
@@ -75,7 +77,7 @@ describe('CurrentRoom Selectors', () => {
         })).toEqual([
             {
                 Name: 'TestTwo',
-                Ancestry: '345:456',
+                RoomId: '456',
                 Visibility: 'Public'
             }
         ])
@@ -88,12 +90,12 @@ describe('CurrentRoom Selectors', () => {
         })).toEqual([
             {
                 Name: 'TestOne',
-                Ancestry: '123:234',
+                RoomId: '234',
                 Visibility: 'Private'
             },
             {
                 Name: 'TestTwo',
-                Ancestry: '345:456',
+                RoomId: '456',
                 Visibility: 'Public'
             }
         ])

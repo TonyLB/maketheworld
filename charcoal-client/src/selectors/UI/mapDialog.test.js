@@ -14,15 +14,15 @@ describe('MapDialog selector', () => {
     })
 
     it('should return false for EditMap from an empty state', () => {
-        expect(getEditMapDialogUI()).toBe(false)
+        expect(getEditMapDialogUI()).toEqual({ map: null, open: false })
     })
 
     it('should return false for EditMap from a closed state', () => {
-        expect(getEditMapDialogUI({ UI: { editMapDialog: false }})).toBe(false)
+        expect(getEditMapDialogUI({ UI: { editMapDialog: { map: null, open: false } }})).toEqual({ map: null, open: false })
     })
 
     it('should return true for EditMap from an opened state', () => {
-        expect(getEditMapDialogUI({ UI: { editMapDialog: true }})).toBe(true)
+        expect(getEditMapDialogUI({ UI: { editMapDialog: { map: '123', open: true } }})).toEqual({ map: '123', open: true })
     })
 
 })

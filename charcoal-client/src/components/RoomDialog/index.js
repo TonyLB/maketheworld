@@ -49,6 +49,10 @@ const appearanceUpdate = ({ label, value }) => ({
     label,
     value
 })
+const CLEAR_ERROR = 'CLEAR_ERROR'
+const clearError = {
+    type: CLEAR_ERROR
+}
 const REMOVE_EXIT = 'REMOVE_EXIT'
 const removeExit = (RoomId) => ({
     type: REMOVE_EXIT,
@@ -90,8 +94,14 @@ const convertNameForExit = (name) => {
     return (match ? match[1] : name).toLocaleLowerCase()
 }
 const roomDialogReducer = (validator) => (state, action) => {
+    console.log(action)
     let returnVal = state
     switch(action.type) {
+        case CLEAR_ERROR:
+            return {
+                ...state,
+                showError: false
+            }
         case APPEARANCE_UPDATE:
             returnVal = {
                 ...state,
@@ -142,7 +152,7 @@ const roomDialogReducer = (validator) => (state, action) => {
             }
             break
         case ADD_EXIT:
-            if (!state.Exits.find(exit => (exit.roomId === action.roomId))) {
+            if (!state.Exits.find(exit => (exit.RoomId === action.RoomId))) {
                 returnVal = {
                     ...state,
                     Exits: [
@@ -181,6 +191,7 @@ const roomDialogReducer = (validator) => (state, action) => {
     const validation = validator({ PermanentId, ParentId, Exits, Entries }) || {}
     return {
         ...returnVal,
+        showError: Boolean(validation.error),
         error: validation.error
     }
 
@@ -206,7 +217,7 @@ export const RoomDialog = ({ nested=false }) => {
     const [ externalAddAnchorEl, setExternalAddAnchorEl ] = useState(null)
     const [ parentSetAnchorEl, setParentSetAnchorEl ] = useState(null)
 
-    const { Name = '', Description = '', Exits=[], Entries=[], ParentId='', error } = formValues
+    const { Name = '', Description = '', Exits=[], Entries=[], ParentId='', error = null, showError = false } = formValues
     const { Name: parentName = '', Ancestry: parentAncestry = '' } = (permanentHeaders && permanentHeaders[ParentId]) || {}
 
     const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
@@ -249,15 +260,15 @@ export const RoomDialog = ({ nested=false }) => {
         ...(Entries.map((entry) => ({ type: 'ENTRY', ...entry })))
     ].sort(({ RoomId: roomIdA }, { RoomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
 
-    const neighborhoodPaths = paths.filter(({ roomId }) => (!parentAncestry || (permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].Ancestry && permanentHeaders[roomId].Ancestry.startsWith(parentAncestry))))
-    const externalPaths = paths.filter(({ roomId }) => (!(permanentHeaders && permanentHeaders[roomId] && permanentHeaders[roomId].Ancestry && permanentHeaders[roomId].Ancestry.startsWith(parentAncestry))))
+    const neighborhoodPaths = paths.filter(({ RoomId }) => (!parentAncestry || (permanentHeaders[RoomId].Ancestry && permanentHeaders[RoomId].Ancestry.startsWith(parentAncestry))))
+    const externalPaths = paths.filter(({ RoomId }) => (!(permanentHeaders[RoomId].Ancestry && permanentHeaders[RoomId].Ancestry.startsWith(parentAncestry))))
 
     const classes = useStyles()
     return(
         <React.Fragment>
             <Portal>
-                <Snackbar open={Boolean(error)}>
-                    <Alert severity="error">{error}</Alert>
+                <Snackbar open={showError}>
+                    <Alert severity="error" onClose={() => { formDispatch(clearError) }}>{error}</Alert>
                 </Snackbar>
             </Portal>
 
@@ -393,7 +404,10 @@ export const RoomDialog = ({ nested=false }) => {
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={ () => { dispatch(closeRoomDialog()) } }>
+                    <Button onClick={ () => {
+                        formDispatch(clearError)
+                        dispatch(closeRoomDialog())
+                    } }>
                         Cancel
                     </Button>
                     <Button onClick={saveHandler} disabled={Boolean(error)}>
