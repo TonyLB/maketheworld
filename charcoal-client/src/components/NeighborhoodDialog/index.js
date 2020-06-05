@@ -60,6 +60,11 @@ const appearanceUpdate = ({ label, value }) => ({
     value
 })
 
+const CLEAR_ERROR = 'CLEAR_ERROR'
+const clearError = {
+    type: CLEAR_ERROR
+}
+
 const GRANT_UPDATE = 'GRANT_UPDATE'
 const grantUpdate = ({ CharacterId, Roles }) => ({
     type: GRANT_UPDATE,
@@ -82,6 +87,11 @@ const grantDelete = (CharacterId) => ({
 const neighborhoodDialogReducer = (validator) => (state, action) => {
     let returnVal = state
     switch(action.type) {
+        case CLEAR_ERROR:
+            return {
+                ...state,
+                showError: false
+            }
         case APPEARANCE_UPDATE:
             returnVal = {
                 ...state,
@@ -127,6 +137,7 @@ const neighborhoodDialogReducer = (validator) => (state, action) => {
     const validation = validator({ PermanentId, ParentId, Visibility, Topology }) || {}
     return {
         ...returnVal,
+        showError: Boolean(validation.error),
         error: validation.error
     }
 }
@@ -138,7 +149,7 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     const { Grants: myGrants } = useSelector(getMyCurrentCharacter)
     const updateValidator = useSelector(getNeighborhoodUpdateValidator)
     const [formValues, formDispatch] = useReducer(neighborhoodDialogReducer(updateValidator), {})
-    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End', error = '', neighborhoodId, mapId } = formValues
+    const { name = '', description = '', parentId = '', visibility = 'Visible', topology = 'Dead-End', error = '', showError = false, neighborhoodId, mapId } = formValues
     const { Ancestry: parentAncestry = '', Name: parentName = '' } = (permanentHeaders && permanentHeaders[parentId]) || {}
     const { Name: mapName = '' } = (maps && mapId && maps[mapId]) || {}
 
@@ -179,8 +190,8 @@ export const NeighborhoodDialog = ({ nested=false }) => {
     return(
         <React.Fragment>
             <Portal>
-                <Snackbar open={Boolean(error)}>
-                    <Alert severity="error">{error}</Alert>
+                <Snackbar open={showError}>
+                    <Alert severity="error" onClose={ () => { formDispatch(clearError) }}>{error}</Alert>
                 </Snackbar>
             </Portal>
             <PermanentSelectPopover
@@ -345,7 +356,10 @@ export const NeighborhoodDialog = ({ nested=false }) => {
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={ () => { dispatch(closeNeighborhoodDialog()) } }>
+                    <Button onClick={ () => {
+                        formDispatch(clearError)
+                        dispatch(closeNeighborhoodDialog())
+                    } }>
                         Cancel
                     </Button>
                     <Button onClick={saveHandler} disabled={Boolean(error)}>
