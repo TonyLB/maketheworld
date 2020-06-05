@@ -227,10 +227,10 @@ export const RoomDialog = ({ nested=false }) => {
             : removeEntry(roomId)
         )
     }
-    const onPathNameHandler = ({ type, roomId }) => (event) => {
+    const onPathNameHandler = ({ type, RoomId }) => (event) => {
         formDispatch(type === 'EXIT'
-            ? updateExitName(roomId, event.target.value)
-            : updateEntryName(roomId, event.target.value)
+            ? updateExitName(RoomId, event.target.value)
+            : updateEntryName(RoomId, event.target.value)
         )
     }
     const onPathAddHandler = (roomId, exitName) => () => {
@@ -258,7 +258,7 @@ export const RoomDialog = ({ nested=false }) => {
     const paths = [
         ...(Exits.map((exit) => ({ type: 'EXIT', ...exit }))),
         ...(Entries.map((entry) => ({ type: 'ENTRY', ...entry })))
-    ].sort(({ RoomId: roomIdA }, { RoomId: roomIdB }) => (roomIdA.localeCompare(roomIdB)))
+    ].sort(({ RoomId: roomIdA }, { RoomId: roomIdB }) => ((roomIdA || '').localeCompare(roomIdB)))
 
     const neighborhoodPaths = paths.filter(({ RoomId }) => (!parentAncestry || (permanentHeaders[RoomId].Ancestry && permanentHeaders[RoomId].Ancestry.startsWith(parentAncestry))))
     const externalPaths = paths.filter(({ RoomId }) => (!(permanentHeaders[RoomId].Ancestry && permanentHeaders[RoomId].Ancestry.startsWith(parentAncestry))))
