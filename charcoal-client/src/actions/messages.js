@@ -30,7 +30,7 @@ export const setMessageOpen = ({ MessageId, open }) => ({
 
 export const worldMessageAdded = ({ MessageId, Message }) => (receiveMessage({
     protocol: 'worldMessage',
-    MessageId,
+    MessageId: MessageId || uuidv4(),
     Message
 }))
 
