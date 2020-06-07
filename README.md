@@ -133,7 +133,7 @@ Next thing:  You just gave your credit card information to a system that bills y
 opaque.  It's very important that you put some common-sense limits on that, first thing, so let's assign a budget to set the maximum that AWS will bill
 you in a month ... after which it will just cut you off.  It's unlikely you'll ever get there, but safety first:
 
-[Make an AWS Budget](https://aws.amazon.com/blogs/aws-cost-management/getting-started-with-aws-budgets/)
+[Make an AWS Budget](documentation/budget/budget.md)
 
 At the end of those tutorials, you will have one account that you still log in to with its root credentials.  You'll need that, long-term, in order to check
 out the Budget, but those credentials can do *anything*.  You want to log in with those very, very seldom.  AWS provides a tool called *IAM* (Identity and
@@ -155,11 +155,16 @@ the instructions at top, then skipping one step that doesn't apply because you h
 
 [Add a service role](https://docs.aws.amazon.com/amplify/latest/userguide/how-to-service-role-amplify-console.html)
 
-Now that you have an AWS account and proper permissions, you can ask the AWS Amplify to read this repository and instantiate Make The World.  The thing
-is ... it's going to *fail* the first time.  Amplify doesn't know about the Service Role setting until after you've set it, and you can't set it until
-you've tried to deploy (and failed).  So we're consulting with AWS support to find a way around that for version 1.1, but for 1.0 you're going to make a
-first attempt at a deploy, have it fail, set the service role, then redeploy (probably want to open this next link in a new tab, so you watch it in
-parallel with these instructions):
+When AWS deploys, it will want to do so from _your_ GitHub account ... it will clone this repository into your space, so that you control the version
+of the code that it is running off of.  So if you don't already have a GitHub account, you will need to sign up for one:
+
+[Sign up for GitHub](https://www.wikihow.com/Create-an-Account-on-GitHub)
+
+Now that you have both an AWS account and a GitHub account, you can ask the AWS Amplify to clone this repository into your GitHub account and
+then instantiate Make The World from the code you copied.  The thing is ... it's going to *fail* the first time.  Amplify doesn't know about the Service
+Role setting until after you've set it, and you can't set it until you've tried to deploy (and failed).  So we're consulting with AWS support to find a
+way around that for version 1.1, but for 1.0 you're going to make a first attempt at a deploy, have it fail, set the service role, then redeploy (probably
+want to open this next link in a new tab, so you watch it in parallel with these instructions):
 
 [![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld)
 
