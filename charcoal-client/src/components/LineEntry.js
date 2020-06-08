@@ -52,6 +52,7 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
                     rows={TextEntryLines || 2}
                     onKeyPress={(event) => {
                         if (event.key === 'Enter' && !open) {
+                            event.preventDefault()
                             const callbackResult = callback(value || '')
                             if (callbackResult) {
                                 setValue('')
