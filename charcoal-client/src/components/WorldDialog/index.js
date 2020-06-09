@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -14,7 +14,10 @@ import {
     Button,
     Typography,
     Tooltip,
-    IconButton
+    IconButton,
+    Switch,
+    FormGroup,
+    FormControlLabel
 } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -250,8 +253,11 @@ const RoomTreeItem = ({ nodeId, name, parentId, retired, ancestorRetired }) => {
     />
 }
 
-const NeighborhoodItem = ({ item }) => {
+const NeighborhoodItem = ({ item, showRetired=false }) => {
     const { Type, PermanentId, Name, ParentId, Retired, AncestorRetired, children } = item
+    if (Retired && !showRetired) {
+        return null
+    }
     switch(Type) {
         case 'ROOM':
             return <RoomTreeItem
@@ -268,11 +274,12 @@ const NeighborhoodItem = ({ item }) => {
                 nodeId={PermanentId}
                 name={Name}
                 retired={Retired}
+                showRetired={showRetired}
                 ancestorRetired={AncestorRetired}
             >
                 {
                     Object.values(children || {})
-                        .map((item) => (<NeighborhoodItem key={item.PermanentId} item={item} />))
+                        .map((item) => (<NeighborhoodItem showRetired={showRetired} key={item.PermanentId} item={item} />))
                 }
             </NeighborhoodTreeItem>
     }
@@ -283,14 +290,29 @@ export const WorldDialog = () => {
     const neighborhoodTree = useSelector(getNeighborhoodTree)
     const { Grants = new Proxy({}, { get: () => ({}) }) } = useSelector(getMyCurrentCharacter)
     const dispatch = useDispatch()
+    const [showRetired, setShowRetired] = useState(false)
 
     const classes = useStyles()
     return(
         <Dialog
-            maxWidth="lg"
+            maxWidth="xl"
             open={open}
         >
-            <DialogTitle id="room-dialog-title">World Overview</DialogTitle>
+            <DialogTitle id="room-dialog-title">
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <div style={{ flexGrow: 1 }}>
+                        World Overview
+                    </div>
+                    <div style={{ align: 'right', flexGrow: 0 }}>
+                        <FormGroup row>
+                            <FormControlLabel
+                                control={<Switch checked={showRetired} onChange={(event) => { setShowRetired(event.target.checked) }} name="showRetired"/>}
+                                label="Show Retired"
+                            />
+                        </FormGroup>
+                    </div>
+                </div>
+            </DialogTitle>
             <DialogContent>
                 <RoomDialog nested />
                 <NeighborhoodDialog nested />
@@ -345,7 +367,7 @@ export const WorldDialog = () => {
                             >
                                 {
                                     Object.values(neighborhoodTree)
-                                        .map((item) => (<NeighborhoodItem key={item.PermanentId} item={item} />))
+                                        .map((item) => (<NeighborhoodItem showRetired={showRetired} key={item.PermanentId} item={item} />))
                                 }
                             </TreeView>
                         </GrantContext.Provider>
