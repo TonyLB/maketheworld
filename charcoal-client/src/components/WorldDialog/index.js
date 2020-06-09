@@ -1,5 +1,5 @@
 // Foundational imports (React, Redux, etc.)
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 // MaterialUI imports
@@ -14,7 +14,10 @@ import {
     Button,
     Typography,
     Tooltip,
-    IconButton
+    IconButton,
+    Switch,
+    FormGroup,
+    FormControlLabel
 } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import {
@@ -27,6 +30,8 @@ import RoomAddIcon from '@material-ui/icons/AddBox'
 import HouseIcon from '@material-ui/icons/House'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ChevronRightIcon from '@material-ui/icons/ChevronRight'
+import TrashIcon from '@material-ui/icons/Delete'
+import UnTrashIcon from '@material-ui/icons/RestoreFromTrash'
 
 // Local code imports
 import RoomDialog from '../RoomDialog/'
@@ -34,7 +39,12 @@ import NeighborhoodDialog from '../NeighborhoodDialog/'
 import { closeWorldDialog } from '../../actions/UI/worldDialog'
 import { activateRoomDialog } from '../../actions/UI/roomDialog'
 import { activateNeighborhoodDialog } from '../../actions/UI/neighborhoodDialog'
-import { fetchAndOpenRoomDialog, fetchAndOpenNeighborhoodDialog } from '../../actions/permanentAdmin'
+import {
+    fetchAndOpenRoomDialog,
+    fetchAndOpenNeighborhoodDialog,
+    setRoomRetired,
+    setNeighborhoodRetired
+} from '../../actions/permanentAdmin'
 import { getWorldDialogUI } from '../../selectors/UI/worldDialog.js'
 import { getNeighborhoodTree } from '../../selectors/permanentHeaders'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
@@ -79,14 +89,14 @@ const useTreeItemStyles = makeStyles(theme => ({
       }
 }))
 
-const OverviewTreeItem = ({ nodeId, labelText, ActionIcons, ...rest }) => {
+const OverviewTreeItem = ({ nodeId, labelText, retired=false, ancestorRetired=false, ActionIcons, ...rest }) => {
     const classes = useTreeItemStyles()
 
     return <TreeItem
         label={
         <div className={classes.labelRoot}>
             <Typography variant="body1" className={classes.labelText}>
-                {labelText}
+                { (ancestorRetired || retired) ? <del>{ labelText }</del> : labelText }
             </Typography>
             <Typography variant="h6" className={classes.labelActions} color="inherit">
                 {ActionIcons}
@@ -103,94 +113,151 @@ const OverviewTreeItem = ({ nodeId, labelText, ActionIcons, ...rest }) => {
     />
 }
 
-const NeighborhoodTreeItem = ({ nodeId, name, Ancestry = '', children }) => {
+const NeighborhoodTreeItem = ({ nodeId, name, Ancestry = '', retired = false, ancestorRetired = false, children }) => {
     const dispatch = useDispatch()
     const grantMap = useContext(GrantContext)
     const grants = grantMap[nodeId]
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
+        retired={retired}
+        ancestorRetired={ancestorRetired}
         endIcon={<ChevronRightIcon />}
         children={children}
-        ActionIcons={<React.Fragment>
-            { grants.ExtendPrivate &&
-                <Tooltip title={"Add Neighborhood"}>
-                    <IconButton
-                        aria-label="add neighborhood"
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            dispatch(activateNeighborhoodDialog({
-                                parentId: nodeId,
-                                parentName: name,
-                                ancestry: `${Ancestry}:`,
-                                parentAncestry: Ancestry,
-                                nested: true
-                            }))
-                        }}
-                    >
-                        <NeighborhoodAddIcon fontSize="inherit" />
-                    </IconButton>
-                </Tooltip>
-            }
-            {
-                grants.Edit &&
-                <Tooltip title={"Add Room"}>
-                    <IconButton
-                        aria-label="add room"
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            dispatch(activateRoomDialog({
-                                ParentId: nodeId,
-                                nested: true
-                            }))
-                        }}
-                    >
-                        <RoomAddIcon fontSize="inherit" />
-                    </IconButton>
-                </Tooltip>
-            }
-            {
-                grants.Edit &&
-                <Tooltip title={"Edit Neighborhood"}>
-                    <IconButton
-                        aria-label="edit neighborhood"
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            dispatch(fetchAndOpenNeighborhoodDialog(nodeId, true))
-                        }}
-                    >
-                        <CreateIcon fontSize="inherit" />
-                    </IconButton>
-                </Tooltip>
-            }
-        </React.Fragment>}
+        ActionIcons={(retired || ancestorRetired)
+            ? (!ancestorRetired && <Tooltip title={"Unretire Neighborhood"}>
+                <IconButton
+                    aria-label="unretire neighborhood"
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        dispatch(setNeighborhoodRetired({ PermanentId: nodeId, Retired: false }))
+                    }}
+                >
+                    <UnTrashIcon fontSize="inherit" />
+                </IconButton>
+            </Tooltip>)
+            : <React.Fragment>
+                {
+                    grants.Edit && <Tooltip title={"Retire Neighborhood"}>
+                        <IconButton
+                            aria-label="retire neighborhood"
+                            onClick={(event) => {
+                                event.stopPropagation()
+                                dispatch(setNeighborhoodRetired({ PermanentId: nodeId, Retired: true }))
+                            }}
+                        >
+                            <TrashIcon fontSize="inherit" />
+                        </IconButton>
+                    </Tooltip>
+                }
+                { grants.ExtendPrivate &&
+                    <Tooltip title={"Add Neighborhood"}>
+                        <IconButton
+                            aria-label="add neighborhood"
+                            onClick={(event) => {
+                                event.stopPropagation()
+                                dispatch(activateNeighborhoodDialog({
+                                    parentId: nodeId,
+                                    parentName: name,
+                                    ancestry: `${Ancestry}:`,
+                                    parentAncestry: Ancestry,
+                                    nested: true
+                                }))
+                            }}
+                        >
+                            <NeighborhoodAddIcon fontSize="inherit" />
+                        </IconButton>
+                    </Tooltip>
+                }
+                {
+                    grants.Edit &&
+                    <Tooltip title={"Add Room"}>
+                        <IconButton
+                            aria-label="add room"
+                            onClick={(event) => {
+                                event.stopPropagation()
+                                dispatch(activateRoomDialog({
+                                    ParentId: nodeId,
+                                    nested: true
+                                }))
+                            }}
+                        >
+                            <RoomAddIcon fontSize="inherit" />
+                        </IconButton>
+                    </Tooltip>
+                }
+                {
+                    grants.Edit &&
+                    <Tooltip title={"Edit Neighborhood"}>
+                        <IconButton
+                            aria-label="edit neighborhood"
+                            onClick={(event) => {
+                                event.stopPropagation()
+                                dispatch(fetchAndOpenNeighborhoodDialog(nodeId, true))
+                            }}
+                        >
+                            <CreateIcon fontSize="inherit" />
+                        </IconButton>
+                    </Tooltip>
+                }
+            </React.Fragment>}
     />
 }
 
-const RoomTreeItem = ({ nodeId, name, parentId }) => {
+const RoomTreeItem = ({ nodeId, name, parentId, retired, ancestorRetired }) => {
     const dispatch = useDispatch()
     const grantMap = useContext(GrantContext)
     const grants = grantMap[parentId || 'ROOT']
     return <OverviewTreeItem
         nodeId={nodeId}
         labelText={name}
+        retired={retired}
+        ancestorRetired={ancestorRetired}
         endIcon={<HouseIcon />}
-        ActionIcons={grants.Edit && <Tooltip title={"Edit Room"}>
-            <IconButton
-                aria-label="edit room"
-                onClick={(event) => {
-                    event.stopPropagation()
-                    dispatch(fetchAndOpenRoomDialog(nodeId, true))
-                }}
-            >
-                <CreateIcon fontSize="inherit" />
-            </IconButton>
-        </Tooltip>}
+        ActionIcons={grants.Edit && ((ancestorRetired || retired)
+            ? ((!ancestorRetired) && <Tooltip title={"Unretire Room"}>
+                <IconButton
+                    aria-label="unretire room"
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        dispatch(setRoomRetired({ PermanentId: nodeId, Retired: false }))
+                    }}
+                >
+                    <UnTrashIcon fontSize="inherit" />
+                </IconButton>
+            </Tooltip>)
+            : <React.Fragment>
+                { (nodeId !== 'VORTEX') && <Tooltip title={"Retire Room"}>
+                    <IconButton
+                        aria-label="retire room"
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            dispatch(setRoomRetired({ PermanentId: nodeId, Retired: true }))
+                        }}
+                    >
+                        <TrashIcon fontSize="inherit" />
+                    </IconButton>
+                </Tooltip> }
+                <Tooltip title={"Edit Room"}>
+                    <IconButton
+                        aria-label="edit room"
+                        onClick={(event) => {
+                            event.stopPropagation()
+                            dispatch(fetchAndOpenRoomDialog(nodeId, true))
+                        }}
+                    >
+                        <CreateIcon fontSize="inherit" />
+                    </IconButton>
+                </Tooltip>
+            </React.Fragment>)}
     />
 }
 
-const NeighborhoodItem = ({ item }) => {
-    const { Type, PermanentId, Name, ParentId, children } = item
+const NeighborhoodItem = ({ item, showRetired=false }) => {
+    const { Type, PermanentId, Name, ParentId, Retired, AncestorRetired, children } = item
+    if (Retired && !showRetired) {
+        return null
+    }
     switch(Type) {
         case 'ROOM':
             return <RoomTreeItem
@@ -198,16 +265,21 @@ const NeighborhoodItem = ({ item }) => {
                 nodeId={PermanentId}
                 name={Name}
                 parentId={ParentId}
+                retired={Retired}
+                ancestorRetired={AncestorRetired}
             />
         default:
             return <NeighborhoodTreeItem
                 key={PermanentId}
                 nodeId={PermanentId}
                 name={Name}
+                retired={Retired}
+                showRetired={showRetired}
+                ancestorRetired={AncestorRetired}
             >
                 {
                     Object.values(children || {})
-                        .map((item) => (<NeighborhoodItem key={item.PermanentId} item={item} />))
+                        .map((item) => (<NeighborhoodItem showRetired={showRetired} key={item.PermanentId} item={item} />))
                 }
             </NeighborhoodTreeItem>
     }
@@ -218,14 +290,29 @@ export const WorldDialog = () => {
     const neighborhoodTree = useSelector(getNeighborhoodTree)
     const { Grants = new Proxy({}, { get: () => ({}) }) } = useSelector(getMyCurrentCharacter)
     const dispatch = useDispatch()
+    const [showRetired, setShowRetired] = useState(false)
 
     const classes = useStyles()
     return(
         <Dialog
-            maxWidth="lg"
+            maxWidth="xl"
             open={open}
         >
-            <DialogTitle id="room-dialog-title">World Overview</DialogTitle>
+            <DialogTitle id="room-dialog-title">
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <div style={{ flexGrow: 1 }}>
+                        World Overview
+                    </div>
+                    <div style={{ align: 'right', flexGrow: 0 }}>
+                        <FormGroup row>
+                            <FormControlLabel
+                                control={<Switch checked={showRetired} onChange={(event) => { setShowRetired(event.target.checked) }} name="showRetired"/>}
+                                label="Show Retired"
+                            />
+                        </FormGroup>
+                    </div>
+                </div>
+            </DialogTitle>
             <DialogContent>
                 <RoomDialog nested />
                 <NeighborhoodDialog nested />
@@ -280,7 +367,7 @@ export const WorldDialog = () => {
                             >
                                 {
                                     Object.values(neighborhoodTree)
-                                        .map((item) => (<NeighborhoodItem key={item.PermanentId} item={item} />))
+                                        .map((item) => (<NeighborhoodItem showRetired={showRetired} key={item.PermanentId} item={item} />))
                                 }
                             </TreeView>
                         </GrantContext.Provider>

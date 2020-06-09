@@ -7,6 +7,7 @@ import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { activateWorldDialog } from './UI/worldDialog'
 import { activateNeighborhoodDialog, closeNeighborhoodDialog } from './UI/neighborhoodDialog'
 import { getCharacterId } from '../selectors/connection'
+import { getPermanentHeaders  } from '../selectors/permanentHeaders'
 
 export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
     return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
@@ -21,16 +22,16 @@ export const putAndCloseRoomDialog = ({
         Name,
         Description,
         ParentId,
-        Ancestry,
+        Retired,
         Exits = [],
         Entries = []
     }) => (dispatch) => {
     return API.graphql(graphqlOperation(putRoom, {
             PermanentId,
             ParentId,
-            Ancestry,
             Name,
             Description,
+            Retired,
             Exits,
             Entries
         }))
@@ -54,7 +55,6 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             Type,
             ParentId,
             ContextMapId,
-            Ancestry,
             Name,
             Description,
             Visibility,
@@ -65,7 +65,6 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             type: Type,
             parentId: ParentId,
             mapId: ContextMapId,
-            ancestry: Ancestry,
             name: Name,
             description: Description,
             visibility: Visibility,
@@ -79,7 +78,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
 export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, getState) => {
     const state = getState()
     const CharacterId = getCharacterId(state)
-    const { neighborhoodId, parentId, mapId, name, description, visibility, topology = 'Dead-End', grants=[] } = neighborhoodData
+    const { neighborhoodId, parentId, mapId, name, description, visibility, topology = 'Dead-End', retired = false, grants=[] } = neighborhoodData
     if (CharacterId) {
         return API.graphql(graphqlOperation(putNeighborhood, {
                 CharacterId,
@@ -90,6 +89,7 @@ export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, ge
                 Description: description,
                 Visibility: visibility,
                 Topology: topology,
+                Retired: retired,
                 Grants: grants
             }))
         .then(() => dispatch(closeNeighborhoodDialog()))
@@ -97,3 +97,43 @@ export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, ge
     }
 }
 
+export const setNeighborhoodRetired = ({ PermanentId, Retired }) => (dispatch, getState) => {
+    const state = getState()
+    const permanentHeaders = getPermanentHeaders(state)
+    const CharacterId = getCharacterId(state)
+    const { Name, Description, ParentId, ContextMapId, Visibility, Topology, Grants } = permanentHeaders[PermanentId]
+    if (Name) {
+        return API.graphql(graphqlOperation(putNeighborhood, {
+            CharacterId,
+            PermanentId,
+            ParentId,
+            ContextMapId,
+            Name,
+            Description,
+            Visibility,
+            Topology,
+            Retired,
+            Grants: Grants || []
+        }))
+        .catch((err) => { console.log(err)})
+    }
+}
+
+export const setRoomRetired = ({ PermanentId, Retired }) => (dispatch, getState) => {
+    const state = getState()
+    const permanentHeaders = getPermanentHeaders(state)
+    const { Name, Description, ParentId, Visibility, Exits, Entries } = permanentHeaders[PermanentId]
+    if (Name) {
+        return API.graphql(graphqlOperation(putRoom, {
+            PermanentId,
+            ParentId,
+            Name,
+            Description,
+            Visibility,
+            Retired,
+            Exits,
+            Entries
+        }))
+        .catch((err) => { console.log(err)})
+    }
+}

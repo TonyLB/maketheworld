@@ -13,6 +13,7 @@ const itemReducer = (previous, {
     Description,
     Visibility,
     Topology = 'Dead-End',
+    Retired = '',
     ContextMapId
 }) => {
     const [typeLabel, PermanentId] = breakOutType(FetchedPermanentId)
@@ -28,6 +29,7 @@ const itemReducer = (previous, {
                 Description,
                 Visibility: Visibility || (typeLabel === 'NEIGHBORHOOD' ? 'Private' : 'Public'),
                 Topology,
+                Retired: (Retired === 'RETIRED'),
                 ContextMapId
             }
         }

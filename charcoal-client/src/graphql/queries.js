@@ -91,6 +91,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -112,6 +113,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -150,6 +152,7 @@ export const getNeighborhood = /* GraphQL */ `
         Actions
         Roles
       }
+      Retired
     }
   }
 `;
@@ -175,6 +178,7 @@ export const getRoom = /* GraphQL */ `
         Actions
         Roles
       }
+      Retired
     }
   }
 `;
@@ -218,6 +222,7 @@ export const getRoomByCharacter = /* GraphQL */ `
         Actions
         Roles
       }
+      Retired
     }
   }
 `;

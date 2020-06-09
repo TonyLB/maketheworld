@@ -172,12 +172,16 @@ describe('permanentHeader selectors', () => {
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     CDE: {
                         PermanentId: 'CDE',
                         ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'NEIGHBORHOOD'
                     },
                 }
@@ -185,6 +189,8 @@ describe('permanentHeader selectors', () => {
             FGH: {
                 PermanentId: 'FGH',
                 Ancestry: 'FGH',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD'
             }
         })
@@ -195,30 +201,40 @@ describe('permanentHeader selectors', () => {
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     BCD: {
                         PermanentId: 'BCD',
                         ParentId: 'ABC',
                         Ancestry: 'ABC:BCD',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'ROOM'
                     },
                     CDE: {
                         PermanentId: 'CDE',
                         ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
                                 PermanentId: 'DEF',
                                 ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:DEF',
+                                Retired: false,
+                                AncestorRetired: false,
                                 Type: 'ROOM'
                             },
                             EFG: {
                                 PermanentId: 'EFG',
                                 ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:EFG',
+                                Retired: false,
+                                AncestorRetired: false,
                                 Type: 'ROOM'
                             }
                         }
@@ -228,12 +244,16 @@ describe('permanentHeader selectors', () => {
             FGH: {
                 PermanentId: 'FGH',
                 Ancestry: 'FGH',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
                         ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'ROOM'
                     }
                 }
@@ -246,24 +266,32 @@ describe('permanentHeader selectors', () => {
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     CDE: {
                         PermanentId: 'CDE',
                         ParentId: 'ABC',
                         Ancestry: 'ABC:CDE',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'NEIGHBORHOOD',
                         children: {
                             DEF: {
                                 PermanentId: 'DEF',
                                 ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:DEF',
+                                Retired: false,
+                                AncestorRetired: false,
                                 Type: 'ROOM'
                             },
                             EFG: {
                                 PermanentId: 'EFG',
                                 ParentId: 'CDE',
                                 Ancestry: 'ABC:CDE:EFG',
+                                Retired: false,
+                                AncestorRetired: false,
                                 Type: 'ROOM'
                             }
                         }
@@ -282,12 +310,16 @@ describe('permanentHeader selectors', () => {
             FGH: {
                 PermanentId: 'FGH',
                 Ancestry: 'FGH',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
                         ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'ROOM'
                     }
                 }
@@ -300,12 +332,16 @@ describe('permanentHeader selectors', () => {
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     BCD: {
                         PermanentId: 'BCD',
                         ParentId: 'ABC',
                         Ancestry: 'ABC:BCD',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'ROOM'
                     }
                 }
@@ -313,12 +349,16 @@ describe('permanentHeader selectors', () => {
             FGH: {
                 PermanentId: 'FGH',
                 Ancestry: 'FGH',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
                     GHI: {
                         PermanentId: 'GHI',
                         ParentId: 'FGH',
                         Ancestry: 'FGH:GHI',
+                        Retired: false,
+                        AncestorRetired: false,
                         Type: 'ROOM'
                     }
                 }
@@ -331,11 +371,15 @@ describe('permanentHeader selectors', () => {
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD'
             },
             FGH: {
                 PermanentId: 'FGH',
                 Ancestry: 'FGH',
+                Retired: false,
+                AncestorRetired: false,
                 Type: 'NEIGHBORHOOD'
             }
         })

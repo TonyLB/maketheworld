@@ -978,6 +978,11 @@ Resources:
                       $util.qr($output.put("Name", $row.Name))
                       $util.qr($output.put("Description", $row.Description))
                       $util.qr($output.put("Visibility", "Public"))
+                      #if ($row.Retired == 'RETIRED')
+                        $util.qr($output.put("Retired", true))
+                      #else
+                        $util.qr($output.put("Retired", false))
+                      #end
                   #end
                   #if ($row.DataCategory.startsWith('EXIT#'))
                       #set($roomId = $row.DataCategory.substring(5))
@@ -1683,6 +1688,7 @@ Resources:
                   Topology: String
                   ContextMapId: String
                   Grants: [ResourceGrant]
+                  Retired: Boolean
               }
               interface RoomPath {
                   Name: String!
@@ -1722,6 +1728,7 @@ Resources:
                   Exits: [Exit]
                   Entries: [Entry]
                   Grants: [ResourceGrant]
+                  Retired: Boolean
               }
               type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
@@ -1814,6 +1821,7 @@ Resources:
                       Topology: String
                       ContextMapId: String
                       Grants: [ResourceGrantInput]
+                      Retired: Boolean
                   ): [ChangedPermanent]
                   externalPutNeighborhood(
                       PermanentId: String!
@@ -1824,6 +1832,7 @@ Resources:
                       Topology: String
                       ContextMapId: String
                       Grants: [ResourceGrantInput]
+                      Retired: Boolean
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
                   putRoom(
@@ -1835,6 +1844,7 @@ Resources:
                       Topology: String
                       Exits: [PathInput]
                       Entries: [PathInput]
+                      Retired: Boolean
                   ): Room
                   externalPutRoom(
                       PermanentId: String!
@@ -1843,6 +1853,7 @@ Resources:
                       ParentId: String
                       Visibility: String
                       Topology: String
+                      Retired: Boolean
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
                   externalUpdateGrant(

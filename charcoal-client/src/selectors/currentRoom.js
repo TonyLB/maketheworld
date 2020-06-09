@@ -13,15 +13,23 @@ export const getCurrentRoom = (state) => {
 // getVisibleExits checks all exits from the room, and their Neighborhood ancestry,
 // tags exits with whether they are public-access, or private, and if private checks
 // for all necessary grants.  Does not return exits that the player does not have a
-// grant to view.
+// grant to view, or exits to retired spaces.
 //
 export const getVisibleExits = (state) => {
     const permanentHeaders = getPermanentHeaders(state)
     const { Grants = {} } = getMyCurrentCharacter(state)
     const currentRoom = getCurrentRoom(state)
+    const retiredAncestries = Object.values(permanentHeaders)
+        .filter(({ Retired }) => (Retired))
+        .map(({ Ancestry }) => (Ancestry))
+        .filter((test) => (!(currentRoom && currentRoom.Ancestry) || (!currentRoom.Ancestry.startsWith(test))))
     return currentRoom && currentRoom.Ancestry && currentRoom.Exits &&
         currentRoom.Exits.map(({ RoomId = '', ...rest }) => {
                 const Ancestry = permanentHeaders[RoomId].Ancestry || ''
+                const ancestorRetired = retiredAncestries.find((test) => (Ancestry.startsWith(test)))
+                if (ancestorRetired) {
+                    return { RoomId, ...rest, visible: false }
+                }
                 const ancestryList = Ancestry.split(':')
                 const roomAncestryList = currentRoom.Ancestry.split(':')
                 const checkNeighborhoods = ancestryList.filter((PermanentId, index) => (
