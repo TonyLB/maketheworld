@@ -33,7 +33,7 @@ exports.handler = (event) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const { PermanentId, ParentId, Description, Name, Entries = [], Exits = [] } = event.arguments
+    const { PermanentId, ParentId, Description, Name, Retired = false, Entries = [], Exits = [] } = event.arguments
 
     const newRoom = !Boolean(PermanentId)
 
@@ -42,7 +42,7 @@ exports.handler = (event) => {
     // reflected in this update, and should be removed.
     //
     const pathLookup = newRoom
-        ? Promise.resolve({ PermanentId: uuidv4(), Entries, Exits, ParentId, Description, Name, EntriesToDelete: [], ExitsToDelete: [] })
+        ? Promise.resolve({ PermanentId: uuidv4(), Entries, Exits, ParentId, Description, Name, Retired, EntriesToDelete: [], ExitsToDelete: [] })
         : documentClient.query({
             TableName: permanentTable,
             KeyConditionExpression: 'PermanentId = :RoomId AND DataCategory BETWEEN :BeforeEntries AND :AfterExits',
@@ -66,6 +66,7 @@ exports.handler = (event) => {
             ParentId,
             Description,
             Name,
+            Retired,
             Entries,
             Exits,
             EntriesToDelete: PreviousEntries.filter((entry) => (!Entries.find((check) => (check.RoomId === entry)))),
@@ -78,6 +79,7 @@ exports.handler = (event) => {
         Name,
         Description,
         Visibility = 'Visible',
+        Retired = false,
         Exits,
         Entries,
         ExitsToDelete,
@@ -91,6 +93,7 @@ exports.handler = (event) => {
                         ...(ParentId ? { ParentId } : {}),
                         Name,
                         Description,
+                        ...(Retired ? { Retired: 'RETIRED' } : {}),
                         ...(Visibility ? { Visibility } : {})
                     }
                 }
@@ -184,10 +187,6 @@ exports.handler = (event) => {
                 },
             ])).reduce((previous, item) => ([ ...previous, ...item ]), [])
         ])
-        .then((result) => {
-            console.log(JSON.stringify(result, null, 4))
-            return result
-        })
         .then((writes) => (batchDispatcher(documentClient)(writes)))
         .then(() => ({
             Type: "ROOM",
@@ -198,6 +197,7 @@ exports.handler = (event) => {
             Visibility,
             Topology: '',
             Grants: [],
+            Retired,
             Entries,
             Exits
         }))

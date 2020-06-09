@@ -59,6 +59,7 @@ export const changedPermanents = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -80,6 +81,7 @@ export const changedPermanents = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -125,6 +127,7 @@ export const changedRoom = /* GraphQL */ `
         Actions
         Roles
       }
+      Retired
     }
   }
 `;

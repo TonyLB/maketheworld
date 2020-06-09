@@ -1,3 +1,5 @@
+import { objectMap } from '../lib/objects'
+
 export const rawAncestryCalculation = ({ permanentHeaders = {}}) => ({ ParentId, PermanentId, ...rest }) => {
     if (!(ParentId && permanentHeaders[ParentId])) {
         return {
@@ -100,44 +102,54 @@ export const treeify = (nodeList) => (
     }, {}))
 )
 
+export const tagRetiredBranches = (nodeTree, AncestorRetired = false) => (
+    objectMap(nodeTree, ({ Retired = false, children, ...rest }) => ({
+        Retired,
+        AncestorRetired,
+        children: children && tagRetiredBranches(children, AncestorRetired || Retired),
+        ...rest
+    }))
+)
+
 export const getNeighborhoodOnlyTree = ({ permanentHeaders }) => (
-    treeify(Object.values(permanentHeaders).filter(({ Type }) => (Type === 'NEIGHBORHOOD')))
+    tagRetiredBranches(treeify(Object.values(permanentHeaders).filter(({ Type }) => (Type === 'NEIGHBORHOOD'))))
 )
 
 export const getNeighborhoodOnlyTreeExcludingSubTree = (ancestryToExclude) => ({ permanentHeaders }) => (
-    treeify(Object.values(permanentHeaders)
+    tagRetiredBranches(treeify(Object.values(permanentHeaders)
             .filter(({ Type }) => (Type === 'NEIGHBORHOOD'))
             .filter(({ Ancestry }) => (!Ancestry.startsWith(ancestryToExclude)))
-        )
+        ))
 )
 
-export const getNeighborhoodTree = ({ permanentHeaders }) => (treeify(Object.values(permanentHeaders)))
+export const getNeighborhoodTree = ({ permanentHeaders }) => (tagRetiredBranches(treeify(Object.values(permanentHeaders))))
 
 export const getNeighborhoodSubtree = ({ roomId, ancestry }) => ({ permanentHeaders }) => {
     const parentAncestry = ((ancestry && ancestry.split(':').slice(0, -1)) || []).join(':')
-    return treeify(Object.values(permanentHeaders)
+    return tagRetiredBranches(treeify(Object.values(permanentHeaders)
         .filter(({ Ancestry }) => (!parentAncestry || (Ancestry || '').startsWith(parentAncestry)))
-        .filter(({ PermanentId }) => (PermanentId !== roomId)))
+        .filter(({ PermanentId }) => (PermanentId !== roomId))))
 }
 
-export const getExternalTree = ({ roomId, ancestry }) => ({ permanentHeaders }) => {
+export const getExternalTree = ({ ancestry }) => ({ permanentHeaders }) => {
     const parentAncestry = ((ancestry && ancestry.split(':').slice(0, -1)) || []).join(':')
-    return treeify(Object.values(permanentHeaders)
-        .filter(({ Ancestry }) => (parentAncestry && !((Ancestry || '').startsWith(parentAncestry)))))
+    return tagRetiredBranches(treeify(Object.values(permanentHeaders)
+        .filter(({ Ancestry }) => (parentAncestry && !((Ancestry || '').startsWith(parentAncestry))))))
 }
 
 //
 // For a given Neighborhood, find all the paths to and from descendants that
 // pass out of the neighborhood.
 //
-export const getNeighborhoodPaths = (PermanentId) => ({ permanentHeaders }) => {
+export const getNeighborhoodPaths = (PermanentId) => (state) => {
     if (!PermanentId) {
         return {
             Exits: [],
             Entries: []
         }
     }
-    const { Ancestry: rootAncestry = '' } = permanentHeaders && permanentHeaders[PermanentId]
+    const permanentHeaders = getPermanentHeaders(state)
+    const { Ancestry: rootAncestry = '' } = permanentHeaders[PermanentId]
     const descendants = Object.values(permanentHeaders).filter(({ Ancestry = '' }) => (Ancestry.startsWith(rootAncestry)))
     const descendantExits = descendants
         .filter(({ Exits }) => Exits)

@@ -124,6 +124,7 @@ export const putNeighborhood = /* GraphQL */ `
     $Topology: String
     $ContextMapId: String
     $Grants: [ResourceGrantInput]
+    $Retired: Boolean
   ) {
     putNeighborhood(
       CharacterId: $CharacterId
@@ -135,6 +136,7 @@ export const putNeighborhood = /* GraphQL */ `
       Topology: $Topology
       ContextMapId: $ContextMapId
       Grants: $Grants
+      Retired: $Retired
     ) {
       Neighborhood {
         PermanentId
@@ -149,6 +151,7 @@ export const putNeighborhood = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -170,6 +173,7 @@ export const putNeighborhood = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -203,6 +207,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
     $Topology: String
     $ContextMapId: String
     $Grants: [ResourceGrantInput]
+    $Retired: Boolean
   ) {
     externalPutNeighborhood(
       PermanentId: $PermanentId
@@ -213,6 +218,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
       Topology: $Topology
       ContextMapId: $ContextMapId
       Grants: $Grants
+      Retired: $Retired
     ) {
       Neighborhood {
         PermanentId
@@ -227,6 +233,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -248,6 +255,7 @@ export const externalPutNeighborhood = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -281,6 +289,7 @@ export const putRoom = /* GraphQL */ `
     $Topology: String
     $Exits: [PathInput]
     $Entries: [PathInput]
+    $Retired: Boolean
   ) {
     putRoom(
       PermanentId: $PermanentId
@@ -291,6 +300,7 @@ export const putRoom = /* GraphQL */ `
       Topology: $Topology
       Exits: $Exits
       Entries: $Entries
+      Retired: $Retired
     ) {
       PermanentId
       Name
@@ -311,6 +321,7 @@ export const putRoom = /* GraphQL */ `
         Actions
         Roles
       }
+      Retired
     }
   }
 `;
@@ -322,6 +333,7 @@ export const externalPutRoom = /* GraphQL */ `
     $ParentId: String
     $Visibility: String
     $Topology: String
+    $Retired: Boolean
   ) {
     externalPutRoom(
       PermanentId: $PermanentId
@@ -330,6 +342,7 @@ export const externalPutRoom = /* GraphQL */ `
       ParentId: $ParentId
       Visibility: $Visibility
       Topology: $Topology
+      Retired: $Retired
     ) {
       Neighborhood {
         PermanentId
@@ -344,6 +357,7 @@ export const externalPutRoom = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -365,6 +379,7 @@ export const externalPutRoom = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -522,6 +537,7 @@ export const putMap = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -543,6 +559,7 @@ export const putMap = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -582,6 +599,7 @@ export const putSettings = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -603,6 +621,7 @@ export const putSettings = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -652,6 +671,7 @@ export const putBackup = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -673,6 +693,7 @@ export const putBackup = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -720,6 +741,7 @@ export const createBackup = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -741,6 +763,7 @@ export const createBackup = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId
@@ -780,6 +803,7 @@ export const restoreBackup = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Room {
         PermanentId
@@ -801,6 +825,7 @@ export const restoreBackup = /* GraphQL */ `
           Actions
           Roles
         }
+        Retired
       }
       Map {
         MapId

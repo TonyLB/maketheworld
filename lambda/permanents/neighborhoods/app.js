@@ -77,7 +77,7 @@ exports.getNeighborhood = ({ PermanentId }) => {
         }))))
         .then((Grants) => ({ ...neighborhood, Grants }))
     ))
-    .then(({ ParentId, Name, Description, Visibility = 'Private', Topology = 'Dead-End', ContextMapId, Grants }) => ({
+    .then(({ ParentId, Name, Description, Visibility = 'Private', Topology = 'Dead-End', Retired = '', ContextMapId, Grants }) => ({
         PermanentId,
         ParentId,
         Name,
@@ -85,7 +85,8 @@ exports.getNeighborhood = ({ PermanentId }) => {
         Visibility,
         Topology,
         ContextMapId,
-        Grants
+        Grants,
+        Retired: (Retired === 'RETIRED')
     }))
 
     return neighborhoodLookup
@@ -98,7 +99,7 @@ exports.putNeighborhood = (event) => {
 
     const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
-    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Topology = 'Dead-End', ContextMapId, Grants = [], Name } = event.arguments
+    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Topology = 'Dead-End', Retired = false, ContextMapId, Grants = [], Name } = event.arguments
 
     const newNeighborhood = !Boolean(PermanentId)
     const newPermanentId = PermanentId || uuidv4()
@@ -286,6 +287,7 @@ exports.putNeighborhood = (event) => {
             Description,
             Visibility,
             Topology,
+            Retired,
             ContextMapId,
             Name
         }))
@@ -298,7 +300,8 @@ exports.putNeighborhood = (event) => {
         Visibility = 'Private',
         Topology = 'Dead-End',
         ContextMapId,
-        Grants = []
+        Grants = [],
+        Retired = false
     }) => (documentClient.put({
             TableName: permanentTable,
             Item: {
@@ -309,7 +312,8 @@ exports.putNeighborhood = (event) => {
                 ...(Description ? { Description } : {}),
                 ...(Visibility ? { Visibility } : {}),
                 ...(Topology ? { Topology } : {}),
-                ...(ContextMapId ? { ContextMapId } : {})
+                ...(ContextMapId ? { ContextMapId } : {}),
+                ...(Retired ? { Retired: 'RETIRED' } : {})
             },
             ReturnValues: "ALL_OLD"
         }).promise()
@@ -323,7 +327,8 @@ exports.putNeighborhood = (event) => {
                 Visibility,
                 Topology,
                 ContextMapId,
-                Grants
+                Grants,
+                Retired
             }))
     )
 
@@ -337,7 +342,8 @@ exports.putNeighborhood = (event) => {
             Visibility,
             Topology,
             ContextMapId,
-            Grants
+            Grants,
+            Retired
         }) => ([{
             Neighborhood: {
                 PermanentId,
@@ -347,7 +353,8 @@ exports.putNeighborhood = (event) => {
                 Visibility,
                 Topology,
                 ContextMapId,
-                Grants
+                Grants,
+                Retired
             },
             Room: null,
             Map: null
