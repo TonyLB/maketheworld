@@ -83,6 +83,7 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
             Visibility = 'Private',
             Topology = 'Dead-End',
             ContextMapId,
+            Retired,
             Name
         }) => {
             return {
@@ -95,7 +96,8 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
                         ParentId,
                         Visibility,
                         Topology,
-                        ContextMapId
+                        ContextMapId,
+                        ...(Retired ? { Retired: 'RETIRED' } : {})
                     }
                 }
             }
@@ -133,7 +135,8 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
             ParentId,
             Name,
             Description,
-            Visibility = 'Public'
+            Visibility = 'Public',
+            Retired = ''
         }) => {
             return {
                 PutRequest: {
@@ -143,7 +146,8 @@ const deserialize = ({ Neighborhoods = [], Rooms = [], Players = [], Maps = [] }
                         Name,
                         Description,
                         ParentId,
-                        Visibility
+                        Visibility,
+                        ...(Retired ? { Retired: 'RETIRED' } : {})
                     }
                 }
             }

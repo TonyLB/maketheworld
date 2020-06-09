@@ -36,10 +36,11 @@ const serializeV2 = (Items) => {
 
     const Neighborhoods = Items.filter(({ PermanentId, DataCategory }) => (PermanentId.startsWith('NEIGHBORHOOD#') && DataCategory === 'Details'))
         .map(({ PermanentId, ...rest }) => ({ PermanentId: shearOffFirstTag(PermanentId), ...rest }))
-        .reduce((previous, { PermanentId, DataCategory, ...rest }) => ({
+        .reduce((previous, { PermanentId, DataCategory, Retired = '', ...rest }) => ({
             ...previous,
             [PermanentId]: {
                 PermanentId,
+                Retired: (Retired === 'RETIRED'),
                 ...rest
             }
         }), {})
@@ -51,10 +52,11 @@ const serializeV2 = (Items) => {
 
     const Rooms = Items.filter(({ PermanentId, DataCategory }) => (PermanentId.startsWith('ROOM#') && DataCategory === 'Details'))
         .map(({ PermanentId, ...rest }) => ({ PermanentId: shearOffFirstTag(PermanentId), ...rest }))
-        .reduce((previous, { PermanentId, DataCategory, ...rest }) => ({
+        .reduce((previous, { PermanentId, DataCategory, Retired = '', ...rest }) => ({
             ...previous,
             [PermanentId]: {
                 PermanentId,
+                Retired: (Retired === 'RETIRED'),
                 ...rest,
                 Entries: [],
                 Exits: []

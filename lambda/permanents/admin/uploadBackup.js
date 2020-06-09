@@ -22,6 +22,7 @@ const gqlOutput = `Neighborhood {
     ParentId
     Visibility
     Topology
+    Retired
     ContextMapId
     Grants {
       CharacterId
@@ -36,6 +37,7 @@ const gqlOutput = `Neighborhood {
     ParentId
     Visibility
     Topology
+    Retired
     Exits {
       Name
       RoomId
