@@ -174,7 +174,7 @@ export const getRoomUpdateValidator = (state) => ({ PermanentId, ParentId, Exits
     //
     // Check for ParentId update
     //
-    if (ParentId && (ParentId !== previousRoom.ParentId)) {
+    if (previousRoom.PermanentId && (ParentId !== previousRoom.ParentId)) {
         if (!Grants[previousRoom.ParentId || 'ROOT'].Edit) {
             return {
                 valid: false,
