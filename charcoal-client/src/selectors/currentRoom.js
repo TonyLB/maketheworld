@@ -6,7 +6,7 @@ import { getPermanentHeaders } from './permanentHeaders'
 export const getCurrentRoom = (state) => {
     const permanentHeaders = getPermanentHeaders(state)
     const RoomId = getCurrentRoomId(state)
-    return (permanentHeaders && RoomId && permanentHeaders[RoomId]) || {}
+    return (RoomId && permanentHeaders[RoomId]) || {}
 }
 
 //
@@ -15,10 +15,10 @@ export const getCurrentRoom = (state) => {
 // for all necessary grants.  Does not return exits that the player does not have a
 // grant to view, or exits to retired spaces.
 //
-export const getVisibleExits = (state) => {
+export const getVisibleExits = (state, RoomId) => {
     const permanentHeaders = getPermanentHeaders(state)
     const { Grants = {} } = getMyCurrentCharacter(state)
-    const currentRoom = getCurrentRoom(state)
+    const currentRoom = (RoomId && permanentHeaders[RoomId]) || getCurrentRoom(state)
     const retiredAncestries = Object.values(permanentHeaders)
         .filter(({ Retired }) => (Retired))
         .map(({ Ancestry }) => (Ancestry))

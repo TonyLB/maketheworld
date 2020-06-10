@@ -94,7 +94,6 @@ const convertNameForExit = (name) => {
     return (match ? match[1] : name).toLocaleLowerCase()
 }
 const roomDialogReducer = (validator) => (state, action) => {
-    console.log(action)
     let returnVal = state
     switch(action.type) {
         case CLEAR_ERROR:

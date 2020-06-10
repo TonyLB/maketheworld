@@ -67,8 +67,7 @@ const getCharactersInPlay = () => {
         }, {})))
         .then((itemMap) => (Object.values(itemMap)))
         .then((Items) => (Items
-            .filter(({ ConnectionId }) => (ConnectionId))
-            .map(({ CharacterId, ConnectionId, RoomId }) => ({ CharacterId, ConnectionId, RoomId }))
+            .map(({ CharacterId, ConnectionId = null, RoomId }) => ({ CharacterId, ConnectionId, RoomId }))
         ))
         .catch((err) => ({ error: err.stack }))
 

@@ -13,6 +13,7 @@ import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getCurrentNeighborhood } from '../selectors/currentRoom'
 import { getCharacters } from '../selectors/characters'
+import charactersInPlayReducer from '../reducers/charactersInPlay'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -61,6 +62,10 @@ export const putMyCharacterSuccess = (payload) => ({
     payload
 })
 
+//
+// TODO:  Refactor putCharacter to output updates to characters in subscription, and add character subscriptions
+// to the permanents subscription
+//
 export const putMyCharacter = ({
     name = '',
     characterId = '',
@@ -79,7 +84,10 @@ export const putMyCharacter = ({
             ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
             ...(homeId ? { HomeId: homeId } : {})
         }))
+        .then(({ data = {} }) => (data))
+        .then(({ putCharacter = {} }) => (putCharacter))
         .then((payload) => {
+            dispatch(receiveCharacterChanges([payload.CharacterInfo]))
             dispatch(putMyCharacterSuccess(payload))
         })
 }
@@ -126,15 +134,21 @@ export const addCharacterInPlay = ({ characterId, connectionId }) => (dispatch, 
 
 export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) => {
     const state = getState()
-    const characters = getCharacters(state)
-    const { connection, charactersInPlay } = state
     //
-    // Update the store in any event
+    // Update the store and create a predicted next state
     //
-    dispatch({
+    const action = {
         type: RECEIVE_CHARACTERS_IN_PLAY_CHANGE,
         payload
-    })
+    }
+    dispatch(action)
+    const newState = {
+        ...state,
+        charactersInPlay: charactersInPlayReducer(state.charactersInPlay || {}, action)
+    }
+    const characters = getCharacters(newState)
+    const myCurrentCharacter = getMyCurrentCharacter(newState)
+    const { connection, charactersInPlay } = newState
     if (connection && connection.connectionId && connection.connectionId === payload.ConnectionId) {
         //
         // Handle actions that depend upon changes in the state of your own character.
@@ -148,8 +162,9 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
                 .then(({ data }) => (data))
                 .then(({ getRoomRecap }) => (getRoomRecap))
                 .then((Recap) => {
-                    dispatch(lookRoom({ Recap, showNeighborhoods: true, previousAncestry }))
-                    const { Name = 'Someone' } = (connection && connection.characterId && characters[connection.characterId]) || {}
+                    dispatch(lookRoom({ RoomId: payload.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
+                    const { Name = 'Someone' } = (connection && connection.characterId && characters[connection.characterId]) ||
+                        myCurrentCharacter || {}
                     return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })
                 })
         }
