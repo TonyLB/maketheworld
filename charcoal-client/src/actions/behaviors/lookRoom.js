@@ -2,15 +2,21 @@ import { receiveMessage } from '../messages'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 import { getCharacterId } from '../../selectors/connection'
 import { getCurrentRoom, getVisibleExits } from '../../selectors/currentRoom'
+import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 
 export const lookRoom = (props) => (dispatch, getState) => {
-    const { Recap = [], showNeighborhoods = false, previousAncestry = '' } = props || {}
+    const { RoomId, Recap = [], showNeighborhoods = false, previousAncestry = '' } = props || {}
     const state = getState()
-    const { permanentHeaders = {} } = state
-    const currentRoom = {
-        ...getCurrentRoom(state),
-        Exits: getVisibleExits(state)
-    }
+    const permanentHeaders = getPermanentHeaders(state)
+    const currentRoom = RoomId
+        ? {
+            ...permanentHeaders[RoomId],
+            Exits: getVisibleExits(state, RoomId)
+        }
+        : {
+            ...getCurrentRoom(state),
+            Exits: getVisibleExits(state)
+        }
     const currentAncestry = currentRoom.Ancestry
     const neighborhoodList = (showNeighborhoods && currentAncestry && currentAncestry
         .split(':')
