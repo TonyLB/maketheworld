@@ -155,9 +155,11 @@ You have an AWS account now, so you can start the install process in earnest.
 
 ##### Create a Service Role for Amplify
 
-Before you deploy, you will need to give Amplify permissions to set up infrastructure.  That means creating another IAM *role* (though **not** another
-*user* ... this role will give permissions to a system rather than a person) that holds the permissions you want to grant to Amplify (broadly "almost
-everything"):
+You've been needing to do all this configuration manually in order to get a mostly-empty AWS account, but it would be *appalling* to need to do the entire configuration
+of the MTW system.  Fortunately, AWS provides a service (Amplify) which deploys and configures applications just like MTW.  We're going to use that to do most of the
+rest of the heavy lifting, by pulling code from this GitHub repository, and using it to create the system in your account.  Before you deploy, you will need to give
+Amplify permissions to set up infrastructure.  That means creating another IAM *role* (though **not** another *user* ... this role will give permissions to a system
+rather than a person) that holds the permissions you want to grant to Amplify (broadly "almost everything"):
 
 [Add a service role](documentat/serviceRole.md)
 
