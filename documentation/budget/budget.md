@@ -16,6 +16,6 @@ the upper right side, and you should see an account menu item, which you can cli
 
 4. Here’s another place it’s easy to get baffled: name your budget something like “MakeTheWorldMINE” or the name of the game you’re making a world for like “MTWSwords”, then there’s a list of different types of budgets that pops up.  Select fixed budget, and set an amount ... you can leave everything else as a default.  Then click "Configure alerts" at bottom right
 
-![Select Amount](Step4.jpg)
+![Select Amount](Step4.png)
 
 5. Choose how you want to be alerted when you exceed some percentage of your budget:  I recommend 50%, and an email sent to you.
