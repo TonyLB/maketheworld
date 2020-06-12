@@ -140,7 +140,12 @@ This is a resource to *come back to* if you need to ... skip forward to "Create 
 
 [DynamoDB Data Storage](https://console.aws.amazon.com/dynamodb/)
 
-So if you get lost, there's your chance to reorient.  Ready?  Cool, head over to AWS (first) and work through these steps
+AWS is a system with a *very large number* of different panels and console, most which you will never, never need to get access to.  But clicking on
+a link that looks promising can sometimes get you somewhere you didn't expect to be.  So if you get lost, the links above are your chance to reorient:
+Find the section you need to be working on, click its link above, and back up in the instructions to figure out how to get from the landing area of that
+console to the place you need to be at your given step.
+
+Ready?  Cool, head over to AWS (first) and work through these steps
 
 ##### Create an account
 
@@ -204,9 +209,15 @@ It can take five minutes easy to provision all the bits that happen before the f
 Once the deploy has failed in the Build stage, you've made progress.  You now have the *data* for an application in Amplify (basically, the outer wrapper of
 an application, without the inside guts that actually make it work).  Amplify is a tool that lets you tweak that data and make more attempts to get to the
 point where it can deploy what you need in order to run.  We're going to modify that data to give Amplify the permissions to do what it needs to do:  from
-inside of Amplify, in the context of the Application you have created, find the "General" tab on the left, and click it.  There will be an "Edit" button in the
-upper right, just under the "Action" button.  Select that to open the app settings.  Down at the bottom of that page there is a setting for "Service Role".
-Select the one you created in the "Create a Service Role for Amplify" step, and save.
+inside of Amplify, in the context of the Application you have created, find the "General" tab on the left, and click it.
+
+You'll see two things sections:  One that has a listing of links to various repositories (none of which you will ever need to follow), and below it a
+section of "Branches".  A GitHub repository has different sets of code that it refers to as branches, and Amplify links to one of those branches in order
+to know where to get code.  The automated deploy has already connected to the "Version-One-Zero" branch in your copied repository, so you don't need to change
+anything on that bottom section.  What you want is to change the Service Role item in the upper (settings) section.
+
+There will be an "Edit" button in the upper right of this page, just under the "Action" button.  Select that to open the app settings.  Down at the bottom
+of that page there is a setting for "Service Role".  Select the one you created in the "Create a Service Role for Amplify" step, and save.
 
 You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld" to
 get back to a listing of your deployments.  You will see one deployment, which has a "Version-One-Zero" link at the top, and an
