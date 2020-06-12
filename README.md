@@ -131,9 +131,13 @@ places you'll need to be.  If you get lost, you can probably come back here and 
 This is a resource to *come back to* if you need to ... skip forward to "Create an Account" if you haven't already:
 
 [Billing](https://console.aws.amazon.com/billing/)
+
 [Identity and Access Management](https://console.aws.amazon.com/iam/)
+
 [AWS Amplify](https://console.aws.amazon.com/amplify/)
+
 [Cloudformation Resource Management](https://console.aws.amazon.com/cloudformation/)
+
 [DynamoDB Data Storage](https://console.aws.amazon.com/dynamodb/)
 
 So if you get lost, there's your chance to reorient.  Ready?  Cool, head over to AWS (first) and work through these steps
@@ -187,18 +191,22 @@ compared to what you’ve done so far:
 
 Now that you have both an AWS account and a GitHub account, you can ask the AWS Amplify to clone this repository into your GitHub account and
 then instantiate Make The World from the code you copied.  The thing is ... it's going to *fail* the first time.  Amplify doesn't know about the Service
-Role setting until after you've set it, and you can't set it until you've tried to deploy (and failed).  So we're consulting with AWS support to find a
+Role setting until after you've set it, and you can't set it until you've tried to deploy (and failed).  We're consulting with AWS support to find a
 way around that for version 1.1, but for 1.0 you're going to make a first attempt at a deploy, have it fail, set the service role, then redeploy (probably
-want to open this next link in a new tab, so you watch it in parallel with these instructions):
+want to open this next link in a new tab, so you watch it in parallel with these instructions).  To get started, click this button **once** (and once only,
+please):
 
 [![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld)
 
 Amplify will guide you through getting connected to a GitHub account that can access this repository.  Once you've started the deploy, maybe go get a snack.
 It can take five minutes easy to provision all the bits that happen before the failure.
 
-Once it has failed in the Build stage, find the "General" tab on the left, and click it.  There will be an "Edit" button in the upper right, just under
-the "Action" button.  Select that to open the app settings.  Down at the bottom of that page there is a setting for "Service Role".  Select the one you created
-above and save.
+Once the deploy has failed in the Build stage, you've made progress.  You now have the *data* for an application in Amplify (basically, the outer wrapper of
+an application, without the inside guts that actually make it work).  Amplify is a tool that lets you tweak that data and make more attempts to get to the
+point where it can deploy what you need in order to run.  We're going to modify that data to give Amplify the permissions to do what it needs to do:  from
+inside of Amplify, in the context of the Application you have created, find the "General" tab on the left, and click it.  There will be an "Edit" button in the
+upper right, just under the "Action" button.  Select that to open the app settings.  Down at the bottom of that page there is a setting for "Service Role".
+Select the one you created in the "Create a Service Role for Amplify" step, and save.
 
 You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld" to
 get back to a listing of your deployments.  You will see one deployment, which has a "Version-One-Zero" link at the top, and an
