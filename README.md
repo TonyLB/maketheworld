@@ -147,14 +147,14 @@ console to the place you need to be at your given step.
 
 Ready?  Cool, head over to AWS (first) and work through these steps
 
-##### Create an account
+##### 1/8: Create an account
 
 First, [create an account](documentation/createAccount.md).  This will require an email account and a credit card. AWS is pay-as-you-go, and a MTW installation
 will generally cost a few dollars a month to run, if that. Like, under $5 USD/month unless you have many, many people.  Make sure you are selecting "Free Tier"
 wherever possible, and avoid any choices (particularly Support Plan) that would add costs.  You just want to pay for some computer power, not buy all their
 digital bric-a-brac.
 
-##### Create a Budget
+##### 2/8: Create a Budget
 
 Next thing:  You just gave your credit card information to a system that bills you as you go, and creates resources to bill you for in ways that can be
 opaque.  It's very important that you put some common-sense limits on that, first thing, so let's assign a budget to set the maximum that AWS will bill
@@ -165,7 +165,7 @@ you in a month ... after which it will just cut you off.  It's unlikely you'll e
 At the end of those two steps, you should have one account that you still log in to with its root credentials.  You'll need that, long-term, in order to check
 out the Budget, but those credentials can do *anything*.  You want to log in with those very, very seldom.
 
-##### Create an IAM Role
+##### 3/8: Create an IAM Role
 
 AWS provides a tool called *IAM* (Identity and Access Management) that lets you create a user that is still provisioned to do *almost* anything but is importantly
 firewalled away from billing matters.  Do that next (the top part ... you don't need the second bit where they show you an alternate path to do the same thing):
@@ -174,7 +174,7 @@ firewalled away from billing matters.  Do that next (the top part ... you don't 
 
 You have an AWS account now, so you can start the install process in earnest.  
 
-##### Create a Service Role for Amplify
+##### 4/8: Create a Service Role for Amplify
 
 You've been needing to do all this configuration manually in order to get a mostly-empty AWS account, but it would be *appalling* to need to do the entire configuration
 of the MTW system.  Fortunately, AWS provides a service (Amplify) which deploys and configures applications just like MTW.  We're going to use that to do most of the
@@ -184,7 +184,7 @@ rather than a person) that holds the permissions you want to grant to Amplify (b
 
 [Add a service role](documentation/serviceRole.md)
 
-##### Create a GitHub account
+##### 5/8: Create a GitHub account
 
 When AWS deploys, it will want to do so from *your* GitHub account ... it will clone this repository into your space, so that you control the version
 of the code that it is running off of.  So if you don't already have a GitHub account, you will need to sign up for one.  Fortunately, it’s super easy
@@ -192,14 +192,14 @@ compared to what you’ve done so far:
 
 [Sign up for GitHub](https://www.wikihow.com/Create-an-Account-on-GitHub)
 
-##### Deploy the system
+##### 6/8: Deploy the system
 
 Now that you have both an AWS account and a GitHub account, you can ask the AWS Amplify to clone this repository into your GitHub account and
 then instantiate Make The World from the code you copied
 
 [Deploy Make The World](documentation/deploy.md)
 
-##### Protect your cloud resources
+##### 7/8: Protect your cloud resources
 
 If you've gotten this far, you have an (empty) Make The World instance running under your own resources.  Congratulations!  Let's make it a bit safer from
 accidental damage:
@@ -218,7 +218,7 @@ that are keeping the system running.
 Now you won't accidentally purge all your irrecoverable data.  If you ever *want* to purge
 that data (as, for instance, in removing MTW from your account), you'll have to manually set it to be possible.
 
-##### Create your MTW administrator account
+##### 8/8: Create your MTW administrator account
 
 Now it's time to get into the actual content of your system.  In the "Deploy Make The World" step you got a link to the web-site that Amplify created.  Head there and
 register with the system.  Once you have a username and password you can log in with, consent to the code of conduct and make a new character to act as your
