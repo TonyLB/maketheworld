@@ -124,7 +124,19 @@ Ready to take the plunge?  Okay, we'll make this as easy for you as possible.
 Make The World operates within AWS, so to install it you're going to need *access* to AWS.  Now AWS is intimidating as *heck* ... it has well over a hundred
 menu options.  You only have to deal with a few of them though, and everyone before you has had to do the same thing so it's pretty well documented.
 You will need: an email account and a credit card, and the steps below will walk you through making an AWS account and a Github account. If you have those
-already, great, use them. Ready?  Cool, head over to AWS (first) and work through these steps
+already, great, use them.
+
+As you go through these steps, you may end up somewhere in the AWS console that you didn't expect.  Here is a set of short-cuts back to the top level of the
+places you'll need to be.  If you get lost, you can probably come back here and click to just the area you want to pay attention to.  NOTE:  Do not start clicking here!
+This is a resource to *come back to* if you need to ... skip forward to "Create an Account" if you haven't already:
+
+[Billing](https://console.aws.amazon.com/billing/)
+[Identity and Access Management](https://console.aws.amazon.com/iam/)
+[AWS Amplify](https://console.aws.amazon.com/amplify/)
+[Cloudformation Resource Management](https://console.aws.amazon.com/cloudformation/)
+[DynamoDB Data Storage](https://console.aws.amazon.com/dynamodb/)
+
+So if you get lost, there's your chance to reorient.  Ready?  Cool, head over to AWS (first) and work through these steps
 
 ##### Create an account
 
@@ -188,9 +200,13 @@ Once it has failed in the Build stage, find the "General" tab on the left, and c
 the "Action" button.  Select that to open the app settings.  Down at the bottom of that page there is a setting for "Service Role".  Select the one you created
 above and save.
 
-You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld"
-to get back to your deployments, and click the Version-One-Zero listing to get into the failed deploy.  In the upper right, you will see a button for "Redeploy
-this version".  Click that.  Click back to "maketheworld" again, and you'll see the install progressing through its phases again.  This time it should succeed!
+You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld" to
+get back to a listing of your deployments.  You will see one deployment, which has a "Version-One-Zero" link at the top, and an
+"https://version-one-zero.somethingsomething.amplifyapp.com" link down below it.  The <strong>top</strong> link will navigate to a part of the console that lets
+you work with the deployment (currently interrupted).  The <strong>bottom</strong> link will take you to the web-site once it is deployed (not yet).  For now,
+click that top link to get to the page that works with that deployment.  At the upper right of that screen will be a button saying "Redeploy this version".
+Click that button.  In the upper right, you will see a button for "Redeploy this version".  Click that.  Click back to "maketheworld" again, and you'll see
+the install progressing through its phases again.  This time it should succeed!
 
 ##### Protect your cloud resources
 
@@ -208,7 +224,7 @@ register with the system.  Once you have a username and password you can log in 
 administrator identity.  You will be in the Vortex ... currently the only room that exists in your world.  The problem is, you're there as a *character*, and 
 what you wanted was an administrator.
 
-One last AWS task:  In AWS, click Services and under "Database" find "DynamoDB".  Click the "Tables" tab, and you
+One last AWS task:  In AWS, click Services and under "Database" find "DynamoDB" (or use the links up above at the start of these steps).  Click the "Tables" tab, and you
 will see the three Make The World tables (ephemera, messages and permanents).  Click the permanents table and select the "Items" tab in order to see the contents
 of your database.  There probably won't be much there yet.  You're looking for a record with a PermanentId of 'CHARACTER#blah-blah-blah-unique-id', and a
 DataCategory of "GRANT#MINIMUM".  This represents your character's basic grants, what they are allowed to do everywhere, at all times.  Click the PermanentId
