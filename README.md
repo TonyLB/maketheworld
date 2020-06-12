@@ -182,7 +182,7 @@ rest of the heavy lifting, by pulling code from this GitHub repository, and usin
 Amplify permissions to set up infrastructure.  That means creating another IAM *role* (though **not** another *user* ... this role will give permissions to a system
 rather than a person) that holds the permissions you want to grant to Amplify (broadly "almost everything"):
 
-[Add a service role](documentat/serviceRole.md)
+[Add a service role](documentation/serviceRole.md)
 
 ##### Create a GitHub account
 
@@ -195,65 +195,61 @@ compared to what you’ve done so far:
 ##### Deploy the system
 
 Now that you have both an AWS account and a GitHub account, you can ask the AWS Amplify to clone this repository into your GitHub account and
-then instantiate Make The World from the code you copied.  The thing is ... it's going to *fail* the first time.  Amplify doesn't know about the Service
-Role setting until after you've set it, and you can't set it until you've tried to deploy (and failed).  We're consulting with AWS support to find a
-way around that for version 1.1, but for 1.0 you're going to make a first attempt at a deploy, have it fail, set the service role, then redeploy (probably
-want to open this next link in a new tab, so you watch it in parallel with these instructions).  To get started, click this button **once** (and once only,
-please):
+then instantiate Make The World from the code you copied
 
-[![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld)
-
-Amplify will guide you through getting connected to a GitHub account that can access this repository.  Once you've started the deploy, maybe go get a snack.
-It can take five minutes easy to provision all the bits that happen before the failure.
-
-Once the deploy has failed in the Build stage, you've made progress.  You now have the *data* for an application in Amplify (basically, the outer wrapper of
-an application, without the inside guts that actually make it work).  Amplify is a tool that lets you tweak that data and make more attempts to get to the
-point where it can deploy what you need in order to run.  We're going to modify that data to give Amplify the permissions to do what it needs to do:  from
-inside of Amplify, in the context of the Application you have created, find the "General" tab on the left, and click it.
-
-You'll see two things sections:  One that has a listing of links to various repositories (none of which you will ever need to follow), and below it a
-section of "Branches".  A GitHub repository has different sets of code that it refers to as branches, and Amplify links to one of those branches in order
-to know where to get code.  The automated deploy has already connected to the "Version-One-Zero" branch in your copied repository, so you don't need to change
-anything on that bottom section.  What you want is to change the Service Role item in the upper (settings) section.
-
-There will be an "Edit" button in the upper right of this page, just under the "Action" button.  Select that to open the app settings.  Down at the bottom
-of that page there is a setting for "Service Role".  Select the one you created in the "Create a Service Role for Amplify" step, and save.
-
-You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld" to
-get back to a listing of your deployments.  You will see one deployment, which has a "Version-One-Zero" link at the top, and an
-"https://version-one-zero.somethingsomething.amplifyapp.com" link down below it.  The <strong>top</strong> link will navigate to a part of the console that lets
-you work with the deployment (currently interrupted).  The <strong>bottom</strong> link will take you to the web-site once it is deployed (not yet).  For now,
-click that top link to get to the page that works with that deployment.  At the upper right of that screen will be a button saying "Redeploy this version".
-Click that button.  In the upper right, you will see a button for "Redeploy this version".  Click that.  Click back to "maketheworld" again, and you'll see
-the install progressing through its phases again.  This time it should succeed!
+[Deploy Make The World](documentation/deploy.md)
 
 ##### Protect your cloud resources
 
 If you've gotten this far, you have an (empty) Make The World instance running under your own resources.  Congratulations!  Let's make it a bit safer from
-accidental damage:  Click Services at upper left, and under "Management and Governance" find the CloudFormation console.  Open it up, and you'll see two stacks (one for
-Permanents and one for everything else).  These groupings hold the AWS resources that are keeping the system running.  Select the Permanents stack.  In the upper
-right there is a button for Stack Actions.  Select that, and click "Edit Termination Protection".  Select 'Enabled' and save.  Now you won't accidentally
-purge all your irrecoverable data.  If you ever *want* to purge that data (as, for instance, in removing MTW from your account), you'll have to manually set
-it to be possible.
+accidental damage:
+
+1. Go to the [Cloudformation Console](https://console.aws.amazon.com/cloudformation/).
+
+2. You should see two stacks staring with the prefix "mtw" (one for Permanents and one for everything else).  These groupings hold the AWS resources
+that are keeping the system running.
+
+3. Select the Permanents stack.
+
+4. In the upper right there is a button for Stack Actions.  Select that, and click "Edit Termination Protection".
+
+5. Select 'Enabled' and save.
+
+Now you won't accidentally purge all your irrecoverable data.  If you ever *want* to purge
+that data (as, for instance, in removing MTW from your account), you'll have to manually set it to be possible.
 
 ##### Create your MTW administrator account
 
-Now it's time to get into the actual content of your system.  The Amplify console will show you a link to the web-site that it has created.  Head there and
+Now it's time to get into the actual content of your system.  In the "Deploy Make The World" step you got a link to the web-site that Amplify created.  Head there and
 register with the system.  Once you have a username and password you can log in with, consent to the code of conduct and make a new character to act as your
 administrator identity.  You will be in the Vortex ... currently the only room that exists in your world.  The problem is, you're there as a *character*, and 
 what you wanted was an administrator.
 
-One last AWS task:  In AWS, click Services and under "Database" find "DynamoDB" (or use the links up above at the start of these steps).  Click the "Tables" tab, and you
-will see the three Make The World tables (ephemera, messages and permanents).  Click the permanents table and select the "Items" tab in order to see the contents
-of your database.  There probably won't be much there yet.  You're looking for a record with a PermanentId of 'CHARACTER#blah-blah-blah-unique-id', and a
-DataCategory of "GRANT#MINIMUM".  This represents your character's basic grants, what they are allowed to do everywhere, at all times.  Click the PermanentId
-link to open up an edit screen, and you'll see that it has a data element "Roles" that is currently set to "PLAYER".  Edit that and set it to "ADMIN".
+One last AWS task:  You need to assign an admin, which (for obvious reasons) you can't do just by logging in anonymously to the MTW system.
 
-Go back to your window on the game itself, and refresh to log in again (to pick up that database change).  Your character is now an administrator!  That
-gives you access to the Administration panel in the upper left menu, which lets you make backups, import content, all that.  You should also now have the
-ability to make not just private dead-end neighborhoods, but big, connected, public neighborhoods.  Make some neighborhoods, and populate them with connected
-rooms, and you're on your way to having your own fictional world!
+1. Go to [DynamoDB Data Storage](https://console.aws.amazon.com/dynamodb/)
 
+2. Click the "Tables" tab, and you will see the three Make The World tables (ephemera, messages and permanents).
+
+3. Click the permanents table and select the "Items" tab in order to see the contents of your database.  There probably won't be much there yet... you can just
+scroll through directly.
+
+4. Find a record with a PermanentId of 'CHARACTER#blah-blah-blah-unique-id', and a DataCategory of "GRANT#MINIMUM".  This represents your character's basic permissions,
+what they are allowed to do everywhere, at all times.
+
+5. The data in the PermanentId column doubles as a link.  Click that link, in the row you've found, to open up an edit screen.
+
+6. You'll see that it has a data element "Roles" that is currently set to "PLAYER".  Edit that and set it to "ADMIN".  Spell it correctly ... it's a computer-read
+term, so capitalization counts.
+
+7. Go back to your window on the game itself, and refresh to log in again (to pick up that database change).
+
+8. Your character is now an administrator!  That gives you access to the Administration panel in the upper left menu of the game, which lets you make backups,
+import content, all that.  You should also now have the ability to make not just private dead-end neighborhoods, but big, connected, public neighborhoods.
+
+9. Make some neighborhoods, and populate them with connected rooms, and you're on your way to having your own fictional world!
+
+Good luck!
 
 ### Manual deployment for development
 
