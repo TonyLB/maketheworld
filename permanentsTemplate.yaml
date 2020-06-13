@@ -15,6 +15,20 @@ Parameters:
     AllowedPattern: ^[A-Za-z_]+$
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
+  AppID:
+    Type: String
+    Description: (Required) The application ID of the installing Amplify app.
+    MinLength: 3
+    MaxLength: 50
+    ConstraintDescription: 'Required.'
+
+  AppBranch:
+    Type: String
+    Description: (Required) The branch of the installing Amplify deployment.
+    MinLength: 3
+    MaxLength: 50
+    ConstraintDescription: 'Required.'
+
   CognitoCallbackURL:
     Type: String
     Default: 'http://localhost:3000'
@@ -95,7 +109,7 @@ Resources:
       Type: AWS::Cognito::UserPoolDomain
       Properties:
         UserPoolId: !Ref UserPool
-        Domain: !Sub ${TablePrefix}-auth
+        Domain: !Sub ${TablePrefix}-${AppID}-${AppBranch}-auth
 
 Outputs:
     TablePrefix:
