@@ -22,13 +22,6 @@ Parameters:
     MaxLength: 50
     ConstraintDescription: 'Required.'
 
-  AppBranch:
-    Type: String
-    Description: (Required) The branch of the installing Amplify deployment.
-    MinLength: 3
-    MaxLength: 50
-    ConstraintDescription: 'Required.'
-
   CognitoCallbackURL:
     Type: String
     Default: 'http://localhost:3000'
@@ -109,7 +102,7 @@ Resources:
       Type: AWS::Cognito::UserPoolDomain
       Properties:
         UserPoolId: !Ref UserPool
-        Domain: !Sub ${TablePrefix}-${AppID}-${AppBranch}-auth
+        Domain: !Sub ${TablePrefix}-${AppID}-auth
 
 Outputs:
     TablePrefix:

@@ -259,12 +259,12 @@ respository locally (whatever that looks like in your development environment), 
 Install the [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) and use it to package,
 deploy, and describe your application.  These are the commands you'll need to use:
 
-First, deploy the permanent storage stack for the world (with fictitious parameters for AppID and AppBranch, since you don't actually have either of those):
+First, deploy the permanent storage stack for the world (with fictitious parameters for AppID, since you don't actually have one of those):
 ```
 aws cloudformation deploy \
     --template-file .\permanentsTemplate.yaml \
     --stack-name (your chosen prefix)PermanentsStack \
-    --parameter-overrides AppID=1234 AppBranch=master
+    --parameter-overrides AppID=(some fiction like '1234', but more random ... it cannot conflict with anyone else in the world)
     --capabilities CAPABILITY_IAM
 ```
 
@@ -291,13 +291,13 @@ aws cloudformation describe-stacks \
 If you want to have multiple stacks running simultaneously (for dev and staging, for instance), you can do that too.  Create a separate stack by running
 the deploy commands again, with some changes and overrides.
 
-First, deploy a new permanent storage stack for the world (with fictitious but different parameters passed for AppID and AppBranch):
+First, deploy a new permanent storage stack for the world (with fictitious but different parameters passed for AppID):
 ```
 aws cloudformation deploy \
     --template-file .\permanentsTemplate.yaml \
     --stack-name (new prefix)PermanentsStack \
     --capabilities CAPABILITY_IAM \
-    --parameter-overrides TablePrefix=(something other than mtw) AppID=(some new fiction) AppBranch=(another new fiction)
+    --parameter-overrides TablePrefix=(something other than mtw) AppID=(some new fiction)
 ```
 
 Next deploy the running application stack:
