@@ -124,16 +124,37 @@ Ready to take the plunge?  Okay, we'll make this as easy for you as possible.
 Make The World operates within AWS, so to install it you're going to need *access* to AWS.  Now AWS is intimidating as *heck* ... it has well over a hundred
 menu options.  You only have to deal with a few of them though, and everyone before you has had to do the same thing so it's pretty well documented.
 You will need: an email account and a credit card, and the steps below will walk you through making an AWS account and a Github account. If you have those
-already, great, use them. Ready?  Cool, head over to AWS (first) and work through these steps
+already, great, use them.
 
-##### Create an account
+As you go through these steps, you may end up somewhere in the AWS console that you didn't expect.  Here is a set of short-cuts back to the top level of the
+places you'll need to be.  If you get lost, you can probably come back here and click to just the area you want to pay attention to.  NOTE:  Do not start clicking here!
+This is a resource to *come back to* if you need to ... skip forward to "Create an Account" if you haven't already:
+
+[Billing](https://console.aws.amazon.com/billing/)
+
+[Identity and Access Management](https://console.aws.amazon.com/iam/)
+
+[AWS Amplify](https://console.aws.amazon.com/amplify/)
+
+[Cloudformation Resource Management](https://console.aws.amazon.com/cloudformation/)
+
+[DynamoDB Data Storage](https://console.aws.amazon.com/dynamodb/)
+
+AWS is a system with a *very large number* of different panels and console, most which you will never, never need to get access to.  But clicking on
+a link that looks promising can sometimes get you somewhere you didn't expect to be.  So if you get lost, the links above are your chance to reorient:
+Find the section you need to be working on, click its link above, and back up in the instructions to figure out how to get from the landing area of that
+console to the place you need to be at your given step.
+
+Ready?  Cool, head over to AWS (first) and work through these steps
+
+##### 1/8: Create an account
 
 First, [create an account](documentation/createAccount.md).  This will require an email account and a credit card. AWS is pay-as-you-go, and a MTW installation
 will generally cost a few dollars a month to run, if that. Like, under $5 USD/month unless you have many, many people.  Make sure you are selecting "Free Tier"
 wherever possible, and avoid any choices (particularly Support Plan) that would add costs.  You just want to pay for some computer power, not buy all their
 digital bric-a-brac.
 
-##### Create a Budget
+##### 2/8: Create a Budget
 
 Next thing:  You just gave your credit card information to a system that bills you as you go, and creates resources to bill you for in ways that can be
 opaque.  It's very important that you put some common-sense limits on that, first thing, so let's assign a budget to set the maximum that AWS will bill
@@ -144,7 +165,7 @@ you in a month ... after which it will just cut you off.  It's unlikely you'll e
 At the end of those two steps, you should have one account that you still log in to with its root credentials.  You'll need that, long-term, in order to check
 out the Budget, but those credentials can do *anything*.  You want to log in with those very, very seldom.
 
-##### Create an IAM Role
+##### 3/8: Create an IAM Role
 
 AWS provides a tool called *IAM* (Identity and Access Management) that lets you create a user that is still provisioned to do *almost* anything but is importantly
 firewalled away from billing matters.  Do that next (the top part ... you don't need the second bit where they show you an alternate path to do the same thing):
@@ -153,7 +174,7 @@ firewalled away from billing matters.  Do that next (the top part ... you don't 
 
 You have an AWS account now, so you can start the install process in earnest.  
 
-##### Create a Service Role for Amplify
+##### 4/8: Create a Service Role for Amplify
 
 You've been needing to do all this configuration manually in order to get a mostly-empty AWS account, but it would be *appalling* to need to do the entire configuration
 of the MTW system.  Fortunately, AWS provides a service (Amplify) which deploys and configures applications just like MTW.  We're going to use that to do most of the
@@ -161,9 +182,9 @@ rest of the heavy lifting, by pulling code from this GitHub repository, and usin
 Amplify permissions to set up infrastructure.  That means creating another IAM *role* (though **not** another *user* ... this role will give permissions to a system
 rather than a person) that holds the permissions you want to grant to Amplify (broadly "almost everything"):
 
-[Add a service role](documentat/serviceRole.md)
+[Add a service role](documentation/serviceRole.md)
 
-##### Create a GitHub account
+##### 5/8: Create a GitHub account
 
 When AWS deploys, it will want to do so from *your* GitHub account ... it will clone this repository into your space, so that you control the version
 of the code that it is running off of.  So if you don't already have a GitHub account, you will need to sign up for one.  Fortunately, it’s super easy
@@ -171,54 +192,64 @@ compared to what you’ve done so far:
 
 [Sign up for GitHub](https://www.wikihow.com/Create-an-Account-on-GitHub)
 
-##### Deploy the system
+##### 6/8: Deploy the system
 
 Now that you have both an AWS account and a GitHub account, you can ask the AWS Amplify to clone this repository into your GitHub account and
-then instantiate Make The World from the code you copied.  The thing is ... it's going to *fail* the first time.  Amplify doesn't know about the Service
-Role setting until after you've set it, and you can't set it until you've tried to deploy (and failed).  So we're consulting with AWS support to find a
-way around that for version 1.1, but for 1.0 you're going to make a first attempt at a deploy, have it fail, set the service role, then redeploy (probably
-want to open this next link in a new tab, so you watch it in parallel with these instructions):
+then instantiate Make The World from the code you copied
 
-[![amplifybutton](https://oneclick.amplifyapp.com/button.svg)](https://console.aws.amazon.com/amplify/home#/deploy?repo=https://github.com/TonyLB/maketheworld)
+[Deploy Make The World](documentation/deploy.md)
 
-Amplify will guide you through getting connected to a GitHub account that can access this repository.  Once you've started the deploy, maybe go get a snack.
-It can take five minutes easy to provision all the bits that happen before the failure.
-
-Once it has failed in the Build stage, find the "General" tab on the left, and click it.  There will be an "Edit" button in the upper right, just under
-the "Action" button.  Select that to open the app settings.  Down at the bottom of that page there is a setting for "Service Role".  Select the one you created
-above and save.
-
-You're now ready for your second (hopefully successful) deploy:  In the upper left you will see "All apps" and below that "maketheworld".  Click "maketheworld"
-to get back to your deployments, and click the Version-One-Zero listing to get into the failed deploy.  In the upper right, you will see a button for "Redeploy
-this version".  Click that.  Click back to "maketheworld" again, and you'll see the install progressing through its phases again.  This time it should succeed!
-
-##### Protect your cloud resources
+##### 7/8: Protect your cloud resources
 
 If you've gotten this far, you have an (empty) Make The World instance running under your own resources.  Congratulations!  Let's make it a bit safer from
-accidental damage:  Click Services at upper left, and under "Management and Governance" find the CloudFormation console.  Open it up, and you'll see two stacks (one for
-Permanents and one for everything else).  These groupings hold the AWS resources that are keeping the system running.  Select the Permanents stack.  In the upper
-right there is a button for Stack Actions.  Select that, and click "Edit Termination Protection".  Select 'Enabled' and save.  Now you won't accidentally
-purge all your irrecoverable data.  If you ever *want* to purge that data (as, for instance, in removing MTW from your account), you'll have to manually set
-it to be possible.
+accidental damage:
 
-##### Create your MTW administrator account
+1. Go to the [Cloudformation Console](https://console.aws.amazon.com/cloudformation/).
 
-Now it's time to get into the actual content of your system.  The Amplify console will show you a link to the web-site that it has created.  Head there and
+2. You should see two stacks staring with the prefix "mtw" (one for Permanents and one for everything else).  These groupings hold the AWS resources
+that are keeping the system running.
+
+3. Select the Permanents stack.
+
+4. In the upper right there is a button for Stack Actions.  Select that, and click "Edit Termination Protection".
+
+5. Select 'Enabled' and save.
+
+Now you won't accidentally purge all your irrecoverable data.  If you ever *want* to purge
+that data (as, for instance, in removing MTW from your account), you'll have to manually set it to be possible.
+
+##### 8/8: Create your MTW administrator account
+
+Now it's time to get into the actual content of your system.  In the "Deploy Make The World" step you got a link to the web-site that Amplify created.  Head there and
 register with the system.  Once you have a username and password you can log in with, consent to the code of conduct and make a new character to act as your
 administrator identity.  You will be in the Vortex ... currently the only room that exists in your world.  The problem is, you're there as a *character*, and 
 what you wanted was an administrator.
 
-One last AWS task:  In AWS, click Services and under "Database" find "DynamoDB".  Click the "Tables" tab, and you
-will see the three Make The World tables (ephemera, messages and permanents).  Click the permanents table and select the "Items" tab in order to see the contents
-of your database.  There probably won't be much there yet.  You're looking for a record with a PermanentId of 'CHARACTER#blah-blah-blah-unique-id', and a
-DataCategory of "GRANT#MINIMUM".  This represents your character's basic grants, what they are allowed to do everywhere, at all times.  Click the PermanentId
-link to open up an edit screen, and you'll see that it has a data element "Roles" that is currently set to "PLAYER".  Edit that and set it to "ADMIN".
+One last AWS task:  You need to assign an admin, which (for obvious reasons) you can't do just by logging in anonymously to the MTW system.
 
-Go back to your window on the game itself, and refresh to log in again (to pick up that database change).  Your character is now an administrator!  That
-gives you access to the Administration panel in the upper left menu, which lets you make backups, import content, all that.  You should also now have the
-ability to make not just private dead-end neighborhoods, but big, connected, public neighborhoods.  Make some neighborhoods, and populate them with connected
-rooms, and you're on your way to having your own fictional world!
+1. Go to [DynamoDB Data Storage](https://console.aws.amazon.com/dynamodb/)
 
+2. Click the "Tables" tab, and you will see the three Make The World tables (ephemera, messages and permanents).
+
+3. Click the permanents table and select the "Items" tab in order to see the contents of your database.  There probably won't be much there yet... you can just
+scroll through directly.
+
+4. Find a record with a PermanentId of 'CHARACTER#blah-blah-blah-unique-id', and a DataCategory of "GRANT#MINIMUM".  This represents your character's basic permissions,
+what they are allowed to do everywhere, at all times.
+
+5. The data in the PermanentId column doubles as a link.  Click that link, in the row you've found, to open up an edit screen.
+
+6. You'll see that it has a data element "Roles" that is currently set to "PLAYER".  Edit that and set it to "ADMIN".  Spell it correctly ... it's a computer-read
+term, so capitalization counts.
+
+7. Go back to your window on the game itself, and refresh to log in again (to pick up that database change).
+
+8. Your character is now an administrator!  That gives you access to the Administration panel in the upper left menu of the game, which lets you make backups,
+import content, all that.  You should also now have the ability to make not just private dead-end neighborhoods, but big, connected, public neighborhoods.
+
+9. Make some neighborhoods, and populate them with connected rooms, and you're on your way to having your own fictional world!
+
+Good luck!
 
 ### Manual deployment for development
 

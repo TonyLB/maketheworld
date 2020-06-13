@@ -35,8 +35,8 @@ backend:
         - cd ../../..
     build:
       commands:
-        - export callbackurl='https://Version-One-Zero.${AWS_APP_ID}.amplifyapp.com/'
-        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name mtwPermanentsStack --parameter-overrides CognitoCallbackURL=$callbackurl --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
+        - export callbackurl="https://Version-One-Zero.${AWS_APP_ID}.amplifyapp.com/"
+        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name mtwPermanentsStack --parameter-overrides CognitoCallbackURL="${callbackurl}" --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
         - export s3bucket=$(aws cloudformation describe-stacks --stack-name mtwPermanentsStack --output text --query "Stacks[0].Outputs[?OutputKey=='StorageBucket'].OutputValue")
         - sam package --template-file template.yaml --output-template-file packaged.yaml --s3-bucket $s3bucket --s3-prefix deploy/
         - sam deploy --template-file packaged.yaml --stack-name mtwStack --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=mtw PermanentsStack=mtwPermanentsStack --s3-bucket $s3bucket --s3-prefix deploy/
