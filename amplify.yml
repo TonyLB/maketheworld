@@ -1,4 +1,7 @@
 version: 0.1
+env:
+  variables:
+    BUILD_PREFIX: mtw
 frontend:
   phases:
     preBuild:
@@ -36,10 +39,11 @@ backend:
     build:
       commands:
         - export callbackurl="https://${AWS_BRANCH}.${AWS_APP_ID}.amplifyapp.com/"
-        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name mtwPermanentsStack --parameter-overrides CognitoCallbackURL="${callbackurl}" AppID=${AWS_APP_ID} --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
-        - export s3bucket=$(aws cloudformation describe-stacks --stack-name mtwPermanentsStack --output text --query "Stacks[0].Outputs[?OutputKey=='StorageBucket'].OutputValue")
+        - export permanentsStack="${BUILD_PREFIX}PermanentsStack"
+        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name ${permanentsStack} --parameter-overrides CognitoCallbackURL="${callbackurl}" AppID=${AWS_APP_ID} --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
+        - export s3bucket=$(aws cloudformation describe-stacks --stack-name ${permanentsStack} --output text --query "Stacks[0].Outputs[?OutputKey=='StorageBucket'].OutputValue")
         - sam package --template-file template.yaml --output-template-file packaged.yaml --s3-bucket $s3bucket --s3-prefix deploy/
-        - sam deploy --template-file packaged.yaml --stack-name mtwStack --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=mtw PermanentsStack=mtwPermanentsStack --s3-bucket $s3bucket --s3-prefix deploy/
+        - sam deploy --template-file packaged.yaml --stack-name mtwStack --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=mtw PermanentsStack=${permanentsStack} --s3-bucket $s3bucket --s3-prefix deploy/
         - export initializelambda=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='InitializeLambda'].OutputValue")
         - aws lambda invoke --function-name $initializelambda response.json
         - export storageapi=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='StorageApiId'].OutputValue")
