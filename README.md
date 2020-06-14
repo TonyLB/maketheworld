@@ -255,6 +255,35 @@ import content, all that.  You should also now have the ability to make not just
 
 Good luck!
 
+##### 9/8: (Optional) Make your environment more robust
+
+Make The World uses AWS Cognito to handle its sign-up and sign-in functionality.  And AWS Cognito (by default) uses a test email address to send out validation
+emails giving people the code they'll need to sign up.  Amazon limits the number of emails it is willing to send from such test email addresses, to no more than 50 per
+day.  If you expect to have people signing up at a faster pace than that, you will want to register an email you *already control* with AWS, telling AWS that it
+can send emails on your behalf from that address.  Once you do that, Amazon will happily send many hundreds of emails per day.
+
+1. Go to AWS's [Simple Email Service](https://console.aws.amazon.com/ses)
+
+2. Select "Email Addresses" (under "Identity Management") in the side bar at left.
+
+3. Select "Verify a New Email Address"
+
+4. Enter the address you want to verify.
+
+5. Check that address for a verification email.
+
+6. Respond to the verification email.
+
+7. Once the AWS console agrees that the address has been verified as one you control, navigate to [Cognito User Pools](https://console.aws.amazon.com/cognito/users/)
+
+8. Select the User Pool that corresponds to the application you wish to raise limits on
+
+9. In the menu on the left side, select "Message customizations" under "General Settings".
+
+10. Where it says "Do you want to send emails through your Amazon SES Configuration?" select "Yes".
+
+11. Fill in your email address on *both* the "From email address ARN" and "From email address" fields.
+
 ### Manual deployment for development
 
 If you want to tweak the software behind Make The World, make it your own, maybe do better than us ... have at!  Sounds great.  You'll want to clone this
@@ -333,12 +362,16 @@ it can be started against the back-end.
 You've tinkered around, and decided this isn't something you want to keep maintaining long-term?  No problem.  It's pretty easy to remove from
 the AWS console.
 
-Go to Amplify:  Select your app, and delete it.
+IMPORTANT NOTE:  This process will delete all of your cloud resources.  By default, **backups** are stored in the Make The World cloud resources,
+and will be deleted when you do this.  If you intend to keep the content of your instance, you need to have created a backup and *downloaded it*
+to a local machine, before you do this.
 
-Go to S3:  There is a permanentstack storage bucket there.  It has all your backups, so maybe copy those down if you want to keep them for sentimental
+1. Go to Amplify:  Select your app, and delete it.
+
+2. Go to S3:  There is a permanentstack storage bucket there.  It has all your backups, so maybe copy those down if you want to keep them for sentimental
 (or other) reasons.  When you're sure you don't need the data any more, select the bucket and click the 'Empty' button.
 
-Go to CloudFormaton:  There are two stacks there (one for permanents and one for everything else).  Click the 'everything else' stack and delete it.
+3. Go to CloudFormaton:  There are two stacks there (one for permanents and one for everything else).  Click the 'everything else' stack and delete it.
 Once that is complete, click the permanents stack and delete it.
 
 That's it:  Make The World should be removed completely from your AWS account.
