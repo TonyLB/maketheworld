@@ -40,7 +40,7 @@ backend:
             echo "BUILD PREFIX IS NOT YET SET"
             exit 1
           fi
-          - |
+        - |
           if ["${BUILD_PREFIX}" == "NONE" ]; then
             echo "BUILD PREFIX IS NOT YET SET"
             exit 1
