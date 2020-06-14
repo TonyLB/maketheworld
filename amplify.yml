@@ -39,7 +39,7 @@ backend:
     build:
       commands:
         - |
-          if [-z "${BUILD_PREFIX}"]; then
+          if [[-z "${BUILD_PREFIX}"]]; then
             echo "BUILD PREFIX IS NOT YET SET"
             exit 1
           fi
