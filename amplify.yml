@@ -7,7 +7,7 @@ frontend:
         - npm install
     build:
       commands:
-        - npm run introspect mtwStack
+        - npm run introspect "${BUILD_PREFIX}Stack"
         - npm run build
   artifacts:
     baseDirectory: charcoal-client/build
@@ -47,13 +47,14 @@ backend:
           fi
         - export callbackurl="https://${AWS_BRANCH}.${AWS_APP_ID}.amplifyapp.com/"
         - export permanentsStack="${BUILD_PREFIX}PermanentsStack"
-        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name ${permanentsStack} --parameter-overrides CognitoCallbackURL="${callbackurl}" AppID=${AWS_APP_ID} --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
+        - export stackName="${BUILD_PREFIX}Stack"
+        - aws cloudformation deploy --template-file permanentsTemplate.yaml --stack-name ${permanentsStack} --parameter-overrides CognitoCallbackURL="${callbackurl}" AppID=${AWS_APP_ID} TablePrefix=${BUILD_PREFIX} --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
         - export s3bucket=$(aws cloudformation describe-stacks --stack-name ${permanentsStack} --output text --query "Stacks[0].Outputs[?OutputKey=='StorageBucket'].OutputValue")
         - sam package --template-file template.yaml --output-template-file packaged.yaml --s3-bucket $s3bucket --s3-prefix deploy/
-        - sam deploy --template-file packaged.yaml --stack-name mtwStack --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=mtw PermanentsStack=${permanentsStack} --s3-bucket $s3bucket --s3-prefix deploy/
-        - export initializelambda=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='InitializeLambda'].OutputValue")
+        - sam deploy --template-file packaged.yaml --stack-name ${stackName} --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=${BUILD_PREFIX} PermanentsStack=${permanentsStack} --s3-bucket $s3bucket --s3-prefix deploy/
+        - export initializelambda=$(aws cloudformation describe-stacks --stack-name ${stackName} --output text --query "Stacks[0].Outputs[?OutputKey=='InitializeLambda'].OutputValue")
         - aws lambda invoke --function-name $initializelambda response.json
-        - export storageapi=$(aws cloudformation describe-stacks --stack-name mtwStack --output text --query "Stacks[0].Outputs[?OutputKey=='StorageApiId'].OutputValue")
+        - export storageapi=$(aws cloudformation describe-stacks --stack-name ${stackName} --output text --query "Stacks[0].Outputs[?OutputKey=='StorageApiId'].OutputValue")
         - aws apigateway create-deployment --rest-api-id $storageapi --stage-name storage
   artifacts:
     baseDirectory: /
