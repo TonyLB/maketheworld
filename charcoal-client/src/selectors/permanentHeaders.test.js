@@ -197,7 +197,7 @@ describe('permanentHeader selectors', () => {
     })
 
     it('should return tree except room on getNeighborhoodSubtree for root room', () => {
-        expect(getNeighborhoodSubtree({ roomId: 'VORTEX', ancestry: 'VORTEX' })({ permanentHeaders: { ...testState.permanentHeaders, VORTEX: { PermanentId: 'VORTEX', Ancestry: 'VORTEX' } }})).toEqual({
+        expect(getNeighborhoodSubtree({ roomId: 'VORTEX', ancestry: '' })({ permanentHeaders: { ...testState.permanentHeaders, VORTEX: { PermanentId: 'VORTEX', Ancestry: 'VORTEX' } }})).toEqual({
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',
@@ -262,51 +262,55 @@ describe('permanentHeader selectors', () => {
     })
 
     it('should return subtree for getNeighborhoodSubtree', () => {
-        expect(getNeighborhoodSubtree({ roomId: 'BCD', ancestry: 'ABC:BCD' })(testState)).toEqual({
-            ABC: {
-                PermanentId: 'ABC',
-                Ancestry: 'ABC',
+        expect(getNeighborhoodSubtree({ roomId: 'BCD', ancestry: 'ABC' })(testState)).toEqual({
+            CDE: {
+                PermanentId: 'CDE',
+                ParentId: 'ABC',
+                Ancestry: 'ABC:CDE',
                 Retired: false,
                 AncestorRetired: false,
                 Type: 'NEIGHBORHOOD',
                 children: {
-                    CDE: {
-                        PermanentId: 'CDE',
-                        ParentId: 'ABC',
-                        Ancestry: 'ABC:CDE',
+                    DEF: {
+                        PermanentId: 'DEF',
+                        ParentId: 'CDE',
+                        Ancestry: 'ABC:CDE:DEF',
                         Retired: false,
                         AncestorRetired: false,
-                        Type: 'NEIGHBORHOOD',
-                        children: {
-                            DEF: {
-                                PermanentId: 'DEF',
-                                ParentId: 'CDE',
-                                Ancestry: 'ABC:CDE:DEF',
-                                Retired: false,
-                                AncestorRetired: false,
-                                Type: 'ROOM'
-                            },
-                            EFG: {
-                                PermanentId: 'EFG',
-                                ParentId: 'CDE',
-                                Ancestry: 'ABC:CDE:EFG',
-                                Retired: false,
-                                AncestorRetired: false,
-                                Type: 'ROOM'
-                            }
-                        }
+                        Type: 'ROOM'
                     },
+                    EFG: {
+                        PermanentId: 'EFG',
+                        ParentId: 'CDE',
+                        Ancestry: 'ABC:CDE:EFG',
+                        Retired: false,
+                        AncestorRetired: false,
+                        Type: 'ROOM'
+                    }
                 }
+            },
+        })
+    })
+
+    it('should return nested subtree for getNeighborhoodSubtree', () => {
+        expect(getNeighborhoodSubtree({ roomId: 'DEF', ancestry: 'ABC:CDE' })(testState)).toEqual({
+            EFG: {
+                PermanentId: 'EFG',
+                ParentId: 'CDE',
+                Ancestry: 'ABC:CDE:EFG',
+                Retired: false,
+                AncestorRetired: false,
+                Type: 'ROOM'
             }
         })
     })
 
     it('should return nothing for getExternalTree on root room', () => {
-        expect(getExternalTree({ roomId: 'VORTEX', ancestry: 'VORTEX' })(testState)).toEqual({})
+        expect(getExternalTree({ roomId: 'VORTEX', ancestry: '' })(testState)).toEqual({})
     })
 
     it('should exclude toplevel subtree on getExternalTree', () => {
-        expect(getExternalTree({ roomId: 'BCD', ancestry: 'ABC:BCD' })(testState)).toEqual({
+        expect(getExternalTree({ roomId: 'BCD', ancestry: 'ABC' })(testState)).toEqual({
             FGH: {
                 PermanentId: 'FGH',
                 Ancestry: 'FGH',
@@ -328,7 +332,7 @@ describe('permanentHeader selectors', () => {
     })
 
     it('should exclude nested subtree on getExternalTree', () => {
-        expect(getExternalTree({ roomId: 'DEF', ancestry: 'ABC:CDE:DEF' })(testState)).toEqual({
+        expect(getExternalTree({ roomId: 'DEF', ancestry: 'ABC:CDE' })(testState)).toEqual({
             ABC: {
                 PermanentId: 'ABC',
                 Ancestry: 'ABC',

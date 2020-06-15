@@ -124,17 +124,31 @@ export const getNeighborhoodOnlyTreeExcludingSubTree = (ancestryToExclude) => ({
 
 export const getNeighborhoodTree = ({ permanentHeaders }) => (tagRetiredBranches(treeify(Object.values(permanentHeaders))))
 
-export const getNeighborhoodSubtree = ({ roomId, ancestry }) => ({ permanentHeaders }) => {
-    const parentAncestry = ((ancestry && ancestry.split(':').slice(0, -1)) || []).join(':')
-    return tagRetiredBranches(treeify(Object.values(permanentHeaders)
-        .filter(({ Ancestry }) => (!parentAncestry || (Ancestry || '').startsWith(parentAncestry)))
-        .filter(({ PermanentId }) => (PermanentId !== roomId))))
+const subTreeify = (nodeList, ancestry) => (
+    elideInTransitBranches((ancestry.split(':') || [])
+        .filter((permanentId) => (permanentId))
+        .reduce((previous, permanentId) => ( (previous[permanentId] && previous[permanentId].children) || {} ),
+            nodeList
+                .reduce((previous, node) => {
+                    const ancestryList = (node.Ancestry && node.Ancestry.split(':').slice(0, -1)) || []
+                    return mergeSubtree(previous, { ancestryList, node })
+                }, {})
+            )
+    )
+)
+
+export const getNeighborhoodSubtree = ({ roomId, ancestry }) => (state) => {
+    const permanentHeaders = getPermanentHeaders(state)
+    const neighborhoodSubTree = Object.values(permanentHeaders)
+        .filter(({ Ancestry }) => ((!ancestry) || (Ancestry || '').startsWith(ancestry)))
+        .filter(({ PermanentId }) => (PermanentId !== roomId))
+    return tagRetiredBranches(subTreeify(neighborhoodSubTree, ancestry))
 }
 
-export const getExternalTree = ({ ancestry }) => ({ permanentHeaders }) => {
-    const parentAncestry = ((ancestry && ancestry.split(':').slice(0, -1)) || []).join(':')
+export const getExternalTree = ({ ancestry }) => (state) => {
+    const permanentHeaders = getPermanentHeaders(state)
     return tagRetiredBranches(treeify(Object.values(permanentHeaders)
-        .filter(({ Ancestry }) => (parentAncestry && !((Ancestry || '').startsWith(parentAncestry))))))
+        .filter(({ Ancestry }) => (ancestry && !((Ancestry || '').startsWith(ancestry))))))
 }
 
 //

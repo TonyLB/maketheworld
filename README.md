@@ -284,6 +284,12 @@ can send emails on your behalf from that address.  Once you do that, Amazon will
 
 11. Fill in your email address on *both* the "From email address ARN" and "From email address" fields.
 
+##### 10/8: (Optional) Mount a second (or third) MTW instance in the same account
+
+After you've mounted one MTW instance, it is much simpler to mount more:
+
+[Mount a second instance](/documentation/secondBranch/secondBranch.md)
+
 ### Manual deployment for development
 
 If you want to tweak the software behind Make The World, make it your own, maybe do better than us ... have at!  Sounds great.  You'll want to clone this
