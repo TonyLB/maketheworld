@@ -33,7 +33,7 @@ import AnnouncementMessage from './AnnouncementMessage'
 export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
 
     const classes = useStyles()
-    const { MessageId, RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='', open=false } = message
+    const { MessageId, RoomId='', ParentId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='', open=false } = message
 
     const dispatch = useDispatch()
     const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry)).reverse()
@@ -133,7 +133,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
                         ? open
                             ? <ExpandLessIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: false })) }} />
                             : <ExpandMoreIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: true })) }} />
-                        : (Grants && Grants[RoomId].Edit) && <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
+                        : (Grants && (Grants[RoomId].Edit || Grants[ParentId].Edit)) && <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
                 }
             </ListItemSecondaryAction>
         </ListItem>

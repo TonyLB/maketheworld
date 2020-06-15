@@ -47,6 +47,7 @@ export const lookRoom = (props) => (dispatch, getState) => {
             Name: currentRoom.Name,
             Ancestry: currentRoom.Ancestry,
             RoomId: currentRoom.RoomId,
+            ParentId: currentRoom.ParentId,
             Exits: currentRoom.Exits,
             Players,
             ...( Recap ? { Recap } : {})
