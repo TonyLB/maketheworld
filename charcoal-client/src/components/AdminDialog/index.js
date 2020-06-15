@@ -251,6 +251,9 @@ const BackupsTab = () => {
             onClose={() => setImportDialogOpen(false)}
         />
         <Paper className={classes.root}>
+            <Typography variant="overline">
+                REMINDER:  Backups are created and stored in the cloud.  To have a local copy, <em>download</em>.
+            </Typography>
             <TableContainer className={classes.container}>
                 <Table stickyHeader aria-label="sticky table">
                     <TableHead>
