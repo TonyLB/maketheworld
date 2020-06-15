@@ -30,6 +30,8 @@ backend:
         - npm install
         - cd ../permanents/admin
         - npm install
+        - cd ../characters
+        - npm install
         - cd ../neighborhoods
         - npm install
         - cd ../../..
