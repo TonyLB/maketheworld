@@ -86,6 +86,99 @@ export const putCharacter = /* GraphQL */ `
     }
   }
 `;
+export const externalPutCharacter = /* GraphQL */ `
+  mutation ExternalPutCharacter(
+    $Name: String!
+    $CharacterId: String
+    $Pronouns: String
+    $FirstImpression: String
+    $Outfit: String
+    $OneCoolThing: String
+    $HomeId: String
+  ) {
+    externalPutCharacter(
+      Name: $Name
+      CharacterId: $CharacterId
+      Pronouns: $Pronouns
+      FirstImpression: $FirstImpression
+      Outfit: $Outfit
+      OneCoolThing: $OneCoolThing
+      HomeId: $HomeId
+    ) {
+      Neighborhood {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        ContextMapId
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+        Retired
+      }
+      Room {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        Exits {
+          Name
+          RoomId
+        }
+        Entries {
+          Name
+          RoomId
+        }
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+        Retired
+      }
+      Map {
+        MapId
+        Name
+        Rooms {
+          PermanentId
+          X
+          Y
+          Locked
+        }
+      }
+      Settings {
+        ChatPrompt
+      }
+      Backup {
+        PermanentId
+        Name
+        Description
+        Status
+      }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
+      }
+    }
+  }
+`;
 export const addCharacterInPlay = /* GraphQL */ `
   mutation AddCharacterInPlay($CharacterId: String!, $ConnectionId: String!) {
     addCharacterInPlay(CharacterId: $CharacterId, ConnectionId: $ConnectionId) {
@@ -194,87 +287,20 @@ export const putNeighborhood = /* GraphQL */ `
         Description
         Status
       }
-    }
-  }
-`;
-export const externalPutNeighborhood = /* GraphQL */ `
-  mutation ExternalPutNeighborhood(
-    $PermanentId: String!
-    $Name: String!
-    $Description: String
-    $ParentId: String
-    $Visibility: String
-    $Topology: String
-    $ContextMapId: String
-    $Grants: [ResourceGrantInput]
-    $Retired: Boolean
-  ) {
-    externalPutNeighborhood(
-      PermanentId: $PermanentId
-      Name: $Name
-      Description: $Description
-      ParentId: $ParentId
-      Visibility: $Visibility
-      Topology: $Topology
-      ContextMapId: $ContextMapId
-      Grants: $Grants
-      Retired: $Retired
-    ) {
-      Neighborhood {
-        PermanentId
+      Character {
+        PlayerName
         Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        ContextMapId
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
         Grants {
-          CharacterId
+          Resource
           Actions
           Roles
         }
-        Retired
-      }
-      Room {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
-        Retired
-      }
-      Map {
-        MapId
-        Name
-        Rooms {
-          PermanentId
-          X
-          Y
-          Locked
-        }
-      }
-      Settings {
-        ChatPrompt
-      }
-      Backup {
-        PermanentId
-        Name
-        Description
-        Status
       }
     }
   }
@@ -322,84 +348,6 @@ export const putRoom = /* GraphQL */ `
         Roles
       }
       Retired
-    }
-  }
-`;
-export const externalPutRoom = /* GraphQL */ `
-  mutation ExternalPutRoom(
-    $PermanentId: String!
-    $Name: String!
-    $Description: String
-    $ParentId: String
-    $Visibility: String
-    $Topology: String
-    $Retired: Boolean
-  ) {
-    externalPutRoom(
-      PermanentId: $PermanentId
-      Name: $Name
-      Description: $Description
-      ParentId: $ParentId
-      Visibility: $Visibility
-      Topology: $Topology
-      Retired: $Retired
-    ) {
-      Neighborhood {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
-        Retired
-      }
-      Room {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
-        Retired
-      }
-      Map {
-        MapId
-        Name
-        Rooms {
-          PermanentId
-          X
-          Y
-          Locked
-        }
-      }
-      Settings {
-        ChatPrompt
-      }
-      Backup {
-        PermanentId
-        Name
-        Description
-        Status
-      }
     }
   }
 `;
@@ -580,6 +528,21 @@ export const putMap = /* GraphQL */ `
         Description
         Status
       }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
+      }
     }
   }
 `;
@@ -641,6 +604,21 @@ export const putSettings = /* GraphQL */ `
         Name
         Description
         Status
+      }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
       }
     }
   }
@@ -714,6 +692,21 @@ export const putBackup = /* GraphQL */ `
         Description
         Status
       }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
+      }
     }
   }
 `;
@@ -784,6 +777,21 @@ export const createBackup = /* GraphQL */ `
         Description
         Status
       }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
+      }
     }
   }
 `;
@@ -845,6 +853,21 @@ export const restoreBackup = /* GraphQL */ `
         Name
         Description
         Status
+      }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
       }
     }
   }

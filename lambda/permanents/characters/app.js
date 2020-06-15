@@ -3,10 +3,8 @@
 
 const AWS = require('aws-sdk')
 const { v4: uuidv4 } = require('/opt/uuid')
-
-const { AWS_REGION } = process.env;
-
-const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+const { documentClient, graphqlClient, gql } = require('utilities')
+const { gqlOutput } = require('gqlOutput')
 
 const batchGetDispatcher = (documentClient, ProjectionExpression = 'PermanentId, DataCategory, Ancestry, ProgenitorId') => (items) => {
     const permanentTable = `${process.env.TABLE_PREFIX}_permanents`
@@ -216,6 +214,42 @@ exports.getAllCharacters = () => {
         .then((Characters) => (Object.values(Characters)))
 }
 
+const characterGQL = ({
+        Name,
+        CharacterId,
+        Pronouns,
+        FirstImpression,
+        Outfit,
+        OneCoolThing,
+        HomeId
+    }) => (gql`mutation ReportCharacter {
+    externalPutCharacter (Name: "${Name}", CharacterId: "${CharacterId}", Pronouns: "${Pronouns}", FirstImpression: "${FirstImpression}", Outfit: "${Outfit}", OneCoolThing: "${OneCoolThing}", HomeId: "${HomeId}") {
+        ${gqlOutput}
+    }
+}`)
+
+const characterGQLReport = async ({
+    Name,
+    CharacterId,
+    Pronouns,
+    FirstImpression,
+    Outfit,
+    OneCoolThing,
+    HomeId
+}) => {
+    if (CharacterId) {
+        await graphqlClient.mutate({ mutation: characterGQL({
+            Name,
+            CharacterId,
+            Pronouns,
+            FirstImpression,
+            Outfit,
+            OneCoolThing,
+            HomeId
+        }) })
+    }
+}
+
 exports.putCharacter = ({
     CharacterId: passedCharacterId,
     PlayerName,
@@ -226,10 +260,6 @@ exports.putCharacter = ({
     Outfit,
     HomeId
 }) => {
-
-    const { AWS_REGION } = process.env;
-
-    // const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     const newCharacter = !Boolean(passedCharacterId)
     const CharacterId = passedCharacterId || uuidv4()
@@ -266,6 +296,15 @@ exports.putCharacter = ({
             }
         }]) || [])
         ])
+        .then(characterGQLReport({
+            Name,
+            CharacterId,
+            Pronouns,
+            FirstImpression,
+            Outfit,
+            OneCoolThing,
+            HomeId
+        }))
         .then(() => (getCharacterInfo({ documentClient, CharacterId })))
         .then(({ Grants }) => ({
             Type: "CHARACTER",

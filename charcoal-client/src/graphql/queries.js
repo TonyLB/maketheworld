@@ -134,6 +134,21 @@ export const getNeighborhoodTree = /* GraphQL */ `
         Description
         Status
       }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
+      }
     }
   }
 `;
