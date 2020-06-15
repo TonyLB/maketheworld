@@ -23,11 +23,13 @@
 
 8. (Optional) On the Complete page, you can download a .csv file with login information for the user, or send email with login instructions to the user.
 
-9. On the IAM Console dashboard, you'll be able to find an entry labelled "IAM users sign-in link", which gives you the URL to visit in order to sign in to your
+9. When you are done with the Complete page, click "Close" in the bottom right corner.  At the top of the navigation menu on the left, click 'Dashboard' to return to the IAM dashboard.
+
+10. On the IAM Console dashboard, you'll be able to find an entry labelled "IAM users sign-in link", which gives you the URL to visit in order to sign in to your
 account.  You'll want to bookmark that.  When any future step says "Go to the AWS Console", it will involve going to that web-site and entering your IAM name
 and password.
 
-10.  Do **not** close the IAM Console yet.  You still have another role to create, in the next section.
+11.  Do **not** close the IAM Console yet.  You still have another role to create, in the next section.
 
 
 (For more details and documentation, see the IAM tutorial on [Create an IAM Role](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html))

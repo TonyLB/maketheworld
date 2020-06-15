@@ -14,7 +14,7 @@ so you can click the "Next: Permissions" button at bottom right.
 
 7. We never enter tags, because we're not that organized.  Click "Next: Review".
 
-8. Select a role name.  AWS recommends developer-style names like *AmplifyConsoleServiceRole-AmplifyRole*, but you can all it anything you'll remember.
+8. Select a role name.  AWS recommends developer-style names like *AmplifyConsoleServiceRole-AmplifyRole*, but you can call it anything you'll remember.
 
 9.  Click "Create Role".
 
