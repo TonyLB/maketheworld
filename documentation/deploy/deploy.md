@@ -6,10 +6,10 @@ about that Service Role setting until after you've set it *on a particular proje
 you've tried to deploy (and failed).  We're consulting with AWS support to find a way around that for version 1.1, but for 1.0 you're going to make a
 first attempt at a deploy, have it fail, set the service role, then redeploy.
 
-1. To get started, navigate to Amplify: [Amplify](https://console.aws.amazon.com/amplify/)
+1. To get started, navigate to Amplify: [Amplify](https://console.aws.amazon.com/amplify/).  If you see a big, graphics-heavy introductor page with multiple "Get Started" buttons, click the "Get Started" underneath "Deploy".  Otherwise (particularly if you already have a prior application) click "Connect App".
 
-2. Click the "Connect App" button, and you will see a screen like the one below.  Select "GitHub" in the "From your existing code" section, and then click
-"Continue".
+2. You should see a screen like the one below.  Select "GitHub" in the "From your existing code" section, and then click either "Continue" or "Connect Branch" (basically
+whatever AWS gives you to move on to the next step).
 
 ![Step2](Step2.png)
 
@@ -60,7 +60,8 @@ at upper right (highlighted below).
 
 ![Step10](Step10.png)
 
-11. Amplify lets you set variables (a place to store settings) on your application *generally* (across all branches) and then to override that setting with
+11. We need to give Amplify the information that will help it know how to name the internal resources it creates.  We will do that by setting a variable.
+Amplify lets you set variables (a place to store settings) on your application *generally* (across all branches) and then to override that setting with
 a particular value for a particular branch.  That's what we're going to do.  On the edit panel that should now be open, enter the text "BUILD_PREFIX" in
 the *Variable* field, and "NONE" in the *Value* field.  All-caps, no spaces, one underscore ... it's read by a computer, which has no sense of self-correction
 at all, so it has to be right in every particular.  That sets the general setting, now click the Action button at right (highlighted below) and select
@@ -68,9 +69,10 @@ at all, so it has to be right in every particular.  That sets the general settin
 
 ![Step11](Step11.png)
 
-12. We need to set an internal prefix to be added to resource names that Amplify provisions for the applicaton we're trying to create.  This prefix will appear
-wherever resources are allocated.  If you enter 'katanaworld' for your prefix, then in *CloudFormation* (for instance) your stack will be "katanaworldStack".
-If you connect a second branch, and give it a prefix of 'trenchcoatcity' then you will have two separate stacks ('katanaworldStack' and 'trenchcoatcityStack'),
+12. Now we set an internal prefix for your resource names that Amplify provisions for the applicaton we're trying to create.  This prefix will appear
+wherever resources are allocated, and will distinguish *this* Make The World instance from any other instance you choose to create later.
+If you enter 'katanaworld' for your prefix, then in *CloudFormation* (for instance) your stack will be "katanaworldStack".  If you connect a second
+branch, and give it a prefix of 'trenchcoatcity' then you will have two separate stacks ('katanaworldStack' and 'trenchcoatcityStack'),
 independent of each other.  In the new line just created, you will note that the Variable field is already filled in with BUILD_PREFIX (and disabled).  Select
 your branch in the Branch field, and enter a prefix in the Value field.  The prefix must be all lower-case letters:  No spaces, no special characters, no
 numbers, no capitals.  So you can enter "maketheworldonetwothree" but not "MTW123".  Click Save.

@@ -1,6 +1,6 @@
 1. Open the [Amazon Web Services home page](https://aws.amazon.com/).
 
-2. Choose Create an AWS Account.
+2. Choose Create an AWS Account.  The name of the account can be whatever pleases you (that AWS will allow, that is).
 
 Note: If you signed in to AWS recently, choose Sign in to the Console. If Create a new AWS account isn't visible, first choose Sign in to a different account, and then choose Create a new AWS account.
 

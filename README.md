@@ -117,7 +117,7 @@ Some days I really enjoy living in the future.
 How to deploy my own Make The World
 ===================================
 
-Ready to take the plunge?  Okay, we'll make this as easy for you as possible.  Be ready to spent a few hours on this process.
+Ready to take the plunge?  Okay, we'll make this as easy for you as possible.  Be ready to spend a few hours on this process.
 
 #### Setting up an AWS account
 
