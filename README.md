@@ -325,6 +325,17 @@ aws cloudformation describe-stacks \
     --stack-name (your stack name) --query 'Stacks[].Outputs'
 ```
 
+If you have changed the GraphQL schema that runs the data back-end, you will need to update the generated graphQL libraries in the charcoal client
+(NOTE:  The first time, you will also need to run "amplify codegen add", to tell your local development stack that you're using amplify codegen
+to keep your graphQL libraries up to date with changes)
+
+```
+cd charcoal-client
+
+aws appsync get-introspection-schema --api-id (your appsync API ID) --format JSON schema.json
+amplify codegen
+```
+
 #### Deploying separate development stacks
 
 If you want to have multiple stacks running simultaneously (for dev and staging, for instance), you can do that too.  Create a separate stack by running

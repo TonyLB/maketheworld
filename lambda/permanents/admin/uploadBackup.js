@@ -15,62 +15,7 @@ const s3Put = (filename, contents) => {
     return s3Client.putObject(request).promise()
 }
 
-const gqlOutput = `Neighborhood {
-    PermanentId
-    Name
-    Description
-    ParentId
-    Visibility
-    Topology
-    Retired
-    ContextMapId
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
-  }
-  Room {
-    PermanentId
-    Name
-    Description
-    ParentId
-    Visibility
-    Topology
-    Retired
-    Exits {
-      Name
-      RoomId
-    }
-    Entries {
-      Name
-      RoomId
-    }
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
-  }
-  Map {
-    MapId
-    Name
-    Rooms {
-      PermanentId
-      X
-      Y
-      Locked
-    }
-  }
-  Settings {
-    ChatPrompt
-  }
-  Backup {
-    PermanentId
-    Name
-    Description
-    Status
-  }`
+const { gqlOutput } = require('gqlOutput')
 
 const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingBackup {
     putBackup (PermanentId: "${PermanentId}", Name: ${JSON.stringify(Name)}, Description: ${JSON.stringify(Description)}, Status: "Creating...") {

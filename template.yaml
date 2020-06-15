@@ -542,6 +542,9 @@ Resources:
               PolicyDocument:
                   Version: "2012-10-17"
                   Statement:
+                    - Effect: Allow
+                      Action: appsync:GraphQL
+                      Resource: !Sub '${AppSyncAPI}/*'
                     - Effect: "Allow"
                       Action:
                           - "lambda:InvokeFunction"
@@ -665,9 +668,11 @@ Resources:
         Runtime: nodejs12.x
         Layers:
             - !Ref UUIDLambdaLayer
+            - !Ref AppSyncLambdaLayer
         Environment:
             Variables:
                 TABLE_PREFIX: !Ref TablePrefix
+                APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
         Policies:
           - DynamoDBReadPolicy:
                 TableName: !Sub '${TablePrefix}_permanents'
@@ -706,9 +711,11 @@ Resources:
           Runtime: nodejs12.x
           Layers:
               - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
@@ -747,9 +754,11 @@ Resources:
           Runtime: nodejs12.x
           Layers:
               - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
@@ -786,12 +795,18 @@ Resources:
           Runtime: nodejs12.x
           Layers:
               - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
+            - Statement:
+              - Effect: Allow
+                Action: appsync:GraphQL
+                Resource: !Sub '${AppSyncAPI}/*'
   PutCharacterDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -818,6 +833,23 @@ Resources:
                   "payload": $arguments
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  MutationExternalPutCharacter:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+    Properties:
+      ApiId: !GetAtt AppSyncAPI.ApiId
+      TypeName: Mutation
+      FieldName: externalPutCharacter
+      DataSourceName: !GetAtt NoneDataSource.Name
+      RequestMappingTemplate: >
+          {
+              "version": "2017-02-28",
+              "payload": $util.toJson($ctx.args)
+          }
+      ResponseMappingTemplate: >
+          #set($result = $ctx.result)
+          [{ "Character": $util.toJson($result) }]
   CharactersInPlayFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -1428,23 +1460,6 @@ Resources:
         ApiId: !GetAtt AppSyncAPI.ApiId
         Name: NoneSource
         Type: NONE
-  MutationExternalPutNeighborhood:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: externalPutNeighborhood
-        DataSourceName: !GetAtt NoneDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "payload": $util.toJson($ctx.args)
-            }
-        ResponseMappingTemplate: >
-            #set($result = $ctx.result)
-            $util.toJson([{ Neighborhood: $result }])
   MutationExternalUpdateGrant:
     Type: AWS::AppSync::Resolver
     DependsOn:
@@ -1511,23 +1526,6 @@ Resources:
                 }
             }
         ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationExternalPutRoom:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-      ApiId: !GetAtt AppSyncAPI.ApiId
-      TypeName: Mutation
-      FieldName: externalPutRoom
-      DataSourceName: !GetAtt NoneDataSource.Name
-      RequestMappingTemplate: >
-          {
-              "version": "2017-02-28",
-              "payload": $util.toJson($ctx.args)
-          }
-      ResponseMappingTemplate: >
-          #set($result = $ctx.result)
-          $util.toJson([{ Room: $result }])
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1783,6 +1781,7 @@ Resources:
                 Map: Map
                 Settings: Settings
                 Backup: Backup
+                Character: Character
               }
               type Mutation {
                   putPlayer(
@@ -1798,6 +1797,16 @@ Resources:
                       OneCoolThing: String,
                       HomeId: String
                   ): PlayerSubscription
+                  externalPutCharacter(
+                      Name: String!,
+                      CharacterId: String,
+                      Pronouns: String,
+                      FirstImpression: String,
+                      Outfit: String,
+                      OneCoolThing: String,
+                      HomeId: String
+                  ): [ChangedPermanent]
+                  @aws_iam @aws_cognito_user_pools
                   addCharacterInPlay(
                       CharacterId: String!
                       ConnectionId: String!
@@ -1823,18 +1832,6 @@ Resources:
                       Grants: [ResourceGrantInput]
                       Retired: Boolean
                   ): [ChangedPermanent]
-                  externalPutNeighborhood(
-                      PermanentId: String!
-                      Name: String!
-                      Description: String
-                      ParentId: String
-                      Visibility: String
-                      Topology: String
-                      ContextMapId: String
-                      Grants: [ResourceGrantInput]
-                      Retired: Boolean
-                  ): [ChangedPermanent]
-                  @aws_iam @aws_cognito_user_pools
                   putRoom(
                       PermanentId: String
                       Name: String!
@@ -1846,16 +1843,6 @@ Resources:
                       Entries: [PathInput]
                       Retired: Boolean
                   ): Room
-                  externalPutRoom(
-                      PermanentId: String!
-                      Name: String!
-                      Description: String
-                      ParentId: String
-                      Visibility: String
-                      Topology: String
-                      Retired: Boolean
-                  ): [ChangedPermanent]
-                  @aws_iam @aws_cognito_user_pools
                   externalUpdateGrant(
                       PlayerName: String!
                       CharacterId: String!
@@ -1938,7 +1925,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["putNeighborhood", "externalPutNeighborhood", "externalPutRoom", "putMap", "putSettings", "putBackup", "createBackup", "restoreBackup"])
+                  @aws_subscribe(mutations: ["putNeighborhood", "putMap", "putSettings", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (
