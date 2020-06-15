@@ -72,6 +72,7 @@ exports.handler = async () => {
             DataCategory: 'Details'
         }
     }).promise()
+    .then(({ Item = {} }) => (Item))
 
     if (!(vortex || {}).Name) {
         await documentClient.put({
@@ -93,6 +94,7 @@ exports.handler = async () => {
             DataCategory: 'Details'
         }
     }).promise()
+    .then(({ Item = {} }) => (Item))
 
     if (!(map || {}).Name) {
         await documentClient.batchWrite({ RequestItems: {
