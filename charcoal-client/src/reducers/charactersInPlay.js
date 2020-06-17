@@ -43,14 +43,14 @@ export const reducer = (state = '', action = {}) => {
                     CharacterId,
                     Character,
                     RoomId,
-                    ConnectionId,
+                    Connected,
                     color
                 }) => ({
                     ...previous,
                     [CharacterId]: {
                         CharacterId,
                         RoomId,
-                        ConnectionId,
+                        Connected,
                         ...Character,
                         color
                     }

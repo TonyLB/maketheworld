@@ -15,13 +15,13 @@ export const getCharactersInPlay = (state) => {
 
 export const getActiveCharacterList = (state) => {
     const charactersInPlay = getCharactersInPlay(state)
-    return Object.values(charactersInPlay).filter(({ ConnectionId }) => (ConnectionId))
+    return Object.values(charactersInPlay).filter(({ Connected }) => (Connected))
 }
 
 export const getActiveCharactersInRoom = ({ RoomId, myCharacterId }) => (state) => {
     const charactersInPlay = getCharactersInPlay(state)
     return Object.values(charactersInPlay)
-        .filter(({ ConnectionId, RoomId: CharacterRoomId }) => (ConnectionId && (RoomId === CharacterRoomId) ))
+        .filter(({ Connected, RoomId: CharacterRoomId }) => (Connected && (RoomId === CharacterRoomId) ))
         .map(({ color, CharacterId, ...rest }) => ({ CharacterId, color: (CharacterId === myCharacterId) ? { primary: 'blue', light: 'lightblue' } : color, ...rest }))
 }
 

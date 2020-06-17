@@ -9,8 +9,6 @@ import { Auth } from 'aws-amplify'
 import {
     Container,
     Paper,
-    Backdrop,
-    CircularProgress,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -35,12 +33,10 @@ import SettingsIcon from '@material-ui/icons/Settings'
 import NewMessagesIcon from '@material-ui/icons/FiberNew'
 
 // Local code imports
-import { WSS_ADDRESS } from '../config'
 import { parseCommand } from '../actions/behaviors'
-import { connectionRegister } from '../actions/connection.js'
+import { disconnect } from '../actions/connection.js'
 import { setCurrentCharacterHome } from '../actions/characters'
 import { registerCharacter } from '../actions/registeredCharacter.js'
-import { registerWebSocket } from '../actions/webSocket.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
@@ -51,7 +47,6 @@ import { activateMapDialog } from '../actions/UI/mapDialog'
 import { putPlayer } from '../actions/player'
 import { getCurrentRoom, getVisibleExits } from '../selectors/currentRoom'
 import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
-import { getWebSocket } from '../selectors/webSocket.js'
 import { getCharacterId } from '../selectors/connection'
 import { getMyCharacters, getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
@@ -76,6 +71,7 @@ import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 import { loadClientSettings } from '../actions/clientSettings'
 import useAppSyncSubscriptions from './useAppSyncSubscriptions'
+import useConnectedCharacter from './useConnectedCharacter'
 import { roomDescription } from '../store/messages'
 
 const CharacterPicker = ({ open, onClose = () => {} }) => {
@@ -120,7 +116,7 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
 
 export const Chat = () => {
     useAppSyncSubscriptions()
-    const webSocket = useSelector(getWebSocket)
+    useConnectedCharacter()
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)
     const currentRoomAllExits = useSelector(getCurrentRoom)
@@ -190,31 +186,31 @@ export const Chat = () => {
         handleSettingsClose()
     }
 
-    useEffect(() => {
-        if (!webSocket) {
-          let setupSocket = new WebSocket(WSS_ADDRESS)
-          setupSocket.onopen = () => {
-            console.log('WebSocket Client Connected')
-          }
-          setupSocket.onmessage = (message) => {
-            const { type, ...rest } = JSON.parse(message.data)
-            switch(type) {
-                case 'connectionregister':
-                    dispatch(connectionRegister(rest))
-                    break
-                //
-                // No processing when a pong message (the response to a ping)
-                // comes through.
-                //
-                default:
-            }
-          }
-          setupSocket.onerror = (error) => {
-              console.error('WebSocket error: ', error)
-          }
-          dispatch(registerWebSocket(setupSocket))
-        }
-    }, [webSocket, dispatch])
+    // useEffect(() => {
+    //     if (!webSocket) {
+    //       let setupSocket = new WebSocket(WSS_ADDRESS)
+    //       setupSocket.onopen = () => {
+    //         console.log('WebSocket Client Connected')
+    //       }
+    //       setupSocket.onmessage = (message) => {
+    //         const { type, ...rest } = JSON.parse(message.data)
+    //         switch(type) {
+    //             case 'connectionregister':
+    //                 dispatch(connectionRegister(rest))
+    //                 break
+    //             //
+    //             // No processing when a pong message (the response to a ping)
+    //             // comes through.
+    //             //
+    //             default:
+    //         }
+    //       }
+    //       setupSocket.onerror = (error) => {
+    //           console.error('WebSocket error: ', error)
+    //       }
+    //       dispatch(registerWebSocket(setupSocket))
+    //     }
+    // }, [webSocket, dispatch])
     useEffect(() => {
         dispatch(loadClientSettings)
     }, [dispatch])
@@ -328,6 +324,12 @@ export const Chat = () => {
                         <MenuItem onClick={handleClientSettings}>
                             Client Settings
                         </MenuItem>
+                        <MenuItem onClick={() => {
+                            dispatch(disconnect())
+                            handleSettingsClose()
+                        }}>
+                            Disconnect Character
+                        </MenuItem>
                         <MenuItem onClick={handleSignout}>
                             Sign Out
                         </MenuItem>
@@ -440,9 +442,9 @@ export const Chat = () => {
                     dispatch(registerCharacter({ name, characterId }))
                 }}
             />
-            <Backdrop open={((characterId && !webSocket) || !playerFetched) ? true : false}>
+            {/* <Backdrop open={((characterId && !webSocket) || !playerFetched) ? true : false}>
                 <CircularProgress color="inherit" />
-            </Backdrop>
+            </Backdrop> */}
         </div>
         <Snackbar open={errorOpen}
             autoHideDuration={3000}

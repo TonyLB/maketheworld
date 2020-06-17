@@ -71,7 +71,7 @@ export const getCharactersInPlay = /* GraphQL */ `
     getCharactersInPlay {
       CharacterId
       RoomId
-      ConnectionId
+      Connected
     }
   }
 `;

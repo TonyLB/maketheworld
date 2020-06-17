@@ -11,8 +11,8 @@ import { addSubscription, moveRoomSubscription } from './subscriptions'
 import { lookRoom } from './behaviors/lookRoom'
 import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
+import { getMyCharacterInPlay } from '../selectors/connection'
 import { getCurrentNeighborhood } from '../selectors/currentRoom'
-import { getCharacters } from '../selectors/characters'
 import charactersInPlayReducer from '../reducers/charactersInPlay'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
@@ -125,10 +125,9 @@ export const fetchCharactersInPlay = () => (dispatch, getState) => {
     }
 }
 
-export const addCharacterInPlay = ({ characterId, connectionId }) => (dispatch, getState) => {
+export const addCharacterInPlay = ({ characterId }) => (dispatch, getState) => {
     return API.graphql(graphqlOperation(addCharacterInPlayGraphQL, {
         CharacterId: characterId,
-        ConnectionId: connectionId
     }))
 }
 
@@ -146,26 +145,24 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         ...state,
         charactersInPlay: charactersInPlayReducer(state.charactersInPlay || {}, action)
     }
-    const characters = getCharacters(newState)
+    const myCharacter = getMyCharacterInPlay(newState)
     const myCurrentCharacter = getMyCurrentCharacter(newState)
-    const { connection, charactersInPlay } = newState
-    if (connection && connection.connectionId && connection.connectionId === payload.ConnectionId) {
+    const myPreviousCharacter = getMyCharacterInPlay(state)
+    if (myCharacter.CharacterId === payload.CharacterId) {
         //
         // Handle actions that depend upon changes in the state of your own character.
         //
-        const myCharacter = connection && connection.characterId && charactersInPlay && charactersInPlay[connection.characterId]
         const currentNeighborhood = getCurrentNeighborhood(state)
         const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
-        if (!(myCharacter && myCharacter.ConnectionId && myCharacter.ConnectionId !== payload.ConnectionId && myCharacter.RoomId === payload.RoomId)) {
+        if (myCharacter && myCharacter.Connected && myCharacter.RoomId && !(myPreviousCharacter && myPreviousCharacter.Connected && myPreviousCharacter.RoomId === myCharacter.RoomId)) {
             return dispatch(moveRoomSubscription(payload.RoomId))
                 .then(() => (API.graphql(graphqlOperation(getRoomRecap, { PermanentId: payload.RoomId }))))
                 .then(({ data }) => (data))
                 .then(({ getRoomRecap }) => (getRoomRecap))
                 .then((Recap) => {
-                    dispatch(lookRoom({ RoomId: payload.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
-                    const { Name = 'Someone' } = (connection && connection.characterId && characters[connection.characterId]) ||
-                        myCurrentCharacter || {}
-                    return sendMessage({ RoomId: payload.RoomId, Message: `${Name} has ${(myCharacter && myCharacter.ConnectionId && (myCharacter.ConnectionId === payload.ConnectionId)) ? 'arrived' : 'connected'}.` })
+                    dispatch(lookRoom({ RoomId: myCharacter.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
+                    const { Name = 'Someone' } = myCurrentCharacter || {}
+                    return sendMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` })
                 })
         }
     }
