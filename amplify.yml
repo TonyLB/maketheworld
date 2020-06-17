@@ -28,7 +28,9 @@ backend:
         - npm install
         - cd ../registercharacter
         - npm install
-        - cd ../permanents/admin
+        - cd ../ephemera/charactersInPlay
+        - npm install
+        - cd ../../permanents/admin
         - npm install
         - cd ../characters
         - npm install

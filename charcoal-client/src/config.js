@@ -1,7 +1,7 @@
 import configJSON from './config.json'
 
 const config = configJSON.reduce((previous, { OutputKey, OutputValue }) => ({ ...previous, [OutputKey]: OutputValue }), {})
-export const WSS_ADDRESS=config.WebSocketURI
+
 export const STORAGE_API_URI=config.StorageApiURI
 
 export const AuthConfig = {

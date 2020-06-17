@@ -46,7 +46,7 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
             </Typography>
         </ListItemText>
         <ListItemSecondaryAction>
-            { replyCharacterId && charactersInPlay[replyCharacterId].ConnectionId &&
+            { replyCharacterId && charactersInPlay[replyCharacterId].Connected &&
                 <IconButton onClick={() => { dispatch(activateDirectMessageDialog(replyCharacterId)) } } >
                     <ReplyIcon />
                 </IconButton>

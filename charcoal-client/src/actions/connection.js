@@ -1,11 +1,30 @@
-export const CONNECTION_REGISTER = 'CONNECTION_REGISTER'
+import { API, graphqlOperation } from 'aws-amplify'
+import { disconnectCharacterInPlay } from '../graphql/mutations'
 
-export const connectionRegister = ({ connectionId, characterId }) => (dispatch, getState) => {
+import { getCharacterId } from '../selectors/connection'
+
+export const CONNECTION_REGISTER = 'CONNECTION_REGISTER'
+export const DISCONNECT_REGISTER = 'DISCONNECT_REGISTER'
+
+export const connectionRegister = ({ characterId, roomId }) => (dispatch, getState) => {
     dispatch({
         type: CONNECTION_REGISTER,
         payload: {
-            connectionId,
-            characterId
+            characterId,
+            roomId
         }
     })
+}
+
+export const disconnectRegister = {
+    type: DISCONNECT_REGISTER
+}
+
+export const disconnect = () => (dispatch, getState) => {
+    const state = getState()
+    const currentCharacterId = getCharacterId(state)
+    if (currentCharacterId) {
+        API.graphql(graphqlOperation(disconnectCharacterInPlay, { CharacterId: currentCharacterId }))
+    }
+    dispatch(disconnectRegister)
 }
