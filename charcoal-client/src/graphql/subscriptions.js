@@ -39,7 +39,7 @@ export const changedCharactersInPlay = /* GraphQL */ `
     changedCharactersInPlay {
       CharacterId
       RoomId
-      ConnectionId
+      Connected
     }
   }
 `;

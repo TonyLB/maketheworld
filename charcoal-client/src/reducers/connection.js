@@ -1,15 +1,15 @@
-import { CONNECTION_REGISTER } from '../actions/connection.js'
+import { CONNECTION_REGISTER, DISCONNECT_REGISTER } from '../actions/connection.js'
 
 export const reducer = (state = '', action) => {
     const { type: actionType = 'NOOP', payload = '' } = action || {}
     switch (actionType) {
         case CONNECTION_REGISTER:
-            const { connectionId, characterId, roomId } = payload
+            const { characterId } = payload
             return {
-                connectionId,
-                characterId,
-                roomId
+                characterId
             }
+        case DISCONNECT_REGISTER:
+            return {}
         default: return state
     }
 }

@@ -1,38 +1,15 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk')
+const { documentClient, graphqlClient, gql } = require('utilities')
 
-const { TABLE_PREFIX, AWS_REGION } = process.env;
+const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
+const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 const promiseDebug = (result) => {
     console.log(result)
     return result
-}
-
-const batchDispatcher = (items) => {
-    const groupBatches = items.reduce((({ current, requestLists }, item) => {
-            if (current.length > 23) {
-                return {
-                    requestLists: [ ...requestLists, current ],
-                    current: [item]
-                }
-            }
-            else {
-                return {
-                    requestLists,
-                    current: [...current, item]
-                }
-            }
-        }), { current: [], requestLists: []})
-    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
-        .filter((itemList) => (itemList.length))
-        .map((itemList) => (documentClient.batchWrite({ RequestItems: {
-            [ephemeraTable]: itemList
-        } }).promise()))
-    return Promise.all(batchPromises)
 }
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
@@ -50,126 +27,132 @@ const getCharactersInPlay = () => {
 
     return documentClient.scan({
             TableName: ephemeraTable,
-            FilterExpression: "begins_with(EphemeraId, :Character)",
+            FilterExpression: 'begins_with(EphemeraId, :EphemeraId) and begins_with(DataCategory, :DataCategory)',
             ExpressionAttributeValues: {
-                ":Character": "CHARACTERINPLAY#"
+                ":EphemeraId": "CHARACTERINPLAY#",
+                ":DataCategory": "ROOM#"
             }
         }).promise()
-        .then(({ Items }) => (Items.reduce((previous, { EphemeraId, DataCategory, RoomId }) => {
-            const CharacterId = removeType(EphemeraId)
-            if (DataCategory.startsWith('CONNECTION#')) {
-                return updateMap(previous, { CharacterId, ConnectionId: removeType(DataCategory) })
-            }
-            if (DataCategory === 'Room') {
-                return updateMap(previous, { CharacterId, RoomId })
-            }
-            return previous
-        }, {})))
-        .then((itemMap) => (Object.values(itemMap)))
-        .then((Items) => (Items
-            .map(({ CharacterId, ConnectionId = null, RoomId }) => ({ CharacterId, ConnectionId, RoomId }))
-        ))
+        .then(({ Items = [] }) => (Items.map(({ EphemeraId, DataCategory, Connected }) => ({
+            CharacterId: removeType(EphemeraId),
+            RoomId: removeType(DataCategory),
+            Connected
+        }))))
         .catch((err) => ({ error: err.stack }))
-
 }
 
-const dbDiff = (oldItems, newItems) => {
-    console.log(`Old Items: ${JSON.stringify(oldItems, null, 4)}`)
-    console.log(`New Items: ${JSON.stringify(newItems, null, 4)}`)
-    const itemsToDelete = oldItems.filter(({ EphemeraId, DataCategory }) => (!newItems.find((item) => (item.EphemeraId === EphemeraId && item.DataCategory === DataCategory))))
-    const itemsToUpdate = newItems.filter((newItem) => (!oldItems.find((oldItem) => {
-        return !(Object.keys(newItem).find((newKey) => (newItem[newKey] && (!oldItem[newKey] || oldItem[newKey] != newItem[newKey])))
-            || Object.keys(oldItem).find((oldKey) => (oldItem[oldKey] && (!newItem[oldKey] || newItem[oldKey] != oldItem[oldKey]))))
-    })))
-    console.log(`Items to Delete: ${JSON.stringify(itemsToDelete, null, 4)}`)
-    console.log(`Items to Update: ${JSON.stringify(itemsToUpdate, null, 4)}`)
-    return [
-        ...(itemsToDelete.map(({ EphemeraId, DataCategory }) => ({
-            DeleteRequest: {
-                Key: {
-                    EphemeraId,
-                    DataCategory
-                }
-            }
-        }))),
-        ...(itemsToUpdate.map((Item) => ({
-            PutRequest: { Item }
-        })))
-    ]
-}
-
-const putCharacterInPlay = async ({ CharacterId, ConnectionId, RoomId, deleteRecord=false }) => {
+const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
 
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const oldItems = await documentClient.query({
+
+    const oldRecord = await documentClient.query({
             TableName: ephemeraTable,
-            KeyConditionExpression: 'EphemeraId = :EphemeraId',
+            KeyConditionExpression: 'EphemeraId = :EphemeraId and begins_with(DataCategory, :Room)',
             ExpressionAttributeValues: {
-                ":EphemeraId": EphemeraId
+                ":EphemeraId": EphemeraId,
+                ":Room": "ROOM#"
             }
         }).promise()
-        .then(({ Items }) => (Items))
-
-    const oldRecord = oldItems.reduce((previous, { DataCategory, RoomId }) => {
-            if (DataCategory === 'Room') {
-                return {
-                    ...previous,
-                    CharacterId,
-                    RoomId
-                }
+        .then(({ Items }) => (Items && Items[0]))
+    let DataCategory = null
+    if (RoomId) {
+        DataCategory = `ROOM#${RoomId}`
+    }
+    if (!DataCategory && oldRecord) {
+        DataCategory = oldRecord.DataCategory
+    }
+    if (!DataCategory) {
+        DataCategory = await documentClient.get({
+            TableName: permanentsTable,
+            Key: {
+                PermanentId: `CHARACTER#${CharacterId}`,
+                DataCategory: 'Details'
             }
-            if (DataCategory.startsWith('CONNECTION#')) {
-                return {
-                    ...previous,
-                    CharacterId,
-                    ConnectionId: removeType(DataCategory)
-                }
-            }
-            return previous
-        }, {})
-
-    const newRecord = await (deleteRecord
-        ? Promise.resolve({
-            CharacterId,
-            RoomId: RoomId || oldRecord.RoomId
         })
-        : Promise.resolve({
-            ...oldRecord,
+            .promise()
+            .then(({ Item = {} }) => (Item))
+            .then(({ HomeId = '' }) => (`ROOM#${HomeId || 'VORTEX'}`))
+    }
+    if (oldRecord && (oldRecord.DataCategory !== DataCategory)) {
+        console.log(`Removing: EphemeraId: ${EphemeraId}, DataCategory: ${oldRecord.DataCategory}`)
+        await documentClient.delete({
+            TableName: ephemeraTable,
+            Key: {
+                EphemeraId,
+                DataCategory: oldRecord.DataCategory
+            }
+        }).promise()
+    }
+    return documentClient.put({
+            TableName: ephemeraTable,
+            Item: {
+                EphemeraId,
+                DataCategory,
+                ...(Connected !== undefined ? { Connected } : { Connected: oldRecord.Connected })
+            }
+        }).promise()
+        .then(() => ({
             CharacterId,
-            ...(ConnectionId ? { ConnectionId } : {}),
-            ...(RoomId ? { RoomId } : {}),
+            RoomId: removeType(DataCategory),
+            Connected
         }))
-            .then((Item) => {
-                if (!(Item.RoomId || RoomId)) {
-                    return documentClient.get({
-                            TableName: `${TABLE_PREFIX}_permanents`,
-                            Key: {
-                                PermanentId: `CHARACTER#${CharacterId}`,
-                                DataCategory: 'Details'
-                            }
-                        }).promise()
-                        .then(({ Item }) => (Item || {}))
-                        .then(({ HomeId }) => ({ ...Item, RoomId: HomeId || 'VORTEX' }) )
+}
+
+const messageGQL = ({ RoomId, Message }) => (gql`mutation SendMessage {
+    putRoomMessage (RoomId: "${RoomId}", Message: "${Message}") {
+        MessageId
+        CreatedTime
+        Target
+        Message
+        RoomId
+        CharacterId
+        FromCharacterId
+        ToCharacterId
+        Recap
+        ExpirationTime
+        Type
+        Title
+    }
+}`)
+
+const disconnectGQL = ({ CharacterId }) => (gql`mutation DisconnectCharacter {
+    deleteCharacterInPlay (CharacterId: "${CharacterId}") {
+        CharacterId
+        RoomId
+        Connected
+    }
+}`)
+
+const disconnectCharacterInPlay = async ({ CharacterId }) => {
+    if (CharacterId) {
+        const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+        const { RoomId } = await documentClient.query({
+                TableName: ephemeraTable,
+                KeyConditionExpression: 'EphemeraId = :EphemeraId and begins_with(DataCategory, :Room)',
+                ExpressionAttributeValues: {
+                    ":EphemeraId": EphemeraId,
+                    ":Room": "ROOM#"
                 }
-                else {
-                    return {
-                        ...Item,
-                        RoomId: Item.RoomId || RoomId || 'VORTEX'
-                    }
+            }).promise()
+            .then(({ Items }) => (Items && Items[0]))
+            .then(({ DataCategory }) => ({ RoomId: removeType(DataCategory) }))
+        const { Name } = await documentClient.get({
+                TableName: permanentsTable,
+                Key: {
+                    PermanentId: `CHARACTER#${CharacterId}`,
+                    DataCategory: 'Details'
                 }
+            }).promise()
+            .then(({ Item = {} }) => (Item))
+        console.log(`RoomId: ${RoomId}, Name: ${Name}`)
+        await graphqlClient.mutate({ mutation: messageGQL({
+                RoomId,
+                Message: `${Name} has disconnected.`
             })
+        })
 
-    console.log(newRecord.RoomId)
-    const newItems = [
-        ...(newRecord.ConnectionId ? [{ EphemeraId, DataCategory: `CONNECTION#${newRecord.ConnectionId}` }] : [] ),
-        ...(newRecord.RoomId ? [{ EphemeraId, DataCategory: `Room`, RoomId: newRecord.RoomId }] : [] ),
-    ]
-
-    const diffItems = dbDiff(oldItems, newItems)
-
-    return batchDispatcher(diffItems)
-        .then(() => (newRecord))
-
+        await graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId })})
+    }
 }
 
 exports.handler = (event) => {
@@ -182,26 +165,16 @@ exports.handler = (event) => {
         case 'putCharacterInPlay':
             return putCharacterInPlay({
                 CharacterId: event.CharacterId,
-                ConnectionId: event.ConnectionId,
-                RoomId: event.RoomId
+                RoomId: event.RoomId,
+                Connected: true
             })
         case 'deleteCharacterInPlay':
-            return documentClient.query({
-                    TableName: ephemeraTable,
-                    KeyConditionExpression: "DataCategory = :ConnectionId",
-                    ExpressionAttributeValues: {
-                        ":ConnectionId": `CONNECTION#${event.ConnectionId}`
-                    },
-                    IndexName: 'DataCategoryIndex'
-                }).promise()
-                .then(({ Items }) => (Items && Items[0]))
-                .then(({ EphemeraId }) => (EphemeraId && removeType(EphemeraId)))
-                .then((CharacterId) => (
-                    (CharacterId && putCharacterInPlay({
-                        CharacterId,
-                        deleteRecord: true
-                    })) || {}
-                ))
+            return putCharacterInPlay({
+                CharacterId: event.CharacterId,
+                Connected: false
+            })
+        case 'disconnect':
+            return disconnectCharacterInPlay({ CharacterId: event.CharacterId })
         default:
             return { statusCode: 500, error: `Unknown handler key: ${action}`}
     }

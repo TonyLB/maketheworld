@@ -180,20 +180,29 @@ export const externalPutCharacter = /* GraphQL */ `
   }
 `;
 export const addCharacterInPlay = /* GraphQL */ `
-  mutation AddCharacterInPlay($CharacterId: String!, $ConnectionId: String!) {
-    addCharacterInPlay(CharacterId: $CharacterId, ConnectionId: $ConnectionId) {
+  mutation AddCharacterInPlay($CharacterId: String!) {
+    addCharacterInPlay(CharacterId: $CharacterId) {
       CharacterId
       RoomId
-      ConnectionId
+      Connected
     }
   }
 `;
 export const deleteCharacterInPlay = /* GraphQL */ `
-  mutation DeleteCharacterInPlay($ConnectionId: String!) {
-    deleteCharacterInPlay(ConnectionId: $ConnectionId) {
+  mutation DeleteCharacterInPlay($CharacterId: String!) {
+    deleteCharacterInPlay(CharacterId: $CharacterId) {
       CharacterId
       RoomId
-      ConnectionId
+      Connected
+    }
+  }
+`;
+export const disconnectCharacterInPlay = /* GraphQL */ `
+  mutation DisconnectCharacterInPlay($CharacterId: String!) {
+    disconnectCharacterInPlay(CharacterId: $CharacterId) {
+      CharacterId
+      RoomId
+      Connected
     }
   }
 `;
@@ -202,7 +211,7 @@ export const moveCharacter = /* GraphQL */ `
     moveCharacter(CharacterId: $CharacterId, RoomId: $RoomId) {
       CharacterId
       RoomId
-      ConnectionId
+      Connected
     }
   }
 `;
