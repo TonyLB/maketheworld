@@ -6,7 +6,7 @@ export const reducer = (state = null, action = {}) => {
         case REGISTER_WEB_SOCKET:
             const { webSocket } = payload
             if (webSocket) {
-                return webSocket
+                return payload
             }
             else {
                 return state

@@ -1,0 +1,12 @@
+{
+  "name": "controlChannel",
+  "version": "1.0.0",
+  "description": "A websocket channel to provide a persistent service-client connection for MTW",
+  "main": "src/app.js",
+  "author": "SAM CLI",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.434.0",
+    "cross-fetch": "^3.0.5"
+  }
+}
