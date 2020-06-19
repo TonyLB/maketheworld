@@ -24,6 +24,8 @@ backend:
         - npm install
         - cd ../appSyncLayer
         - npm install
+        - cd ../controlChannel
+        - npm install
         - cd ../ondisconnect
         - npm install
         - cd ../registercharacter
@@ -60,6 +62,8 @@ backend:
         - aws lambda invoke --function-name $initializelambda response.json
         - export storageapi=$(aws cloudformation describe-stacks --stack-name ${stackName} --output text --query "Stacks[0].Outputs[?OutputKey=='StorageApiId'].OutputValue")
         - aws apigateway create-deployment --rest-api-id $storageapi --stage-name storage
+        - export controlapi=$(aws cloudformation describe-stacks --stack-name ${stackName} --output text --query "Stacks[0].Outputs[?OutputKey=='WebSocketApiId'].OutputValue")
+        - aws apigatewayv2 create-deployment --api-id $controlapi --stage-name Prod
   artifacts:
     baseDirectory: /
     files:
