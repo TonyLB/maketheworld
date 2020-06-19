@@ -25,12 +25,47 @@ Parameters:
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
 
 Resources:
-  # RealTimeWebSocket:
-  #   Type: AWS::ApiGatewayV2::Api
-  #   Properties:
-  #     Name: MTWRealTimeSocket
-  #     ProtocolType: WEBSOCKET
-  #     RouteSelectionExpression: "$request.body.message"
+  RealTimeWebSocket:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: MTWRealTimeSocket
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.message"
+  ControlChannelPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - RealTimeWebSocket
+      - ControlChannelFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ControlChannelFunction
+      Principal: apigateway.amazonaws.com
+  ControlChannelFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/controlChannel/
+      Handler: app.handler
+      MemorySize: 128
+      Runtime: nodejs12.x
+      Layers:
+        - !Ref AppSyncLambdaLayer
+      Environment:
+        Variables:
+          TABLE_PREFIX: !Ref TablePrefix
+          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+            - 'execute-api:ManageConnections'
+            Resource:
+            - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
+        - Statement:
+          - Effect: Allow
+            Action: appsync:GraphQL
+            Resource: !Sub '${AppSyncAPI}/*'
+        - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_ephemera'
   # ConnectRoute:
   #   Type: AWS::ApiGatewayV2::Route
   #   Properties:
@@ -51,101 +86,131 @@ Resources:
   #     IntegrationUri:
   #       Fn::Sub:
   #           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
-  # DisconnectRoute:
-  #   Type: AWS::ApiGatewayV2::Route
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteKey: $disconnect
-  #     AuthorizationType: NONE
-  #     OperationName: DisconnectRoute
-  #     Target: !Join
-  #       - '/'
-  #       - - 'integrations'
-  #         - !Ref DisconnectInteg
-  # DisconnectInteg:
-  #   Type: AWS::ApiGatewayV2::Integration
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     Description: Disconnect Integration
-  #     IntegrationType: AWS_PROXY
-  #     IntegrationUri:
-  #       Fn::Sub:
-  #           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
-  # PingRoute:
-  #   Type: AWS::ApiGatewayV2::Route
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteKey: ping
-  #     AuthorizationType: NONE
-  #     OperationName: PingRoute
-  #     RouteResponseSelectionExpression: "$default"
-  #     Target: !Join
-  #       - '/'
-  #       - - 'integrations'
-  #         - !Ref PingInteg
-  # PingInteg:
-  #   Type: AWS::ApiGatewayV2::Integration
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     Description: Ping Integration
-  #     IntegrationType: MOCK
-  #     PassthroughBehavior: WHEN_NO_MATCH
-  #     TemplateSelectionExpression: "application/json"
-  #     RequestTemplates:
-  #       application/json: "{\"statusCode\": 200 }"
-  # PingIntegrationResponse:
-  #   Type: AWS::ApiGatewayV2::IntegrationResponse
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     IntegrationId: !Ref PingInteg
-  #     TemplateSelectionExpression: "$integration.response.statuscode"
-  #     IntegrationResponseKey: "/200/"
-  #     ResponseTemplates:
-  #       "200": "{\"statusCode\": 200, \"type\": \"pong\" }"
-  # PingResponse:
-  #   Type: AWS::ApiGatewayV2::RouteResponse
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteId: !Ref PingRoute
-  #     RouteResponseKey: "$default"
-  # RegisterCharacterRoute:
-  #   Type: AWS::ApiGatewayV2::Route
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteKey: registercharacter
-  #     AuthorizationType: NONE
-  #     OperationName: RegisterCharacterRoute
-  #     Target: !Join
-  #       - '/'
-  #       - - 'integrations'
-  #         - !Ref RegisterCharacterInteg
-  # RegisterCharacterInteg:
-  #   Type: AWS::ApiGatewayV2::Integration
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     Description: Register Name Integtration
-  #     IntegrationType: AWS_PROXY
-  #     IntegrationUri:
-  #       Fn::Sub:
-  #           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegisterCharacterFunction.Arn}/invocations
-  # RealTimeDeployment:
-  #   Type: AWS::ApiGatewayV2::Deployment
-  #   DependsOn:
-  #   - ConnectRoute
-  #   - PingRoute
-  #   - RegisterCharacterRoute
-  #   - DisconnectRoute
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  # RealTimeStage:
-  #   Type: AWS::ApiGatewayV2::Stage
-  #   DependsOn:
-  #     - RealTimeDeployment
-  #   Properties:
-  #     StageName: Prod
-  #     Description: Prod Stage
-  #     DeploymentId: !Ref RealTimeDeployment
-  #     ApiId: !Ref RealTimeWebSocket
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref DisconnectInteg
+  DisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+      RequestTemplates:
+        application/json: >
+          {
+            "action": "disconnect"
+          }
+  PingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: ping
+      AuthorizationType: NONE
+      OperationName: PingRoute
+      RouteResponseSelectionExpression: "$default"
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref PingInteg
+  PingInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Ping Integration
+      IntegrationType: MOCK
+      PassthroughBehavior: WHEN_NO_MATCH
+      TemplateSelectionExpression: "application/json"
+      RequestTemplates:
+        application/json: >
+          {
+            "statusCode": 200
+          }
+  PingIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref PingInteg
+      TemplateSelectionExpression: "$integration.response.statuscode"
+      IntegrationResponseKey: "/200/"
+      ResponseTemplates:
+        "200": >
+          {
+            "statusCode": 200,
+            "type": "pong"
+          }
+  PingResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref PingRoute
+      RouteResponseKey: "$default"
+  RegisterCharacterRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: registercharacter
+      AuthorizationType: NONE
+      OperationName: RegisterCharacterRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref RegisterCharacterInteg
+  RegisterCharacterInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Register Name Integtration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+  RegisterCharacterIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref RegisterCharacterInteg
+      IntegrationResponseKey: "/200/"
+  RegisterCharacterResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref RegisterCharacterRoute
+      RouteResponseKey: "$default"
+  RealTimeDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+    # - ConnectRoute
+    - PingRoute
+    - RegisterCharacterRoute
+    - DisconnectRoute
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+  RealTimeStage:
+    Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - RealTimeDeployment
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref RealTimeDeployment
+      ApiId: !Ref RealTimeWebSocket
   EphemeraTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -1969,9 +2034,13 @@ Outputs:
           Fn::ImportValue:
               !Sub "${PermanentsStack}-UserPoolId"
 
-  # WebSocketURI:
-  #     Description: "The WSS Protocol URI to connect to for realtime messages"
-  #     Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+  WebSocketURI:
+      Description: "The WSS Protocol URI to connect to for realtime control messages"
+      Value: !Join [ '', [ 'wss://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'RealTimeStage'] ]
+
+  WebSocketApiId:
+      Description: "The ID of the API for realtime controll"
+      Value: !Ref RealTimeWebSocket
 
   StorageApiURI:
       Description: "The HTTP Protocol URI to connect to proxy to the S3 storage bucket"

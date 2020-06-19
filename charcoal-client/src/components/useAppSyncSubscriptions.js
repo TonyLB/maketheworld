@@ -16,7 +16,6 @@ import {
 } from '../actions/role'
 import {
     unsubscribeAll,
-    subscribeRealtimePings,
     directMessageSubscription
 } from '../actions/subscriptions'
 
@@ -39,9 +38,6 @@ export const useAppSyncSubscriptions = () => {
         }
         if (!subscriptions.role) {
             dispatch(subscribeRoleChanges())
-        }
-        if (!subscriptions.ping) {
-            dispatch(subscribeRealtimePings())
         }
     }, [subscriptions, dispatch])
 

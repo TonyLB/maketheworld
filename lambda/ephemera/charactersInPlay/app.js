@@ -88,7 +88,8 @@ const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
             Item: {
                 EphemeraId,
                 DataCategory,
-                ...(Connected !== undefined ? { Connected } : { Connected: oldRecord.Connected })
+                ...(Connected !== undefined ? { Connected } : { Connected: oldRecord.Connected }),
+                ...((Connected && oldRecord && oldRecord.ConnectionId) ? { ConnectionId: oldRecord.ConnectionId } : {})
             }
         }).promise()
         .then(() => ({

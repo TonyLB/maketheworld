@@ -1,6 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { worldMessageAdded, playerMessageAdded, announcementAdded, directMessageAdded } from './messages'
-import { socketDispatch } from './webSocket'
 
 import { getCurrentRoomId, getCharacterId } from '../selectors/connection'
 
@@ -24,15 +23,6 @@ export const unsubscribeAll = () => (dispatch, getState) => {
     }
     Object.values(rest).forEach((subscription) => subscription.unsubscribe())
     dispatch(removeAllSubscriptions())
-}
-
-export const subscribeRealtimePings = () => (dispatch, getState) => {
-    const { subscriptions } = getState()
-    if (subscriptions.ping) {
-        clearInterval(subscriptions.ping)
-    }
-    const newPing = setInterval(() => { dispatch(socketDispatch('ping')()) }, 300000)
-    dispatch(addSubscription({ ping: newPing }))
 }
 
 export const moveRoomSubscription = (RoomId) => (dispatch, getState) => {
