@@ -1,7 +1,7 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { documentClient, graphqlClient, gql } = require('utilities')
+const { documentClient, graphqlClient, gql } = require('./utilities')
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -17,7 +17,6 @@ const disconnectGQL = ({ CharacterId }) => (gql`mutation DisconnectCharacter {
 }`)
 
 const disconnect = async (connectionId) => {
-    console.log(`In Disconnect`)
     const CharacterId = await documentClient.scan({
             TableName: ephemeraTable,
             FilterExpression: 'begins_with(EphemeraId, :EphemeraId) and ConnectionId = :ConnectionId',
@@ -30,7 +29,6 @@ const disconnect = async (connectionId) => {
         .then(({ EphemeraId = '' }) => (removeType(EphemeraId)))
 
     if (CharacterId) {
-        console.log('Disconnect GQL')
         await graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId })})
     }
     return { statusCode: 200 }
@@ -47,10 +45,9 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
                 ":Room": "ROOM#"
             }
         }).promise()
-        .then(({ Items = [{}] }) => (Items[0]))
+        .then(({ Items = [{}] }) => ((Items.length && Items[0]) || {}))
         .then(({ DataCategory }) => (DataCategory))
     if (DataCategory) {
-        console.log(`Updating: EphemeraId: ${EphemeraId}, DataCategory: ${DataCategory} -> ConnectionId: ${connectionId}`)
         await documentClient.update({
             TableName: ephemeraTable,
             Key: {
@@ -71,6 +68,8 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
 
 }
 
+exports.disconnect = disconnect
+exports.registerCharacter = registerCharacter
 exports.handler = (event) => {
 
     const { connectionId, routeKey } = event.requestContext

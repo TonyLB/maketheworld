@@ -1,0 +1,23 @@
+{
+  "name": "lambda",
+  "version": "1.0.0",
+  "description": "Testing framework for all lambda functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^26.1.0"
+  },
+  "jest": {
+    "modulePaths": [
+      "<rootDir>/appSyncLayer/node_modules/",
+      "<rootDir>/uuidLayer/node_modules/"
+    ],
+    "moduleNameMapper": {
+      "^/opt/appsync$": "<rootDir>/appSyncLayer/appsync.js"
+    }
+  }
+}

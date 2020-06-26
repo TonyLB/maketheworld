@@ -2054,6 +2054,10 @@ Outputs:
       Description: The URL of the AppSync GraphQL endpoint
       Value: !GetAtt AppSyncAPI.GraphQLUrl
 
+  AppSyncID:
+      Description: The ApiID of the AppSync GraphQL endpoint
+      Value: !GetAtt AppSyncAPI.ApiId
+
   InitializeLambda:
       Description: The Lambda function to invoke in order to initialize the MessagesDynamoDBTableDataSource
       Value: !Ref InitializeFunction
