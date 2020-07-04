@@ -1,8 +1,8 @@
 // Copyright 2020, Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { documentClient, s3Client, graphqlClient, gql } = require('utilities')
-const { gqlOutput } = require('gqlOutput')
+const { documentClient, s3Client, graphqlClient, gql } = require('./utilities')
+const { gqlOutput } = require('./gqlOutput')
 
 const s3Put = (filename, contents) => {
     const request = {
@@ -237,6 +237,8 @@ const serializeV2 = (Items) => {
     }
 
 }
+
+exports.serializeV2 = serializeV2
 
 exports.initiateBackup = async ({ PermanentId, Name, Description }) => {
 

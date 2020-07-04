@@ -1,14 +1,12 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk')
 const { v4: uuidv4 } = require('/opt/uuid')
+const { documentClient } = require('./utilities')
 
 
 exports.getMaps = () => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
-
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     return documentClient.scan({
         TableName: `${TABLE_PREFIX}_permanents`,
@@ -55,7 +53,7 @@ exports.getMaps = () => {
     .then((maps) => (Object.values(maps)))
 }
 
-const batchDispatcher = (documentClient) => (items) => {
+const batchDispatcher = (items) => {
     const groupBatches = items.reduce((({ current, requestLists }, item) => {
             if (current.length > 23) {
                 return {
@@ -79,10 +77,8 @@ const batchDispatcher = (documentClient) => (items) => {
 }
 
 exports.putMap = async (payload) => {
-    const { TABLE_PREFIX, AWS_REGION } = process.env;
+    const { TABLE_PREFIX } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
-
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     const PermanentId = `MAP#${payload.MapId || uuidv4()}`
     const desiredState = [
@@ -137,7 +133,7 @@ exports.putMap = async (payload) => {
             }
         })))
     ])
-        .then(batchDispatcher(documentClient))
+        .then(batchDispatcher)
         .then(() => ([{ Map: {
             ...payload,
             MapId: PermanentId.slice(4)

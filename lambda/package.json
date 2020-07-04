@@ -17,7 +17,8 @@
       "<rootDir>/uuidLayer/node_modules/"
     ],
     "moduleNameMapper": {
-      "^/opt/appsync$": "<rootDir>/appSyncLayer/appsync.js"
+      "^/opt/appsync$": "<rootDir>/appSyncLayer/appsync.js",
+      "^/opt/uuid$": "<rootDir>/uuidLayer/uuid.js"
     }
   }
 }

@@ -1,31 +1,15 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('/opt/uuid')
-const { AppSync, gql } = require('/opt/appsync')
-require('cross-fetch/polyfill')
-
-const graphqlClient = new AppSync.AWSAppSyncClient({
-    url: process.env.APPSYNC_ENDPOINT_URL,
-    region: process.env.AWS_REGION,
-    auth: {
-      type: 'AWS_IAM',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        sessionToken: process.env.AWS_SESSION_TOKEN
-      }
-    },
-    disableOffline: true
-  })
+const { graphqlClient, documentClient, gql } = require('./utilities')
 
 const promiseDebug = (label) => (result) => {
     console.log(`${label}: ${JSON.stringify(result, null, 4)}`)
     return result
 }
 
-const batchDispatcher = (documentClient) => (items) => {
+const batchDispatcher = (items) => {
     const groupBatches = items.reduce((({ current, requestLists }, item) => {
             if (current.length > 23) {
                 return {
@@ -51,8 +35,6 @@ const batchDispatcher = (documentClient) => (items) => {
 exports.getNeighborhood = ({ PermanentId }) => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
-
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     const neighborhoodLookup = documentClient.get({
         TableName: permanentTable,
@@ -97,9 +79,7 @@ exports.putNeighborhood = (event) => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
 
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
-
-    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Visible', Topology = 'Dead-End', Retired = false, ContextMapId, Grants = [], Name } = event.arguments
+    const { CharacterId = '', PermanentId = '', ParentId = '', Description = '', Visibility = 'Private', Topology = 'Dead-End', Retired = false, ContextMapId, Grants = [], Name } = event.arguments
 
     const newNeighborhood = !Boolean(PermanentId)
     const newPermanentId = PermanentId || uuidv4()
@@ -108,7 +88,7 @@ exports.putNeighborhood = (event) => {
     // Create externalUpdate calls to update the AppSync API with what we're doing to grants (so people
     // can subscribe to the updates of their own grants, and get live permission changes)
     //
-    const updateGrantsInAppSyncCall = (documentClient) => ({ grantsToDelete, grantsToPut }) => {
+    const updateGrantsInAppSyncCall = ({ grantsToDelete, grantsToPut }) => {
         const findPlayer = (CharacterId) => (
             documentClient.query({
                 TableName: permanentTable,
@@ -207,10 +187,6 @@ exports.putNeighborhood = (event) => {
                 `${previous}\nupdate${index+1}: ${item}`
             ), '')))
             .then((aggregateUpdates) => (aggregateUpdates.trim().length ? `mutation GrantUpdates { ${aggregateUpdates} }` : ''))
-            .then((result) => {
-                console.log(result)
-                return result
-            })
             .then((mutation) => (
                 mutation.trim().length
                     ? graphqlClient.mutate({ mutation: gql`${mutation}`})
@@ -257,7 +233,7 @@ exports.putNeighborhood = (event) => {
                 ))))
                 .map((item) => ({ ...item, Resource: newPermanentId }))
             }))
-        .then(updateGrantsInAppSyncCall(documentClient))
+        .then(updateGrantsInAppSyncCall)
         .then(({ grantsToDelete, grantsToPut }) => ([
                 ...(grantsToDelete.map(({ Resource, CharacterId }) => ({
                     DeleteRequest: {
@@ -278,7 +254,7 @@ exports.putNeighborhood = (event) => {
                     }
                 })))
             ]))
-        .then(batchDispatcher(documentClient))
+        .then(batchDispatcher)
         .then(() => ({
             CharacterId,
             PermanentId: newPermanentId,
@@ -359,6 +335,10 @@ exports.putNeighborhood = (event) => {
             Room: null,
             Map: null
         }]))
-        .catch((err) => ({ error: err.stack }))
+        .catch((err) => {
+            console.log(`ERROR:`)
+            console.log(err)
+            return { error: err.stack }
+        })
 
 }

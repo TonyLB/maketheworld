@@ -64,6 +64,8 @@ const itemReducer = (previous, {
     return previous
 }
 
+exports.itemReducer = itemReducer
+
 exports.getNodeTree = () => {
 
     const { TABLE_PREFIX, AWS_REGION } = process.env;

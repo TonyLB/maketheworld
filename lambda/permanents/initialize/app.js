@@ -1,12 +1,10 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk')
+const { documentClient } = require('./utilities')
 
-const { TABLE_PREFIX, AWS_REGION } = process.env;
+const { TABLE_PREFIX } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
-
-const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
 exports.handler = async () => {
 

@@ -1,5 +1,5 @@
-const { documentClient, s3Client, graphqlClient, gql } = require('utilities')
-const { gqlOutput } = require('gqlOutput')
+const { documentClient, s3Client, graphqlClient, gql } = require('./utilities')
+const { gqlOutput } = require('./gqlOutput')
 
 const s3Get = (filename) => {
     const request = {
@@ -217,6 +217,8 @@ const batchDispatcher = (items) => {
         } }).promise()))
     return Promise.all(batchPromises)
 }
+
+exports.deserialize = deserialize
 
 exports.restoreBackup = async ({ PermanentId }) => {
 

@@ -1,50 +1,16 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { documentClient } = require('utilities')
+const { documentClient } = require('./utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
 
-const { initiateBackup } = require('initiateBackup')
-const { restoreBackup } = require('restoreBackup')
-const { uploadBackup } = require('uploadBackup')
+const { initiateBackup } = require('./initiateBackup')
+const { restoreBackup } = require('./restoreBackup')
+const { uploadBackup } = require('./uploadBackup')
+const { getSettings, putSettings } = require('./adminSettings')
 const { TABLE_PREFIX, AWS_REGION } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
 
-const getSettings = () => {
-    return documentClient.get({
-        TableName: `${TABLE_PREFIX}_permanents`,
-        Key: {
-            PermanentId: `ADMIN`,
-            DataCategory: 'Details'
-        }
-    }).promise()
-    .then(({ Item = {} }) => (Item))
-    .then(({ ChatPrompt = 'What do you do?' }) => ({ ChatPrompt }))
-}
-
-const putSettings = (payload) => {
-    const { ChatPrompt } = payload
-
-    return documentClient.put({
-            TableName: permanentTable,
-            Item: {
-                PermanentId: 'ADMIN',
-                DataCategory: 'Details',
-                ChatPrompt
-            }
-        }).promise()
-        .then(() => ([{ Settings: payload }]))
-
-}
-
-//
-// TODO:  (1) Create handlers for storing backup meta-data in the permanents database
-// under the Admin heading.
-//
-//   (2) Create a REST API that can accept uploads and serve downloads from the
-// StorageBucket S3 area, in order to give people client-based ability to download
-// and upload backup files.
-//
 const getBackups = async () => {
     const { Items = [] } = await documentClient.query({
             TableName: permanentTable,
