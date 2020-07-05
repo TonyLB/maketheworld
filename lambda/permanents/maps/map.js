@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 const { v4: uuidv4 } = require('/opt/uuid')
-const { documentClient } = require('./utilities')
+const { documentClient } = require('../utilities')
 
 
 exports.getMaps = () => {

@@ -1,4 +1,4 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         query: jest.fn(),
         batchWrite: jest.fn(),
@@ -11,8 +11,8 @@ jest.mock('/opt/uuid', () => ({
     v4: jest.fn()
 }))
 
-const { documentClient } = require('./utilities')
-const { getMaps, putMap } = require('./app')
+const { documentClient } = require('../utilities')
+const { getMaps, putMap } = require('./map')
 const { v4 } = require('/opt/uuid')
 
 describe("getMaps", () => {

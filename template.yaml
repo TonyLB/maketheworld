@@ -66,26 +66,6 @@ Resources:
             Resource: !Sub '${AppSyncAPI}/*'
         - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_ephemera'
-  # ConnectRoute:
-  #   Type: AWS::ApiGatewayV2::Route
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     RouteKey: $connect
-  #     AuthorizationType: NONE
-  #     OperationName: ConnectRoute
-  #     Target: !Join
-  #       - '/'
-  #       - - 'integrations'
-  #         - !Ref ConnectInteg
-  # ConnectInteg:
-  #   Type: AWS::ApiGatewayV2::Integration
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
-  #     Description: Connect Integration
-  #     IntegrationType: AWS_PROXY
-  #     IntegrationUri:
-  #       Fn::Sub:
-  #           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -196,7 +176,6 @@ Resources:
   RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
-    # - ConnectRoute
     - PingRoute
     - RegisterCharacterRoute
     - DisconnectRoute
@@ -269,91 +248,6 @@ Resources:
         ContentUri: lambda/uuidLayer/
         CompatibleRuntimes:
           - nodejs12.x
-  # OnConnectFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     CodeUri: lambda/onconnect/
-  #     Handler: app.handler
-  #     MemorySize: 256
-  #     Runtime: nodejs12.x
-  #     Environment:
-  #       Variables:
-  #         TABLE_PREFIX: !Ref TablePrefix
-  # OnConnectPermission:
-  #   Type: AWS::Lambda::Permission
-  #   DependsOn:
-  #     - RealTimeWebSocket
-  #     - OnConnectFunction
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: !Ref OnConnectFunction
-  #     Principal: apigateway.amazonaws.com
-  # OnDisconnectFunction:
-  #   Type: AWS::Serverless::Function
-  #   DependsOn:
-  #     - AppSyncAPI
-  #   Properties:
-  #     CodeUri: lambda/ondisconnect/
-  #     Handler: app.handler
-  #     MemorySize: 256
-  #     Runtime: nodejs12.x
-  #     Environment:
-  #       Variables:
-  #         TABLE_PREFIX: !Ref TablePrefix
-  #         APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-  #     Policies:
-  #     - Statement:
-  #       - Effect: Allow
-  #         Action:
-  #         - 'execute-api:ManageConnections'
-  #         Resource:
-  #         - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
-  #     - Statement:
-  #       - Effect: Allow
-  #         Action: appsync:GraphQL
-  #         Resource: !Sub '${AppSyncAPI}/*'
-  # OnDisconnectPermission:
-  #   Type: AWS::Lambda::Permission
-  #   DependsOn:
-  #     - RealTimeWebSocket
-  #     - OnDisconnectFunction
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: !Ref OnDisconnectFunction
-  #     Principal: apigateway.amazonaws.com
-  # RegisterCharacterFunction:
-  #   Type: AWS::Serverless::Function
-  #   DependsOn:
-  #     - AppSyncAPI
-  #   Properties:
-  #     CodeUri: lambda/registercharacter/
-  #     Handler: app.handler
-  #     MemorySize: 256
-  #     Runtime: nodejs12.x
-  #     Environment:
-  #       Variables:
-  #         TABLE_PREFIX: !Ref TablePrefix
-  #         APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-  #     Policies:
-  #     - Statement:
-  #       - Effect: Allow
-  #         Action:
-  #         - 'execute-api:ManageConnections'
-  #         Resource:
-  #         - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
-  #     - Statement:
-  #       - Effect: Allow
-  #         Action: appsync:GraphQL
-  #         Resource: !Sub '${AppSyncAPI}/*'
-  # RegisterCharacterPermission:
-  #   Type: AWS::Lambda::Permission
-  #   DependsOn:
-  #     - RealTimeWebSocket
-  #     - RegisterCharacterFunction
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: !Ref RegisterCharacterFunction
-  #     Principal: apigateway.amazonaws.com
 
   StorageAPIExecutionRole:
     Type: AWS::IAM::Role
@@ -618,8 +512,6 @@ Resources:
                         - !GetAtt GetNeighborhoodFunction.Arn
                         - !GetAtt PutNeighborhoodFunction.Arn
                         - !GetAtt PutRoomFunction.Arn
-                        - !GetAtt GetMapsFunction.Arn
-                        - !GetAtt PutMapFunction.Arn
                         - !GetAtt PermanentsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
   PermanentsDynamoDBTableDataSource:
@@ -766,7 +658,7 @@ Resources:
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": {}
+                  "payload": { "action": "getAllCharacters" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PutCharacterResolver:
@@ -1062,30 +954,6 @@ Resources:
                 }))
             #end
             $util.toJson($output)
-  GetMapsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-        CodeUri: lambda/permanents/maps/
-        Handler: app.getMaps
-        MemorySize: 256
-        Runtime: nodejs12.x
-        Environment:
-            Variables:
-                TABLE_PREFIX: !Ref TablePrefix
-        Layers:
-            - !Ref UUIDLambdaLayer
-        Policies:
-          - DynamoDBReadPolicy:
-                TableName: !Sub '${TablePrefix}_permanents'
-  GetMapsDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetMaps
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetMapsFunction.Arn
   QueryGetMapsResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1093,38 +961,14 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getMaps
-          DataSourceName: !GetAtt GetMapsDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": {}
+                  "payload": { "action": "getMaps" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  PutMapFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-        CodeUri: lambda/permanents/maps/
-        Handler: app.putMap
-        MemorySize: 256
-        Runtime: nodejs12.x
-        Environment:
-            Variables:
-                TABLE_PREFIX: !Ref TablePrefix
-        Layers:
-            - !Ref UUIDLambdaLayer
-        Policies:
-          - DynamoDBCrudPolicy:
-                TableName: !Sub '${TablePrefix}_permanents'
-  PutMapDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutMap
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt PutMapFunction.Arn
   MutationPutMapResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1132,12 +976,14 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putMap
-          DataSourceName: !GetAtt PutMapDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
+              #set($arguments = $ctx.args)
+              $util.qr($arguments.put("action", "putMap"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": $utils.toJson($ctx.args)
+                  "payload": $utils.toJson($arguments)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationAddCharacterInPlay:

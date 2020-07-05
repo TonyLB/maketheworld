@@ -8,6 +8,7 @@ const { getPlayerCharacters } = require('./characters/getPlayerCharacters')
 const { getAllCharacters } = require('./characters/getAllCharacters')
 const { putCharacter } = require('./characters/putCharacter')
 
+const { getMaps, putMap } = require('./maps/map')
 
 exports.handler = (event, context) => {
     const { action, ...payload } = event
@@ -48,6 +49,11 @@ exports.handler = (event, context) => {
             return getAllCharacters()
         case "putCharacter":
             return putCharacter(payload)
+
+        case "getMaps":
+            return getMaps()
+        case "putMap":
+            return putMap(payload)
 
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
