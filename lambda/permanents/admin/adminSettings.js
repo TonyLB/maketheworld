@@ -1,7 +1,7 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { documentClient } = require('./utilities')
+const { documentClient } = require('../utilities')
 const { TABLE_PREFIX, AWS_REGION } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
 

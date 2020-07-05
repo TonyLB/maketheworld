@@ -1,10 +1,10 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         batchWrite: jest.fn()
     }
 }))
 const { deserialize } = require('./restoreBackup')
-const { documentClient, graphqlClient } = require('./utilities')
+const { documentClient, graphqlClient } = require('../utilities')
 
 describe("deserialize", () => {
     afterEach(() => {

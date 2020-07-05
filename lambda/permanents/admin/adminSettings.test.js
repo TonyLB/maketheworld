@@ -1,4 +1,4 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         scan: jest.fn(),
         query: jest.fn(),
@@ -16,7 +16,7 @@ jest.mock('./utilities', () => ({
     })
 }))
 const { getSettings, putSettings } = require('./adminSettings')
-const { documentClient, graphqlClient } = require('./utilities')
+const { documentClient, graphqlClient } = require('../utilities')
 
 describe("getSettings", () => {
     it("should return defaults when no setting record", async () => {

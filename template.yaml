@@ -374,7 +374,7 @@ Resources:
                   Action:
                     - lambda:InvokeFunction
                   Resource:
-                    - !GetAtt AdminFunction.Arn
+                    - !GetAtt PermanentsFunction.Arn
           - PolicyName: StorageS3Policy
             PolicyDocument:
               Version: "2012-10-17"
@@ -409,7 +409,7 @@ Resources:
     DependsOn:
       - BackupResource
       - StorageAPIExecutionRole
-      - AdminFunction
+      - PermanentsFunction
     Properties:
       HttpMethod: GET
       ResourceId: !Ref BackupResource
@@ -477,7 +477,7 @@ Resources:
     DependsOn:
       - BackupResource
       - StorageAPIExecutionRole
-      - AdminFunction
+      - PermanentsFunction
     Properties:
       HttpMethod: POST
       ResourceId: !Ref BackupPathResource
@@ -496,7 +496,7 @@ Resources:
                 - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${AdminArn}/invocations"
                 -
                     Region: !Ref AWS::Region
-                    AdminArn: !GetAtt AdminFunction.Arn
+                    AdminArn: !GetAtt PermanentsFunction.Arn
         PassthroughBehavior: WHEN_NO_MATCH
         IntegrationResponses:
           - StatusCode: 200
@@ -624,7 +624,7 @@ Resources:
                         - !GetAtt PutRoomFunction.Arn
                         - !GetAtt GetMapsFunction.Arn
                         - !GetAtt PutMapFunction.Arn
-                        - !GetAtt AdminFunction.Arn
+                        - !GetAtt PermanentsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
   PermanentsDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
@@ -1381,12 +1381,12 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  AdminFunction:
+  PermanentsFunction:
       Type: AWS::Serverless::Function
       DependsOn:
           - AppSyncAPI
       Properties:
-          CodeUri: lambda/permanents/admin/
+          CodeUri: lambda/permanents/
           Handler: app.handler
           MemorySize: 256
           Runtime: nodejs12.x
@@ -1419,25 +1419,25 @@ Resources:
                             !Sub "${PermanentsStack}-StorageBucket"
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  AdminDataSource:
+  PermanentsDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: AdminLambda
+          Name: PermanentsLambda
           Type: AWS_LAMBDA
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
-              LambdaFunctionArn: !GetAtt AdminFunction.Arn
+              LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
   QueryGetSettings:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - AdminFunction
+        - PermanentsFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getSettings
-          DataSourceName: !GetAtt AdminDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
@@ -1451,12 +1451,12 @@ Resources:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - AdminFunction
+        - PermanentsFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putSettings
-          DataSourceName: !GetAtt AdminDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "putSettings"))
               {
@@ -1469,12 +1469,12 @@ Resources:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - AdminFunction
+        - PermanentsFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getBackups
-          DataSourceName: !GetAtt AdminDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
@@ -1488,12 +1488,12 @@ Resources:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - AdminFunction
+        - PermanentsFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putBackup
-          DataSourceName: !GetAtt AdminDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "putBackup"))
               {
@@ -1506,12 +1506,12 @@ Resources:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - AdminFunction
+        - PermanentsFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: createBackup
-          DataSourceName: !GetAtt AdminDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "createBackup"))
               {
@@ -1524,12 +1524,12 @@ Resources:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - AdminFunction
+        - PermanentsFunction
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: restoreBackup
-          DataSourceName: !GetAtt AdminDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               $util.qr($ctx.args.put("action", "restoreBackup"))
               {

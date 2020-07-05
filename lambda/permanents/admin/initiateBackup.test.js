@@ -1,4 +1,4 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         scan: jest.fn(),
         query: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock('./utilities', () => ({
     })
 }))
 const { serializeV2 } = require('./initiateBackup')
-const { documentClient, graphqlClient } = require('./utilities')
+const { documentClient, graphqlClient } = require('../utilities')
 
 describe("serializeV2", () => {
     it("should save empty backup when no permanents data", () => {
