@@ -1,4 +1,21 @@
-const { itemReducer } = require('./app')
+jest.mock('../utilities', () => ({
+    documentClient: {
+        query: jest.fn(() => ({ promise: jest.fn() })),
+        batchWrite: jest.fn(),
+        scan: jest.fn(),
+        get: jest.fn(),
+        put: jest.fn()
+    },
+    graphqlClient: {
+        mutate: jest.fn()
+    },
+    gql: jest.fn((strings, ...args) => {
+        const returnVal = args.map((arg, index) => (strings[index] + arg)).join("") + strings[args.length]
+        return returnVal.split("\n").map((innerVal) => (innerVal.trim())).join('\n')
+    })
+}))
+
+const { itemReducer } = require('./nodeTree')
 
 describe("getNodeTree", () => {
 

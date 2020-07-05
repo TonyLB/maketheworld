@@ -12,6 +12,8 @@ const { getMaps, putMap } = require('./maps/map')
 
 const { getNeighborhood, putNeighborhood } = require('./neighborhoods/neighborhood')
 
+const { getNodeTree } = require('./nodeTree/nodeTree')
+
 exports.handler = (event, context) => {
     const { action, ...payload } = event
 
@@ -61,6 +63,9 @@ exports.handler = (event, context) => {
             return getNeighborhood(payload)
         case "putNeighborhood":
             return putNeighborhood(payload)
+
+        case "getNodeTree":
+            return getNodeTree()
 
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))

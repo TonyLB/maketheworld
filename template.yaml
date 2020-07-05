@@ -508,7 +508,6 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource:
-                        - !GetAtt GetNodeTreeFunction.Arn
                         - !GetAtt PutRoomFunction.Arn
                         - !GetAtt PermanentsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
@@ -743,28 +742,6 @@ Resources:
                   }
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  GetNodeTreeFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/nodeTree/
-          Handler: app.getNodeTree
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBReadPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-  GetNodeTreeDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetNodeTree
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetNodeTreeFunction.Arn
   QueryGetNeighborhoodTree:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -772,12 +749,12 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getNeighborhoodTree
-          DataSourceName: !GetAtt GetNodeTreeDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": {}
+                  "payload": { "action": "getNodeTree" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetNeighborhood:
