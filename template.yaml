@@ -509,8 +509,6 @@ Resources:
                           - "lambda:InvokeFunction"
                       Resource:
                         - !GetAtt GetNodeTreeFunction.Arn
-                        - !GetAtt GetNeighborhoodFunction.Arn
-                        - !GetAtt PutNeighborhoodFunction.Arn
                         - !GetAtt PutRoomFunction.Arn
                         - !GetAtt PermanentsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
@@ -782,49 +780,22 @@ Resources:
                   "payload": {}
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  GetNeighborhoodFunction:
-      DependsOn:
-          - AppSyncAPI
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/neighborhoods/
-          Handler: app.getNeighborhood
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          Policies:
-            - DynamoDBReadPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-  GetNeighborhoodDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetNeighborhood
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetNeighborhoodFunction.Arn
   QueryGetNeighborhood:
     Type: AWS::AppSync::Resolver
     DependsOn:
       - Schema
-      - GetNeighborhoodFunction
+      - PermanentsDataSource
     Properties:
         ApiId: !GetAtt AppSyncAPI.ApiId
         TypeName: Query
         FieldName: getNeighborhood
-        DataSourceName: !GetAtt GetNeighborhoodDataSource.Name
+        DataSourceName: !GetAtt PermanentsDataSource.Name
         RequestMappingTemplate: >
             {
                 "version": "2017-02-28",
                 "operation": "Invoke",
                 "payload": {
+                    "action": "getNeighborhood",
                     "PermanentId": $utils.toJson($ctx.args.PermanentId)
                 }
             }
@@ -1065,53 +1036,22 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  PutNeighborhoodFunction:
-      Type: AWS::Serverless::Function
-      DependsOn:
-          - AppSyncAPI
-      Properties:
-          CodeUri: lambda/permanents/neighborhoods/
-          Handler: app.putNeighborhood
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          Policies:
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-            - Statement:
-              - Effect: Allow
-                Action: appsync:GraphQL
-                Resource: !Sub '${AppSyncAPI}/*'
-  PutNeighborhoodDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutNeighborhood
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt PutNeighborhoodFunction.Arn
   MutationPutNeighborhood:
       Type: AWS::AppSync::Resolver
       DependsOn:
         - Schema
-        - PutNeighborhoodFunction
+        - PermanentsDataSource
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putNeighborhood
-          DataSourceName: !GetAtt PutNeighborhoodDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
                   "payload": {
+                      "action": "putNeighborhood",
                       "arguments": $utils.toJson($ctx.args)
                   }
               }

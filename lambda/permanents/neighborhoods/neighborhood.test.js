@@ -1,4 +1,4 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         query: jest.fn(() => ({ promise: jest.fn() })),
         batchWrite: jest.fn(),
@@ -21,8 +21,8 @@ jest.mock('/opt/uuid', () => ({
 
 const stripMultiline = (value) => (value.split("\n").map((innerVal) => (innerVal.trim())).join('\n'))
 
-const { documentClient, graphqlClient } = require('./utilities')
-const { getNeighborhood, putNeighborhood } = require('./app')
+const { documentClient, graphqlClient } = require('../utilities')
+const { getNeighborhood, putNeighborhood } = require('./neighborhood')
 const { v4 } = require('/opt/uuid')
 
 describe("getNeighborhood", () => {

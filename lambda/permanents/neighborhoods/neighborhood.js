@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 const { v4: uuidv4 } = require('/opt/uuid')
-const { graphqlClient, documentClient, gql } = require('./utilities')
+const { graphqlClient, documentClient, gql } = require('../utilities')
 
 const promiseDebug = (label) => (result) => {
     console.log(`${label}: ${JSON.stringify(result, null, 4)}`)
