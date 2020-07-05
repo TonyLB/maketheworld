@@ -1,11 +1,11 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         get: jest.fn(),
         query: jest.fn()
     }
 }))
 const { getCharacter } = require('./getCharacter')
-const { documentClient } = require('./utilities')
+const { documentClient } = require('../utilities')
 
 describe("getCharacter", () => {
     it("should return empty when no records", async () => {

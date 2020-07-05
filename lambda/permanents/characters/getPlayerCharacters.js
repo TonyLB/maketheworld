@@ -1,4 +1,4 @@
-const { documentClient } = require('./utilities')
+const { documentClient } = require('../utilities')
 const { getCharacterInfo } = require('./getCharacterInfo')
 
 

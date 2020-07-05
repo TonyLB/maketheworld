@@ -1,4 +1,4 @@
-const { documentClient, graphqlClient, gql } = require('./utilities')
+const { documentClient, graphqlClient, gql } = require('../utilities')
 const { getCharacterInfo } = require('./getCharacterInfo')
 
 const { TABLE_PREFIX, AWS_REGION } = process.env;

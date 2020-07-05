@@ -614,11 +614,7 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource:
-                        - !GetAtt PutCharacterFunction.Arn
                         - !GetAtt GetNodeTreeFunction.Arn
-                        - !GetAtt GetPlayerCharactersFunction.Arn
-                        - !GetAtt GetAllCharactersFunction.Arn
-                        - !GetAtt GetCharacterFunction.Arn
                         - !GetAtt GetNeighborhoodFunction.Arn
                         - !GetAtt PutNeighborhoodFunction.Arn
                         - !GetAtt PutRoomFunction.Arn
@@ -724,32 +720,6 @@ Resources:
               "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false)
             }
           })
-  GetCharacterFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-        CodeUri: lambda/permanents/characters/
-        Handler: app.getCharacter
-        MemorySize: 256
-        Runtime: nodejs12.x
-        Layers:
-            - !Ref UUIDLambdaLayer
-            - !Ref AppSyncLambdaLayer
-        Environment:
-            Variables:
-                TABLE_PREFIX: !Ref TablePrefix
-                APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-        Policies:
-          - DynamoDBReadPolicy:
-                TableName: !Sub '${TablePrefix}_permanents'
-  GetCharacterDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetCharacter
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetCharacterFunction.Arn
   QueryGetCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -757,42 +727,15 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getCharacter
-          DataSourceName: !GetAtt GetCharacterDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
+              $util.qr($ctx.args.put("action", "getCharacter"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": {
-                      "CharacterId": $utils.toJson($ctx.args.CharacterId)
-                  }
+                  "payload": $util.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  GetPlayerCharactersFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/characters/
-          Handler: app.getPlayerCharacters
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          Policies:
-            - DynamoDBReadPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-  GetPlayerCharactersDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetPlayerCharacters
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetPlayerCharactersFunction.Arn
   QueryPlayerCharactersResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -800,42 +743,17 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getPlayerCharacters
-          DataSourceName: !GetAtt GetPlayerCharactersDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
+              #set($arguments = {})
+              $util.qr($arguments.put("PlayerName", $context.identity.username))
+              $util.qr($arguments.put("action", "getPlayerCharacters"))
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": {
-                    "PlayerName": $util.toJson($context.identity.username)
-                  }
+                  "payload": $util.toJson($arguments)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  GetAllCharactersFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/characters/
-          Handler: app.getAllCharacters
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          Policies:
-            - DynamoDBReadPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-  GetAllCharactersDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: GetAllCharacters
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt GetAllCharactersFunction.Arn
   QueryAllCharactersResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -843,7 +761,7 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getAllCharacters
-          DataSourceName: !GetAtt GetAllCharactersDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
@@ -851,36 +769,6 @@ Resources:
                   "payload": {}
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  PutCharacterFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/characters/
-          Handler: app.putCharacter
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          Policies:
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-            - Statement:
-              - Effect: Allow
-                Action: appsync:GraphQL
-                Resource: !Sub '${AppSyncAPI}/*'
-  PutCharacterDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutCharacter
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt PutCharacterFunction.Arn
   PutCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -888,15 +776,16 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: putCharacter
-          DataSourceName: !GetAtt PutCharacterDataSource.Name
+          DataSourceName: !GetAtt PermanentsDataSource.Name
           RequestMappingTemplate: >
               #set($arguments = $ctx.args)
               $util.qr($arguments.put("PlayerName", $context.identity.username))
-              $util.toJson({
+              $util.qr($arguments.put("action", "putCharacter"))
+              {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": $arguments
-              })
+                  "payload": $util.toJson($arguments)
+              }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationExternalPutCharacter:
     Type: AWS::AppSync::Resolver

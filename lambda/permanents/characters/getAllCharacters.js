@@ -1,4 +1,4 @@
-const { documentClient } = require('./utilities')
+const { documentClient } = require('../utilities')
 
 const { TABLE_PREFIX } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
@@ -6,7 +6,7 @@ const permanentTable = `${TABLE_PREFIX}_permanents`
 exports.getAllCharacters = () => {
 
     return documentClient.scan({
-        TableName: `${process.env.TABLE_PREFIX}_permanents`,
+        TableName: permanentTable,
         FilterExpression: 'begins_with(#PermanentId, :Character)',
         ExpressionAttributeValues: {
             ":Character": `CHARACTER#`

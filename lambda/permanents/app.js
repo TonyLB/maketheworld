@@ -3,6 +3,12 @@ const { uploadBackup } = require('./admin/uploadBackup')
 const { getSettings, putSettings } = require('./admin/adminSettings')
 const { getBackups, putBackup, createBackup } = require('./admin/backup')
 
+const { getCharacter } = require('./characters/getCharacter')
+const { getPlayerCharacters } = require('./characters/getPlayerCharacters')
+const { getAllCharacters } = require('./characters/getAllCharacters')
+const { putCharacter } = require('./characters/putCharacter')
+
+
 exports.handler = (event, context) => {
     const { action, ...payload } = event
 
@@ -33,6 +39,16 @@ exports.handler = (event, context) => {
             return getSettings()
         case "putSettings":
             return putSettings(payload)
+
+        case "getCharacter":
+            return getCharacter(payload)
+        case "getPlayerCharacters":
+            return getPlayerCharacters(payload)
+        case "getAllCharacters":
+            return getAllCharacters()
+        case "putCharacter":
+            return putCharacter(payload)
+
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
     }

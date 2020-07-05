@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('/opt/uuid')
-const { documentClient, graphqlClient, gql } = require('./utilities')
+const { documentClient, graphqlClient, gql } = require('../utilities')
 const { gqlOutput } = require('./gqlOutput')
 const { getCharacterInfo } = require('./getCharacterInfo')
 

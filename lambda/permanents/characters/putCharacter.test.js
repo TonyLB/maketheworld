@@ -1,4 +1,4 @@
-jest.mock('./utilities', () => ({
+jest.mock('../utilities', () => ({
     documentClient: {
         query: jest.fn(),
         batchWrite: jest.fn()
@@ -18,7 +18,7 @@ jest.mock('/opt/uuid', () => ({
 const { v4: uuid } = require('/opt/uuid')
 
 const { putCharacter } = require('./putCharacter')
-const { documentClient, graphqlClient } = require('./utilities')
+const { documentClient, graphqlClient } = require('../utilities')
 
 const stripMultiline = (value) => (value.split("\n").map((innerVal) => (innerVal.trim())).join('\n'))
 
