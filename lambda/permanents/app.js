@@ -31,6 +31,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             if (update.putBackup) {
                 return putBackup(update.putBackup)
             }
+            if (update.putRoom) {
+                return putRoom({ arguments: update.putRoom })
+            }
             return Promise.resolve([])
         }
     )

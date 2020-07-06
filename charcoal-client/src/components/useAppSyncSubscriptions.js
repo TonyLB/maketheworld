@@ -30,7 +30,7 @@ export const useAppSyncSubscriptions = () => {
         if (!subscriptions.charactersInPlay) {
             dispatch(subscribeCharactersInPlayChanges())
         }
-        if (!(subscriptions.rooms && subscriptions.nodes)) {
+        if (!subscriptions.nodes) {
             dispatch(subscribePermanentHeaderChanges())
         }
         if (!subscriptions.directMessages) {

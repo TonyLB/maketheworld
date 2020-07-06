@@ -39,18 +39,8 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
                 dispatch(neighborhoodUpdate(changedPermanents))
             }
         })
-    const roomSubscription = API.graphql(graphqlOperation(changedRoom))
-        .subscribe({
-            next: (roomData) => {
-                const { value = {} } = roomData
-                const { data = {} } = value
-                const { changedRoom = {} } = data
-                dispatch(neighborhoodUpdate([{ Room: changedRoom }]))
-            }
-        })
 
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
-    dispatch(addSubscription({ rooms: roomSubscription }))
     dispatch(fetchAllNeighborhoods())
     dispatch(fetchMaps)
     dispatch(fetchSettings)

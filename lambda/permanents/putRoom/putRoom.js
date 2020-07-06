@@ -187,8 +187,7 @@ exports.putRoom = (event) => {
             ])).reduce((previous, item) => ([ ...previous, ...item ]), [])
         ])
         .then(batchDispatcher)
-        .then(() => ({
-            Type: "ROOM",
+        .then(() => ([ { Room: {
             PermanentId,
             ParentId,
             Name,
@@ -199,7 +198,7 @@ exports.putRoom = (event) => {
             Retired,
             Entries,
             Exits
-        }))
+        }} ]))
     )
 
     return pathLookup

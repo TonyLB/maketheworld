@@ -1167,26 +1167,6 @@ Resources:
                   "CharacterId": "$result.CharacterId",
                   "GrantInfo": $grant
             })
-  MutationPutRoom:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-      - PermanentsDataSource
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: putRoom
-        DataSourceName: !GetAtt PermanentsDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "Invoke",
-                "payload": {
-                    "action": "putRoom",
-                    "arguments": $utils.toJson($ctx.args)
-                }
-            }
-        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1391,6 +1371,17 @@ Resources:
                   Grants: [ResourceGrant]
                   Retired: Boolean
               }
+              input RoomInput @aws_iam @aws_cognito_user_pools {
+                  PermanentId: String
+                  Name: String!
+                  Description: String
+                  ParentId: String
+                  Visibility: String
+                  Topology: String
+                  Exits: [PathInput]
+                  Entries: [PathInput]
+                  Retired: Boolean
+              }
               type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
                   CreatedTime: Long!
@@ -1465,6 +1456,7 @@ Resources:
                 putMap: MapInput
                 putSettings: SettingsInput
                 putBackup: BackupInput
+                putRoom: RoomInput
               }
               type Mutation {
                   putPlayer(
@@ -1506,17 +1498,6 @@ Resources:
                       CharacterId: String!
                       RoomId: String!
                   ): CharacterInPlay
-                  putRoom(
-                      PermanentId: String
-                      Name: String!
-                      Description: String
-                      ParentId: String
-                      Visibility: String
-                      Topology: String
-                      Exits: [PathInput]
-                      Entries: [PathInput]
-                      Retired: Boolean
-                  ): Room
                   externalUpdateGrant(
                       PlayerName: String!
                       CharacterId: String!
@@ -1587,8 +1568,6 @@ Resources:
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["updatePermanents", "createBackup", "externalPutCharacter"])
-                  changedRoom: Room
-                  @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (
                     RoomId: String
                     CharacterId: String

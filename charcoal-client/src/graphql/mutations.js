@@ -215,52 +215,6 @@ export const moveCharacter = /* GraphQL */ `
     }
   }
 `;
-export const putRoom = /* GraphQL */ `
-  mutation PutRoom(
-    $PermanentId: String
-    $Name: String!
-    $Description: String
-    $ParentId: String
-    $Visibility: String
-    $Topology: String
-    $Exits: [PathInput]
-    $Entries: [PathInput]
-    $Retired: Boolean
-  ) {
-    putRoom(
-      PermanentId: $PermanentId
-      Name: $Name
-      Description: $Description
-      ParentId: $ParentId
-      Visibility: $Visibility
-      Topology: $Topology
-      Exits: $Exits
-      Entries: $Entries
-      Retired: $Retired
-    ) {
-      PermanentId
-      Name
-      Description
-      ParentId
-      Visibility
-      Topology
-      Exits {
-        Name
-        RoomId
-      }
-      Entries {
-        Name
-        RoomId
-      }
-      Grants {
-        CharacterId
-        Actions
-        Roles
-      }
-      Retired
-    }
-  }
-`;
 export const externalUpdateGrant = /* GraphQL */ `
   mutation ExternalUpdateGrant(
     $PlayerName: String!

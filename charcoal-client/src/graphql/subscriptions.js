@@ -120,32 +120,6 @@ export const changedPermanents = /* GraphQL */ `
     }
   }
 `;
-export const changedRoom = /* GraphQL */ `
-  subscription ChangedRoom {
-    changedRoom {
-      PermanentId
-      Name
-      Description
-      ParentId
-      Visibility
-      Topology
-      Exits {
-        Name
-        RoomId
-      }
-      Entries {
-        Name
-        RoomId
-      }
-      Grants {
-        CharacterId
-        Actions
-        Roles
-      }
-      Retired
-    }
-  }
-`;
 export const addedMessage = /* GraphQL */ `
   subscription AddedMessage($RoomId: String, $CharacterId: String) {
     addedMessage(RoomId: $RoomId, CharacterId: $CharacterId) {

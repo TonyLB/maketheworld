@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getNeighborhood, getRoom } from '../graphql/queries'
-import { updatePermanents, putRoom } from '../graphql/mutations'
+import { updatePermanents } from '../graphql/mutations'
 
 import { fetchAllNeighborhoods } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
@@ -26,7 +26,7 @@ export const putAndCloseRoomDialog = ({
         Exits = [],
         Entries = []
     }) => (dispatch) => {
-    return API.graphql(graphqlOperation(putRoom, {
+    return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putRoom: {
             PermanentId,
             ParentId,
             Name,
@@ -34,7 +34,7 @@ export const putAndCloseRoomDialog = ({
             Retired,
             Exits,
             Entries
-        }))
+        }}]}))
         .then(({ data }) => (data || {}))
         .then(({ getRoom }) => (getRoom || {}))
         .then(() => dispatch(closeRoomDialog()))
@@ -128,7 +128,7 @@ export const setRoomRetired = ({ PermanentId, Retired }) => (dispatch, getState)
     const permanentHeaders = getPermanentHeaders(state)
     const { Name, Description, ParentId, Visibility, Exits, Entries } = permanentHeaders[PermanentId]
     if (Name) {
-        return API.graphql(graphqlOperation(putRoom, {
+        return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putRoom: {
             PermanentId,
             ParentId,
             Name,
@@ -137,7 +137,7 @@ export const setRoomRetired = ({ PermanentId, Retired }) => (dispatch, getState)
             Retired,
             Exits,
             Entries
-        }))
+        } }]}))
         .catch((err) => { console.log(err)})
     }
 }
