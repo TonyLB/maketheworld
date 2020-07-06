@@ -22,6 +22,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             if (update.putNeighborhood) {
                 return putNeighborhood({ arguments: update.putNeighborhood })
             }
+            if (update.putMap) {
+                return putMap(update.putMap)
+            }
             return Promise.resolve([])
         }
     )

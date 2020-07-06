@@ -916,23 +916,6 @@ Resources:
                   "payload": { "action": "getMaps" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationPutMapResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: putMap
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              #set($arguments = $ctx.args)
-              $util.qr($arguments.put("action", "putMap"))
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": $utils.toJson($arguments)
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationAddCharacterInPlay:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1476,6 +1459,11 @@ Resources:
                   Name: String
                   Rooms: [MapRoomEntry]
               }
+              input MapInput @aws_iam @aws_cognito_user_pools {
+                  MapId: String
+                  Name: String!
+                  Rooms: [MapRoomInput]
+              }
               type Settings @aws_iam @aws_cognito_user_pools {
                   ChatPrompt: String
               }
@@ -1501,6 +1489,7 @@ Resources:
               }
               input PermanentInput @aws_iam @aws_cognito_user_pools {
                 putNeighborhood: NeighborhoodInput
+                putMap: MapInput
               }
               type Mutation {
                   putPlayer(
@@ -1585,12 +1574,6 @@ Resources:
                       Actions: String!
                   ): Role
                   @aws_iam @aws_cognito_user_pools
-                  putMap(
-                      MapId: String
-                      Name: String!
-                      Rooms: [MapRoomInput]
-                  ): [ChangedPermanent]
-                  @aws_iam @aws_cognito_user_pools
                   putSettings(
                       ChatPrompt: String
                   ): [ChangedPermanent]
@@ -1639,7 +1622,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["updatePermanents", "putMap", "putSettings", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
+                  @aws_subscribe(mutations: ["updatePermanents", "putSettings", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (

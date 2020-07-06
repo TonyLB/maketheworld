@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getMaps } from '../graphql/queries'
-import { putMap } from '../graphql/mutations'
+import { updatePermanents } from '../graphql/mutations'
 
 import { closeEditMapDialog } from './UI/mapDialog'
 
@@ -21,7 +21,7 @@ export const fetchMaps = (dispatch) => {
 
 export const putAndCloseEditMapDialog = (mapData) => (dispatch, getState) => {
     const { MapId, Name, Rooms = [] } = mapData
-    return API.graphql(graphqlOperation(putMap, { MapId, Name, Rooms }))
+    return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putMap: { MapId, Name, Rooms } }] }))
     .then(() => dispatch(closeEditMapDialog()))
     .catch((err) => { console.log(err)})
 }
