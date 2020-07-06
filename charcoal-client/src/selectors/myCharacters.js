@@ -29,13 +29,14 @@ const inheritanceProxy = (headers) => ({
     }
 })
 
-export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeaders, role }) => {
+export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeaders, role, grants }) => {
     const { data = [] } = myCharacters || {}
     const matchingCharacters = data.filter(({ CharacterId }) => (CharacterId === searchId))
     if (!matchingCharacters.length) {
         return {}
     }
-    const { Grants = [], ...rest } = matchingCharacters[0]
+
+    const Grants = (grants && grants[matchingCharacters[0].CharacterId] || [])
 
     const grantMap = Grants.reduce((previous, grant) => ({
         ...previous,
@@ -45,7 +46,7 @@ export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeader
         }), stringToBooleanMap(grant.Actions || ''))
     }), {})
     return {
-        ...rest,
+        ...matchingCharacters[0],
         Grants: new Proxy(grantMap, inheritanceProxy(permanentHeaders))
     }
 }

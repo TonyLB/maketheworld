@@ -1324,7 +1324,6 @@ Resources:
                   Outfit: String
                   OneCoolThing: String
                   HomeId: String
-                  Grants: [Grant]
               }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: String!

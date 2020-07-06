@@ -85,14 +85,9 @@ const testGQLOutput = stripMultiline(`Neighborhood {
     Outfit
     OneCoolThing
     HomeId
-    Grants {
-      Resource
-      Actions
-      Roles
-    }
   }`)
 
-describe("getAllCharacters", () => {
+describe("putCharacter", () => {
     afterEach(() => {
         jest.clearAllMocks()
     })
@@ -167,13 +162,7 @@ describe("getAllCharacters", () => {
                 OneCoolThing: 'The Test',
                 Pronouns: 'She/her',
                 Outfit:  'Orange jumpsuit',
-                HomeId: 'ABC',
-                Grants: [
-                    {
-                        Resource: 'MINIMUM',
-                        Roles: 'PLAYER'
-                    }
-                ]
+                HomeId: 'ABC'
             }
         })
     })
@@ -239,13 +228,7 @@ describe("getAllCharacters", () => {
                 OneCoolThing: 'The Test',
                 Pronouns: 'She/her',
                 Outfit:  'Orange jumpsuit',
-                HomeId: 'ABC',
-                Grants: [
-                    {
-                        Resource: 'MINIMUM',
-                        Roles: 'PLAYER'
-                    }
-                ]
+                HomeId: 'ABC'
             }
         })
     })

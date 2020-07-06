@@ -40,12 +40,7 @@ describe("getAllCharacters", () => {
                 CharacterId: '123',
                 Name: 'Testy',
                 FirstImpression: 'Test impression',
-                Grants: [
-                    {
-                        Resource: 'ABC',
-                        Actions: 'Edit'
-                    }
-                ]
+                Grants: []
             },
             {
                 CharacterId: '456',

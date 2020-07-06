@@ -41,12 +41,7 @@ describe("getCharacter", () => {
             PlayerName: 'Test',
             Name: 'Testy',
             FirstImpression: 'Test impression',
-            Grants: [
-                {
-                    Resource: 'ABC',
-                    Actions: 'Edit'
-                }
-            ]
+            Grants: []
         })
     })
 })

@@ -61,9 +61,4 @@ exports.gqlOutput = `Neighborhood {
     Outfit
     OneCoolThing
     HomeId
-    Grants {
-      Resource
-      Actions
-      Roles
-    }
   }`

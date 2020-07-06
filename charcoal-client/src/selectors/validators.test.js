@@ -1,6 +1,6 @@
 import { getNeighborhoodUpdateValidator, getRoomUpdateValidator } from './validators'
 
-const createTestStateWithGrants = (Grants) => ({
+const testState = {
     permanentHeaders: {
         RootRoom: {
             PermanentId: 'RootRoom',
@@ -192,7 +192,6 @@ const createTestStateWithGrants = (Grants) => ({
         data: [
             {
                 CharacterId: 'Valentina',
-                Grants
             }
         ]
     },
@@ -201,18 +200,20 @@ const createTestStateWithGrants = (Grants) => ({
     },
     role: {
         EDITOR: {
+            Actions: 'View,Edit,ExtendPrivate,ExtendPublic,ExtendConnected'
+        },
+        MODERATOR: {
             Actions: 'View,Edit,Moderate,ExtendPrivate,ExtendPublic,ExtendConnected'
         },
         PLAYER: {
             Actions: 'ExtendPrivate'
         }
     }
-})
+}
 
 describe('getNeighborhoodUpdateValidator selector', () => {
 
     it('should forbit a player from making a new private sub-neighborhood without permission', () => {
-        const testState = createTestStateWithGrants([])
         expect(getNeighborhoodUpdateValidator(testState)({
             ParentId: 'NeighborhoodAlpha',
             Visibility: 'Private',
@@ -224,11 +225,7 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should allow a player to make a new Dead-end private sub-neighborhood with permission', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Roles: 'PLAYER'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({ ...testState, grants: { 'Valentina': [{ CharacterId: 'Valentina', Resource: 'NeighborhoodAlpha', Roles: 'PLAYER' }]}})({
             ParentId: 'NeighborhoodAlpha',
             Visibility: 'Private',
             Topology: 'Dead-End'
@@ -238,11 +235,7 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should forbid a player from making a new public sub-neighborhood without permission', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Roles: 'PLAYER'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({ ...testState, grants: { 'Valentina': [{ CharacterId: 'Valentina', Resource: 'NeighborhoodAlpha', Roles: 'PLAYER' }]}})({
             ParentId: 'NeighborhoodAlpha',
             Visibility: 'Public',
             Topology: 'Dead-End'
@@ -253,11 +246,7 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should allow a player to make a new Dead-end private sub-neighborhood with permission', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Actions: 'ExtendPublic'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({ ...testState, grants: { 'Valentina': [{ CharacterId: 'Valentina', Resource: 'NeighborhoodAlpha', Actions: 'ExtendPublic' }]}})({
             ParentId: 'NeighborhoodAlpha',
             Visibility: 'Public',
             Topology: 'Dead-End'
@@ -267,22 +256,14 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should allow a moderator to make a Dead-end sub-neighborhood Connected', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({ ...testState, grants: { 'Valentina': [{ CharacterId: 'Valentina', Resource: 'NeighborhoodAlpha', Roles: 'MODERATOR' }]}})({
             PermanentId: 'SubNeighborhoodAlphaTwo',
             Topology: 'Connected'
         })).toEqual({ valid: true })
     })
 
     it('should deny a non-permitted character making a Dead-end neighborhood Connected', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaTwo',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({ ...testState, grants: { 'Valentina': [{ CharacterId: 'Valentina', Resource: 'SubNeighborhoodAlphaTwo', Roles: 'EDITOR' }]}})({
             PermanentId: 'SubNeighborhoodAlphaTwo',
             Topology: 'Connected'
         })).toEqual({
@@ -292,11 +273,7 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should deny a non-permitted character altering a sub-neighborhood', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Actions: 'ExtendPrivate,ExtendPublic,ExtendConnected'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({ ...testState, grants: { 'Valentina': [{ CharacterId: 'Valentina', Resource: 'NeighborhoodAlpha', Actions: 'ExtendPrivate,ExtendPublic,ExtendConnected' }]}})({
             PermanentId: 'SubNeighborhoodAlphaTwo',
             Topology: 'Connected'
         })).toEqual({
@@ -306,15 +283,22 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should deny a non-permitted character making a sub-neighborhood Public', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Actions: 'ExtendPrivate,ExtendConnected'
-        },
-        {
-            Resource: 'SubNeighborhoodAlphaTwo',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodAlpha',
+                        Actions: 'ExtendPrivate,ExtendConnected'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaTwo',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'SubNeighborhoodAlphaTwo',
             Visibility: 'Public'
         })).toEqual({
@@ -324,15 +308,22 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should deny any character setting a neighborhood with multiple external exits Dead-End', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Actions: 'ExtendPublic,ExtendPrivate,ExtendConnected'
-        },
-        {
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodAlpha',
+                        Actions: 'ExtendPublic,ExtendPrivate,ExtendConnected'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'SubNeighborhoodAlphaOne',
             Topology: 'Dead-End'
         })).toEqual({
@@ -342,12 +333,17 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should allow setting a neighborhood with a single external exit Dead-End', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodAlpha',
-            Roles: 'EDITOR'
-        }])
         expect(getNeighborhoodUpdateValidator({
             ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodAlpha',
+                        Roles: 'EDITOR'
+                    }
+                ]
+            },
             permanentHeaders: {
                 ...testState.permanentHeaders,
                 NeighborhoodAlpha: {
@@ -364,15 +360,22 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should allow reparenting a neighborhood when character does not have Moderate permission', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodBeta',
-            Roles: 'PLAYER'
-        },
-        {
-            Resource: 'SubNeighborhoodAlphaThree',
-            Roles: 'PLAYER'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodBeta',
+                        Roles: 'PLAYER'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaThree',
+                        Roles: 'PLAYER'
+                    }
+                ]
+        }})({
             PermanentId: 'SubNeighborhoodAlphaThree',
             ParentId: 'NeighborhoodBeta'
         })).toEqual({
@@ -382,15 +385,22 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should allow reparenting a neighborhood when that would not generate a broken state', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodBeta',
-            Roles: 'PLAYER'
-        },
-        {
-            Resource: 'SubNeighborhoodAlphaThree',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodBeta',
+                        Roles: 'PLAYER'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaThree',
+                        Roles: 'MODERATOR'
+                    }
+                ]
+        }})({
             PermanentId: 'SubNeighborhoodAlphaThree',
             ParentId: 'NeighborhoodBeta'
         })).toEqual({
@@ -399,15 +409,22 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should prevent reparenting a neighborhood when the receiving neighborhood would have too many exits', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodGamma',
-            Roles: 'PLAYER'
-        },
-        {
-            Resource: 'SubNeighborhoodAlphaTwo',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodGamma',
+                        Roles: 'PLAYER'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaTwo',
+                        Roles: 'MODERATOR'
+                    }
+                ]
+        }})({
             PermanentId: 'SubNeighborhoodAlphaTwo',
             ParentId: 'NeighborhoodGamma'
         })).toEqual({
@@ -417,15 +434,22 @@ describe('getNeighborhoodUpdateValidator selector', () => {
     })
 
     it('should prevent reparenting a neighborhood when one of its connected neighborhood would then have too many exits', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'NeighborhoodDelta',
-            Roles: 'PLAYER'
-        },
-        {
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        }])
-        expect(getNeighborhoodUpdateValidator(testState)({
+        expect(getNeighborhoodUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodDelta',
+                        Roles: 'PLAYER'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'MODERATOR'
+                    }
+                ]
+        }})({
             PermanentId: 'SubNeighborhoodAlphaOne',
             ParentId: 'NeighborhoodDelta'
         })).toEqual({
@@ -439,11 +463,17 @@ describe('getNeighborhoodUpdateValidator selector', () => {
 describe('getRoomUpdateValidator selector', () => {
 
     it('should prevent making a new exit that exceeds Dead-End restrictions', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'GreenRoom',
             ParentId: 'SubNeighborhoodAlphaOne',
             Exits: [{
@@ -473,11 +503,17 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should prevent making a new entry that exceeds Dead-End restrictions', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'GreenRoom',
             ParentId: 'SubNeighborhoodAlphaOne',
             Exits: [{
@@ -507,11 +543,17 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should prevent switching one exit for another in a way that violates Dead-End restrictions', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'GreenRoom',
             ParentId: 'SubNeighborhoodAlphaOne',
             Exits: [{
@@ -537,11 +579,17 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should allow switching one exit for another in a way that preserves Dead-End restrictions', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaTwo',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaTwo',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'GoldRoom',
             ParentId: 'SubNeighborhoodAlphaTwo',
             Exits: [{
@@ -558,15 +606,22 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should prevent reparenting a room in a way that violates Dead-End restrictions on the destination', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        },
-        {
-            Resource: 'NeighborhoodBeta',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'EDITOR'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodBeta',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'GreenRoom',
             ParentId: 'NeighborhoodBeta'
         })).toEqual({
@@ -576,15 +631,22 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should prevent reparenting a room in a way that violates Dead-End restrictions on the source', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'SubNeighborhoodAlphaOne',
-            Roles: 'EDITOR'
-        },
-        {
-            Resource: 'NeighborhoodDelta',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'SubNeighborhoodAlphaOne',
+                        Roles: 'EDITOR'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodDelta',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'GreenRoom',
             ParentId: 'NeighborhoodDelta'
         })).toEqual({
@@ -594,11 +656,17 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should prevent reparenting a room to a neighborhood you cannot edit', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'ROOT',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'ROOT',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'AlternateRoom',
             ParentId: 'NeighborhoodDelta'
         })).toEqual({
@@ -608,15 +676,22 @@ describe('getRoomUpdateValidator selector', () => {
     })
 
     it('should allow reparenting a room to a neighborhood you can edit', () => {
-        const testState = createTestStateWithGrants([{
-            Resource: 'ROOT',
-            Roles: 'EDITOR'
-        },
-        {
-            Resource: 'NeighborhoodDelta',
-            Roles: 'EDITOR'
-        }])
-        expect(getRoomUpdateValidator(testState)({
+        expect(getRoomUpdateValidator({
+            ...testState,
+            grants: {
+                Valentina: [
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'ROOT',
+                        Roles: 'EDITOR'
+                    },
+                    {
+                        CharacterId: 'Valentina',
+                        Resource: 'NeighborhoodDelta',
+                        Roles: 'EDITOR'
+                    }
+                ]
+        }})({
             PermanentId: 'AlternateRoom',
             ParentId: 'NeighborhoodDelta'
         })).toEqual({

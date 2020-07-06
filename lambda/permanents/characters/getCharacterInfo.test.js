@@ -31,10 +31,7 @@ describe("getCharacterInfo", () => {
             CharacterId: '123',
             Name: 'Testy',
             Description: 'Test desc',
-            Grants: [{
-                Resource: 'ABC',
-                Actions: 'Edit'
-            }]
+            Grants: []
         })
 
     })

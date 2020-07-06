@@ -22,11 +22,6 @@ export const putPlayer = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       GrantInfo {
         CharacterId
@@ -71,11 +66,6 @@ export const putCharacter = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       GrantInfo {
         CharacterId
@@ -170,11 +160,6 @@ export const externalPutCharacter = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId
@@ -249,11 +234,6 @@ export const externalUpdateGrant = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       GrantInfo {
         CharacterId
@@ -406,11 +386,6 @@ export const createBackup = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId
@@ -489,11 +464,6 @@ export const restoreBackup = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId
@@ -572,11 +542,6 @@ export const updatePermanents = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId

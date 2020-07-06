@@ -1,5 +1,5 @@
 const { documentClient, s3Client, graphqlClient, gql } = require('../utilities')
-const { gqlOutput } = require('./gqlOutput')
+const { gqlOutput } = require('../gqlOutput')
 
 const s3Get = (filename) => {
     const request = {

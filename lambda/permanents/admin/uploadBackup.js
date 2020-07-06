@@ -5,6 +5,8 @@ const { v4: uuidv4 } = require('/opt/uuid')
 
 const { documentClient, s3Client, graphqlClient, gql } = require('../utilities')
 
+const { gqlOutput } = require('../gqlOutput')
+
 const s3Put = (filename, contents) => {
     const request = {
         Bucket: process.env.S3_BUCKET,
@@ -14,8 +16,6 @@ const s3Put = (filename, contents) => {
     }
     return s3Client.putObject(request).promise()
 }
-
-const { gqlOutput } = require('./gqlOutput')
 
 const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingBackup {
     updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Name: ${JSON.stringify(Name)}, Description: ${JSON.stringify(Description)}, Status: "Uploading..." } } ]) {

@@ -28,28 +28,6 @@ exports.getAllCharacters = () => {
                     }
                 }
             }
-            if (DataCategory.startsWith('GRANT#')) {
-                const Resource = DataCategory.slice(6)
-                const Actions = rest.Actions
-                const Roles = rest.Roles
-                return (Actions || Roles)
-                    ? {
-                        ...previous,
-                        [CharacterId]: {
-                            ...(previous[CharacterId] || {}),
-                            CharacterId,
-                            Grants: [
-                                ...((previous[CharacterId] && previous[CharacterId].Grants) || []),
-                                {
-                                    Resource,
-                                    Actions,
-                                    Roles
-                                }
-                            ]
-                        }
-                    }
-                    : previous
-            }
             return previous
         }, {})))
         .then((Characters) => (Object.values(Characters)))

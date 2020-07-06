@@ -48,13 +48,18 @@ describe('CurrentRoom Selectors', () => {
             data: [
                 {
                     CharacterId: 'ABC',
-                    Grants: [
-                        { Resource: '123', Actions: 'View' }
-                    ]
                 },
                 {
                     CharacterId: 'BCD',
-                    Grants: []
+                }
+            ]
+        },
+        grants: {
+            ABC: [
+                {
+                    CharacterId: 'ABC',
+                    Resource: '123',
+                    Actions: 'View'
                 }
             ]
         },

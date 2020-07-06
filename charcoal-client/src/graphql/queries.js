@@ -20,11 +20,6 @@ export const getCharacter = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
-      Grants {
-        Resource
-        Actions
-        Roles
-      }
     }
   }
 `;
@@ -39,11 +34,6 @@ export const getPlayerCharacters = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
-      Grants {
-        Resource
-        Actions
-        Roles
-      }
     }
   }
 `;
@@ -58,11 +48,6 @@ export const getAllCharacters = /* GraphQL */ `
       Outfit
       OneCoolThing
       HomeId
-      Grants {
-        Resource
-        Actions
-        Roles
-      }
     }
   }
 `;
@@ -143,11 +128,6 @@ export const getNeighborhoodTree = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId
@@ -355,11 +335,6 @@ export const getGrants = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId

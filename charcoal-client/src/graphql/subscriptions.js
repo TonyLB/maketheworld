@@ -19,11 +19,6 @@ export const changedPlayer = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       GrantInfo {
         CharacterId
@@ -111,11 +106,6 @@ export const changedPermanents = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
       }
       Grant {
         CharacterId

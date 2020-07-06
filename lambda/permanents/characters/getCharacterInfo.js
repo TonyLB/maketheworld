@@ -17,22 +17,6 @@ exports.getCharacterInfo = ({ CharacterId }) => (
                 ...rest
             }
         }
-        if (DataCategory.startsWith('GRANT#')) {
-            const Resource = DataCategory.slice(6)
-            const { Actions, Roles } = rest
-            return (Actions || Roles)
-                ? {
-                    ...previous,
-                    Grants: [
-                        ...(previous.Grants || []),
-                        {
-                            Resource,
-                            Actions,
-                            Roles
-                        }
-                    ]
-                }
-                : previous
-        }
+        return previous
     }, {})))
 )
