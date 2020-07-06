@@ -25,6 +25,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             if (update.putMap) {
                 return putMap(update.putMap)
             }
+            if (update.putSettings) {
+                return putSettings(update.putSettings)
+            }
             return Promise.resolve([])
         }
     )
@@ -61,8 +64,6 @@ exports.handler = (event, context) => {
                 }))
         case "getSettings":
             return getSettings()
-        case "putSettings":
-            return putSettings(payload)
 
         case "getCharacter":
             return getCharacter(payload)

@@ -1081,24 +1081,6 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationPutSettings:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - PermanentsFunction
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: putSettings
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              $util.qr($ctx.args.put("action", "putSettings"))
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": $util.toJson($ctx.args)
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetBackups:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -1467,6 +1449,9 @@ Resources:
               type Settings @aws_iam @aws_cognito_user_pools {
                   ChatPrompt: String
               }
+              input SettingsInput @aws_iam @aws_cognito_user_pools {
+                  ChatPrompt: String
+              }
               input MapRoomInput {
                   PermanentId: String!
                   X: Int!
@@ -1490,6 +1475,7 @@ Resources:
               input PermanentInput @aws_iam @aws_cognito_user_pools {
                 putNeighborhood: NeighborhoodInput
                 putMap: MapInput
+                putSettings: SettingsInput
               }
               type Mutation {
                   putPlayer(
@@ -1574,10 +1560,6 @@ Resources:
                       Actions: String!
                   ): Role
                   @aws_iam @aws_cognito_user_pools
-                  putSettings(
-                      ChatPrompt: String
-                  ): [ChangedPermanent]
-                  @aws_iam @aws_cognito_user_pools
                   putBackup(
                       PermanentId: String
                       Name: String
@@ -1622,7 +1604,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["updatePermanents", "putSettings", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
+                  @aws_subscribe(mutations: ["updatePermanents", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (

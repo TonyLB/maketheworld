@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getSettings } from '../graphql/queries'
-import { putSettings } from '../graphql/mutations'
+import { updatePermanents } from '../graphql/mutations'
 
 import { closeAdminDialog } from './UI/adminDialog'
 
@@ -20,7 +20,7 @@ export const fetchSettings = (dispatch) => {
 }
 
 export const putSettingsAndCloseAdminDialog = ({ ChatPrompt }) => (dispatch) => {
-    return API.graphql(graphqlOperation(putSettings, { ChatPrompt }))
+    return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putSettings: { ChatPrompt } }]}))
     .then(() => dispatch(closeAdminDialog()))
     .catch((err) => { console.log(err)})
 }
