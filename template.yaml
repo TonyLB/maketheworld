@@ -1012,26 +1012,6 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationPutNeighborhood:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - PermanentsDataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: putNeighborhood
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "putNeighborhood",
-                      "arguments": $utils.toJson($ctx.args)
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PermanentsFunction:
       Type: AWS::Serverless::Function
       DependsOn:
@@ -1079,6 +1059,26 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
+  MutationUpdatePermanents:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - PermanentsDataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: updatePermanents
+          DataSourceName: !GetAtt PermanentsDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                      "action": "updatePermanents",
+                      "Updates": $utils.toJson($ctx.args.Updates)
+                  }
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetSettings:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -1396,6 +1396,18 @@ Resources:
                   Grants: [ResourceGrant]
                   Retired: Boolean
               }
+              input NeighborhoodInput {
+                  CharacterId: String!
+                  PermanentId: String!
+                  Name: String!
+                  Description: String
+                  ParentId: String
+                  Visibility: String
+                  Topology: String
+                  ContextMapId: String
+                  Grants: [ResourceGrantInput]
+                  Retired: Boolean
+              }
               type Exit {
                   Name: String!
                   RoomId: String!
@@ -1487,6 +1499,9 @@ Resources:
                 Backup: Backup
                 Character: Character
               }
+              input PermanentInput @aws_iam @aws_cognito_user_pools {
+                putNeighborhood: NeighborhoodInput
+              }
               type Mutation {
                   putPlayer(
                       PlayerName: String,
@@ -1527,18 +1542,6 @@ Resources:
                       CharacterId: String!
                       RoomId: String!
                   ): CharacterInPlay
-                  putNeighborhood(
-                      CharacterId: String!
-                      PermanentId: String
-                      Name: String!
-                      Description: String
-                      ParentId: String
-                      Visibility: String
-                      Topology: String
-                      ContextMapId: String
-                      Grants: [ResourceGrantInput]
-                      Retired: Boolean
-                  ): [ChangedPermanent]
                   putRoom(
                       PermanentId: String
                       Name: String!
@@ -1609,6 +1612,10 @@ Resources:
                       PermanentId: String
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
+                  updatePermanents(
+                      Updates: [PermanentInput]
+                  ): [ChangedPermanent]
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
@@ -1632,7 +1639,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["putNeighborhood", "putMap", "putSettings", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
+                  @aws_subscribe(mutations: ["updatePermanents", "putMap", "putSettings", "putBackup", "createBackup", "restoreBackup", "externalPutCharacter"])
                   changedRoom: Room
                   @aws_subscribe(mutations: ["putRoom"])
                   addedMessage (

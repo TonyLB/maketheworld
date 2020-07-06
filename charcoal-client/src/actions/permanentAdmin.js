@@ -1,6 +1,6 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { getNeighborhood, getRoom } from '../graphql/queries'
-import { putNeighborhood, putRoom } from '../graphql/mutations'
+import { updatePermanents, putRoom } from '../graphql/mutations'
 
 import { fetchAllNeighborhoods } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
@@ -80,18 +80,20 @@ export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, ge
     const CharacterId = getCharacterId(state)
     const { neighborhoodId, parentId, mapId, name, description, visibility, topology = 'Dead-End', retired = false, grants=[] } = neighborhoodData
     if (CharacterId) {
-        return API.graphql(graphqlOperation(putNeighborhood, {
-                CharacterId,
-                PermanentId: neighborhoodId,
-                ParentId: parentId,
-                ContextMapId: mapId,
-                Name: name,
-                Description: description,
-                Visibility: visibility,
-                Topology: topology,
-                Retired: retired,
-                Grants: grants
-            }))
+        return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putNeighborhood:
+                {
+                    CharacterId,
+                    PermanentId: neighborhoodId,
+                    ParentId: parentId,
+                    ContextMapId: mapId,
+                    Name: name,
+                    Description: description,
+                    Visibility: visibility,
+                    Topology: topology,
+                    Retired: retired,
+                    Grants: grants
+                }
+            }]}))
         .then(() => dispatch(closeNeighborhoodDialog()))
         .catch((err) => { console.log(err)})
     }
@@ -103,18 +105,20 @@ export const setNeighborhoodRetired = ({ PermanentId, Retired }) => (dispatch, g
     const CharacterId = getCharacterId(state)
     const { Name, Description, ParentId, ContextMapId, Visibility, Topology, Grants } = permanentHeaders[PermanentId]
     if (Name) {
-        return API.graphql(graphqlOperation(putNeighborhood, {
-            CharacterId,
-            PermanentId,
-            ParentId,
-            ContextMapId,
-            Name,
-            Description,
-            Visibility,
-            Topology,
-            Retired,
-            Grants: Grants || []
-        }))
+        return API.graphql(graphqlOperation(updatePermanents, { Updates: [{ putNeighborhood:
+            {
+                CharacterId,
+                PermanentId,
+                ParentId,
+                ContextMapId,
+                Name,
+                Description,
+                Visibility,
+                Topology,
+                Retired,
+                Grants: Grants || []
+            }
+        }]}))
         .catch((err) => { console.log(err)})
     }
 }

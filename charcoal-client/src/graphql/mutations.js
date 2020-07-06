@@ -215,105 +215,6 @@ export const moveCharacter = /* GraphQL */ `
     }
   }
 `;
-export const putNeighborhood = /* GraphQL */ `
-  mutation PutNeighborhood(
-    $CharacterId: String!
-    $PermanentId: String
-    $Name: String!
-    $Description: String
-    $ParentId: String
-    $Visibility: String
-    $Topology: String
-    $ContextMapId: String
-    $Grants: [ResourceGrantInput]
-    $Retired: Boolean
-  ) {
-    putNeighborhood(
-      CharacterId: $CharacterId
-      PermanentId: $PermanentId
-      Name: $Name
-      Description: $Description
-      ParentId: $ParentId
-      Visibility: $Visibility
-      Topology: $Topology
-      ContextMapId: $ContextMapId
-      Grants: $Grants
-      Retired: $Retired
-    ) {
-      Neighborhood {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
-        Retired
-      }
-      Room {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
-        Retired
-      }
-      Map {
-        MapId
-        Name
-        Rooms {
-          PermanentId
-          X
-          Y
-          Locked
-        }
-      }
-      Settings {
-        ChatPrompt
-      }
-      Backup {
-        PermanentId
-        Name
-        Description
-        Status
-      }
-      Character {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-        Grants {
-          Resource
-          Actions
-          Roles
-        }
-      }
-    }
-  }
-`;
 export const putRoom = /* GraphQL */ `
   mutation PutRoom(
     $PermanentId: String
@@ -807,6 +708,83 @@ export const createBackup = /* GraphQL */ `
 export const restoreBackup = /* GraphQL */ `
   mutation RestoreBackup($PermanentId: String) {
     restoreBackup(PermanentId: $PermanentId) {
+      Neighborhood {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        ContextMapId
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+        Retired
+      }
+      Room {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        Exits {
+          Name
+          RoomId
+        }
+        Entries {
+          Name
+          RoomId
+        }
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+        Retired
+      }
+      Map {
+        MapId
+        Name
+        Rooms {
+          PermanentId
+          X
+          Y
+          Locked
+        }
+      }
+      Settings {
+        ChatPrompt
+      }
+      Backup {
+        PermanentId
+        Name
+        Description
+        Status
+      }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+        Grants {
+          Resource
+          Actions
+          Roles
+        }
+      }
+    }
+  }
+`;
+export const updatePermanents = /* GraphQL */ `
+  mutation UpdatePermanents($Updates: [PermanentInput]) {
+    updatePermanents(Updates: $Updates) {
       Neighborhood {
         PermanentId
         Name

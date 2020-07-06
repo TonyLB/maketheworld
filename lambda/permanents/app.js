@@ -16,6 +16,20 @@ const { getNodeTree } = require('./nodeTree/nodeTree')
 
 const { putRoom } = require('./putRoom/putRoom')
 
+const updateDispatcher = ({ Updates = [] }) => {
+    console.log(Updates)
+    const outputs = Updates.map((update) => {
+            if (update.putNeighborhood) {
+                return putNeighborhood({ arguments: update.putNeighborhood })
+            }
+            return Promise.resolve([])
+        }
+    )
+
+    return Promise.all(outputs)
+        .then((finalOutputs) => finalOutputs.reduce((previous, output) => ([ ...previous, ...output ]), []))
+}
+
 exports.handler = (event, context) => {
     const { action, ...payload } = event
 
@@ -63,14 +77,15 @@ exports.handler = (event, context) => {
 
         case "getNeighborhood":
             return getNeighborhood(payload)
-        case "putNeighborhood":
-            return putNeighborhood(payload)
 
         case "getNodeTree":
             return getNodeTree()
 
         case "putRoom":
             return putRoom(payload)
+
+        case "updatePermanents":
+            return updateDispatcher(payload)
 
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
