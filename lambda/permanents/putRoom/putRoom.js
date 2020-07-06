@@ -1,10 +1,11 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('/opt/uuid')
 
-const batchDispatcher = (documentClient) => (items) => {
+const { documentClient } = require('../utilities')
+
+const batchDispatcher = (items) => {
     const groupBatches = items.reduce((({ current, requestLists }, item) => {
             if (current.length > 23) {
                 return {
@@ -26,12 +27,10 @@ const batchDispatcher = (documentClient) => (items) => {
     return Promise.all(batchPromises)
 }
 
-exports.handler = (event) => {
+exports.putRoom = (event) => {
 
-    const { TABLE_PREFIX, AWS_REGION } = process.env;
+    const { TABLE_PREFIX } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
-
-    const documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
 
     const { PermanentId, ParentId, Description, Name, Retired = false, Entries = [], Exits = [] } = event.arguments
 
@@ -187,7 +186,7 @@ exports.handler = (event) => {
                 },
             ])).reduce((previous, item) => ([ ...previous, ...item ]), [])
         ])
-        .then((writes) => (batchDispatcher(documentClient)(writes)))
+        .then(batchDispatcher)
         .then(() => ({
             Type: "ROOM",
             PermanentId,

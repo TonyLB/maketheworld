@@ -508,7 +508,6 @@ Resources:
                       Action:
                           - "lambda:InvokeFunction"
                       Resource:
-                        - !GetAtt PutRoomFunction.Arn
                         - !GetAtt PermanentsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
   PermanentsDynamoDBTableDataSource:
@@ -1221,45 +1220,22 @@ Resources:
                   "CharacterId": "$result.CharacterId",
                   "GrantInfo": $grant
             })
-  PutRoomFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/putRoom/
-          Handler: app.handler
-          MemorySize: 256
-          Runtime: nodejs12.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-  PutRoomDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PutRoom
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt PutRoomFunction.Arn
   MutationPutRoom:
     Type: AWS::AppSync::Resolver
     DependsOn:
       - Schema
-      - PutRoomFunction
+      - PermanentsDataSource
     Properties:
         ApiId: !GetAtt AppSyncAPI.ApiId
         TypeName: Mutation
         FieldName: putRoom
-        DataSourceName: !GetAtt PutRoomDataSource.Name
+        DataSourceName: !GetAtt PermanentsDataSource.Name
         RequestMappingTemplate: >
             {
                 "version": "2017-02-28",
                 "operation": "Invoke",
                 "payload": {
+                    "action": "putRoom",
                     "arguments": $utils.toJson($ctx.args)
                 }
             }
