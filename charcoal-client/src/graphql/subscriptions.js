@@ -117,6 +117,12 @@ export const changedPermanents = /* GraphQL */ `
           Roles
         }
       }
+      Grant {
+        CharacterId
+        Resource
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -135,15 +141,6 @@ export const addedMessage = /* GraphQL */ `
       ExpirationTime
       Type
       Title
-    }
-  }
-`;
-export const changedRole = /* GraphQL */ `
-  subscription ChangedRole {
-    changedRole {
-      RoleId
-      Name
-      Actions
     }
   }
 `;

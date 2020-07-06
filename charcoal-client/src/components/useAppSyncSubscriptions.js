@@ -12,9 +12,6 @@ import {
     subscribePlayerChanges
 } from '../actions/player'
 import {
-    subscribeRoleChanges
-} from '../actions/role'
-import {
     unsubscribeAll,
     directMessageSubscription
 } from '../actions/subscriptions'
@@ -35,9 +32,6 @@ export const useAppSyncSubscriptions = () => {
         }
         if (!subscriptions.directMessages) {
             dispatch(directMessageSubscription())
-        }
-        if (!subscriptions.role) {
-            dispatch(subscribeRoleChanges())
         }
     }, [subscriptions, dispatch])
 

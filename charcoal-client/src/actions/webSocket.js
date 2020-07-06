@@ -16,22 +16,18 @@ const establishWebSocketError = {
 export const establishWebSocket = (CharacterId) => (dispatch) => {
 
     dispatch(establishWebSocketAttempt)
-    console.log(`Establishing Web Socket (Character Id: ${CharacterId}`)
 
     let setupSocket = new WebSocket(WSS_ADDRESS)
     setupSocket.onopen = () => {
-        console.log(`Socket open`)
         setupSocket.send(JSON.stringify({
             message: 'registercharacter',
             CharacterId
         }))
     }
     setupSocket.onmessage = (event) => {
-        console.log(`Event: ${JSON.stringify(event, null, 4)}`)
         const { message } = JSON.parse(event.data || {})
         switch(message) {
             case 'Registered':
-                console.log(`Registration message received`)
                 dispatch(registerWebSocket({ webSocket: setupSocket, CharacterId }))
                 break
             default:
@@ -39,7 +35,6 @@ export const establishWebSocket = (CharacterId) => (dispatch) => {
         }
     }
     setupSocket.onerror = (event) => {
-        console.log(`WebSocket Error: ${JSON.stringify(event, null, 4)}`)
         dispatch(establishWebSocketError)
     }
 }

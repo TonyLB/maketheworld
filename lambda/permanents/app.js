@@ -16,6 +16,9 @@ const { getNodeTree } = require('./nodeTree/nodeTree')
 
 const { putRoom } = require('./putRoom/putRoom')
 
+const { putGrant } = require('./grants/putGrant')
+const { getGrants } = require('./grants/getGrants')
+
 const updateDispatcher = ({ Updates = [] }) => {
     console.log(Updates)
     const outputs = Updates.map((update) => {
@@ -33,6 +36,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             }
             if (update.putRoom) {
                 return putRoom({ arguments: update.putRoom })
+            }
+            if (update.putGrant) {
+                return putGrant(update.putGrant)
             }
             return Promise.resolve([])
         }
@@ -89,8 +95,8 @@ exports.handler = (event, context) => {
         case "getNodeTree":
             return getNodeTree()
 
-        case "putRoom":
-            return putRoom(payload)
+        case "getGrants":
+            return getGrants()
 
         case "updatePermanents":
             return updateDispatcher(payload)

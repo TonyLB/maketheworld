@@ -1136,6 +1136,25 @@ Resources:
                   "payload": $util.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  QueryGetGrants:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - PermanentsFunction
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getGrants
+          DataSourceName: !GetAtt PermanentsDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                      "action": "getGrants"
+                  }
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   NoneDataSource:
     Type: AWS::AppSync::DataSource
     DependsOn:
@@ -1353,7 +1372,7 @@ Resources:
                 Actions: String
                 Roles: String
               }
-              input ExternalGrantInput {
+              input GrantInput {
                 CharacterId: String!
                 Resource: String!
                 Actions: String
@@ -1450,6 +1469,7 @@ Resources:
                 Settings: Settings
                 Backup: Backup
                 Character: Character
+                Grant: ExternalGrant
               }
               input PermanentInput @aws_iam @aws_cognito_user_pools {
                 putNeighborhood: NeighborhoodInput
@@ -1457,6 +1477,8 @@ Resources:
                 putSettings: SettingsInput
                 putBackup: BackupInput
                 putRoom: RoomInput
+                putGrant: GrantInput
+                revokeGrant: GrantInput
               }
               type Mutation {
                   putPlayer(
@@ -1502,7 +1524,7 @@ Resources:
                       PlayerName: String!
                       CharacterId: String!
                       Type: String!
-                      Grant: ExternalGrantInput!
+                      Grant: GrantInput!
                   ): PlayerSubscription
                   @aws_iam @aws_cognito_user_pools
                   putRoomMessage(
@@ -1523,12 +1545,6 @@ Resources:
                       MessageId: String
                       CreatedTime: Long
                   ): Message
-                  @aws_iam @aws_cognito_user_pools
-                  putRole(
-                      RoleId: String!
-                      Name: String!
-                      Actions: String!
-                  ): Role
                   @aws_iam @aws_cognito_user_pools
                   createBackup(
                       PermanentId: String
@@ -1560,6 +1576,7 @@ Resources:
                   getMaps: [Map]
                   getSettings: Settings
                   getBackups: [Backup]
+                  getGrants: [ChangedPermanent]
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
@@ -1573,8 +1590,6 @@ Resources:
                     CharacterId: String
                   ): Message
                   @aws_subscribe(mutations: ["putRoomMessage", "putDirectMessage"])
-                  changedRole : Role
-                  @aws_subscribe(mutations: ["putRole"])
               }
               schema {
                   mutation: Mutation

@@ -2,6 +2,7 @@ import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import thunk from 'redux-thunk'
 import backups from '../reducers/backups.js'
 import characters from '../reducers/characters.js'
+import grants from '../reducers/grants.js'
 import connection from '../reducers/connection.js'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
@@ -25,6 +26,7 @@ export const store = createStore(
         charactersInPlay,
         clientSettings,
         myCharacters,
+        grants,
         messages,
         registeredCharacter,
         role,

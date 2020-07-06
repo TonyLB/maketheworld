@@ -176,6 +176,12 @@ export const externalPutCharacter = /* GraphQL */ `
           Roles
         }
       }
+      Grant {
+        CharacterId
+        Resource
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -220,7 +226,7 @@ export const externalUpdateGrant = /* GraphQL */ `
     $PlayerName: String!
     $CharacterId: String!
     $Type: String!
-    $Grant: ExternalGrantInput!
+    $Grant: GrantInput!
   ) {
     externalUpdateGrant(
       PlayerName: $PlayerName
@@ -324,15 +330,6 @@ export const putDirectMessage = /* GraphQL */ `
     }
   }
 `;
-export const putRole = /* GraphQL */ `
-  mutation PutRole($RoleId: String!, $Name: String!, $Actions: String!) {
-    putRole(RoleId: $RoleId, Name: $Name, Actions: $Actions) {
-      RoleId
-      Name
-      Actions
-    }
-  }
-`;
 export const createBackup = /* GraphQL */ `
   mutation CreateBackup(
     $PermanentId: String
@@ -415,6 +412,12 @@ export const createBackup = /* GraphQL */ `
           Roles
         }
       }
+      Grant {
+        CharacterId
+        Resource
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -492,6 +495,12 @@ export const restoreBackup = /* GraphQL */ `
           Roles
         }
       }
+      Grant {
+        CharacterId
+        Resource
+        Actions
+        Roles
+      }
     }
   }
 `;
@@ -568,6 +577,12 @@ export const updatePermanents = /* GraphQL */ `
           Actions
           Roles
         }
+      }
+      Grant {
+        CharacterId
+        Resource
+        Actions
+        Roles
       }
     }
   }
