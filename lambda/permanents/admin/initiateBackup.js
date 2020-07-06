@@ -17,13 +17,13 @@ const s3Put = (filename, contents) => {
 const shearOffFirstTag = (item) => (item.split('#').slice(1).join('#'))
 
 const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Name: "${Name}", Description: "${Description}", Status: "Creating...") {
+    updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Name: "${Name}", Description: "${Description}", Status: "Creating..." } } ]) {
         ${gqlOutput}
     }
 }`)
 
 const completedGQL = ({PermanentId }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Status: "Completed.") {
+    updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Status: "Completed." } } ]) {
         ${gqlOutput}
     }
 }`)

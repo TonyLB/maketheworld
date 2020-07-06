@@ -18,13 +18,13 @@ const s3Put = (filename, contents) => {
 const { gqlOutput } = require('./gqlOutput')
 
 const pendingGQL = ({PermanentId, Name, Description }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Name: ${JSON.stringify(Name)}, Description: ${JSON.stringify(Description)}, Status: "Creating...") {
+    updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Name: ${JSON.stringify(Name)}, Description: ${JSON.stringify(Description)}, Status: "Uploading..." } } ]) {
         ${gqlOutput}
     }
 }`)
 
 const completedGQL = ({PermanentId }) => (gql`mutation CompletedImport {
-    putBackup (PermanentId: "${PermanentId}", Status: "Uploaded.") {
+    updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Status: "Uploaded." } } ]) {
         ${gqlOutput}
     }
 }`)

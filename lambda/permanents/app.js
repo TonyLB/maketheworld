@@ -28,6 +28,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             if (update.putSettings) {
                 return putSettings(update.putSettings)
             }
+            if (update.putBackup) {
+                return putBackup(update.putBackup)
+            }
             return Promise.resolve([])
         }
     )
@@ -42,8 +45,6 @@ exports.handler = (event, context) => {
     switch(action) {
         case "getBackups":
             return getBackups()
-        case "putBackup":
-            return putBackup(payload)
         case "createBackup":
             return createBackup(payload)
         case "restoreBackup":

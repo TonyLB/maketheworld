@@ -10,13 +10,13 @@ const s3Get = (filename) => {
 }
 
 const pendingGQL = ({PermanentId }) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Status: "Restoring...") {
+    updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Status: "Restoring..." } } ]) {
         ${gqlOutput}
     }
 }`)
 
 const completedGQL = ({PermanentId}) => (gql`mutation PendingBackup {
-    putBackup (PermanentId: "${PermanentId}", Status: "Restored.") {
+    updatePermanents ( Updates: [ { putBackup: { PermanentId: "${PermanentId}", Status: "Restored." } } ]) {
         ${gqlOutput}
     }
 }`)
