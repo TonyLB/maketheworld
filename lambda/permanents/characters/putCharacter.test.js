@@ -30,11 +30,6 @@ const testGQLOutput = stripMultiline(`Neighborhood {
     Visibility
     Topology
     ContextMapId
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
   }
   Room {
     PermanentId
@@ -85,6 +80,13 @@ const testGQLOutput = stripMultiline(`Neighborhood {
     Outfit
     OneCoolThing
     HomeId
+  }
+  Grant {
+    CharacterId
+    Resource
+    Actions
+    Roles
+    Revoke
   }`)
 
 describe("putCharacter", () => {

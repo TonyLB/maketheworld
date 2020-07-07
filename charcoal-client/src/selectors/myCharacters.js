@@ -36,7 +36,7 @@ export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeader
         return {}
     }
 
-    const Grants = (grants && grants[matchingCharacters[0].CharacterId] || [])
+    const Grants = ((grants && grants[matchingCharacters[0].CharacterId]) || [])
 
     const grantMap = Grants.reduce((previous, grant) => ({
         ...previous,

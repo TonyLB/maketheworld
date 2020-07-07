@@ -71,11 +71,6 @@ export const getNeighborhoodTree = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -134,6 +129,7 @@ export const getNeighborhoodTree = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -148,11 +144,6 @@ export const getNeighborhood = /* GraphQL */ `
       Visibility
       Topology
       ContextMapId
-      Grants {
-        CharacterId
-        Actions
-        Roles
-      }
       Retired
     }
   }
@@ -278,11 +269,6 @@ export const getGrants = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -341,6 +327,7 @@ export const getGrants = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }

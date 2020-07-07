@@ -28,6 +28,7 @@ export const putPlayer = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -72,6 +73,7 @@ export const putCharacter = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -103,11 +105,6 @@ export const externalPutCharacter = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -166,6 +163,7 @@ export const externalPutCharacter = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -240,6 +238,7 @@ export const externalUpdateGrant = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -329,11 +328,6 @@ export const createBackup = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -392,6 +386,7 @@ export const createBackup = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -407,11 +402,6 @@ export const restoreBackup = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -470,6 +460,7 @@ export const restoreBackup = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -485,11 +476,6 @@ export const updatePermanents = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -548,6 +534,7 @@ export const updatePermanents = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }

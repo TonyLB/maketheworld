@@ -105,4 +105,19 @@ describe('Grantss reducer', () => {
         })
     })
 
+    it('should revoke a grant', () => {
+        expect(grants(testState, {
+            type: NEIGHBORHOOD_UPDATE,
+            data: [{
+                Grant: {
+                    CharacterId: 'TEST',
+                    Resource: 'ABC',
+                    Revoke: true
+                }
+            }]
+        })).toEqual({
+            TEST: []
+        })
+    })
+
 })

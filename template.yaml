@@ -1314,6 +1314,7 @@ Resources:
                   Resource: String!
                   Actions: String
                   Roles: String
+                  Revoke: Boolean
               }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String
@@ -1338,11 +1339,9 @@ Resources:
                   Visibility: String
                   Topology: String
                   ContextMapId: String
-                  Grants: [ResourceGrant]
                   Retired: Boolean
               }
               input NeighborhoodInput {
-                  CharacterId: String!
                   PermanentId: String!
                   Name: String!
                   Description: String

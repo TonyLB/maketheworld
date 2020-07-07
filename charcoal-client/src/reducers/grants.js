@@ -1,15 +1,15 @@
 import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods'
 
-const mergeGrant = (previous, { CharacterId, Resource, Roles = '', Actions = '' }) => ({
+const mergeGrant = (previous, { CharacterId, Resource, Roles = '', Actions = '', Revoke = false }) => ({
     ...previous,
     [CharacterId]: [
         ...(previous[CharacterId] || []).filter((grant) => (grant.Resource !== Resource)),
-        {
+        ...( Revoke ? [] : [{
             CharacterId,
             Resource,
             Roles,
             Actions
-        }
+        }])
     ]
 })
 

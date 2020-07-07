@@ -1,13 +1,14 @@
 import { API, graphqlOperation } from 'aws-amplify'
+import { v4 as uuidv4 } from 'uuid'
 import { getNeighborhood, getRoom } from '../graphql/queries'
 import { updatePermanents } from '../graphql/mutations'
 
-import { fetchAllNeighborhoods } from './neighborhoods'
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
 import { activateWorldDialog } from './UI/worldDialog'
 import { activateNeighborhoodDialog, closeNeighborhoodDialog } from './UI/neighborhoodDialog'
-import { getCharacterId } from '../selectors/connection'
 import { getPermanentHeaders  } from '../selectors/permanentHeaders'
+import { getGrantsByResource } from '../selectors/grants'
+import { getCharacterId } from '../selectors/connection'
 
 export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
     return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
@@ -42,11 +43,12 @@ export const putAndCloseRoomDialog = ({
 }
 
 export const fetchAndOpenWorldDialog = () => (dispatch) => {
-    dispatch(fetchAllNeighborhoods())
     dispatch(activateWorldDialog())
 }
 
-export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => (dispatch) => {
+export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => (dispatch, getState) => {
+    const state = getState()
+    const Grants = getGrantsByResource(state)[neighborhoodId]
     return API.graphql(graphqlOperation(getNeighborhood, { 'PermanentId': neighborhoodId }))
         .then(({ data }) => (data || {}))
         .then(({ getNeighborhood }) => (getNeighborhood || {}))
@@ -58,8 +60,7 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
             Name,
             Description,
             Visibility,
-            Topology,
-            Grants
+            Topology
         }) => ({
             neighborhoodId: PermanentId,
             type: Type,
@@ -77,37 +78,49 @@ export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => 
 
 export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, getState) => {
     const state = getState()
-    const CharacterId = getCharacterId(state)
+    const myCharacterId = getCharacterId(state)
+    const GrantsByResource = getGrantsByResource(state)
     const { neighborhoodId, parentId, mapId, name, description, visibility, topology = 'Dead-End', retired = false, grants=[] } = neighborhoodData
-    if (CharacterId) {
-        return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putNeighborhood:
+    const PermanentId = neighborhoodId || uuidv4()
+    const currentGrants = GrantsByResource[neighborhoodId]
+    const grantsToRevoke = currentGrants.filter(({ CharacterId }) => (!grants.find((grant) => (grant.CharacterId === CharacterId))))
+    const grantsToPut = grants.filter(({ CharacterId, Roles, Actions }) => (!currentGrants.find((grant) => (grant.CharacterId === CharacterId && grant.Actions === Actions && grant.Roles === Roles))))
+    const ownGrants = (neighborhoodId || grants.find(({ CharacterId }) => (CharacterId === myCharacterId))) ? [] : [ { CharacterId: myCharacterId, Roles: 'ADMIN' } ]
+    return API.graphql(graphqlOperation(updatePermanents, { Updates: [
+            { putNeighborhood:
                 {
-                    CharacterId,
-                    PermanentId: neighborhoodId,
+                    PermanentId,
                     ParentId: parentId,
                     ContextMapId: mapId,
                     Name: name,
                     Description: description,
                     Visibility: visibility,
                     Topology: topology,
-                    Retired: retired,
-                    Grants: grants
+                    Retired: retired
                 }
-            }]}))
-        .then(() => dispatch(closeNeighborhoodDialog()))
-        .catch((err) => { console.log(err)})
-    }
+            },
+            ...(grantsToRevoke.map(({ CharacterId }) => ({
+                revokeGrant: { CharacterId, Resource: PermanentId }
+            }))),
+            ...([ ...grantsToPut, ...ownGrants ].map((grant) => ({
+                putGrant: {
+                    ...grant,
+                    Resource: PermanentId
+                }
+            })))
+        ]
+    }))
+    .then(() => dispatch(closeNeighborhoodDialog()))
+    .catch((err) => { console.log(err)})
 }
 
 export const setNeighborhoodRetired = ({ PermanentId, Retired }) => (dispatch, getState) => {
     const state = getState()
     const permanentHeaders = getPermanentHeaders(state)
-    const CharacterId = getCharacterId(state)
-    const { Name, Description, ParentId, ContextMapId, Visibility, Topology, Grants } = permanentHeaders[PermanentId]
+    const { Name, Description, ParentId, ContextMapId, Visibility, Topology } = permanentHeaders[PermanentId]
     if (Name) {
         return API.graphql(graphqlOperation(updatePermanents, { Updates: [{ putNeighborhood:
             {
-                CharacterId,
                 PermanentId,
                 ParentId,
                 ContextMapId,
@@ -115,8 +128,7 @@ export const setNeighborhoodRetired = ({ PermanentId, Retired }) => (dispatch, g
                 Description,
                 Visibility,
                 Topology,
-                Retired,
-                Grants: Grants || []
+                Retired
             }
         }]}))
         .catch((err) => { console.log(err)})

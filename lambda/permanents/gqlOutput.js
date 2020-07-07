@@ -6,11 +6,6 @@ exports.gqlOutput = `Neighborhood {
     Visibility
     Topology
     ContextMapId
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
   }
   Room {
     PermanentId
@@ -61,4 +56,11 @@ exports.gqlOutput = `Neighborhood {
     Outfit
     OneCoolThing
     HomeId
+  }
+  Grant {
+    CharacterId
+    Resource
+    Actions
+    Roles
+    Revoke
   }`

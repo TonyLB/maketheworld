@@ -25,6 +25,7 @@ export const changedPlayer = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }
@@ -49,11 +50,6 @@ export const changedPermanents = /* GraphQL */ `
         Visibility
         Topology
         ContextMapId
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Room {
@@ -112,6 +108,7 @@ export const changedPermanents = /* GraphQL */ `
         Resource
         Actions
         Roles
+        Revoke
       }
     }
   }

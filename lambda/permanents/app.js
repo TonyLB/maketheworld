@@ -18,6 +18,7 @@ const { putRoom } = require('./putRoom/putRoom')
 
 const { putGrant } = require('./grants/putGrant')
 const { getGrants } = require('./grants/getGrants')
+const { revokeGrant } = require('./grants/revokeGrant')
 
 const updateDispatcher = ({ Updates = [] }) => {
     console.log(Updates)
@@ -39,6 +40,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             }
             if (update.putGrant) {
                 return putGrant(update.putGrant)
+            }
+            if (update.revokeGrant) {
+                return revokeGrant(update.revokeGrant)
             }
             return Promise.resolve([])
         }
