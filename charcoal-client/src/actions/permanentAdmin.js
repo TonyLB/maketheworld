@@ -1,6 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { v4 as uuidv4 } from 'uuid'
-import { getNeighborhood, getRoom } from '../graphql/queries'
 import { updatePermanents } from '../graphql/mutations'
 
 import { activateRoomDialog, closeRoomDialog } from './UI/roomDialog'
@@ -11,19 +10,18 @@ import { getGrantsByResource } from '../selectors/grants'
 import { getCharacterId } from '../selectors/connection'
 
 export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch, getState) => {
-    const { exits } = getState()
+    const state = getState()
+    const permanentHeaders = getPermanentHeaders(state)
+    const { PermanentId, Exits, Entries, ...rest } = permanentHeaders[roomId]
 
-    return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
-        .then(({ data }) => (data || {}))
-        .then(({ getRoom }) => (getRoom || {}))
-        .then(({ PermanentId, ...rest }) => dispatch(activateRoomDialog({
-            nested,
-            RoomId: PermanentId,
-            ...rest,
-            Exits: exits.filter(({ FromRoomId }) => (roomId === FromRoomId)).map(({ ToRoomId, Name }) => ({ RoomId: ToRoomId, Name })),
-            Entries: exits.filter(({ ToRoomId }) => (roomId === ToRoomId)).map(({ FromRoomId, Name }) => ({ RoomId: FromRoomId, Name }))
-        })))
-        .catch((err) => { console.log(err)})
+    dispatch(activateRoomDialog({
+        nested,
+        RoomId: PermanentId,
+        Exits,
+        Entries,
+        ...rest
+    }))
+
 }
 
 export const putAndCloseRoomDialog = ({
@@ -64,32 +62,21 @@ export const fetchAndOpenWorldDialog = () => (dispatch) => {
 
 export const fetchAndOpenNeighborhoodDialog = (neighborhoodId, nested=false) => (dispatch, getState) => {
     const state = getState()
+    const permanentHeaders = getPermanentHeaders(state)
+    const { PermanentId, ParentId, ContextMapId, Name, Description, Visibility = 'Private', Topology = 'Dead-End' } = permanentHeaders[neighborhoodId]
     const Grants = getGrantsByResource(state)[neighborhoodId]
-    return API.graphql(graphqlOperation(getNeighborhood, { 'PermanentId': neighborhoodId }))
-        .then(({ data }) => (data || {}))
-        .then(({ getNeighborhood }) => (getNeighborhood || {}))
-        .then(({
-            PermanentId,
-            Type,
-            ParentId,
-            ContextMapId,
-            Name,
-            Description,
-            Visibility,
-            Topology
-        }) => ({
-            neighborhoodId: PermanentId,
-            type: Type,
-            parentId: ParentId,
-            mapId: ContextMapId,
-            name: Name,
-            description: Description,
-            visibility: Visibility,
-            topology: Topology,
-            grants: Grants
-        }))
-        .then(response => dispatch(activateNeighborhoodDialog({ nested, ...response })))
-        .catch((err) => { console.log(err)})
+    dispatch(activateNeighborhoodDialog({
+        nested,
+        neighborhoodId: PermanentId,
+        type: 'NEIGHBORHOOD',
+        parentId: ParentId,
+        mapId: ContextMapId,
+        name: Name,
+        description: Description,
+        visibility: Visibility,
+        topology: Topology,
+        grants: Grants
+    }))
 }
 
 export const putAndCloseNeighborhoodDialog = (neighborhoodData) => (dispatch, getState) => {

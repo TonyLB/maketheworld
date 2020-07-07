@@ -756,57 +756,6 @@ Resources:
                   "payload": { "action": "getNodeTree" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetNeighborhood:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-      - PermanentsDataSource
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Query
-        FieldName: getNeighborhood
-        DataSourceName: !GetAtt PermanentsDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "Invoke",
-                "payload": {
-                    "action": "getNeighborhood",
-                    "PermanentId": $utils.toJson($ctx.args.PermanentId)
-                }
-            }
-        ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetRoom:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getRoom
-          DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-          RequestMappingTemplate: >
-              #set($PermanentId = "ROOM#${ctx.args.PermanentId}")
-              {
-                  "version": "2017-02-28",
-                  "operation": "GetItem",
-                  "key": {
-                      "PermanentId": $util.dynamodb.toStringJson($PermanentId),
-                      "DataCategory": $util.dynamodb.toStringJson("Details")
-                  }
-              }
-          ResponseMappingTemplate: >
-              #set($output = { "Type": "ROOM" })
-              $util.qr($output.put("PermanentId", $ctx.result.PermanentId.substring(5)))
-              $util.qr($output.put("ParentId", $ctx.result.ParentId))
-              $util.qr($output.put("Name", $ctx.result.Name))
-              $util.qr($output.put("Description", $ctx.result.Description))
-              $util.qr($output.put("Visibility", "Public"))
-              #if ($ctx.result.Retired == 'RETIRED')
-                $util.qr($output.put("Retired", true))
-              #else
-                $util.qr($output.put("Retired", false))
-              #end
-              $util.toJson($output)
   QueryGetRoomRecap:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
@@ -1559,10 +1508,7 @@ Resources:
                   getAllCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
                   getNeighborhoodTree: [ChangedPermanent]
-                  getNeighborhood(PermanentId: String!): Neighborhood
-                  getRoom(PermanentId: String!): Room
                   getRoomRecap(PermanentId: String!): [Message]
-                  getRoomByCharacter(CharacterId: String!): Room
                   getRoles: [Role]
                   getMaps: [Map]
                   getSettings: Settings

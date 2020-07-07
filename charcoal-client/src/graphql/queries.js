@@ -132,38 +132,6 @@ export const getNeighborhoodTree = /* GraphQL */ `
     }
   }
 `;
-export const getNeighborhood = /* GraphQL */ `
-  query GetNeighborhood($PermanentId: String!) {
-    getNeighborhood(PermanentId: $PermanentId) {
-      PermanentId
-      Name
-      Description
-      ParentId
-      Visibility
-      Topology
-      ContextMapId
-      Retired
-    }
-  }
-`;
-export const getRoom = /* GraphQL */ `
-  query GetRoom($PermanentId: String!) {
-    getRoom(PermanentId: $PermanentId) {
-      PermanentId
-      Name
-      Description
-      ParentId
-      Visibility
-      Topology
-      Grants {
-        CharacterId
-        Actions
-        Roles
-      }
-      Retired
-    }
-  }
-`;
 export const getRoomRecap = /* GraphQL */ `
   query GetRoomRecap($PermanentId: String!) {
     getRoomRecap(PermanentId: $PermanentId) {
@@ -179,24 +147,6 @@ export const getRoomRecap = /* GraphQL */ `
       ExpirationTime
       Type
       Title
-    }
-  }
-`;
-export const getRoomByCharacter = /* GraphQL */ `
-  query GetRoomByCharacter($CharacterId: String!) {
-    getRoomByCharacter(CharacterId: $CharacterId) {
-      PermanentId
-      Name
-      Description
-      ParentId
-      Visibility
-      Topology
-      Grants {
-        CharacterId
-        Actions
-        Roles
-      }
-      Retired
     }
   }
 `;
