@@ -85,56 +85,14 @@ const neighborhoodUpdate = ({ PermanentId = 'PLACEHOLDER', ParentId, ...change }
 //
 
 const roomUpdate = ({ PermanentId, ParentId, Exits = [], Entries = [], ...change }) => (permanentHeaders) => {
-    const removedPaths = Object.values(permanentHeaders)
-        .map(({ Type, Exits = [], Entries = [], ...rest }) => (Type === 'ROOM'
-            ? {
-                ...rest,
-                Type,
-                Exits: Exits.filter(({ RoomId }) => (RoomId !== PermanentId)),
-                Entries: Entries.filter(({ RoomId }) => (RoomId !== PermanentId))
-            }
-            : { Type, ...rest }
-        ))
-        .reduce((previous, { PermanentId, ...rest }) => ({ ...previous, [PermanentId]: {
-            PermanentId,
-            ...rest
-        }}), {})
-    const addedExits = (Exits || []).reduce((previous, { RoomId, Name }) => (previous[RoomId] ? {
-        ...previous,
-        [RoomId]: {
-            ...previous[RoomId],
-            Entries: [
-                ...(previous[RoomId].Entries || []),
-                {
-                    RoomId: PermanentId,
-                    Name
-                }
-            ]
-        }
-    } : previous), removedPaths)
-    const addedEntries = (Entries || []).reduce((previous, { RoomId, Name }) => (previous[RoomId] ? {
-        ...previous,
-        [RoomId]: {
-            ...previous[RoomId],
-            Exits: [
-                ...(previous[RoomId].Exits || []),
-                {
-                    RoomId: PermanentId,
-                    Name
-                }
-            ]
-        }
-    } : previous), addedExits)
     return {
-        ...addedEntries,
+        ...permanentHeaders,
         [PermanentId]: {
             ...change,
             PermanentId,
             ParentId,
             Type: 'ROOM',
             Ancestry: permanentHeaders[ParentId] ? `${permanentHeaders[ParentId].Ancestry || ParentId}:${PermanentId}` : PermanentId,
-            Exits: (Exits || []).filter(({ RoomId }) => (permanentHeaders[RoomId])),
-            Entries: (Entries || []).filter(({ RoomId }) => (permanentHeaders[RoomId]))
         }
     }
 }

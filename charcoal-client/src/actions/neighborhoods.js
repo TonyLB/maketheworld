@@ -9,6 +9,7 @@ import { fetchCharacters } from './characters'
 import { fetchBackups } from './backups'
 import { fetchGrants } from './grants'
 import { fetchRoles } from './role'
+import { fetchExits } from './exits'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 export const NEIGHBORHOOD_MERGE = 'NEIGHBORHOOD_MERGE'
@@ -44,6 +45,7 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
 
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
     dispatch(fetchAllNeighborhoods())
+    dispatch(fetchExits)
     dispatch(fetchMaps)
     dispatch(fetchSettings)
     dispatch(fetchCharacters)

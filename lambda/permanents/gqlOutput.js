@@ -14,19 +14,6 @@ exports.gqlOutput = `Neighborhood {
     ParentId
     Visibility
     Topology
-    Exits {
-      Name
-      RoomId
-    }
-    Entries {
-      Name
-      RoomId
-    }
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
   }
   Map {
     MapId
@@ -63,4 +50,10 @@ exports.gqlOutput = `Neighborhood {
     Actions
     Roles
     Revoke
+  }
+  Exit {
+    FromRoomId
+    ToRoomId
+    Name
+    Delete
   }`

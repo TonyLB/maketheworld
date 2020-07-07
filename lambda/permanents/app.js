@@ -20,6 +20,10 @@ const { putGrant } = require('./grants/putGrant')
 const { getGrants } = require('./grants/getGrants')
 const { revokeGrant } = require('./grants/revokeGrant')
 
+const { getExits } = require('./exits/getExits')
+const { putExit } = require('./exits/putExit')
+const { deleteExit } = require('./exits/deleteExit')
+
 const updateDispatcher = ({ Updates = [] }) => {
     console.log(Updates)
     const outputs = Updates.map((update) => {
@@ -43,6 +47,12 @@ const updateDispatcher = ({ Updates = [] }) => {
             }
             if (update.revokeGrant) {
                 return revokeGrant(update.revokeGrant)
+            }
+            if (update.putExit) {
+                return putExit(update.putExit)
+            }
+            if (update.deleteExit) {
+                return deleteExit(update.deleteExit)
             }
             return Promise.resolve([])
         }
@@ -101,6 +111,9 @@ exports.handler = (event, context) => {
 
         case "getGrants":
             return getGrants()
+
+        case "getExits":
+            return getExits()
 
         case "updatePermanents":
             return updateDispatcher(payload)

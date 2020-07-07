@@ -114,14 +114,6 @@ export const externalPutCharacter = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
         Grants {
           CharacterId
           Actions
@@ -164,6 +156,12 @@ export const externalPutCharacter = /* GraphQL */ `
         Actions
         Roles
         Revoke
+      }
+      Exit {
+        FromRoomId
+        ToRoomId
+        Name
+        Delete
       }
     }
   }
@@ -337,14 +335,6 @@ export const createBackup = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
         Grants {
           CharacterId
           Actions
@@ -387,6 +377,12 @@ export const createBackup = /* GraphQL */ `
         Actions
         Roles
         Revoke
+      }
+      Exit {
+        FromRoomId
+        ToRoomId
+        Name
+        Delete
       }
     }
   }
@@ -411,14 +407,6 @@ export const restoreBackup = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
         Grants {
           CharacterId
           Actions
@@ -461,6 +449,12 @@ export const restoreBackup = /* GraphQL */ `
         Actions
         Roles
         Revoke
+      }
+      Exit {
+        FromRoomId
+        ToRoomId
+        Name
+        Delete
       }
     }
   }
@@ -485,14 +479,6 @@ export const updatePermanents = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
         Grants {
           CharacterId
           Actions
@@ -535,6 +521,12 @@ export const updatePermanents = /* GraphQL */ `
         Actions
         Roles
         Revoke
+      }
+      Exit {
+        FromRoomId
+        ToRoomId
+        Name
+        Delete
       }
     }
   }

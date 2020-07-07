@@ -24,12 +24,34 @@ export const rawAncestryCalculation = ({ permanentHeaders = {}}) => ({ ParentId,
 // TODO:  Figure out how to properly cache calculations so that getPermanentHeaders uses
 // rawAncestryCalculation to generate the Ancestry from the tree dynamically.
 //
-export const getPermanentHeaders = ({ permanentHeaders = {} }) => {
+export const getPermanentHeaders = ({ permanentHeaders = {}, exits = [] }) => {
     return new Proxy(
         permanentHeaders,
-            {
-                get: (obj, prop) => ((obj && obj[prop]) || {})
+        {
+            get: (obj, prop) => {
+                const header = obj && obj[prop]
+                if (!header) {
+                    return {}
+                }
+                if (header.Type === 'ROOM') {
+                    return new Proxy(
+                        header,
+                        {
+                            get: (obj, prop) => {
+                                if (prop === 'Exits') {
+                                    return exits.filter(({ FromRoomId }) => (obj.PermanentId === FromRoomId)).map(({ ToRoomId, Name }) => ({ RoomId: ToRoomId, Name }))
+                                }
+                                if (prop === 'Entries') {
+                                    return exits.filter(({ ToRoomId }) => (header.PermanentId === ToRoomId)).map(({ FromRoomId, Name }) => ({ RoomId: FromRoomId, Name }))
+                                }
+                                return obj[prop]
+                            }
+                        }
+                    )
+                }
+                return header
             }
+        }
     )
 }
 

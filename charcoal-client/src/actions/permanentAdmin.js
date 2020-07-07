@@ -10,11 +10,19 @@ import { getPermanentHeaders  } from '../selectors/permanentHeaders'
 import { getGrantsByResource } from '../selectors/grants'
 import { getCharacterId } from '../selectors/connection'
 
-export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch) => {
+export const fetchAndOpenRoomDialog = (roomId, nested=false) => (dispatch, getState) => {
+    const { exits } = getState()
+
     return API.graphql(graphqlOperation(getRoom, { 'PermanentId': roomId }))
         .then(({ data }) => (data || {}))
         .then(({ getRoom }) => (getRoom || {}))
-        .then(({ PermanentId, ...rest }) => dispatch(activateRoomDialog({ nested, RoomId: PermanentId, ...rest })))
+        .then(({ PermanentId, ...rest }) => dispatch(activateRoomDialog({
+            nested,
+            RoomId: PermanentId,
+            ...rest,
+            Exits: exits.filter(({ FromRoomId }) => (roomId === FromRoomId)).map(({ ToRoomId, Name }) => ({ RoomId: ToRoomId, Name })),
+            Entries: exits.filter(({ ToRoomId }) => (roomId === ToRoomId)).map(({ FromRoomId, Name }) => ({ RoomId: FromRoomId, Name }))
+        })))
         .catch((err) => { console.log(err)})
 }
 
@@ -26,18 +34,26 @@ export const putAndCloseRoomDialog = ({
         Retired,
         Exits = [],
         Entries = []
-    }) => (dispatch) => {
-    return API.graphql(graphqlOperation(updatePermanents, { Updates: [ { putRoom: {
-            PermanentId,
-            ParentId,
-            Name,
-            Description,
-            Retired,
-            Exits,
-            Entries
-        }}]}))
-        .then(({ data }) => (data || {}))
-        .then(({ getRoom }) => (getRoom || {}))
+    }) => (dispatch, getState) => {
+    const { exits = [] } = getState()
+    const finalExits = [
+        ...(Exits.map(({ RoomId: ToRoomId, Name }) => ({ FromRoomId: PermanentId, ToRoomId, Name }))),
+        ...(Entries.map(({ RoomId: FromRoomId, Name }) => ({ ToRoomId: PermanentId, FromRoomId, Name })))
+    ]
+    const existingExits = exits.filter(({ FromRoomId, ToRoomId }) => (FromRoomId === PermanentId || ToRoomId === PermanentId))
+    const exitsToPut = finalExits.filter((exit) => (!existingExits.find((compare) => (compare.FromRoomId === exit.FromRoomId && compare.ToRoomId === exit.ToRoomId && compare.Name === exit.Name))))
+    const exitsToDelete = existingExits.filter((exit) => (!finalExits.find((compare) => (compare.FromRoomId === exit.FromRoomId && compare.ToRoomId === exit.ToRoomId))))
+    return API.graphql(graphqlOperation(updatePermanents, { Updates: [
+            { putRoom: {
+                PermanentId,
+                ParentId,
+                Name,
+                Description,
+                Retired
+            }},
+            ...(exitsToDelete.map((exit) => ({ deleteExit: exit }))),
+            ...(exitsToPut.map((exit) => ({ putExit: exit })))
+        ]}))
         .then(() => dispatch(closeRoomDialog()))
         .catch((err) => { console.log(err)})
 }

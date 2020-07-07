@@ -59,14 +59,6 @@ export const changedPermanents = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Exits {
-          Name
-          RoomId
-        }
-        Entries {
-          Name
-          RoomId
-        }
         Grants {
           CharacterId
           Actions
@@ -109,6 +101,12 @@ export const changedPermanents = /* GraphQL */ `
         Actions
         Roles
         Revoke
+      }
+      Exit {
+        FromRoomId
+        ToRoomId
+        Name
+        Delete
       }
     }
   }

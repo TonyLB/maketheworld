@@ -788,49 +788,24 @@ Resources:
               #set($PermanentId = "ROOM#${ctx.args.PermanentId}")
               {
                   "version": "2017-02-28",
-                  "operation": "Query",
-                  "query": {
-                      "expression": "PermanentId = :PermanentId",
-                      "expressionValues": {
-                          ":PermanentId": $util.dynamodb.toDynamoDBJson($PermanentId)
-                      }
+                  "operation": "GetItem",
+                  "key": {
+                      "PermanentId": $util.dynamodb.toStringJson($PermanentId),
+                      "DataCategory": $util.dynamodb.toStringJson("Details")
                   }
               }
           ResponseMappingTemplate: >
               #set($output = { "Type": "ROOM" })
-              #set($entries = [])
-              #set($exits = [])
-              #foreach($row in $ctx.result.items)
-                  #if ($row.DataCategory == 'Details')
-                      $util.qr($output.put("PermanentId", $row.PermanentId.substring(5)))
-                      $util.qr($output.put("ParentId", $row.ParentId))
-                      $util.qr($output.put("Name", $row.Name))
-                      $util.qr($output.put("Description", $row.Description))
-                      $util.qr($output.put("Visibility", "Public"))
-                      #if ($row.Retired == 'RETIRED')
-                        $util.qr($output.put("Retired", true))
-                      #else
-                        $util.qr($output.put("Retired", false))
-                      #end
-                  #end
-                  #if ($row.DataCategory.startsWith('EXIT#'))
-                      #set($roomId = $row.DataCategory.substring(5))
-                      $util.qr($exits.add({
-                          "Name": $row.Name,
-                          "RoomId": $roomId
-                      }))
-                  #end
-                  #if ($row.DataCategory.startsWith('ENTRY#'))
-                      #set($roomId = $row.DataCategory.substring(6))
-                      $util.qr($entries.add({
-                          "Name": $row.Name,
-                          "RoomId": $roomId
-                      }))
-                  #end
+              $util.qr($output.put("PermanentId", $ctx.result.PermanentId.substring(5)))
+              $util.qr($output.put("ParentId", $ctx.result.ParentId))
+              $util.qr($output.put("Name", $ctx.result.Name))
+              $util.qr($output.put("Description", $ctx.result.Description))
+              $util.qr($output.put("Visibility", "Public"))
+              #if ($ctx.result.Retired == 'RETIRED')
+                $util.qr($output.put("Retired", true))
+              #else
+                $util.qr($output.put("Retired", false))
               #end
-              $util.qr($output.put("Exits", $exits))
-              $util.qr($output.put("Entries", $entries))
-              $util.qr($output.put("Grants", []))
               $util.toJson($output)
   QueryGetRoomRecap:
     Type: AWS::AppSync::Resolver
@@ -914,6 +889,21 @@ Resources:
                   "version": "2017-02-28",
                   "operation": "Invoke",
                   "payload": { "action": "getMaps" }
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  QueryGetExitsResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getExits
+          DataSourceName: !GetAtt PermanentsDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": { "action": "getExits" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationAddCharacterInPlay:
@@ -1353,12 +1343,16 @@ Resources:
                   Retired: Boolean
               }
               type Exit {
-                  Name: String!
-                  RoomId: String!
+                  FromRoomId: String!
+                  ToRoomId: String!
+                  Name: String
+                  Delete: Boolean
               }
-              type Entry {
-                  Name: String!
-                  RoomId: String!
+              input ExitInput {
+                  FromRoomId: String!
+                  ToRoomId: String!
+                  Name: String
+                  Delete: Boolean
               }
               input PathInput {
                   PermanentId: String
@@ -1383,8 +1377,6 @@ Resources:
                   ParentId: String
                   Visibility: String
                   Topology: String
-                  Exits: [Exit]
-                  Entries: [Entry]
                   Grants: [ResourceGrant]
                   Retired: Boolean
               }
@@ -1395,8 +1387,6 @@ Resources:
                   ParentId: String
                   Visibility: String
                   Topology: String
-                  Exits: [PathInput]
-                  Entries: [PathInput]
                   Retired: Boolean
               }
               type Message @aws_iam @aws_cognito_user_pools {
@@ -1468,6 +1458,7 @@ Resources:
                 Backup: Backup
                 Character: Character
                 Grant: ExternalGrant
+                Exit: Exit
               }
               input PermanentInput @aws_iam @aws_cognito_user_pools {
                 putNeighborhood: NeighborhoodInput
@@ -1477,6 +1468,8 @@ Resources:
                 putRoom: RoomInput
                 putGrant: GrantInput
                 revokeGrant: GrantInput
+                putExit: ExitInput
+                deleteExit: ExitInput
               }
               type Mutation {
                   putPlayer(
@@ -1575,6 +1568,7 @@ Resources:
                   getSettings: Settings
                   getBackups: [Backup]
                   getGrants: [ChangedPermanent]
+                  getExits: [ChangedPermanent]
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
