@@ -855,6 +855,21 @@ Resources:
                   "payload": { "action": "getExits" }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  QuerySyncPermanentsResolver:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: syncPermanents
+          DataSourceName: !GetAtt PermanentsDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": { "action": "sync" }
+              }
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationAddCharacterInPlay:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1102,29 +1117,6 @@ Resources:
         ApiId: !GetAtt AppSyncAPI.ApiId
         Name: NoneSource
         Type: NONE
-  MutationExternalUpdateGrant:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: externalUpdateGrant
-        DataSourceName: !GetAtt NoneDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "payload": $util.toJson($ctx.args)
-            }
-        ResponseMappingTemplate: >
-            #set($result = $ctx.result)
-            #set($grant = $result.Grant)
-            $util.toJson({
-                  "Type": "$result.Type",
-                  "PlayerName": "$result.PlayerName",
-                  "CharacterId": "$result.CharacterId",
-                  "GrantInfo": $grant
-            })
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1404,6 +1396,7 @@ Resources:
                 Room: Room
                 Map: Map
                 Settings: Settings
+                Role: Role
                 Backup: Backup
                 Character: Character
                 Grant: ExternalGrant
@@ -1460,13 +1453,6 @@ Resources:
                       CharacterId: String!
                       RoomId: String!
                   ): CharacterInPlay
-                  externalUpdateGrant(
-                      PlayerName: String!
-                      CharacterId: String!
-                      Type: String!
-                      Grant: GrantInput!
-                  ): PlayerSubscription
-                  @aws_iam @aws_cognito_user_pools
                   putRoomMessage(
                       RoomId: String!
                       Message: String!
@@ -1515,10 +1501,11 @@ Resources:
                   getBackups: [Backup]
                   getGrants: [ChangedPermanent]
                   getExits: [ChangedPermanent]
+                  syncPermanents: [ChangedPermanent]
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
-                  @aws_subscribe(mutations: ["putPlayer", "putCharacter", "externalUpdateGrant"])
+                  @aws_subscribe(mutations: ["putPlayer", "putCharacter"])
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]

@@ -100,6 +100,11 @@ export const getNeighborhoodTree = /* GraphQL */ `
       Settings {
         ChatPrompt
       }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
       Backup {
         PermanentId
         Name
@@ -230,6 +235,11 @@ export const getGrants = /* GraphQL */ `
       Settings {
         ChatPrompt
       }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
       Backup {
         PermanentId
         Name
@@ -301,6 +311,88 @@ export const getExits = /* GraphQL */ `
       }
       Settings {
         ChatPrompt
+      }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
+      Backup {
+        PermanentId
+        Name
+        Description
+        Status
+      }
+      Character {
+        PlayerName
+        Name
+        CharacterId
+        Pronouns
+        FirstImpression
+        Outfit
+        OneCoolThing
+        HomeId
+      }
+      Grant {
+        CharacterId
+        Resource
+        Actions
+        Roles
+        Revoke
+      }
+      Exit {
+        FromRoomId
+        ToRoomId
+        Name
+        Delete
+      }
+    }
+  }
+`;
+export const syncPermanents = /* GraphQL */ `
+  query SyncPermanents {
+    syncPermanents {
+      Neighborhood {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        ContextMapId
+        Retired
+      }
+      Room {
+        PermanentId
+        Name
+        Description
+        ParentId
+        Visibility
+        Topology
+        Grants {
+          CharacterId
+          Actions
+          Roles
+        }
+        Retired
+      }
+      Map {
+        MapId
+        Name
+        Rooms {
+          PermanentId
+          X
+          Y
+          Locked
+        }
+      }
+      Settings {
+        ChatPrompt
+      }
+      Role {
+        RoleId
+        Name
+        Actions
       }
       Backup {
         PermanentId

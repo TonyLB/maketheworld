@@ -23,9 +23,9 @@ const { revokeGrant } = require('./grants/revokeGrant')
 const { getExits } = require('./exits/getExits')
 const { putExit } = require('./exits/putExit')
 const { deleteExit } = require('./exits/deleteExit')
+const { sync } = require('./sync')
 
 const updateDispatcher = ({ Updates = [] }) => {
-    console.log(Updates)
     const outputs = Updates.map((update) => {
             if (update.putNeighborhood) {
                 return putNeighborhood({ arguments: update.putNeighborhood })
@@ -114,6 +114,9 @@ exports.handler = (event, context) => {
 
         case "getExits":
             return getExits()
+
+        case "sync":
+            return sync(payload)
 
         case "updatePermanents":
             return updateDispatcher(payload)

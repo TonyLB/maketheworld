@@ -28,6 +28,11 @@ exports.gqlOutput = `Neighborhood {
   Settings {
     ChatPrompt
   }
+  Role {
+    RoleId
+    Name
+    Actions
+  }
   Backup {
     PermanentId
     Name

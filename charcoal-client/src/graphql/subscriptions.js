@@ -79,6 +79,11 @@ export const changedPermanents = /* GraphQL */ `
       Settings {
         ChatPrompt
       }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
       Backup {
         PermanentId
         Name

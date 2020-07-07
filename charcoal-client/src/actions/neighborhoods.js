@@ -1,15 +1,9 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { getNeighborhoodTree } from '../graphql/queries'
+import { getNeighborhoodTree, syncPermanents as syncPermanentsGQL } from '../graphql/queries'
 import { changedPermanents } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
 import { fetchMaps } from './maps'
-import { fetchSettings } from './settings'
-import { fetchCharacters } from './characters'
-import { fetchBackups } from './backups'
-import { fetchGrants } from './grants'
-import { fetchRoles } from './role'
-import { fetchExits } from './exits'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 export const NEIGHBORHOOD_MERGE = 'NEIGHBORHOOD_MERGE'
@@ -32,6 +26,14 @@ export const fetchAllNeighborhoods = () => (dispatch) => {
     .catch((err) => { console.log(err)})
 }
 
+export const syncPermanents = (dispatch) => {
+    return API.graphql(graphqlOperation(syncPermanentsGQL))
+        .then(({ data }) => (data || {}))
+        .then(({ syncPermanents }) => (syncPermanents || []))
+        .then(response => dispatch(neighborhoodUpdate(response)))
+        .catch((err) => { console.log(err)})
+}
+
 export const subscribePermanentHeaderChanges = () => (dispatch) => {
     const neighborhoodSubscription = API.graphql(graphqlOperation(changedPermanents))
         .subscribe({
@@ -44,12 +46,6 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
         })
 
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
-    dispatch(fetchAllNeighborhoods())
-    dispatch(fetchExits)
     dispatch(fetchMaps)
-    dispatch(fetchSettings)
-    dispatch(fetchCharacters)
-    dispatch(fetchBackups)
-    dispatch(fetchGrants)
-    dispatch(fetchRoles)
+    dispatch(syncPermanents)
 }

@@ -134,6 +134,11 @@ export const externalPutCharacter = /* GraphQL */ `
       Settings {
         ChatPrompt
       }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
       Backup {
         PermanentId
         Name
@@ -199,45 +204,6 @@ export const moveCharacter = /* GraphQL */ `
       CharacterId
       RoomId
       Connected
-    }
-  }
-`;
-export const externalUpdateGrant = /* GraphQL */ `
-  mutation ExternalUpdateGrant(
-    $PlayerName: String!
-    $CharacterId: String!
-    $Type: String!
-    $Grant: GrantInput!
-  ) {
-    externalUpdateGrant(
-      PlayerName: $PlayerName
-      CharacterId: $CharacterId
-      Type: $Type
-      Grant: $Grant
-    ) {
-      Type
-      PlayerName
-      PlayerInfo {
-        PlayerName
-        CodeOfConductConsent
-      }
-      CharacterInfo {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-      }
-      GrantInfo {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
     }
   }
 `;
@@ -355,6 +321,11 @@ export const createBackup = /* GraphQL */ `
       Settings {
         ChatPrompt
       }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
       Backup {
         PermanentId
         Name
@@ -427,6 +398,11 @@ export const restoreBackup = /* GraphQL */ `
       Settings {
         ChatPrompt
       }
+      Role {
+        RoleId
+        Name
+        Actions
+      }
       Backup {
         PermanentId
         Name
@@ -498,6 +474,11 @@ export const updatePermanents = /* GraphQL */ `
       }
       Settings {
         ChatPrompt
+      }
+      Role {
+        RoleId
+        Name
+        Actions
       }
       Backup {
         PermanentId
