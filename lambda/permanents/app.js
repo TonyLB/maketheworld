@@ -66,8 +66,7 @@ exports.handler = (event, context) => {
     const { action, ...payload } = event
 
     switch(action) {
-        case "getBackups":
-            return getBackups()
+
         case "createBackup":
             return createBackup(payload)
         case "restoreBackup":
@@ -86,34 +85,13 @@ exports.handler = (event, context) => {
                         message: "Upload completed."
                     })
                 }))
-        case "getSettings":
-            return getSettings()
 
         case "getCharacter":
             return getCharacter(payload)
         case "getPlayerCharacters":
             return getPlayerCharacters(payload)
-        case "getAllCharacters":
-            return getAllCharacters()
         case "putCharacter":
             return putCharacter(payload)
-
-        case "getMaps":
-            return getMaps()
-        case "putMap":
-            return putMap(payload)
-
-        case "getNeighborhood":
-            return getNeighborhood(payload)
-
-        case "getNodeTree":
-            return getNodeTree()
-
-        case "getGrants":
-            return getGrants()
-
-        case "getExits":
-            return getExits()
 
         case "sync":
             return sync(payload)

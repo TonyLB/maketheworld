@@ -1,6 +1,6 @@
 import { getMyCurrentCharacter } from './myCharacters'
 import { getPermanentHeaders, getNeighborhoodPaths } from './permanentHeaders'
-import permanentReducer from '../reducers/permanentHeaders'
+import { storeReducer } from '../store/'
 import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods.js'
 
 const countUnique = (itemList) => (Object.values(itemList
@@ -99,20 +99,17 @@ export const getNeighborhoodUpdateValidator = (state) => ({ PermanentId, ParentI
             }
         }
         const newAncestry = `${permanentHeaders[ParentId].Ancestry}:${PermanentId}`
-        const predictedState = {
-            ...state,
-            permanentHeaders: permanentReducer(state.permanentHeaders, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Neighborhood: {
-                        PermanentId,
-                        ParentId,
-                        Visibility,
-                        Topology
-                    }
-                }]
-            })
-        }
+        const predictedState = storeReducer(state, {
+            type: NEIGHBORHOOD_UPDATE,
+            data: [{
+                Neighborhood: {
+                    PermanentId,
+                    ParentId,
+                    Visibility,
+                    Topology
+                }
+            }]
+        })
         //
         // Check if the neighborhood being reparented INTO would be in violation
         //
@@ -153,23 +150,41 @@ export const getRoomUpdateValidator = (state) => ({ PermanentId, ParentId, Exits
     const permanentHeaders = getPermanentHeaders(state)
     const previousRoom = permanentHeaders[PermanentId]
 
-    const predictedState = {
-        ...state,
-        permanentHeaders: permanentReducer(state.permanentHeaders, {
-            type: NEIGHBORHOOD_UPDATE,
-            data: [{
+    const { exits = [] } = state
+    const finalExits = [
+        ...((Exits || previousRoom.Exits || []).map(({ RoomId: ToRoomId, Name }) => ({ FromRoomId: PermanentId, ToRoomId, Name }))),
+        ...((Entries || previousRoom.Entries || []).map(({ RoomId: FromRoomId, Name }) => ({ ToRoomId: PermanentId, FromRoomId, Name })))
+    ]
+    const existingExits = exits.filter(({ FromRoomId, ToRoomId }) => (FromRoomId === PermanentId || ToRoomId === PermanentId))
+    const exitsToPut = finalExits.filter((exit) => (!existingExits.find((compare) => (compare.FromRoomId === exit.FromRoomId && compare.ToRoomId === exit.ToRoomId && compare.Name === exit.Name))))
+    const exitsToDelete = existingExits.filter((exit) => (!finalExits.find((compare) => (compare.FromRoomId === exit.FromRoomId && compare.ToRoomId === exit.ToRoomId))))
+
+    const predictedState = storeReducer(state, {
+        type: NEIGHBORHOOD_UPDATE,
+        data: [{
                 Room: {
                     PermanentId,
-                    ParentId,
-                    Exits: Exits || previousRoom.Exits,
-                    Entries: Entries || previousRoom.Entries
-                }
-            }]
-        })
-    }
+                    ParentId
 
-    // const predictedState = predictRoomEdit({ PermanentId, ParentId, Exits: Exits || previousRoom.Exits, Entries: Entries || previousRoom.Entries })(state)
-    // console.log(JSON.stringify(predictedState, null, 4))
+                    //
+                    // **** TODO ****
+                    //
+                    // Revise update and validate procedures so that they operate on a whole updated state,
+                    // rather than simply allowing a single change.  This will, in turn, assure that we
+                    // don't need to repeat the code for breaking a form down into database updates in the
+                    // validate section as well, in order to get live validation.
+                    //
+                    // Short-Term:  Repeat the new update code from the Room update form, in order to get
+                    // live validation working in the current code regime.
+                    //
+                    // Exits: Exits || previousRoom.Exits,
+                    // Entries: Entries || previousRoom.Entries
+                }
+            },
+            ...(exitsToDelete.map((exit) => ({ Exit: { ...exit, Delete: true } }))),
+            ...(exitsToPut.map((exit) => ({ Exit: exit })))
+        ]
+    })
 
     //
     // Check for ParentId update

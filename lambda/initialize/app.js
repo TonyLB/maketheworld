@@ -23,7 +23,6 @@ exports.handler = async () => {
     const mapsToConsolidate = mapData.reduce((previous, {PermanentId: rawPermanentId, DataCategory, Name, X, Y, Locked = false, Rooms = [] }) => {
         const PermanentId = rawPermanentId.slice(4)
         if (DataCategory === 'Details') {
-            console.log(`Details: ${PermanentId}`)
             return {
                 ...previous,
                 [PermanentId]: {
@@ -39,7 +38,6 @@ exports.handler = async () => {
         }
         if (DataCategory.startsWith('ROOM#')) {
             const RoomId = DataCategory.slice(5)
-            console.log(`Room: ${PermanentId} x ${RoomId}`)
             return {
                 ...previous,
                 [PermanentId]: {
@@ -61,7 +59,6 @@ exports.handler = async () => {
     }, {})
     const mapsToDelete = mapData.filter(({ DataCategory }) => (DataCategory.startsWith('ROOM#')))
 
-    console.log(`Maps To Consolidate: ${JSON.stringify(mapsToConsolidate, null, 4)}`)
     if (mapsToDelete.length) {
         await Promise.all([
             ...(mapsToDelete.map(({ PermanentId, DataCategory }) => (documentClient.delete({

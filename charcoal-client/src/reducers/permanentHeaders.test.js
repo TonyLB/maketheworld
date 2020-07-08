@@ -1,26 +1,16 @@
-import { NEIGHBORHOOD_UPDATE, NEIGHBORHOOD_MERGE } from '../actions/neighborhoods.js'
+import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods.js'
 import reducer from './permanentHeaders'
 
 const testState = {
     RootRoom: {
         PermanentId: 'RootRoom',
         Ancestry: 'RootRoom',
-        Type: 'ROOM',
-        Exits: [{
-            RoomId: 'BlueRoom',
-            Name: 'blue'
-        }],
-        Entries: [{
-            RoomId: 'BlueRoom',
-            Name: 'root'
-        }]
+        Type: 'ROOM'
     },
     AlternateRoom: {
         PermanentId: 'AlternateRoom',
         Ancestry: 'AlternateRoom',
-        Type: 'ROOM',
-        Exits: [],
-        Entries: []
+        Type: 'ROOM'
     },
     Alpha: {
         PermanentId: 'Alpha',
@@ -33,23 +23,7 @@ const testState = {
         PermanentId: 'BlueRoom',
         ParentId: 'Alpha',
         Ancestry: 'Alpha:BlueRoom',
-        Type: 'ROOM',
-        Exits: [{
-            RoomId: 'RootRoom',
-            Name: 'root'
-        },
-        {
-            RoomId: 'GreenRoom',
-            Name: 'green'
-        }],
-        Entries: [{
-            RoomId: 'RootRoom',
-            Name: 'blue'
-        },
-        {
-            RoomId: 'GreenRoom',
-            Name: 'blue'
-        }]
+        Type: 'ROOM'
     },
     Beta: {
         PermanentId: 'Beta',
@@ -62,15 +36,7 @@ const testState = {
         PermanentId: 'GreenRoom',
         ParentId: 'Beta',
         Ancestry: 'Alpha:Beta:GreenRoom',
-        Type: 'ROOM',
-        Exits: [{
-            RoomId: 'BlueRoom',
-            Name: 'blue'
-        }],
-        Entries: [{
-            RoomId: 'BlueRoom',
-            Name: 'green'
-        }]
+        Type: 'ROOM'
     },
 }
 
@@ -101,9 +67,7 @@ describe('permanentHeaders reducer', () => {
             PlumRoom: {
                 PermanentId: 'PlumRoom',
                 Ancestry: 'PlumRoom',
-                Type: 'ROOM',
-                Exits: [],
-                Entries: []
+                Type: 'ROOM'
             }
         })
     })
@@ -123,9 +87,7 @@ describe('permanentHeaders reducer', () => {
                 PermanentId: 'PlumRoom',
                 ParentId: 'Alpha',
                 Ancestry: 'Alpha:PlumRoom',
-                Type: 'ROOM',
-                Exits: [],
-                Entries: []
+                Type: 'ROOM'
             }
         })
     })
@@ -144,369 +106,9 @@ describe('permanentHeaders reducer', () => {
                 PermanentId: 'PlumRoom',
                 ParentId: 'Alpha',
                 Ancestry: 'PlumRoom',
-                Type: 'ROOM',
-                Exits: [],
-                Entries: []
+                Type: 'ROOM'
             }
         })
-    })
-
-    it('should correctly add a room with exits to rooms not fetched yet', () => {
-        expect(reducer({}, {
-            type: NEIGHBORHOOD_UPDATE,
-            data: [{
-                Room: {
-                    PermanentId: 'PlumRoom',
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    }],
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'plum'
-                    }]
-                }
-            }]
-        })).toEqual({
-            PlumRoom: {
-                PermanentId: 'PlumRoom',
-                Ancestry: 'PlumRoom',
-                Type: 'ROOM',
-                Exits: [],
-                Entries: []
-            }
-        })
-    })
-
-    it('should correctly add an exit', () => {
-        expect(reducer(testState, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Room: {
-                        PermanentId: 'GreenRoom',
-                        ParentId: 'Beta',
-                        Ancestry: 'Alpha:Beta:GreenRoom',
-                        Exits: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'blue'
-                        },
-                        {
-                            RoomId: 'AlternateRoom',
-                            Name: 'alternate'
-                        }],
-                        Entries: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'green'
-                        }]
-                    }
-                }]
-            })).toEqual({
-                ...testState,
-                GreenRoom: {
-                    PermanentId: 'GreenRoom',
-                    ParentId: 'Beta',
-                    Ancestry: 'Alpha:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    },
-                    {
-                        RoomId: 'AlternateRoom',
-                        Name: 'alternate'
-                    }],
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green'
-                    }]
-                },
-                AlternateRoom: {
-                    PermanentId: 'AlternateRoom',
-                    Ancestry: 'AlternateRoom',
-                    Type: 'ROOM',
-                    Exits: [],
-                    Entries: [{
-                        RoomId: 'GreenRoom',
-                        Name: 'alternate'
-                    }]
-                }
-        })
-    })
-
-    it('should correctly add an entry', () => {
-        expect(reducer(testState, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Room: {
-                        PermanentId: 'GreenRoom',
-                        ParentId: 'Beta',
-                        Ancestry: 'Alpha:Beta:GreenRoom',
-                        Exits: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'blue'
-                        }],
-                        Entries: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'green'
-                        },
-                        {
-                            RoomId: 'AlternateRoom',
-                            Name: 'green'
-                        }]
-                    }
-                }]
-            })).toEqual({
-                ...testState,
-                GreenRoom: {
-                    PermanentId: 'GreenRoom',
-                    ParentId: 'Beta',
-                    Ancestry: 'Alpha:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    }],
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green'
-                    },
-                    {
-                        RoomId: 'AlternateRoom',
-                        Name: 'green'
-                    }]
-                },
-                AlternateRoom: {
-                    PermanentId: 'AlternateRoom',
-                    Ancestry: 'AlternateRoom',
-                    Type: 'ROOM',
-                    Entries: [],
-                    Exits: [{
-                        RoomId: 'GreenRoom',
-                        Name: 'green'
-                    }]
-                }
-        })
-    })
-
-    it('should correctly remove an exit', () => {
-        expect(reducer(testState, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Room: {
-                        PermanentId: 'GreenRoom',
-                        ParentId: 'Beta',
-                        Ancestry: 'Alpha:Beta:GreenRoom',
-                        Exits: [],
-                        Entries: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'green'
-                        }]
-                    }
-                }]
-            })).toEqual({
-                ...testState,
-                GreenRoom: {
-                    PermanentId: 'GreenRoom',
-                    ParentId: 'Beta',
-                    Ancestry: 'Alpha:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Exits: [],
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green'
-                    }]
-                },
-                BlueRoom: {
-                    PermanentId: 'BlueRoom',
-                    ParentId: 'Alpha',
-                    Ancestry: 'Alpha:BlueRoom',
-                    Type: 'ROOM',
-                    Exits: [{
-                        RoomId: 'RootRoom',
-                        Name: 'root'
-                    },
-                    {
-                        RoomId: 'GreenRoom',
-                        Name: 'green'
-                    }],
-                    Entries: [{
-                        RoomId: 'RootRoom',
-                        Name: 'blue'
-                    }]
-                }
-            })
-    })
-
-    it('should correctly remove an entry', () => {
-        expect(reducer(testState, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Room: {
-                        PermanentId: 'GreenRoom',
-                        ParentId: 'Beta',
-                        Ancestry: 'Alpha:Beta:GreenRoom',
-                        Entries: [],
-                        Exits: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'blue'
-                        }]
-                    }
-                }]
-            })).toEqual({
-                ...testState,
-                GreenRoom: {
-                    PermanentId: 'GreenRoom',
-                    ParentId: 'Beta',
-                    Ancestry: 'Alpha:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Entries: [],
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    }]
-                },
-                BlueRoom: {
-                    PermanentId: 'BlueRoom',
-                    ParentId: 'Alpha',
-                    Ancestry: 'Alpha:BlueRoom',
-                    Type: 'ROOM',
-                    Exits: [{
-                        RoomId: 'RootRoom',
-                        Name: 'root'
-                    }],
-                    Entries: [{
-                        RoomId: 'RootRoom',
-                        Name: 'blue'
-                    },
-                    {
-                        RoomId: 'GreenRoom',
-                        Name: 'blue'
-                    }]
-                }
-            })
-    })
-
-    it('should correctly reroute a path', () => {
-        expect(reducer(testState, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Room: {
-                        PermanentId: 'GreenRoom',
-                        ParentId: 'Beta',
-                        Ancestry: 'Alpha:Beta:GreenRoom',
-                        Entries: [{
-                            RoomId: 'AlternateRoom',
-                            Name: 'green'
-                        }],
-                        Exits: [{
-                            RoomId: 'AlternateRoom',
-                            Name: 'alternate'
-                        }]
-                    }
-                }]
-            })).toEqual({
-                ...testState,
-                GreenRoom: {
-                    PermanentId: 'GreenRoom',
-                    ParentId: 'Beta',
-                    Ancestry: 'Alpha:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Entries: [{
-                        RoomId: 'AlternateRoom',
-                        Name: 'green'
-                    }],
-                    Exits: [{
-                        RoomId: 'AlternateRoom',
-                        Name: 'alternate'
-                    }]
-                },
-                BlueRoom: {
-                    PermanentId: 'BlueRoom',
-                    ParentId: 'Alpha',
-                    Ancestry: 'Alpha:BlueRoom',
-                    Type: 'ROOM',
-                    Exits: [{
-                        RoomId: 'RootRoom',
-                        Name: 'root'
-                    }],
-                    Entries: [{
-                        RoomId: 'RootRoom',
-                        Name: 'blue'
-                    }]
-                },
-                AlternateRoom: {
-                    PermanentId: 'AlternateRoom',
-                    Ancestry: 'AlternateRoom',
-                    Type: 'ROOM',
-                    Entries: [{
-                        RoomId: 'GreenRoom',
-                        Name: 'alternate'
-                    }],
-                    Exits: [{
-                        RoomId: 'GreenRoom',
-                        Name: 'green'
-                    }]
-                }
-            })
-    })
-
-    it('should correctly rename a path', () => {
-        expect(reducer(testState, {
-                type: NEIGHBORHOOD_UPDATE,
-                data: [{
-                    Room: {
-                        PermanentId: 'GreenRoom',
-                        ParentId: 'Beta',
-                        Ancestry: 'Alpha:Beta:GreenRoom',
-                        Entries: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'green room'
-                        }],
-                        Exits: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'blue room'
-                        }]
-                    }
-                }]
-            })).toEqual({
-                ...testState,
-                GreenRoom: {
-                    PermanentId: 'GreenRoom',
-                    ParentId: 'Beta',
-                    Ancestry: 'Alpha:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green room'
-                    }],
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue room'
-                    }]
-                },
-                BlueRoom: {
-                    PermanentId: 'BlueRoom',
-                    ParentId: 'Alpha',
-                    Ancestry: 'Alpha:BlueRoom',
-                    Type: 'ROOM',
-                    Exits: [{
-                        RoomId: 'RootRoom',
-                        Name: 'root'
-                    },
-                    {
-                        RoomId: 'GreenRoom',
-                        Name: 'green room'
-                    }],
-                    Entries: [{
-                        RoomId: 'RootRoom',
-                        Name: 'blue'
-                    },
-                    {
-                        RoomId: 'GreenRoom',
-                        Name: 'blue room'
-                    }]
-                }
-            })
     })
 
     it('should correctly reparent a room', () => {
@@ -515,15 +117,7 @@ describe('permanentHeaders reducer', () => {
                 data: [{
                     Room: {
                         PermanentId: 'GreenRoom',
-                        ParentId: 'Alpha',
-                        Entries: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'green'
-                        }],
-                        Exits: [{
-                            RoomId: 'BlueRoom',
-                            Name: 'blue'
-                        }]
+                        ParentId: 'Alpha'
                     }
                 }]
             })).toEqual({
@@ -532,15 +126,7 @@ describe('permanentHeaders reducer', () => {
                     PermanentId: 'GreenRoom',
                     ParentId: 'Alpha',
                     Ancestry: 'Alpha:GreenRoom',
-                    Type: 'ROOM',
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green'
-                    }],
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    }]
+                    Type: 'ROOM'
                 }
             })
     })
@@ -570,15 +156,7 @@ describe('permanentHeaders reducer', () => {
                     PermanentId: 'GreenRoom',
                     ParentId: 'Beta',
                     Ancestry: 'Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green'
-                    }],
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    }]
+                    Type: 'ROOM'
                 }
             })
     })
@@ -668,15 +246,7 @@ describe('permanentHeaders reducer', () => {
                     PermanentId: 'GreenRoom',
                     ParentId: 'Beta',
                     Ancestry: 'Gamma:Beta:GreenRoom',
-                    Type: 'ROOM',
-                    Entries: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'green'
-                    }],
-                    Exits: [{
-                        RoomId: 'BlueRoom',
-                        Name: 'blue'
-                    }]
+                    Type: 'ROOM'
                 }
             })
     })

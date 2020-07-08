@@ -1,4 +1,4 @@
-import { NEIGHBORHOOD_UPDATE, NEIGHBORHOOD_MERGE } from '../actions/neighborhoods.js'
+import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods.js'
 import { rawAncestryCalculation } from '../selectors/permanentHeaders'
 
 //
@@ -114,8 +114,6 @@ export const reducer = (state = {}, action = {}) => {
     switch (actionType) {
         case NEIGHBORHOOD_UPDATE:
             return mergeReducer(state, data)
-        case NEIGHBORHOOD_MERGE:
-            return mergeReducer(state, action.permanentData || [])
         default: return state
     }
 }

@@ -1,5 +1,4 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { getBackups } from '../graphql/queries'
 import { createBackup as createBackupQL, restoreBackup as restoreBackupQL } from '../graphql/mutations'
 import { STORAGE_API_URI } from '../config.js'
 
@@ -9,13 +8,6 @@ export const receiveBackupChanges = (backupChanges) => ({
     type: RECEIVE_BACKUP_CHANGES,
     backupChanges
 })
-
-export const fetchBackups = (dispatch) => {
-    return API.graphql(graphqlOperation(getBackups))
-        .then(({ data }) => (data || {}))
-        .then(({ getBackups }) => (getBackups || []))
-        .then((backupChanges) => (dispatch(receiveBackupChanges(backupChanges))))
-}
 
 export const createBackup = ({ Name, Description }) => (dispatch) => {
     return API.graphql(graphqlOperation(createBackupQL, { Name, Description }))

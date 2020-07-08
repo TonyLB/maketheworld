@@ -2,21 +2,23 @@ import { getVisibleExits } from './currentRoom.js'
 
 describe('CurrentRoom Selectors', () => {
     const testState = {
+        exits: [
+            {
+                FromRoomId: '987',
+                ToRoomId: '234',
+                Name: 'TestOne'
+            },
+            {
+                FromRoomId: '987',
+                ToRoomId: '456',
+                Name: 'TestTwo'
+            }
+        ],
         permanentHeaders: {
             '987': {
                 PermanentId: '987',
                 Type: 'ROOM',
-                Ancestry: '987',
-                Exits: [
-                    {
-                        Name: 'TestOne',
-                        RoomId: '234'
-                    },
-                    {
-                        Name: 'TestTwo',
-                        RoomId: '456'
-                    }
-                ]
+                Ancestry: '987'
             },
             '123': {
                 PermanentId: '123',

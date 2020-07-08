@@ -645,21 +645,6 @@ Resources:
                   "payload": $util.toJson($arguments)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryAllCharactersResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getAllCharacters
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": { "action": "getAllCharacters" }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PutCharacterResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -744,21 +729,6 @@ Resources:
                   }
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetNeighborhoodTree:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getNeighborhoodTree
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": { "action": "getNodeTree" }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetRoomRecap:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
@@ -797,67 +767,6 @@ Resources:
                 }))
             #end
             $util.toJson($output)
-  QueryGetRoles:
-    Type: AWS::AppSync::Resolver
-    DependsOn: Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Query
-        FieldName: getRoles
-        DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "Query",
-                "query": {
-                  "expression": "PermanentId = :Admin and begins_with(DataCategory, :Role)",
-                  "expressionValues": {
-                      ":Admin": $util.dynamodb.toStringJson("ADMIN"),
-                      ":Role": $util.dynamodb.toStringJson("ROLE#")
-                  }
-                }
-            }
-        ResponseMappingTemplate: >
-            #set($output = [])
-            #foreach($role in $ctx.result.items)
-                #set($roleId = $role.DataCategory.split("#")[1])
-                $util.qr($output.add({
-                    "RoleId": $roleId,
-                    "Name": $role.Name,
-                    "Actions": $role.Actions
-                }))
-            #end
-            $util.toJson($output)
-  QueryGetMapsResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getMaps
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": { "action": "getMaps" }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetExitsResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getExits
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": { "action": "getExits" }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QuerySyncPermanentsResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1016,44 +925,6 @@ Resources:
                   "payload": {
                       "action": "updatePermanents",
                       "Updates": $utils.toJson($ctx.args.Updates)
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetSettings:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - PermanentsFunction
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getSettings
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "getSettings"
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetBackups:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - PermanentsFunction
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getBackups
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "getBackups"
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -1494,16 +1365,8 @@ Resources:
                   getPlayer(PlayerName: String!): Player
                   getCharacter(playerName: String!, name: String!): Character
                   getPlayerCharacters: [Character]
-                  getAllCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
-                  getNeighborhoodTree: [ChangedPermanent]
                   getRoomRecap(PermanentId: String!): [Message]
-                  getRoles: [Role]
-                  getMaps: [Map]
-                  getSettings: Settings
-                  getBackups: [Backup]
-                  getGrants: [ChangedPermanent]
-                  getExits: [ChangedPermanent]
                   syncPermanents: [ChangedPermanent]
               }
               type Subscription {

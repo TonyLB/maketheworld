@@ -1,27 +1,83 @@
 import { getNeighborhoodUpdateValidator, getRoomUpdateValidator } from './validators'
 
 const testState = {
+    exits: [
+        {
+            FromRoomId: 'RootRoom',
+            ToRoomId: 'BlueRoom',
+            Name: 'blue'
+        },
+        {
+            FromRoomId: 'BlueRoom',
+            ToRoomId: 'RootRoom',
+            Name: 'root'
+        },
+        {
+            FromRoomId: 'RootRoom',
+            ToRoomId: 'GreenRoom',
+            Name: 'green'
+        },
+        {
+            FromRoomId: 'GreenRoom',
+            ToRoomId: 'RootRoom',
+            Name: 'root'
+        },
+        {
+            FromRoomId: 'BlueRoom',
+            ToRoomId: 'GreenRoom',
+            Name: 'green'
+        },
+        {
+            FromRoomId: 'GreenRoom',
+            ToRoomId: 'BlueRoom',
+            Name: 'blue'
+        },
+        {
+            FromRoomId: 'BlueRoom',
+            ToRoomId: 'GoldRoom',
+            Name: 'gold'
+        },
+        {
+            FromRoomId: 'GoldRoom',
+            ToRoomId: 'BlueRoom',
+            Name: 'blue'
+        },
+        {
+            FromRoomId: 'PlumRoom',
+            ToRoomId: 'RootRoom',
+            Name: 'root'
+        },
+        {
+            FromRoomId: 'RootRoom',
+            ToRoomId: 'PlumRoom',
+            Name: 'plum'
+        },
+        {
+            FromRoomId: 'EcruRoom',
+            ToRoomId: 'RootRoom',
+            Name: 'root'
+        },
+        {
+            FromRoomId: 'RootRoom',
+            ToRoomId: 'EcruRoom',
+            Name: 'ecru'
+        },
+        {
+            FromRoomId: 'AlternateRoom',
+            ToRoomId: 'TaupeRoom',
+            Name: 'taupe'
+        },
+        {
+            FromRoomId: 'TaupeRoom',
+            ToRoomId: 'AlternateRoom',
+            Name: 'alternate'
+        }
+    ],
     permanentHeaders: {
         RootRoom: {
             PermanentId: 'RootRoom',
             Ancestry: 'RootRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'BlueRoom',
-                Name: 'blue'
-            },
-            {
-                RoomId: 'GreenRoom',
-                Name: 'green'
-            }],
-            Entries: [{
-                RoomId: 'BlueRoom',
-                Name: 'root'
-            },
-            {
-                RoomId: 'GreenRoom',
-                Name: 'root'
-            }]
+            Type: 'ROOM'
         },
         AlternateRoom: {
             PermanentId: 'AlternateRoom',
@@ -39,31 +95,7 @@ const testState = {
             PermanentId: 'BlueRoom',
             ParentId: 'NeighborhoodAlpha',
             Ancestry: 'NeighborhoodAlpha:BlueRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'GoldRoom',
-                Name: 'gold'
-            },
-            {
-                RoomId: 'RootRoom',
-                Name: 'root'
-            },
-            {
-                RoomId: 'GreenRoom',
-                Name: 'green'
-            }],
-            Entries: [{
-                RoomId: 'GoldRoom',
-                Name: 'blue'
-            },
-            {
-                RoomId: 'RootRoom',
-                Name: 'blue'
-            },
-            {
-                RoomId: 'GreenRoom',
-                Name: 'blue'
-            }]
+            Type: 'ROOM'
         },
         SubNeighborhoodAlphaOne: {
             PermanentId: 'SubNeighborhoodAlphaOne',
@@ -76,23 +108,7 @@ const testState = {
             PermanentId: 'GreenRoom',
             ParentId: 'SubNeighborhoodAlphaOne',
             Ancestry: 'NeighborhoodAlpha:SubNeighborhoodAlphaOne:GreenRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'BlueRoom',
-                Name: 'blue'
-            },
-            {
-                RoomId: 'RootRoom',
-                Name: 'root'
-            }],
-            Entries: [{
-                RoomId: 'BlueRoom',
-                Name: 'green'
-            },
-            {
-                RoomId: 'RootRoom',
-                Name: 'green'
-            }]
+            Type: 'ROOM'
         },
         SubNeighborhoodAlphaTwo: {
             PermanentId: 'SubNeighborhoodAlphaTwo',
@@ -106,15 +122,7 @@ const testState = {
             PermanentId: 'GoldRoom',
             ParentId: 'SubNeighborhoodAlphaTwo',
             Ancestry: 'NeighborhoodAlpha:SubNeighborhoodAlphaTwo:GoldRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'BlueRoom',
-                Name: 'blue'
-            }],
-            Entries: [{
-                RoomId: 'BlueRoom',
-                Name: 'gold'
-            }]
+            Type: 'ROOM'
         },
         SubNeighborhoodAlphaThree: {
             PermanentId: 'SubNeighborhoodAlphaThree',
@@ -128,15 +136,7 @@ const testState = {
             PermanentId: 'PlumRoom',
             ParentId: 'SubNeighborhoodAlphaThree',
             Ancestry: 'NeighborhoodAlpha:SubNeighborhoodAlphaThree:PlumRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'RootRoom',
-                Name: 'root'
-            }],
-            Entries: [{
-                RoomId: 'RootRoom',
-                Name: 'plum'
-            }]
+            Type: 'ROOM'
         },
         NeighborhoodBeta: {
             PermanentId: 'NeighborhoodBeta',
@@ -149,15 +149,7 @@ const testState = {
             PermanentId: 'EcruRoom',
             ParentId: 'NeighborhoodBeta',
             Ancestry: 'NeighborhoodBeta:EcruRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'RootRoom',
-                Name: 'root'
-            }],
-            Entries: [{
-                RoomId: 'RootRoom',
-                Name: 'ecru'
-            }]
+            Type: 'ROOM'
         },
         NeighborhoodGamma: {
             PermanentId: 'NeighborhoodGamma',
@@ -170,15 +162,7 @@ const testState = {
             PermanentId: 'TaupeRoom',
             ParentId: 'NeighborhoodGamma',
             Ancestry: 'NeighborhoodGamma:TaupeRoom',
-            Type: 'ROOM',
-            Exits: [{
-                RoomId: 'AlternateRoom',
-                Name: 'alternate'
-            }],
-            Entries: [{
-                RoomId: 'AlternateRoom',
-                Name: 'taupe'
-            }]
+            Type: 'ROOM'
         },
         NeighborhoodDelta: {
             PermanentId: 'NeighborhoodDelta',

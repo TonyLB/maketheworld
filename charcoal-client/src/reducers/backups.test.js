@@ -1,5 +1,5 @@
 import backups from './backups.js'
-import { RECEIVE_BACKUP_CHANGES } from '../actions/backups.js'
+import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods'
 
 const testState = {
     TEST: {
@@ -19,17 +19,19 @@ describe('Backups reducer', () => {
     })
 
     it('should return unchanged on an empty array', () => {
-        expect(backups(testState, { type: RECEIVE_BACKUP_CHANGES, backupChanges: [] })).toEqual(testState)
+        expect(backups(testState, { type: NEIGHBORHOOD_UPDATE, data: [] })).toEqual(testState)
     })
 
     it('should add a new backup', () => {
         expect(backups(testState, {
-            type: RECEIVE_BACKUP_CHANGES,
-            backupChanges: [{
-                PermanentId: 'TESTTWO',
-                Name: 'Second test backup',
-                Description: 'Do it again!',
-                Status: 'Creating...'
+            type: NEIGHBORHOOD_UPDATE,
+            data: [{ Backup:
+                {
+                    PermanentId: 'TESTTWO',
+                    Name: 'Second test backup',
+                    Description: 'Do it again!',
+                    Status: 'Creating...'
+                }
             }]
         })).toEqual({
             TEST: {
@@ -48,11 +50,13 @@ describe('Backups reducer', () => {
 
     it('should update an existing backup', () => {
         expect(backups(testState, {
-            type: RECEIVE_BACKUP_CHANGES,
-            backupChanges: [{
-                PermanentId: 'TEST',
-                Name: 'Test One',
-                Status: 'Completed.'
+            type: NEIGHBORHOOD_UPDATE,
+            data: [{ Backup:
+                {
+                    PermanentId: 'TEST',
+                    Name: 'Test One',
+                    Status: 'Completed.'
+                }
             }]
         })).toEqual({
             TEST: {

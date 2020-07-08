@@ -188,13 +188,13 @@ export const getNeighborhoodPaths = (PermanentId) => (state) => {
     const { Ancestry: rootAncestry = '' } = permanentHeaders[PermanentId]
     const descendants = Object.values(permanentHeaders).filter(({ Ancestry = '' }) => (Ancestry.startsWith(rootAncestry)))
     const descendantExits = descendants
-        .filter(({ Exits }) => Exits)
-        .map(({ PermanentId, Exits }) => (Exits.map((exit) => ({ ...exit, OriginId: PermanentId }))))
+        .filter((descendant) => (descendant.Exits))
+        .map((descendant) => (descendant.Exits.map((exit) => ({ ...exit, OriginId: descendant.PermanentId }))))
         .reduce((previous, itemList) => ([...previous, ...itemList]), [])
         .filter(({ RoomId }) => (!(permanentHeaders[RoomId] && (permanentHeaders[RoomId].Ancestry || '').startsWith(rootAncestry) )))
     const descendantEntries = descendants
-        .filter(({ Entries }) => Entries)
-        .map(({ PermanentId, Entries }) => (Entries.map((entry) => ({ ...entry, OriginId: PermanentId }))))
+        .filter((descendant) => (descendant.Entries))
+        .map((descendant) => (descendant.Entries.map((entry) => ({ ...entry, OriginId: descendant.PermanentId }))))
         .reduce((previous, itemList) => ([...previous, ...itemList]), [])
         .filter(({ RoomId }) => (!(permanentHeaders[RoomId] && (permanentHeaders[RoomId].Ancestry || '').startsWith(rootAncestry) )))
     return {

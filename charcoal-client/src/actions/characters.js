@@ -1,5 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { getPlayerCharacters, getAllCharacters, getCharactersInPlay, getRoomRecap } from '../graphql/queries'
+import { getPlayerCharacters, getCharactersInPlay, getRoomRecap } from '../graphql/queries'
 import {
     putCharacter as putCharacterGraphQL,
     addCharacterInPlay as addCharacterInPlayGraphQL
@@ -28,13 +28,6 @@ export const receiveCharacterChanges = (characterChanges) => ({
     type: RECEIVE_CHARACTER_CHANGES,
     characterChanges
 })
-
-export const fetchCharacters = (dispatch) => {
-    return API.graphql(graphqlOperation(getAllCharacters))
-        .then(({ data }) => (data || {}))
-        .then(({ getAllCharacters }) => (getAllCharacters || []))
-        .then((characterChanges) => (dispatch(receiveCharacterChanges(characterChanges))))
-}
 
 export const fetchMyCharactersAttempt = () => ({
     type: FETCH_MY_CHARACTERS_ATTEMPT

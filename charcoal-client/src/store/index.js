@@ -19,27 +19,29 @@ import settings from '../reducers/settings'
 import clientSettings from '../reducers/clientSettings'
 import uiReducer from '../reducers/UI'
 
+export const storeReducer = combineReducers({
+    backups,
+    characters,
+    connection,
+    charactersInPlay,
+    clientSettings,
+    myCharacters,
+    grants,
+    messages,
+    registeredCharacter,
+    role,
+    permanentHeaders,
+    exits,
+    maps,
+    player,
+    settings,
+    subscriptions,
+    UI: uiReducer,
+    webSocket
+})
+
 export const store = createStore(
-    combineReducers({
-        backups,
-        characters,
-        connection,
-        charactersInPlay,
-        clientSettings,
-        myCharacters,
-        grants,
-        messages,
-        registeredCharacter,
-        role,
-        permanentHeaders,
-        exits,
-        maps,
-        player,
-        settings,
-        subscriptions,
-        UI: uiReducer,
-        webSocket
-    }),
+    storeReducer,
     window.__REDUX_DEVTOOLS_EXTENSION__
         ? compose(
             applyMiddleware(thunk),
