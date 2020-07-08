@@ -611,22 +611,6 @@ Resources:
               "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false)
             }
           })
-  QueryGetCharacterResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getCharacter
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              $util.qr($ctx.args.put("action", "getCharacter"))
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": $util.toJson($ctx.args)
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryPlayerCharactersResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1363,7 +1347,6 @@ Resources:
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
-                  getCharacter(playerName: String!, name: String!): Character
                   getPlayerCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
                   getRoomRecap(PermanentId: String!): [Message]

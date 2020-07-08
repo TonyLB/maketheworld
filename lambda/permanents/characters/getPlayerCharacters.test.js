@@ -8,24 +8,21 @@ const { getPlayerCharacters } = require('./getPlayerCharacters')
 const { documentClient } = require('../utilities')
 
 describe("getPlayerCharacters", () => {
-    it("should return empty when no records", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
+    it("should return empty when no characters", async () => {
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: { PermanentId: 'PLAYER#Test', DataCategory: 'Details', Characters: [] } })) })
         const data = await getPlayerCharacters({ PlayerName: 'Test' })
         expect(data).toEqual([])
     })
 
     it("should return character when present", async () => {
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item:
+            {
+                PermanentId: 'PLAYER#Test',
+                DataCategory: 'Details',
+                Characters: [ '123', '456' ]
+            }
+        }))})
         documentClient.query
-            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [
-                {
-                    PermanentId: 'PLAYER#Test',
-                    DataCategory: 'CHARACTER#123'
-                },
-                {
-                    PermanentId: 'PLAYER#Test',
-                    DataCategory: 'CHARACTER#456'
-                }
-            ]}))})
             .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [
                 {
                     PermanentId: 'CHARACTER#123',

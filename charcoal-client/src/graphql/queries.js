@@ -9,20 +9,6 @@ export const getPlayer = /* GraphQL */ `
     }
   }
 `;
-export const getCharacter = /* GraphQL */ `
-  query GetCharacter($playerName: String!, $name: String!) {
-    getCharacter(playerName: $playerName, name: $name) {
-      PlayerName
-      Name
-      CharacterId
-      Pronouns
-      FirstImpression
-      Outfit
-      OneCoolThing
-      HomeId
-    }
-  }
-`;
 export const getPlayerCharacters = /* GraphQL */ `
   query GetPlayerCharacters {
     getPlayerCharacters {

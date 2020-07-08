@@ -80,6 +80,71 @@ exports.handler = async () => {
         ])
     }
 
+    const { Items: playerData = [] } = await documentClient.scan({
+        TableName: permanentTable,
+        FilterExpression: 'begins_with(PermanentId, :Player)',
+        ExpressionAttributeValues: {
+            ":Player": `PLAYER#`
+        }
+    }).promise()
+
+    const playersToConsolidate = playerData.reduce((previous, {PermanentId: rawPermanentId, DataCategory, PlayerName, CodeOfConductConsent, Characters = [] }) => {
+        const PermanentId = rawPermanentId.slice(7)
+        if (DataCategory === 'Details') {
+            return {
+                ...previous,
+                [PermanentId]: {
+                    ...(previous[PermanentId] || {}),
+                    PermanentId,
+                    PlayerName,
+                    CodeOfConductConsent,
+                    Characters: [
+                        ...(previous[PermanentId] || { Characters: [] }).Characters,
+                        ...Characters
+                    ]
+                }
+            }
+        }
+        if (DataCategory.startsWith('CHARACTER#')) {
+            const CharacterId = DataCategory.slice(10)
+            return {
+                ...previous,
+                [PermanentId]: {
+                    ...(previous[PermanentId] || {}),
+                    PermanentId,
+                    Characters: [
+                        ...(previous[PermanentId] || { Characters: [] }).Characters,
+                        CharacterId
+                    ]
+                }
+            }
+        }
+        return previous
+    }, {})
+    const charactersToDelete = playerData.filter(({ DataCategory }) => (DataCategory.startsWith('CHARACTER#')))
+
+    if (charactersToDelete.length) {
+        await Promise.all([
+            ...(charactersToDelete.map(({ PermanentId, DataCategory }) => (documentClient.delete({
+                TableName: permanentTable,
+                Key: {
+                    PermanentId,
+                    DataCategory
+                }
+            }).promise()))),
+            ...(Object.values(playersToConsolidate || {}).map(({ PermanentId, PlayerName, CodeOfConductConsent, Characters }) => (documentClient.put({
+                TableName: permanentTable,
+                Item: {
+                    PermanentId: `PLAYER#${PermanentId}`,
+                    DataCategory: 'Details',
+                    PlayerName,
+                    CodeOfConductConsent,
+                    Characters
+                }
+            }).promise())))
+        ])
+    }
+
     //
     // Write required system data
     //

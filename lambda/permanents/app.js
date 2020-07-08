@@ -86,8 +86,6 @@ exports.handler = (event, context) => {
                     })
                 }))
 
-        case "getCharacter":
-            return getCharacter(payload)
         case "getPlayerCharacters":
             return getPlayerCharacters(payload)
         case "putCharacter":

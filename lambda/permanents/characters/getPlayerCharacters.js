@@ -10,15 +10,14 @@ exports.getPlayerCharacters = (event) => {
     const { PlayerName } = event
 
     return PlayerName
-        ? (documentClient.query({
+        ? (documentClient.get({
                 TableName: permanentTable,
-                KeyConditionExpression: 'PermanentId = :PlayerId AND begins_with(DataCategory, :CharacterId)',
-                ExpressionAttributeValues: {
-                    ":PlayerId": `PLAYER#${PlayerName}`,
-                    ":CharacterId": `CHARACTER#`
-                },
+                Key: {
+                    PermanentId: `PLAYER#${PlayerName}`,
+                    DataCategory: 'Details'
+                }
             }).promise())
-            .then(({ Items }) => Items.map(({ DataCategory }) => (DataCategory.slice(10))))
+            .then(({ Item = {} }) => (Item.Characters || []) )
             .then((Items) => (Promise.all(Items.map((CharacterId) => (getCharacterInfo({ documentClient, CharacterId }))))))
             .then((Items) => (Items.map((Item) => ({
                 PlayerName,
