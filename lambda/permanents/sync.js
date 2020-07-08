@@ -113,6 +113,19 @@ exports.sync = async () => {
                 }
                 return null
 
+            case 'MAP':
+                if (DataCategory === 'Details') {
+                    const { Name, Rooms } = rest
+                    return { Map:
+                        {
+                            MapId: PermanentId,
+                            Name,
+                            Rooms: Rooms.map(({ PermanentId, X, Y, Locked = false }) => ({ PermanentId, X, Y, Locked }))
+                        }
+                    }
+                }
+                return null
+
             default: return null
         }
     }).filter((value) => (value))

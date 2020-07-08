@@ -46,6 +46,5 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
         })
 
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
-    dispatch(fetchMaps)
     dispatch(syncPermanents)
 }

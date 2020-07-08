@@ -38,19 +38,6 @@ const testGQLOutput = stripMultiline(`Neighborhood {
     ParentId
     Visibility
     Topology
-    Exits {
-      Name
-      RoomId
-    }
-    Entries {
-      Name
-      RoomId
-    }
-    Grants {
-      CharacterId
-      Actions
-      Roles
-    }
   }
   Map {
     MapId
@@ -64,6 +51,11 @@ const testGQLOutput = stripMultiline(`Neighborhood {
   }
   Settings {
     ChatPrompt
+  }
+  Role {
+      RoleId
+      Name
+      Actions
   }
   Backup {
     PermanentId
@@ -87,6 +79,12 @@ const testGQLOutput = stripMultiline(`Neighborhood {
     Actions
     Roles
     Revoke
+  }
+  Exit {
+    FromRoomId
+    ToRoomId
+    Name
+    Delete
   }`)
 
 describe("putCharacter", () => {

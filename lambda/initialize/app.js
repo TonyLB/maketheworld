@@ -8,6 +8,85 @@ const permanentTable = `${TABLE_PREFIX}_permanents`
 
 exports.handler = async () => {
 
+    //
+    // Migrate maps from old format if needed
+    //
+
+    const { Items: mapData = [] } = await documentClient.scan({
+        TableName: permanentTable,
+        FilterExpression: 'begins_with(PermanentId, :Map)',
+        ExpressionAttributeValues: {
+            ":Map": `MAP#`
+        }
+    }).promise()
+
+    const mapsToConsolidate = mapData.reduce((previous, {PermanentId: rawPermanentId, DataCategory, Name, X, Y, Locked = false, Rooms = [] }) => {
+        const PermanentId = rawPermanentId.slice(4)
+        if (DataCategory === 'Details') {
+            console.log(`Details: ${PermanentId}`)
+            return {
+                ...previous,
+                [PermanentId]: {
+                    ...(previous[PermanentId] || {}),
+                    PermanentId,
+                    Name,
+                    Rooms: [
+                        ...(previous[PermanentId] || { Rooms: [] }).Rooms,
+                        ...Rooms
+                    ]
+                }
+            }
+        }
+        if (DataCategory.startsWith('ROOM#')) {
+            const RoomId = DataCategory.slice(5)
+            console.log(`Room: ${PermanentId} x ${RoomId}`)
+            return {
+                ...previous,
+                [PermanentId]: {
+                    ...(previous[PermanentId] || {}),
+                    PermanentId,
+                    Rooms: [
+                        ...(previous[PermanentId] || { Rooms: [] }).Rooms,
+                        {
+                            PermanentId: RoomId,
+                            X,
+                            Y,
+                            Locked
+                        }
+                    ]
+                }
+            }
+        }
+        return previous
+    }, {})
+    const mapsToDelete = mapData.filter(({ DataCategory }) => (DataCategory.startsWith('ROOM#')))
+
+    console.log(`Maps To Consolidate: ${JSON.stringify(mapsToConsolidate, null, 4)}`)
+    if (mapsToDelete.length) {
+        await Promise.all([
+            ...(mapsToDelete.map(({ PermanentId, DataCategory }) => (documentClient.delete({
+                TableName: permanentTable,
+                Key: {
+                    PermanentId,
+                    DataCategory
+                }
+            }).promise()))),
+            ...(Object.values(mapsToConsolidate || {}).map(({ PermanentId, Name, Rooms }) => (documentClient.put({
+                TableName: permanentTable,
+                Item: {
+                    PermanentId: `MAP#${PermanentId}`,
+                    DataCategory: 'Details',
+                    Name,
+                    Rooms
+                }
+            }).promise())))
+        ])
+    }
+
+    //
+    // Write required system data
+    //
+
     await documentClient.batchWrite({ RequestItems: {
         [permanentTable]: [
             {
@@ -95,29 +174,19 @@ exports.handler = async () => {
     .then(({ Item = {} }) => (Item))
 
     if (!(map || {}).Name) {
-        await documentClient.batchWrite({ RequestItems: {
-            [permanentTable]: [
-                {
-                    PutRequest: {
-                        Item: {
-                            PermanentId: 'MAP#ROOT',
-                            DataCategory: 'Details',
-                            Name: 'Root Map'
-                        }
-                    }
-                },
-                {
-                    PutRequest: {
-                        Item: {
-                            PermanentId: 'MAP#ROOT',
-                            DataCategory: 'ROOM#VORTEX',
-                            X: 300,
-                            Y: 200
-                        }
-                    }
-                }
-            ]
-        }}).promise()
+        await documentClient.put({
+            TableName: permanentTable,
+            Item: {
+                PermanentId: 'MAP#ROOT',
+                DataCategory: 'Details',
+                Name: 'Root Map',
+                Rooms: [{
+                    PermanentId: 'VORTEX',
+                    X: 300,
+                    Y: 200
+                }]
+            }
+        }).promise()
     }
 
     return {

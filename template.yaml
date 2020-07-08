@@ -533,14 +533,17 @@ Resources:
   InitializeFunction:
       Type: AWS::Serverless::Function
       Properties:
-          CodeUri: lambda/permanents/initialize/
+          CodeUri: lambda/initialize/
           Handler: app.handler
           MemorySize: 128
           Runtime: nodejs12.x
-          Timeout: 3
+          Timeout: 30
+          Layers:
+              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'

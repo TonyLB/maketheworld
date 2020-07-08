@@ -4,7 +4,6 @@
 const { v4: uuidv4 } = require('/opt/uuid')
 const { documentClient } = require('../utilities')
 
-
 exports.getMaps = () => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
 
@@ -15,7 +14,7 @@ exports.getMaps = () => {
             ":Map": `MAP#`
         }
     }).promise()
-    .then(({ Items }) => (Items.reduce((previous, { DataCategory, PermanentId, ...rest }) => {
+    .then(({ Items }) => (Items.reduce((previous, { DataCategory, PermanentId, Rooms, ...rest }) => {
         const MapId = PermanentId.slice(4)
         if (DataCategory === 'Details') {
             return {
@@ -23,119 +22,37 @@ exports.getMaps = () => {
                 [MapId]: {
                     ...(previous[MapId] || {}),
                     MapId: PermanentId.slice(4),
-                    Rooms: (previous[MapId] && previous[MapId].Rooms) || [],
+                    Rooms: [
+                        ...((previous[MapId] && previous[MapId].Rooms) || []),
+                        ...Rooms
+                    ],
                     ...rest
                 }
             }
         }
-        if (DataCategory.startsWith('ROOM#')) {
-            const RoomId = DataCategory.slice(5)
-            const { X, Y, Locked } = rest
-            return (RoomId && X && Y)
-                ? {
-                    ...previous,
-                    [MapId]: {
-                        ...(previous[MapId] || {}),
-                        Rooms: [
-                            ...((previous[MapId] || {}).Rooms || []),
-                            {
-                                PermanentId: RoomId,
-                                X,
-                                Y,
-                                Locked
-                            }
-                        ]
-                    }
-                }
-                : previous
-        }
+        return previous
     }, {})))
     .then((maps) => (Object.values(maps)))
 }
 
-const batchDispatcher = (items) => {
-    const groupBatches = items.reduce((({ current, requestLists }, item) => {
-            if (current.length > 23) {
-                return {
-                    requestLists: [ ...requestLists, current ],
-                    current: [item]
-                }
-            }
-            else {
-                return {
-                    requestLists,
-                    current: [...current, item]
-                }
-            }
-        }), { current: [], requestLists: []})
-    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
-        .filter((itemList) => (itemList.length))
-        .map((itemList) => (documentClient.batchWrite({ RequestItems: {
-            [`${process.env.TABLE_PREFIX}_permanents`]: itemList
-        } }).promise()))
-    return Promise.all(batchPromises)
-}
-
-exports.putMap = async (payload) => {
+exports.putMap = async ({ MapId, Name, Rooms }) => {
     const { TABLE_PREFIX } = process.env;
     const permanentTable = `${TABLE_PREFIX}_permanents`
 
-    const PermanentId = `MAP#${payload.MapId || uuidv4()}`
-    const desiredState = [
-        {
-            PermanentId,
-            DataCategory: 'Details',
-            Name: payload.Name
-        },
-        ...(payload.Rooms.map(({ PermanentId: RoomId, X, Y, Locked }) => ({
-            PermanentId,
-            DataCategory: `ROOM#${RoomId}`,
-            X,
-            Y,
-            ...(Locked !== undefined ? { Locked } : {})
-        })))
-    ]
+    const PermanentId = `MAP#${MapId || uuidv4()}`
 
-    const currentState = await documentClient.query({
-        TableName: permanentTable,
-        KeyConditionExpression: 'PermanentId = :MapId',
-        ExpressionAttributeValues: {
-            ':MapId': PermanentId
-        }
-    }).promise().then(({ Items }) => (Items))
-
-    const stateCompare = ({ DataCategory: DataCategoryA, ...propsA }, { DataCategory: DataCategoryB, ...propsB }) => {
-        if (DataCategoryA === 'Details') {
-            return propsA.Name === propsB.Name
-        }
-        return (propsA.X === propsB.X) && (propsA.Y === propsB.Y) && (propsA.Locked === propsB.Locked)
-    }
-
-    const deleteEntries = currentState
-        .filter(({ DataCategory }) => (!desiredState.find(({ DataCategory: check}) => (check === DataCategory))))
-    const putEntries = desiredState
-        .filter((entry) => {
-            const current = currentState.find(({ DataCategory }) => (DataCategory === entry.DataCategory))
-            return !(current && stateCompare(entry, current))
-        })
-    return Promise.resolve([
-        ...(deleteEntries.map(({ PermanentId, DataCategory }) => ({
-            DeleteRequest: {
-                Key: {
-                    PermanentId,
-                    DataCategory
-                }
+    return documentClient.put({
+            TableName: permanentTable,
+            Item: {
+                PermanentId,
+                DataCategory: 'Details',
+                Name,
+                Rooms
             }
-        }))),
-        ...(putEntries.map((Item) => ({
-            PutRequest: {
-                Item
-            }
-        })))
-    ])
-        .then(batchDispatcher)
+        }).promise()
         .then(() => ([{ Map: {
-            ...payload,
-            MapId: PermanentId.slice(4)
+            MapId: PermanentId.slice(4),
+            Name,
+            Rooms
         }}]))
 }
