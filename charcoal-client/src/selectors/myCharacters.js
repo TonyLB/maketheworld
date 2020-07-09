@@ -1,12 +1,14 @@
-export const getMyCharacters = ({ myCharacters }) => (myCharacters && myCharacters.data)
+import { getCharacters } from './characters'
 
-export const getMyCharacterByName = (searchName) => ({ myCharacters }) => {
-    const { data = [] } = myCharacters || {}
-    const matchingCharacters = data.filter(({ Name }) => (Name === searchName))
-    if (!matchingCharacters) {
-        return {}
-    }
-    return matchingCharacters[0]
+export const getMyCharacters = (state) => {
+    const characters = getCharacters(state)
+    const { player } = state
+    const returnValue = player && player.Characters && player.Characters.map((characterId) => characters[characterId])
+    return returnValue
+}
+
+export const getMyCharacterByName = (searchName) => (state) => {
+    return getMyCharacters(state).find(({ Name }) => (Name === searchName)) || {}
 }
 
 const inheritanceProxy = (headers) => ({
@@ -29,16 +31,14 @@ const inheritanceProxy = (headers) => ({
     }
 })
 
-export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeaders, role, grants }) => {
-    const { data = [] } = myCharacters || {}
-    const matchingCharacters = data.filter(({ CharacterId }) => (CharacterId === searchId))
-    if (!matchingCharacters.length) {
+export const getMyCharacterById = (searchId) => (state) => {
+    const { permanentHeaders, role } = state
+    const myCharacter = getCharacters(state)[searchId]
+    if (!myCharacter) {
         return {}
     }
 
-    const Grants = ((grants && grants[matchingCharacters[0].CharacterId]) || [])
-
-    const grantMap = Grants.reduce((previous, grant) => ({
+    const grantMap = myCharacter.Grants.reduce((previous, grant) => ({
         ...previous,
         [grant.Resource]: ((grant.Roles && grant.Roles.split(',').map((role) => (role.trim()))) || []).reduce((previous, roleId) => ({
             ...previous,
@@ -46,7 +46,7 @@ export const getMyCharacterById = (searchId) => ({ myCharacters, permanentHeader
         }), stringToBooleanMap(grant.Actions || ''))
     }), {})
     return {
-        ...matchingCharacters[0],
+        ...myCharacter,
         Grants: new Proxy(grantMap, inheritanceProxy(permanentHeaders))
     }
 }
@@ -64,5 +64,3 @@ export const getMyCurrentCharacter = (state) => {
     const { characterId } = connection || {}
     return getMyCharacterById(characterId)(state)
 }
-
-export const getMyCharacterFetchNeeded = ({ myCharacters }) => (!(myCharacters && myCharacters.meta && (myCharacters.meta.fetching || myCharacters.meta.fetched)))

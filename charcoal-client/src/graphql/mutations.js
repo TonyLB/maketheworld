@@ -2,16 +2,22 @@
 // this is an auto generated file. This will be overwritten
 
 export const putPlayer = /* GraphQL */ `
-  mutation PutPlayer($PlayerName: String, $CodeOfConductConsent: Boolean) {
+  mutation PutPlayer(
+    $PlayerName: String
+    $CodeOfConductConsent: Boolean
+    $Characters: [String]
+  ) {
     putPlayer(
       PlayerName: $PlayerName
       CodeOfConductConsent: $CodeOfConductConsent
+      Characters: $Characters
     ) {
       Type
       PlayerName
       PlayerInfo {
         PlayerName
         CodeOfConductConsent
+        Characters
       }
       CharacterInfo {
         PlayerName
@@ -44,51 +50,6 @@ export const putCharacter = /* GraphQL */ `
     $HomeId: String
   ) {
     putCharacter(
-      Name: $Name
-      CharacterId: $CharacterId
-      Pronouns: $Pronouns
-      FirstImpression: $FirstImpression
-      Outfit: $Outfit
-      OneCoolThing: $OneCoolThing
-      HomeId: $HomeId
-    ) {
-      Type
-      PlayerName
-      PlayerInfo {
-        PlayerName
-        CodeOfConductConsent
-      }
-      CharacterInfo {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-      }
-      GrantInfo {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
-    }
-  }
-`;
-export const externalPutCharacter = /* GraphQL */ `
-  mutation ExternalPutCharacter(
-    $Name: String!
-    $CharacterId: String
-    $Pronouns: String
-    $FirstImpression: String
-    $Outfit: String
-    $OneCoolThing: String
-    $HomeId: String
-  ) {
-    externalPutCharacter(
       Name: $Name
       CharacterId: $CharacterId
       Pronouns: $Pronouns

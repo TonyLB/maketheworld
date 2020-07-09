@@ -45,16 +45,13 @@ describe('CurrentRoom Selectors', () => {
                 Type: 'ROOM',
             }
         },
-        myCharacters: {
-            meta: { fetching: false, fetched: true },
-            data: [
-                {
-                    CharacterId: 'ABC',
-                },
-                {
-                    CharacterId: 'BCD',
-                }
-            ]
+        characters: {
+            ABC: {
+                CharacterId: 'ABC',
+            },
+            BCD: {
+                CharacterId: 'BCD',
+            }
         },
         grants: {
             ABC: [

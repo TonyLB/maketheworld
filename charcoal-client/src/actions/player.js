@@ -4,7 +4,7 @@ import { putPlayer as putPlayerQL } from '../graphql/mutations'
 import { changedPlayer } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
-import { receiveMyCharacterChange, fetchMyCharacters } from './characters'
+import { receiveMyCharacterChange } from './characters'
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
 export const GRANT_UPDATE = 'GRANT_UPDATE'
@@ -33,9 +33,10 @@ export const fetchPlayer = (username) => (dispatch) => {
         .catch((err) => { console.log(err)})
 }
 
-export const putPlayer = ({ CodeOfConductConsent }) => () => {
+export const putPlayer = ({ CodeOfConductConsent, Characters }) => () => {
     return API.graphql(graphqlOperation(putPlayerQL, {
-        CodeOfConductConsent
+        CodeOfConductConsent,
+        Characters
     }))
     .catch((err) => { console.log(err)})    
 }
@@ -72,7 +73,7 @@ export const subscribePlayerChanges = () => (dispatch) => {
 
             dispatch(addSubscription({ player: playerSubscription }))
             dispatch(fetchPlayer(username))
-            dispatch(fetchMyCharacters())
+            // dispatch(fetchMyCharacters())
         
         })
 

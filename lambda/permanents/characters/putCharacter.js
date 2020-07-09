@@ -28,46 +28,8 @@ const batchDispatcher = (items) => {
     return Promise.all(batchPromises)
 }
 
-
-const characterGQL = ({
-    Name,
-    CharacterId,
-    Pronouns,
-    FirstImpression,
-    Outfit,
-    OneCoolThing,
-    HomeId
-}) => (gql`mutation ReportCharacter {
-    externalPutCharacter (Name: "${Name}", CharacterId: "${CharacterId}", Pronouns: "${Pronouns}", FirstImpression: "${FirstImpression}", Outfit: "${Outfit}", OneCoolThing: "${OneCoolThing}", HomeId: "${HomeId}") {
-        ${gqlOutput}
-    }
-}`)
-
-const characterGQLReport = async ({
-    Name,
-    CharacterId,
-    Pronouns,
-    FirstImpression,
-    Outfit,
-    OneCoolThing,
-    HomeId
-}) => {
-    if (CharacterId) {
-        await graphqlClient.mutate({ mutation: characterGQL({
-            Name,
-            CharacterId,
-            Pronouns,
-            FirstImpression,
-            Outfit,
-            OneCoolThing,
-            HomeId
-        }) })
-    }
-}
-
 exports.putCharacter = ({
     CharacterId: passedCharacterId,
-    PlayerName,
     Name,
     Pronouns,
     FirstImpression,
@@ -76,66 +38,32 @@ exports.putCharacter = ({
     HomeId
 }) => {
 
-    const newCharacter = !Boolean(passedCharacterId)
     const CharacterId = passedCharacterId || uuidv4()
 
-    return batchDispatcher([{
-            PutRequest: {
-                Item: {
-                    PermanentId: `CHARACTER#${CharacterId}`,
-                    DataCategory: 'Details',
-                    Name,
-                    Pronouns,
-                    FirstImpression,
-                    OneCoolThing,
-                    Outfit,
-                    HomeId
-                }
-            }
-        },
-        {
-            PutRequest: {
-                Item: {
-                    PermanentId: `PLAYER#${PlayerName}`,
-                    DataCategory: `CHARACTER#${CharacterId}`
-                }
-            }
-        },
-        ...((newCharacter && [{
-            PutRequest: {
-                Item: {
-                    PermanentId: `CHARACTER#${CharacterId}`,
-                    DataCategory: 'GRANT#MINIMUM',
-                    Roles: 'PLAYER'
-                }
-            }
-        }]) || [])
-        ])
-        .then(characterGQLReport({
-            Name,
-            CharacterId,
-            Pronouns,
-            FirstImpression,
-            Outfit,
-            OneCoolThing,
-            HomeId
-        }))
-        .then(() => (getCharacterInfo({ CharacterId })))
-        .then(({ Grants }) => ({
-            Type: "CHARACTER",
-            PlayerName,
-            CharacterInfo: {
-                CharacterId,
-                PlayerName,
+    return documentClient.put({
+            TableName: permanentTable,
+            Item: {
+                PermanentId: `CHARACTER#${CharacterId}`,
+                DataCategory: 'Details',
                 Name,
                 Pronouns,
                 FirstImpression,
                 OneCoolThing,
                 Outfit,
-                HomeId,
-                Grants
+                HomeId
             }
-        }))
+        }).promise()
+        .then(() => ([{
+            Character: {
+                CharacterId,
+                Name,
+                Pronouns,
+                FirstImpression,
+                OneCoolThing,
+                Outfit,
+                HomeId
+            }
+        }]))
         .catch((err) => ({ error: err.stack }))
 
 }

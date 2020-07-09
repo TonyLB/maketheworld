@@ -12,7 +12,6 @@ import exits from '../reducers/exits.js'
 import maps from '../reducers/maps.js'
 import player from '../reducers/player'
 import role from '../reducers/role'
-import myCharacters from '../reducers/myCharacters.js'
 import charactersInPlay from '../reducers/charactersInPlay.js'
 import subscriptions from '../reducers/subscriptions'
 import settings from '../reducers/settings'
@@ -25,7 +24,6 @@ export const storeReducer = combineReducers({
     connection,
     charactersInPlay,
     clientSettings,
-    myCharacters,
     grants,
     messages,
     registeredCharacter,

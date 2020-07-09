@@ -1,7 +1,11 @@
 import { API, graphqlOperation } from 'aws-amplify'
+import { v4 as uuidv4 } from 'uuid'
+
 import { getPlayerCharacters, getCharactersInPlay, getRoomRecap } from '../graphql/queries'
 import {
     putCharacter as putCharacterGraphQL,
+    putPlayer as putPlayerGraphQL,
+    updatePermanents,
     addCharacterInPlay as addCharacterInPlayGraphQL
 } from '../graphql/mutations'
 import { changedCharactersInPlay } from '../graphql/subscriptions'
@@ -13,11 +17,11 @@ import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getMyCharacterInPlay } from '../selectors/connection'
 import { getCurrentNeighborhood } from '../selectors/currentRoom'
+import { getPlayer } from '../selectors/player'
 import charactersInPlayReducer from '../reducers/charactersInPlay'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
-export const PUT_MY_CHARACTER_SUCCESS = 'PUT_MY_CHARACTER_SUCCESS'
 export const RECEIVE_MY_CHARACTER_CHANGE = 'RECEIVE_MY_CHARACTER_CHANGE'
 export const FETCH_CHARACTERS_IN_PLAY_ATTEMPT = 'FETCH_CHARACTER_IN_PLAY_ATTEMPT'
 export const FETCH_CHARACTERS_IN_PLAY_SUCCESS = 'FETCH_CHARACTERS_IN_PLAY_SUCCESS'
@@ -50,11 +54,6 @@ export const fetchMyCharacters = () => (dispatch, getState) => {
     }
 }
 
-export const putMyCharacterSuccess = (payload) => ({
-    type: PUT_MY_CHARACTER_SUCCESS,
-    payload
-})
-
 //
 // TODO:  Refactor putCharacter to output updates to characters in subscription, and add character subscriptions
 // to the permanents subscription
@@ -67,22 +66,47 @@ export const putMyCharacter = ({
     outfit = '',
     oneCoolThing = '',
     homeId = ''
-}) => (dispatch) => {
-    return API.graphql(graphqlOperation(putCharacterGraphQL, {
+}) => (dispatch, getState) => {
+    const state = getState()
+    const player = getPlayer(state)
+    const newCharacter = !Boolean(characterId)
+    const finalCharacterId = characterId || uuidv4()
+    return Promise.all([
+        API.graphql(graphqlOperation(putCharacterGraphQL, {
             Name: name,
-            ...(characterId ? { CharacterId: characterId ? characterId : null } : {}),
+            CharacterId: finalCharacterId,
             ...(pronouns ? { Pronouns: pronouns ? pronouns : null } : {}),
             ...(firstImpression ? { FirstImpression: firstImpression ? firstImpression : null } : {}),
             ...(pronouns ? { Outfit: outfit ? outfit : null } : {}),
             ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
             ...(homeId ? { HomeId: homeId } : {})
-        }))
-        .then(({ data = {} }) => (data))
-        .then(({ putCharacter = {} }) => (putCharacter))
-        .then((payload) => {
-            dispatch(receiveCharacterChanges([payload.CharacterInfo]))
-            dispatch(putMyCharacterSuccess(payload))
-        })
+        })),
+        //
+        // For a new character, update player list and set beginning grant
+        //
+        ...(newCharacter
+            ? [
+                API.graphql(graphqlOperation(putPlayerGraphQL, {
+                    ...player,
+                    Characters: [
+                        ...(player.Characters || []),
+                        finalCharacterId
+                    ]
+                })),
+                API.graphql(graphqlOperation(updatePermanents, { Updates: [
+                    {
+                        putGrant: {
+                            CharacterId: finalCharacterId,
+                            Resource: 'MINIMUM',
+                            Roles: 'PLAYER',
+                            Actions: ''
+                        }
+                    }
+                ]})),
+            ]
+            : []
+        )
+    ])
 }
 
 export const putMyCharacterAndCloseDialog = (characterData) => (dispatch) => {

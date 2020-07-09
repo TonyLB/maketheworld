@@ -569,9 +569,14 @@ Resources:
             #if ($ctx.result && $util.isBoolean($ctx.result.CodeOfConductConsent))
                 #set($Consent = $ctx.result.CodeOfConductConsent)
             #end
+            #set($Characters = [])
+            #if ($ctx.result && $util.isList($ctx.result.Characters))
+                #set($Characters = $ctx.result.Characters)
+            #end
             $util.toJson({
                 "PlayerName": $ctx.args.PlayerName,
-                "CodeOfConductConsent": $Consent
+                "CodeOfConductConsent": $Consent,
+                "Characters": $Characters
             })
   MutationPutPlayerResolver:
     Type: AWS::AppSync::Resolver
@@ -586,6 +591,10 @@ Resources:
             #if ($util.isNullOrEmpty($PlayerName))
               $util.qr($ctx.stash.put("PlayerName", $context.identity.username))
             #end
+            #set ($Characters = [])
+            #if ($ctx.args && $util.isList($ctx.args.Characters))
+              #set ($Characters = $ctx.args.Characters)
+            #end
             {
                 "version": "2017-02-28",
                 "operation": "PutItem",
@@ -594,6 +603,7 @@ Resources:
                     "DataCategory": $util.dynamodb.toStringJson("Details")
                 },
                 "attributeValues": {
+                    "Characters": $util.dynamodb.toListJson($Characters),
                     "CodeOfConductConsent":
                       #if($ctx.args.CodeOfConductConsent)
                         $util.dynamodb.toBooleanJson($ctx.args.CodeOfConductConsent)
@@ -608,7 +618,8 @@ Resources:
             "PlayerName": $ctx.stash.PlayerName,
             "PlayerInfo": {
               "PlayerName": $ctx.stash.PlayerName,
-              "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false)
+              "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false),
+              "Characters": $ctx.result.Characters
             }
           })
   QueryPlayerCharactersResolver:
@@ -647,23 +658,6 @@ Resources:
                   "payload": $util.toJson($arguments)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationExternalPutCharacter:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-      ApiId: !GetAtt AppSyncAPI.ApiId
-      TypeName: Mutation
-      FieldName: externalPutCharacter
-      DataSourceName: !GetAtt NoneDataSource.Name
-      RequestMappingTemplate: >
-          {
-              "version": "2017-02-28",
-              "payload": $util.toJson($ctx.args)
-          }
-      ResponseMappingTemplate: >
-          #set($result = $ctx.result)
-          [{ "Character": $util.toJson($result) }]
   CharactersInPlayFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -1082,6 +1076,7 @@ Resources:
               type Player {
                   PlayerName: String!
                   CodeOfConductConsent: Boolean
+                  Characters: [String]
               }
               type Role @aws_iam @aws_cognito_user_pools {
                   RoleId: String!
@@ -1275,17 +1270,9 @@ Resources:
                   putPlayer(
                       PlayerName: String,
                       CodeOfConductConsent: Boolean
+                      Characters: [String]
                     ): PlayerSubscription
                   putCharacter(
-                      Name: String!,
-                      CharacterId: String,
-                      Pronouns: String,
-                      FirstImpression: String,
-                      Outfit: String,
-                      OneCoolThing: String,
-                      HomeId: String
-                  ): PlayerSubscription
-                  externalPutCharacter(
                       Name: String!,
                       CharacterId: String,
                       Pronouns: String,
@@ -1354,11 +1341,11 @@ Resources:
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
-                  @aws_subscribe(mutations: ["putPlayer", "putCharacter"])
+                  @aws_subscribe(mutations: ["putPlayer"])
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["updatePermanents", "createBackup", "externalPutCharacter"])
+                  @aws_subscribe(mutations: ["updatePermanents", "putCharacter", "createBackup"])
                   addedMessage (
                     RoomId: String
                     CharacterId: String

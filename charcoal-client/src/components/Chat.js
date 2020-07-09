@@ -50,7 +50,7 @@ import { getMessages, getMostRecentRoomMessage } from '../selectors/messages.js'
 import { getCharacterId } from '../selectors/connection'
 import { getMyCharacters, getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
-import { getConsentGiven, getPlayerFetched } from '../selectors/player'
+import { getPlayer } from '../selectors/player'
 import LineEntry from '../components/LineEntry.js'
 import Message from './Message'
 import RoomDescriptionMessage from './Message/RoomDescriptionMessage'
@@ -95,8 +95,8 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
             </DialogTitle>
             <DialogContent>
                 <List component="nav" aria-label="choose a character">
-                    { (myCharacters || []).map(({ Name: name, CharacterId: characterId }) => (
-                        <ListItem key={name} button onClick={handleClose({ name, characterId })}>
+                    { (myCharacters || []).map(({ Name: name, CharacterId: characterId }, index) => (
+                        <ListItem key={`${name}:${index}`} button onClick={handleClose({ name, characterId })}>
                             <ListItemText>
                                 {name}
                             </ListItemText>
@@ -127,8 +127,8 @@ export const Chat = () => {
     }
     const characterId = useSelector(getCharacterId)
     const currentCharacter = useSelector(getMyCurrentCharacter)
-    const consentGiven = useSelector(getConsentGiven)
-    const playerFetched = useSelector(getPlayerFetched)
+    const currentPlayer = useSelector(getPlayer)
+    const playerFetched = Boolean(currentPlayer && Boolean(currentPlayer.PlayerName))
     const Players = useSelector(getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId }))
 
     const dispatch = useDispatch()
@@ -186,31 +186,6 @@ export const Chat = () => {
         handleSettingsClose()
     }
 
-    // useEffect(() => {
-    //     if (!webSocket) {
-    //       let setupSocket = new WebSocket(WSS_ADDRESS)
-    //       setupSocket.onopen = () => {
-    //         console.log('WebSocket Client Connected')
-    //       }
-    //       setupSocket.onmessage = (message) => {
-    //         const { type, ...rest } = JSON.parse(message.data)
-    //         switch(type) {
-    //             case 'connectionregister':
-    //                 dispatch(connectionRegister(rest))
-    //                 break
-    //             //
-    //             // No processing when a pong message (the response to a ping)
-    //             // comes through.
-    //             //
-    //             default:
-    //         }
-    //       }
-    //       setupSocket.onerror = (error) => {
-    //           console.error('WebSocket error: ', error)
-    //       }
-    //       dispatch(registerWebSocket(setupSocket))
-    //     }
-    // }, [webSocket, dispatch])
     useEffect(() => {
         dispatch(loadClientSettings)
     }, [dispatch])
@@ -431,13 +406,16 @@ export const Chat = () => {
             <RoomDialog />
             <MyCharacterDialog />
             <CodeOfConductConsentDialog
-                open={playerFetched && !consentGiven}
+                open={playerFetched && !currentPlayer.CodeOfConductConsent}
                 onConsent={() => {
-                    dispatch(putPlayer({ CodeOfConductConsent: true }))
+                    dispatch(putPlayer({
+                        ...currentPlayer,
+                        CodeOfConductConsent: true
+                    }))
                 }}
             />
             <CharacterPicker
-                open={(consentGiven && !characterId) || false}
+                open={(currentPlayer.CodeOfConductConsent && !characterId) || false}
                 onClose={({ name, characterId }) => () => {
                     dispatch(registerCharacter({ name, characterId }))
                 }}

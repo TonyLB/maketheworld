@@ -172,12 +172,13 @@ const testState = {
             Topology: 'Connected'
         }
     },
-    myCharacters: {
-        data: [
-            {
-                CharacterId: 'Valentina',
-            }
-        ]
+    characters: {
+        Valentina: {
+            CharacterId: 'Valentina',
+        }
+    },
+    player: {
+        Characters: [ 'Valentina' ]
     },
     connection: {
         characterId: 'Valentina'

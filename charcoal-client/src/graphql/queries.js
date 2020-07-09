@@ -6,6 +6,7 @@ export const getPlayer = /* GraphQL */ `
     getPlayer(PlayerName: $PlayerName) {
       PlayerName
       CodeOfConductConsent
+      Characters
     }
   }
 `;

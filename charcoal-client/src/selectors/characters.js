@@ -4,6 +4,6 @@ export const getCharacters = ({ characters, grants }) => {
             Name: '????',
             ...obj[prop],
             Grants: (grants && grants[obj[prop].CharacterId]) || []
-        }) || { Name: '????' })
+        }) || { Name: '????', Grants: [] })
     })
 }

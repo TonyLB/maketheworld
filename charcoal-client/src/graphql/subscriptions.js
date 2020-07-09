@@ -9,6 +9,7 @@ export const changedPlayer = /* GraphQL */ `
       PlayerInfo {
         PlayerName
         CodeOfConductConsent
+        Characters
       }
       CharacterInfo {
         PlayerName
