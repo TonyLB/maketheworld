@@ -924,33 +924,6 @@ Resources:
                   "payload": $util.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetGrants:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - PermanentsFunction
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getGrants
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "getGrants"
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  NoneDataSource:
-    Type: AWS::AppSync::DataSource
-    DependsOn:
-      - Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        Name: NoneSource
-        Type: NONE
   MutationPutRoomMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1066,21 +1039,17 @@ Resources:
                   Actions: String!
               }
               type Grant @aws_iam @aws_cognito_user_pools {
-                  Resource: String!
-                  Actions: String
-                  Roles: String
-              }
-              type ResourceGrant @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  Actions: String
-                  Roles: String
-              }
-              type ExternalGrant @aws_iam @aws_cognito_user_pools {
                   CharacterId: String!
                   Resource: String!
                   Actions: String
                   Roles: String
                   Revoke: Boolean
+              }
+              input GrantInput {
+                CharacterId: String!
+                Resource: String!
+                Actions: String
+                Roles: String
               }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String
@@ -1115,7 +1084,6 @@ Resources:
                   Visibility: String
                   Topology: String
                   ContextMapId: String
-                  Grants: [ResourceGrantInput]
                   Retired: Boolean
               }
               type Exit {
@@ -1130,22 +1098,6 @@ Resources:
                   Name: String
                   Delete: Boolean
               }
-              input PathInput {
-                  PermanentId: String
-                  Name: String!
-                  RoomId: String
-              }
-              input ResourceGrantInput {
-                CharacterId: String!
-                Actions: String
-                Roles: String
-              }
-              input GrantInput {
-                CharacterId: String!
-                Resource: String!
-                Actions: String
-                Roles: String
-              }
               type Room {
                   PermanentId: String!
                   Name: String!
@@ -1153,7 +1105,6 @@ Resources:
                   ParentId: String
                   Visibility: String
                   Topology: String
-                  Grants: [ResourceGrant]
                   Retired: Boolean
               }
               input RoomInput @aws_iam @aws_cognito_user_pools {
@@ -1193,7 +1144,7 @@ Resources:
                   PlayerName: String!
                   PlayerInfo: Player
                   CharacterInfo: Character
-                  GrantInfo: ExternalGrant
+                  GrantInfo: Grant
               }
               type MapRoomEntry {
                   PermanentId: String!
@@ -1243,7 +1194,7 @@ Resources:
                 Role: Role
                 Backup: Backup
                 Character: Character
-                Grant: ExternalGrant
+                Grant: Grant
                 Exit: Exit
               }
               input PermanentInput @aws_iam @aws_cognito_user_pools {

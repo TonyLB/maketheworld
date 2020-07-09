@@ -71,11 +71,6 @@ export const syncPermanents = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Map {

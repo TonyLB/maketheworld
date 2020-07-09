@@ -169,11 +169,6 @@ export const createBackup = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Map {
@@ -246,11 +241,6 @@ export const restoreBackup = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Map {
@@ -323,11 +313,6 @@ export const updatePermanents = /* GraphQL */ `
         ParentId
         Visibility
         Topology
-        Grants {
-          CharacterId
-          Actions
-          Roles
-        }
         Retired
       }
       Map {
