@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { getPlayerCharacters, getCharactersInPlay, getRoomRecap } from '../graphql/queries'
 import {
-    putCharacter as putCharacterGraphQL,
     putPlayer as putPlayerGraphQL,
     updatePermanents,
     addCharacterInPlay as addCharacterInPlayGraphQL
@@ -54,10 +53,6 @@ export const fetchMyCharacters = () => (dispatch, getState) => {
     }
 }
 
-//
-// TODO:  Refactor putCharacter to output updates to characters in subscription, and add character subscriptions
-// to the permanents subscription
-//
 export const putMyCharacter = ({
     name = '',
     characterId = '',
@@ -72,15 +67,20 @@ export const putMyCharacter = ({
     const newCharacter = !Boolean(characterId)
     const finalCharacterId = characterId || uuidv4()
     return Promise.all([
-        API.graphql(graphqlOperation(putCharacterGraphQL, {
-            Name: name,
-            CharacterId: finalCharacterId,
-            ...(pronouns ? { Pronouns: pronouns ? pronouns : null } : {}),
-            ...(firstImpression ? { FirstImpression: firstImpression ? firstImpression : null } : {}),
-            ...(pronouns ? { Outfit: outfit ? outfit : null } : {}),
-            ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
-            ...(homeId ? { HomeId: homeId } : {})
-        })),
+        API.graphql(graphqlOperation(updatePermanents, { Updates: [
+            {
+                putCharacter:
+                    {
+                        Name: name,
+                        CharacterId: finalCharacterId,
+                        ...(pronouns ? { Pronouns: pronouns ? pronouns : null } : {}),
+                        ...(firstImpression ? { FirstImpression: firstImpression ? firstImpression : null } : {}),
+                        ...(pronouns ? { Outfit: outfit ? outfit : null } : {}),
+                        ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
+                        ...(homeId ? { HomeId: homeId } : {})
+                    }
+            }
+        ]})),
         //
         // For a new character, update player list and set beginning grant
         //

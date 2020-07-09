@@ -640,24 +640,6 @@ Resources:
                   "payload": $util.toJson($arguments)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  PutCharacterResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: putCharacter
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              #set($arguments = $ctx.args)
-              $util.qr($arguments.put("PlayerName", $context.identity.username))
-              $util.qr($arguments.put("action", "putCharacter"))
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": $util.toJson($arguments)
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   CharactersInPlayFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -1183,6 +1165,15 @@ Resources:
                   Topology: String
                   Retired: Boolean
               }
+              input CharacterInput @aws_iam @aws_cognito_user_pools {
+                  Name: String!,
+                  CharacterId: String,
+                  Pronouns: String,
+                  FirstImpression: String,
+                  Outfit: String,
+                  OneCoolThing: String,
+                  HomeId: String
+              }
               type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
                   CreatedTime: Long!
@@ -1261,6 +1252,7 @@ Resources:
                 putSettings: SettingsInput
                 putBackup: BackupInput
                 putRoom: RoomInput
+                putCharacter: CharacterInput
                 putGrant: GrantInput
                 revokeGrant: GrantInput
                 putExit: ExitInput
@@ -1272,16 +1264,6 @@ Resources:
                       CodeOfConductConsent: Boolean
                       Characters: [String]
                     ): PlayerSubscription
-                  putCharacter(
-                      Name: String!,
-                      CharacterId: String,
-                      Pronouns: String,
-                      FirstImpression: String,
-                      Outfit: String,
-                      OneCoolThing: String,
-                      HomeId: String
-                  ): [ChangedPermanent]
-                  @aws_iam @aws_cognito_user_pools
                   addCharacterInPlay(
                       CharacterId: String!
                   ): CharacterInPlay
@@ -1345,7 +1327,7 @@ Resources:
                   changedCharactersInPlay: CharacterInPlay
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["updatePermanents", "putCharacter", "createBackup"])
+                  @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
                   addedMessage (
                     RoomId: String
                     CharacterId: String

@@ -45,6 +45,9 @@ const updateDispatcher = ({ Updates = [] }) => {
             if (update.putGrant) {
                 return putGrant(update.putGrant)
             }
+            if (update.putCharacter) {
+                return putCharacter(update.putCharacter)
+            }
             if (update.revokeGrant) {
                 return revokeGrant(update.revokeGrant)
             }
@@ -88,8 +91,6 @@ exports.handler = (event, context) => {
 
         case "getPlayerCharacters":
             return getPlayerCharacters(payload)
-        case "putCharacter":
-            return putCharacter(payload)
 
         case "sync":
             return sync(payload)
