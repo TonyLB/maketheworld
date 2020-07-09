@@ -5,14 +5,7 @@ jest.mock('../utilities', () => ({
         scan: jest.fn(),
         get: jest.fn(),
         put: jest.fn()
-    },
-    graphqlClient: {
-        mutate: jest.fn()
-    },
-    gql: jest.fn((strings, ...args) => {
-        const returnVal = args.map((arg, index) => (strings[index] + arg)).join("") + strings[args.length]
-        return returnVal.split("\n").map((innerVal) => (innerVal.trim())).join('\n')
-    })
+    }
 }))
 
 jest.mock('/opt/uuid', () => ({
@@ -21,11 +14,12 @@ jest.mock('/opt/uuid', () => ({
 
 const stripMultiline = (value) => (value.split("\n").map((innerVal) => (innerVal.trim())).join('\n'))
 
-const { documentClient, graphqlClient } = require('../utilities')
+const { documentClient } = require('../utilities')
 const { getNeighborhood, putNeighborhood } = require('./neighborhood')
 const { v4 } = require('/opt/uuid')
 
 describe("getNeighborhood", () => {
+
     afterEach(() => {
         jest.clearAllMocks()
     })
@@ -85,59 +79,58 @@ describe("getNeighborhood", () => {
 
 })
 
-const testGQLOutput = `{
-    Type
-    PlayerName
-    PlayerInfo {
-      PlayerName
-      CodeOfConductConsent
-    }
-    CharacterInfo {
-      PlayerName
-      Name
-      CharacterId
-      Pronouns
-      FirstImpression
-      Outfit
-      OneCoolThing
-      HomeId
-    }
-    GrantInfo {
-      CharacterId
-      Resource
-      Actions
-      Roles
-    }
-}`
-
 describe("putNeighborhood", () => {
+    const realDateNow = Date.now.bind(global.Date)
+
     afterEach(() => {
         jest.clearAllMocks()
+        global.Date.now = realDateNow
     })
 
     it('should create a new neighborhood', async () => {
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve({})) })
+        global.Date.now = jest.fn(() => 123451234567)
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({})) })
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve({})) })
         v4.mockReturnValue('123')
         const data = await putNeighborhood({ arguments: {
-            CharacterId: 'ABC',
             Name: 'Test',
             Description: 'A test description',
             ParentId: '987'
         }})
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'NEIGHBORHOOD#123',
-                DataCategory: 'Details',
-                ParentId: '987',
-                Name: 'Test',
-                Description: 'A test description',
-                Topology: 'Dead-End',
-                Visibility: 'Private'
-            },
-            ReturnValues: 'ALL_OLD'
-        })
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                { PutRequest:
+                    {
+                        Item: {
+                            PermanentId: 'NEIGHBORHOOD#123',
+                            DataCategory: 'Details',
+                            ParentId: '987',
+                            Name: 'Test',
+                            Description: 'A test description',
+                            Topology: 'Dead-End',
+                            Visibility: 'Private'
+                        }
+                    }
+                }
+            ],
+            undefined_permanent_delta: [
+                { PutRequest:
+                    {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::NEIGHBORHOOD#123::Details',
+                            RowId: 'NEIGHBORHOOD#123::Details',
+                            ParentId: '987',
+                            Name: 'Test',
+                            Description: 'A test description',
+                            Topology: 'Dead-End',
+                            Visibility: 'Private'
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([
             {
                 Map: null,
@@ -157,42 +150,52 @@ describe("putNeighborhood", () => {
 
     it('should update an existing neighborhood', async () => {
 
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve({})) })
+        global.Date.now = jest.fn(() => 123451234567)
+
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({})) })
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve({})) })
         const data = await putNeighborhood({ arguments: {
             PermanentId: '123',
-            CharacterId: 'ABC',
             Name: 'Test',
             Description: 'A test description',
             ParentId: '987',
             Visibility: 'Public',
-            Topology: 'Connected',
-            Grants: [
-                {
-                    CharacterId: 'ABC',
-                    Resource: '123',
-                    Roles: 'EDITOR'
-                },
-                {
-                    CharacterId: 'DEF',
-                    Resource: '123',
-                    Roles: 'VIEWER'
+            Topology: 'Connected'
+        }})
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                { PutRequest:
+                    {
+                        Item: {
+                            PermanentId: 'NEIGHBORHOOD#123',
+                            DataCategory: 'Details',
+                            ParentId: '987',
+                            Name: 'Test',
+                            Description: 'A test description',
+                            Topology: 'Connected',
+                            Visibility: 'Public'
+                        }
+                    }
+                }
+            ],
+            undefined_permanent_delta: [
+                { PutRequest:
+                    {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::NEIGHBORHOOD#123::Details',
+                            RowId: 'NEIGHBORHOOD#123::Details',
+                            ParentId: '987',
+                            Name: 'Test',
+                            Description: 'A test description',
+                            Topology: 'Connected',
+                            Visibility: 'Public'
+                        }
+                    }
                 }
             ]
         }})
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'NEIGHBORHOOD#123',
-                DataCategory: 'Details',
-                ParentId: '987',
-                Name: 'Test',
-                Description: 'A test description',
-                Topology: 'Connected',
-                Visibility: 'Public'
-            },
-            ReturnValues: 'ALL_OLD'
-        })
         expect(data).toEqual([
             {
                 Map: null,

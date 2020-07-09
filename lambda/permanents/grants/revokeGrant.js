@@ -4,16 +4,16 @@
 const { documentClient } = require('../utilities')
 
 exports.revokeGrant = ({ CharacterId, Resource }) => {
-    const { TABLE_PREFIX } = process.env;
-    const permanentTable = `${TABLE_PREFIX}_permanents`
 
-    return documentClient.delete({
-        TableName: permanentTable,
-        Key: {
-            PermanentId: `CHARACTER#${CharacterId}`,
-            DataCategory: `GRANT#${Resource}`
-        }
-    }).promise()
+    return permanentAndDeltas({
+            DeleteRequest: {
+                Key: {
+                    PermanentId: `CHARACTER#${CharacterId}`,
+                    DataCategory: `GRANT#${Resource}`
+                }
+            }
+        })
+        .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
         .then(() => ([{ Grant: { CharacterId, Resource, Revoke: true }}]))
 
 }

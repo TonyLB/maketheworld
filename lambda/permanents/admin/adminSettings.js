@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT-0
 
 const { documentClient } = require('../utilities')
-const { TABLE_PREFIX, AWS_REGION } = process.env;
+const { TABLE_PREFIX } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
+
+const { permanentAndDeltas } = require('../delta')
 
 const getSettings = () => {
     return documentClient.get({
@@ -21,14 +23,16 @@ const putSettings = (payload) => {
     const { ChatPrompt } = payload
 
     if (ChatPrompt) {
-        return documentClient.put({
-                TableName: permanentTable,
-                Item: {
-                    PermanentId: 'ADMIN',
-                    DataCategory: 'Details',
-                    ChatPrompt
+        return permanentAndDeltas({
+                PutRequest: {
+                    Item: {
+                        PermanentId: `ADMIN`,
+                        DataCategory: 'Details',
+                        ChatPrompt
+                    }
                 }
-            }).promise()
+            })
+            .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
             .then(() => ([{ Settings: payload }]))
     }
     else {

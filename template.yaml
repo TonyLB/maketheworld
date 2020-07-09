@@ -190,6 +190,30 @@ Resources:
       Description: Prod Stage
       DeploymentId: !Ref RealTimeDeployment
       ApiId: !Ref RealTimeWebSocket
+  PermanentDeltaTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "PartitionId"
+            AttributeType: "N"
+          - AttributeName: "DeltaId"
+            AttributeType: "S"
+          - AttributeName: "RowId"
+            AttributeType: "S"
+        BillingMode: "PAY_PER_REQUEST"
+        KeySchema:
+          - AttributeName: "PartitionId"
+            KeyType: "HASH"
+          - AttributeName: "DeltaId"
+            KeyType: "RANGE"
+        GlobalSecondaryIndexes:
+          - IndexName: RowIdIndex
+            KeySchema:
+              - AttributeName: RowId
+                KeyType: HASH
+            Projection:
+              ProjectionType: KEYS_ONLY
+        TableName: !Sub '${TablePrefix}_permanent_delta'
   EphemeraTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -859,6 +883,8 @@ Resources:
                             !Sub "${PermanentsStack}-StorageBucket"
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_permanent_delta'
   PermanentsDataSource:
       Type: AWS::AppSync::DataSource
       Properties:

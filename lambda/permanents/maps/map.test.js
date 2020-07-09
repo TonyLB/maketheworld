@@ -101,8 +101,11 @@ describe("getMaps", () => {
 })
 
 describe("putMap", () => {
+    const realDateNow = Date.now.bind(global.Date)
+
     afterEach(() => {
         jest.clearAllMocks()
+        global.Date.now = realDateNow
     })
 
     const baseMap = {
@@ -168,33 +171,65 @@ describe("putMap", () => {
     }
 
     it('should create a new map', async () => {
+        global.Date.now = jest.fn(() => 123451234567)
+
         documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve()) })
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve()) })
         v4.mockReturnValue('123')
         const { MapId, ...rest } = baseMap
         const data = await putMap(rest)
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'MAP#123',
-                DataCategory: 'Details',
-                Name: 'Test Map',
-                Rooms: [
-                    {
-                        PermanentId: 'ABC',
-                        X: 200,
-                        Y: 300
-                    },
-                    {
-                        PermanentId: 'DEF',
-                        X: 400,
-                        Y: 300,
-                        Locked: true
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: 'MAP#123',
+                            DataCategory: 'Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                }
+                            ]
+                        }
                     }
-                ]
-            }
-        })
+                }
+            ],
+            undefined_permanent_delta: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::MAP#123::Details',
+                            RowId: 'MAP#123::Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([{ Map: {
             MapId: '123',
             Name: 'Test Map',
@@ -215,35 +250,63 @@ describe("putMap", () => {
     })
 
     it('should update map details', async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
-            detailRow,
-            roomOneRow,
-            roomTwoRow
-        ]}))})
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve()) })
+        global.Date.now = jest.fn(() => 123451234567)
+
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] }))})
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve()) })
         const data = await putMap({ ...baseMap, Name: 'Test Change'})
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'MAP#123',
-                DataCategory: 'Details',
-                Name: 'Test Change',
-                Rooms: [
-                    {
-                        PermanentId: 'ABC',
-                        X: 200,
-                        Y: 300
-                    },
-                    {
-                        PermanentId: 'DEF',
-                        X: 400,
-                        Y: 300,
-                        Locked: true
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: 'MAP#123',
+                            DataCategory: 'Details',
+                            Name: 'Test Change',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                }
+                            ]
+                        }
                     }
-                ]
-            }
-        })
+                }
+            ],
+            undefined_permanent_delta: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::MAP#123::Details',
+                            RowId: 'MAP#123::Details',
+                            Name: 'Test Change',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([{ Map: {
             MapId: '123',
             Name: 'Test Change',
@@ -265,11 +328,9 @@ describe("putMap", () => {
     })
 
     it('should add a room to a map', async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
-            detailRow,
-            roomOneRow,
-            roomTwoRow
-        ]}))})
+        global.Date.now = jest.fn(() => 123451234567)
+
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] }))})
         documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve()) })
         const data = await putMap({
             ...baseMap,
@@ -282,33 +343,68 @@ describe("putMap", () => {
                 }
             ]
         })
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'MAP#123',
-                DataCategory: 'Details',
-                Name: 'Test Map',
-                Rooms: [
-                    {
-                        PermanentId: 'ABC',
-                        X: 200,
-                        Y: 300
-                    },
-                    {
-                        PermanentId: 'DEF',
-                        X: 400,
-                        Y: 300,
-                        Locked: true
-                    },
-                    {
-                        PermanentId: 'GHI',
-                        X: 300,
-                        Y: 400
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: 'MAP#123',
+                            DataCategory: 'Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                },
+                                {
+                                    PermanentId: 'GHI',
+                                    X: 300,
+                                    Y: 400
+                                }
+                            ]
+                        }
                     }
-                ]
-            }
-        })
+                }
+            ],
+            undefined_permanent_delta: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::MAP#123::Details',
+                            RowId: 'MAP#123::Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                },
+                                {
+                                    PermanentId: 'GHI',
+                                    X: 300,
+                                    Y: 400
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([{ Map: {
             MapId: '123',
             Name: 'Test Map',
@@ -335,12 +431,10 @@ describe("putMap", () => {
     })
 
     it('should remove a room from a map', async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
-            detailRow,
-            roomOneRow,
-            roomTwoRow
-        ]}))})
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve()) })
+        global.Date.now = jest.fn(() => 123451234567)
+
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] }))})
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve()) })
         const data = await putMap({
             ...baseMap,
             Rooms: [
@@ -351,22 +445,46 @@ describe("putMap", () => {
                 }
             ]
         })
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'MAP#123',
-                DataCategory: 'Details',
-                Name: 'Test Map',
-                Rooms: [
-                    {
-                        PermanentId: 'ABC',
-                        X: 200,
-                        Y: 300
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: 'MAP#123',
+                            DataCategory: 'Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                }
+                            ]
+                        }
                     }
-                ]
-            }
-        })
+                }
+            ],
+            undefined_permanent_delta: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::MAP#123::Details',
+                            RowId: 'MAP#123::Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 200,
+                                    Y: 300
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([{ Map: {
             MapId: '123',
             Name: 'Test Map',
@@ -382,12 +500,10 @@ describe("putMap", () => {
     })
 
     it('should update a room', async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
-            detailRow,
-            roomOneRow,
-            roomTwoRow
-        ]}))})
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve()) })
+        global.Date.now = jest.fn(() => 123451234567)
+
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] }))})
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve()) })
         const data = await putMap({
             ...baseMap,
             Rooms: [
@@ -404,28 +520,58 @@ describe("putMap", () => {
                 }
             ]
         })
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'MAP#123',
-                DataCategory: 'Details',
-                Name: 'Test Map',
-                Rooms: [
-                    {
-                        PermanentId: 'ABC',
-                        X: 250,
-                        Y: 350
-                    },
-                    {
-                        PermanentId: 'DEF',
-                        X: 400,
-                        Y: 300,
-                        Locked: true
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: 'MAP#123',
+                            DataCategory: 'Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 250,
+                                    Y: 350
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                }
+                            ]
+                        }
                     }
-                ]
-            }
-        })
+                }
+            ],
+            undefined_permanent_delta: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::MAP#123::Details',
+                            RowId: 'MAP#123::Details',
+                            Name: 'Test Map',
+                            Rooms: [
+                                {
+                                    PermanentId: 'ABC',
+                                    X: 250,
+                                    Y: 350
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300,
+                                    Locked: true
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([{ Map: {
             MapId: '123',
             Name: 'Test Map',
@@ -447,12 +593,10 @@ describe("putMap", () => {
     })
 
     it('should perform all changes together', async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
-            detailRow,
-            roomOneRow,
-            roomTwoRow
-        ]}))})
-        documentClient.put.mockReturnValue({ promise: () => (Promise.resolve()) })
+        global.Date.now = jest.fn(() => 123451234567)
+
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] }))})
+        documentClient.batchWrite.mockReturnValue({ promise: () => (Promise.resolve()) })
         const data = await putMap({
             ...baseMap,
             Name: 'Test Change',
@@ -469,27 +613,56 @@ describe("putMap", () => {
                 }
             ]
         })
-        expect(documentClient.put.mock.calls.length).toBe(1)
-        expect(documentClient.put.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_permanents',
-            Item: {
-                PermanentId: 'MAP#123',
-                DataCategory: 'Details',
-                Name: 'Test Change',
-                Rooms: [
-                    {
-                        PermanentId: 'GHI',
-                        X: 250,
-                        Y: 350
-                    },
-                    {
-                        PermanentId: 'DEF',
-                        X: 400,
-                        Y: 300
+        expect(documentClient.batchWrite.mock.calls.length).toBe(1)
+        expect(documentClient.batchWrite.mock.calls[0][0]).toEqual({ RequestItems: {
+            undefined_permanents: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PermanentId: 'MAP#123',
+                            DataCategory: 'Details',
+                            Name: 'Test Change',
+                            Rooms: [
+                                {
+                                    PermanentId: 'GHI',
+                                    X: 250,
+                                    Y: 350
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300
+                                }
+                            ]
+                        }
                     }
-                ]
-            }
-        })
+                }
+            ],
+            undefined_permanent_delta: [
+                {
+                    PutRequest: {
+                        Item: {
+                            PartitionId: 12345,
+                            DeltaId: '123451234567::MAP#123::Details',
+                            RowId: 'MAP#123::Details',
+                            Name: 'Test Change',
+                            Rooms: [
+                                {
+                                    PermanentId: 'GHI',
+                                    X: 250,
+                                    Y: 350
+                                },
+                                {
+                                    PermanentId: 'DEF',
+                                    X: 400,
+                                    Y: 300
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }})
         expect(data).toEqual([{ Map: {
             MapId: '123',
             Name: 'Test Change',

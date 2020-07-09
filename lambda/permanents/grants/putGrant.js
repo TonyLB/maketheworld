@@ -3,19 +3,21 @@
 
 const { documentClient } = require('../utilities')
 
-exports.putGrant = ({ CharacterId, Resource, Roles = '', Actions = ''}) => {
-    const { TABLE_PREFIX } = process.env;
-    const permanentTable = `${TABLE_PREFIX}_permanents`
+const { permanentAndDeltas } = require('../delta')
 
-    return documentClient.put({
-        TableName: permanentTable,
-        Item: {
-            PermanentId: `CHARACTER#${CharacterId}`,
-            DataCategory: `GRANT#${Resource}`,
-            ...(Roles ? { Roles } : {}),
-            ...(Actions ? { Actions } : {})
-        }
-    }).promise()
+exports.putGrant = ({ CharacterId, Resource, Roles = '', Actions = ''}) => {
+
+    return permanentAndDeltas({
+            PutRequest: {
+                Item: {
+                    PermanentId: `CHARACTER#${CharacterId}`,
+                    DataCategory: `GRANT#${Resource}`,
+                    ...(Roles ? { Roles } : {}),
+                    ...(Actions ? { Actions } : {})
+                }
+            }
+        })
+        .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
         .then(() => ([{ Grant: { CharacterId, Resource, Roles, Actions }}]))
 
 }

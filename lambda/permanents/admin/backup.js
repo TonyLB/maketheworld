@@ -5,8 +5,11 @@ const { documentClient } = require('../utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
 const { initiateBackup } = require('./initiateBackup')
 
-const { TABLE_PREFIX, AWS_REGION } = process.env;
+const { TABLE_PREFIX } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
+
+const { permanentAndDeltas } = require('../delta')
+
 
 const getBackups = async () => {
     const { Items = [] } = await documentClient.query({
@@ -55,14 +58,16 @@ const putBackup = async ({ PermanentId, Name, Description, Status }) => {
         ...(Status !== undefined ? { Status } : {}),
     }
 
-    await documentClient.put({
-        TableName: permanentTable,
-        Item: {
-            ...newBackup,
-            PermanentId: `ADMIN`,
-            DataCategory: `BACKUP#${newBackup.PermanentId}`
-        }
-    }).promise()
+    await permanentAndDeltas({ PutRequest:
+        {
+            Item: {
+                ...newBackup,
+                PermanentId: `ADMIN`,
+                DataCategory: `BACKUP#${newBackup.PermanentId}`
+            }
+        }})
+        .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
+
     return [{ Backup: newBackup }]
 }
 

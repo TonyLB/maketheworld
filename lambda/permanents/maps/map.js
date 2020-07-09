@@ -4,6 +4,8 @@
 const { v4: uuidv4 } = require('/opt/uuid')
 const { documentClient } = require('../utilities')
 
+const { permanentAndDeltas } = require('../delta')
+
 exports.getMaps = () => {
     const { TABLE_PREFIX, AWS_REGION } = process.env;
 
@@ -36,23 +38,24 @@ exports.getMaps = () => {
 }
 
 exports.putMap = async ({ MapId, Name, Rooms }) => {
-    const { TABLE_PREFIX } = process.env;
-    const permanentTable = `${TABLE_PREFIX}_permanents`
 
     const PermanentId = `MAP#${MapId || uuidv4()}`
 
-    return documentClient.put({
-            TableName: permanentTable,
-            Item: {
-                PermanentId,
-                DataCategory: 'Details',
-                Name,
-                Rooms
+    return permanentAndDeltas({
+            PutRequest: {
+                Item: {
+                    PermanentId,
+                    DataCategory: 'Details',
+                    Name,
+                    Rooms
+                }
             }
-        }).promise()
+        })
+        .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
         .then(() => ([{ Map: {
             MapId: PermanentId.slice(4),
             Name,
             Rooms
         }}]))
+
 }

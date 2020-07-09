@@ -7,6 +7,8 @@ const { documentClient } = require('../utilities')
 const { TABLE_PREFIX } = process.env;
 const permanentTable = `${TABLE_PREFIX}_permanents`
 
+const { permanentAndDeltas } = require('../delta')
+
 exports.getNeighborhood = ({ PermanentId }) => {
 
     const neighborhoodLookup = documentClient.get({
@@ -37,24 +39,19 @@ exports.putNeighborhood = (event) => {
 
     const newPermanentId = PermanentId || uuidv4()
 
-    const putNeighborhood = documentClient.put({
-            TableName: permanentTable,
-            Item: {
-                PermanentId: `NEIGHBORHOOD#${newPermanentId}`,
-                DataCategory: 'Details',
-                ...(ParentId ? { ParentId } : {}),
-                Name,
-                ...(Description ? { Description } : {}),
-                ...(Visibility ? { Visibility } : {}),
-                ...(Topology ? { Topology } : {}),
-                ...(ContextMapId ? { ContextMapId } : {}),
-                ...(Retired ? { Retired: 'RETIRED' } : {})
-            },
-            ReturnValues: "ALL_OLD"
-        }).promise()
-            .then((old) => ((old && old.Attributes) || {}))
-            .then(({ DataCategory, ...rest }) => ({
-                ...rest,
+    const putNeighborhood = permanentAndDeltas({ PutRequest: { Item: {
+            PermanentId: `NEIGHBORHOOD#${newPermanentId}`,
+            DataCategory: 'Details',
+            ...(ParentId ? { ParentId } : {}),
+            Name,
+            ...(Description ? { Description } : {}),
+            ...(Visibility ? { Visibility } : {}),
+            ...(Topology ? { Topology } : {}),
+            ...(ContextMapId ? { ContextMapId } : {}),
+            ...(Retired ? { Retired: 'RETIRED' } : {})
+        } }})
+            .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
+            .then(() => ({
                 PermanentId: newPermanentId,
                 ParentId,
                 Name,

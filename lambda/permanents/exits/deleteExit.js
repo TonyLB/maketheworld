@@ -3,18 +3,19 @@
 
 const { documentClient } = require('../utilities')
 
-const { TABLE_PREFIX } = process.env;
-const permanentTable = `${TABLE_PREFIX}_permanents`
+const { permanentAndDeltas } = require('../delta')
 
 exports.deleteExit = ({ FromRoomId, ToRoomId }) => {
 
-    return documentClient.delete({
-        TableName: permanentTable,
-        Key: {
-            PermanentId: `ROOM#${FromRoomId}`,
-            DataCategory: `EXIT#${ToRoomId}`
+    return permanentAndDeltas({
+        DeleteRequest: {
+            Key: {
+                PermanentId: `ROOM#${FromRoomId}`,
+                DataCategory: `EXIT#${ToRoomId}`
+            }
         }
-    }).promise()
-        .then(() => ([{ Exit: { FromRoomId, ToRoomId, Delete: true }}]))
+    })
+    .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
+    .then(() => ([{ Exit: { FromRoomId, ToRoomId, Delete: true }}]))
 
 }
