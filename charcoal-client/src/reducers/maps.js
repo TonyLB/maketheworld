@@ -1,7 +1,7 @@
 import { MAPS_UPDATE } from '../actions/maps'
 import { NEIGHBORHOOD_UPDATE } from '../actions/neighborhoods'
 
-const mergeMap = (state, { MapId, Rooms, ...rest }) => ({
+const mergeMap = (state, { MapId, Rooms = [], ...rest }) => ({
     ...state,
     [MapId]: {
         ...(state[MapId] || {}),

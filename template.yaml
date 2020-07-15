@@ -763,7 +763,15 @@ Resources:
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
-                  "payload": { "action": "sync" }
+                  "payload": {
+                    "action": "sync"
+                    #if ($ctx.args.limit)
+                    , "limit": "$ctx.args.limit"
+                    #end
+                    #if ($ctx.args.exclusiveStartKey)
+                    , "exclusiveStartKey": $util.toJson($ctx.args.exclusiveStartKey)
+                    #end
+                  }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationAddCharacterInPlay:
@@ -1172,7 +1180,7 @@ Resources:
                   CharacterInfo: Character
                   GrantInfo: Grant
               }
-              type MapRoomEntry {
+              type MapRoomEntry @aws_iam @aws_cognito_user_pools {
                   PermanentId: String!
                   X: Int!
                   Y: Int!
@@ -1235,6 +1243,19 @@ Resources:
                 putExit: ExitInput
                 deleteExit: ExitInput
               }
+              type LastEvaluatedKey @aws_iam @aws_cognito_user_pools {
+                PermanentId: String
+                DataCategory: String
+              }
+              input ExclusiveStartKey @aws_iam @aws_cognito_user_pools {
+                PermanentId: String
+                DataCategory: String
+              }
+              type SyncResponse @aws_iam @aws_cognito_user_pools {
+                Items: [ChangedPermanent]
+                LatestMoment: Long
+                LastEvaluatedKey: LastEvaluatedKey
+              }
               type Mutation {
                   putPlayer(
                       PlayerName: String,
@@ -1296,7 +1317,7 @@ Resources:
                   getPlayerCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
                   getRoomRecap(PermanentId: String!): [Message]
-                  syncPermanents: [ChangedPermanent]
+                  syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey): SyncResponse
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription

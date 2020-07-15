@@ -52,73 +52,80 @@ export const getRoomRecap = /* GraphQL */ `
   }
 `;
 export const syncPermanents = /* GraphQL */ `
-  query SyncPermanents {
-    syncPermanents {
-      Neighborhood {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        ContextMapId
-        Retired
-      }
-      Room {
-        PermanentId
-        Name
-        Description
-        ParentId
-        Visibility
-        Topology
-        Retired
-      }
-      Map {
-        MapId
-        Name
-        Rooms {
+  query SyncPermanents($limit: Int, $exclusiveStartKey: ExclusiveStartKey) {
+    syncPermanents(limit: $limit, exclusiveStartKey: $exclusiveStartKey) {
+      Items {
+        Neighborhood {
           PermanentId
-          X
-          Y
-          Locked
+          Name
+          Description
+          ParentId
+          Visibility
+          Topology
+          ContextMapId
+          Retired
+        }
+        Room {
+          PermanentId
+          Name
+          Description
+          ParentId
+          Visibility
+          Topology
+          Retired
+        }
+        Map {
+          MapId
+          Name
+          Rooms {
+            PermanentId
+            X
+            Y
+            Locked
+          }
+        }
+        Settings {
+          ChatPrompt
+        }
+        Role {
+          RoleId
+          Name
+          Actions
+        }
+        Backup {
+          PermanentId
+          Name
+          Description
+          Status
+        }
+        Character {
+          PlayerName
+          Name
+          CharacterId
+          Pronouns
+          FirstImpression
+          Outfit
+          OneCoolThing
+          HomeId
+        }
+        Grant {
+          CharacterId
+          Resource
+          Actions
+          Roles
+          Revoke
+        }
+        Exit {
+          FromRoomId
+          ToRoomId
+          Name
+          Delete
         }
       }
-      Settings {
-        ChatPrompt
-      }
-      Role {
-        RoleId
-        Name
-        Actions
-      }
-      Backup {
+      LatestMoment
+      LastEvaluatedKey {
         PermanentId
-        Name
-        Description
-        Status
-      }
-      Character {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-      }
-      Grant {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
-      Exit {
-        FromRoomId
-        ToRoomId
-        Name
-        Delete
+        DataCategory
       }
     }
   }

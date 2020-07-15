@@ -11,12 +11,16 @@ export const neighborhoodUpdate = (neighborhoods) => ({
     data: neighborhoods
 })
 
-export const syncPermanents = (dispatch) => {
-    return API.graphql(graphqlOperation(syncPermanentsGQL))
-        .then(({ data }) => (data || {}))
-        .then(({ syncPermanents }) => (syncPermanents || []))
-        .then(response => dispatch(neighborhoodUpdate(response)))
+export const syncPermanents = ({ ExclusiveStartKey }) => async (dispatch) => {
+    const permanentsResults = await API.graphql(graphqlOperation(syncPermanentsGQL, { exclusiveStartKey: ExclusiveStartKey, limit: 100 }))
         .catch((err) => { console.log(err)})
+    const { data = {} } = permanentsResults || {}
+    const { syncPermanents: syncPermanentsData = {} } = data
+    const { Items = [], LastEvaluatedKey = null } = syncPermanentsData
+    dispatch(neighborhoodUpdate(Items))
+    if (LastEvaluatedKey) {
+        dispatch(syncPermanents({ ExclusiveStartKey: LastEvaluatedKey }))
+    }
 }
 
 export const subscribePermanentHeaderChanges = () => (dispatch) => {
@@ -31,5 +35,5 @@ export const subscribePermanentHeaderChanges = () => (dispatch) => {
         })
 
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
-    dispatch(syncPermanents)
+    dispatch(syncPermanents({}))
 }

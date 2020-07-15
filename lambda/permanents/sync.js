@@ -116,7 +116,7 @@ const deserialize = ({ PermanentId: rawPermanentId, DataCategory, ...rest }) => 
                     {
                         MapId: PermanentId,
                         Name,
-                        Rooms: Rooms.map(({ PermanentId, X, Y, Locked = false }) => ({ PermanentId, X, Y, Locked }))
+                        Rooms: Rooms.map(({ PermanentId, X, Y, Locked = false }) => ({ PermanentId, X, Y, Locked: Locked || false }))
                     }
                 }
             }
@@ -126,57 +126,116 @@ const deserialize = ({ PermanentId: rawPermanentId, DataCategory, ...rest }) => 
     }
 }
 
-const syncRecords = ({ startingAt }) => {
+const syncRecords = async ({ startingAt, limit }) => {
+    const partitionSize = 10000000
     if (!startingAt) {
         return []
     }
     const epochTime = Date.now()
-    const startPartition = Math.floor(Math.min(startingAt, epochTime) / 10000000)
-    const endPartition = Math.floor(Math.max(epochTime, startingAt) / 10000000)
-    const partitionIds = Array.from(Array(1 + endPartition - startPartition), (_, index) => (index + startPartition))
-    return Promise.all(partitionIds.map((partitionId) => (documentClient.query({
-        TableName: deltaTable,
-        ...(partitionId === startPartition
-            ? {
-                KeyConditionExpression: "PartitionId = :Partition and DeltaId >= :Start",
-                ExpressionAttributeValues: {
-                    ":Partition": partitionId,
-                    ":Start": `${startingAt}`
-                }
+    const startPartition = Math.floor(Math.min(startingAt, epochTime) / partitionSize)
+    const endPartition = Math.floor(Math.max(epochTime, startingAt) / partitionSize)
+    let partitionRecords = []
+    let latestMoment = startPartition
+    if (limit) {
+        let currentMoment = startingAt
+        let currentPartition = startPartition
+        let recordsRemaining = limit
+        while(currentPartition <= endPartition && recordsRemaining > 0) {
+            const records = await documentClient.query({
+                    TableName: deltaTable,
+                    Limit: recordsRemaining,
+                    ...((currentMoment % partitionSize)
+                        ? {
+                            KeyConditionExpression: "PartitionId = :Partition and DeltaId >= :Start",
+                            ExpressionAttributeValues: {
+                                ":Partition": currentPartition,
+                                ":Start": `${currentMoment}`
+                            }
+                        }
+                        : {
+                            KeyConditionExpression: "PartitionId = :Partition",
+                            ExpressionAttributeValues: {
+                                ":Partition": currentPartition
+                            }
+                        }
+                    )
+                }).promise()
+                    .then(({ Items }) => (Items))
+            recordsRemaining -= records.length
+            partitionRecords = [...partitionRecords, ...records]
+            if (recordsRemaining) {
+                currentPartition++
+                currentMoment = currentPartition * partitionSize
             }
-            : {
-                KeyConditionExpression: "PartitionId = :Partition",
-                ExpressionAttributeValues: {
-                    ":Partition": partitionId
-                }
+            else {
+                latestMoment = records.reduce((previous, { DeltaId }) => {
+                    const moment = parseInt(DeltaId.split('::')[0], 10)
+                    return moment ? Math.max(previous, moment) : previous
+                }, currentMoment)
             }
-        )
-    }).promise())))
-        .then((partitions) => (partitions
-            .reduce((previous, partition) => ([ ...previous, ...(partition.Items || []) ]), [])))
-        .then((items) => (items
-            .map(({ RowId = '', PartitionId, DeltaId, ...rest }) => {
-                const [PermanentId, DataCategory] = RowId.split('::')
-                return {
-                    PermanentId,
-                    DataCategory,
-                    ...rest
-                }
-            })))
-        .then((items) => (items.filter(({ PermanentId, DataCategory }) => (PermanentId && DataCategory))))
-        .then((Items) => ({ Items }))
+        }
+        if (recordsRemaining) {
+            latestMoment = epochTime
+        }
+    }
+    else {
+        const partitionIds = Array.from(Array(1 + endPartition - startPartition), (_, index) => (index + startPartition))
+        partitionRecords = await Promise.all(partitionIds.map((partitionId) => (documentClient.query({
+                TableName: deltaTable,
+                ...(partitionId === startPartition
+                    ? {
+                        KeyConditionExpression: "PartitionId = :Partition and DeltaId >= :Start",
+                        ExpressionAttributeValues: {
+                            ":Partition": partitionId,
+                            ":Start": `${startingAt}`
+                        }
+                    }
+                    : {
+                        KeyConditionExpression: "PartitionId = :Partition",
+                        ExpressionAttributeValues: {
+                            ":Partition": partitionId
+                        }
+                    }
+                )
+            }).promise()
+            .then(({ Items }) => (Items))
+        )))
+            .then((partitions) => (partitions
+                .reduce((previous, partition) => ([ ...previous, ...(partition || []) ]), [])))
+        latestMoment = epochTime
+    }
+    const outputRecords = partitionRecords.map(({ RowId = '', PartitionId, DeltaId, ...rest }) => {
+            const [PermanentId, DataCategory] = RowId.split('::')
+            return {
+                PermanentId,
+                DataCategory,
+                ...rest
+            }
+        })
+        .filter(({ PermanentId, DataCategory }) => (PermanentId && DataCategory))
+    return {
+        latestMoment,
+        Items: outputRecords
+    }
 
 }
 
 exports.syncRecords = syncRecords
 
-exports.sync = async ({ startingAt = null }) => {
-    const { Items = [] } = await (startingAt
-        ? syncRecords({ startingAt })
+exports.sync = async ({ startingAt = null, limit = null, exclusiveStartKey = null }) => {
+
+    const { latestMoment = null, LastEvaluatedKey = null, Items = [] } = await (startingAt
+        ? syncRecords({ startingAt, limit })
         : documentClient.scan({
-            TableName: permanentTable
+            TableName: permanentTable,
+            ...(limit ? { Limit: limit } : {}),
+            ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {})
         }).promise())
 
-    return Items.map(deserialize).filter((value) => (value))
+    return {
+        Items: Items.map(deserialize).filter((value) => (value)),
+        LatestMoment: latestMoment,
+        LastEvaluatedKey
+    }
 
 }
