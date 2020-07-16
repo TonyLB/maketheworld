@@ -215,6 +215,7 @@ const syncRecords = async ({ startingAt, limit }) => {
         .filter(({ PermanentId, DataCategory }) => (PermanentId && DataCategory))
     return {
         latestMoment,
+        complete: (latestMoment === epochTime),
         Items: outputRecords
     }
 
@@ -224,17 +225,20 @@ exports.syncRecords = syncRecords
 
 exports.sync = async ({ startingAt = null, limit = null, exclusiveStartKey = null }) => {
 
-    const { latestMoment = null, LastEvaluatedKey = null, Items = [] } = await (startingAt
+    const epochTime = Date.now()
+
+    const { latestMoment = null, complete = false, LastEvaluatedKey = null, Items = [] } = await (startingAt
         ? syncRecords({ startingAt, limit })
         : documentClient.scan({
             TableName: permanentTable,
             ...(limit ? { Limit: limit } : {}),
             ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {})
-        }).promise())
+        }).promise().then(({ LastEvaluatedKey, ...rest }) => ({ LastEvaluatedKey, ...rest, complete: !Boolean(LastEvaluatedKey) })))
 
     return {
         Items: Items.map(deserialize).filter((value) => (value)),
         LatestMoment: latestMoment,
+        LastSync: complete ? epochTime : null,
         LastEvaluatedKey
     }
 

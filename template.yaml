@@ -768,6 +768,9 @@ Resources:
                     #if ($ctx.args.limit)
                     , "limit": "$ctx.args.limit"
                     #end
+                    #if ($ctx.args.startingAt)
+                    , "startingAt": "$ctx.args.startingAt"
+                    #end
                     #if ($ctx.args.exclusiveStartKey)
                     , "exclusiveStartKey": $util.toJson($ctx.args.exclusiveStartKey)
                     #end
@@ -1253,6 +1256,7 @@ Resources:
               }
               type SyncResponse @aws_iam @aws_cognito_user_pools {
                 Items: [ChangedPermanent]
+                LastSync: Long
                 LatestMoment: Long
                 LastEvaluatedKey: LastEvaluatedKey
               }
@@ -1317,7 +1321,7 @@ Resources:
                   getPlayerCharacters: [Character]
                   getCharactersInPlay: [CharacterInPlay]
                   getRoomRecap(PermanentId: String!): [Message]
-                  syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey): SyncResponse
+                  syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription

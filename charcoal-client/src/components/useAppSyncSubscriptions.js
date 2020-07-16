@@ -24,12 +24,18 @@ export const useAppSyncSubscriptions = () => {
         if (!subscriptions.player) {
             dispatch(subscribePlayerChanges())
         }
+    }, [subscriptions.player, dispatch])
+    useEffect(() => {
         if (!subscriptions.charactersInPlay) {
             dispatch(subscribeCharactersInPlayChanges())
         }
+    }, [subscriptions.charactersInPlay, dispatch])
+    useEffect(() => {
         if (!subscriptions.nodes) {
             dispatch(subscribePermanentHeaderChanges())
         }
+    }, [subscriptions.nodes, dispatch])
+    useEffect(() => {
         if (!subscriptions.directMessages) {
             dispatch(directMessageSubscription())
         }

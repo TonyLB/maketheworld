@@ -52,8 +52,16 @@ export const getRoomRecap = /* GraphQL */ `
   }
 `;
 export const syncPermanents = /* GraphQL */ `
-  query SyncPermanents($limit: Int, $exclusiveStartKey: ExclusiveStartKey) {
-    syncPermanents(limit: $limit, exclusiveStartKey: $exclusiveStartKey) {
+  query SyncPermanents(
+    $limit: Int
+    $exclusiveStartKey: ExclusiveStartKey
+    $startingAt: Long
+  ) {
+    syncPermanents(
+      limit: $limit
+      exclusiveStartKey: $exclusiveStartKey
+      startingAt: $startingAt
+    ) {
       Items {
         Neighborhood {
           PermanentId
@@ -122,6 +130,7 @@ export const syncPermanents = /* GraphQL */ `
           Delete
         }
       }
+      LastSync
       LatestMoment
       LastEvaluatedKey {
         PermanentId

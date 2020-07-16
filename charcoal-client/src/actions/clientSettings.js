@@ -4,7 +4,7 @@ export const UPDATE_CLIENT_SETTINGS = 'UPDATE_CLIENT_SETTINGS'
 
 export const loadClientSettings = (dispatch) => {
     cacheDB.clientSettings.toArray()
-        .then((settings) => (settings.reduce((previous, { key, value }) => ({ ...previous, [key]: value }), {})))
+        .then((settings) => (settings.filter(({ key }) => (key !== 'LastSync')).reduce((previous, { key, value }) => ({ ...previous, [key]: value }), {})))
         .then((settingMap) => {
             dispatch({
                 type: UPDATE_CLIENT_SETTINGS,
