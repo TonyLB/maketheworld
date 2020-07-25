@@ -1,47 +1,50 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { putRoomMessage } from '../../graphql/mutations'
+import { v4 as uuidv4 } from 'uuid'
 
-import {
-    extractMutation,
-    populateMutationVariables,
-    batchMutations
-} from '../batchQL'
+import { updateMessages } from '../../graphql/mutations'
 
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { getCurrentNeighborhood } from '../../selectors/currentRoom'
 import { getRoomIdsInNeighborhood } from '../../selectors/permanentHeaders'
+import { getActiveCharacterList } from '../../selectors/charactersInPlay'
 
 import { activateConfirmDialog } from '../UI/confirmDialog'
 
-export const broadcastMessage = ({ title = 'Announcement', message = '', roomIds = [] }) => (dispatch) => {
-    const messageTemplate = extractMutation(putRoomMessage)
-    const messages = roomIds.map((permanentId) => (populateMutationVariables({
-        template: messageTemplate,
-        RoomId: permanentId,
-        Message: message,
-        Title: title,
-        MessageType: 'ANNOUNCEMENT',
-        FromCharacterId: '',
-        MessageId: '',
-        CreatedTime: ''
-    })))
-    return API.graphql(graphqlOperation(batchMutations(messages))).catch((err) => { console.log(err)})
+export const sendAnnouncement = ({ title = 'Announcement', message = '', roomIds = [], charactersInPlay = {} }) => {
+    const roomsAndCharacters = roomIds.map((roomId) => ({
+        RoomId: roomId,
+        Characters: Object.values(charactersInPlay).filter(({ RoomId }) => (RoomId === roomId)).map(({ CharacterId }) => (CharacterId))
+    }))
+    const messageUpdates = roomsAndCharacters.map(({ RoomId, Characters }) => ({
+        putMessage: {
+            RoomId,
+            Characters,
+            Message: message,
+            Title: title,
+            DisplayProtocol: "Announce",
+            MessageId: uuidv4()
+        }
+    }))
+    return API.graphql(graphqlOperation(updateMessages, { Updates: messageUpdates})).catch((err) => { console.log(err)})
+
 }
 
 export const announce = (message = 'Announcement!') => (dispatch, getState) => {
     const state = getState()
     const currentCharacter = getMyCurrentCharacter(state)
     const currentNeighborhood = getCurrentNeighborhood(state)
+    const charactersInPlay = getActiveCharacterList(state)
     const announcementTitle = `Announcement from ${(currentCharacter && currentCharacter.Name) || 'Unknown'} in ${(currentNeighborhood && currentNeighborhood.Name) || 'Vortex'}`
     if (currentCharacter) {
-        const roomIds = (getRoomIdsInNeighborhood((currentNeighborhood && currentNeighborhood.permanentId) || null)(state)) || []
+        const roomIds = (getRoomIdsInNeighborhood((currentNeighborhood && currentNeighborhood.PermanentId) || null)(state)) || []
+        console.log(roomIds)
         dispatch(activateConfirmDialog({
             title: announcementTitle,
             message,
             content: `Are you sure you want to post this announcement?  It will be heard in ${roomIds.length} rooms.`,
             resolveButtonTitle: 'Announce!',
             resolve: () => {
-                dispatch(broadcastMessage({ title: announcementTitle, message, roomIds }))
+                sendAnnouncement({ title: announcementTitle, message, roomIds, charactersInPlay })
             }
         }))
     }    

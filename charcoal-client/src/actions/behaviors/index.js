@@ -57,27 +57,27 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
         return true
     }
     if (entry.slice(0,1) === '"' && entry.length > 1) {
-        sendMessage({
+        dispatch(sendMessage({
             RoomId: currentRoom.PermanentId,
-            FromCharacterId: characterId,
+            CharacterId: characterId,
             Message: `${currentName} says "${entry.slice(1)}"`
-        })
+        }))
         return true
     }
     if (entry.slice(0,1) === '@' && entry.length > 1) {
-        sendMessage({
+        dispatch(sendMessage({
             RoomId: currentRoom.PermanentId,
-            FromCharacterId: characterId,
+            CharacterId: characterId,
             Message: entry.slice(1)
-        })
+        }))
         return true
     }
     if (entry.slice(0,1) === ':' && entry.length > 1) {
-        sendMessage({
+        dispatch(sendMessage({
             RoomId: currentRoom.PermanentId,
-            FromCharacterId: characterId,
+            CharacterId: characterId,
             Message: `${currentName}${entry.slice(1).match(/^[,']/) ? "" : " "}${entry.slice(1)}`
-        })
+        }))
         return true
     }
     if (entry) {

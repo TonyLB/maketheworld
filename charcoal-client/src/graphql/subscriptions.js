@@ -113,20 +113,18 @@ export const changedPermanents = /* GraphQL */ `
   }
 `;
 export const addedMessage = /* GraphQL */ `
-  subscription AddedMessage($RoomId: String, $CharacterId: String) {
-    addedMessage(RoomId: $RoomId, CharacterId: $CharacterId) {
+  subscription AddedMessage($Target: String!) {
+    addedMessage(Target: $Target) {
       MessageId
       CreatedTime
       Target
       Message
       RoomId
       CharacterId
-      FromCharacterId
-      ToCharacterId
-      Recap
-      ExpirationTime
-      Type
+      DisplayProtocol
       Title
+      ExpirationTime
+      Recipients
     }
   }
 `;

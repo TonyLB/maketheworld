@@ -1,7 +1,7 @@
-import { worldMessageAdded } from '../messages'
+import { receiveMessage } from '../messages'
 
 export const lookCharacter = ({ Name, Pronouns, FirstImpression, OneCoolThing, Outfit }) => (dispatch) => {
-    return dispatch(worldMessageAdded({
+    return dispatch(receiveMessage({
         Message: [
             Name,
             ...(Pronouns ? [ `Pronouns: ${Pronouns}`] : []),

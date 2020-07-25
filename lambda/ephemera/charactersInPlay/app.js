@@ -21,7 +21,10 @@ exports.handler = (event) => {
                 Connected: false
             })
         case 'disconnect':
-            return disconnectCharacterInPlay({ CharacterId: event.CharacterId })
+            return disconnectCharacterInPlay({
+                CharacterId: event.CharacterId,
+                ConnectionId: event.ConnectionId
+            })
         default:
             return { statusCode: 500, error: `Unknown handler key: ${action}`}
     }

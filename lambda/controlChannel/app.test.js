@@ -7,8 +7,8 @@ jest.mock('./utilities', () => ({
     graphqlClient: {
         mutate: jest.fn(async () => {})
     },
-    gql: jest.fn((strings, arg1) => {
-        const returnVal = strings[0] + arg1 + strings[1]
+    gql: jest.fn((strings, ...args) => {
+        const returnVal = strings.reduce((previous, entry, index) => (previous + entry + (args[index] || '')), '')
         return returnVal.split("\n").map((innerVal) => (innerVal.trim())).join('\n')
     })
 }))
@@ -23,12 +23,12 @@ describe("disconnect", () => {
         expect(data).toEqual({ statusCode: 200 })
     })
     it("should update when called against a connected character", async () => {
-        const expectedGraphQL = `mutation DisconnectCharacter {\ndisconnectCharacterInPlay (CharacterId: "ABC") {\nCharacterId\nRoomId\nConnected\n}\n}`
+        const expectedGraphQL = `mutation DisconnectCharacter {\ndisconnectCharacterInPlay (CharacterId: "ABC", ConnectionId: "123") {\nCharacterId\nRoomId\nConnected\n}\n}`
         documentClient.scan.mockReturnValue({ promise: () => (
             Promise.resolve({ Items: [
                 {
                     EphemeraId: 'CHARACTERINPLAY#ABC',
-                    connectionId: '123'
+                    ConnectionId: '123'
                 }
             ]})
         )})

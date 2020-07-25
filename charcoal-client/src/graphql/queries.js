@@ -42,12 +42,10 @@ export const getRoomRecap = /* GraphQL */ `
       Message
       RoomId
       CharacterId
-      FromCharacterId
-      ToCharacterId
-      Recap
-      ExpirationTime
-      Type
+      DisplayProtocol
       Title
+      ExpirationTime
+      Recipients
     }
   }
 `;

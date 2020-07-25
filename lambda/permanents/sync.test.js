@@ -37,6 +37,7 @@ describe("permanentSync", () => {
             }
         })
         expect(data).toEqual({
+            complete: true,
             latestMoment: 123451234567,
             Items: []
         })
@@ -85,6 +86,7 @@ describe("permanentSync", () => {
         })
         expect(data).toEqual({
             latestMoment: 123451234567,
+            complete: true,
             Items: [
                 {
                     PermanentId: 'BCD',
@@ -144,6 +146,7 @@ describe("permanentSync", () => {
             }
         })
         expect(data).toEqual({
+            complete: false,
             latestMoment: 123451000000,
             Items: [
                 {
@@ -199,6 +202,7 @@ describe("permanentSync", () => {
             }
         })
         expect(data).toEqual({
+            complete: true,
             latestMoment: 123451234567,
             Items: [
                 {

@@ -58,8 +58,14 @@ export const deleteCharacterInPlay = /* GraphQL */ `
   }
 `;
 export const disconnectCharacterInPlay = /* GraphQL */ `
-  mutation DisconnectCharacterInPlay($CharacterId: String!) {
-    disconnectCharacterInPlay(CharacterId: $CharacterId) {
+  mutation DisconnectCharacterInPlay(
+    $CharacterId: String!
+    $ConnectionId: String!
+  ) {
+    disconnectCharacterInPlay(
+      CharacterId: $CharacterId
+      ConnectionId: $ConnectionId
+    ) {
       CharacterId
       RoomId
       Connected
@@ -72,40 +78,6 @@ export const moveCharacter = /* GraphQL */ `
       CharacterId
       RoomId
       Connected
-    }
-  }
-`;
-export const putRoomMessage = /* GraphQL */ `
-  mutation PutRoomMessage(
-    $RoomId: String!
-    $Message: String!
-    $MessageType: String
-    $Title: String
-    $FromCharacterId: String
-    $MessageId: String
-    $CreatedTime: Long
-  ) {
-    putRoomMessage(
-      RoomId: $RoomId
-      Message: $Message
-      MessageType: $MessageType
-      Title: $Title
-      FromCharacterId: $FromCharacterId
-      MessageId: $MessageId
-      CreatedTime: $CreatedTime
-    ) {
-      MessageId
-      CreatedTime
-      Target
-      Message
-      RoomId
-      CharacterId
-      FromCharacterId
-      ToCharacterId
-      Recap
-      ExpirationTime
-      Type
-      Title
     }
   }
 `;
@@ -132,12 +104,31 @@ export const putDirectMessage = /* GraphQL */ `
       Message
       RoomId
       CharacterId
-      FromCharacterId
-      ToCharacterId
-      Recap
-      ExpirationTime
-      Type
+      DisplayProtocol
       Title
+      ExpirationTime
+      Recipients
+    }
+  }
+`;
+export const updateMessages = /* GraphQL */ `
+  mutation UpdateMessages($Updates: [MessageUpdateInput]) {
+    updateMessages(Updates: $Updates)
+  }
+`;
+export const broadcastMessage = /* GraphQL */ `
+  mutation BroadcastMessage($Message: MessageInput) {
+    broadcastMessage(Message: $Message) {
+      MessageId
+      CreatedTime
+      Target
+      Message
+      RoomId
+      CharacterId
+      DisplayProtocol
+      Title
+      ExpirationTime
+      Recipients
     }
   }
 `;

@@ -1,5 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { putRoomMessage, putDirectMessage } from '../graphql/mutations'
+import { updateMessages, putDirectMessage } from '../graphql/mutations'
 import { v4 as uuidv4 } from 'uuid'
 
 import {
@@ -8,6 +8,7 @@ import {
     batchMutations
 } from './batchQL'
 import { getCharacterId } from '../selectors/connection'
+import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
 
 export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE'
 export const SET_MESSAGE_OPEN = 'SET_MESSAGE_OPEN'
@@ -28,63 +29,20 @@ export const setMessageOpen = ({ MessageId, open }) => ({
     }
 })
 
-export const worldMessageAdded = ({ MessageId, Message }) => (receiveMessage({
-    protocol: 'worldMessage',
-    MessageId: MessageId || uuidv4(),
-    Message
-}))
-
-export const playerMessageAdded = ({ MessageId, CharacterId, Message }) => (receiveMessage({
-    protocol: 'playerMessage',
-    CharacterId,
-    MessageId,
-    Message
-}))
-
-export const directMessageAdded = ({ MessageId, ToCharacterId, FromCharacterId, Message }) => (receiveMessage({
-    protocol: 'directMessage',
-    MessageId,
-    ToCharacterId,
-    FromCharacterId,
-    Message
-}))
-
-export const announcementAdded = ({ MessageId, Message, Title }) => (receiveMessage({
-    protocol: 'announcementMessage',
-    MessageId,
-    Message,
-    Title
-}))
-
-export const sendMessage = ({RoomId, Message, FromCharacterId}) => {
-    if (RoomId && Message) {
-        return API.graphql(graphqlOperation(putRoomMessage, {
+export const sendMessage = ({RoomId = null, Message, CharacterId, Characters = [], DisplayProtocol = '', Recipients}) => (dispatch, getState) => {
+    const state = getState()
+    const roomCharacters = (RoomId && getActiveCharactersInRoom({ RoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
+    if (Message) {
+        return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
             RoomId,
             Message,
-            FromCharacterId
-        }))
+            Characters: [ ...Characters, ...roomCharacters ],
+            MessageId: uuidv4(),
+            CharacterId,
+            DisplayProtocol: DisplayProtocol || (CharacterId ? "Player" : "World"),
+            Recipients
+        }}]}))
         .catch((err) => { console.log(err)})
     }
     return Promise.resolve({})
-}
-
-export const sendDirectMessage = ({ ToCharacterId, Message }) => (_, getState) => {
-    if (ToCharacterId && Message) {
-        const state = getState()
-        const FromCharacterId = getCharacterId(state)
-        const messageTemplate = extractMutation(putDirectMessage)
-        const recipients = (ToCharacterId === FromCharacterId) ? [ToCharacterId] : [ToCharacterId, FromCharacterId]
-        const messages = recipients.map((CharacterId) => (populateMutationVariables({
-            template: messageTemplate,
-            CharacterId,
-            Message,
-            FromCharacterId,
-            ToCharacterId,
-            MessageId: '',
-            CreatedTime: ''
-        })))
-        return API.graphql(graphqlOperation(batchMutations(messages))).catch((err) => { console.log(err)})
-    }
-    return Promise.resolve({})
-
 }

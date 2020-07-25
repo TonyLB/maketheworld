@@ -15,15 +15,17 @@ import {
 
 // Local code imports
 import { closeDirectMessageDialog } from '../../actions/UI/directMessageDialog'
-import { sendDirectMessage } from '../../actions/messages'
+import { sendMessage } from '../../actions/messages'
 import { getDirectMessageTargetUI } from '../../selectors/UI/directMessageDialog.js'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharacterId } from '../../selectors/connection'
 
 import useStyles from '../styles'
 
 export const DirectMessageDialog = () => {
     const ToCharacterId = useSelector(getDirectMessageTargetUI)
     const charactersInPlay = useSelector(getCharactersInPlay)
+    const characterId = useSelector(getCharacterId)
     const ToCharacter = (ToCharacterId && charactersInPlay && charactersInPlay[ToCharacterId]) || {}
     const dispatch = useDispatch()
     const [value, setValue] = useState('')
@@ -58,7 +60,7 @@ export const DirectMessageDialog = () => {
                     Cancel
                 </Button>
                 <Button onClick={ () => {
-                    dispatch(sendDirectMessage({ ToCharacterId, Message: value }))
+                    dispatch(sendMessage({ Characters: [ characterId, ToCharacterId ], Recipients: [ ToCharacterId ], RoomId: null, CharacterId: characterId, DisplayProtocol: 'Direct', Message: value }))
                     dispatch(closeDirectMessageDialog())
                     setValue('')
                 }}>

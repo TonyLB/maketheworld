@@ -359,7 +359,7 @@ export const Chat = () => {
                         </div>
                     </Container>
                 </div>
-                <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", bottom: "0", left: "0" }}>
+                <div style={{ display: "flex", flexDirection: "row", position: "absolute", width: "100%", bottom: "0", left: "0", pointerEvents: "none" }}>
                     <div style={{ width: "50%" }} />
                         <Zoom in={(!lockToBottom) && (lastMessageId !== newLastMessageId)}>
                             <Fab

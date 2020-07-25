@@ -10,7 +10,7 @@ import {
 import { changedCharactersInPlay } from '../graphql/subscriptions'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
-import { addSubscription, moveRoomSubscription } from './subscriptions'
+import { addSubscription } from './subscriptions'
 import { lookRoom } from './behaviors/lookRoom'
 import { sendMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
@@ -172,14 +172,13 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
         const currentNeighborhood = getCurrentNeighborhood(state)
         const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
         if (myCharacter && myCharacter.Connected && myCharacter.RoomId && !(myPreviousCharacter && myPreviousCharacter.Connected && myPreviousCharacter.RoomId === myCharacter.RoomId)) {
-            return dispatch(moveRoomSubscription(payload.RoomId))
-                .then(() => (API.graphql(graphqlOperation(getRoomRecap, { PermanentId: payload.RoomId }))))
+            return API.graphql(graphqlOperation(getRoomRecap, { PermanentId: payload.RoomId }))
                 .then(({ data }) => (data))
                 .then(({ getRoomRecap }) => (getRoomRecap))
                 .then((Recap) => {
                     dispatch(lookRoom({ RoomId: myCharacter.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
                     const { Name = 'Someone' } = myCurrentCharacter || {}
-                    return sendMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` })
+                    dispatch(sendMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` }))
                 })
         }
     }

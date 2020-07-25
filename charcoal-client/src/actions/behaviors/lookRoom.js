@@ -34,7 +34,7 @@ export const lookRoom = (props) => (dispatch, getState) => {
             const neighborhoodData = permanentHeaders && permanentHeaders[NeighborhoodId]
             if (neighborhoodData) {
                 dispatch(receiveMessage({
-                    protocol: 'neighborhoodDescription',
+                    DisplayProtocol: 'neighborhoodDescription',
                     Description: neighborhoodData.Description,
                     Name: neighborhoodData.Name,
                     NeighborhoodId
@@ -53,7 +53,7 @@ export const lookRoom = (props) => (dispatch, getState) => {
             ...( Recap ? { Recap } : {})
         }
         dispatch(receiveMessage({
-            protocol: 'roomDescription',
+            DisplayProtocol: 'roomDescription',
             ...roomDescription
         }))
     }

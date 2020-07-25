@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { getSubscriptions } from '../selectors/subscriptions'
+import { getCharacterId } from '../selectors/connection'
 import {
     subscribeCharactersInPlayChanges
 } from '../actions/characters.js'
@@ -13,12 +14,13 @@ import {
 } from '../actions/player'
 import {
     unsubscribeAll,
-    directMessageSubscription
+    messageSubscription
 } from '../actions/subscriptions'
 
 export const useAppSyncSubscriptions = () => {
     const dispatch = useDispatch()
     const subscriptions = useSelector(getSubscriptions)
+    const characterId = useSelector(getCharacterId)
 
     useEffect(() => {
         if (!subscriptions.player) {
@@ -36,10 +38,10 @@ export const useAppSyncSubscriptions = () => {
         }
     }, [subscriptions.nodes, dispatch])
     useEffect(() => {
-        if (!subscriptions.directMessages) {
-            dispatch(directMessageSubscription())
+        if (characterId && !subscriptions.messages) {
+            dispatch(messageSubscription())
         }
-    }, [subscriptions, dispatch])
+    }, [subscriptions, characterId, dispatch])
 
     useEffect(() => ( () => { dispatch(unsubscribeAll()) } ), [dispatch])
 

@@ -15,8 +15,14 @@ jest.mock('./utilities', () => ({
         return returnVal.split("\n").map((innerVal) => (innerVal.trim())).join('\n')
     })
 }))
+
+jest.mock('/opt/uuid', () => ({
+    v4: jest.fn()
+}))
+
 const { getCharactersInPlay, putCharacterInPlay, disconnectCharacterInPlay } = require('./charactersInPlay')
 const { documentClient, graphqlClient } = require('./utilities')
+const { v4: uuid } = require('/opt/uuid')
 
 describe("getCharactersInPlay", () => {
     it("should return empty when no CharacterInPlay records", async () => {
@@ -184,21 +190,39 @@ describe("disconnectCharacterInPlay", () => {
     })
 
     it("should correctly notify the room and disconnect with an existing character", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [{
-            EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'ROOM#VORTEX',
-            Connected: true
-        }] })) })
+        documentClient.query
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true,
+                ConnectionId: '123'
+            }] })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true
+            },
+            {
+                EphemeraId: 'CHARACTERINPLAY#DEF',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true
+            },
+            {
+                EphemeraId: 'CHARACTERINPLAY#GHIU',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: false
+            }] })) })
         documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             PermanentId: 'CHARACTER#ABC',
             DataCategory: 'Details',
             Name: 'Testy'
         } })) })
+        uuid.mockReturnValue('123')
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))
-        const data = await disconnectCharacterInPlay({ CharacterId: 'ABC' })
+        const data = await disconnectCharacterInPlay({ CharacterId: 'ABC', ConnectionId: '123' })
 
-        const messageGraphQL = `mutation SendMessage {\nputRoomMessage (RoomId: "VORTEX", Message: "Testy has disconnected.") {\nMessageId\nCreatedTime\nTarget\nMessage\nRoomId\nCharacterId\nFromCharacterId\nToCharacterId\nRecap\nExpirationTime\nType\nTitle\n}\n}`
+        const messageGraphQL = `mutation SendMessage {\nupdateMessages (Updates: [ { putMessage: { RoomId: "VORTEX", Message: "Testy has disconnected.", Characters: ["ABC", "DEF"], MessageId: "123" }}])\n}`
         const deleteGraphQL = `mutation DisconnectCharacter {\ndeleteCharacterInPlay (CharacterId: "ABC") {\nCharacterId\nRoomId\nConnected\n}\n}`
         expect(graphqlClient.mutate.mock.calls.length).toBe(2)
         expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: messageGraphQL })
@@ -213,20 +237,38 @@ describe("disconnectCharacterInPlay", () => {
     })
 
     it("should correctly present a fall-back message when character name cannot be found", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [{
-            EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'ROOM#VORTEX',
-            Connected: true
-        }] })) })
+        documentClient.query
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true,
+                ConnectionId: '123'
+            }] })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true
+            },
+            {
+                EphemeraId: 'CHARACTERINPLAY#DEF',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true
+            },
+            {
+                EphemeraId: 'CHARACTERINPLAY#GHIU',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: false
+            }] })) })
         documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             PermanentId: 'CHARACTER#ABC',
             DataCategory: 'Details'
         } })) })
+        uuid.mockReturnValue('123')
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))
-        const data = await disconnectCharacterInPlay({ CharacterId: 'ABC' })
+        const data = await disconnectCharacterInPlay({ CharacterId: 'ABC', ConnectionId: '123' })
 
-        const messageGraphQL = `mutation SendMessage {\nputRoomMessage (RoomId: "VORTEX", Message: "Someone has disconnected.") {\nMessageId\nCreatedTime\nTarget\nMessage\nRoomId\nCharacterId\nFromCharacterId\nToCharacterId\nRecap\nExpirationTime\nType\nTitle\n}\n}`
+        const messageGraphQL = `mutation SendMessage {\nupdateMessages (Updates: [ { putMessage: { RoomId: "VORTEX", Message: "Someone has disconnected.", Characters: ["ABC", "DEF"], MessageId: "123" }}])\n}`
         const deleteGraphQL = `mutation DisconnectCharacter {\ndeleteCharacterInPlay (CharacterId: "ABC") {\nCharacterId\nRoomId\nConnected\n}\n}`
         expect(graphqlClient.mutate.mock.calls.length).toBe(2)
         expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: messageGraphQL })
@@ -240,4 +282,45 @@ describe("disconnectCharacterInPlay", () => {
         })
     })
 
+    it("should do nothing when connection IDs do not match", async () => {
+        documentClient.query
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true,
+                ConnectionId: '456'
+            }] })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true
+            },
+            {
+                EphemeraId: 'CHARACTERINPLAY#DEF',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: true
+            },
+            {
+                EphemeraId: 'CHARACTERINPLAY#GHIU',
+                DataCategory: 'ROOM#VORTEX',
+                Connected: false
+            }] })) })
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
+            PermanentId: 'CHARACTER#ABC',
+            DataCategory: 'Details'
+        } })) })
+        uuid.mockReturnValue('123')
+        documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
+        documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))
+        const data = await disconnectCharacterInPlay({ CharacterId: 'ABC', ConnectionId: '123' })
+
+        expect(graphqlClient.mutate.mock.calls.length).toBe(0)
+
+        expect(documentClient.put.mock.calls.length).toBe(0)
+        expect(data).toEqual({
+            CharacterId: 'ABC',
+            RoomId: 'VORTEX',
+            Connected: true,
+        })
+    })
 })

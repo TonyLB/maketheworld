@@ -1,36 +1,39 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { putRoomMessage } from '../../graphql/mutations'
 
-import {
-    extractMutation,
-    populateMutationVariables,
-    batchMutations
-} from '../batchQL'
+import { v4 as uuidv4 } from 'uuid'
+
+import { updateMessages } from '../../graphql/mutations'
+
 
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { getCurrentRoom } from '../../selectors/currentRoom'
+import { getActiveCharacterList } from '../../selectors/charactersInPlay'
 
 import { activateConfirmDialog } from '../UI/confirmDialog'
 
-export const broadcastMessage = ({ message = '', roomIds = [] }) => (dispatch) => {
-    const messageTemplate = extractMutation(putRoomMessage)
-    const messages = roomIds.map((permanentId) => (populateMutationVariables({
-        template: messageTemplate,
-        RoomId: permanentId,
-        Message: message,
-        Title: '',
-        MessageType: '',
-        FromCharacterId: '',
-        MessageId: '',
-        CreatedTime: ''
-    })))
-    return API.graphql(graphqlOperation(batchMutations(messages))).catch((err) => { console.log(err)})
+export const sendShout = ({ message = '', roomIds = [], CharacterId, charactersInPlay }) => {
+    const roomsAndCharacters = roomIds.map((roomId) => ({
+        RoomId: roomId,
+        Characters: Object.values(charactersInPlay).filter(({ RoomId }) => (RoomId === roomId)).map(({ CharacterId }) => (CharacterId))
+    }))
+    const messageUpdates = roomsAndCharacters.map(({ RoomId, Characters }) => ({
+        putMessage: {
+            RoomId,
+            Characters,
+            Message: message,
+            CharacterId,
+            DisplayProtocol: "Player",
+            MessageId: uuidv4()
+        }
+    }))
+    return API.graphql(graphqlOperation(updateMessages, { Updates: messageUpdates})).catch((err) => { console.log(err)})
 }
 
 export const shout = (message = 'Arrgh!') => (dispatch, getState) => {
     const state = getState()
     const currentCharacter = getMyCurrentCharacter(state)
     const currentRoom = getCurrentRoom(state)
+    const charactersInPlay = getActiveCharacterList(state)
     const shoutMessage = `From ${(currentRoom && currentRoom.Name) || 'Unknown'}, ${(currentCharacter && currentCharacter.Name) || 'Someone'} shouts: ${message}`
     if (currentCharacter) {
         const roomIds = currentRoom
@@ -46,7 +49,7 @@ export const shout = (message = 'Arrgh!') => (dispatch, getState) => {
             content: `Are you sure you want to shout?  It will be heard in ${roomIds.length} rooms.`,
             resolveButtonTitle: 'Shout!',
             resolve: () => {
-                dispatch(broadcastMessage({ message: shoutMessage, roomIds }))
+                sendShout({ message: shoutMessage, roomIds, CharacterId: currentCharacter.CharacterId, charactersInPlay })
             }
         }))
     }    

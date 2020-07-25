@@ -120,7 +120,8 @@ export const useStyles = makeStyles(theme => ({
         right: "0",
         bottom: "0",
         padding: "20px",
-        marginBottom: "20px"
+        marginBottom: "20px",
+        pointerEvents: "auto"
     },
     neighborhoodPathsCard: {
         margin: "10px",

@@ -240,22 +240,57 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-      - AttributeName: "Target"
+      - AttributeName: "MessageId"
         AttributeType: "S"
       - AttributeName: "DataCategory"
         AttributeType: "S"
+      - AttributeName: "CreatedTime"
+        AttributeType: "N"
       BillingMode: "PAY_PER_REQUEST"
       KeySchema:
-      - AttributeName: "Target"
+      - AttributeName: "MessageId"
         KeyType: "HASH"
       - AttributeName: "DataCategory"
         KeyType: "RANGE"
+      LocalSecondaryIndexes:
+        - IndexName: CreatedTimeIndex
+          KeySchema:
+            - AttributeName: "MessageId"
+              KeyType: "HASH"
+            - AttributeName: "CreatedTime"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: ALL
       SSESpecification:
         SSEEnabled: False
       TableName: !Sub '${TablePrefix}_messages'
       TimeToLiveSpecification:
         AttributeName: ExpirationTime
         Enabled: True
+  MessageDeltaTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "Target"
+            AttributeType: "S"
+          - AttributeName: "DeltaId"
+            AttributeType: "S"
+          - AttributeName: "RowId"
+            AttributeType: "S"
+        BillingMode: "PAY_PER_REQUEST"
+        KeySchema:
+          - AttributeName: "Target"
+            KeyType: "HASH"
+          - AttributeName: "DeltaId"
+            KeyType: "RANGE"
+        GlobalSecondaryIndexes:
+          - IndexName: RowIdIndex
+            KeySchema:
+              - AttributeName: RowId
+                KeyType: HASH
+            Projection:
+              ProjectionType: KEYS_ONLY
+        TableName: !Sub '${TablePrefix}_message_delta'
   AppSyncLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -534,6 +569,7 @@ Resources:
                       Resource:
                         - !GetAtt PermanentsFunction.Arn
                         - !GetAtt CharactersInPlayFunction.Arn
+                        - !GetAtt MessagesFunction.Arn
   PermanentsDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -713,44 +749,62 @@ Resources:
                   }
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGetRoomRecap:
-    Type: AWS::AppSync::Resolver
-    DependsOn: Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Query
-        FieldName: getRoomRecap
-        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "Query",
-                "query": {
-                  "expression": "Target = :RoomId",
-                  "expressionValues": {
-                      ":RoomId": $util.dynamodb.toDynamoDBJson("ROOM#$ctx.args.PermanentId")
+  QueryGettRoomRecap:
+      Type: AWS::AppSync::Resolver
+      DependsOn: Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Query
+          FieldName: getRoomRecap
+          DataSourceName: !GetAtt MessagesDataSource.Name
+          RequestMappingTemplate: >
+              $util.toJson({
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                    "action": "getRoomRecap",
+                    "RoomId": "$ctx.args.PermanentId"
                   }
-                },
-                "scanIndexForward": false,
-                "limit": 10
-            }
-        ResponseMappingTemplate: >
-            #set($output = [])
-            #foreach($message in $ctx.result.items)
-                #set($split = $message.DataCategory.split("#"))
-                $util.qr($output.add({
-                    "Target": "$ctx.result.Target",
-                    "RoomId": "$ctx.args.PermanentId",
-                    "Type": "$util.defaultIfNull($message.Type, 'ROOM')",
-                    "CreatedTime": $split[0],
-                    "MessageId": "$split[1]",
-                    "Recap": true,
-                    "Message": "$message.Message",
-                    "FromCharacterId": "$util.defaultIfNull($message.FromCharacterId, '')",
-                    "Title": "$util.defaultIfNull($message.Title, '')"
-                }))
-            #end
-            $util.toJson($output)
+              })
+          ResponseMappingTemplate: "$util.toJson($ctx.result)"
+  # QueryGetRoomRecap:
+  #   Type: AWS::AppSync::Resolver
+  #   DependsOn: Schema
+  #   Properties:
+  #       ApiId: !GetAtt AppSyncAPI.ApiId
+  #       TypeName: Query
+  #       FieldName: getRoomRecap
+  #       DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
+  #       RequestMappingTemplate: >
+  #           {
+  #               "version": "2017-02-28",
+  #               "operation": "Query",
+  #               "query": {
+  #                 "expression": "Target = :RoomId",
+  #                 "expressionValues": {
+  #                     ":RoomId": $util.dynamodb.toDynamoDBJson("ROOM#$ctx.args.PermanentId")
+  #                 }
+  #               },
+  #               "scanIndexForward": false,
+  #               "limit": 10
+  #           }
+  #       ResponseMappingTemplate: >
+  #           #set($output = [])
+  #           #foreach($message in $ctx.result.items)
+  #               #set($split = $message.DataCategory.split("#"))
+  #               $util.qr($output.add({
+  #                   "Target": "$ctx.result.Target",
+  #                   "RoomId": "$ctx.args.PermanentId",
+  #                   "Type": "$util.defaultIfNull($message.Type, 'ROOM')",
+  #                   "CreatedTime": $split[0],
+  #                   "MessageId": "$split[1]",
+  #                   "Recap": true,
+  #                   "Message": "$message.Message",
+  #                   "FromCharacterId": "$util.defaultIfNull($message.FromCharacterId, '')",
+  #                   "Title": "$util.defaultIfNull($message.Title, '')"
+  #               }))
+  #           #end
+  #           $util.toJson($output)
   QuerySyncPermanentsResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -827,7 +881,8 @@ Resources:
                   "operation": "Invoke",
                   "payload": {
                     "action": "disconnect",
-                    "CharacterId": $util.toJson($ctx.args.CharacterId)
+                    "CharacterId": $util.toJson($ctx.args.CharacterId),
+                    "ConnectionId": $util.toJson($ctx.args.ConnectionId)
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -905,6 +960,49 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
+  MessagesFunction:
+      Type: AWS::Serverless::Function
+      DependsOn:
+          - AppSyncAPI
+      Properties:
+          CodeUri: lambda/messages/
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs12.x
+          Timeout: 5
+          Layers:
+              - !Ref UUIDLambdaLayer
+              - !Ref AppSyncLambdaLayer
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+          Policies:
+            - Statement:
+              - Effect: Allow
+                Action: appsync:GraphQL
+                Resource: !Sub '${AppSyncAPI}/*'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_messages'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_message_delta'
+  MessagesDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: MessagesLambda
+          Type: AWS_LAMBDA
+          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
+          LambdaConfig:
+              LambdaFunctionArn: !GetAtt MessagesFunction.Arn
+  NoneDataSource:
+      Type: AWS::AppSync::DataSource
+      DependsOn:
+          - Schema
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          Name: NoneSource
+          Type: NONE
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -961,56 +1059,6 @@ Resources:
                   "payload": $util.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationPutRoomMessage:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: putRoomMessage
-        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            #set($args = $ctx.args)
-            #if($util.isNullOrEmpty($args.RoomId))
-                $util.error("RoomId field required")
-            #end
-            #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
-            #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
-            #set ($MessageType = $util.defaultIfNullOrBlank($args.MessageType, "ROOM"))
-            #set ($ExpirationTime = $util.time.nowEpochSeconds() + 600)
-            #set( $ddb = $util.dynamodb )
-            {
-                "version": "2018-05-29",
-                "operation": "PutItem",
-                "key": {
-                    "Target": $ddb.toDynamoDBJson("ROOM#${args.RoomId}"),
-                    "DataCategory": $ddb.toDynamoDBJson("${CreatedTime}#${MessageId}")
-                },
-                "attributeValues": {
-                    "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
-                    "Recap": $ddb.toBooleanJson(false),
-                    "Type": $ddb.toStringJson($MessageType)
-                    #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
-                    #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
-                    #if(!$util.isNullOrEmpty($args.Title)), "Title": $ddb.toStringJson($args.Title) #end
-                }
-            }
-        ResponseMappingTemplate: >
-            #set($split = $ctx.result.DataCategory.split("#"))
-            {
-                "Target": $util.toJson(${ctx.result.Target}),
-                "RoomId": $util.toJson(${ctx.args.RoomId}),
-                "Type": $util.toJson($util.defaultIfNull($ctx.result.Type, 'ROOM')),
-                "CreatedTime": $util.toJson($split[0]),
-                "MessageId": $util.toJson($split[1]),
-                "Recap": $util.toJson(false),
-                "Message": $util.toJson($ctx.result.Message),
-                "FromCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
-                "ToCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
-                "Title": $util.toJson($util.defaultIfNull($ctx.result.Title, '')),
-                "CharacterId": $util.toJson($util.defaultIfNull($ctx.result.CharacterId, '')),
-                "ExpirationTime": $util.toJson($util.defaultIfNull($ctx.result.ExpirationTime, 0))
-            }
   MutationPutDirectMessage:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1060,6 +1108,64 @@ Resources:
                 "RoomId": $util.toJson($util.defaultIfNull($ctx.result.RoomId, '')),
                 "ExpirationTime": $util.toJson($util.defaultIfNull($ctx.result.ExpirationTime, 0))
             }
+  MutationUpdateMessages:
+      Type: AWS::AppSync::Resolver
+      DependsOn:
+        - Schema
+        - MessagesDataSource
+      Properties:
+          ApiId: !GetAtt AppSyncAPI.ApiId
+          TypeName: Mutation
+          FieldName: updateMessages
+          DataSourceName: !GetAtt MessagesDataSource.Name
+          RequestMappingTemplate: >
+              {
+                  "version": "2017-02-28",
+                  "operation": "Invoke",
+                  "payload": {
+                      "action": "updateMessages",
+                      "Updates": $utils.toJson($ctx.args.Updates)
+                  }
+              }
+          ResponseMappingTemplate: >
+              "Updated"
+  # MutationAddMessage:
+  #     Type: AWS::AppSync::Resolver
+  #     DependsOn:
+  #       - Schema
+  #       - MessagesDataSource
+  #     Properties:
+  #         ApiId: !GetAtt AppSyncAPI.ApiId
+  #         TypeName: Mutation
+  #         FieldName: addMessage
+  #         DataSourceName: !GetAtt MessagesDataSource.Name
+  #         RequestMappingTemplate: >
+  #             {
+  #                 "version": "2017-02-28",
+  #                 "operation": "Invoke",
+  #                 "payload": {
+  #                     "action": "updateMessages",
+  #                     "Updates": [ { "putMessage": $utils.toJson($ctx.args) } ]
+  #                 }
+  #             }
+  #         ResponseMappingTemplate: >
+  #             "Added"
+  MutationBroadcastMessage:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: broadcastMessage
+        DataSourceName: !GetAtt NoneDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "payload": $util.toJson($ctx.args.Message)
+            }
+        ResponseMappingTemplate: >
+            $util.toJson($ctx.result)
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:
@@ -1169,12 +1275,26 @@ Resources:
                   Message: String!
                   RoomId: String
                   CharacterId: String
-                  FromCharacterId: String
-                  ToCharacterId: String
-                  Recap: Boolean
-                  ExpirationTime: Long
-                  Type: String
+                  DisplayProtocol: String
                   Title: String
+                  ExpirationTime: Long
+                  Recipients: [String]
+              }
+              input MessageInput @aws_iam @aws_cognito_user_pools {
+                  Target: String
+                  MessageId: String!
+                  Message: String!
+                  CreatedTime: Long
+                  RoomId: String
+                  Characters: [String]
+                  CharacterId: String
+                  DisplayProtocol: String
+                  Title: String
+                  ExpirationTime: Long
+                  Recipients: [String]
+              }
+              input MessageUpdateInput @aws_iam @aws_cognito_user_pools {
+                  putMessage: MessageInput
               }
               type PlayerSubscription @aws_iam @aws_cognito_user_pools {
                   Type: String!
@@ -1276,22 +1396,13 @@ Resources:
                   @aws_iam @aws_cognito_user_pools
                   disconnectCharacterInPlay(
                       CharacterId: String!
+                      ConnectionId: String!
                   ): CharacterInPlay
                   @aws_iam @aws_cognito_user_pools
                   moveCharacter(
                       CharacterId: String!
                       RoomId: String!
                   ): CharacterInPlay
-                  putRoomMessage(
-                      RoomId: String!
-                      Message: String!
-                      MessageType: String
-                      Title: String
-                      FromCharacterId: String
-                      MessageId: String
-                      CreatedTime: Long
-                  ): Message
-                  @aws_iam @aws_cognito_user_pools
                   putDirectMessage(
                       CharacterId: String!
                       Message: String!
@@ -1300,6 +1411,12 @@ Resources:
                       MessageId: String
                       CreatedTime: Long
                   ): Message
+                  @aws_iam @aws_cognito_user_pools
+                  updateMessages(
+                      Updates: [MessageUpdateInput]
+                  ): String
+                  @aws_iam @aws_cognito_user_pools
+                  broadcastMessage(Message: MessageInput): Message
                   @aws_iam @aws_cognito_user_pools
                   createBackup(
                       PermanentId: String
@@ -1330,11 +1447,8 @@ Resources:
                   @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
-                  addedMessage (
-                    RoomId: String
-                    CharacterId: String
-                  ): Message
-                  @aws_subscribe(mutations: ["putRoomMessage", "putDirectMessage"])
+                  addedMessage (Target: String!): Message
+                  @aws_subscribe(mutations: ["broadcastMessage"])
               }
               schema {
                   mutation: Mutation

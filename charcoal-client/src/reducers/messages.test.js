@@ -16,7 +16,7 @@ describe('Messages reducer', () => {
             type: RECEIVE_MESSAGE,
             payload: {
                 CharacterId: 'Steve Rogers',
-                protocol: 'playerMessage',
+                DisplayProtocol: 'Player',
                 Message: 'I can do this all day'
             }
         })).toEqual([new playerMessage({
@@ -29,11 +29,11 @@ describe('Messages reducer', () => {
         expect(messages([], {
             type: RECEIVE_MESSAGE,
             payload: {
-                protocol: 'worldMessage',
-                message: 'The tesseract pulses ominously'
+                DisplayProtocol: '',
+                Message: 'The tesseract pulses ominously'
             }
         })).toEqual([new worldMessage({
-            message: 'The tesseract pulses ominously'
+            Message: 'The tesseract pulses ominously'
         })])
     })
 
@@ -44,7 +44,7 @@ describe('Messages reducer', () => {
                 Message: "I'm bringing the party to you"
             }),
             new worldMessage({
-                message: "A gigantic carrier leviathan crashes through a building and turns toward you."
+                Message: "A gigantic carrier leviathan crashes through a building and turns toward you."
             }),
             new playerMessage({
                 CharacterId: 'Natasha Romanov',
@@ -56,7 +56,7 @@ describe('Messages reducer', () => {
             type: RECEIVE_MESSAGE,
             payload: {
                 CharacterId: 'Bruce Banner',
-                protocol: 'playerMessage',
+                DisplayProtocol: 'Player',
                 Message: "That's my secret, Captain..."
             }
         })).toEqual([
@@ -72,20 +72,19 @@ describe('Messages reducer', () => {
         const startingList = [
             new playerMessage({
                 name: 'Peter Parker',
-                message: "I just feel like I could be doing more"
+                Message: "I just feel like I could be doing more"
             })
         ]
 
         expect(messages(startingList, {
             type: RECEIVE_MESSAGE,
             payload: {
-                protocol: 'worldMessage',
-                message: "Peter's phone sits mockingly silent."
+                Message: "Peter's phone sits mockingly silent."
             }
         })).toEqual([
             ...startingList,
             new worldMessage({
-                message: "Peter's phone sits mockingly silent."
+                Message: "Peter's phone sits mockingly silent."
             })
         ])
     })

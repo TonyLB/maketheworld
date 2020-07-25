@@ -8,8 +8,8 @@ const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
-const disconnectGQL = ({ CharacterId }) => (gql`mutation DisconnectCharacter {
-    disconnectCharacterInPlay (CharacterId: "${CharacterId}") {
+const disconnectGQL = ({ CharacterId, ConnectionId }) => (gql`mutation DisconnectCharacter {
+    disconnectCharacterInPlay (CharacterId: "${CharacterId}", ConnectionId: "${ConnectionId}") {
         CharacterId
         RoomId
         Connected
@@ -29,7 +29,7 @@ const disconnect = async (connectionId) => {
         .then(({ EphemeraId = '' }) => (removeType(EphemeraId)))
 
     if (CharacterId) {
-        await graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId })})
+        await graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId, ConnectionId: connectionId }) })
     }
     return { statusCode: 200 }
 }

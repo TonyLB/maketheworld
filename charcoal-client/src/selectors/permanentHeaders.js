@@ -55,11 +55,13 @@ export const getPermanentHeaders = ({ permanentHeaders = {}, exits = [] }) => {
     )
 }
 
-export const getRoomIdsInNeighborhood = (NeighborhoodId) => ({ permanentHeaders = {} }) => {
+export const getRoomIdsInNeighborhood = (NeighborhoodId) => (state) => {
+    const permanentHeaders = getPermanentHeaders(state)
     const baseAncestry = (NeighborhoodId && permanentHeaders[NeighborhoodId] && permanentHeaders[NeighborhoodId].Ancestry) || ''
     return Object.values(permanentHeaders)
-        .filter(({ Type }) => (Type === 'ROOM'))
+        .filter(({ Type, Retired }) => (Type === 'ROOM' && !Retired))
         .filter(({ Ancestry }) => (Ancestry.startsWith(baseAncestry)))
+        .filter(({ Ancestry }) => (!Ancestry.split(':').find((PermanentId) => (permanentHeaders[PermanentId].Retired))))
         .map(({ PermanentId }) => PermanentId)
 }
 

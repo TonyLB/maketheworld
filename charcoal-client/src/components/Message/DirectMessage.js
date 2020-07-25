@@ -19,7 +19,8 @@ import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialo
 import useStyles from '../styles'
 
 export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
-    const { FromCharacterId, ToCharacterId } = message
+    const { Recipients, CharacterId: FromCharacterId } = message
+    const ToCharacterId = Recipients && Recipients[0]
     const myCharacterId = useSelector(getCharacterId)
     const charactersInPlay = useSelector(getCharactersInPlay)
     const targetCharacterId = (FromCharacterId === myCharacterId) ? ToCharacterId : FromCharacterId
@@ -33,7 +34,7 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
         <ListItemAvatar>
             <Tooltip title={Name}>
                 <Avatar className={color && classes[color.primary]}>
-                    { Name[0].toUpperCase() }
+                    { (Name && Name[0].toUpperCase()) || '?' }
                 </Avatar>
             </Tooltip>
         </ListItemAvatar>
@@ -47,7 +48,10 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
         </ListItemText>
         <ListItemSecondaryAction>
             { replyCharacterId && charactersInPlay[replyCharacterId].Connected &&
-                <IconButton onClick={() => { dispatch(activateDirectMessageDialog(replyCharacterId)) } } >
+                <IconButton onClick={() => {
+                    console.log(`Replying to ${replyCharacterId}`)
+                    dispatch(activateDirectMessageDialog(replyCharacterId))
+                } } >
                     <ReplyIcon />
                 </IconButton>
             }
