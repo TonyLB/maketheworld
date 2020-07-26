@@ -26,20 +26,22 @@ const { v4: uuid } = require('/opt/uuid')
 
 describe("getCharactersInPlay", () => {
     it("should return empty when no CharacterInPlay records", async () => {
-        documentClient.scan.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
         const data = await getCharactersInPlay()
         expect(data).toEqual([])
     })
     it("should return CharactersInPlay when present", async () => {
-        documentClient.scan.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
             {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#123',
+                DataCategory: 'Connection',
+                RoomId: '123',
                 Connected: true
             },
             {
                 EphemeraId: 'CHARACTERINPLAY#DEF',
-                DataCategory: 'ROOM#456',
+                DataCategory: 'Connection',
+                RoomId: '456',
                 Connected: false
             }
         ] })) })
@@ -71,13 +73,14 @@ describe("putCharacterInPlay", () => {
     })
 
     it("should correctly fetch RoomId from ephemera table if available", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item:
             {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#123',
+                DataCategory: 'Connection',
+                RoomId: '123',
                 Connected: true
             }
-        ] })) })
+        })) })
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         const data = await putCharacterInPlay({ CharacterId: 'ABC', Connected: false })
         expect(documentClient.put.mock.calls.length).toBe(1)
@@ -85,7 +88,8 @@ describe("putCharacterInPlay", () => {
             TableName: 'undefined_ephemera',
             Item: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#123',
+                DataCategory: 'Connection',
+                RoomId: '123',
                 Connected: false
             }
         })
@@ -97,12 +101,13 @@ describe("putCharacterInPlay", () => {
     })
 
     it("should correctly fetch RoomId from permanent table if not available in ephemera table", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
-        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
-            PermanentId: 'CHARACTER#ABC',
-            DataCategory: 'Details',
-            HomeId: '123'
-        } })) })
+        documentClient.get
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {} })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                PermanentId: 'CHARACTER#ABC',
+                DataCategory: 'Details',
+                HomeId: '123'
+            } })) })
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         const data = await putCharacterInPlay({ CharacterId: 'ABC', Connected: false })
         expect(documentClient.put.mock.calls.length).toBe(1)
@@ -110,7 +115,8 @@ describe("putCharacterInPlay", () => {
             TableName: 'undefined_ephemera',
             Item: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#123',
+                DataCategory: "Connection",
+                RoomId: '123',
                 Connected: false
             }
         })
@@ -122,11 +128,12 @@ describe("putCharacterInPlay", () => {
     })
 
     it("should correctly place a character in VORTEX if no other room specified", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
-        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
-            PermanentId: 'CHARACTER#ABC',
-            DataCategory: 'Details'
-        } })) })
+        documentClient.get
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {} })) })
+            .mockReturnValue({ promise: () => (Promise.resolve({ Item: {
+                PermanentId: 'CHARACTER#ABC',
+                DataCategory: 'Details'
+            } })) })
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         const data = await putCharacterInPlay({ CharacterId: 'ABC', Connected: false })
         expect(documentClient.put.mock.calls.length).toBe(1)
@@ -134,7 +141,8 @@ describe("putCharacterInPlay", () => {
             TableName: 'undefined_ephemera',
             Item: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: false
             }
         })
@@ -146,11 +154,12 @@ describe("putCharacterInPlay", () => {
     })
 
     it("should correctly move a character from one room to another", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [{
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'ROOM#VORTEX',
+            DataCategory: 'Connection',
+            RoomId: 'VORTEX',
             Connected: true
-        }] })) })
+        } })) })
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))
         const data = await putCharacterInPlay({ CharacterId: 'ABC', RoomId: '123' })
@@ -159,18 +168,12 @@ describe("putCharacterInPlay", () => {
             TableName: 'undefined_ephemera',
             Item: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#123',
+                DataCategory: 'Connection',
+                RoomId: '123',
                 Connected: true
             }
         })
-        expect(documentClient.delete.mock.calls.length).toBe(1)
-        expect(documentClient.delete.mock.calls[0][0]).toEqual({
-            TableName: 'undefined_ephemera',
-            Key: {
-                EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX'
-            }
-        })
+        expect(documentClient.delete.mock.calls.length).toBe(0)
         expect(data).toEqual({
             CharacterId: 'ABC',
             RoomId: '123',
@@ -190,33 +193,38 @@ describe("disconnectCharacterInPlay", () => {
     })
 
     it("should correctly notify the room and disconnect with an existing character", async () => {
+        documentClient.get
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
+                Connected: true,
+                ConnectionId: '123'
+            } })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                PermanentId: 'CHARACTER#ABC',
+                DataCategory: 'Details',
+                Name: 'Testy'
+            } })) })
         documentClient.query
             .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
-                Connected: true,
-                ConnectionId: '123'
-            }] })) })
-            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
-                EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: true
             },
             {
                 EphemeraId: 'CHARACTERINPLAY#DEF',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: true
             },
             {
-                EphemeraId: 'CHARACTERINPLAY#GHIU',
-                DataCategory: 'ROOM#VORTEX',
+                EphemeraId: 'CHARACTERINPLAY#GHI',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: false
             }] })) })
-        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
-            PermanentId: 'CHARACTER#ABC',
-            DataCategory: 'Details',
-            Name: 'Testy'
-        } })) })
         uuid.mockReturnValue('123')
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))
@@ -237,32 +245,37 @@ describe("disconnectCharacterInPlay", () => {
     })
 
     it("should correctly present a fall-back message when character name cannot be found", async () => {
+        documentClient.get
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
+                Connected: true,
+                ConnectionId: '123'
+            } })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                PermanentId: 'CHARACTER#ABC',
+                DataCategory: 'Details'
+            } })) })
         documentClient.query
             .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
-                Connected: true,
-                ConnectionId: '123'
-            }] })) })
-            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
-                EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: true
             },
             {
                 EphemeraId: 'CHARACTERINPLAY#DEF',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: true
             },
             {
-                EphemeraId: 'CHARACTERINPLAY#GHIU',
-                DataCategory: 'ROOM#VORTEX',
+                EphemeraId: 'CHARACTERINPLAY#GHI',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: false
             }] })) })
-        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
-            PermanentId: 'CHARACTER#ABC',
-            DataCategory: 'Details'
-        } })) })
         uuid.mockReturnValue('123')
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))
@@ -283,32 +296,37 @@ describe("disconnectCharacterInPlay", () => {
     })
 
     it("should do nothing when connection IDs do not match", async () => {
+        documentClient.get
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                EphemeraId: 'CHARACTERINPLAY#ABC',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
+                Connected: true,
+                ConnectionId: '456'
+            } })) })
+            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Item: {
+                PermanentId: 'CHARACTER#ABC',
+                DataCategory: 'Details'
+            } })) })
         documentClient.query
             .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
-                Connected: true,
-                ConnectionId: '456'
-            }] })) })
-            .mockReturnValueOnce({ promise: () => (Promise.resolve({ Items: [{
-                EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: true
             },
             {
                 EphemeraId: 'CHARACTERINPLAY#DEF',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: true
             },
             {
                 EphemeraId: 'CHARACTERINPLAY#GHIU',
-                DataCategory: 'ROOM#VORTEX',
+                DataCategory: 'Connection',
+                RoomId: 'VORTEX',
                 Connected: false
             }] })) })
-        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
-            PermanentId: 'CHARACTER#ABC',
-            DataCategory: 'Details'
-        } })) })
         uuid.mockReturnValue('123')
         documentClient.put.mockImplementation(({ DataCategory }) => ({ promise: () => (Promise.resolve({ DataCategory })) }))
         documentClient.delete.mockImplementation(() => ({ promise: () => (Promise.resolve({})) }))

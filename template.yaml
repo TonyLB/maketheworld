@@ -222,6 +222,10 @@ Resources:
             AttributeType: "S"
           - AttributeName: "DataCategory"
             AttributeType: "S"
+          - AttributeName: "RoomId"
+            AttributeType: "S"
+          - AttributeName: "ConnectionId"
+            AttributeType: "S"
         BillingMode: "PAY_PER_REQUEST"
         KeySchema:
           - AttributeName: "EphemeraId"
@@ -233,6 +237,24 @@ Resources:
             KeySchema:
               - AttributeName: DataCategory
                 KeyType: HASH
+              - AttributeName: EphemeraId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: RoomIndex
+            KeySchema:
+              - AttributeName: RoomId
+                KeyType: HASH
+              - AttributeName: EphemeraId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: ConnectionIndex
+            KeySchema:
+              - AttributeName: ConnectionId
+                KeyType: HASH
+              - AttributeName: EphemeraId
+                KeyType: RANGE
             Projection:
               ProjectionType: ALL
         TableName: !Sub '${TablePrefix}_ephemera'
@@ -767,44 +789,6 @@ Resources:
                   }
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  # QueryGetRoomRecap:
-  #   Type: AWS::AppSync::Resolver
-  #   DependsOn: Schema
-  #   Properties:
-  #       ApiId: !GetAtt AppSyncAPI.ApiId
-  #       TypeName: Query
-  #       FieldName: getRoomRecap
-  #       DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
-  #       RequestMappingTemplate: >
-  #           {
-  #               "version": "2017-02-28",
-  #               "operation": "Query",
-  #               "query": {
-  #                 "expression": "Target = :RoomId",
-  #                 "expressionValues": {
-  #                     ":RoomId": $util.dynamodb.toDynamoDBJson("ROOM#$ctx.args.PermanentId")
-  #                 }
-  #               },
-  #               "scanIndexForward": false,
-  #               "limit": 10
-  #           }
-  #       ResponseMappingTemplate: >
-  #           #set($output = [])
-  #           #foreach($message in $ctx.result.items)
-  #               #set($split = $message.DataCategory.split("#"))
-  #               $util.qr($output.add({
-  #                   "Target": "$ctx.result.Target",
-  #                   "RoomId": "$ctx.args.PermanentId",
-  #                   "Type": "$util.defaultIfNull($message.Type, 'ROOM')",
-  #                   "CreatedTime": $split[0],
-  #                   "MessageId": "$split[1]",
-  #                   "Recap": true,
-  #                   "Message": "$message.Message",
-  #                   "FromCharacterId": "$util.defaultIfNull($message.FromCharacterId, '')",
-  #                   "Title": "$util.defaultIfNull($message.Title, '')"
-  #               }))
-  #           #end
-  #           $util.toJson($output)
   QuerySyncPermanentsResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema

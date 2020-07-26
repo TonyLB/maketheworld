@@ -17,13 +17,14 @@ const disconnectGQL = ({ CharacterId, ConnectionId }) => (gql`mutation Disconnec
 }`)
 
 const disconnect = async (connectionId) => {
-    const CharacterId = await documentClient.scan({
+    const CharacterId = await documentClient.query({
             TableName: ephemeraTable,
-            FilterExpression: 'begins_with(EphemeraId, :EphemeraId) and ConnectionId = :ConnectionId',
+            KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
             ExpressionAttributeValues: {
                 ":EphemeraId": "CHARACTERINPLAY#",
                 ":ConnectionId": connectionId
-            }
+            },
+            IndexName: 'ConnectionIndex'
         }).promise()
         .then(({ Items = [] }) => (Items[0] || {}))
         .then(({ EphemeraId = '' }) => (removeType(EphemeraId)))
@@ -37,22 +38,20 @@ const disconnect = async (connectionId) => {
 const registerCharacter = async ({ connectionId, CharacterId }) => {
 
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const DataCategory = await documentClient.query({
+    const { DataCategory } = await documentClient.get({
             TableName: ephemeraTable,
-            KeyConditionExpression: 'EphemeraId = :EphemeraId and begins_with(DataCategory, :Room)',
-            ExpressionAttributeValues: {
-                ":EphemeraId": EphemeraId,
-                ":Room": "ROOM#"
+            Key: {
+                EphemeraId,
+                DataCategory: 'Connection'
             }
         }).promise()
-        .then(({ Items = [{}] }) => ((Items.length && Items[0]) || {}))
-        .then(({ DataCategory }) => (DataCategory))
+        .then(({ Item = {} }) => (Item))
     if (DataCategory) {
         await documentClient.update({
             TableName: ephemeraTable,
             Key: {
                 EphemeraId,
-                DataCategory
+                DataCategory: 'Connection'
             },
             UpdateExpression: "set ConnectionId = :ConnectionId",
             ExpressionAttributeValues: {
@@ -75,9 +74,7 @@ exports.handler = (event) => {
     const { connectionId, routeKey } = event.requestContext
     const { message, CharacterId = '' } = event.body && JSON.parse(event.body) || {}
 
-    console.log(`Route Key: ${routeKey}`)
     if (routeKey === '$disconnect') {
-        console.log(`Disconnecting: ${connectionId}`)
         return disconnect(connectionId)
     }
     if ((message === 'registercharacter') && CharacterId)

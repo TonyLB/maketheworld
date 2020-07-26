@@ -1,6 +1,6 @@
 jest.mock('./utilities', () => ({
     documentClient: {
-        scan: jest.fn(),
+        get: jest.fn(),
         query: jest.fn(),
         update: jest.fn()
     },
@@ -17,14 +17,14 @@ const { documentClient, graphqlClient } = require('./utilities')
 
 describe("disconnect", () => {
     it("should change nothing when called against a non-connected character", async () => {
-        documentClient.scan.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
+        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
         const data = await disconnect('123')
         expect(graphqlClient.mutate.mock.calls.length).toBe(0)
         expect(data).toEqual({ statusCode: 200 })
     })
     it("should update when called against a connected character", async () => {
         const expectedGraphQL = `mutation DisconnectCharacter {\ndisconnectCharacterInPlay (CharacterId: "ABC", ConnectionId: "123") {\nCharacterId\nRoomId\nConnected\n}\n}`
-        documentClient.scan.mockReturnValue({ promise: () => (
+        documentClient.query.mockReturnValue({ promise: () => (
             Promise.resolve({ Items: [
                 {
                     EphemeraId: 'CHARACTERINPLAY#ABC',
@@ -45,7 +45,7 @@ describe("registerCharacter", () => {
     })
 
     it("should change nothing, return not-found when character is not in ephemera table", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({})) })
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({})) })
         documentClient.update.mockReturnValue({ promise: () => (Promise.resolve({})) })
         const data = await registerCharacter({ connectionId: '123', CharacterID: 'ABC' })
         expect(documentClient.update.mock.calls.length).toBe(0)
@@ -53,10 +53,10 @@ describe("registerCharacter", () => {
     })
 
     it("should update connectionID when character is in table without connection", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [{
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'ROOM#DEF'
-        }]})) })
+            DataCategory: 'Connection'
+        }})) })
         documentClient.update.mockReturnValue({ promise: () => (Promise.resolve({})) })
         const data = await registerCharacter({ connectionId: '123', CharacterId: 'ABC' })
         expect(documentClient.update.mock.calls.length).toBe(1)
@@ -64,7 +64,7 @@ describe("registerCharacter", () => {
             TableName: 'undefined_ephemera',
             Key: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#DEF'
+                DataCategory: 'Connection'
             },
             UpdateExpression: "set ConnectionId = :ConnectionId",
             ExpressionAttributeValues: {
@@ -78,11 +78,11 @@ describe("registerCharacter", () => {
     })
 
     it("should update connectionID when character is in table with prior connection", async () => {
-        documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [{
+        documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'ROOM#DEF',
+            DataCategory: 'Connection',
             ConnectionId: '987'
-        }]})) })
+        }})) })
         documentClient.update.mockReturnValue({ promise: () => (Promise.resolve({})) })
         const data = await registerCharacter({ connectionId: '123', CharacterId: 'ABC' })
         expect(documentClient.update.mock.calls.length).toBe(1)
@@ -90,7 +90,7 @@ describe("registerCharacter", () => {
             TableName: 'undefined_ephemera',
             Key: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'ROOM#DEF'
+                DataCategory: 'Connection'
             },
             UpdateExpression: "set ConnectionId = :ConnectionId",
             ExpressionAttributeValues: {
