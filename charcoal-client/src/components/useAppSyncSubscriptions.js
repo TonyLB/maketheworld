@@ -9,6 +9,7 @@ import {
 import {
     subscribePermanentHeaderChanges
 } from '../actions/neighborhoods'
+import { subscribeEphemeraChanges } from '../actions/ephemera'
 import {
     subscribePlayerChanges
 } from '../actions/player'
@@ -27,11 +28,16 @@ export const useAppSyncSubscriptions = () => {
             dispatch(subscribePlayerChanges())
         }
     }, [subscriptions.player, dispatch])
+    // useEffect(() => {
+    //     if (!subscriptions.charactersInPlay) {
+    //         dispatch(subscribeCharactersInPlayChanges())
+    //     }
+    // }, [subscriptions.charactersInPlay, dispatch])
     useEffect(() => {
-        if (!subscriptions.charactersInPlay) {
-            dispatch(subscribeCharactersInPlayChanges())
+        if (!subscriptions.ephemera) {
+            dispatch(subscribeEphemeraChanges)
         }
-    }, [subscriptions.charactersInPlay, dispatch])
+    }, [subscriptions.ephemera, dispatch])
     useEffect(() => {
         if (!subscriptions.nodes) {
             dispatch(subscribePermanentHeaderChanges())

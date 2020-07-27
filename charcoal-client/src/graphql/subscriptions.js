@@ -31,12 +31,14 @@ export const changedPlayer = /* GraphQL */ `
     }
   }
 `;
-export const changedCharactersInPlay = /* GraphQL */ `
-  subscription ChangedCharactersInPlay {
-    changedCharactersInPlay {
-      CharacterId
-      RoomId
-      Connected
+export const changedEphemera = /* GraphQL */ `
+  subscription ChangedEphemera {
+    changedEphemera {
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
+      }
     }
   }
 `;

@@ -3,6 +3,7 @@ import {
     FETCH_CHARACTERS_IN_PLAY_SUCCESS,
     RECEIVE_CHARACTERS_IN_PLAY_CHANGE
 } from '../actions/characters.js'
+import { RECEIVE_EPHEMERA_CHANGE } from '../actions/ephemera.js'
 
 const colorSequence = ['pink', 'purple', 'green']
     .map(color => ({
@@ -12,6 +13,24 @@ const colorSequence = ['pink', 'purple', 'green']
         recapLight: `recapLight${color}`,
         direct: `direct${color}`
     }))
+
+const ephemeraMergeReducer = (state, { CharacterInPlay }) => {
+    console.log(CharacterInPlay)
+    if (CharacterInPlay) {
+        const { CharacterId, RoomId, Connected } = CharacterInPlay
+        const nextColorIndex = (Object.values(state).length + 2) % 3
+        return {
+            ...state,
+            [CharacterId]: {
+                CharacterId,
+                RoomId,
+                Connected,
+                color: (state && state[CharacterId] && state[CharacterId].color) || colorSequence[nextColorIndex]
+            }
+        }
+    }
+    return state
+}
 
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
@@ -81,6 +100,8 @@ export const reducer = (state = '', action = {}) => {
             else {
                 return state
             }
+        case RECEIVE_EPHEMERA_CHANGE:
+            return (action.payload || []).reduce(ephemeraMergeReducer, state)
         default: return state
     }
 }

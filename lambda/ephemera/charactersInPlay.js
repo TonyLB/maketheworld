@@ -46,7 +46,7 @@ const getCharactersInPlay = () => {
 const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
 
     if (!CharacterId) {
-        return {}
+        return []
     }
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
 
@@ -87,11 +87,11 @@ const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
                 ...((Connected && oldRecord && oldRecord.ConnectionId) ? { ConnectionId: oldRecord.ConnectionId } : {})
             }
         }).promise()
-        .then(() => ({
+        .then(() => ([ { CharacterInPlay: {
             CharacterId,
             RoomId: newRoomId,
-            Connected: Connected !== undefined ? Connected : oldRecord.Connected
-        }))
+            Connected: Connected !== undefined ? Connected : oldRecord.Connected || false
+        }}]))
 }
 
 const messageGQL = ({ RoomId, Message, Characters }) => (gql`mutation SendMessage {
@@ -156,23 +156,23 @@ const disconnectCharacterInPlay = async ({ CharacterId, ConnectionId }) => {
                 graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId })})
             ])
 
-            return {
+            return [{ CharacterInPlay: {
                 CharacterId,
                 RoomId,
                 Connected: false
-            }
+            }}]
 
         }
 
-        return {
+        return [{ CharacterInPlay: {
             CharacterId,
             RoomId,
             Connected: true
-        }
+        }}]
 
     }
 
-    return {}
+    return []
 }
 
 exports.getCharactersInPlay = getCharactersInPlay

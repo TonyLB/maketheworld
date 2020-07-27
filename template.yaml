@@ -47,12 +47,15 @@ Resources:
       Handler: app.handler
       MemorySize: 128
       Runtime: nodejs12.x
+      Timeout: 10
       Layers:
         - !Ref AppSyncLambdaLayer
+        - !Ref UUIDLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
           APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+          MESSAGE_SNS_ARN: !Ref MessageNotificationTopic
       Policies:
         - Statement:
           - Effect: Allow
@@ -64,8 +67,12 @@ Resources:
           - Effect: Allow
             Action: appsync:GraphQL
             Resource: !Sub '${AppSyncAPI}/*'
+        - DynamoDBReadPolicy:
+              TableName: !Sub '${TablePrefix}_permanents'
         - DynamoDBCrudPolicy:
               TableName: !Sub '${TablePrefix}_ephemera'
+        - SNSCrudPolicy:
+            TopicName: !GetAtt MessageNotificationTopic.TopicName
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -590,7 +597,7 @@ Resources:
                           - "lambda:InvokeFunction"
                       Resource:
                         - !GetAtt PermanentsFunction.Arn
-                        - !GetAtt CharactersInPlayFunction.Arn
+                        - !GetAtt EphemeraFunction.Arn
                         - !GetAtt MessagesFunction.Arn
   PermanentsDynamoDBTableDataSource:
       Type: AWS::AppSync::DataSource
@@ -722,10 +729,10 @@ Resources:
                   "payload": $util.toJson($arguments)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  CharactersInPlayFunction:
+  EphemeraFunction:
       Type: AWS::Serverless::Function
       Properties:
-          CodeUri: lambda/ephemera/charactersInPlay/
+          CodeUri: lambda/ephemera/
           Handler: app.handler
           MemorySize: 256
           Runtime: nodejs12.x
@@ -745,7 +752,7 @@ Resources:
                 - Effect: Allow
                   Action: appsync:GraphQL
                   Resource: !Sub '${AppSyncAPI}/*'
-  CharactersInPlayDataSource:
+  EphemeraDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
           ApiId: !GetAtt AppSyncAPI.ApiId
@@ -753,7 +760,7 @@ Resources:
           Type: AWS_LAMBDA
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
-              LambdaFunctionArn: !GetAtt CharactersInPlayFunction.Arn
+              LambdaFunctionArn: !GetAtt EphemeraFunction.Arn
   QueryGetCharactersInPlay:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -761,7 +768,7 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Query
           FieldName: getCharactersInPlay
-          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
+          DataSourceName: !GetAtt EphemeraDataSource.Name
           RequestMappingTemplate: >
               $util.toJson({
                   "version": "2017-02-28",
@@ -822,14 +829,21 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: addCharacterInPlay
-          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
+          DataSourceName: !GetAtt EphemeraDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
                   "payload": {
-                    "action": "putCharacterInPlay",
-                    "CharacterId": $util.toJson($ctx.args.CharacterId)
+                    "action": "updateEphemera",
+                    "Updates": [
+                      {
+                        "putCharacterInPlay": {
+                          "CharacterId": $util.toJson($ctx.args.CharacterId),
+                          "Connected": true
+                        }
+                      }
+                    ]
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -840,14 +854,19 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: deleteCharacterInPlay
-          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
+          DataSourceName: !GetAtt EphemeraDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
                   "payload": {
-                    "action": "deleteCharacterInPlay",
-                    "CharacterId": $util.toJson($ctx.args.CharacterId)
+                    "action": "updateEphemera",
+                    "Updates": [{
+                      "putCharacterInPlay": {
+                        "CharacterId": $util.toJson($ctx.args.CharacterId),
+                        "Connected": false
+                      }
+                    }]
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -858,15 +877,19 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: disconnectCharacterInPlay
-          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
+          DataSourceName: !GetAtt EphemeraDataSource.Name
           RequestMappingTemplate: >
               {
                   "version": "2017-02-28",
                   "operation": "Invoke",
                   "payload": {
-                    "action": "disconnect",
-                    "CharacterId": $util.toJson($ctx.args.CharacterId),
-                    "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                    "action": "updateEphemera",
+                    "Updates": [{
+                      "disconnect": {
+                        "CharacterId": $util.toJson($ctx.args.CharacterId),
+                        "ConnectionId": $util.toJson($ctx.args.ConnectionId)
+                      }
+                    }]
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -877,7 +900,7 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           TypeName: Mutation
           FieldName: moveCharacter
-          DataSourceName: !GetAtt CharactersInPlayDataSource.Name
+          DataSourceName: !GetAtt EphemeraDataSource.Name
           RequestMappingTemplate: >
               #if(!($ctx.args.CharacterId))
                   $util.error("CharacterId field required")
@@ -889,9 +912,13 @@ Resources:
                   "version": "2017-02-28",
                   "operation": "Invoke",
                   "payload": {
-                    "action": "putCharacterInPlay",
-                    "CharacterId": $util.toJson($ctx.args.CharacterId),
-                    "RoomId": $util.toJson($ctx.args.RoomId)
+                    "action": "updateEphemera",
+                    "Updates": [{
+                      "putCharacterInPlay": {
+                        "CharacterId": $util.toJson($ctx.args.CharacterId),
+                        "RoomId": $util.toJson($ctx.args.RoomId)
+                      }
+                    }]
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -987,6 +1014,18 @@ Resources:
           ApiId: !GetAtt AppSyncAPI.ApiId
           Name: NoneSource
           Type: NONE
+  MessageNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+          Subscription:
+              - Endpoint: !GetAtt MessagesFunction.Arn
+                Protocol: lambda
+  MessageNotificationTopicPolicy:
+      Type: AWS::Lambda::Permission
+      Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref MessagesFunction
+          Principal: sns.amazonaws.com
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -1043,55 +1082,55 @@ Resources:
                   "payload": $util.toJson($ctx.args)
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationPutDirectMessage:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: putDirectMessage
-        DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            #set($args = $ctx.args)
-            #if($util.isNullOrEmpty($args.CharacterId))
-                $util.error("CharacterId field required")
-            #end
-            #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
-            #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
-            #set ($ExpirationTime = $util.time.nowEpochSeconds() + 600)
-            #set( $ddb = $util.dynamodb )
-            {
-                "version": "2018-05-29",
-                "operation": "PutItem",
-                "key": {
-                    "Target": $ddb.toDynamoDBJson("CHARACTER#${args.CharacterId}"),
-                    "DataCategory": $ddb.toDynamoDBJson("${CreatedTime}#${MessageId}")
-                },
-                "attributeValues": {
-                    "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
-                    "Recap": $ddb.toBooleanJson(false),
-                    "Type": $ddb.toStringJson("DIRECT")
-                    #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
-                    #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
-                    #if(!$util.isNullOrEmpty($args.ToCharacterId)), "ToCharacterId": $ddb.toStringJson($args.ToCharacterId) #end
-                }
-            }
-        ResponseMappingTemplate: >
-            #set($split = $ctx.result.DataCategory.split("#"))
-            {
-                "Target": $util.toJson(${ctx.result.Target}),
-                "CharacterId": $util.toJson(${ctx.args.CharacterId}),
-                "Type": "DIRECT",
-                "CreatedTime": $util.toJson($split[0]),
-                "MessageId": $util.toJson($split[1]),
-                "Recap": $util.toJson(false),
-                "Message": $util.toJson($ctx.result.Message),
-                "FromCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
-                "ToCharacterId": $util.toJson($util.defaultIfNull($ctx.result.ToCharacterId, '')),
-                "Title": $util.toJson($util.defaultIfNull($ctx.result.Title, '')),
-                "RoomId": $util.toJson($util.defaultIfNull($ctx.result.RoomId, '')),
-                "ExpirationTime": $util.toJson($util.defaultIfNull($ctx.result.ExpirationTime, 0))
-            }
+  # MutationPutDirectMessage:
+  #     Type: AWS::AppSync::Resolver
+  #     DependsOn: Schema
+  #     Properties:
+  #       ApiId: !GetAtt AppSyncAPI.ApiId
+  #       TypeName: Mutation
+  #       FieldName: putDirectMessage
+  #       DataSourceName: !GetAtt MessagesDynamoDBTableDataSource.Name
+  #       RequestMappingTemplate: >
+  #           #set($args = $ctx.args)
+  #           #if($util.isNullOrEmpty($args.CharacterId))
+  #               $util.error("CharacterId field required")
+  #           #end
+  #           #set ($MessageId = $util.defaultIfNullOrBlank($args.MessageId, $util.autoId()))
+  #           #set ($CreatedTime = $util.defaultIfNull($args.CreatedTime, $util.time.nowEpochMilliSeconds()))
+  #           #set ($ExpirationTime = $util.time.nowEpochSeconds() + 600)
+  #           #set( $ddb = $util.dynamodb )
+  #           {
+  #               "version": "2018-05-29",
+  #               "operation": "PutItem",
+  #               "key": {
+  #                   "Target": $ddb.toDynamoDBJson("CHARACTER#${args.CharacterId}"),
+  #                   "DataCategory": $ddb.toDynamoDBJson("${CreatedTime}#${MessageId}")
+  #               },
+  #               "attributeValues": {
+  #                   "ExpirationTime": $ddb.toNumberJson($ExpirationTime),
+  #                   "Recap": $ddb.toBooleanJson(false),
+  #                   "Type": $ddb.toStringJson("DIRECT")
+  #                   #if(!$util.isNullOrEmpty($args.Message)), "Message": $ddb.toStringJson($args.Message) #end
+  #                   #if(!$util.isNullOrEmpty($args.FromCharacterId)), "FromCharacterId": $ddb.toStringJson($args.FromCharacterId) #end
+  #                   #if(!$util.isNullOrEmpty($args.ToCharacterId)), "ToCharacterId": $ddb.toStringJson($args.ToCharacterId) #end
+  #               }
+  #           }
+  #       ResponseMappingTemplate: >
+  #           #set($split = $ctx.result.DataCategory.split("#"))
+  #           {
+  #               "Target": $util.toJson(${ctx.result.Target}),
+  #               "CharacterId": $util.toJson(${ctx.args.CharacterId}),
+  #               "Type": "DIRECT",
+  #               "CreatedTime": $util.toJson($split[0]),
+  #               "MessageId": $util.toJson($split[1]),
+  #               "Recap": $util.toJson(false),
+  #               "Message": $util.toJson($ctx.result.Message),
+  #               "FromCharacterId": $util.toJson($util.defaultIfNull($ctx.result.FromCharacterId, '')),
+  #               "ToCharacterId": $util.toJson($util.defaultIfNull($ctx.result.ToCharacterId, '')),
+  #               "Title": $util.toJson($util.defaultIfNull($ctx.result.Title, '')),
+  #               "RoomId": $util.toJson($util.defaultIfNull($ctx.result.RoomId, '')),
+  #               "ExpirationTime": $util.toJson($util.defaultIfNull($ctx.result.ExpirationTime, 0))
+  #           }
   MutationUpdateMessages:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -1113,27 +1152,6 @@ Resources:
               }
           ResponseMappingTemplate: >
               "Updated"
-  # MutationAddMessage:
-  #     Type: AWS::AppSync::Resolver
-  #     DependsOn:
-  #       - Schema
-  #       - MessagesDataSource
-  #     Properties:
-  #         ApiId: !GetAtt AppSyncAPI.ApiId
-  #         TypeName: Mutation
-  #         FieldName: addMessage
-  #         DataSourceName: !GetAtt MessagesDataSource.Name
-  #         RequestMappingTemplate: >
-  #             {
-  #                 "version": "2017-02-28",
-  #                 "operation": "Invoke",
-  #                 "payload": {
-  #                     "action": "updateMessages",
-  #                     "Updates": [ { "putMessage": $utils.toJson($ctx.args) } ]
-  #                 }
-  #             }
-  #         ResponseMappingTemplate: >
-  #             "Added"
   MutationBroadcastMessage:
     Type: AWS::AppSync::Resolver
     DependsOn:
@@ -1147,6 +1165,22 @@ Resources:
             {
                 "version": "2017-02-28",
                 "payload": $util.toJson($ctx.args.Message)
+            }
+        ResponseMappingTemplate: >
+            $util.toJson($ctx.result)
+  MutationBroadcastEphemera:
+    Type: AWS::AppSync::Resolver
+    DependsOn:
+      - Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Mutation
+        FieldName: broadcastEphemera
+        DataSourceName: !GetAtt NoneDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "payload": $util.toJson($ctx.args.Ephemera)
             }
         ResponseMappingTemplate: >
             $util.toJson($ctx.result)
@@ -1187,11 +1221,6 @@ Resources:
                   Outfit: String
                   OneCoolThing: String
                   HomeId: String
-              }
-              type CharacterInPlay @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String!
-                  Connected: Boolean
               }
               type Neighborhood {
                   PermanentId: String!
@@ -1364,6 +1393,30 @@ Resources:
                 LatestMoment: Long
                 LastEvaluatedKey: LastEvaluatedKey
               }
+              type CharacterInPlay @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  RoomId: String!
+                  Connected: Boolean
+              }
+              input CharacterInPlayInput @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  RoomId: String
+                  Connected: Boolean
+              }
+              input CharacterInPlayDirectInput @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  RoomId: String
+                  Connected: Boolean
+              }
+              type ChangedEphemera @aws_iam @aws_cognito_user_pools {
+                CharacterInPlay: CharacterInPlay
+              }
+              input EphemeraInput @aws_iam @aws_cognito_user_pools {
+                CharacterInPlay: CharacterInPlayDirectInput
+              }
+              input EphemeraUpdateInput {
+                putCharacterInPlay: CharacterInPlayInput
+              }
               type Mutation {
                   putPlayer(
                       PlayerName: String,
@@ -1372,30 +1425,21 @@ Resources:
                     ): PlayerSubscription
                   addCharacterInPlay(
                       CharacterId: String!
-                  ): CharacterInPlay
+                  ): [ChangedEphemera]
                   @aws_iam @aws_cognito_user_pools
                   deleteCharacterInPlay(
                       CharacterId: String!
-                  ): CharacterInPlay
+                  ): [ChangedEphemera]
                   @aws_iam @aws_cognito_user_pools
                   disconnectCharacterInPlay(
                       CharacterId: String!
                       ConnectionId: String!
-                  ): CharacterInPlay
+                  ): [ChangedEphemera]
                   @aws_iam @aws_cognito_user_pools
                   moveCharacter(
                       CharacterId: String!
                       RoomId: String!
-                  ): CharacterInPlay
-                  putDirectMessage(
-                      CharacterId: String!
-                      Message: String!
-                      FromCharacterId: String!
-                      ToCharacterId: String!
-                      MessageId: String
-                      CreatedTime: Long
-                  ): Message
-                  @aws_iam @aws_cognito_user_pools
+                  ): [ChangedEphemera]
                   updateMessages(
                       Updates: [MessageUpdateInput]
                   ): String
@@ -1416,6 +1460,14 @@ Resources:
                       Updates: [PermanentInput]
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
+                  updateEphemera(
+                      Updates: [EphemeraUpdateInput]
+                  ): [ChangedEphemera]
+                  @aws_iam @aws_cognito_user_pools
+                  broadcastEphemera(
+                      Ephemera: [EphemeraInput]
+                  ): [ChangedEphemera]
+                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
@@ -1427,8 +1479,8 @@ Resources:
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
                   @aws_subscribe(mutations: ["putPlayer"])
-                  changedCharactersInPlay: CharacterInPlay
-                  @aws_subscribe(mutations: ["addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
+                  changedEphemera: [ChangedEphemera]
+                  @aws_subscribe(mutations: ["updateEphemera", "broadcastEphemera", "addCharacterInPlay", "deleteCharacterInPlay", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
                   addedMessage (Target: String!): Message

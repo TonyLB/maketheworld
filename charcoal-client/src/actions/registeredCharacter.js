@@ -15,7 +15,13 @@ export const registerCharacter = ({ name, characterId }) => (dispatch) => {
         CharacterId: characterId
     }))
     .then(({ data = {} }) => (data))
-    .then(({ addCharacterInPlay = {} }) => (addCharacterInPlay))
+    .then(({ addCharacterInPlay = [] }) => (addCharacterInPlay))
+    .then((Items) => ((Items && Items[0]) || {}))
+    .then((result) => {
+        console.log(`RegisterCharacter results: ${JSON.stringify(result, null, 4)}`)
+        return result
+    })
+    .then(({ CharacterInPlay = {} }) => CharacterInPlay)
     .then(({ CharacterId, RoomId }) => {
         dispatch(connectionRegister({ characterId: CharacterId, roomId: RoomId }))
         dispatch(setName(name))

@@ -42,18 +42,22 @@ export const putPlayer = /* GraphQL */ `
 export const addCharacterInPlay = /* GraphQL */ `
   mutation AddCharacterInPlay($CharacterId: String!) {
     addCharacterInPlay(CharacterId: $CharacterId) {
-      CharacterId
-      RoomId
-      Connected
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
+      }
     }
   }
 `;
 export const deleteCharacterInPlay = /* GraphQL */ `
   mutation DeleteCharacterInPlay($CharacterId: String!) {
     deleteCharacterInPlay(CharacterId: $CharacterId) {
-      CharacterId
-      RoomId
-      Connected
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
+      }
     }
   }
 `;
@@ -66,48 +70,22 @@ export const disconnectCharacterInPlay = /* GraphQL */ `
       CharacterId: $CharacterId
       ConnectionId: $ConnectionId
     ) {
-      CharacterId
-      RoomId
-      Connected
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
+      }
     }
   }
 `;
 export const moveCharacter = /* GraphQL */ `
   mutation MoveCharacter($CharacterId: String!, $RoomId: String!) {
     moveCharacter(CharacterId: $CharacterId, RoomId: $RoomId) {
-      CharacterId
-      RoomId
-      Connected
-    }
-  }
-`;
-export const putDirectMessage = /* GraphQL */ `
-  mutation PutDirectMessage(
-    $CharacterId: String!
-    $Message: String!
-    $FromCharacterId: String!
-    $ToCharacterId: String!
-    $MessageId: String
-    $CreatedTime: Long
-  ) {
-    putDirectMessage(
-      CharacterId: $CharacterId
-      Message: $Message
-      FromCharacterId: $FromCharacterId
-      ToCharacterId: $ToCharacterId
-      MessageId: $MessageId
-      CreatedTime: $CreatedTime
-    ) {
-      MessageId
-      CreatedTime
-      Target
-      Message
-      RoomId
-      CharacterId
-      DisplayProtocol
-      Title
-      ExpirationTime
-      Recipients
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
+      }
     }
   }
 `;
@@ -352,6 +330,28 @@ export const updatePermanents = /* GraphQL */ `
         ToRoomId
         Name
         Delete
+      }
+    }
+  }
+`;
+export const updateEphemera = /* GraphQL */ `
+  mutation UpdateEphemera($Updates: [EphemeraUpdateInput]) {
+    updateEphemera(Updates: $Updates) {
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
+      }
+    }
+  }
+`;
+export const broadcastEphemera = /* GraphQL */ `
+  mutation BroadcastEphemera($Updates: [EphemeraInput]) {
+    broadcastEphemera(Updates: $Updates) {
+      CharacterInPlay {
+        CharacterId
+        RoomId
+        Connected
       }
     }
   }

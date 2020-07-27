@@ -1,5 +1,5 @@
 import { API, graphqlOperation } from 'aws-amplify'
-import { updateMessages, putDirectMessage } from '../graphql/mutations'
+import { updateMessages } from '../graphql/mutations'
 import { v4 as uuidv4 } from 'uuid'
 
 import {

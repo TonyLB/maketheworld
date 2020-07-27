@@ -7,7 +7,7 @@ import {
     updatePermanents,
     addCharacterInPlay as addCharacterInPlayGraphQL
 } from '../graphql/mutations'
-import { changedCharactersInPlay } from '../graphql/subscriptions'
+// import { changedCharactersInPlay } from '../graphql/subscriptions'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { addSubscription } from './subscriptions'
@@ -184,20 +184,20 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
     }
 }
 
-export const subscribeCharactersInPlayChanges = () => (dispatch) => {
-    const subscription = API.graphql(graphqlOperation(changedCharactersInPlay))
-        .subscribe({
-            next: (characterData) => {
-                const { value = {} } = characterData
-                const { data = {} } = value
-                const { changedCharactersInPlay = {} } = data
-                dispatch(receiveCharactersInPlayChange(changedCharactersInPlay))
-            }
-        })
+// export const subscribeCharactersInPlayChanges = () => (dispatch) => {
+//     const subscription = API.graphql(graphqlOperation(changedCharactersInPlay))
+//         .subscribe({
+//             next: (characterData) => {
+//                 const { value = {} } = characterData
+//                 const { data = {} } = value
+//                 const { changedCharactersInPlay = {} } = data
+//                 dispatch(receiveCharactersInPlayChange(changedCharactersInPlay))
+//             }
+//         })
 
-    dispatch(addSubscription({ charactersInPlay: subscription }))
-    dispatch(fetchCharactersInPlay())
-}
+//     dispatch(addSubscription({ charactersInPlay: subscription }))
+//     dispatch(fetchCharactersInPlay())
+// }
 
 export const setCurrentCharacterHome = (HomeId) => (dispatch, getState) => {
     const state = getState()

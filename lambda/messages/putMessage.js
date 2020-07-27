@@ -17,7 +17,6 @@ const messageAndDeltaReducer = ({
     })
 
 exports.putMessage = (event) => {
-
     const epochTime = Date.now()
 
     const { MessageId, Message, RoomId = null, Characters = [], DisplayProtocol, Title, CharacterId, Recipients } = event

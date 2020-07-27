@@ -48,7 +48,9 @@ const gqlGroup = (items) => {
 
 const updateDispatcher = ({ Updates = [] }) => {
     const outputs = Updates.map((update) => {
+            console.log(`Update: ${JSON.stringify(update, null, 4)}`)
             if (update.putMessage) {
+                console.log('Calling putMessage')
                 return putMessage(update.putMessage)
             }
             return Promise.resolve({})
@@ -56,6 +58,10 @@ const updateDispatcher = ({ Updates = [] }) => {
     )
 
     return Promise.all(outputs)
+        .then((result) => {
+            console.log(`Outputs: ${JSON.stringify(result, null, 4)}`)
+            return result
+        })
         .then((finalOutputs) => finalOutputs.reduce(({
                 messageWrites: previousMessageWrites,
                 deltaWrites: previousDeltaWrites,
@@ -76,26 +82,49 @@ const updateDispatcher = ({ Updates = [] }) => {
             return Promise.all([
                 batchDispatcher({ table: messageTable, items: messageWrites }),
                 batchDispatcher({ table: deltaTable, items: deltaWrites }),
-                graphqlClient.mutate({ mutation: gqlGroupOutput })
+                ...(gqlWrites.length ? [ graphqlClient.mutate({ mutation: gqlGroupOutput }) ] : [])
             ])
         })
 }
 
 exports.handler = (event, context) => {
-    const { action, ...payload } = event
+    const { action, Records, ...payload } = event
+    console.log(`Event: ${JSON.stringify(event, null, 4)}`)
 
-    switch(action) {
-
-        // case "sync":
-        //     return sync(payload)
-
-        case "getRoomRecap":
-            return getRoomRecap(event.RoomId)
-
-        case "updateMessages":
-            return updateDispatcher(payload)
-
-        default:
-            context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
+    //
+    // First check for Records, to see whether this is coming from the SNS topic subscription.
+    //
+    if (Records) {
+        return updateDispatcher({
+            Updates: Records.filter(({ Sns = {} }) => (Sns.Message))
+                .map(({ Sns }) => (Sns.Message))
+                .map((result) => {
+                    console.log(`Message: ${result}`)
+                    return result
+                })
+                .map((message) => (JSON.parse(message)))
+                .filter((message) => (message))
+        })
     }
+    //
+    // Next handle direct calls.
+    //
+    else {
+
+        switch(action) {
+
+            // case "sync":
+            //     return sync(payload)
+
+            case "getRoomRecap":
+                return getRoomRecap(event.RoomId)
+
+            case "updateMessages":
+                return updateDispatcher(payload)
+
+            default:
+                context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
+        }
+    }
+
 }

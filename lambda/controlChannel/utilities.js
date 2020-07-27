@@ -21,3 +21,4 @@ exports.graphqlClient = new AppSync.AWSAppSyncClient({
     disableOffline: true
   })
 exports.gql = gql
+exports.SNS = new AWS.SNS()
