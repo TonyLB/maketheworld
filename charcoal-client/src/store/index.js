@@ -6,7 +6,6 @@ import grants from '../reducers/grants.js'
 import connection from '../reducers/connection.js'
 import messages from '../reducers/messages.js'
 import webSocket from '../reducers/webSocket.js'
-import registeredCharacter from '../reducers/registeredCharacter.js'
 import permanentHeaders from '../reducers/permanentHeaders.js'
 import exits from '../reducers/exits.js'
 import maps from '../reducers/maps.js'
@@ -26,7 +25,6 @@ export const storeReducer = combineReducers({
     clientSettings,
     grants,
     messages,
-    registeredCharacter,
     role,
     permanentHeaders,
     exits,

@@ -1,16 +1,13 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { getCharactersInPlay, putCharacterInPlay, disconnectCharacterInPlay } = require('./charactersInPlay')
+const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
 
 
 const updateDispatcher = ({ Updates = [] }) => {
     const outputs = Updates.map((update) => {
             if (update.putCharacterInPlay) {
                 return putCharacterInPlay(update.putCharacterInPlay)
-            }
-            if (update.disconnectCharacterInPlay) {
-                return disconnectCharacterInPlay(update.disconnectCharacterInPlay)
             }
             return Promise.resolve([])
         }

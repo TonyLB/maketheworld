@@ -77,14 +77,15 @@ const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
             .then(({ Item = {} }) => (Item))
             .then(({ HomeId = '' }) => (HomeId || 'VORTEX'))
     }
+    const newConnected = (Connected !== undefined) ? Connected : oldRecord.Connected
     return documentClient.put({
             TableName: ephemeraTable,
             Item: {
                 EphemeraId,
                 DataCategory: 'Connection',
                 RoomId: newRoomId,
-                ...(Connected !== undefined ? { Connected } : { Connected: oldRecord.Connected }),
-                ...((Connected && oldRecord && oldRecord.ConnectionId) ? { ConnectionId: oldRecord.ConnectionId } : {})
+                Connected: newConnected,
+                ...((newConnected && oldRecord && oldRecord.ConnectionId) ? { ConnectionId: oldRecord.ConnectionId } : {})
             }
         }).promise()
         .then(() => ([ { CharacterInPlay: {
@@ -94,87 +95,5 @@ const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
         }}]))
 }
 
-const messageGQL = ({ RoomId, Message, Characters }) => (gql`mutation SendMessage {
-    updateMessages (Updates: [ { putMessage: { RoomId: "${RoomId}", Message: "${Message}", Characters: [${Characters.map((CharacterId) => (`"${CharacterId}"`)).join(", ")}], MessageId: "${uuidv4()}" }}])
-}`)
-
-const disconnectGQL = ({ CharacterId }) => (gql`mutation DisconnectCharacter {
-    deleteCharacterInPlay (CharacterId: "${CharacterId}") {
-        CharacterId
-        RoomId
-        Connected
-    }
-}`)
-
-const disconnectCharacterInPlay = async ({ CharacterId, ConnectionId }) => {
-    if (CharacterId && ConnectionId) {
-        const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-        const { RoomId, ConnectionId: currentConnectionId } = await documentClient.get({
-                TableName: ephemeraTable,
-                Key: {
-                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Connection'
-                }
-            }).promise()
-            .then(({ Item = {} }) => (Item))
-
-        //
-        // If the connection has been replaced because this is a disconnect in close proximity to a reconnect, then
-        // do not disconnect the new connection.
-        //
-        if (currentConnectionId === ConnectionId) {
-            const [Characters, { Name = 'Someone' }] = await Promise.all([
-                documentClient.query({
-                    TableName: ephemeraTable,
-                    KeyConditionExpression: 'RoomId = :RoomId',
-                    ExpressionAttributeValues: {
-                        ":RoomId": RoomId
-                    },
-                    IndexName: 'RoomIndex'
-                }).promise()
-                .then(({ Items }) => (Items
-                        .filter(({ EphemeraId, Connected }) => (Connected && EphemeraId.startsWith('CHARACTERINPLAY#')))
-                        .map(({ EphemeraId }) => (EphemeraId))
-                        .map((EphemeraId) => (EphemeraId.split('#').slice(1).join('#')))
-                    )),
-                documentClient.get({
-                    TableName: permanentsTable,
-                    Key: {
-                        PermanentId: `CHARACTER#${CharacterId}`,
-                        DataCategory: 'Details'
-                    }
-                }).promise()
-                .then(({ Item = {} }) => (Item))
-            ])
-            await Promise.all([
-                graphqlClient.mutate({ mutation: messageGQL({
-                        RoomId,
-                        Characters,
-                        Message: `${Name} has disconnected.`
-                    })
-                }),
-                graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId })})
-            ])
-
-            return [{ CharacterInPlay: {
-                CharacterId,
-                RoomId,
-                Connected: false
-            }}]
-
-        }
-
-        return [{ CharacterInPlay: {
-            CharacterId,
-            RoomId,
-            Connected: true
-        }}]
-
-    }
-
-    return []
-}
-
 exports.getCharactersInPlay = getCharactersInPlay
 exports.putCharacterInPlay = putCharacterInPlay
-exports.disconnectCharacterInPlay = disconnectCharacterInPlay

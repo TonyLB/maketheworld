@@ -34,9 +34,8 @@ import NewMessagesIcon from '@material-ui/icons/FiberNew'
 
 // Local code imports
 import { parseCommand } from '../actions/behaviors'
-import { disconnect } from '../actions/connection.js'
+import { disconnect, connectionRegister } from '../actions/connection.js'
 import { setCurrentCharacterHome } from '../actions/characters'
-import { registerCharacter } from '../actions/registeredCharacter.js'
 import { fetchAndOpenWorldDialog } from '../actions/permanentAdmin'
 import { activateMyCharacterDialog } from '../actions/UI/myCharacterDialog'
 import { activateHelpDialog } from '../actions/UI/helpDialog'
@@ -417,7 +416,7 @@ export const Chat = () => {
             <CharacterPicker
                 open={(currentPlayer.CodeOfConductConsent && !characterId) || false}
                 onClose={({ name, characterId }) => () => {
-                    dispatch(registerCharacter({ name, characterId }))
+                    dispatch(connectionRegister({ characterId }))
                 }}
             />
             {/* <Backdrop open={((characterId && !webSocket) || !playerFetched) ? true : false}>

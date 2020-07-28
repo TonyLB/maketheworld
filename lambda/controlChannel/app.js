@@ -20,6 +20,16 @@ const disconnectGQL = ({ CharacterId, RoomId }) => (gql`mutation DisconnectChara
     }
 }`)
 
+const connectGQL = ({ CharacterId, RoomId }) => (gql`mutation ConnectCharacter {
+    broadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: true } }]) {
+        CharacterInPlay {
+            CharacterId
+            RoomId
+            Connected
+        }
+    }
+}`)
+
 const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
     const [{ Item: { Name } }, { Items: RoomRecords }] = await Promise.all([
         documentClient.get({
@@ -101,17 +111,21 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
         }).promise()
         .then(({ Item = {} }) => (Item))
     if (DataCategory) {
-        const updatePromise = documentClient.update({
+        const updatePromise = Promise.all([
+            documentClient.update({
                 TableName: ephemeraTable,
                 Key: {
                     EphemeraId,
                     DataCategory: 'Connection'
                 },
-                UpdateExpression: "set ConnectionId = :ConnectionId",
+                UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
                 ExpressionAttributeValues: {
-                    ":ConnectionId": connectionId
+                    ":ConnectionId": connectionId,
+                    ":Connected": true
                 }
-            }).promise()
+            }).promise(),
+            graphqlClient.mutate({ mutation: connectGQL({ CharacterId, RoomId }) })
+        ])
         if (Connected) {
             await updatePromise
         }

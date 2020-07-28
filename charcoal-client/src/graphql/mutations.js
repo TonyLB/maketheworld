@@ -39,45 +39,6 @@ export const putPlayer = /* GraphQL */ `
     }
   }
 `;
-export const addCharacterInPlay = /* GraphQL */ `
-  mutation AddCharacterInPlay($CharacterId: String!) {
-    addCharacterInPlay(CharacterId: $CharacterId) {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
-      }
-    }
-  }
-`;
-export const deleteCharacterInPlay = /* GraphQL */ `
-  mutation DeleteCharacterInPlay($CharacterId: String!) {
-    deleteCharacterInPlay(CharacterId: $CharacterId) {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
-      }
-    }
-  }
-`;
-export const disconnectCharacterInPlay = /* GraphQL */ `
-  mutation DisconnectCharacterInPlay(
-    $CharacterId: String!
-    $ConnectionId: String!
-  ) {
-    disconnectCharacterInPlay(
-      CharacterId: $CharacterId
-      ConnectionId: $ConnectionId
-    ) {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
-      }
-    }
-  }
-`;
 export const moveCharacter = /* GraphQL */ `
   mutation MoveCharacter($CharacterId: String!, $RoomId: String!) {
     moveCharacter(CharacterId: $CharacterId, RoomId: $RoomId) {
@@ -346,8 +307,8 @@ export const updateEphemera = /* GraphQL */ `
   }
 `;
 export const broadcastEphemera = /* GraphQL */ `
-  mutation BroadcastEphemera($Updates: [EphemeraInput]) {
-    broadcastEphemera(Updates: $Updates) {
+  mutation BroadcastEphemera($Ephemera: [EphemeraInput]) {
+    broadcastEphemera(Ephemera: $Ephemera) {
       CharacterInPlay {
         CharacterId
         RoomId

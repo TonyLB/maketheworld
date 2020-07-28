@@ -1,4 +1,5 @@
 import { REGISTER_WEB_SOCKET } from '../actions/webSocket.js'
+import { DISCONNECT_REGISTER } from '../actions/connection'
 
 export const reducer = (state = null, action = {}) => {
     const { type: actionType = "NOOP", payload = {} } = action
@@ -11,6 +12,8 @@ export const reducer = (state = null, action = {}) => {
             else {
                 return state
             }
+        case DISCONNECT_REGISTER:
+            return null
         default: return state
     }
 }

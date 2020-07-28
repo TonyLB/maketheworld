@@ -4,10 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { getPlayerCharacters, getCharactersInPlay, getRoomRecap } from '../graphql/queries'
 import {
     putPlayer as putPlayerGraphQL,
-    updatePermanents,
-    addCharacterInPlay as addCharacterInPlayGraphQL
+    updatePermanents
 } from '../graphql/mutations'
-// import { changedCharactersInPlay } from '../graphql/subscriptions'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { addSubscription } from './subscriptions'
@@ -140,12 +138,6 @@ export const fetchCharactersInPlay = () => (dispatch, getState) => {
             .then(({ getCharactersInPlay }) => (getCharactersInPlay || []))
             .then((payload) => (dispatch(fetchCharactersInPlaySuccess(payload))))
     }
-}
-
-export const addCharacterInPlay = ({ characterId }) => (dispatch, getState) => {
-    return API.graphql(graphqlOperation(addCharacterInPlayGraphQL, {
-        CharacterId: characterId,
-    }))
 }
 
 export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) => {

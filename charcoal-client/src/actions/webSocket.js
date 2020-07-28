@@ -40,9 +40,12 @@ export const establishWebSocket = (CharacterId) => (dispatch) => {
 }
 
 export const registerWebSocket = ({ webSocket, CharacterId }) => (dispatch, getState) => {
-    const { webSocket: oldWebSocket, pingInterval: oldPingInterval } = getWebSocket(getState()) || {}
+    const { webSocket: oldWebSocket, pingInterval: oldPingInterval, refreshTimeout: oldRefreshTimeout } = getWebSocket(getState()) || {}
     if (oldPingInterval) {
         clearInterval(oldPingInterval)
+    }
+    if (oldRefreshTimeout) {
+        clearTimeout(oldRefreshTimeout)
     }
     if (oldWebSocket) {
         oldWebSocket.close()

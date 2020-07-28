@@ -2,7 +2,8 @@ jest.mock('./utilities', () => ({
     documentClient: {
         get: jest.fn(),
         query: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
+        put: jest.fn()
     },
     graphqlClient: {
         mutate: jest.fn(async () => {})
@@ -10,7 +11,10 @@ jest.mock('./utilities', () => ({
     gql: jest.fn((strings, ...args) => {
         const returnVal = strings.reduce((previous, entry, index) => (previous + entry + (args[index] || '')), '')
         return returnVal.split("\n").map((innerVal) => (innerVal.trim())).join('\n')
-    })
+    }),
+    SNS: {
+        publish: jest.fn(() => ({ promise: () => ( Promise.resolve({}) )}))
+    }
 }))
 const { disconnect, registerCharacter } = require('./app')
 const { documentClient, graphqlClient } = require('./utilities')
@@ -23,15 +27,42 @@ describe("disconnect", () => {
         expect(data).toEqual({ statusCode: 200 })
     })
     it("should update when called against a connected character", async () => {
-        const expectedGraphQL = `mutation DisconnectCharacter {\ndisconnectCharacterInPlay (CharacterId: "ABC", ConnectionId: "123") {\nCharacterId\nRoomId\nConnected\n}\n}`
-        documentClient.query.mockReturnValue({ promise: () => (
-            Promise.resolve({ Items: [
-                {
-                    EphemeraId: 'CHARACTERINPLAY#ABC',
-                    ConnectionId: '123'
-                }
-            ]})
-        )})
+        const expectedGraphQL = `mutation DisconnectCharacter {\nbroadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "ABC", RoomId: "123", Connected: false } }]) {\nCharacterInPlay {\nCharacterId\nRoomId\nConnected\n}\n}\n}`
+        documentClient.query.mockReturnValueOnce({ promise: () => (
+                Promise.resolve({ Items: [
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#ABC',
+                        ConnectionId: '123',
+                        RoomId: '123',
+                        Connected: true
+                    }
+                ]})
+            )})
+            .mockReturnValueOnce({ promise: () => (
+                Promise.resolve({ Items: [
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#ABC',
+                        RoomId: '123',
+                        Connected: true
+                    },
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#DEF',
+                        RoomId: '123',
+                        Connected: true
+                    },
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#GHI',
+                        RoomId: '123',
+                        Connected: false
+                    }
+                ]})
+            )})
+        documentClient.put.mockReturnValue({ promise: () => ({}) })
+        documentClient.get.mockReturnValue({ promise: () => (
+            Promise.resolve({ Item: {
+                Name: 'Test'
+            }})
+        ) })
         const data = await disconnect('123')
         expect(graphqlClient.mutate.mock.calls.length).toBe(1)
         expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: expectedGraphQL })
@@ -66,9 +97,10 @@ describe("registerCharacter", () => {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
                 DataCategory: 'Connection'
             },
-            UpdateExpression: "set ConnectionId = :ConnectionId",
+            UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
             ExpressionAttributeValues: {
-                ":ConnectionId": '123'
+                ":ConnectionId": '123',
+                ":Connected": true
             }
         })
         expect(data).toEqual({
@@ -92,9 +124,10 @@ describe("registerCharacter", () => {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
                 DataCategory: 'Connection'
             },
-            UpdateExpression: "set ConnectionId = :ConnectionId",
+            UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
             ExpressionAttributeValues: {
-                ":ConnectionId": '123'
+                ":ConnectionId": '123',
+                ":Connected": true
             }
         })
         expect(data).toEqual({
