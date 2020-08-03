@@ -119,14 +119,27 @@ export const addedMessage = /* GraphQL */ `
     addedMessage(Target: $Target) {
       MessageId
       CreatedTime
-      Target
-      Message
-      RoomId
-      CharacterId
-      DisplayProtocol
-      Title
       ExpirationTime
-      Recipients
+      DisplayProtocol
+      Target
+      RoomId
+      WorldMessage {
+        Message
+      }
+      CharacterMessage {
+        Message
+        CharacterId
+      }
+      DirectMessage {
+        Message
+        CharacterId
+        Title
+        Recipients
+      }
+      AnnounceMessage {
+        Message
+        Title
+      }
     }
   }
 `;

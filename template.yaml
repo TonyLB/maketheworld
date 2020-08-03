@@ -1153,41 +1153,86 @@ Resources:
                   Retired: Boolean
               }
               input CharacterInput @aws_iam @aws_cognito_user_pools {
-                  Name: String!,
-                  CharacterId: String,
-                  Pronouns: String,
-                  FirstImpression: String,
-                  Outfit: String,
-                  OneCoolThing: String,
+                  Name: String!
+                  CharacterId: String
+                  Pronouns: String
+                  FirstImpression: String
+                  Outfit: String
+                  OneCoolThing: String
                   HomeId: String
+              }
+              type WorldMessage @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+              }
+              input WorldMessageInput @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+              }
+              type CharacterMessage @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+                  CharacterId: String
+              }
+              input CharacterMessageInput @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+                  CharacterId: String
+              }
+              type DirectMessage @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+                  CharacterId: String
+                  Title: String
+                  Recipients: [String]
+              }
+              input DirectMessageInput @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+                  CharacterId: String
+                  Title: String
+                  Recipients: [String]
+              }
+              type AnnounceMessage @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+                  Title: String
+              }
+              input AnnounceMessageInput @aws_iam @aws_cognito_user_pools {
+                  Message: String!
+                  Title: String
               }
               type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
                   CreatedTime: Long!
-                  Target: String!
-                  Message: String!
-                  RoomId: String
-                  CharacterId: String
-                  DisplayProtocol: String
-                  Title: String
                   ExpirationTime: Long
-                  Recipients: [String]
+                  DisplayProtocol: String
+                  Target: String!
+                  RoomId: String
+                  WorldMessage: WorldMessage
+                  CharacterMessage: CharacterMessage
+                  DirectMessage: DirectMessage
+                  AnnounceMessage: AnnounceMessage
               }
               input MessageInput @aws_iam @aws_cognito_user_pools {
-                  Target: String
                   MessageId: String!
-                  Message: String!
                   CreatedTime: Long
-                  RoomId: String
-                  Characters: [String]
-                  CharacterId: String
-                  DisplayProtocol: String
-                  Title: String
                   ExpirationTime: Long
-                  Recipients: [String]
+                  DisplayProtocol: String
+                  Target: String
+                  RoomId: String
+                  WorldMessage: WorldMessageInput
+                  CharacterMessage: CharacterMessageInput
+                  DirectMessage: DirectMessageInput
+                  AnnounceMessage: AnnounceMessageInput
+              }
+              input PutMessageInput @aws_iam @aws_cognito_user_pools {
+                  MessageId: String!
+                  CreatedTime: Long
+                  ExpirationTime: Long
+                  DisplayProtocol: String
+                  Characters: [String]
+                  RoomId: String
+                  WorldMessage: WorldMessageInput
+                  CharacterMessage: CharacterMessageInput
+                  DirectMessage: DirectMessageInput
+                  AnnounceMessage: AnnounceMessageInput
               }
               input MessageUpdateInput @aws_iam @aws_cognito_user_pools {
-                  putMessage: MessageInput
+                  putMessage: PutMessageInput
               }
               type PlayerSubscription @aws_iam @aws_cognito_user_pools {
                   Type: String!

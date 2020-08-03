@@ -38,14 +38,27 @@ export const getRoomRecap = /* GraphQL */ `
     getRoomRecap(PermanentId: $PermanentId) {
       MessageId
       CreatedTime
-      Target
-      Message
-      RoomId
-      CharacterId
-      DisplayProtocol
-      Title
       ExpirationTime
-      Recipients
+      DisplayProtocol
+      Target
+      RoomId
+      WorldMessage {
+        Message
+      }
+      CharacterMessage {
+        Message
+        CharacterId
+      }
+      DirectMessage {
+        Message
+        CharacterId
+        Title
+        Recipients
+      }
+      AnnounceMessage {
+        Message
+        Title
+      }
     }
   }
 `;

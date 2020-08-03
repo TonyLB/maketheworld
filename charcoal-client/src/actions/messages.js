@@ -29,18 +29,56 @@ export const setMessageOpen = ({ MessageId, open }) => ({
     }
 })
 
-export const sendMessage = ({RoomId = null, Message, CharacterId, Characters = [], DisplayProtocol = '', Recipients}) => (dispatch, getState) => {
+export const sendWorldMessage = ({RoomId = null, Message, Characters = []}) => (dispatch, getState) => {
     const state = getState()
     const roomCharacters = (RoomId && getActiveCharactersInRoom({ RoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
     if (Message) {
         return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
             RoomId,
-            Message,
-            Characters: [ ...Characters, ...roomCharacters ],
+            Characters: [...(new Set([ ...Characters, ...roomCharacters ]))],
             MessageId: uuidv4(),
-            CharacterId,
-            DisplayProtocol: DisplayProtocol || (CharacterId ? "Player" : "World"),
-            Recipients
+            DisplayProtocol: "World",
+            WorldMessage: {
+                Message
+            }
+        }}]}))
+        .catch((err) => { console.log(err)})
+    }
+    return Promise.resolve({})
+}
+
+export const sendPlayerMessage = ({RoomId = null, Message, CharacterId, Characters = []}) => (dispatch, getState) => {
+    const state = getState()
+    const roomCharacters = (RoomId && getActiveCharactersInRoom({ RoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
+    if (Message) {
+        return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
+            RoomId,
+            Characters: [...(new Set([ ...Characters, ...roomCharacters ]))],
+            MessageId: uuidv4(),
+            DisplayProtocol: "Player",
+            CharacterMessage: {
+                CharacterId,
+                Message
+            }
+        }}]}))
+        .catch((err) => { console.log(err)})
+    }
+    return Promise.resolve({})
+}
+
+export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => (dispatch, getState) => {
+    const state = getState()
+    if (Message) {
+        return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
+            RoomId: null,
+            Characters,
+            MessageId: uuidv4(),
+            DisplayProtocol: "Direct",
+            DirectMessage: {
+                CharacterId,
+                Message,
+                Recipients
+            }
         }}]}))
         .catch((err) => { console.log(err)})
     }

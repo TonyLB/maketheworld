@@ -10,16 +10,22 @@
 
 const { gqlOutput } = require('./gqlOutput')
 
-const broadcastMessageGQL = ({ MessageId, Message, Target, CreatedTime, CharacterId, DisplayProtocol, Title, Recipients }) => (
+const argumentList = ({ data = {}, dataKey = 'Test', keys = [] }) => (
+    `${dataKey}: { ${keys.map((key) => ((data[key] && `${key}: ${JSON.stringify(data[key])}`) || '')).filter((item) => (item)).join(', ')} }`
+)
+
+const broadcastMessageGQL = ({ MessageId, Target, CreatedTime, DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage }) => (
     `broadcastMessage(Message: {
-        MessageId: "${MessageId}",
-        Message: ${JSON.stringify(Message)},
-        Target: "${Target}",
-        ${ CharacterId ? `CharacterId: "${CharacterId}",` : "" }
-        ${ DisplayProtocol ? `DisplayProtocol: "${DisplayProtocol}",` : "" }
-        ${ Title ? `Title: "${Title}",` : "" }
-        ${ Recipients ? `Recipients: ${JSON.stringify(Recipients)},` : "" }
+        MessageId: "${MessageId}"
+        Target: "${Target}"
         CreatedTime: ${CreatedTime}
+        DisplayProtocol: "${DisplayProtocol}"
+        ${[
+            WorldMessage ? argumentList({ data: WorldMessage, dataKey: 'WorldMessage', keys: ['Message'] }) : '',
+            CharacterMessage ? `CharacterMessage: { CharacterId: ${JSON.stringify(CharacterMessage.CharacterId)}, Message: ${JSON.stringify(CharacterMessage.Message)} }` : '',
+            DirectMessage ? argumentList({ data: DirectMessage, dataKey: 'DirectMessage', keys: ['CharacterId', 'Message', 'Title', 'Recipients']}) : '',
+            AnnounceMessage ? argumentList({ data: AnnounceMessage, dataKey: 'AnnounceMessage', keys: ['CharacterId', 'Message', 'Title']}): ''
+        ].filter((item) => (item)).join('\n    ')}
     }) { ${gqlOutput} }`)
 
 exports.broadcastMessages = ({ Characters, ...rest }) => (

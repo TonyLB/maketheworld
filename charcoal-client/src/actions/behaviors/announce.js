@@ -17,12 +17,14 @@ export const sendAnnouncement = ({ title = 'Announcement', message = '', roomIds
     }))
     const messageUpdates = roomsAndCharacters.map(({ RoomId, Characters }) => ({
         putMessage: {
-            RoomId,
-            Characters,
-            Message: message,
-            Title: title,
             DisplayProtocol: "Announce",
-            MessageId: uuidv4()
+            MessageId: uuidv4(),
+            Characters,
+            RoomId,
+            AnnounceMessage: {
+                Title: title,
+                Message: message
+            }
         }
     }))
     return API.graphql(graphqlOperation(updateMessages, { Updates: messageUpdates})).catch((err) => { console.log(err)})

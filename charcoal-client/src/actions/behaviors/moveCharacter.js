@@ -1,7 +1,7 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { moveCharacter as moveCharacterGraphQL } from '../../graphql/mutations'
 
-import { sendMessage } from '../messages'
+import { sendWorldMessage } from '../messages'
 
 import { getCurrentName, getCurrentRoomId } from '../../selectors/connection'
 
@@ -11,7 +11,7 @@ export const moveCharacter = ({ ExitName, RoomId }) => (dispatch, getState) => {
     if (connection.characterId) {
         const currentName = getCurrentName(state)
         const currentRoomId = getCurrentRoomId(state)
-        dispatch(sendMessage({ RoomId: currentRoomId, Message: `${currentName} left by the ${ExitName} exit.` }))
+        dispatch(sendWorldMessage({ RoomId: currentRoomId, Message: `${currentName} left by the ${ExitName} exit.` }))
             .then(() => (API.graphql(graphqlOperation(moveCharacterGraphQL, {
                 RoomId,
                 CharacterId: connection.characterId

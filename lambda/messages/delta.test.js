@@ -9,19 +9,23 @@ describe("messageAndDeltas", () => {
     })
 
 
-    it('should add a new message', () => {
+    it('should add a new world message', () => {
 
         global.Date.now = jest.fn(() => 123451234567)
 
         const data = messageAndDeltas({
             MessageId: '123',
-            Message: 'Test',
-            Target: 'CHARACTER#987'
+            Target: 'CHARACTER#987',
+            DisplayProtocol: 'World',
+            WorldMessage: {
+                Message: 'Test'
+            }
         })
         expect(data).toEqual({
             messageWrites: [{
                     MessageId: `MESSAGE#123`,
                     DataCategory: 'Content',
+                    DisplayProtocol: 'World',
                     Message: 'Test',
                     CreatedTime: 123451234567
                 },
@@ -35,6 +39,7 @@ describe("messageAndDeltas", () => {
                 Target: 'CHARACTER#987',
                 DeltaId: '123451234567::MESSAGE#123::Content',
                 RowId: 'MESSAGE#123::Content',
+                DisplayProtocol: 'World',
                 Message: 'Test'
             }]
         })

@@ -56,7 +56,9 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
             putMessage: {
                 Characters,
                 DisplayProtocol: "World",
-                Message: messageFunction(Name),
+                WorldMessage: {
+                    Message: messageFunction(Name),
+                },
                 MessageId: uuidv4(),
                 RoomId
             }

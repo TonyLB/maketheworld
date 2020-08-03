@@ -15,9 +15,11 @@ describe('Messages reducer', () => {
         expect(messages([], {
             type: RECEIVE_MESSAGE,
             payload: {
-                CharacterId: 'Steve Rogers',
                 DisplayProtocol: 'Player',
-                Message: 'I can do this all day'
+                CharacterMessage: {
+                    Message: 'I can do this all day',
+                    CharacterId: 'Steve Rogers'
+                }
             }
         })).toEqual([new playerMessage({
             CharacterId: 'Steve Rogers',
@@ -30,7 +32,9 @@ describe('Messages reducer', () => {
             type: RECEIVE_MESSAGE,
             payload: {
                 DisplayProtocol: '',
-                Message: 'The tesseract pulses ominously'
+                WorldMessage: {
+                    Message: 'The tesseract pulses ominously'
+                }
             }
         })).toEqual([new worldMessage({
             Message: 'The tesseract pulses ominously'
@@ -55,9 +59,11 @@ describe('Messages reducer', () => {
         expect(messages(startingList, {
             type: RECEIVE_MESSAGE,
             payload: {
-                CharacterId: 'Bruce Banner',
                 DisplayProtocol: 'Player',
-                Message: "That's my secret, Captain..."
+                CharacterMessage: {
+                    CharacterId: 'Bruce Banner',
+                    Message: "That's my secret, Captain..."
+                }
             }
         })).toEqual([
             ...startingList,
@@ -79,7 +85,9 @@ describe('Messages reducer', () => {
         expect(messages(startingList, {
             type: RECEIVE_MESSAGE,
             payload: {
-                Message: "Peter's phone sits mockingly silent."
+                WorldMessage: {
+                    Message: "Peter's phone sits mockingly silent."
+                }
             }
         })).toEqual([
             ...startingList,

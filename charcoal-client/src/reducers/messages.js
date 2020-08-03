@@ -13,30 +13,43 @@ export const reducer = (state = [], action) => {
     switch (actionType) {
         case RECEIVE_MESSAGE:
             const { DisplayProtocol = '', ...rest } = payload
-            const { Message } = rest
             switch (DisplayProtocol) {
                 case 'Player':
-                    if (Message) {
-                        return [ ...state, new playerMessage(rest) ]
+                    const { CharacterMessage } = rest
+                    if (CharacterMessage && CharacterMessage.Message) {
+                        return [ ...state, new playerMessage({ ...rest, ...CharacterMessage }) ]
                     }
                     else {
                         return state
                     }
                 case 'Announce':
-                    if (Message) {
-                        return [ ...state, new announcementMessage(rest) ]
+                    const { AnnounceMessage } = rest
+                    if (AnnounceMessage && AnnounceMessage.Message) {
+                        return [ ...state, new announcementMessage({ ...rest, ...AnnounceMessage }) ]
                     }
                     else {
                         return state
                     }
                 case 'Direct':
-                    return Message ? [ ...state, new directMessage(rest) ] : state
+                    const { DirectMessage } = rest
+                    if (DirectMessage && DirectMessage.Message) {
+                        return [ ...state, new directMessage({ ...rest, ...DirectMessage }) ]
+                    }
+                    else {
+                        return state
+                    }
                 case 'roomDescription':
                     return [ ...state, new roomDescription(rest) ]
                 case 'neighborhoodDescription':
                     return [ ...state, new neighborhoodDescription(rest) ]
                 default:
-                    return [ ...state, new worldMessage(rest) ]
+                    const { WorldMessage } = rest
+                    if (WorldMessage && WorldMessage.Message) {
+                        return [ ...state, new worldMessage({ ...rest, ...WorldMessage }) ]
+                    }
+                    else {
+                        return state
+                    }
             }
         case SET_MESSAGE_OPEN:
             const { MessageId } = payload

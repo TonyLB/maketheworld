@@ -10,7 +10,7 @@ import {
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { addSubscription } from './subscriptions'
 import { lookRoom } from './behaviors/lookRoom'
-import { sendMessage } from './messages'
+import { sendWorldMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getMyCharacterInPlay } from '../selectors/connection'
 import { getCurrentNeighborhood } from '../selectors/currentRoom'
@@ -170,7 +170,7 @@ export const receiveCharactersInPlayChange = (payload) => (dispatch, getState) =
                 .then((Recap) => {
                     dispatch(lookRoom({ RoomId: myCharacter.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
                     const { Name = 'Someone' } = myCurrentCharacter || {}
-                    dispatch(sendMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` }))
+                    dispatch(sendWorldMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` }))
                 })
         }
     }

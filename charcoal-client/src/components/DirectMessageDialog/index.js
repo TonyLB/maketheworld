@@ -15,7 +15,7 @@ import {
 
 // Local code imports
 import { closeDirectMessageDialog } from '../../actions/UI/directMessageDialog'
-import { sendMessage } from '../../actions/messages'
+import { sendDirectMessage } from '../../actions/messages'
 import { getDirectMessageTargetUI } from '../../selectors/UI/directMessageDialog.js'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 import { getCharacterId } from '../../selectors/connection'
@@ -60,7 +60,7 @@ export const DirectMessageDialog = () => {
                     Cancel
                 </Button>
                 <Button onClick={ () => {
-                    dispatch(sendMessage({ Characters: [ characterId, ToCharacterId ], Recipients: [ ToCharacterId ], RoomId: null, CharacterId: characterId, DisplayProtocol: 'Direct', Message: value }))
+                    dispatch(sendDirectMessage({ Characters: [ characterId, ToCharacterId ], Recipients: [ ToCharacterId ], CharacterId: characterId, Message: value }))
                     dispatch(closeDirectMessageDialog())
                     setValue('')
                 }}>

@@ -18,12 +18,14 @@ export const sendShout = ({ message = '', roomIds = [], CharacterId, charactersI
     }))
     const messageUpdates = roomsAndCharacters.map(({ RoomId, Characters }) => ({
         putMessage: {
+            DisplayProtocol: "Player",
+            MessageId: uuidv4(),
             RoomId,
             Characters,
-            Message: message,
-            CharacterId,
-            DisplayProtocol: "Player",
-            MessageId: uuidv4()
+            PlayerMessage: {
+                Message: message,
+                CharacterId
+            }
         }
     }))
     return API.graphql(graphqlOperation(updateMessages, { Updates: messageUpdates})).catch((err) => { console.log(err)})

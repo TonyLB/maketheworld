@@ -2,7 +2,7 @@ import { getCurrentName, getCharacterId } from '../../selectors/connection'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 import { getCurrentRoom } from '../../selectors/currentRoom'
 
-import { sendMessage } from '../messages.js'
+import { sendPlayerMessage } from '../messages.js'
 import lookRoom from './lookRoom'
 import lookCharacter from './lookCharacter'
 import moveCharacter from './moveCharacter'
@@ -57,7 +57,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
         return true
     }
     if (entry.slice(0,1) === '"' && entry.length > 1) {
-        dispatch(sendMessage({
+        dispatch(sendPlayerMessage({
             RoomId: currentRoom.PermanentId,
             CharacterId: characterId,
             Message: `${currentName} says "${entry.slice(1)}"`
@@ -65,7 +65,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
         return true
     }
     if (entry.slice(0,1) === '@' && entry.length > 1) {
-        dispatch(sendMessage({
+        dispatch(sendPlayerMessage({
             RoomId: currentRoom.PermanentId,
             CharacterId: characterId,
             Message: entry.slice(1)
@@ -73,7 +73,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
         return true
     }
     if (entry.slice(0,1) === ':' && entry.length > 1) {
-        dispatch(sendMessage({
+        dispatch(sendPlayerMessage({
             RoomId: currentRoom.PermanentId,
             CharacterId: characterId,
             Message: `${currentName}${entry.slice(1).match(/^[,']/) ? "" : " "}${entry.slice(1)}`
