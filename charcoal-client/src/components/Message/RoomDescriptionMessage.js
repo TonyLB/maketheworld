@@ -23,6 +23,7 @@ import HiddenIcon from '@material-ui/icons/VisibilityOff'
 import useStyles from '../styles'
 
 import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
+import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
@@ -33,11 +34,13 @@ import AnnouncementMessage from './AnnouncementMessage'
 export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
 
     const classes = useStyles()
-    const { MessageId, RoomId='', ParentId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='', open=false } = message
+    const { MessageId, RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='', open=false } = message
+    const ParentId = Ancestry.split('#').reverse()[0]
 
     const dispatch = useDispatch()
     const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry)).reverse()
-    const { Grants } = useSelector(getMyCurrentCharacter)
+    const { CharacterId: myCharacterId, Grants } = useSelector(getMyCurrentCharacter)
+    const charactersInPlay = useSelector(getCharactersInPlay)
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <React.Fragment>
         <ListItem ref={ref} className={ classes.roomMessage } alignItems="flex-start" {...rest} >
@@ -100,9 +103,9 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
                                 Pronouns,
                                 FirstImpression,
                                 OneCoolThing,
-                                Outfit,
-                                color
+                                Outfit
                             }) => {
+                                const { color = { primary: 'blue' } } = (CharacterId !== myCharacterId) && charactersInPlay[CharacterId]
                                 return (
                                     <Tooltip key={Name} interactive arrow title={<React.Fragment>
                                         <Typography variant='subtitle1' align='center'>

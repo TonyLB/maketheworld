@@ -59,6 +59,25 @@ export const getRoomRecap = /* GraphQL */ `
         Message
         Title
       }
+      RoomDescription {
+        RoomId
+        Name
+        Description
+        Ancestry
+        Exits {
+          RoomId
+          Name
+          Visibility
+        }
+        Characters {
+          CharacterId
+          Name
+          Pronouns
+          FirstImpression
+          OneCoolThing
+          Outfit
+        }
+      }
     }
   }
 `;

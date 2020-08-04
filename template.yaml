@@ -1195,6 +1195,48 @@ Resources:
                   Message: String!
                   Title: String
               }
+              type RoomDescriptionExit @aws_iam @aws_cognito_user_pools {
+                  RoomId: String!
+                  Name: String!
+                  Visibility: String
+              }
+              type RoomDescriptionCharacter @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  Name: String!
+                  Pronouns: String
+                  FirstImpression: String
+                  OneCoolThing: String
+                  Outfit: String
+              }
+              type RoomDescription @aws_iam @aws_cognito_user_pools {
+                  RoomId: String!
+                  Name: String!
+                  Description: String
+                  Ancestry: String
+                  Exits: [RoomDescriptionExit]
+                  Characters: [RoomDescriptionCharacter]
+              }
+              input RoomDescriptionExitInput @aws_iam @aws_cognito_user_pools {
+                  RoomId: String!
+                  Name: String!
+                  Visibility: String
+              }
+              input RoomDescriptionCharacterInput @aws_iam @aws_cognito_user_pools {
+                  CharacterId: String!
+                  Name: String!
+                  Pronouns: String
+                  FirstImpression: String
+                  OneCoolThing: String
+                  Outfit: String
+              }
+              input RoomDescriptionInput @aws_iam @aws_cognito_user_pools {
+                  RoomId: String!
+                  Name: String!
+                  Description: String
+                  Ancestry: String
+                  Exits: [RoomDescriptionExitInput]
+                  Characters: [RoomDescriptionCharacterInput]
+              }
               type Message @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
                   CreatedTime: Long!
@@ -1206,6 +1248,7 @@ Resources:
                   CharacterMessage: CharacterMessage
                   DirectMessage: DirectMessage
                   AnnounceMessage: AnnounceMessage
+                  RoomDescription: RoomDescription
               }
               input MessageInput @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
@@ -1218,6 +1261,7 @@ Resources:
                   CharacterMessage: CharacterMessageInput
                   DirectMessage: DirectMessageInput
                   AnnounceMessage: AnnounceMessageInput
+                  RoomDescription: RoomDescriptionInput
               }
               input PutMessageInput @aws_iam @aws_cognito_user_pools {
                   MessageId: String!
@@ -1226,10 +1270,12 @@ Resources:
                   DisplayProtocol: String
                   Characters: [String]
                   RoomId: String
+                  TimeOffset: Int
                   WorldMessage: WorldMessageInput
                   CharacterMessage: CharacterMessageInput
                   DirectMessage: DirectMessageInput
                   AnnounceMessage: AnnounceMessageInput
+                  RoomDescription: RoomDescriptionInput
               }
               input MessageUpdateInput @aws_iam @aws_cognito_user_pools {
                   putMessage: PutMessageInput

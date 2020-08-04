@@ -91,6 +91,37 @@ describe("broadcastMessages", () => {
 
     })
 
+    it('should return updates for RoomDescription messages', () => {
+
+        expect(broadcastMessages({
+            MessageId: '123',
+            CreatedTime: 123456,
+            DisplayProtocol: 'RoomDescription',
+            Characters: ['ABC', 'DEF'],
+            RoomDescription: {
+                RoomId: '987',
+                Name: 'TestRoom',
+                Description: 'A sterile cell.',
+                Exits: [
+                    {
+                        RoomId: '345',
+                        Name: 'archway',
+                        Visibility: 'Public'
+                    }
+                ],
+                Characters: [
+                    {
+                        CharacterId: 'ABC',
+                        Pronouns: 'She, her'
+                    }
+                ]
+            }
+        }).map((item) => (removeWhitespace(item)))).toEqual([
+            `broadcastMessage(Message: {\nMessageId: "123"\nTarget: "ABC"\nCreatedTime: 123456\nDisplayProtocol: "RoomDescription"\nRoomDescription: { RoomId: "987", Description: "A sterile cell.", Name: "TestRoom", Exits: [\n{ RoomId: "345", Name: "archway", Visibility: "Public" }\n], Characters: [\n{ CharacterId: "ABC", Pronouns: "She, her" }\n] }\n}) {${removeWhitespace(gqlOutput)}}`,
+            `broadcastMessage(Message: {\nMessageId: "123"\nTarget: "DEF"\nCreatedTime: 123456\nDisplayProtocol: "RoomDescription"\nRoomDescription: { RoomId: "987", Description: "A sterile cell.", Name: "TestRoom", Exits: [\n{ RoomId: "345", Name: "archway", Visibility: "Public" }\n], Characters: [\n{ CharacterId: "ABC", Pronouns: "She, her" }\n] }\n}) {${removeWhitespace(gqlOutput)}}`
+        ])
+
+    })
 
 })
 

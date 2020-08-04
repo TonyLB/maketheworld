@@ -1,3 +1,7 @@
+import { API, graphqlOperation } from 'aws-amplify'
+import { updateMessages } from '../../graphql/mutations'
+import { v4 as uuidv4 } from 'uuid'
+
 import { receiveMessage } from '../messages'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 import { getCharacterId } from '../../selectors/connection'
@@ -41,21 +45,23 @@ export const lookRoom = (props) => (dispatch, getState) => {
                 }))
             }
         })
-        const Players = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId })(state)
-        const roomDescription = {
+        const Characters = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId })(state)
+        const RoomDescription = {
             Description: currentRoom.Description,
             Name: currentRoom.Name,
             Ancestry: currentRoom.Ancestry,
-            RoomId: currentRoom.RoomId,
-            ParentId: currentRoom.ParentId,
-            Exits: currentRoom.Exits,
-            Players,
-            ...( Recap ? { Recap } : {})
+            RoomId: currentRoom.PermanentId,
+            Exits: currentRoom.Exits.map(({ RoomId, Name, Visibility }) => ({ RoomId, Name, Visibility })),
+            Characters: Characters.map(({ CharacterId, Name, Pronouns, FirstImpression, OneCoolThing, Outfit }) => ({ CharacterId, Name, Pronouns, FirstImpression, OneCoolThing, Outfit }))
         }
-        dispatch(receiveMessage({
-            DisplayProtocol: 'roomDescription',
-            ...roomDescription
-        }))
+        return API.graphql(graphqlOperation(updateMessages, { Updates: [{
+            putMessage: {
+                MessageId: uuidv4(),
+                Characters: [myCharacterId],
+                DisplayProtocol: "RoomDescription",
+                RoomDescription
+            }
+        }]}))
     }
     else {
         console.log('No currentRoom data!')

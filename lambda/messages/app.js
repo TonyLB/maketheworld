@@ -47,21 +47,26 @@ const gqlGroup = (items) => {
 }
 
 const updateDispatcher = ({ Updates = [] }) => {
+
+    const epochTime = Date.now()
+
     const outputs = Updates.map((update) => {
-            console.log(`Update: ${JSON.stringify(update, null, 4)}`)
+            // console.log(`Update: ${JSON.stringify(update, null, 4)}`)
             if (update.putMessage) {
-                console.log('Calling putMessage')
-                return putMessage(update.putMessage)
+                return putMessage({
+                    ...update.putMessage,
+                    CreatedTime: update.putMessage.CreatedTime || (epochTime + (update.putMessage.TimeOffset || 0))
+                })
             }
             return Promise.resolve({})
         }
     )
 
     return Promise.all(outputs)
-        .then((result) => {
-            console.log(`Outputs: ${JSON.stringify(result, null, 4)}`)
-            return result
-        })
+        // .then((result) => {
+        //     console.log(`Outputs: ${JSON.stringify(result.map(({ gqlWrites }) => (gqlWrites)), null, 4)}`)
+        //     return result
+        // })
         .then((finalOutputs) => finalOutputs.reduce(({
                 messageWrites: previousMessageWrites,
                 deltaWrites: previousDeltaWrites,
@@ -89,7 +94,6 @@ const updateDispatcher = ({ Updates = [] }) => {
 
 exports.handler = (event, context) => {
     const { action, Records, ...payload } = event
-    console.log(`Event: ${JSON.stringify(event, null, 4)}`)
 
     //
     // First check for Records, to see whether this is coming from the SNS topic subscription.
@@ -98,10 +102,6 @@ exports.handler = (event, context) => {
         return updateDispatcher({
             Updates: Records.filter(({ Sns = {} }) => (Sns.Message))
                 .map(({ Sns }) => (Sns.Message))
-                .map((result) => {
-                    console.log(`Message: ${result}`)
-                    return result
-                })
                 .map((message) => (JSON.parse(message)))
                 .filter((message) => (message))
         })

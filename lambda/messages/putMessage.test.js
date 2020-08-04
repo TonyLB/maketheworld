@@ -7,17 +7,11 @@ describe("putMessage", () => {
     const separator = `\n        `
     const testStart = `broadcastMessage(Message: {${separator}MessageId: "123"${separator}Target: "987"${separator}CreatedTime: 123451234567${separator}`
 
-    afterEach(() => {
-        jest.clearAllMocks()
-        global.Date.now = realDateNow
-    })
-
     it('should add a new world message', async () => {
-
-        global.Date.now = jest.fn(() => 123451234567)
 
         const data = await putMessage({
             MessageId: '123',
+            CreatedTime: 123451234567,
             RoomId: 'ABC',
             Characters: ['987'],
             DisplayProtocol: 'World',
@@ -76,10 +70,9 @@ describe("putMessage", () => {
 
     it('should add a new character message', async () => {
 
-        global.Date.now = jest.fn(() => 123451234567)
-
         const data = await putMessage({
             MessageId: '123',
+            CreatedTime: 123451234567,
             RoomId: 'ABC',
             Characters: ['987'],
             DisplayProtocol: 'Player',
@@ -141,10 +134,9 @@ describe("putMessage", () => {
 
     it('should add a new direct message', async () => {
 
-        global.Date.now = jest.fn(() => 123451234567)
-
         const data = await putMessage({
             MessageId: '123',
+            CreatedTime: 123451234567,
             RoomId: 'ABC',
             Characters: ['987'],
             DisplayProtocol: 'Direct',
@@ -212,10 +204,9 @@ describe("putMessage", () => {
 
     it('should add a new announce message', async () => {
 
-        global.Date.now = jest.fn(() => 123451234567)
-
         const data = await putMessage({
             MessageId: '123',
+            CreatedTime: 123451234567,
             RoomId: 'ABC',
             Characters: ['987'],
             DisplayProtocol: 'Announce',
@@ -278,4 +269,109 @@ describe("putMessage", () => {
         })
     })
 
+    it('should add a new room description message', async () => {
+
+        const data = await putMessage({
+            MessageId: '123',
+            CreatedTime: 123451234567,
+            RoomId: 'ABC',
+            Characters: ['987'],
+            DisplayProtocol: 'RoomDescription',
+            RoomDescription: {
+                RoomId: '456',
+                Name: 'TestRoom',
+                Description: 'A sterile cell.',
+                Exits: [
+                    {
+                        RoomId: '345',
+                        Name: 'archway',
+                        Visibility: 'Public'
+                    }
+                ],
+                Characters: [
+                    {
+                        CharacterId: 'ABC',
+                        Pronouns: 'She, her'
+                    }
+                ]
+            }
+        })
+        expect(data).toEqual({
+            messageWrites: [
+                {
+                    PutRequest: {
+                        Item: {
+                            MessageId: 'MESSAGE#123',
+                            DataCategory: 'Content',
+                            DisplayProtocol: 'RoomDescription',
+                            Name: 'TestRoom',
+                            RoomId: '456',
+                            Description: 'A sterile cell.',
+                            Exits: [
+                                {
+                                    RoomId: '345',
+                                    Name: 'archway',
+                                    Visibility: 'Public'
+                                }
+                            ],
+                            Characters: [
+                                {
+                                    CharacterId: 'ABC',
+                                    Pronouns: 'She, her'
+                                }
+                            ],
+                            CreatedTime: 123451234567
+                        }
+                    }
+                },
+                {
+                    PutRequest: {
+                        Item: {
+                            MessageId: 'ROOM#ABC',
+                            DataCategory: 'MESSAGE#123',
+                            CreatedTime: 123451234567
+                        }
+                    }
+                },
+                {
+                    PutRequest: {
+                        Item: {
+                            MessageId: 'CHARACTER#987',
+                            DataCategory: 'MESSAGE#123',
+                            CreatedTime: 123451234567
+                        }
+                    }
+                }
+            ],
+            deltaWrites: [
+                {
+                    PutRequest: {
+                        Item: {
+                            Target: 'CHARACTER#987',
+                            DeltaId: '123451234567::MESSAGE#123::Content',
+                            RowId: 'MESSAGE#123::Content',
+                            DisplayProtocol: 'RoomDescription',
+                            RoomId: '456',
+                            Name: 'TestRoom',
+                            Description: 'A sterile cell.',
+                            Exits: [
+                                {
+                                    RoomId: '345',
+                                    Name: 'archway',
+                                    Visibility: 'Public'
+                                }
+                            ],
+                            Characters: [
+                                {
+                                    CharacterId: 'ABC',
+                                    Pronouns: 'She, her'
+                                }
+                            ]
+                        }
+                    }
+                }
+            ],
+            gqlWrites: [`${testStart}DisplayProtocol: "RoomDescription"${separator}RoomDescription: { RoomId: "456", Description: "A sterile cell.", Name: "TestRoom", Exits: [${separator}    { RoomId: "345", Name: "archway", Visibility: "Public" }${separator}], Characters: [${separator}    { CharacterId: "ABC", Pronouns: "She, her" }${separator}] }\n    }) { ${gqlOutput} }`]
+        })
+    })
 })

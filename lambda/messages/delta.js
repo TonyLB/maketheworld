@@ -3,7 +3,7 @@
 
 exports.messageAndDeltas = (data) => {
 
-    const { MessageId, Target = null, CreatedTime, DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage } = data || {}
+    const { MessageId, Target = null, CreatedTime, DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription } = data || {}
 
     const epochTime = CreatedTime || Date.now()
 
@@ -11,6 +11,11 @@ exports.messageAndDeltas = (data) => {
     let CharacterId = undefined
     let Recipients = undefined
     let Title = undefined
+    let RoomId = undefined
+    let Name = undefined
+    let Description = undefined
+    let Exits = undefined
+    let Characters = undefined
 
     switch(DisplayProtocol) {
         case 'World':
@@ -31,6 +36,13 @@ exports.messageAndDeltas = (data) => {
             CharacterId = AnnounceMessage && AnnounceMessage.CharacterId
             Title = AnnounceMessage && AnnounceMessage.Title
             break
+        case 'RoomDescription':
+            RoomId = RoomDescription && RoomDescription.RoomId
+            Name = RoomDescription && RoomDescription.Name
+            Description = RoomDescription && RoomDescription.Description
+            Exits = RoomDescription && RoomDescription.Exits
+            Characters = RoomDescription && RoomDescription.Characters
+            break
         default:
             break
     }
@@ -44,6 +56,11 @@ exports.messageAndDeltas = (data) => {
                 Title,
                 CharacterId,
                 Recipients,
+                RoomId,
+                Name,
+                Description,
+                Exits,
+                Characters,
                 CreatedTime: epochTime
             },
             ...(Target
@@ -64,7 +81,12 @@ exports.messageAndDeltas = (data) => {
                 DisplayProtocol,
                 Title,
                 CharacterId,
-                Recipients
+                Recipients,
+                RoomId,
+                Name,
+                Description,
+                Exits,
+                Characters
             }]
             : []
     }

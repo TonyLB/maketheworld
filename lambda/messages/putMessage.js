@@ -17,31 +17,33 @@ const messageAndDeltaReducer = ({
     })
 
 exports.putMessage = (event) => {
-    const epochTime = Date.now()
 
-    const { MessageId, RoomId = null, Characters = [], DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage } = event
+    const { MessageId, CreatedTime, RoomId = null, Characters = [], DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription } = event
 
     const targets = [...(RoomId ? [`ROOM#${RoomId}`] : []), ...Characters.map((characterId) => (`CHARACTER#${characterId}`))]
 
     const { messageWrites, deltaWrites } = targets.map((Target) => (messageAndDeltas({
             MessageId,
+            CreatedTime,
             Target,
             DisplayProtocol,
             WorldMessage,
             CharacterMessage,
             DirectMessage,
-            AnnounceMessage
+            AnnounceMessage,
+            RoomDescription
         })))
         .reduce(messageAndDeltaReducer, { messageWrites: {}, deltaWrites: {} })
     const gqlWrites = broadcastMessages({
         MessageId,
         Characters,
         DisplayProtocol,
-        CreatedTime: epochTime,
+        CreatedTime,
         WorldMessage,
         CharacterMessage,
         DirectMessage,
-        AnnounceMessage
+        AnnounceMessage,
+        RoomDescription
     })
 
     return Promise.resolve({

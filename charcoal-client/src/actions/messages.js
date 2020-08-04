@@ -2,12 +2,6 @@ import { API, graphqlOperation } from 'aws-amplify'
 import { updateMessages } from '../graphql/mutations'
 import { v4 as uuidv4 } from 'uuid'
 
-import {
-    extractMutation,
-    populateMutationVariables,
-    batchMutations
-} from './batchQL'
-import { getCharacterId } from '../selectors/connection'
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
 
 export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE'

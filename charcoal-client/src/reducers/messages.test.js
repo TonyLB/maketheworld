@@ -2,7 +2,8 @@ import messages from './messages.js'
 import { RECEIVE_MESSAGE } from '../actions/messages.js'
 import {
     playerMessage,
-    worldMessage
+    worldMessage,
+    roomDescription
 } from '../store/messages'
 
 
@@ -74,7 +75,7 @@ describe('Messages reducer', () => {
         ])
     })
 
-    it('should append a playermessage to an existing array', () => {
+    it('should append a worldmessage to an existing array', () => {
         const startingList = [
             new playerMessage({
                 name: 'Peter Parker',
@@ -96,4 +97,49 @@ describe('Messages reducer', () => {
             })
         ])
     })
+
+    it('should append a room description message to an existing array', () => {
+        const startingList = [
+            new playerMessage({
+                name: 'Peter Parker',
+                Message: "I just feel like I could be doing more"
+            })
+        ]
+
+        expect(messages(startingList, {
+            type: RECEIVE_MESSAGE,
+            payload: {
+                DisplayProtocol: 'RoomDescription',
+                RoomDescription: {
+                    RoomId: '123',
+                    Players: [{
+                        PermanentId: 'ABC',
+                        Name: 'Testy'
+                    },
+                    {
+                        PermanentId: 'DEF',
+                        Name: 'Testina'
+                    }],
+                    Name: 'Oubliette',
+                    Description: 'A sterile holding cell'
+                }
+            }
+        })).toEqual([
+            ...startingList,
+            new roomDescription({
+                RoomId: '123',
+                Players: [{
+                    PermanentId: 'ABC',
+                    Name: 'Testy'
+                },
+                {
+                    PermanentId: 'DEF',
+                    Name: 'Testina'
+                }],
+                Name: 'Oubliette',
+                Description: 'A sterile holding cell'
+            })
+        ])
+    })
+
 })
