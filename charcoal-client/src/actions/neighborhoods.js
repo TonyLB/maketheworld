@@ -4,7 +4,7 @@ import { changedPermanents } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
 import cacheDB from '../cacheDB'
-
+import { deltaFactory } from './deltaSync'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 
@@ -56,39 +56,12 @@ export const fetchCached = async (dispatch) => {
     })
 }
 
-const syncFromPermanentsDelta = ({ startingAt }) => async (dispatch) => {
-    const permanentsResults = await API.graphql(graphqlOperation(syncPermanentsGQL, { startingAt, limit: 100 }))
-        .catch((err) => { console.log(err)})
-    const { data = {} } = permanentsResults || {}
-    const { syncPermanents: syncPermanentsData = {} } = data
-    const { Items = [], LastMoment = null, LastSync = null } = syncPermanentsData
-    dispatch(neighborhoodUpdate(Items))
-    if (LastSync) {
-        await cacheDB.clientSettings.put({ key: 'LastSync', value: LastSync })
-    }
-    else {
-        if (LastMoment) {
-            dispatch(syncFromPermanentsDelta({ startingAt: LastMoment }))
-        }
-    }
-}
-
-export const syncFromPermanents = ({ ExclusiveStartKey }) => async (dispatch) => {
-    const permanentsResults = await API.graphql(graphqlOperation(syncPermanentsGQL, { exclusiveStartKey: ExclusiveStartKey, limit: 100 }))
-        .catch((err) => { console.log(err)})
-    const { data = {} } = permanentsResults || {}
-    const { syncPermanents: syncPermanentsData = {} } = data
-    const { Items = [], LastEvaluatedKey = null, LastSync = null } = syncPermanentsData
-    dispatch(neighborhoodUpdate(Items))
-    if (LastEvaluatedKey) {
-        dispatch(syncFromPermanents({ ExclusiveStartKey: LastEvaluatedKey }))
-    }
-    else {
-        if (LastSync) {
-            await cacheDB.clientSettings.put({ key: 'LastSync', value: LastSync })
-        }
-    }
-}
+export const { syncFromDelta: syncFromPermanentsDelta, syncFromBaseTable: syncFromPermanents } = deltaFactory({
+    tagKey: 'syncPermanents',
+    lastSyncKey: 'LastSync',
+    processingAction: neighborhoodUpdate,
+    syncGQL: syncPermanentsGQL
+})
 
 export const subscribePermanentHeaderChanges = () => async (dispatch) => {
     dispatch(fetchCached)
