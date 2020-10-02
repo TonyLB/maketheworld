@@ -56,7 +56,7 @@ export const fetchCached = async (dispatch) => {
     })
 }
 
-export const syncFromDelta = ({ startingAt }) => async (dispatch) => {
+const syncFromPermanentsDelta = ({ startingAt }) => async (dispatch) => {
     const permanentsResults = await API.graphql(graphqlOperation(syncPermanentsGQL, { startingAt, limit: 100 }))
         .catch((err) => { console.log(err)})
     const { data = {} } = permanentsResults || {}
@@ -68,7 +68,7 @@ export const syncFromDelta = ({ startingAt }) => async (dispatch) => {
     }
     else {
         if (LastMoment) {
-            dispatch(syncFromDelta({ startingAt: LastMoment }))
+            dispatch(syncFromPermanentsDelta({ startingAt: LastMoment }))
         }
     }
 }
@@ -105,7 +105,7 @@ export const subscribePermanentHeaderChanges = () => async (dispatch) => {
 
     dispatch(addSubscription({ nodes: neighborhoodSubscription }))
     if (LastSync) {
-        dispatch(syncFromDelta({ startingAt: LastSync - 30000 }))
+        dispatch(syncFromPermanentsDelta({ startingAt: LastSync - 30000 }))
     }
     else {
         dispatch(syncFromPermanents({}))

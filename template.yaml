@@ -778,7 +778,7 @@ Resources:
                   }
               })
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QueryGettRoomRecap:
+  QueryGetRoomRecap:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
       Properties:
