@@ -10,6 +10,7 @@
 
 const { putMessage } = require('./putMessage')
 const { getRoomRecap } = require('./getRoomRecap')
+const { sync } = require('./sync')
 const { documentClient, gql, graphqlClient } = require('./utilities')
 
 const { gqlOutput } = require('./gqlOutput')
@@ -51,7 +52,6 @@ const updateDispatcher = ({ Updates = [] }) => {
     const epochTime = Date.now()
 
     const outputs = Updates.map((update) => {
-            // console.log(`Update: ${JSON.stringify(update, null, 4)}`)
             if (update.putMessage) {
                 return putMessage({
                     ...update.putMessage,
@@ -63,10 +63,6 @@ const updateDispatcher = ({ Updates = [] }) => {
     )
 
     return Promise.all(outputs)
-        // .then((result) => {
-        //     console.log(`Outputs: ${JSON.stringify(result.map(({ gqlWrites }) => (gqlWrites)), null, 4)}`)
-        //     return result
-        // })
         .then((finalOutputs) => finalOutputs.reduce(({
                 messageWrites: previousMessageWrites,
                 deltaWrites: previousDeltaWrites,
@@ -113,8 +109,8 @@ exports.handler = (event, context) => {
 
         switch(action) {
 
-            // case "sync":
-            //     return sync(payload)
+            case "sync":
+                return sync(payload)
 
             case "getRoomRecap":
                 return getRoomRecap(event.RoomId)
