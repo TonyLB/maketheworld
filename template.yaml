@@ -935,6 +935,35 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt MessagesFunction.Arn
+  QuerySyncMessagesResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: Schema
+    Properties:
+        ApiId: !GetAtt AppSyncAPI.ApiId
+        TypeName: Query
+        FieldName: syncMessages
+        DataSourceName: !GetAtt MessagesDataSource.Name
+        RequestMappingTemplate: >
+            {
+                "version": "2017-02-28",
+                "operation": "Invoke",
+                "payload": {
+                  "action": "sync"
+                  #if ($ctx.args.targetId)
+                  , "TargetId": "$ctx.args.targetId"
+                  #end
+                  #if ($ctx.args.limit)
+                  , "limit": "$ctx.args.limit"
+                  #end
+                  #if ($ctx.args.startingAt)
+                  , "startingAt": "$ctx.args.startingAt"
+                  #end
+                  #if ($ctx.args.exclusiveStartKey)
+                  , "exclusiveStartKey": $util.toJson($ctx.args.exclusiveStartKey)
+                  #end
+                }
+            }
+        ResponseMappingTemplate: "$util.toJson($ctx.result)"
   NoneDataSource:
       Type: AWS::AppSync::DataSource
       DependsOn:
@@ -1364,6 +1393,18 @@ Resources:
                 LatestMoment: Long
                 LastEvaluatedKey: LastEvaluatedKey
               }
+              type MessageLastEvaluatedKey @aws_iam @aws_cognito_user_pools {
+                MessageId: String
+                DataCategory: String
+              }
+              input MessageExclusiveStartKey @aws_iam @aws_cognito_user_pools {
+                PermanentId: String
+                DataCategory: String
+              }
+              type MessageSyncResponse @aws_iam @aws_cognito_user_pools {
+                Items: [Message]
+                LastEvaluatedKey: MessageLastEvaluatedKey
+              }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: String!
                   RoomId: String!
@@ -1434,6 +1475,7 @@ Resources:
                   getCharactersInPlay: [CharacterInPlay]
                   getRoomRecap(PermanentId: String!): [Message]
                   syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse
+                  syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
               }
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription

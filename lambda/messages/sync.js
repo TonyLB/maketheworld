@@ -7,6 +7,59 @@ const deltaTable = `${TABLE_PREFIX}_message_delta`
 
 const stripType = (value) => value && value.split('#').slice(1).join('#')
 
+const extractWithDefaults = (defaultMapping) => (args) => (
+    Object.entries(defaultMapping).reduce((previous, [key, defaultValue]) => ({ ...previous, [key]: args[key] || defaultValue }), {})
+)
+
+const deserialize = ({ DisplayProtocol, MessageId, CreatedTime, ExpirationTime, Target, RoomId, ...rest }) => {
+
+    const globals = { MessageId, CreatedTime, ExpirationTime, DisplayProtocol, Target, RoomId }
+
+    let defaultMapping = {}
+    let label = ''
+
+    switch (DisplayProtocol) {
+
+        case 'World':
+            label = 'WorldMessage'
+            defaultMapping = { Message: '' }
+            break
+
+        case 'Player':
+            label = 'CharacterMessage'
+            defaultMapping = { Message: '', CharacterId: '' }
+            break
+
+        case 'Direct':
+            label = 'DirectMessage'
+            defaultMapping = { Message: '', CharacterId: '', Title: '', Recipients: [] }
+            break
+
+        case 'RoomDescription':
+            label = 'RoomDescription'
+            defaultMapping = {
+                RoomId: '',
+                Name: '',
+                Description: '',
+                Ancestry: '',
+                Exits: [],
+                Characters: []
+            }
+            break
+
+        case 'Announce':
+            label = 'AnnounceMessage'
+            defaultMapping = { Message: '', Title: '' }
+            break
+
+        default: return globals
+    }
+
+    return {
+        ...globals,
+        [label]: extractWithDefaults(defaultMapping)(rest)
+    }
+}
 const syncRecords = async ({ TargetId, startingAt, limit, exclusiveStartKey }) => {
     if (!startingAt) {
         return []
@@ -44,7 +97,6 @@ exports.syncRecords = syncRecords
 
 exports.sync = async ({ TargetId, startingAt = null, limit = null, exclusiveStartKey = null }) => {
 
-    console.log('startingAt: ' + startingAt)
     const { LastEvaluatedKey = null, Items = [] } = await (startingAt
         ? syncRecords({ TargetId, startingAt, limit, exclusiveStartKey })
         : documentClient.query({
@@ -63,6 +115,6 @@ exports.sync = async ({ TargetId, startingAt = null, limit = null, exclusiveStar
             //
             .then(({ Items, ...rest }) => ({ ...rest, Items: Items.map((message) => ({ ...message, DataCategory: 'Content' }))}))
 
-    return { Items, LastEvaluatedKey }
+    return { Items: Items.map(deserialize).filter((value) => value), LastEvaluatedKey }
 
 }
