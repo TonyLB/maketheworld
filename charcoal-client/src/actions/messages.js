@@ -1,19 +1,32 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { updateMessages } from '../graphql/mutations'
+import { syncMessages as syncMessagesGQL } from '../graphql/queries'
+import { addedMessage } from '../graphql/subscriptions'
 import { v4 as uuidv4 } from 'uuid'
 
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
+import cacheDB from '../cacheDB'
+import { deltaFactory } from './deltaSync'
+import { getCharacterId } from '../selectors/connection'
+import { addSubscription } from './subscriptions'
 
-export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE'
+export const RECEIVE_MESSAGES = 'RECEIVE_MESSAGES'
 export const SET_MESSAGE_OPEN = 'SET_MESSAGE_OPEN'
 
-export const receiveMessage = ({ MessageId, ...message }) => ({
-    type: RECEIVE_MESSAGE,
-    payload: {
+export const receiveMessages = (messages) => async (dispatch) => {
+    await cacheDB.messages.bulkPut(messages)
+    dispatch({
+        type: RECEIVE_MESSAGES,
+        payload: messages
+    })
+}
+
+export const receiveMessage = ({ MessageId, ...message }) => (
+    receiveMessages([{
         MessageId: MessageId || uuidv4(),
         ...message
-    }
-})
+    }])
+)
 
 export const setMessageOpen = ({ MessageId, open }) => ({
     type: SET_MESSAGE_OPEN,
@@ -77,4 +90,57 @@ export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipi
         .catch((err) => { console.log(err)})
     }
     return Promise.resolve({})
+}
+
+export const fetchCachedMessages = (CharacterId) => async (dispatch) => {
+
+    const messages = await cacheDB.messages.where("Target").equals(CharacterId).toArray()
+
+    dispatch({
+        type: RECEIVE_MESSAGES,
+        payload: messages
+    })
+}
+
+export const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
+    dataTag: 'syncMessages',
+    lastSyncKey: 'LastMessageSync',
+    processingAction: receiveMessages,
+    syncGQL: syncMessagesGQL,
+})
+
+export const subscribeMessageChanges = () => async (dispatch, getState) => {
+    const state = getState()
+    const CharacterId = getCharacterId(state)
+    if (!CharacterId) {
+        console.log('Cannot yet subscribe to direct messages')
+    }
+    else {
+        const { subscriptions } = state
+        const { directMessages } = subscriptions || {}
+        if (directMessages) {
+            directMessages.unsubscribe()
+        }
+        dispatch(fetchCachedMessages(CharacterId))
+        const { value: LastMessageSync } = await cacheDB.clientSettings.get('LastMessageSync') || {}
+        const newMessageSubscription = await API.graphql(graphqlOperation(addedMessage, { Target: CharacterId }))
+            .subscribe({
+                next: (messageData) => {
+                    const { value = {} } = messageData
+                    const { data = {} } = value
+                    const { addedMessage = {} } = data
+                    dispatch(receiveMessage(addedMessage))
+                }
+            })
+
+        dispatch(addSubscription({ messages: newMessageSubscription }))
+        if (LastMessageSync) {
+            dispatch(syncFromMessagesDelta({ targetId: CharacterId, startingAt: LastMessageSync - 30000 }))
+        }
+        else {
+            dispatch(syncFromMessages({ targetId: CharacterId }))
+        }
+
+    }
+
 }

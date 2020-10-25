@@ -26,16 +26,16 @@ export const deltaFactory = ({ dataTag, lastSyncKey, processingAction, syncGQL }
     //
     // Pull changes from the supported delta table.
     //
-    const syncFromDelta = ({ startingAt }) => (
+    const syncFromDelta = ({ startingAt, ...rest }) => (
         syncHandler({
-            args: { startingAt },
+            args: { startingAt, ...rest },
             callback: async ({ dispatch, args: { LastMoment = null, LastSync = null } }) => {
                 if (LastSync) {
                     await cacheDB.clientSettings.put({ key: lastSyncKey, value: LastSync })
                 }
                 else {
                     if (LastMoment) {
-                        dispatch(syncFromDelta({ startingAt: LastMoment }))
+                        dispatch(syncFromDelta({ startingAt: LastMoment, ...rest }))
                     }
                 }
             }
@@ -45,12 +45,12 @@ export const deltaFactory = ({ dataTag, lastSyncKey, processingAction, syncGQL }
     //
     // Pull a first-time or post-TTL fetch directly from the base tables.
     //
-    const syncFromBaseTable = ({ ExclusiveStartKey }) => (
+    const syncFromBaseTable = ({ ExclusiveStartKey, ...rest }) => (
         syncHandler({
-            args: { exclusiveStartKey: ExclusiveStartKey },
+            args: { exclusiveStartKey: ExclusiveStartKey, ...rest },
             callback: async ({ dispatch, args: { LastEvaluatedKey = null, LastSync = null } }) => {
                 if (LastEvaluatedKey) {
-                    dispatch(syncFromBaseTable({ ExclusiveStartKey: LastEvaluatedKey }))
+                    dispatch(syncFromBaseTable({ ExclusiveStartKey: LastEvaluatedKey, ...rest }))
                 }
                 else {
                     if (LastSync) {

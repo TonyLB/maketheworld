@@ -14,11 +14,12 @@ describe("messagesSync", () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+        global.Date.now = realDateNow
     })
 
     it('should return empty when no delta info', async () => {
         documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] }))})
-        const data = await syncRecords({ startingAt: 123445000000, TargetId: 'CHARACTER#ABCD' })
+        const data = await syncRecords({ startingAt: 123445000000, TargetId: 'ABCD' })
         expect(documentClient.query.mock.calls.length).toBe(1)
         expect(documentClient.query.mock.calls[0][0]).toEqual({
             TableName: 'undefined_message_delta',
@@ -57,7 +58,7 @@ describe("messagesSync", () => {
                     DisplayProtocol: 'Player'
                 }
             ]}))})
-        const data = await syncRecords({ TargetId: 'CHARACTER#ABCD', startingAt: 123445000000 })
+        const data = await syncRecords({ TargetId: 'ABCD', startingAt: 123445000000 })
         expect(documentClient.query.mock.calls.length).toBe(1)
         expect(documentClient.query.mock.calls[0][0]).toEqual({
             TableName: 'undefined_message_delta',
@@ -127,10 +128,12 @@ describe("messagesSync", () => {
                     DataCategory: 'Content',
                     CreatedTime: 123456000000,
                     Message: 'Test Three',
-                    DisplayProtocol: 'Player'
+                    DisplayProtocol: 'Player',
+                    CharacterId: 'DEFG'
                 }
             ]}}))})
-        const data = await sync({ TargetId: 'CHARACTER#ABCD' })
+        global.Date.now = jest.fn(() => 123451234567)
+        const data = await sync({ TargetId: 'ABCD' })
         expect(documentClient.query.mock.calls.length).toBe(1)
         expect(documentClient.query.mock.calls[0][0]).toEqual({
             TableName: 'undefined_messages',
@@ -144,27 +147,35 @@ describe("messagesSync", () => {
             Items: [
                 {
                     MessageId: 'BCD',
-                    DataCategory: 'Content',
                     CreatedTime: 123446000000,
                     DisplayProtocol: 'World',
-                    Message: 'Test One'
+                    Target: 'ABCD',
+                    WorldMessage: {
+                        Message: 'Test One'
+                    }
                 },
                 {
                     MessageId: 'CDE',
-                    DataCategory: 'Content',
                     CreatedTime: 123451000000,
                     DisplayProtocol: 'World',
-                    Message: 'Test Two'
+                    Target: 'ABCD',
+                    WorldMessage: {
+                        Message: 'Test Two'
+                    }
                 },
                 {
                     MessageId: 'DEF',
-                    DataCategory: 'Content',
                     CreatedTime: 123456000000,
                     DisplayProtocol: 'Player',
-                    Message: 'Test Three'
+                    Target: 'ABCD',
+                    CharacterMessage: {
+                        CharacterId: 'DEFG',
+                        Message: 'Test Three'
+                    }
                 }
             ],
-            LastEvaluatedKey: null
+            LastEvaluatedKey: null,
+            LastSync: 123451234567
         })
 
     })
@@ -179,7 +190,7 @@ describe("messagesSync", () => {
                     DisplayProtocol: 'World'
                 }
             ]}))})
-        const data = await syncRecords({ TargetId: 'CHARACTER#ABCD', startingAt: 123445000000, exclusiveStartKey: { 'Test': 'Value' } })
+        const data = await syncRecords({ TargetId: 'ABCD', startingAt: 123445000000, exclusiveStartKey: { 'Test': 'Value' } })
         expect(documentClient.query.mock.calls.length).toBe(1)
         expect(documentClient.query.mock.calls[0][0]).toEqual({
             TableName: 'undefined_message_delta',

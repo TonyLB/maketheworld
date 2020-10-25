@@ -57,7 +57,7 @@ export const fetchCached = async (dispatch) => {
 }
 
 export const { syncFromDelta: syncFromPermanentsDelta, syncFromBaseTable: syncFromPermanents } = deltaFactory({
-    tagKey: 'syncPermanents',
+    dataTag: 'syncPermanents',
     lastSyncKey: 'LastSync',
     processingAction: neighborhoodUpdate,
     syncGQL: syncPermanentsGQL

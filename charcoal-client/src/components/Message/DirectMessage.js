@@ -32,7 +32,7 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const dispatch = useDispatch()
     return <ListItem ref={ref} className={ color && classes[color.direct] } alignItems="flex-start" {...rest} >
         <ListItemAvatar>
-            <Tooltip title={Name}>
+            <Tooltip title={Name || '?'}>
                 <Avatar className={color && classes[color.primary]}>
                     { (Name && Name[0].toUpperCase()) || '?' }
                 </Avatar>

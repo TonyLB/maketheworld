@@ -23,9 +23,9 @@ export const PlayerMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const classes = useStyles()
     return <ListItem ref={ref} className={ color && classes[color.light] } alignItems="flex-start" {...rest} >
         <ListItemAvatar>
-            <Tooltip title={Name}>
+            <Tooltip title={Name || '?'}>
                 <Avatar className={color && classes[color.primary]}>
-                    { Name[0].toUpperCase() }
+                    { (Name || '?')[0].toUpperCase() }
                 </Avatar>
             </Tooltip>
         </ListItemAvatar>

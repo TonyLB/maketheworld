@@ -11,11 +11,13 @@ import {
 } from '../actions/neighborhoods'
 import { subscribeEphemeraChanges } from '../actions/ephemera'
 import {
+    subscribeMessageChanges
+} from '../actions/messages'
+import {
     subscribePlayerChanges
 } from '../actions/player'
 import {
-    unsubscribeAll,
-    messageSubscription
+    unsubscribeAll
 } from '../actions/subscriptions'
 
 export const useAppSyncSubscriptions = () => {
@@ -45,7 +47,7 @@ export const useAppSyncSubscriptions = () => {
     }, [subscriptions.nodes, dispatch])
     useEffect(() => {
         if (characterId && !subscriptions.messages) {
-            dispatch(messageSubscription())
+            dispatch(subscribeMessageChanges())
         }
     }, [subscriptions, characterId, dispatch])
 

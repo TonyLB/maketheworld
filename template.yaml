@@ -1396,14 +1396,17 @@ Resources:
               type MessageLastEvaluatedKey @aws_iam @aws_cognito_user_pools {
                 MessageId: String
                 DataCategory: String
+                CreatedTime: Long
               }
               input MessageExclusiveStartKey @aws_iam @aws_cognito_user_pools {
-                PermanentId: String
+                MessageId: String
                 DataCategory: String
+                CreatedTime: Long
               }
               type MessageSyncResponse @aws_iam @aws_cognito_user_pools {
                 Items: [Message]
                 LastEvaluatedKey: MessageLastEvaluatedKey
+                LastSync: Long
               }
               type CharacterInPlay @aws_iam @aws_cognito_user_pools {
                   CharacterId: String!

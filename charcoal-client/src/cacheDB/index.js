@@ -15,5 +15,7 @@ cacheDB.version(2).stores({
     exits: '[FromRoomId+ToRoomId]',
     roles: 'RoleId'
 })
-
+cacheDB.version(3).stores({
+    messages: 'MessageId,CreatedTime,Target'
+})
 export default cacheDB
