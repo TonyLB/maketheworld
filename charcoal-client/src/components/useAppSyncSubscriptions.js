@@ -3,9 +3,9 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { getSubscriptions } from '../selectors/subscriptions'
 import { getCharacterId } from '../selectors/connection'
-import {
-    subscribeCharactersInPlayChanges
-} from '../actions/characters.js'
+// import {
+//     subscribeCharactersInPlayChanges
+// } from '../actions/characters.js'
 import {
     subscribePermanentHeaderChanges
 } from '../actions/neighborhoods'

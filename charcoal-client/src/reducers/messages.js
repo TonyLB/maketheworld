@@ -10,50 +10,43 @@ import {
 
 const messageSort = ({ CreatedTime: timeA }, { CreatedTime: timeB }) => (timeA - timeB)
 
+//
+// messageByProtocol looks at the DisplayProtocol passed, and creates an object of the appropriate Message subclass.
+//
+const messageByProtocol = (displayProtocol) => (rest) => {
+    switch (displayProtocol) {
+        case 'Player':
+            const { CharacterMessage } = rest
+            return (CharacterMessage && CharacterMessage.Message) ? (new playerMessage({ ...rest, ...CharacterMessage })) : null
+        case 'Announce':
+            const { AnnounceMessage } = rest
+            return (AnnounceMessage && AnnounceMessage.Message) ? (new announcementMessage({ ...rest, ...AnnounceMessage })) : null
+        case 'Direct':
+            const { DirectMessage } = rest
+            return (DirectMessage && DirectMessage.Message) ? ( new directMessage({ ...rest, ...DirectMessage })) : null
+        case 'RoomDescription':
+        case 'roomDescription':
+            return new roomDescription({ ...rest, ...(rest.RoomDescription || {}) })
+        case 'neighborhoodDescription':
+            return new neighborhoodDescription(rest)
+        default:
+            const { WorldMessage } = rest
+            return (WorldMessage && WorldMessage.Message) ? (new worldMessage({ ...rest, ...WorldMessage })) : null
+    }
+}
+
 export const reducer = (state = [], action) => {
     const { type: actionType = 'NOOP', payload } = action || {}
     switch (actionType) {
         case RECEIVE_MESSAGES:
             return (payload || []).reduce((previous, { DisplayProtocol = '', ...rest }) => {
                 const revisedPrevious = previous.filter(({ MessageId }) => (MessageId != rest.MessageId))
-                switch (DisplayProtocol) {
-                    case 'Player':
-                        const { CharacterMessage } = rest
-                        if (CharacterMessage && CharacterMessage.Message) {
-                            return [ ...revisedPrevious, new playerMessage({ ...rest, ...CharacterMessage }) ]
-                        }
-                        else {
-                            return previous
-                        }
-                    case 'Announce':
-                        const { AnnounceMessage } = rest
-                        if (AnnounceMessage && AnnounceMessage.Message) {
-                            return [ ...revisedPrevious, new announcementMessage({ ...rest, ...AnnounceMessage }) ]
-                        }
-                        else {
-                            return previous
-                        }
-                    case 'Direct':
-                        const { DirectMessage } = rest
-                        if (DirectMessage && DirectMessage.Message) {
-                            return [ ...revisedPrevious, new directMessage({ ...rest, ...DirectMessage }) ]
-                        }
-                        else {
-                            return previous
-                        }
-                    case 'RoomDescription':
-                    case 'roomDescription':
-                        return [ ...revisedPrevious, new roomDescription({ ...rest, ...(rest.RoomDescription || {}) }) ]
-                    case 'neighborhoodDescription':
-                        return [ ...revisedPrevious, new neighborhoodDescription(rest) ]
-                    default:
-                        const { WorldMessage } = rest
-                        if (WorldMessage && WorldMessage.Message) {
-                            return [ ...revisedPrevious, new worldMessage({ ...rest, ...WorldMessage }) ]
-                        }
-                        else {
-                            return previous
-                        }
+                const newMessage = messageByProtocol(DisplayProtocol)(rest)
+                if (newMessage) {
+                    return [ ...revisedPrevious, newMessage ]
+                }
+                else {
+                    return previous
                 }
             }, state).sort(messageSort)
         case SET_MESSAGE_OPEN:

@@ -262,6 +262,22 @@ export const useStyles = makeStyles(theme => ({
     },
     svgLightBlueContrast: {
         fill: theme.palette.getContrastText(blue[50])
+    },
+    profileContents: {
+        width: "100%",
+        height: "100%",
+        margin: "20px",
+        position: "relative",
+        maxWidth: "800px"
+    },
+    characterSelectionList: {
+    },
+    characterSelectionListItem: {
+        backgroundColor: grey[50],
+        borderRadius: "10px",
+        borderColor: grey[500],
+        borderWidth: "1px",
+        borderStyle: "solid"
     }
 }))
 

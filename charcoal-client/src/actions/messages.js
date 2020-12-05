@@ -74,7 +74,6 @@ export const sendPlayerMessage = ({RoomId = null, Message, CharacterId, Characte
 }
 
 export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => (dispatch, getState) => {
-    const state = getState()
     if (Message) {
         return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
             RoomId: null,

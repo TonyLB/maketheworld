@@ -1,8 +1,8 @@
-import { API, graphqlOperation } from 'aws-amplify'
-import { addedMessage } from '../graphql/subscriptions'
-import { receiveMessage } from './messages'
+// import { API, graphqlOperation } from 'aws-amplify'
+// import { addedMessage } from '../graphql/subscriptions'
+// import { receiveMessage } from './messages'
 
-import { getCharacterId } from '../selectors/connection'
+// import { getCharacterId } from '../selectors/connection'
 
 export const ADD_SUBSCRIPTION = 'ADD_SUBSCRIPTION'
 export const REMOVE_ALL_SUBSCRIPTIONS = 'REMOVE_ALL_SUBSCRIPTIONS'
@@ -26,27 +26,27 @@ export const unsubscribeAll = () => (dispatch, getState) => {
     dispatch(removeAllSubscriptions())
 }
 
-export const messageSubscription = () => (dispatch, getState) => {
-    const state = getState()
-    const { subscriptions } = state
-    const { directMessages } = subscriptions || {}
-    if (directMessages) {
-        directMessages.unsubscribe()
-    }
-    const CharacterId = getCharacterId(state)
-    if (!CharacterId) {
-        console.log('Cannot yet subscribe to direct messages')
-    }
-    else {
-        const newMessageSubscription = API.graphql(graphqlOperation(addedMessage, { Target: `${CharacterId}` }))
-            .subscribe({
-                next: (messageData) => {
-                    const { value = {} } = messageData
-                    const { data = {} } = value
-                    const { addedMessage = {} } = data
-                    dispatch(receiveMessage(addedMessage))
-                }
-            })
-        dispatch(addSubscription({ messages: newMessageSubscription }))
-    }
-}
+// export const messageSubscription = () => (dispatch, getState) => {
+//     const state = getState()
+//     const { subscriptions } = state
+//     const { directMessages } = subscriptions || {}
+//     if (directMessages) {
+//         directMessages.unsubscribe()
+//     }
+//     const CharacterId = getCharacterId(state)
+//     if (!CharacterId) {
+//         console.log('Cannot yet subscribe to direct messages')
+//     }
+//     else {
+//         const newMessageSubscription = API.graphql(graphqlOperation(addedMessage, { Target: `${CharacterId}` }))
+//             .subscribe({
+//                 next: (messageData) => {
+//                     const { value = {} } = messageData
+//                     const { data = {} } = value
+//                     const { addedMessage = {} } = data
+//                     dispatch(receiveMessage(addedMessage))
+//                 }
+//             })
+//         dispatch(addSubscription({ messages: newMessageSubscription }))
+//     }
+// }
