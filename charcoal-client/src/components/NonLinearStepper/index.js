@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 
+import PropTypes from 'prop-types'
+
 // MaterialUI imports
 import {
     Stepper,
@@ -34,7 +36,6 @@ export const NonLinearStepper = ({ steps = [], completed = {} }) => {
     };
   
     const handleNext = () => {
-      console.log(completed)
       const newActiveStep =
         isLastStep() && !allStepsCompleted()
           ? // It's the last step, but not all steps have been completed,
@@ -88,6 +89,15 @@ export const NonLinearStepper = ({ steps = [], completed = {} }) => {
             </Stepper>
         </React.Fragment>
     );
+}
+
+NonLinearStepper.propTypes = {
+  steps: PropTypes.arrayOf(PropTypes.shape({
+    label: PropTypes.string,
+    content: PropTypes.object,
+    option: PropTypes.bool
+  })),
+  completed: PropTypes.objectOf(PropTypes.bool)
 }
 
 export default NonLinearStepper

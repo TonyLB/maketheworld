@@ -6,6 +6,7 @@
 //
 
 import React from 'react'
+import PropTypes from 'prop-types'
 
 export const MultiLevelNest = ({ levelComponents = [], currentLevel = 1 }) => {
     return (
@@ -43,6 +44,11 @@ export const MultiLevelNest = ({ levelComponents = [], currentLevel = 1 }) => {
             }
         </div>
     )
+}
+
+MultiLevelNest.propTypes = {
+    levelComponents: PropTypes.array,
+    currentLevel: PropTypes.number
 }
 
 export default MultiLevelNest

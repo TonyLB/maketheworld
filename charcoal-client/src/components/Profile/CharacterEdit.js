@@ -1,15 +1,15 @@
 // Foundational imports (React, Redux, etc.)
-import React, { useReducer, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
+import React, { useState, useReducer, useEffect } from 'react'
+import PropTypes from 'prop-types'
 
 // MaterialUI imports
 import {
-    TextField
+    TextField,
+    Button
 } from '@material-ui/core'
 
 
 // Local code imports
-import { putMyCharacter } from '../../actions/characters'
 import NonLinearStepper from '../NonLinearStepper'
 import useStyles from '../styles'
 
@@ -41,40 +41,44 @@ const myCharacterDialogReducer = (state, action) => {
 
 export const CharacterEdit = ({
         characterData = {
-            characterId: '',
-            name: '',
-            pronouns: '',
-            firstImpression: '',
-            outfit: '',
-            oneCoolThing: '',
+            CharacterId: '',
+            Name: '',
+            Pronouns: '',
+            FirstImpression: '',
+            Outfit: '',
+            OneCoolThing: '',
+            HomeId: ''
         },
-        setEditState = () => {},
+        savePromiseFactory = () => (Promise.resolve()),
         closeEdit = () => {}
     }) => {
     const [formValues, formDispatch] = useReducer(myCharacterDialogReducer, {})
-    const dispatch = useDispatch()
 
     const workingCharacterId = (formValues && formValues.characterId) || ''
 
+    const [dirty, setDirty] = useState(false)
     useEffect(() => {
-        // console(`Working CharacterId: ${workingCharacterId}, Incoming: ${characterData.characterId}`)
-        if (workingCharacterId !== characterData.characterId || (characterData.characterId && !workingCharacterId)) {
+        if (workingCharacterId !== characterData.CharacterId || (characterData.CharacterId && !workingCharacterId)) {
+            setDirty(false)
             formDispatch(resetFormValues(characterData))
         }
-    }, [workingCharacterId, characterData.characterId])
+    }, [workingCharacterId, characterData, setDirty])
 
-    const { name = '', pronouns = '', firstImpression = '', outfit = '', oneCoolThing = '' } = formValues
+    const { Name = '', Pronouns = '', FirstImpression = '', Outfit = '', OneCoolThing = '' } = formValues
 
     const completed = {
-        0: Boolean(name) && Boolean(pronouns),
-        1: Boolean(firstImpression),
-        2: Boolean(outfit)
+        0: Boolean(Name) && Boolean(Pronouns),
+        1: Boolean(FirstImpression),
+        2: Boolean(Outfit)
     }
 
-    const onShallowChangeHandler = (label) => (event) => { formDispatch(appearanceUpdate({ label, value: event.target.value })) }
+    const onShallowChangeHandler = (label) => (event) => {
+        setDirty(true)
+        formDispatch(appearanceUpdate({ label, value: event.target.value }))
+    }
     const saveHandler = () => {
-        const { name, pronouns, firstImpression, outfit, oneCoolThing, characterId, homeId } = formValues
-        dispatch(putMyCharacter({ name, pronouns, firstImpression, outfit, oneCoolThing, characterId, homeId })).then(closeEdit)
+        const { Name: name, Pronouns: pronouns, FirstImpression: firstImpression, Outfit: outfit, OneCoolThing: oneCoolThing, CharacterId: characterId, HomeId: homeId } = formValues
+        savePromiseFactory({ name, pronouns, firstImpression, outfit, oneCoolThing, characterId, homeId }).then(closeEdit)
     }
 
     const classes = useStyles()
@@ -92,15 +96,15 @@ export const CharacterEdit = ({
                                     required
                                     id="name"
                                     label="Name"
-                                    value={name}
-                                    onChange={onShallowChangeHandler('name')}
+                                    value={Name}
+                                    onChange={onShallowChangeHandler('Name')}
                                 />
                                 <TextField
                                     id="pronouns"
                                     required
                                     label="Pronouns"
-                                    value={pronouns}
-                                    onChange={onShallowChangeHandler('pronouns')}
+                                    value={Pronouns}
+                                    onChange={onShallowChangeHandler('Pronouns')}
                                 />
                             </React.Fragment>
                         },
@@ -111,14 +115,14 @@ export const CharacterEdit = ({
                                     required
                                     id="firstImpression"
                                     label="First Impression"
-                                    value={firstImpression}
-                                    onChange={onShallowChangeHandler('firstImpression')}
+                                    value={FirstImpression}
+                                    onChange={onShallowChangeHandler('FirstImpression')}
                                 />
                                 <TextField
                                     id="oneCoolThing"
                                     label="One Cool Thing"
-                                    value={oneCoolThing}
-                                    onChange={onShallowChangeHandler('oneCoolThing')}
+                                    value={OneCoolThing}
+                                    onChange={onShallowChangeHandler('OneCoolThing')}
                                 />
                             </React.Fragment>
                         },
@@ -128,19 +132,35 @@ export const CharacterEdit = ({
                                 <TextField
                                     id="outfit"
                                     label="Outfit"
-                                    value={outfit}
+                                    value={Outfit}
                                     multiline
                                     rows={2}
                                     fullWidth
-                                    onChange={onShallowChangeHandler('outfit')}
+                                    onChange={onShallowChangeHandler('Outfit')}
                                 />
                             </React.Fragment>
                         }
                     ]
                 } />
+                <Button variant="contained" onClick={closeEdit} className={[classes.button, classes.formButton].join(' ')}>Cancel</Button>
+                <Button variant="contained" onClick={saveHandler} color="primary" className={[classes.button, classes.formButton].join(' ')} disabled={!(dirty && Boolean(Name) && Boolean(Pronouns) && Boolean(FirstImpression))}>Save</Button>
             </form>
         </React.Fragment>
     )
+}
+
+CharacterEdit.propTypes = {
+    characterData: PropTypes.shape({
+        CharacterId: PropTypes.string,
+        Name: PropTypes.string,
+        Pronouns: PropTypes.string,
+        FirstImpression: PropTypes.string,
+        OneCoolThing: PropTypes.string,
+        Outfit: PropTypes.string,
+        HomeId: PropTypes.string
+    }),
+    savePromiseFactory: PropTypes.func,
+    closeEdit: PropTypes.func
 }
 
 export default CharacterEdit

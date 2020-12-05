@@ -278,6 +278,9 @@ export const useStyles = makeStyles(theme => ({
         borderColor: grey[500],
         borderWidth: "1px",
         borderStyle: "solid"
+    },
+    formButton: {
+        margin: '5px'
     }
 }))
 

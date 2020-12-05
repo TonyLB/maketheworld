@@ -15,10 +15,11 @@
 //
 
 import React, { useState } from 'react'
+import PropTypes from 'prop-types'
 
 import MultiLevelNest from '../MultiLevelNest'
 import MyCharacters from './MyCharacters'
-import EditPanel from './EditPanel'
+import CharacterEdit from './CharacterEdit'
 
 import useStyles from '../styles'
 
@@ -40,10 +41,9 @@ export const Profile = ({ myCharacters = [] }) => {
                 </React.Fragment>,
                 <React.Fragment key="characterEdit">
                     { editingCharacter && 
-                        <EditPanel
+                        <CharacterEdit
                             characterData={currentCharacter}
-                            setCharacterId={setEditingCharacter}
-                            navigateBack={() => { setEditingCharacter(null) }}
+                            closeEdit={() => { setEditingCharacter(null) }}
                         />
                     }
                 </React.Fragment>
@@ -51,6 +51,18 @@ export const Profile = ({ myCharacters = [] }) => {
             currentLevel={editingCharacter ? 2 : 1}
         />
     </div>
+}
+
+Profile.propTypes = {
+    myCharacters: PropTypes.arrayOf(PropTypes.shape({
+        CharacterId: PropTypes.string,
+        Name: PropTypes.string,
+        Pronouns: PropTypes.string,
+        FirstImpression: PropTypes.string,
+        OneCoolThing: PropTypes.string,
+        Outfit: PropTypes.string,
+        HomeId: PropTypes.string
+    }))
 }
 
 export default Profile
