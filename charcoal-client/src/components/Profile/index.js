@@ -26,6 +26,7 @@ import useStyles from '../styles'
 
 export const Profile = ({
     myCharacters = [],
+    onCharacterSavePromiseFactory = () => {},
     textEntryLines,
     showNeighborhoodHeaders,
     onTextEntryChange = () => {},
@@ -58,6 +59,7 @@ export const Profile = ({
                         <CharacterEdit
                             characterData={currentCharacter}
                             closeEdit={() => { setEditingCharacter(null) }}
+                            savePromiseFactory={onCharacterSavePromiseFactory}
                         />
                     }
                 </React.Fragment>
@@ -77,10 +79,11 @@ Profile.propTypes = {
         Outfit: PropTypes.string,
         HomeId: PropTypes.string
     })),
+    onCharacterSavePromiseFactory: PropTypes.func,
     textEntryLines: PropTypes.number,
     showNeighborhoodHeaders: PropTypes.bool,
     onTextEntryChange: PropTypes.func,
-    onShowNeighborhoodChange: PropTypes.func
+    onShowNeighborhoodChange: PropTypes.func,
 }
 
 export default Profile

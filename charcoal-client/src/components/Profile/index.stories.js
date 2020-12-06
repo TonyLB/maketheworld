@@ -20,6 +20,7 @@ export default {
                 type: 'select',
                 options: [1, 2, 4, 8]
             },
+            description: 'Web-client setting for number of text entry lines shown',
             table: {
                 category: 'Data'
             }
@@ -28,12 +29,22 @@ export default {
             control: {
                 type: 'boolean'
             },
+            description: 'Web-client setting for whether to display Neighborhood transition headers',
             table: {
                 category: 'Data'
             }
         },
+        onCharacterSavePromiseFactory: {
+            defaultValue: null,
+            description: 'Called when the characterEdit saves data',
+            control: { action: 'characterSavePromiseFactory' },
+            table: {
+                category: 'Events'
+            }
+        },
         onTextEntryChange: {
             defaultValue: null,
+            description: 'Called when the text entry control is changed',
             control: { action: 'onTextEntryChange' },
             table: {
                 category: 'Events'
@@ -41,6 +52,7 @@ export default {
         },
         onShowNeighborhoodChange: {
             defaultValue: null,
+            description: 'Called when the show Neighborhood control is changed',
             control: { action: 'onShowNeighborhoodChange' },
             table: {
                 category: 'Events'
@@ -71,5 +83,5 @@ Basic.args = {
         }
     ],
     textEntryLines: 1,
-    showNeighborhoodHeaders: false
+    showNeighborhoodHeaders: false,
 }

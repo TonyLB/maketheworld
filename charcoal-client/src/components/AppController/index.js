@@ -10,6 +10,7 @@ import React, { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { getMyCharacters } from '../../selectors/myCharacters'
+import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
 
@@ -29,6 +30,7 @@ export const AppController = () => {
 
     const profileArgs = {
         myCharacters,
+        onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
         onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },

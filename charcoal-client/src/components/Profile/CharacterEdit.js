@@ -54,7 +54,7 @@ export const CharacterEdit = ({
     }) => {
     const [formValues, formDispatch] = useReducer(myCharacterDialogReducer, {})
 
-    const workingCharacterId = (formValues && formValues.characterId) || ''
+    const workingCharacterId = (formValues && formValues.CharacterId) || ''
 
     const [dirty, setDirty] = useState(false)
     useEffect(() => {
@@ -77,8 +77,15 @@ export const CharacterEdit = ({
         formDispatch(appearanceUpdate({ label, value: event.target.value }))
     }
     const saveHandler = () => {
-        const { Name: name, Pronouns: pronouns, FirstImpression: firstImpression, Outfit: outfit, OneCoolThing: oneCoolThing, CharacterId: characterId, HomeId: homeId } = formValues
-        savePromiseFactory({ name, pronouns, firstImpression, outfit, oneCoolThing, characterId, homeId }).then(closeEdit)
+        (savePromiseFactory({
+            name: Name,
+            pronouns: Pronouns,
+            firstImpression: FirstImpression,
+            outfit: Outfit,
+            oneCoolThing: OneCoolThing,
+            characterId: formValues.CharacterId,
+            homeId: formValues.HomeId
+        }) || Promise.resolve()).then(closeEdit)
     }
 
     const classes = useStyles()

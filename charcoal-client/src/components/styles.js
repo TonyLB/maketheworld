@@ -266,7 +266,7 @@ export const useStyles = makeStyles(theme => ({
     profileContents: {
         width: "calc(100% - 40px)",
         height: "100%",
-        margin: "20px",
+        margin: "0px 20px",
         position: "relative"
     },
     characterSelectionList: {
