@@ -62,8 +62,8 @@ export const putMyCharacter = ({
 }) => (dispatch, getState) => {
     const state = getState()
     const player = getPlayer(state)
-    const newCharacter = !Boolean(characterId)
     const finalCharacterId = characterId || uuidv4()
+    const newCharacter = !(player.Characters || []).includes(finalCharacterId)
     return Promise.all([
         API.graphql(graphqlOperation(updatePermanents, { Updates: [
             {

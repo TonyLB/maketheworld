@@ -278,6 +278,14 @@ export const useStyles = makeStyles(theme => ({
         borderWidth: "1px",
         borderStyle: "solid"
     },
+    characterAddListItem: {
+        backgroundColor: grey[100],
+        borderRadius: "10px",
+        borderColor: grey[500],
+        borderWidth: "1px",
+        borderStyle: "solid",
+        cursor: "pointer",
+    },
     contextMessage: {
         zIndex: 0,
         position: 'relative',

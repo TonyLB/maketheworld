@@ -4,12 +4,14 @@
 
 import React from 'react'
 import PropTypes from "prop-types"
+import { v4 as uuidv4 } from 'uuid'
 
 // MaterialUI imports
 import {
     List
 } from '@material-ui/core'
 import MyCharacterListItem from './MyCharacterListItem'
+import AddCharacterListItem from './AddCharacterListItem'
 
 import useStyles from '../styles'
 
@@ -24,6 +26,7 @@ export const MyCharacters = ({ myCharacters = [], editCharacter = () => {}, conn
                 <MyCharacterListItem key={CharacterId || `Character-${index}`} Name={Name} CharacterId={CharacterId} onEdit={() => { editCharacter(CharacterId) }} onConnect={() => { connectCharacter(CharacterId) }} />
             ))
         }
+        <AddCharacterListItem onEdit={() => { editCharacter(uuidv4()) }} />
     </List>
 
 }

@@ -36,7 +36,7 @@ export const Profile = ({
 
     // const [showArchived, setShowArchived] = useState(false)
     const [editingCharacter, setEditingCharacter] = useState(null)
-    const currentCharacter = myCharacters.find(({ CharacterId }) => (CharacterId === editingCharacter)) || {}
+    const currentCharacter = myCharacters.find(({ CharacterId }) => (CharacterId === editingCharacter)) || (editingCharacter ? { CharacterId: editingCharacter } : {})
     return <div className={classes.profileContents}>
         <MultiLevelNest
             levelComponents={[
