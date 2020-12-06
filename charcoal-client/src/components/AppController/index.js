@@ -6,10 +6,12 @@
 // Layout component.
 //
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { getMyCharacters, getMyCurrentCharacter } from '../../selectors/myCharacters'
+import { getMyCharacters } from '../../selectors/myCharacters'
+import { getClientSettings } from '../../selectors/clientSettings'
+import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
 
 import AppLayout from '../AppLayout'
 import Profile from '../Profile'
@@ -18,8 +20,23 @@ import useAppSyncSubscriptions from '../useAppSyncSubscriptions'
 export const AppController = () => {
     useAppSyncSubscriptions()
     const myCharacters = useSelector(getMyCharacters)
+    const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
+    const dispatch = useDispatch()
+
+    useEffect(() => {
+        dispatch(loadClientSettings)
+    }, [dispatch])
+
+    const profileArgs = {
+        myCharacters,
+        textEntryLines: TextEntryLines,
+        showNeighborhoodHeaders: ShowNeighborhoodHeaders,
+        onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },
+        onShowNeighborhoodChange: (value) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) }
+    }
+
     return <AppLayout
-        profilePanel={<Profile myCharacters={myCharacters} />}
+        profilePanel={<Profile {...profileArgs} />}
     />
 }
 

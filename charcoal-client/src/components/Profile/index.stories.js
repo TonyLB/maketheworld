@@ -14,11 +14,42 @@ export default {
             table: {
                 category: 'Data'
             }
+        },
+        textEntryLines: {
+            control: {
+                type: 'select',
+                options: [1, 2, 4, 8]
+            },
+            table: {
+                category: 'Data'
+            }
+        },
+        showNeighborhoodHeaders: {
+            control: {
+                type: 'boolean'
+            },
+            table: {
+                category: 'Data'
+            }
+        },
+        onTextEntryChange: {
+            defaultValue: null,
+            control: { action: 'onTextEntryChange' },
+            table: {
+                category: 'Events'
+            }
+        },
+        onShowNeighborhoodChange: {
+            defaultValue: null,
+            control: { action: 'onShowNeighborhoodChange' },
+            table: {
+                category: 'Events'
+            }
         }
     }
 };
 
-const Template = (args) => <div style={{ position: 'relative', width: '400px', height: '600px' }}><Profile {...args} /></div>
+const Template = (args) => <div style={{ position: 'relative', width: '400px', height: '800px' }}><Profile {...args} /></div>
 
 export const Basic = Template.bind({})
 Basic.args = {
@@ -38,5 +69,7 @@ Basic.args = {
             FirstImpression: 'Earth boy',
             HomeId: 'DEF'
         }
-    ]
+    ],
+    textEntryLines: 1,
+    showNeighborhoodHeaders: false
 }

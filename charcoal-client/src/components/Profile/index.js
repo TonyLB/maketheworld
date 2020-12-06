@@ -20,10 +20,17 @@ import PropTypes from 'prop-types'
 import MultiLevelNest from '../MultiLevelNest'
 import MyCharacters from './MyCharacters'
 import CharacterEdit from './CharacterEdit'
+import ClientSettings from './ClientSettings'
 
 import useStyles from '../styles'
 
-export const Profile = ({ myCharacters = [] }) => {
+export const Profile = ({
+    myCharacters = [],
+    textEntryLines,
+    showNeighborhoodHeaders,
+    onTextEntryChange = () => {},
+    onShowNeighborhoodChange = () => {}
+}) => {
     const classes = useStyles()
 
     // const [showArchived, setShowArchived] = useState(false)
@@ -33,10 +40,17 @@ export const Profile = ({ myCharacters = [] }) => {
         <MultiLevelNest
             levelComponents={[
                 <React.Fragment key="characterList">
-                    <h1>My Characters</h1>
+                    <h1 className={classes.subjectHeader}>My Characters</h1>
                     <MyCharacters
                         myCharacters={myCharacters}
                         editCharacter={setEditingCharacter}
+                    />
+                    <h1 className={classes.subjectHeader}>Client Settings</h1>
+                    <ClientSettings
+                        textEntryLines={textEntryLines}
+                        showNeighborhoodHeaders={showNeighborhoodHeaders}
+                        onTextEntryChange={onTextEntryChange}
+                        onShowNeighborhoodChange={onShowNeighborhoodChange}
                     />
                 </React.Fragment>,
                 <React.Fragment key="characterEdit">
@@ -62,7 +76,11 @@ Profile.propTypes = {
         OneCoolThing: PropTypes.string,
         Outfit: PropTypes.string,
         HomeId: PropTypes.string
-    }))
+    })),
+    textEntryLines: PropTypes.number,
+    showNeighborhoodHeaders: PropTypes.bool,
+    onTextEntryChange: PropTypes.func,
+    onShowNeighborhoodChange: PropTypes.func
 }
 
 export default Profile

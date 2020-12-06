@@ -264,11 +264,10 @@ export const useStyles = makeStyles(theme => ({
         fill: theme.palette.getContrastText(blue[50])
     },
     profileContents: {
-        width: "100%",
+        width: "calc(100% - 40px)",
         height: "100%",
         margin: "20px",
-        position: "relative",
-        maxWidth: "800px"
+        position: "relative"
     },
     characterSelectionList: {
     },
@@ -279,8 +278,57 @@ export const useStyles = makeStyles(theme => ({
         borderWidth: "1px",
         borderStyle: "solid"
     },
-    formButton: {
-        margin: '5px'
+    contextMessage: {
+        zIndex: 0,
+        position: 'relative',
+        maxWidth: '500px',
+        padding: '20px',
+        margin: '20px',
+        fontFamily: theme.typography.fontFamily,
+        'text-shadow': `
+            -0.5px -0.5px 0 #FFFFFF,
+            0.5px -0.5px 0 #FFFFFF,
+            -0.5px 0.5px 0 #FFFFFF,
+            0.5px 0.5px 0 #FFFFFF
+        `,
+        '&:before': {
+            borderRadius: '10px 0px 0px 10px',
+            position: 'absolute',
+            height: '100%',
+            top: 0,
+            left: 0,
+            zIndex: -5,
+            width: '50px',
+            display: 'block',
+            content: '" "',
+            backgroundColor: 'lightGrey'
+        }
+    },
+    subjectHeader: {
+        zIndex: 0,
+        position: 'relative',
+        padding: '10px',
+        margin: '10px',
+        fontFamily: theme.typography.fontFamily,
+        'text-shadow': `
+            -1px -1px 0 #FFFFFF,
+            1px -1px 0 #FFFFFF,
+            -1px 1px 0 #FFFFFF,
+            1px 1px 0 #FFFFFF
+        `,
+        '&:before': {
+            borderRadius: '10px',
+            position: 'absolute',
+            height: '2em',
+            width: '2em',
+            top: 0,
+            left: 0,
+            zIndex: -5,
+            display: 'block',
+            content: '" "',
+            backgroundColor: 'lightBlue'
+        }
+
     }
 }))
 
