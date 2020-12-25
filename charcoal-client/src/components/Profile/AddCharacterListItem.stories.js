@@ -5,7 +5,7 @@ import {
 
 import { AddCharacterListItem } from './AddCharacterListItem';
 
-export default {
+const AddCharacterListItemStory = {
   title: 'Profile/AddCharacterListItem',
   component: AddCharacterListItem,
   argTypes: {
@@ -18,7 +18,9 @@ export default {
         }
     }
   }
-};
+}
+
+export default AddCharacterListItemStory
 
 const Template = (args) => <List><AddCharacterListItem {...args} /></List>
 

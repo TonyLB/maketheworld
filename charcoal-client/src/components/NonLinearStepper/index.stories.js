@@ -2,7 +2,7 @@ import React from 'react';
 
 import { NonLinearStepper } from '.';
 
-export default {
+const NonLinearStepperStory = {
   title: 'NonLinearStepper',
   component: NonLinearStepper,
   argTypes: {
@@ -14,7 +14,9 @@ export default {
         description: 'An object keyed by indices into the steps list, recording True if that step has been completed'
     }
   }
-};
+}
+
+export default NonLinearStepperStory
 
 const Template = (args) => <NonLinearStepper {...args} />
 

@@ -2,10 +2,12 @@ import React from 'react';
 
 import { Header } from './Header';
 
-export default {
+const HeaderStory = {
   title: 'Example/Header',
   component: Header,
 };
+
+export default HeaderStory
 
 const Template = (args) => <Header {...args} />;
 

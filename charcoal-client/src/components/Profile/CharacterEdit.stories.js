@@ -2,7 +2,7 @@ import React from 'react';
 
 import { CharacterEdit } from './CharacterEdit';
 
-export default {
+const CharacterEditStory = {
   title: 'Profile/CharacterEdit',
   component: CharacterEdit,
   argTypes: {
@@ -30,7 +30,9 @@ export default {
         }
     }
   }
-};
+}
+
+export default CharacterEditStory
 
 const Template = (args) => <CharacterEdit {...args} />
 

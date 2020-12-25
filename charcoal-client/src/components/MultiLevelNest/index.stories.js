@@ -2,7 +2,7 @@ import React from 'react';
 
 import { MultiLevelNest } from '.';
 
-export default {
+const MultiLevelNestStory = {
   title: 'MultiLevelNest',
   component: MultiLevelNest,
   argTypes: {
@@ -17,7 +17,9 @@ export default {
         description: 'A list of JSX components, indexed by what nesting level they display at'
     }
   }
-};
+}
+
+export default MultiLevelNestStory
 
 const Template = (args) => <div style={{ position: 'relative', width: '400px', height: '300px' }}><MultiLevelNest {...args} /></div>
 

@@ -5,19 +5,19 @@ import {
 
 import { MyCharacterListItem } from './MyCharacterListItem';
 
-export default {
+const MyCharacterListItemStory = {
   title: 'Profile/MyCharacterListItem',
   component: MyCharacterListItem,
   argTypes: {
     Name: {
-        control: { type: 'string' },
+        control: { type: 'text' },
         description: 'Name of character',
         table: {
             category: 'Data'
         }
     },
     CharacterId: {
-        control: { type: 'string' },
+        control: { type: 'text' },
         description: 'Internal ID of character',
         table: {
             category: 'Data'
@@ -40,7 +40,9 @@ export default {
         }
     }
   }
-};
+}
+
+export default MyCharacterListItemStory
 
 const Template = (args) => <List><MyCharacterListItem {...args} /></List>
 

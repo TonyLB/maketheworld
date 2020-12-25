@@ -2,7 +2,7 @@ import React from 'react';
 
 import ClientSettings from './ClientSettings';
 
-export default {
+const ClientSettingsStory = {
     title: 'Profile/ClientSettings',
     component: ClientSettings,
     argTypes: {
@@ -30,7 +30,9 @@ export default {
             control: { action: 'onShowNeighborhoodChange' }
         }
     }
-};
+}
+
+export default ClientSettingsStory
 
 const Template = (args) => <ClientSettings {...args} />
 

@@ -2,7 +2,7 @@ import React from 'react';
 
 import Profile from './index';
 
-export default {
+const ProfileStory = {
     title: 'Profile/Profile',
     component: Profile,
     argTypes: {
@@ -59,7 +59,9 @@ export default {
             }
         }
     }
-};
+}
+
+export default ProfileStory
 
 const Template = (args) => <div style={{ position: 'relative', width: '400px', height: '800px' }}><Profile {...args} /></div>
 

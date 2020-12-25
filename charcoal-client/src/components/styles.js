@@ -11,6 +11,11 @@ import tinycolor from 'tinycolor2'
 const drawerWidth = 400;
 
 export const useStyles = makeStyles(theme => ({
+    //
+    // Old style classes created multiple direct named classes for each color.
+    // This should be replaced with new style nested color classes, and the
+    // old style deprecated
+    //
     ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
         [colorName]: {
             color: theme.palette.getContrastText(color[500]),
@@ -40,6 +45,46 @@ export const useStyles = makeStyles(theme => ({
             backgroundColor: color[50]
         }
     })).reduce((prev, item) => ({ ...prev, ...item }), {})),
+    //
+    // New style classes create several player<Color> classes, with nested
+    // classes within them, so that outer items can declare a player<Color> class
+    // for a particular color, and inner classes can simply use the constant nested
+    // class name
+    //
+    ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
+        [`player${colorName.charAt(0).toUpperCase()}${colorName.slice(1)}`]: {
+            '& .threadViewMessageColor': {
+                color: theme.palette.getContrastText(color[50]),
+                backgroundColor: color[50],
+                borderColor: color[500]
+            },
+            '& .avatarColor': {
+                color: theme.palette.getContrastText(color[50]),
+                backgroundColor: color[500],
+            }
+        },
+    })).reduce((prev, item) => ({ ...prev, ...item }), {})),
+    threadViewMessage: {
+        borderRadius: "10px",
+        borderWidth: "1px",
+        borderStyle: "solid"
+    },
+    //
+    // If we have enough screen real-estate, offset messages from other people to the
+    // left, and offset messages from yourself to the right.
+    //
+    threadViewOther: {
+        '@media screen and (min-width: 1000px)': {
+            width: `calc(100% - ${theme.spacing(12)}px)`,
+            marginRight: theme.spacing(12)
+        }
+    },
+    threadViewSelf: {
+        '@media screen and (min-width: 1000px)': {
+            width: `calc(100% - ${theme.spacing(12)}px)`,
+            marginLeft: theme.spacing(12)
+        }
+    },
     recap: {
         backgroundColor: grey[200],
         paddingLeft: theme.spacing(8)
@@ -269,6 +314,10 @@ export const useStyles = makeStyles(theme => ({
         margin: "0px 20px",
         position: "relative"
     },
+    characterChip: {
+        maxWidth: "10em",
+        textOverflow: "ellipsis"
+    },
     characterSelectionList: {
     },
     characterSelectionListItem: {
@@ -336,7 +385,19 @@ export const useStyles = makeStyles(theme => ({
             content: '" "',
             backgroundColor: 'lightBlue'
         }
-
+    },
+    threadListItem: {
+        cursor: 'pointer',
+        userSelect: 'none',
+        backgroundColor: grey[50],
+        borderRadius: "10px",
+        borderColor: grey[500],
+        borderWidth: "1px",
+        borderStyle: "solid",
+        '&:hover': {
+            backgroundColor: blue[50],
+            color: theme.palette.getContrastText(blue[50])
+        }
     }
 }))
 
