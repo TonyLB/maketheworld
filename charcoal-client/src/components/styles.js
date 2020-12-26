@@ -58,6 +58,10 @@ export const useStyles = makeStyles(theme => ({
                 backgroundColor: color[50],
                 borderColor: color[500]
             },
+            '& .messageColor': {
+                color: theme.palette.getContrastText(color[50]),
+                backgroundColor: color[50],
+            },
             '& .avatarColor': {
                 color: theme.palette.getContrastText(color[50]),
                 backgroundColor: color[500],

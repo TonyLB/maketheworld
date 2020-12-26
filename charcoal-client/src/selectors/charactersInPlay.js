@@ -4,13 +4,19 @@ export const getCharactersInPlay = (state) => {
     const characters = getCharacters(state)
     const { charactersInPlay } = state
     const { meta, ...chars } = charactersInPlay
-    return Object.values(chars)
-        .map(({ CharacterId, ...rest }) => ({
-            ...characters[CharacterId],
-            CharacterId,
-            ...rest
-        }))
-        .reduce((previous, { CharacterId, ...item }) => ({ ...previous, [CharacterId]: { CharacterId, ...item } }), {})
+    const defaultValues = {
+        Name: '??????',
+        color: { primary: 'grey' },
+        Connected: false
+    }
+    return new Proxy({ characters, charactersInPlay: chars ?? {} }, {
+        get: (obj, prop) => ({
+            ...defaultValues,
+            ...(obj.characters[prop] ?? {}),
+            ...(obj.charactersInPlay[prop] ?? {})
+        })
+    })
+
 }
 
 export const getActiveCharacterList = (state) => {
