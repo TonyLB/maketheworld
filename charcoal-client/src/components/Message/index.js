@@ -88,27 +88,23 @@ export const PolymorphicMessage = ({ viewAsCharacterId=null, children=[], ...res
     const { Name = '??????' } = charactersInPlay[CharacterId]
 
     const classes = useStyles()
-    return <div className={classes[`player${viewColor}`]}>
+    return <div className={classes[`player${viewColor}`]} style={{ padding: '5px' }}>
         <ListItem
             className={messageThread ? `${classes.threadViewMessage} threadViewMessageColor` : `messageColor`}
             classes={{
                 ...(messageThread ? { root: viewAsSelf ? classes.threadViewSelf : classes.threadViewOther } : {})
             }}
             alignItems="flex-start"
+            style={{ margin: 0 }}
         >
-            { CharacterId && <ListItemAvatar>
-                { React.Children.map(children, (element) => ((element.type === CharacterAvatar)
-                    ? React.cloneElement(element, { alreadyNested: true, viewAsSelf })
-                    : null
-                ))}
-            </ListItemAvatar>}
+            { playerAvatar && <ListItemAvatar>{playerAvatar}</ListItemAvatar>}
             <ListItemText
                 primary={<React.Fragment>
-                    { React.Children.map(children, (element) => ((element.type === MessageContent) ? element : null))}
+                    { React.Children.map(children, (element) => ((element && (element.type === MessageContent)) ? element : null))}
                 </React.Fragment>}
                 secondary={<React.Fragment>
                     { React.Children.map(children, (element) => {
-                        if (element.type === MessageTime) {
+                        if (element && (element.type === MessageTime)) {
                             const timeString = new Date(element.props.time ?? 0).toLocaleString()
                             return `${Name} at ${timeString}`
                         }
