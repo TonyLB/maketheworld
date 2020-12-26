@@ -95,9 +95,9 @@ export const PolymorphicMessage = ({ viewAsCharacterId=null, children=[], ...res
                 ...(messageThread ? { root: viewAsSelf ? classes.threadViewSelf : classes.threadViewOther } : {})
             }}
             alignItems="flex-start"
-            style={{ margin: 0 }}
+            style={{ marginBottom: 0, marginTop: 0 }}
         >
-            { playerAvatar && <ListItemAvatar>{playerAvatar}</ListItemAvatar>}
+            { playerAvatar && <ListItemAvatar>{React.cloneElement(playerAvatar, { viewAsSelf, alreadyNested: true })}</ListItemAvatar>}
             <ListItemText
                 primary={<React.Fragment>
                     { React.Children.map(children, (element) => ((element && (element.type === MessageContent)) ? element : null))}

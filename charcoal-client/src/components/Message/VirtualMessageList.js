@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useMemo, useEffect } from 'react'
+import React, { useRef, useMemo } from 'react'
 import PropTypes from "prop-types"
 
 import {
@@ -13,21 +13,18 @@ import MessageThread from './MessageThread'
 import MessageTime from './MessageTime'
 import { PolymorphicMessage } from '../Message'
 
-const itemContent = (index, data) => {
+const itemContent = (viewAsCharacterId) => (index, data) => {
     const { CharacterId, Message, MessageTime: MessageTimeData, ThreadId } = data
-    return <PolymorphicMessage>
+    return <PolymorphicMessage viewAsCharacterId={viewAsCharacterId}>
         { CharacterId && <CharacterAvatar CharacterId={CharacterId} />}
-        { Message && <MessageContent>{index}. {Message}</MessageContent>}
+        { Message && <MessageContent>{Message}</MessageContent>}
         { ThreadId && <MessageThread thread={ThreadId} />}
         { MessageTimeData && <MessageTime time={MessageTimeData} />}
     </PolymorphicMessage>
 }
 
-export const VirtualMessageList = ({ messages = [] }) => {
-    const INITIAL_ITEM_COUNT = 50
-    const ROWS_TO_UNHIDE_PER_INFINITE_SCROLL = 100
+export const VirtualMessageList = ({ messages = [], viewAsCharacterId = '' }) => {
     const virtuoso = useRef()
-    const [firstItemIndex, setFirstItemIndex] = useState(Math.max(messages.length - INITIAL_ITEM_COUNT, 0))
 
     const Components = useMemo(() => {
         return {
@@ -39,62 +36,18 @@ export const VirtualMessageList = ({ messages = [] }) => {
                 >
                     {children}
                 </List>
-            )),
+            ))
 
-            // Item: ({ children, ...props }) => (
-            //     <div><PolymorphicMessage {...props} >{children}</PolymorphicMessage></div>
-            // ),
-
-            // Group: ({ children, ...props }) => (
-            //     <ListSubheader
-            //         component="div"
-            //         {...props}
-            //         style={{
-            //             backgroundColor: 'var(--ifm-background-color)',
-            //             margin: 0
-            //         }}
-            //         disableSticky={true}
-            //     >
-            //         {children}
-            //     </ListSubheader>
-            // )
         }
     }, [])
 
-    //
-    // Expand the range of the passed message data that gets displayed in the
-    // scrolling area
-    //
-    const showMore = useCallback(() => {
-        console.log('showMore')
-        if (firstItemIndex === 0) {
-            return
-        }
-
-        const rowsUnshifted = Math.min(firstItemIndex, ROWS_TO_UNHIDE_PER_INFINITE_SCROLL)
-        if (rowsUnshifted > 0) {
-            setFirstItemIndex(() => (firstItemIndex - rowsUnshifted))
-            console.log(`New firstIndex: ${firstItemIndex - rowsUnshifted}`)
-        }
-        return false
-    }, [firstItemIndex, setFirstItemIndex])
-
-    const [data, setData] = useState(messages.slice(firstItemIndex))
-
-    useEffect(() => {
-        setData(messages.slice(firstItemIndex))
-    }, [messages, firstItemIndex])
-
     return (
         <Virtuoso
-            data={data}
+            data={messages}
             components={Components}
-            firstItemIndex={firstItemIndex}
-            initialTopMostItemIndex={data.length - 1}
-            defaultItemHeight={50}
-            overscan={{ main: 20, reverse: 20 }}
-            startReached={showMore}
-            itemContent={itemContent}
+            initialTopMostItemIndex={messages.length - 1}
+            overscan={{ main: 500, reverse: 500 }}
+            itemContent={itemContent(viewAsCharacterId)}
             followOutput={true}
             ref={virtuoso}
         />
