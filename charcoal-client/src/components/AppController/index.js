@@ -9,13 +9,17 @@
 import React, { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
+import { connectionRegister } from '../../actions/connection.js'
 import { getMyCharacters } from '../../selectors/myCharacters'
 import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
+import { getCharacterId } from '../../selectors/connection'
+import useConnectedCharacter from '../useConnectedCharacter'
 
 import AppLayout from '../AppLayout'
 import Profile from '../Profile'
+import MessagePanel from '../Message/MessagePanel'
 import useAppSyncSubscriptions from '../useAppSyncSubscriptions'
 
 export const AppController = () => {
@@ -31,14 +35,23 @@ export const AppController = () => {
     const profileArgs = {
         myCharacters,
         onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
+        connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
         onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },
         onShowNeighborhoodChange: (value) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) }
     }
 
+    useConnectedCharacter()
+    const viewAsCharacterId = useSelector(getCharacterId)
+
+    const messageArgs = {
+        viewAsCharacterId
+    }
+
     return <AppLayout
         profilePanel={<Profile {...profileArgs} />}
+        messagePanel={<MessagePanel {...messageArgs} />}
     />
 }
 

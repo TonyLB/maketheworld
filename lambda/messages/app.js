@@ -79,7 +79,6 @@ const updateDispatcher = ({ Updates = [] }) => {
             }))
         .then(({ messageWrites, deltaWrites, gqlWrites }) => {
             const gqlGroupOutput = gqlGroup(gqlWrites)
-            console.log(gqlGroupOutput)
             return Promise.all([
                 batchDispatcher({ table: messageTable, items: messageWrites }),
                 batchDispatcher({ table: deltaTable, items: deltaWrites }),

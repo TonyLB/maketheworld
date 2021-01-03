@@ -27,6 +27,7 @@ import useStyles from '../styles'
 export const Profile = ({
     myCharacters = [],
     onCharacterSavePromiseFactory = () => {},
+    connectCharacter = () => {},
     textEntryLines,
     showNeighborhoodHeaders,
     onTextEntryChange = () => {},
@@ -45,6 +46,7 @@ export const Profile = ({
                     <MyCharacters
                         myCharacters={myCharacters}
                         editCharacter={setEditingCharacter}
+                        connectCharacter={connectCharacter}
                     />
                     <h1 className={classes.subjectHeader}>Client Settings</h1>
                     <ClientSettings

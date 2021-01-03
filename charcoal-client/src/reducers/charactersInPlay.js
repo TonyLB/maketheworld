@@ -15,7 +15,6 @@ const colorSequence = ['pink', 'purple', 'green']
     }))
 
 const ephemeraMergeReducer = (state, { CharacterInPlay }) => {
-    console.log(CharacterInPlay)
     if (CharacterInPlay) {
         const { CharacterId, RoomId, Connected } = CharacterInPlay
         const nextColorIndex = (Object.values(state).length + 2) % 3

@@ -56,7 +56,9 @@ export const sendWorldMessage = ({RoomId = null, Message, Characters = []}) => (
 
 export const sendPlayerMessage = ({RoomId = null, Message, CharacterId, Characters = []}) => (dispatch, getState) => {
     const state = getState()
+    console.log(`RoomId: ${RoomId}`)
     const roomCharacters = (RoomId && getActiveCharactersInRoom({ RoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
+    console.log(roomCharacters)
     if (Message) {
         return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
             RoomId,

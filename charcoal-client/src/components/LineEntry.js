@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import {
     TextField,
@@ -19,6 +19,13 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
     const [open, setAutocompleteOpen] = useState(false)
     const { ChatPrompt } = useSelector(getSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
+    const onChange = useCallback((_, incomingValue) => {
+        const callbackResult = callback(incomingValue || '')
+        setAutocompleteOpen(false)
+        if (callbackResult) {
+            setValue('')
+        }
+    }, [callback, setAutocompleteOpen, setValue])
 
     return (
         <Autocomplete
@@ -26,19 +33,13 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
             freeSolo
             open={open}
             options={availableBehaviors}
-            style={{ width: "100%", margin: "5px" }}
+            style={{ width: "100%" }}
             PopperComponent={(props) => (<Popper {...props} placement={"top"} />)}
             inputValue={value}
             onClose={() => {
                 setAutocompleteOpen(false)
             }}
-            onChange={(_, incomingValue) => {
-                const callbackResult = callback(incomingValue || '')
-                setAutocompleteOpen(false)
-                if (callbackResult) {
-                    setValue('')
-                }
-            }}
+            onChange={onChange}
             onInputChange={(_, incomingValue, reason) => {
                 if (reason === 'input') {
                     setValue(incomingValue || '')

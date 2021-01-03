@@ -15,7 +15,6 @@ import ForumIcon from '@material-ui/icons/Forum'
 import MailIcon from '@material-ui/icons/Mail'
 import ExploreIcon from '@material-ui/icons/Explore'
 import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
-import SettingsIcon from '@material-ui/icons/Settings'
 
 const TabPanel = (props) => {
     const { children, value, index, ...other } = props
@@ -95,11 +94,10 @@ const tabList = (large) => ([
     <Tab key="In Play" label="In Play" value="inPlay" {...a11yProps(1)} icon={<ForumIcon />} />,
     <Tab key="Messages" label="Messages" value="messages" {...a11yProps(2)} icon={<MailIcon />} />,
     <Tab key="Map" label="Map" value="map" {...a11yProps(3)} icon={<ExploreIcon />} />,
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4)} icon={<PeopleAltIcon />} />]),
-    <Tab key="Options" label="Options" value="options" {...a11yProps(large ? 4 : 5)} icon={<SettingsIcon />} />
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4)} icon={<PeopleAltIcon />} />])
 ])
 
-export const AppLayout = ({ whoPanel, profilePanel, messagePanel, settingsPanel, mapPanel, threadPanel }) => {
+export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel }) => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const [value, setValue] = useState('profile')
@@ -130,10 +128,10 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, settingsPanel,
             <TabPanel value={value} index={'profile'} style={{ width: "100%", height: "100%" }}>
                 {profilePanel}
             </TabPanel>
-            {/* <TabPanel value={value} index={'inPlay'} style={{ width: "100%", height: "100%" }}>
+            <TabPanel value={value} index={'inPlay'} style={{ width: "100%", height: "100%" }}>
                 {messagePanel}
             </TabPanel>
-            <TabPanel value={value} index={'messages'} style={{ width: "100%", height: "100%" }}>
+            {/* <TabPanel value={value} index={'messages'} style={{ width: "100%", height: "100%" }}>
                 {threadPanel}
             </TabPanel>
             <TabPanel
@@ -145,18 +143,6 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, settingsPanel,
             </TabPanel>
             <TabPanel value={value} index={'who'} style={{ height: "100%" }}>
                 {whoPanel}
-            </TabPanel>
-            <TabPanel
-                value={value}
-                index={'options'}
-                style={{
-                    maxWidth: "800px",
-                    padding: "3em",
-                    justifySelf: "center",
-                    alignSelf: "center"
-                }}
-            >
-                {settingsPanel}
             </TabPanel> */}
         </div>
 

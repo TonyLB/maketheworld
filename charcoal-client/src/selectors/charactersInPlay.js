@@ -9,11 +9,21 @@ export const getCharactersInPlay = (state) => {
         color: { primary: 'grey' },
         Connected: false
     }
+    const handlerLookup = (obj, prop) => ({
+        CharacterId: prop,
+        ...defaultValues,
+        ...(obj.characters[prop] ?? {}),
+        ...(obj.charactersInPlay[prop] ?? {})
+    })
     return new Proxy({ characters, charactersInPlay: chars ?? {} }, {
-        get: (obj, prop) => ({
-            ...defaultValues,
-            ...(obj.characters[prop] ?? {}),
-            ...(obj.charactersInPlay[prop] ?? {})
+        get: handlerLookup,
+        ownKeys: ({ characters = {}, charactersInPlay = {} }) => {
+            return [...(new Set([ ...Object.keys(charactersInPlay), ...Object.keys(characters)]))].sort()
+        },
+        getOwnPropertyDescriptor: (obj, prop) => ({
+            configurable: true,
+            enumerable: Boolean(obj.charactersInPlay[prop]) || Boolean(obj.characters[prop]),
+            value: handlerLookup(obj, prop)
         })
     })
 

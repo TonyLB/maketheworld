@@ -20,7 +20,7 @@ export const PureCharacterChip = ({
     FirstImpression,
     OneCoolThing,
     Outfit,
-    color
+    color = {}
 }) => {
     const classes = useStyles()
     return (
