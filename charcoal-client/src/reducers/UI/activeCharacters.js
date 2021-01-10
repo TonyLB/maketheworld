@@ -1,4 +1,8 @@
-import { ACTIVATE_CHARACTER, DEACTIVATE_CHARACTER } from '../../actions/UI/activeCharacters'
+import {
+    ACTIVATE_CHARACTER,
+    DEACTIVATE_CHARACTER,
+    ACTIVE_CHARACTER_FSM_INITIAL
+} from '../../actions/UI/activeCharacters'
 
 export const reducer = (state = {}, action = {}) => {
     const {
@@ -9,10 +13,13 @@ export const reducer = (state = {}, action = {}) => {
     switch (type) {
 
         case ACTIVATE_CHARACTER:
-            if (CharacterId) {
+            if (CharacterId && !state[CharacterId]) {
                 return {
                     ...state,
-                    [CharacterId]: { CharacterId }
+                    [CharacterId]: {
+                        CharacterId,
+                        status: ACTIVE_CHARACTER_FSM_INITIAL
+                    }
                 }
             }
             else {

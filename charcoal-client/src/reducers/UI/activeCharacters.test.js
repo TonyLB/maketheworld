@@ -1,9 +1,15 @@
 import activeCharacters from './activeCharacters.js'
-import { ACTIVATE_CHARACTER, DEACTIVATE_CHARACTER } from '../../actions/UI/activeCharacters'
+import {
+    ACTIVATE_CHARACTER,
+    DEACTIVATE_CHARACTER,
+    ACTIVE_CHARACTER_FSM_INITIAL,
+    ACTIVE_CHARACTER_FSM_SUBSCRIBED
+} from '../../actions/UI/activeCharacters'
 
 const testState = {
     TESS: {
-        CharacterId: 'TESS'
+        CharacterId: 'TESS',
+        status: ACTIVE_CHARACTER_FSM_SUBSCRIBED
     }
 }
 
@@ -23,12 +29,21 @@ describe('ActiveCharacters reducer', () => {
     it('should add an activated character on activate', () => {
         expect(activeCharacters(testState, { type: ACTIVATE_CHARACTER, CharacterId: 'MARCO' })).toEqual({
             ...testState,
-            MARCO: { CharacterId: 'MARCO' }
+            MARCO: {
+                CharacterId: 'MARCO',
+                status: ACTIVE_CHARACTER_FSM_INITIAL
+            }
         })
     })
 
     it('should remove an activated character on deactivate', () => {
-        expect(activeCharacters({ ...testState, MARCO: { CharacterId: 'MARCO' }}, { type: DEACTIVATE_CHARACTER, CharacterId: 'MARCO' })).toEqual(testState)
+        expect(activeCharacters({
+            ...testState,
+            MARCO: {
+                CharacterId: 'MARCO',
+                status: ACTIVE_CHARACTER_FSM_SUBSCRIBED
+            }
+        }, { type: DEACTIVATE_CHARACTER, CharacterId: 'MARCO' })).toEqual(testState)
     })
 
     it('should return unchanged on deactivating a character that is not activated', () => {
