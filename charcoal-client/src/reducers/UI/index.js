@@ -3,6 +3,7 @@ import activeCharacters from './activeCharacters'
 import adminDialog from './adminDialog'
 import allCharactersDialog from './allCharactersDialog'
 import clientSettingsDialog from './clientSettingsDialog'
+import feedback from './feedback'
 import myCharacterDialog from './myCharacterDialog'
 import roomDialog from "./roomDialog"
 import neighborhoodDialog from './neighborhoodDialog'
@@ -18,6 +19,7 @@ export const reducer = combineReducers({
     adminDialog,
     allCharactersDialog,
     clientSettingsDialog,
+    feedback,
     myCharacterDialog,
     roomDialog,
     worldDialog,
