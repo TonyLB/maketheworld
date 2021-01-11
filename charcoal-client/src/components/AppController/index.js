@@ -6,7 +6,7 @@
 // Layout component.
 //
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { connectionRegister } from '../../actions/connection.js'
@@ -16,6 +16,8 @@ import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
 import { getCharacterId } from '../../selectors/connection'
 import useConnectedCharacter from '../useConnectedCharacter'
+import { getFirstFeedback } from '../../selectors/UI/feedback'
+import { popFeedback } from '../../actions/UI/feedback'
 
 import AppLayout from '../AppLayout'
 import Profile from '../Profile'
@@ -32,6 +34,9 @@ export const AppController = () => {
         dispatch(loadClientSettings)
     }, [dispatch])
 
+    //
+    // ToDo:  Wrap function calls being passed in useCallback, to reduce unneeded re-renders.
+    //
     const profileArgs = {
         myCharacters,
         onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
@@ -49,9 +54,16 @@ export const AppController = () => {
         viewAsCharacterId
     }
 
+    const feedbackMessage = useSelector(getFirstFeedback)
+    const closeFeedback = useCallback(() => {
+        dispatch(popFeedback)
+    }, [dispatch])
+
     return <AppLayout
         profilePanel={<Profile {...profileArgs} />}
         messagePanel={<MessagePanel {...messageArgs} />}
+        feedbackMessage={feedbackMessage}
+        closeFeedback={closeFeedback}
     />
 }
 

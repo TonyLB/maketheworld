@@ -12,7 +12,7 @@ describe('Feedback selectors', () => {
         })
 
         it('should return first element in array', () => {
-            expect(getFirstFeedback({ UI: {feedback: ['One', 'Two']}})).toBe('One')
+            expect(getFirstFeedback({ UI: { feedback: ['One', 'Two'] }})).toBe('One')
         })
 
     })

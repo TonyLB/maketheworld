@@ -5,3 +5,7 @@ export const pushFeedback = (message) => ({
     type: FEEDBACK_PUSH_MESSAGE,
     message
 })
+
+export const popFeedback = {
+    type: FEEDBACK_POP_MESSAGE
+}

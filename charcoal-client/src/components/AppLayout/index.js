@@ -10,6 +10,9 @@ import useMediaQuery from '@material-ui/core/useMediaQuery'
 import Tabs from '@material-ui/core/Tabs'
 import Tab from '@material-ui/core/Tab'
 import Box from '@material-ui/core/Box'
+import Snackbar from '@material-ui/core/Snackbar'
+import IconButton from '@material-ui/core/IconButton'
+import CloseIcon from '@material-ui/icons/Close'
 import { makeStyles } from '@material-ui/core/styles'
 import ForumIcon from '@material-ui/icons/Forum'
 import MailIcon from '@material-ui/icons/Mail'
@@ -18,7 +21,7 @@ import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
 
 const TabPanel = (props) => {
     const { children, value, index, ...other } = props
-  
+
     return (
         <div
             role="tabpanel"
@@ -97,7 +100,33 @@ const tabList = (large) => ([
     ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4)} icon={<PeopleAltIcon />} />])
 ])
 
-export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel }) => {
+const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
+    const handleClose = (_, reason) => {
+        if (reason === 'clickaway') {
+            return
+        }
+
+        closeFeedback()
+    }
+    return <Snackbar
+        anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left'
+        }}
+        open={Boolean(feedbackMessage)}
+        message={feedbackMessage}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        action={
+            <IconButton size="small" aria-label="close" color="inherit" onClick={handleClose}>
+                <CloseIcon fontSize="small" />
+            </IconButton>
+        }
+    />
+
+}
+
+export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const [value, setValue] = useState('profile')
@@ -106,21 +135,22 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, thre
     const handleChange = (event, newValue) => {
         setValue(newValue);
     }
-    
+
     return <div className={`fullScreen ${classes.grid}`}>
+        <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
         <div className={classes.tabs}>
             <Tabs
                 classes={{ vertical: 'tabRootVertical' }}
-                orientation={ portrait ? "horizontal" : "vertical" }
+                orientation={portrait ? "horizontal" : "vertical"}
                 variant="scrollable"
                 scrollButtons="on"
                 value={value}
                 onChange={handleChange}
                 aria-label="MakeTheWorld navigation"
                 indicatorColor="primary"
-                textColor="primary"            
+                textColor="primary"
             >
-                { tabList(large) }
+                {tabList(large)}
             </Tabs>
         </div>
 
@@ -146,7 +176,7 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, thre
             </TabPanel> */}
         </div>
 
-        { large
+        {large
             ? <div className={classes.sidebar}>
                 {/* {whoPanel} */}
             </div>

@@ -1,3 +1,5 @@
+import { getActiveCharacterState } from '../../selectors/UI/activeCharacters'
+
 export const ACTIVATE_CHARACTER = 'ACTIVATE_CHARACTER'
 export const DEACTIVATE_CHARACTER = 'DEACTIVATE_CHARACTER'
 export const ACTIVE_CHARACTER_SUBSCRIBE_ATTEMPT = 'ACTIVE_CHARACTER_SUBSCRIBE_ATTEMPT'
@@ -15,8 +17,6 @@ export const ACTIVE_CHARACTER_FSM_SUBSCRIBED = 'FSM_SUBSCRIBED'
 export const ACTIVE_CHARACTER_FSM_CONNECTING = 'FSM_CONNECTING'
 export const ACTIVE_CHARACTER_FSM_CONNECTED = 'FSM_CONNECTED'
 export const ACTIVE_CHARACTER_FSM_RECONNECTING = 'FSM_RECONNECTING'
-
-import { getActiveCharacterState, getActiveCharactersUI } from '../../selectors/UI/activeCharacters'
 
 export const activateCharacter = (CharacterId) => ({ type: ACTIVATE_CHARACTER, CharacterId })
 
