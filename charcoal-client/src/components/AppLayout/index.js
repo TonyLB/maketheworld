@@ -3,6 +3,7 @@
 //
 
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
 
 import './index.css'
 
@@ -18,6 +19,9 @@ import ForumIcon from '@material-ui/icons/Forum'
 import MailIcon from '@material-ui/icons/Mail'
 import ExploreIcon from '@material-ui/icons/Explore'
 import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
+
+import ActiveCharacter from '../ActiveCharacter'
+import { getCharacters } from '../../selectors/characters'
 
 const TabPanel = (props) => {
     const { children, value, index, ...other } = props
@@ -92,12 +96,16 @@ const useStyles = makeStyles((theme) => ({
     }
 }))
 
-const tabList = (large) => ([
+const tabList = ({ large, subscribedCharacterIds = [], characters }) => ([
     <Tab key="Profile" label="Profile" value="profile" {...a11yProps(0)} icon={<PeopleAltIcon />} />,
-    <Tab key="In Play" label="In Play" value="inPlay" {...a11yProps(1)} icon={<ForumIcon />} />,
-    <Tab key="Messages" label="Messages" value="messages" {...a11yProps(2)} icon={<MailIcon />} />,
-    <Tab key="Map" label="Map" value="map" {...a11yProps(3)} icon={<ExploreIcon />} />,
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4)} icon={<PeopleAltIcon />} />])
+    ...subscribedCharacterIds.reduce(
+        (previous, characterId, index) => ([
+            ...previous,
+            <Tab key={`inPlay-${characterId}`} label={`Play: ${characters[characterId]?.Name}`} value={`inPlay-${characterId}`} {...a11yProps(1+(index*2))} icon={<ForumIcon />} />,
+            <Tab key={`message-${characterId}`} label={`Chat: ${characters[characterId]?.Name}`} value={`messages-${characterId}`} {...a11yProps(2+(index*2))} icon={<MailIcon />} />
+        ]), []),
+    <Tab key="Map" label="Map" value="map" {...a11yProps(3+(subscribedCharacterIds.length*2))} icon={<ExploreIcon />} />,
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4+subscribedCharacterIds.length*2)} icon={<PeopleAltIcon />} />])
 ])
 
 const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
@@ -126,11 +134,12 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 }
 
-export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
+export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const [value, setValue] = useState('profile')
     const classes = useStyles()
+    const characters = useSelector(getCharacters)
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
@@ -150,7 +159,7 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, thre
                 indicatorColor="primary"
                 textColor="primary"
             >
-                {tabList(large)}
+                {tabList({ large, subscribedCharacterIds, characters })}
             </Tabs>
         </div>
 
@@ -158,9 +167,15 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, thre
             <TabPanel value={value} index={'profile'} style={{ width: "100%", height: "100%" }}>
                 {profilePanel}
             </TabPanel>
-            <TabPanel value={value} index={'inPlay'} style={{ width: "100%", height: "100%" }}>
-                {messagePanel}
-            </TabPanel>
+            {
+                subscribedCharacterIds.map((characterId) => (
+                    <ActiveCharacter key={`Character-${characterId}`} CharacterId={characterId}>
+                        <TabPanel value={value} index={`inPlay-${characterId}`} style={{ width: "100%", height: "100%" }}>
+                            {messagePanel}
+                        </TabPanel>
+                    </ActiveCharacter>
+                ))
+            }
             {/* <TabPanel value={value} index={'messages'} style={{ width: "100%", height: "100%" }}>
                 {threadPanel}
             </TabPanel>

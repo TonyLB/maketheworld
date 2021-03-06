@@ -4,18 +4,28 @@ import { act } from 'react-dom/test-utils'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import ActiveCharacter, { useActiveCharacter } from './index'
-import { DEACTIVATE_CHARACTER } from '../../actions/UI/activeCharacters'
+import { DEACTIVATE_CHARACTER, ACTIVE_CHARACTER_FSM_SUBSCRIBED } from '../../actions/activeCharacters'
 
 const mockStore = configureStore()
 const store = mockStore({
     activeCharacters: {
-        TESS: { CharacterId: 'TESS' }
-    }
+        TESS: {
+            CharacterId: 'TESS',
+            state: ACTIVE_CHARACTER_FSM_SUBSCRIBED
+        }
+    },
+    messages: [],
+    characters: {}
 })
 
 const TestComponent = () => {
     const { CharacterId } = useActiveCharacter()
     return <div>{CharacterId}</div>
+}
+
+const TestSubscriptionComponent = () => {
+    const { isSubscribed } = useActiveCharacter()
+    return <div>{ isSubscribed ? 'Subscribed' : 'Not subscribed' }</div>
 }
 
 describe('ActiveCharacter wrapper component', () => {
@@ -33,6 +43,17 @@ describe('ActiveCharacter wrapper component', () => {
             </Provider>
         )
         expect(container.textContent).toBe("ABC")
+    })
+
+    it('correctly imports redux-store info into context', () => {
+        const { container } = render(
+            <Provider store={store}>
+                <ActiveCharacter CharacterId='TESS' >
+                    <TestSubscriptionComponent />
+                </ActiveCharacter>
+            </Provider>
+        )
+        expect(container.textContent).toBe("Subscribed")
     })
 
     it('correctly passes a deactivate action', () => {

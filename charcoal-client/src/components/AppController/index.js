@@ -14,8 +14,7 @@ import { getMyCharacters } from '../../selectors/myCharacters'
 import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
-import { getCharacterId } from '../../selectors/connection'
-import useConnectedCharacter from '../useConnectedCharacter'
+import { getSubscribedCharacterIds } from '../../selectors/activeCharacters'
 import { getFirstFeedback } from '../../selectors/UI/feedback'
 import { popFeedback } from '../../actions/UI/feedback'
 
@@ -28,6 +27,7 @@ export const AppController = () => {
     useAppSyncSubscriptions()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
+    const subscribedCharacterIds = useSelector(getSubscribedCharacterIds)
     const dispatch = useDispatch()
 
     useEffect(() => {
@@ -47,13 +47,6 @@ export const AppController = () => {
         onShowNeighborhoodChange: (value) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) }
     }
 
-    useConnectedCharacter()
-    const viewAsCharacterId = useSelector(getCharacterId)
-
-    const messageArgs = {
-        viewAsCharacterId
-    }
-
     const feedbackMessage = useSelector(getFirstFeedback)
     const closeFeedback = useCallback(() => {
         dispatch(popFeedback)
@@ -61,9 +54,10 @@ export const AppController = () => {
 
     return <AppLayout
         profilePanel={<Profile {...profileArgs} />}
-        messagePanel={<MessagePanel {...messageArgs} />}
+        messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
+        subscribedCharacterIds={subscribedCharacterIds}
     />
 }
 

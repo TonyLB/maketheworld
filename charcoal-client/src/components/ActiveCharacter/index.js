@@ -34,22 +34,33 @@
 //
 
 import React, { useContext, useCallback } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
-import { deactivateCharacter } from '../../actions/UI/activeCharacters'
+import { deactivateCharacter } from '../../actions/activeCharacters'
+import { getActiveCharacters, getActiveCharacterInPlayMessages } from '../../selectors/activeCharacters'
+import { getCharacters } from '../../selectors/characters'
 
-const ActiveCharacterContext = React.createContext("")
+const ActiveCharacterContext = React.createContext({
+    CharacterId: '',
+    deactivate: () => {}
+})
 
 export const ActiveCharacter = ({ CharacterId, children }) => {
 
     const dispatch = useDispatch()
+    const characterState = useSelector(getActiveCharacters)[CharacterId]
+    const inPlayMessages = useSelector(getActiveCharacterInPlayMessages(CharacterId))
+    const info = useSelector(getCharacters)[CharacterId]
     const deactivate = useCallback(() => {
         dispatch(deactivateCharacter(CharacterId))
-    }, [dispatch, deactivateCharacter, CharacterId])
+    }, [dispatch, CharacterId])
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
-            deactivate
+            deactivate,
+            inPlayMessages,
+            info,
+            ...characterState
         }}>
             {children}
         </ActiveCharacterContext.Provider>

@@ -9,7 +9,7 @@ import { getCurrentRoom, getVisibleExits } from '../../selectors/currentRoom'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 
 export const lookRoom = (props) => (dispatch, getState) => {
-    const { RoomId, Recap = [], showNeighborhoods = false, previousAncestry = '' } = props || {}
+    const { RoomId, showNeighborhoods = false, previousAncestry = '' } = props || {}
     const state = getState()
     const permanentHeaders = getPermanentHeaders(state)
     const currentRoom = RoomId

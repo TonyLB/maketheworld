@@ -5,7 +5,6 @@ import { withAuthenticator } from 'aws-amplify-react'
 import { CssBaseline } from '@material-ui/core'
 
 import { store } from './store/index.js'
-import Chat from './components/Chat.js'
 import AppController from './components/AppController'
 import { AuthConfig } from './config'
 import './App.css';

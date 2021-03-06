@@ -7,14 +7,6 @@ jest.mock('aws-amplify', () => ({
 
 import { API, graphqlOperation } from 'aws-amplify'
 
-jest.mock('../cacheDB', () => ({
-    clientSettings: {
-        put: jest.fn(() => (Promise.resolve(null)))
-    }
-}))
-
-import cacheDB from '../cacheDB'
-
 import {
     deltaFactory
 } from './deltaSync'
@@ -33,9 +25,10 @@ describe('deltaSync syncFromDelta function', () => {
         }}}))
 
         const processingAction = jest.fn(() => ('TestDispatch'))
+        const lastSyncCallback = jest.fn(() => (Promise.resolve({})))
         const { syncFromDelta } = deltaFactory({
             dataTag: 'test',
-            lastSyncKey: 'testKey',
+            lastSyncCallback,
             processingAction,
             syncGQL: 'test'
         })
@@ -47,8 +40,8 @@ describe('deltaSync syncFromDelta function', () => {
         expect(dispatch.mock.calls[0][0]).toEqual('TestDispatch')
         expect(processingAction.mock.calls.length).toBe(1)
         expect(processingAction.mock.calls[0][0]).toEqual(['test'])
-        expect(cacheDB.clientSettings.put.mock.calls.length).toBe(1)
-        expect(cacheDB.clientSettings.put.mock.calls[0][0]).toEqual({ key: 'testKey', value: 123456 })
+        expect(lastSyncCallback.mock.calls.length).toBe(1)
+        expect(lastSyncCallback.mock.calls[0][0]).toEqual(123456)
     })
 
     it('should correctly process intermediate result', async () => {
@@ -59,9 +52,10 @@ describe('deltaSync syncFromDelta function', () => {
         }}}))
 
         const processingAction = jest.fn(() => ('TestDispatch'))
+        const lastSyncCallback = jest.fn()
         const { syncFromDelta } = deltaFactory({
             dataTag: 'test',
-            lastSyncKey: 'testKey',
+            lastSyncCallback,
             processingAction,
             syncGQL: 'test'
         })
@@ -74,7 +68,7 @@ describe('deltaSync syncFromDelta function', () => {
         expect(dispatch.mock.calls[1][0]).toEqual(expect.any(Function))
         expect(processingAction.mock.calls.length).toBe(1)
         expect(processingAction.mock.calls[0][0]).toEqual(['test'])
-        expect(cacheDB.clientSettings.put.mock.calls.length).toBe(0)
+        expect(lastSyncCallback.mock.calls.length).toBe(0)
     })
 
 })
@@ -93,9 +87,11 @@ describe('deltaSync syncFromBaseTable function', () => {
         }}}))
 
         const processingAction = jest.fn(() => ('TestDispatch'))
+        const lastSyncCallback = jest.fn(() => (Promise.resolve({})))
+
         const { syncFromBaseTable } = deltaFactory({
             dataTag: 'test',
-            lastSyncKey: 'testKey',
+            lastSyncCallback,
             processingAction,
             syncGQL: 'test'
         })
@@ -107,8 +103,8 @@ describe('deltaSync syncFromBaseTable function', () => {
         expect(dispatch.mock.calls[0][0]).toEqual('TestDispatch')
         expect(processingAction.mock.calls.length).toBe(1)
         expect(processingAction.mock.calls[0][0]).toEqual(['test'])
-        expect(cacheDB.clientSettings.put.mock.calls.length).toBe(1)
-        expect(cacheDB.clientSettings.put.mock.calls[0][0]).toEqual({ key: 'testKey', value: 123456 })
+        expect(lastSyncCallback.mock.calls.length).toBe(1)
+        expect(lastSyncCallback.mock.calls[0][0]).toEqual(123456)
     })
 
     it('should correctly process intermediate result', async () => {
@@ -119,6 +115,7 @@ describe('deltaSync syncFromBaseTable function', () => {
         }}}))
 
         const processingAction = jest.fn(() => ('TestDispatch'))
+        const lastSyncCallback = jest.fn()
         const { syncFromBaseTable } = deltaFactory({
             dataTag: 'test',
             lastSyncKey: 'testKey',
@@ -134,7 +131,7 @@ describe('deltaSync syncFromBaseTable function', () => {
         expect(dispatch.mock.calls[1][0]).toEqual(expect.any(Function))
         expect(processingAction.mock.calls.length).toBe(1)
         expect(processingAction.mock.calls[0][0]).toEqual(['test'])
-        expect(cacheDB.clientSettings.put.mock.calls.length).toBe(0)
+        expect(lastSyncCallback.mock.calls.length).toBe(0)
     })
 
 })

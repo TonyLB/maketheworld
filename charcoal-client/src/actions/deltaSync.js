@@ -1,4 +1,3 @@
-import cacheDB from '../cacheDB'
 import { API, graphqlOperation } from 'aws-amplify'
 
 //
@@ -7,7 +6,7 @@ import { API, graphqlOperation } from 'aws-amplify'
 //      * syncFromDelta
 //      * syncFromBaseTable
 //
-export const deltaFactory = ({ dataTag, lastSyncKey, processingAction, syncGQL }) => {
+export const deltaFactory = ({ dataTag, lastSyncCallback, processingAction, syncGQL }) => {
 
     //
     // Execute the graphQL operation, process the returned items, and then pass the other flags to
@@ -31,7 +30,7 @@ export const deltaFactory = ({ dataTag, lastSyncKey, processingAction, syncGQL }
             args: { startingAt, ...rest },
             callback: async ({ dispatch, args: { LastMoment = null, LastSync = null } }) => {
                 if (LastSync) {
-                    await cacheDB.clientSettings.put({ key: lastSyncKey, value: LastSync })
+                    await lastSyncCallback(LastSync)
                 }
                 else {
                     if (LastMoment) {
@@ -54,7 +53,7 @@ export const deltaFactory = ({ dataTag, lastSyncKey, processingAction, syncGQL }
                 }
                 else {
                     if (LastSync) {
-                        await cacheDB.clientSettings.put({ key: lastSyncKey, value: LastSync })
+                        await lastSyncCallback(LastSync)
                     }
                 }
             }

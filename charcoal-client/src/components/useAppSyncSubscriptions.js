@@ -30,11 +30,6 @@ export const useAppSyncSubscriptions = () => {
             dispatch(subscribePlayerChanges())
         }
     }, [subscriptions.player, dispatch])
-    // useEffect(() => {
-    //     if (!subscriptions.charactersInPlay) {
-    //         dispatch(subscribeCharactersInPlayChanges())
-    //     }
-    // }, [subscriptions.charactersInPlay, dispatch])
     useEffect(() => {
         if (!subscriptions.ephemera) {
             dispatch(subscribeEphemeraChanges)
@@ -45,11 +40,11 @@ export const useAppSyncSubscriptions = () => {
             dispatch(subscribePermanentHeaderChanges())
         }
     }, [subscriptions.nodes, dispatch])
-    useEffect(() => {
-        if (characterId && !subscriptions.messages) {
-            dispatch(subscribeMessageChanges())
-        }
-    }, [subscriptions, characterId, dispatch])
+    // useEffect(() => {
+    //     if (characterId && !subscriptions.messages) {
+    //         dispatch(subscribeMessageChanges(characterId))
+    //     }
+    // }, [subscriptions, characterId, dispatch])
 
     useEffect(() => ( () => { dispatch(unsubscribeAll()) } ), [dispatch])
 

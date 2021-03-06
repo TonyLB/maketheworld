@@ -15,15 +15,18 @@ import AddCharacterListItem from './AddCharacterListItem'
 
 import useStyles from '../styles'
 
-export const MyCharacters = ({ myCharacters = [], editCharacter = () => {}, connectCharacter = () => {} }) => {
+export const MyCharacters = ({ myCharacters = [], editCharacter = () => {} }) => {
     const classes = useStyles()
     return <List className={classes.characterSelectionList}>
         {
             myCharacters.map(({
-                Name,
                 CharacterId
             }, index) => (
-                <MyCharacterListItem key={CharacterId || `Character-${index}`} Name={Name} CharacterId={CharacterId} onEdit={() => { editCharacter(CharacterId) }} onConnect={() => { connectCharacter(CharacterId) }} />
+                <MyCharacterListItem
+                    key={CharacterId || `Character-${index}`}
+                    CharacterId={CharacterId}
+                    onEdit={() => { editCharacter(CharacterId) }}
+                />
             ))
         }
         <AddCharacterListItem onEdit={() => { editCharacter(uuidv4()) }} />

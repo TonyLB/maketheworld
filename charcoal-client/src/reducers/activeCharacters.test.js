@@ -15,12 +15,12 @@ import {
     ACTIVE_CHARACTER_FSM_CONNECTED,
     ACTIVE_CHARACTER_FSM_RECONNECTING,
     ACTIVE_CHARACTER_RECONNECT_ATTEMPT
-} from '../../actions/UI/activeCharacters'
+} from '../actions/activeCharacters'
 
 const testState = {
     TESS: {
         CharacterId: 'TESS',
-        status: ACTIVE_CHARACTER_FSM_SUBSCRIBED
+        state: ACTIVE_CHARACTER_FSM_SUBSCRIBED
     }
 }
 
@@ -42,7 +42,7 @@ describe('ActiveCharacters reducer', () => {
             ...testState,
             MARCO: {
                 CharacterId: 'MARCO',
-                status: ACTIVE_CHARACTER_FSM_INITIAL
+                state: ACTIVE_CHARACTER_FSM_INITIAL
             }
         })
     })
@@ -52,7 +52,7 @@ describe('ActiveCharacters reducer', () => {
             ...testState,
             MARCO: {
                 CharacterId: 'MARCO',
-                status: ACTIVE_CHARACTER_FSM_SUBSCRIBED
+                state: ACTIVE_CHARACTER_FSM_SUBSCRIBED
             }
         }, { type: DEACTIVATE_CHARACTER, CharacterId: 'MARCO' })).toEqual(testState)
     })

@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
 import cacheDB from '../cacheDB'
 import { deltaFactory } from './deltaSync'
-import { getCharacterId } from '../selectors/connection'
 import { addSubscription } from './subscriptions'
 
 export const RECEIVE_MESSAGES = 'RECEIVE_MESSAGES'
@@ -103,27 +102,28 @@ export const fetchCachedMessages = (CharacterId) => async (dispatch) => {
     })
 }
 
-export const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
-    dataTag: 'syncMessages',
-    lastSyncKey: 'LastMessageSync',
-    processingAction: receiveMessages,
-    syncGQL: syncMessagesGQL,
-})
-
-export const subscribeMessageChanges = () => async (dispatch, getState) => {
-    const state = getState()
-    const CharacterId = getCharacterId(state)
+export const subscribeMessageChanges = (CharacterId) => async (dispatch, getState) => {
     if (!CharacterId) {
         console.log('Cannot yet subscribe to direct messages')
     }
     else {
+        const state = getState()
+        const lastMessageSyncKey = `LastMessageSync-${CharacterId}`
+        const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
+            dataTag: 'syncMessages',
+            lastSyncCallback: (value) => {
+                cacheDB.clientSettings.put({ key: lastMessageSyncKey, value })
+            },
+            processingAction: receiveMessages,
+            syncGQL: syncMessagesGQL,
+        })
         const { subscriptions } = state
         const { directMessages } = subscriptions || {}
         if (directMessages) {
             directMessages.unsubscribe()
         }
         dispatch(fetchCachedMessages(CharacterId))
-        const { value: LastMessageSync } = await cacheDB.clientSettings.get('LastMessageSync') || {}
+        const { value: LastMessageSync } = await cacheDB.clientSettings.get(lastMessageSyncKey) || {}
         const newMessageSubscription = await API.graphql(graphqlOperation(addedMessage, { Target: CharacterId }))
             .subscribe({
                 next: (messageData) => {

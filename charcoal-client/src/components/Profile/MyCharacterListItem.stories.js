@@ -3,7 +3,17 @@ import {
     List
 } from '@material-ui/core'
 
-import { MyCharacterListItem } from './MyCharacterListItem';
+import {
+    ACTIVE_CHARACTER_FSM_INITIAL,
+    ACTIVE_CHARACTER_FSM_RECONNECTING,
+    ACTIVE_CHARACTER_FSM_SUBSCRIBING,
+    ACTIVE_CHARACTER_FSM_SUBSCRIBED,
+    ACTIVE_CHARACTER_FSM_CONNECTING,
+    ACTIVE_CHARACTER_FSM_CONNECTED
+} from '../../actions/activeCharacters'
+
+
+import { PureMyCharacterListItem as MyCharacterListItem } from './MyCharacterListItem';
 
 const MyCharacterListItemStory = {
   title: 'Profile/MyCharacterListItem',
@@ -22,6 +32,25 @@ const MyCharacterListItemStory = {
         table: {
             category: 'Data'
         }
+    },
+    state: {
+        control: {
+            type: 'select',
+            defaultValue: ACTIVE_CHARACTER_FSM_INITIAL,
+            options: [
+                ACTIVE_CHARACTER_FSM_INITIAL,
+                ACTIVE_CHARACTER_FSM_SUBSCRIBING,
+                ACTIVE_CHARACTER_FSM_SUBSCRIBED,
+                ACTIVE_CHARACTER_FSM_CONNECTING,
+                ACTIVE_CHARACTER_FSM_CONNECTED,
+                ACTIVE_CHARACTER_FSM_RECONNECTING
+            ]
+        },
+        description: 'State of the activeCharacter record',
+        table: {
+            category: 'Data'
+        }
+
     },
     onEdit: {
         action: 'onEdit',
@@ -49,5 +78,6 @@ const Template = (args) => <List><MyCharacterListItem {...args} /></List>
 export const Basic = Template.bind({})
 Basic.args = {
     Name: 'Tess',
-    CharacterId: '1'
+    CharacterId: '1',
+    state: ACTIVE_CHARACTER_FSM_INITIAL
 }

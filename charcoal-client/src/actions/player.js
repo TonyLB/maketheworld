@@ -5,15 +5,22 @@ import { changedPlayer } from '../graphql/subscriptions'
 
 import { addSubscription } from './subscriptions'
 import { receiveMyCharacterChange } from './characters'
+import { activateCharacter } from './activeCharacters'
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
 export const GRANT_UPDATE = 'GRANT_UPDATE'
 export const GRANT_REVOKE = 'GRANT_REVOKE'
 
-export const playerUpdate = (playerData) => ({
-    type: PLAYER_UPDATE,
-    data: playerData
-})
+export const playerUpdate = (playerData) => (dispatch) => {
+    dispatch({
+        type: PLAYER_UPDATE,
+        data: playerData
+    })
+    const characters = playerData.Characters ?? []
+    characters.forEach((CharacterId) => {
+        dispatch(activateCharacter(CharacterId))
+    })
+}
 
 export const grantUpdate = (grantData) => ({
     type: GRANT_UPDATE,
@@ -73,7 +80,6 @@ export const subscribePlayerChanges = () => (dispatch) => {
 
             dispatch(addSubscription({ player: playerSubscription }))
             dispatch(fetchPlayer(username))
-            // dispatch(fetchMyCharacters())
         
         })
 

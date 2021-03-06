@@ -1,5 +1,4 @@
 import { combineReducers } from 'redux'
-import activeCharacters from './activeCharacters'
 import adminDialog from './adminDialog'
 import allCharactersDialog from './allCharactersDialog'
 import clientSettingsDialog from './clientSettingsDialog'
@@ -15,7 +14,6 @@ import mapDialog from './mapDialog'
 import editMapDialog from './editMapDialog'
 
 export const reducer = combineReducers({
-    activeCharacters,
     adminDialog,
     allCharactersDialog,
     clientSettingsDialog,

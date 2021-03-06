@@ -1,14 +1,14 @@
-import React, { useMemo, useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import React, { useCallback } from 'react'
+import { useDispatch } from 'react-redux'
 import PropTypes from "prop-types"
 
 import { makeStyles } from "@material-ui/core/styles"
 
 import VirtualMessageList from './VirtualMessageList'
-import { getMessages } from '../../selectors/messages'
 import { parseCommand } from '../../actions/behaviors'
 import LineEntry from '../LineEntry'
 import useStyles from '../styles'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 const useMessagePanelStyles = makeStyles((theme) => ({
     messagePanel: {
@@ -32,21 +32,18 @@ const useMessagePanelStyles = makeStyles((theme) => ({
     }
 }))
 
-export const MessagePanel = ({
-    viewAsCharacterId
-}) => {
+export const MessagePanel = () => {
     const dispatch = useDispatch()
     const classes = useStyles()
     const localClasses = useMessagePanelStyles()
-    const messages = useSelector(getMessages)
-    const nonThreadMessages = useMemo(() => (messages.filter((message) => (message.ThreadId === undefined))), [messages])
+    const { CharacterId, inPlayMessages } = useActiveCharacter()
     const handleInput = useCallback((entry) => {
         dispatch(parseCommand({ entry, raiseError: () => {} }))
         return true
     }, [dispatch])
     return <div className={localClasses.messagePanel}>
             <div className={localClasses.messagePanelContent}>
-                <VirtualMessageList messages={nonThreadMessages} viewAsCharacterId={viewAsCharacterId} />
+                <VirtualMessageList messages={inPlayMessages} viewAsCharacterId={CharacterId} />
             </div>
             <div className={localClasses.messagePanelInput}>
                 <LineEntry

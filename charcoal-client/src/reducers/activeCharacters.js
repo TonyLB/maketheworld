@@ -14,7 +14,7 @@ import {
     ACTIVE_CHARACTER_CONNECT_FAIL,
     ACTIVE_CHARACTER_RECONNECT_ATTEMPT,
     ACTIVE_CHARACTER_FSM_RECONNECTING
-} from '../../actions/UI/activeCharacters'
+} from '../actions/activeCharacters'
 
 export const reducer = (state = {}, action = {}) => {
     const {
@@ -47,7 +47,7 @@ export const reducer = (state = {}, action = {}) => {
                     ...state,
                     [CharacterId]: {
                         CharacterId,
-                        status: ACTIVE_CHARACTER_FSM_INITIAL
+                        state: ACTIVE_CHARACTER_FSM_INITIAL
                     }
                 }
             }

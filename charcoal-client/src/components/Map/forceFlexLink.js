@@ -25,7 +25,7 @@ function find(nodeById, nodeId) {
   return node;
 }
 
-export default function(links) {
+export const forceFlexLink = function(links) {
   var id = index,
       strength = defaultStrength,
       strengths,
@@ -159,3 +159,5 @@ export default function(links) {
 
   return force;
 }
+
+export default forceFlexLink

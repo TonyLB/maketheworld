@@ -1,4 +1,7 @@
-import { getActiveCharacterState } from '../../selectors/UI/activeCharacters'
+import { fetchCachedMessages } from '../messages'
+import { getActiveCharacterState } from '../../selectors/activeCharacters'
+import { getLastMessageSync, sync } from './messageSync'
+import { subscribe } from './subscription'
 
 export const ACTIVATE_CHARACTER = 'ACTIVATE_CHARACTER'
 export const DEACTIVATE_CHARACTER = 'DEACTIVATE_CHARACTER'
@@ -59,11 +62,11 @@ export const deactivateCharacter = (CharacterId) => ({ type: DEACTIVATE_CHARACTE
 //
 
 //
-// subscribeToMessages(CharacterId) will return an action that kicks of an attempt
+// subscribeToMessages(CharacterId) will return an action that kicks off an attempt
 // to subscribe to character messages from the back-end.  It is only valid in INITIAL
 // state of the FSM.
 //
-export const subscribeToMessages = (CharacterId) => (dispatch, getState) => {
+export const subscribeToMessages = (CharacterId) => (async (dispatch, getState) => {
     const state = getState()
     const fsmState = getActiveCharacterState(CharacterId)(state)
     if (fsmState === ACTIVE_CHARACTER_FSM_INITIAL) {
@@ -71,5 +74,28 @@ export const subscribeToMessages = (CharacterId) => (dispatch, getState) => {
             type: ACTIVE_CHARACTER_SUBSCRIBE_ATTEMPT,
             CharacterId
         })
+        //
+        // Call the message action fetchCachedMessages to pull cached messages from
+        // the client-side DB.
+        //
+        await dispatch(fetchCachedMessages(CharacterId))
+        //
+        //
+        //
+        const LastMessageSync = await getLastMessageSync(CharacterId)
+        const subscription = await dispatch(subscribe(CharacterId))
+        //
+        // TODO:  Add error handling on subscription
+        //
+        await dispatch(sync({ CharacterId, LastMessageSync }))
+        //
+        // TODO:  Add error handling on sync
+        //
+        dispatch({
+            type: ACTIVE_CHARACTER_SUBSCRIBE_SUCCESS,
+            CharacterId,
+            subscription
+        })
+
     }
-}
+})

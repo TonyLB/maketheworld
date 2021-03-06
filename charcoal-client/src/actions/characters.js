@@ -8,7 +8,6 @@ import {
 } from '../graphql/mutations'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
-import { addSubscription } from './subscriptions'
 import { lookRoom } from './behaviors/lookRoom'
 import { sendWorldMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
