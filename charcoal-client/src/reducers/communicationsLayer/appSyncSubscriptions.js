@@ -5,7 +5,7 @@ const initialState = (rootLevelKeys) => ({
     characters: {}
 })
 
-export const reducer = (state = initialState(['permanents', 'ephemera']), action = {}) => {
+export const reducer = (state = initialState(['permanents', 'ephemera', 'player']), action = {}) => {
     const { type: actionType = "NOOP", payload = {} } = action
     switch (actionType) {
         case SUBSCRIPTION_ATTEMPT:

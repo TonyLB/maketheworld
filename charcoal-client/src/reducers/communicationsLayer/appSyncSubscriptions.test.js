@@ -10,6 +10,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
         ephemera: {
             status: 'INITIAL'
         },
+        player: {
+            status: 'INITIAL'
+        },
         characters: {
             TESS: {
                 subscription: 'DEF',
@@ -25,6 +28,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             ephemera: {
                 status: 'INITIAL'
             },
+            player: {
+                status: 'INITIAL'
+            },
             characters: {}
         })
     })
@@ -32,12 +38,21 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
         expect(appSyncSubscriptions(testState, { type: 'NO-OP' })).toEqual(testState)
     })
     it('should update status on SUBSCRIPTION_ATTEMPT', () => {
-        expect(appSyncSubscriptions({ permanents: { status: 'INITIAL' }, ephemera: { status: 'INITIAL'}, characters: {}}, { type: SUBSCRIPTION_ATTEMPT, payload: { key: 'permanents' } })).toEqual({
+        expect(appSyncSubscriptions({
+            permanents: { status: 'INITIAL' },
+            ephemera: { status: 'INITIAL'},
+            player: { status: 'CONNECTED', subscription: 'XYZ' },
+            characters: {}
+        }, { type: SUBSCRIPTION_ATTEMPT, payload: { key: 'permanents' } })).toEqual({
             permanents: {
                 status: 'CONNECTING'
             },
             ephemera: {
                 status: 'INITIAL'
+            },
+            player: {
+                status: 'CONNECTED',
+                subscription: 'XYZ'
             },
             characters: {}
         })
@@ -50,6 +65,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             ephemera: {
                 status: 'CONNECTED',
                 subscription: 'DEF'
+            },
+            player: {
+                status: 'INITIAL'
             },
             characters: {}
         }, {
@@ -66,6 +84,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
                 status: 'CONNECTED',
                 subscription: 'DEF'
             },
+            player: {
+                status: 'INITIAL'
+            },
             characters: {}
         })
     })
@@ -76,6 +97,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             },
             ephemera: {
                 status: 'CONNECTING'
+            },
+            player: {
+                status: 'INITIAL'
             },
             characters: {}
         }, {
@@ -88,6 +112,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             ephemera: {
                 status: 'ERROR'
             },
+            player: {
+                status: 'INITIAL'
+            },
             characters: {}
         })
     })
@@ -96,14 +123,14 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             expect(appSyncSubscriptions({
                 permanents: { status: 'INITIAL' },
                 ephemera: { status: 'INITIAL'},
+                player: { status: 'INITIAL' },
+                status: 'INITIAL',
                 characters: { TESS: { status: 'INITIAL' }}
             }, { type: SUBSCRIPTION_ATTEMPT, payload: { key: 'characters', characterId: 'TESS' } })).toEqual({
-                permanents: {
-                    status: 'INITIAL'
-                },
-                ephemera: {
-                    status: 'INITIAL'
-                },
+                permanents: { status: 'INITIAL' },
+                ephemera: { status: 'INITIAL' },
+                player: { status: 'INITIAL' },
+                status: 'INITIAL',
                 characters: { TESS: { status: 'CONNECTING' }}
             })
         })
@@ -116,6 +143,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
                 ephemera: {
                     status: 'CONNECTED',
                     subscription: 'DEF'
+                },
+                player: {
+                    status: 'INITIAL'
                 },
                 characters: { TESS: { status: 'CONNECTING' }}
             }, {
@@ -131,6 +161,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
                 ephemera: {
                     status: 'CONNECTED',
                     subscription: 'DEF'
+                },
+                player: {
+                    status: 'INITIAL'
                 },
                 characters: {
                     TESS: {
@@ -148,6 +181,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
                 ephemera: {
                     status: 'INITIAL'
                 },
+                player: {
+                    status: 'INITIAL'
+                },
                 characters: { TESS: { status: 'CONNECTING' }}
             }, {
                 type: SUBSCRIPTION_ERROR,
@@ -157,6 +193,9 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
                     status: 'INITIAL'
                 },
                 ephemera: {
+                    status: 'INITIAL'
+                },
+                player: {
                     status: 'INITIAL'
                 },
                 characters: { TESS: { status: 'ERROR' }}
