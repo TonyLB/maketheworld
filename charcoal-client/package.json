@@ -24,6 +24,7 @@
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
     "tinycolor2": "^1.4.2",
+    "typescript": "^4.2.3",
     "uuid": "^8.3.2"
   },
   "scripts": {
@@ -52,11 +53,12 @@
   },
   "devDependencies": {
     "@storybook/addon-actions": "^6.1.11",
-    "@storybook/addon-essentials": "^6.1.11",
+    "@storybook/addon-essentials": "^6.1.21",
     "@storybook/addon-links": "^6.1.11",
     "@storybook/node-logger": "^6.1.11",
     "@storybook/preset-create-react-app": "^3.1.5",
-    "@storybook/react": "^6.1.11",
+    "@storybook/react": "^6.1.21",
+    "@types/jest": "^26.0.20",
     "lorem-ipsum": "^2.0.3",
     "redux-mock-store": "^1.5.4"
   }
