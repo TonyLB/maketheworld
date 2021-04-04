@@ -13,6 +13,8 @@ import maps from '../reducers/maps.js'
 import player from '../reducers/player'
 import role from '../reducers/role'
 import charactersInPlay from '../reducers/charactersInPlay.js'
+import communicationsLayer from '../reducers/communicationsLayer'
+import stateSeekingMachines from '../reducers/stateSeekingMachine/'
 import subscriptions from '../reducers/subscriptions'
 import settings from '../reducers/settings'
 import clientSettings from '../reducers/clientSettings'
@@ -22,6 +24,7 @@ export const storeReducer = combineReducers({
     activeCharacters,
     backups,
     characters,
+    communicationsLayer,
     connection,
     charactersInPlay,
     clientSettings,
@@ -33,6 +36,7 @@ export const storeReducer = combineReducers({
     maps,
     player,
     settings,
+    stateSeekingMachines,
     subscriptions,
     UI: uiReducer,
     webSocket

@@ -1,9 +1,11 @@
 import { combineReducers } from 'redux'
 
 import appSyncSubscriptions from './appSyncSubscriptions'
-import webSocket from './webSocket'
+import lifeLine from './lifeLine'
 
-export const communicationsLayer = combineReducers([
+export const communicationsLayer = combineReducers({
     appSyncSubscriptions,
-    webSocket
-])
+    lifeLine
+})
+
+export default communicationsLayer

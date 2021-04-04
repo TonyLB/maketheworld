@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
-import { establishWebSocket } from '../actions/webSocket'
-import { getCharacterId } from '../selectors/connection'
+import { registerLifeLineSSM } from '../actions/communicationsLayer/lifeLine'
 
 export const useCommunicationsLayer = () => {
     const dispatch = useDispatch()
@@ -14,10 +13,8 @@ export const useCommunicationsLayer = () => {
     // events for multiple characters)
     //
     useEffect(() => {
-        if (CharacterId) {
-            dispatch(establishWebSocket(CharacterId))
-        }
-    }, [CharacterId, dispatch])
+        dispatch(registerLifeLineSSM)
+    }, [])
 
     //
     // TODO:  Fold useAppSyncSubscriptions into the communications layer

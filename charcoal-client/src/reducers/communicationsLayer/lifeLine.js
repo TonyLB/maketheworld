@@ -1,4 +1,5 @@
-import { ESTABLISH_WEB_SOCKET_ATTEMPT, ESTABLISH_WEB_SOCKET_ERROR, ESTABLISH_WEB_SOCKET_SUCCESS, DISCONNECT_WEB_SOCKET } from '../../actions/communicationsLayer/webSocket.js'
+import { produce } from 'immer'
+import { ESTABLISH_WEB_SOCKET_SUCCESS, DISCONNECT_WEB_SOCKET } from '../../actions/communicationsLayer/lifeLine.ts'
 
 export const reducer = (state = {}, action = {}) => {
     const { type: actionType = "NOOP", payload = {} } = action
@@ -7,7 +8,6 @@ export const reducer = (state = {}, action = {}) => {
             const { webSocket, pingInterval, refreshTimeout } = payload
             if (webSocket) {
                 return {
-                    status: 'CONNECTED',
                     webSocket,
                     pingInterval,
                     refreshTimeout
@@ -16,20 +16,8 @@ export const reducer = (state = {}, action = {}) => {
             else {
                 return state
             }
-        case ESTABLISH_WEB_SOCKET_ATTEMPT:
-            return {
-                ...state,
-                status: 'CONNECTING'
-            }
-        case ESTABLISH_WEB_SOCKET_ERROR:
-            return {
-                ...state,
-                status: 'ERROR'
-            }
         case DISCONNECT_WEB_SOCKET:
-            return {
-                status: 'DISCONNECTED'
-            }
+            return {}
         default: return state
     }
 }

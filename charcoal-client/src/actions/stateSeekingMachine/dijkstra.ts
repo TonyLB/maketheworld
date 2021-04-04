@@ -5,22 +5,33 @@
 
 import {
     ISSMTemplate,
-    ISSMStateKey,
-    ISSMChoice
+    ISSMPotentialState
 } from './index'
 
-interface IDijkstraNode {
-    key: ISSMStateKey;
+interface IDijkstraNode<K extends string> {
+    key: K;
     distance: number;
-    previous: ISSMChoice;
-    previousNode: ISSMStateKey;
-    visited: Boolean;
+    previous: K;
+    visited: boolean;
 }
 
-export const dijkstra = (
-    { startKey, endKey, template }: { startKey: ISSMStateKey, endKey: ISSMStateKey, template: ISSMTemplate }
-): Array<ISSMChoice> => {
-    const nodes: Record<ISSMStateKey, IDijkstraNode> = Object.keys(template.states)
+const possibleIntents = <K extends string>(
+    node: ISSMPotentialState<K>
+): K[] => {
+    switch(node.stateType) {
+        case 'CHOICE':
+            return node.choices
+        case 'ATTEMPT':
+            return [node.resolve]
+        default:
+            return []
+    }
+}
+
+export const dijkstra = <K extends string>(
+    { startKey, endKey, template }: { startKey: K, endKey: K, template: ISSMTemplate<K> }
+): K[] => {
+    const nodes: Record<K, IDijkstraNode<K>> = Object.keys(template.states)
         .reduce((previous, key) => ({
             ...previous,
             [key]: {
@@ -29,24 +40,27 @@ export const dijkstra = (
                 visited: false,
                 previous: undefined
             }
-        }), {})
+        }), {}) as Record<K, IDijkstraNode<K>>
     nodes[startKey].distance = 0
     let current = nodes[startKey]
-    while(nodes[endKey].distance === Infinity) {
-        const choices = template.states[current.key].choices
-        choices.forEach((choice) => {
-            const examinedNode = nodes[choice.intended]
-            if (current.distance + 1 < examinedNode.distance) {
-                examinedNode.distance = current.distance + 1
-                examinedNode.previous = choice
-                examinedNode.previousNode = current.key
+    let breakout = 0
+    while(nodes[endKey].distance === Infinity && breakout < 100) {
+        breakout++
+        const newDistance = current.distance + 1
+        const currentKey = current.key
+        const intents = possibleIntents<K>(template.states[currentKey])
+        intents.forEach((intent) => {
+            const examinedNode = nodes[intent]
+            if (newDistance < examinedNode.distance) {
+                examinedNode.distance = newDistance
+                examinedNode.previous = currentKey
             }
         })
         current.visited = true
-        const next = Object.values(nodes)
+        const next = (Object.values(nodes) as Array<IDijkstraNode<K>>)
             .filter(({ visited }) => (!visited))
             .filter(({ distance }) => (distance !== Infinity))
-            .reduce((previous: IDijkstraNode | undefined, node) => {
+            .reduce((previous: IDijkstraNode<K> | undefined, node) => {
                 if (!previous || node.distance < previous.distance) {
                     return node
                 } else {
@@ -62,11 +76,11 @@ export const dijkstra = (
         return []
     }
     else {
-        let returnValue: Array<ISSMChoice> = []
+        let returnValue: K[] = []
         current = nodes[endKey]
-        while(current.previous) {
+        while(current.previous !== startKey && breakout < 10) {
             returnValue = [current.previous, ...returnValue]
-            current = nodes[current.previousNode]
+            current = nodes[current.previous]
         }
         return returnValue
     }

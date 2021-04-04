@@ -1,4 +1,12 @@
-export const getWebSocket = ({ communicationsLayer: { webSocket = { status: 'DISCONNECTED' } } = {} }) => webSocket
+import { getSSMState } from '../stateSeekingMachine'
+
+export const getLifeLine = (state = {}) => {
+    const { communicationsLayer: { lifeLine = {} } = {} } = state
+    return {
+        ...lifeLine,
+        status: getSSMState('LifeLine')(state) || 'INITIAL'
+    }
+}
 
 export const getSubscriptionStatus = ({ communicationsLayer: { appSyncSubscriptions: {
     ephemera = { status: 'INITIAL' },

@@ -1,160 +1,79 @@
-import { ISSMTemplate } from './index'
+import { ISSMTemplate, ISSMPotentialState, ISSMChoiceState, ISSMAttemptState } from './index'
 import dijkstra from './dijkstra'
 
+type testSSMKeys = 'INITIAL' | 'SUBSCRIBING' | 'SUBSCRIBED' | 'BRANCHING' | 'BRANCHED' | 'CONNECTING' | 'CONNECTED' | 'UNSUBSCRIBING'
+
 describe('SSM dijkstra algorithm', () => {
+    const nullChoiceState = (key: testSSMKeys): ISSMChoiceState<testSSMKeys> => ({
+        key,
+        stateType: 'CHOICE',
+        choices: [],
+        externals: []
+    })
+    const nullAttemptState = (key: testSSMKeys): Partial<ISSMAttemptState<testSSMKeys>> => ({
+        key,
+        stateType: 'ATTEMPT',
+        action: () => {}
+    })
+    const baseGraph: ISSMTemplate<testSSMKeys> = {
+        initialState: 'INITIAL',
+        states: {
+            ...([
+                ['INITIAL', 'SUBSCRIBING'],
+                ['SUBSCRIBED', 'CONNECTING'],
+                ['BRANCHED', 'CONNECTING'],
+                ['CONNECTED', '']
+            ].reduce((previous, [key, next]) => ({ ...previous, [key]: {
+                ...nullChoiceState(key as testSSMKeys),
+                choices: next ? [next] : [],
+                externals: []
+            } }), {})),
+            ...([
+                ['SUBSCRIBING', 'SUBSCRIBED', 'INITIAL'],
+                ['BRANCHING', 'BRANCHED', 'SUBSCRIBED'],
+                ['CONNECTING', 'CONNECTED', 'SUBSCRIBED'],
+                ['UNSUBSCRIBING', 'INITIAL', 'INITIAL']
+            ].reduce((previous, [key, resolve, reject]) => ({ ...previous, [key]: {
+                ...nullAttemptState(key as testSSMKeys),
+                resolve,
+                reject
+            } }), {}))
+        } as unknown as Record<testSSMKeys, ISSMPotentialState<testSSMKeys>>
+    }
     it('finds the shortest path', () => {
-        const subscribeChoice = {
-            intended: 'SUBSCRIBED',
-            immediate: 'SUBSCRIBING',
-            call: () => {}
-        }
-        const branchChoice = {
-            intended: 'BRANCHED',
-            immediate: 'BRANCHING',
-            call: () => {}
-        }
-        const connectChoice = {
-            intended: 'CONNECTED',
-            immediate: 'CONNECTING',
-            call: () => {}
-        }
-        const branchingGraph: ISSMTemplate = {
-            initialState: 'INITIAL',
+        let branchingGraph = {
+            initialState: 'INITIAL' as testSSMKeys,
             states: {
-                INITIAL: {
-                    key: 'INITIAL',
-                    choices: [subscribeChoice],
-                    externals: []
-                },
-                SUBSCRIBING: {
-                    key: 'SUBSCRIBING',
-                    choices: [],
-                    externals: ['SUBSCRIBED']
-                },
-                SUBSCRIBED: {
-                    key: 'SUBSCRIBED',
-                    choices: [connectChoice, branchChoice],
-                    externals: []
-                },
-                BRANCHING: {
-                    key: 'BRANCHING',
-                    choices: [],
-                    externals: ['BRANCHED']
-                },
-                BRANCHED: {
-                    key: 'BRANCHED',
-                    choices: [connectChoice],
-                    externals: []
-                },
-                CONNECTING: {
-                    key: 'CONNECTING',
-                    choices: [],
-                    externals: ['CONNECTED']
-                },
-                CONNECTED: {
-                    key: 'CONNECTED',
-                    choices: [],
-                    externals: []
-                }
+                ...baseGraph.states
             }
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: branchingGraph })).toEqual([
-            subscribeChoice,
-            connectChoice
-        ])
+        if (branchingGraph.states.SUBSCRIBED.stateType === 'CHOICE') {
+            branchingGraph.states.SUBSCRIBED.choices = ['BRANCHING', 'CONNECTING']
+        }
+        expect(dijkstra<testSSMKeys>({ startKey: 'INITIAL', endKey: 'CONNECTED', template: branchingGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING'])
 
     })
     it('handles cyclic graphs', () => {
-        const subscribeChoice = {
-            intended: 'SUBSCRIBED',
-            immediate: 'SUBSCRIBING',
-            call: () => {}
-        }
-        const connectChoice = {
-            intended: 'CONNECTED',
-            immediate: 'CONNECTING',
-            call: () => {}
-        }
-        const cyclicGraph: ISSMTemplate = {
+        let cyclicGraph = {
             initialState: 'INITIAL',
             states: {
-                INITIAL: {
-                    key: 'INITIAL',
-                    choices: [subscribeChoice],
-                    externals: []
-                },
-                SUBSCRIBING: {
-                    key: 'SUBSCRIBING',
-                    choices: [],
-                    externals: ['SUBSCRIBED']
-                },
-                SUBSCRIBED: {
-                    key: 'SUBSCRIBED',
-                    choices: [connectChoice,
-                    {
-                        intended: 'INITIAL',
-                        immediate: 'UNSUBSCRIBING',
-                        call: () => {}
-                    }],
-                    externals: []
-                },
-                UNSUBSCRIBING: {
-                    key: 'UNSUBSCRIBING',
-                    choices: [],
-                    externals: ['INITIAL']
-                },
-                CONNECTING: {
-                    key: 'CONNECTING',
-                    choices: [],
-                    externals: ['CONNECTED']
-                },
-                CONNECTED: {
-                    key: 'CONNECTED',
-                    choices: [],
-                    externals: []
-                }
+                ...baseGraph.states
             }
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: cyclicGraph })).toEqual([
-            subscribeChoice,
-            connectChoice
-        ])
+        if (cyclicGraph.states.CONNECTED.stateType === 'CHOICE') {
+            cyclicGraph.states.CONNECTED.choices = ['UNSUBSCRIBING']
+        }
+        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: cyclicGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING'])
     })
     it('handles pathless graphs', () => {
-        const subscribeChoice = {
-            intended: 'SUBSCRIBED',
-            immediate: 'SUBSCRIBING',
-            call: () => {}
-        }
-        const disconnectedGraph: ISSMTemplate = {
+        let disconnectedGraph = {
             initialState: 'INITIAL',
             states: {
-                INITIAL: {
-                    key: 'INITIAL',
-                    choices: [subscribeChoice],
-                    externals: []
-                },
-                SUBSCRIBING: {
-                    key: 'SUBSCRIBING',
-                    choices: [],
-                    externals: ['SUBSCRIBED']
-                },
-                SUBSCRIBED: {
-                    key: 'SUBSCRIBED',
-                    choices: [],
-                    externals: []
-                },
-                CONNECTING: {
-                    key: 'CONNECTING',
-                    choices: [],
-                    externals: ['CONNECTED']
-                },
-                CONNECTED: {
-                    key: 'CONNECTED',
-                    choices: [],
-                    externals: []
-                }
+                ...baseGraph.states
             }
+        }
+        if (disconnectedGraph.states.SUBSCRIBED.stateType === 'CHOICE') {
+            disconnectedGraph.states.SUBSCRIBED.choices = []
         }
         expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: disconnectedGraph })).toEqual([])
 

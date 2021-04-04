@@ -1,25 +1,48 @@
-import { getWebSocket, getSubscriptionStatus } from './index'
+import { produce, immerable } from 'immer'
+import { StateSeekingMachineModule } from '../../reducers/stateSeekingMachine'
+import { getLifeLine, getSubscriptionStatus } from './index'
 
 describe('communicationsLayer selectors', () => {
-    describe('getWebSocket', () => {
+    describe('getLifeLine', () => {
+        const testStateSeekingMachineModule: StateSeekingMachineModule = {
+            [immerable]: true,
+            lastEvaluation: '100',
+            heartbeat: '100',
+            machines: {
+                LifeLine: {
+                    key: 'LifeLine',
+                    currentState: 'CONNECTED',
+                    desiredState: 'CONNECTED',
+                    template: {
+                        initialState: 'INITIAL',
+                        states: {}
+                    }
+                }
+            }
+        }
         it('should return a default on null state', () => {
-            expect(getWebSocket({})).toEqual({ status: 'DISCONNECTED' })
+            expect(getLifeLine({})).toEqual({ status: 'INITIAL' })
         })
 
         it('should return a default when webSocket not defined in communicationsLayer', () => {
-            expect(getWebSocket({ communicationsLayer: {} })).toEqual({ status: 'DISCONNECTED' })
+            expect(getLifeLine({
+                communicationsLayer: {},
+                stateSeekingMachines: produce(testStateSeekingMachineModule, draftModule => {
+                    draftModule.machines.LifeLine.currentState = 'INITIAL'
+                })
+            })).toEqual({ status: 'INITIAL' })
         })
 
         it('should return webSocket info when defined', () => {
-            expect(getWebSocket({
+            expect(getLifeLine({
                 communicationsLayer: {
-                    webSocket: {
-                        status: 'CONNECTED',
+                    lifeLine: {
                         webSocket: 'ABC',
                         pingInterval: 123,
                         refreshTimeout: 456
                     }
-                }
+                },
+                stateSeekingMachines: testStateSeekingMachineModule
             })).toEqual({
                 status: 'CONNECTED',
                 webSocket: 'ABC',
