@@ -8,6 +8,11 @@ export const getLifeLine = (state = {}) => {
     }
 }
 
+export const getPermanentsLastSync = (state = {}) => {
+    const { communicationsLayer: { fetchLastPermanentsSync = 0 } = {} } = state
+    return fetchLastPermanentsSync
+}
+
 export const getSubscriptionStatus = ({ communicationsLayer: { appSyncSubscriptions: {
     ephemera = { status: 'INITIAL' },
     permanents = { status: 'INITIAL' },

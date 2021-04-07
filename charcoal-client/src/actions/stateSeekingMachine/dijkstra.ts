@@ -4,9 +4,9 @@
 //
 
 import {
-    ISSMTemplate,
-    ISSMPotentialState
+    ISSMTemplate
 } from './index'
+import { ISSMPotentialState } from './baseClasses'
 
 interface IDijkstraNode<K extends string> {
     key: K;
@@ -15,9 +15,13 @@ interface IDijkstraNode<K extends string> {
     visited: boolean;
 }
 
-const possibleIntents = <K extends string>(
-    node: ISSMPotentialState<K>
-): K[] => {
+//
+// TODO:  Figure out how to extract type requirements from the template, and limit
+// dijkstra calculation without having to manually type at every step
+//
+const possibleIntents = <T extends ISSMTemplate>(
+    node: ISSMPotentialState<keyof T["states"], T["initialData"]>
+): Array<keyof T["states"]> => {
     switch(node.stateType) {
         case 'CHOICE':
             return node.choices
@@ -28,9 +32,10 @@ const possibleIntents = <K extends string>(
     }
 }
 
-export const dijkstra = <K extends string>(
-    { startKey, endKey, template }: { startKey: K, endKey: K, template: ISSMTemplate<K> }
-): K[] => {
+export const dijkstra = (
+    { startKey, endKey, template }: { startKey: keyof typeof template.states, endKey: keyof typeof template.states, template: ISSMTemplate }
+): (keyof typeof template.states)[] => {
+    type K = keyof typeof template.states
     const nodes: Record<K, IDijkstraNode<K>> = Object.keys(template.states)
         .reduce((previous, key) => ({
             ...previous,
@@ -47,10 +52,10 @@ export const dijkstra = <K extends string>(
     while(nodes[endKey].distance === Infinity && breakout < 100) {
         breakout++
         const newDistance = current.distance + 1
-        const currentKey = current.key
-        const intents = possibleIntents<K>(template.states[currentKey])
+        const currentKey = current.key as K
+        const intents = possibleIntents<typeof template>(template.states[currentKey] as any)
         intents.forEach((intent) => {
-            const examinedNode = nodes[intent]
+            const examinedNode = nodes[intent as K]
             if (newDistance < examinedNode.distance) {
                 examinedNode.distance = newDistance
                 examinedNode.previous = currentKey

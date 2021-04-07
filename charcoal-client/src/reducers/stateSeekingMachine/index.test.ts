@@ -1,16 +1,24 @@
+import { immerable } from 'immer'
 import reducer, { StateSeekingMachineModule } from './index'
 import {
     ISSMTemplate,
     STATE_SEEKING_MACHINE_REGISTER,
     STATE_SEEKING_MACHINE_HEARTBEAT,
     STATE_SEEKING_EXTERNAL_CHANGE,
+    STATE_SEEKING_INTERNAL_CHANGE,
     STATE_SEEKING_ASSERT_DESIRE
 } from '../../actions/stateSeekingMachine'
 
 type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
 
-const testTemplate: ISSMTemplate<testKeys> = {
+class TestData {
+    valOne: string = ''
+    valTwo: string = ''
+}
+
+const testTemplate: ISSMTemplate<testKeys, TestData> = {
     initialState: 'INITIAL',
+    initialData: new TestData(),
     states: {
         INITIAL: {
             stateType: 'CHOICE',
@@ -31,7 +39,9 @@ const testTemplate: ISSMTemplate<testKeys> = {
         }
     }
 }
+
 const testState: StateSeekingMachineModule = {
+    [immerable]: true,
     lastEvaluation: '100',
     heartbeat: '100',
     machines: {
@@ -39,7 +49,8 @@ const testState: StateSeekingMachineModule = {
             key: 'test',
             currentState: 'INITIAL',
             desiredState: 'INITIAL',
-            template: testTemplate
+            template: testTemplate,
+            data: new TestData()
         }
     }
 }
@@ -56,6 +67,7 @@ describe('stateSeekingMachine reducer', () => {
                 template: testTemplate
             }
         })).toEqual({
+            [immerable]: true,
             lastEvaluation: '100',
             heartbeat: '100',
             machines: {
@@ -63,19 +75,22 @@ describe('stateSeekingMachine reducer', () => {
                     key: 'test',
                     currentState: 'INITIAL',
                     desiredState: 'INITIAL',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
                 },
                 testTwo: {
                     key: 'testTwo',
                     currentState: 'INITIAL',
                     desiredState: 'INITIAL',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
                 }
             }
         })
     })
     it('should not override existing state-seeking machine on register', () => {
         expect(reducer({
+            [immerable]: true,
             lastEvaluation: '100',
             heartbeat: '100',
             machines: {
@@ -83,7 +98,8 @@ describe('stateSeekingMachine reducer', () => {
                     key: 'test',
                     currentState: 'CONNECTED',
                     desiredState: 'CONNECTED',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
                 }
             }
         }, {
@@ -93,6 +109,7 @@ describe('stateSeekingMachine reducer', () => {
                 template: testTemplate
             }
         })).toEqual({
+            [immerable]: true,
             lastEvaluation: '100',
             heartbeat: '100',
             machines: {
@@ -100,7 +117,8 @@ describe('stateSeekingMachine reducer', () => {
                     key: 'test',
                     currentState: 'CONNECTED',
                     desiredState: 'CONNECTED',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
                 }
             }
         })
@@ -110,6 +128,7 @@ describe('stateSeekingMachine reducer', () => {
             type: STATE_SEEKING_MACHINE_HEARTBEAT,
             payload: '200'
         })).toEqual({
+            [immerable]: true,
             lastEvaluation: '100',
             heartbeat: '200', 
             machines: {
@@ -117,16 +136,18 @@ describe('stateSeekingMachine reducer', () => {
                     key: 'test',
                     currentState: 'INITIAL',
                     desiredState: 'INITIAL',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
                 }
             }
         })
     })
-    it('should register a state-change', () => {
+    it('should register an external state-change', () => {
         expect(reducer(testState, {
             type: STATE_SEEKING_EXTERNAL_CHANGE,
             payload: { key: 'test', newState: 'CONNECTING' }
         })).toEqual({
+            [immerable]: true,
             lastEvaluation: '100',
             heartbeat: '100',
             machines: {
@@ -134,7 +155,30 @@ describe('stateSeekingMachine reducer', () => {
                     key: 'test',
                     currentState: 'CONNECTING',
                     desiredState: 'INITIAL',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
+                }
+            }
+        })
+    })
+    it('should register an internal state-change', () => {
+        expect(reducer(testState, {
+            type: STATE_SEEKING_INTERNAL_CHANGE,
+            payload: { key: 'test', newState: 'CONNECTING', data: { valOne: '123' } }
+        })).toEqual({
+            [immerable]: true,
+            lastEvaluation: '100',
+            heartbeat: '100',
+            machines: {
+                test: {
+                    key: 'test',
+                    currentState: 'CONNECTING',
+                    desiredState: 'INITIAL',
+                    template: testTemplate,
+                    data: {
+                        valOne: '123',
+                        valTwo: ''
+                    }
                 }
             }
         })
@@ -144,6 +188,7 @@ describe('stateSeekingMachine reducer', () => {
             type: STATE_SEEKING_ASSERT_DESIRE,
             payload: { key: 'test', newState: 'CONNECTED' }
         })).toEqual({
+            [immerable]: true,
             lastEvaluation: '100',
             heartbeat: '100',
             machines: {
@@ -151,7 +196,8 @@ describe('stateSeekingMachine reducer', () => {
                     key: 'test',
                     currentState: 'INITIAL',
                     desiredState: 'CONNECTED',
-                    template: testTemplate
+                    template: testTemplate,
+                    data: new TestData()
                 }
             }
         })

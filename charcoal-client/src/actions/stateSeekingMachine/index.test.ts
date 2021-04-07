@@ -26,15 +26,21 @@ const uuidMock = mockFunction(v4)
 const dijkstraMock = mockFunction(dijkstra)
 
 type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
+class TestData {
+    valOne: string = ''
+    valTwo: string = ''
+}
 
 describe('stateSeekingMachine', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
+    const internalAction = jest.fn().mockResolvedValue({})
     const internalCall = jest.fn()
-    const testTemplate: ISSMTemplate<testKeys> = {
+    const testTemplate: ISSMTemplate<testKeys, TestData> = {
         initialState: 'INITIAL',
+        initialData: new TestData(),
         states: {
             INITIAL: {
                 stateType: 'CHOICE',
@@ -61,7 +67,7 @@ describe('stateSeekingMachine', () => {
     })
     describe('registerSSM', () => {
         it('should correctly dispatch', () => {
-            expect(registerSSM<testKeys>({ key: 'TEST', template: testTemplate })).toEqual({
+            expect(registerSSM<testKeys, TestData>({ key: 'TEST', template: testTemplate })).toEqual({
                 type: STATE_SEEKING_MACHINE_REGISTER,
                 payload: {
                     key: 'TEST',
@@ -179,29 +185,36 @@ describe('stateSeekingMachine', () => {
         })
     })
     describe('iterateOneSSM', () => {
+        beforeEach(() => {
+            internalCall.mockReturnValue(internalAction)
+        })
         it('should dispatch nothing when state is already achieved', () => {
             const dispatch = jest.fn()
-            const testSSM: IStateSeekingMachine<testKeys> = {
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
                 template: testTemplate,
                 currentState: 'INITIAL',
-                desiredState: 'INITIAL'
+                desiredState: 'INITIAL',
+                data: new TestData()
             }
             const getState = jest.fn().mockReturnValue({
                 stateSeekingMachines: {
                     testSSM
                 }
             })
-            exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
-            expect(dispatch).not.toHaveBeenCalled()
+            return exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
+                .then(() => {
+                    expect(dispatch).not.toHaveBeenCalled()
+                })
         })
         it('should dispatch correctly when a first path item is defined', () => {
             const dispatch = jest.fn().mockReturnValueOnce({}).mockResolvedValueOnce({})
-            const testSSM: IStateSeekingMachine<testKeys> = {
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
                 template: testTemplate,
                 currentState: 'INITIAL',
-                desiredState: 'CONNECTED'
+                desiredState: 'CONNECTED',
+                data: new TestData()
             }
             const getState = jest.fn().mockReturnValue({
                 stateSeekingMachines: {
@@ -212,34 +225,73 @@ describe('stateSeekingMachine', () => {
             })
             uuidMock.mockReturnValue('testUUIDHeartbeat')
             dijkstraMock.mockReturnValue(['CONNECTING'])
-            const externalJest = jest.fn()
-            jest.spyOn(exportCollection, 'externalStateChange').mockImplementation((payload) => externalJest)
+            const internalJest = jest.fn()
+            jest.spyOn(exportCollection, 'internalStateChange').mockImplementation((payload) => internalJest)
             //
             // Set the iterateOneSSM dispatch to test its resolve function upon the return of the dispatch
             //
-            exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
+            return exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
                 .then(() => {
-                    expect(exportCollection.externalStateChange).toHaveBeenCalledWith({
+                    expect(exportCollection.internalStateChange).toHaveBeenCalledWith({
                         key: 'testSSM',
                         newState: 'CONNECTED',
-                        heartbeat: 'testUUIDHeartbeat'
+                        heartbeat: 'testUUIDHeartbeat',
+                        data: {}
                     })
+                    expect(dispatch).toHaveBeenCalledWith(internalJest)
+                    expect(internalCall).toHaveBeenCalledWith({ valOne: '', valTwo: '' })
+                    expect(dispatch).toHaveBeenCalledWith(internalAction)
                 })
-            expect(dispatch).toHaveBeenCalledWith(externalJest)
-            expect(exportCollection.externalStateChange).toHaveBeenCalledWith({
+        })
+        it('should update data when the action returns data', () => {
+            const dispatch = jest.fn().mockReturnValueOnce({}).mockResolvedValueOnce({ valTwo: '456' })
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
-                newState: 'CONNECTING',
-                heartbeat: 'testHeartbeat'
+                template: testTemplate,
+                currentState: 'INITIAL',
+                desiredState: 'CONNECTED',
+                data: {
+                    valOne: '123',
+                    valTwo: 'ABC'
+                }
+            }
+            const getState = jest.fn().mockReturnValue({
+                stateSeekingMachines: {
+                    machines: {
+                        testSSM
+                    }
+                }
             })
-            expect(dispatch).toHaveBeenCalledWith(internalCall)
+            uuidMock.mockReturnValue('testUUIDHeartbeat')
+            dijkstraMock.mockReturnValue(['CONNECTING'])
+            const internalJest = jest.fn()
+            jest.spyOn(exportCollection, 'internalStateChange').mockImplementation((payload) => internalJest)
+            //
+            // Set the iterateOneSSM dispatch to test its resolve function upon the return of the dispatch
+            //
+            return exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
+                .then(() => {
+                    expect(exportCollection.internalStateChange).toHaveBeenCalledWith({
+                        key: 'testSSM',
+                        newState: 'CONNECTED',
+                        heartbeat: 'testUUIDHeartbeat',
+                        data: {
+                            valTwo: '456'
+                        }
+                    })
+                    expect(dispatch).toHaveBeenCalledWith(internalJest)
+                    expect(internalCall).toHaveBeenCalledWith({ valOne: '123', valTwo: 'ABC' })
+                    expect(dispatch).toHaveBeenCalledWith(internalAction)
+                })
         })
         it('should dispatch to reject status when an action throws an exception', () => {
             const dispatch = jest.fn().mockReturnValueOnce({}).mockRejectedValueOnce({})
-            const testSSM: IStateSeekingMachine<testKeys> = {
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
                 template: testTemplate,
                 currentState: 'INITIAL',
-                desiredState: 'CONNECTED'
+                desiredState: 'CONNECTED',
+                data: new TestData()
             }
             const getState = jest.fn().mockReturnValue({
                 stateSeekingMachines: {
@@ -250,34 +302,31 @@ describe('stateSeekingMachine', () => {
             })
             uuidMock.mockReturnValue('testUUIDHeartbeat')
             dijkstraMock.mockReturnValue(['CONNECTING'])
-            const externalJest = jest.fn()
-            jest.spyOn(exportCollection, 'externalStateChange').mockImplementation((payload) => externalJest)
+            const internalJest = jest.fn()
+            jest.spyOn(exportCollection, 'internalStateChange').mockImplementation((payload) => internalJest)
             //
             // Set the iterateOneSSM dispatch to test its resolve function upon the return of the dispatch
             //
-            exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
+            return exportCollection.iterateOneSSM({ key: 'testSSM', heartbeat: 'testHeartbeat' })(dispatch, getState)
                 .then(() => {
-                    expect(exportCollection.externalStateChange).toHaveBeenCalledWith({
+                    expect(exportCollection.internalStateChange).toHaveBeenCalledWith({
                         key: 'testSSM',
                         newState: 'INITIAL',
                         heartbeat: 'testUUIDHeartbeat'
                     })
+                    expect(dispatch).toHaveBeenCalledWith(internalJest)
+                    expect(internalCall).toHaveBeenCalledWith({ valOne: '', valTwo: '' })
+                    expect(dispatch).toHaveBeenCalledWith(internalAction)
                 })
-            expect(dispatch).toHaveBeenCalledWith(externalJest)
-            expect(exportCollection.externalStateChange).toHaveBeenCalledWith({
-                key: 'testSSM',
-                newState: 'CONNECTING',
-                heartbeat: 'testHeartbeat'
-            })
-            expect(dispatch).toHaveBeenCalledWith(internalCall)
         })
         it('should dispatch nothing when no function path exists', () => {
             const dispatch = jest.fn()
-            const testSSM: IStateSeekingMachine<testKeys> = {
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
                 template: testTemplate,
                 currentState: 'INITIAL',
-                desiredState: 'CONNECTING'
+                desiredState: 'CONNECTING',
+                data: new TestData()
             }
             const getState = jest.fn().mockReturnValue({
                 stateSeekingMachines: {
@@ -303,11 +352,12 @@ describe('stateSeekingMachine', () => {
         })
         it('should dispatch nothing when all SSMs are in desired states', () => {
             const dispatch = jest.fn()
-            const testSSM: IStateSeekingMachine<testKeys> = {
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
                 template: testTemplate,
                 currentState: 'INITIAL',
-                desiredState: 'INITIAL'
+                desiredState: 'INITIAL',
+                data: new TestData()
             }
             const getState = jest.fn().mockReturnValue({
                 stateSeekingMachines: {
@@ -330,11 +380,12 @@ describe('stateSeekingMachine', () => {
         it('should dispatch an iterate for each SSM with a desired state change', () => {
             const dispatch = jest.fn()
             uuidMock.mockReturnValue('testUUIDHeartbeat')
-            const testSSM: IStateSeekingMachine<testKeys> = {
+            const testSSM: IStateSeekingMachine<testKeys, TestData> = {
                 key: 'testSSM',
                 template: testTemplate,
                 currentState: 'INITIAL',
-                desiredState: 'CONNECTED'
+                desiredState: 'CONNECTED',
+                data: new TestData()
             }
             const getState = jest.fn().mockReturnValue({
                 stateSeekingMachines: {

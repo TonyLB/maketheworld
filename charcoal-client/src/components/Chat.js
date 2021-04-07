@@ -69,7 +69,6 @@ import ClientSettingsDialog from './ClientSettingsDialog'
 import CodeOfConductConsentDialog from './CodeOfConductConsent'
 import { activateAllCharactersDialog } from '../actions/UI/allCharactersDialog'
 import { loadClientSettings } from '../actions/clientSettings'
-import useAppSyncSubscriptions from './useAppSyncSubscriptions'
 import useConnectedCharacter from './useConnectedCharacter'
 import { roomDescription } from '../store/messages'
 
@@ -114,7 +113,6 @@ const CharacterPicker = ({ open, onClose = () => {} }) => {
 }
 
 export const Chat = () => {
-    useAppSyncSubscriptions()
     useConnectedCharacter()
     const messages = useSelector(getMessages)
     const mostRecentRoomMessage = useSelector(getMostRecentRoomMessage)

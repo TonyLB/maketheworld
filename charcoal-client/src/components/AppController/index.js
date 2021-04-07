@@ -21,14 +21,12 @@ import { popFeedback } from '../../actions/UI/feedback'
 import AppLayout from '../AppLayout'
 import Profile from '../Profile'
 import MessagePanel from '../Message/MessagePanel'
-import useAppSyncSubscriptions from '../useAppSyncSubscriptions'
 import useStateSeekingMachines from '../useSSM'
 import useCommunicationsLayer from '../useCommunicationsLayer'
 
 export const AppController = () => {
     useStateSeekingMachines()
     useCommunicationsLayer()
-    useAppSyncSubscriptions()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
     const subscribedCharacterIds = useSelector(getSubscribedCharacterIds)

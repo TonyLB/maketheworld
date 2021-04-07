@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { ESTABLISH_WEB_SOCKET_SUCCESS, DISCONNECT_WEB_SOCKET } from '../../actions/communicationsLayer/lifeLine.ts'
+import { ESTABLISH_WEB_SOCKET_SUCCESS, DISCONNECT_WEB_SOCKET } from '../../actions/communicationsLayer/lifeLine/index.ts'
 
 export const reducer = (state = {}, action = {}) => {
     const { type: actionType = "NOOP", payload = {} } = action

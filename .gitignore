@@ -1,6 +1,7 @@
 *.iml
 .idea/
 .aws-sam/
+.vscode/
 packaged.yaml
 characterPackaged.yaml
 appsyncPackaged.yaml

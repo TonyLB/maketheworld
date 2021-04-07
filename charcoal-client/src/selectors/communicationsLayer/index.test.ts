@@ -1,6 +1,6 @@
 import { produce, immerable } from 'immer'
 import { StateSeekingMachineModule } from '../../reducers/stateSeekingMachine'
-import { getLifeLine, getSubscriptionStatus } from './index'
+import { getLifeLine, getSubscriptionStatus, getPermanentsLastSync } from './index'
 
 describe('communicationsLayer selectors', () => {
     describe('getLifeLine', () => {
@@ -49,6 +49,20 @@ describe('communicationsLayer selectors', () => {
                 pingInterval: 123,
                 refreshTimeout: 456
             })
+        })
+    })
+
+    describe('getPermanentsLastSync', () => {
+        it('should return a default on null state', () => {
+            expect(getPermanentsLastSync({})).toEqual(0)
+        })
+
+        it('should return lastSync info when defined', () => {
+            expect(getPermanentsLastSync({
+                communicationsLayer: {
+                    fetchLastPermanentsSync: 123
+                }
+            })).toEqual(123)
         })
     })
 

@@ -1,48 +1,22 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getHeartbeat } from '../../selectors/stateSeekingMachine';
 import dijkstra from './dijkstra'
+import { LifeLineSSM, LifeLineTemplate } from '../communicationsLayer/lifeLine'
+import { PermanentsSubscriptionSSM, PermanentsSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/permanentsSubscription'
+import { PlayerSubscriptionSSM, PlayerSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/playerSubscription'
+import { EphemeraSubscriptionSSM, EphemeraSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/ephemeraSubscription'
 
-export type ISSMStateKey = string;
-
-interface ISSMAction {
-    (dispatch: any, getState: any): void | Object;
-}
-
-export interface ISSMChoiceState<K> {
-    key: K;
-    stateType: 'CHOICE';
-    choices: Array<K>;
-}
-
-export interface ISSMAttemptState<K> {
-    key: K;
-    stateType: 'ATTEMPT';
-    action: ISSMAction;
-    resolve: K;
-    reject: K;
-}
-
-export type ISSMPotentialState<K> = ISSMChoiceState<K> | ISSMAttemptState<K>
-
-export interface ISSMTemplate<K extends string> {
-    initialState: K;
-    states: Record<K, ISSMPotentialState<K>>;
-}
-
-export interface IStateSeekingMachine<K extends string> {
-    key: string;
-    template: ISSMTemplate<K>;
-    currentState: K;
-    desiredState: K;
-}
+export type ISSMTemplate = LifeLineTemplate | PermanentsSubscriptionTemplate | PlayerSubscriptionTemplate | EphemeraSubscriptionTemplate
+export type IStateSeekingMachine = LifeLineSSM | PermanentsSubscriptionSSM | PlayerSubscriptionSSM | EphemeraSubscriptionSSM
 
 export const STATE_SEEKING_MACHINE_REGISTER = 'STATE_SEEKING_MACHINE_REGISTER'
 export const STATE_SEEKING_MACHINE_HEARTBEAT = 'STATE_SEEKING_MACHINE_HEARTBEAT'
 export const STATE_SEEKING_MACHINE_EVALUATION = 'STATE_SEEKING_MACHINE_EVALUATION'
 export const STATE_SEEKING_EXTERNAL_CHANGE = 'STATE_SEEKING_EXTERNAL_CHANGE'
+export const STATE_SEEKING_INTERNAL_CHANGE = 'STATE_SEEKING_INTERNAL_CHANGE'
 export const STATE_SEEKING_ASSERT_DESIRE = 'STATE_SEEKING_ASSERT_DESIRE'
 
-export const registerSSM = <K extends string>(payload: { key: string, template: ISSMTemplate<K> }) => ({
+export const registerSSM = (payload: { key: string, template: ISSMTemplate }) => ({
     type: STATE_SEEKING_MACHINE_REGISTER,
     payload
 })
@@ -66,7 +40,7 @@ export const assertIntent = <K extends string>(payload: { key: string; newState:
     })
 }
 
-export const externalStateChange = <K extends string>(payload: { key: string; newState: K; heartbeat?: string }) => (dispatch: any, getState: any) => {
+const ssmStateChange = <K extends string, D extends Record<string, any>>(payload: { type: 'STATE_SEEKING_EXTERNAL_CHANGE' | 'STATE_SEEKING_INTERNAL_CHANGE'; key: string; newState: K; heartbeat?: string; data?: Partial<D> }) => (dispatch: any, getState: any) => {
     const state = getState()
     const currentHeartbeat = getHeartbeat(state)
     const newHeartbeat = payload.heartbeat ?? uuidv4()
@@ -77,18 +51,27 @@ export const externalStateChange = <K extends string>(payload: { key: string; ne
         })
     }
     dispatch({
-        type: STATE_SEEKING_EXTERNAL_CHANGE,
+        type: payload.type,
         payload: {
             key: payload.key,
-            newState: payload.newState
+            newState: payload.newState,
+            data: payload.data
         }
     })
 }
 
+export const externalStateChange = <K extends string>(payload: { key: string; newState: K; heartbeat?: string }) => {
+    return ssmStateChange<K, any>({ ...payload, type: STATE_SEEKING_EXTERNAL_CHANGE })
+}
+
+const internalStateChange = <K extends string, D extends Record<string, any>>(payload: { key: string; newState: K; heartbeat?: string; data?: Partial<D> }) => {
+    return ssmStateChange<K, D>({ ...payload, type: STATE_SEEKING_INTERNAL_CHANGE })
+}
+
 export const iterateOneSSM = ({ key, heartbeat }: { key: string; heartbeat: string }) => (dispatch: any, getState: any) => {
-    const focusState = getState()?.stateSeekingMachines?.machines?.[key] as IStateSeekingMachine<string>
+    const focusState = getState()?.stateSeekingMachines?.machines?.[key]
     if (focusState && focusState.desiredState !== focusState.currentState) {
-        const executionPath = dijkstra<string>({
+        const executionPath = dijkstra({
             startKey: focusState.currentState,
             endKey: focusState.desiredState,
             template: focusState.template
@@ -97,30 +80,28 @@ export const iterateOneSSM = ({ key, heartbeat }: { key: string; heartbeat: stri
             const currentStep = focusState.template.states[focusState.currentState]
             const firstStep = focusState.template.states[executionPath[0]]
             if (currentStep.stateType === 'CHOICE') {
-                dispatch(exportCollection.externalStateChange<string>({ key, newState: executionPath[0], heartbeat }))
+                dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: executionPath[0], heartbeat }))
             }
             if (firstStep.stateType === 'ATTEMPT') {
-                return dispatch(firstStep.action)
-                    .then(() => {
+                return dispatch(firstStep.action(focusState.data))
+                    .then((response: Record<string, any>) => {
                         const newHeartbeat = uuidv4()
-                        dispatch(exportCollection.externalStateChange<string>({ key, newState: firstStep.resolve, heartbeat: newHeartbeat }))
+                        dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: firstStep.resolve, heartbeat: newHeartbeat, data: response }))
                     })
                     .catch(() => {
                         const newHeartbeat = uuidv4()
-                        dispatch(exportCollection.externalStateChange<string>({ key, newState: firstStep.reject, heartbeat: newHeartbeat }))
+                        dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: firstStep.reject, heartbeat: newHeartbeat }))
                     })
-            }
-            else {
-                return Promise.resolve({})
             }
         }
     }
+    return Promise.resolve({})
 }
 
 export const iterateAllSSMs = (dispatch: any, getState: any) => {
     const heartbeat = uuidv4()
-    const stateSeekingMachines = getState()?.stateSeekingMachines?.machines as Record<string, IStateSeekingMachine<string>>
-    const machinesCast = Object.values(stateSeekingMachines) as Array<IStateSeekingMachine<string>>
+    const stateSeekingMachines = getState()?.stateSeekingMachines?.machines
+    const machinesCast = Object.values(stateSeekingMachines) as Array<IStateSeekingMachine>
     machinesCast
         .filter((value) => (value))
         .filter(({ currentState, desiredState }) => (desiredState !== currentState))
@@ -132,6 +113,7 @@ export const iterateAllSSMs = (dispatch: any, getState: any) => {
 const exportCollection = {
     registerSSM,
     externalStateChange,
+    internalStateChange,
     iterateOneSSM,
     iterateAllSSMs
 }

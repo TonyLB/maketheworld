@@ -5,6 +5,7 @@ import {
     STATE_SEEKING_MACHINE_REGISTER,
     STATE_SEEKING_MACHINE_HEARTBEAT,
     STATE_SEEKING_EXTERNAL_CHANGE,
+    STATE_SEEKING_INTERNAL_CHANGE,
     STATE_SEEKING_ASSERT_DESIRE
 } from '../../actions/stateSeekingMachine'
 
@@ -12,7 +13,7 @@ export class StateSeekingMachineModule {
     [immerable]: boolean = true;
     lastEvaluation?: string;
     heartbeat?: string;
-    machines: Record<string, IStateSeekingMachine<string>> = {};
+    machines: Record<string, IStateSeekingMachine> = {};
 }
 
 export const reducer = (
@@ -21,18 +22,22 @@ export const reducer = (
 ): StateSeekingMachineModule => {
     switch (action.type) {
         case STATE_SEEKING_MACHINE_REGISTER:
-            const { key, template }: { key: string; template: ISSMTemplate<string>} = action.payload
+            const { key, template }: { key: string; template: ISSMTemplate} = action.payload
             if (state.machines[key]) {
                 return state
             }
             else {
+                //
+                // TODO:  Sort out Typescript union so that we don't need to cast as any here.
+                //
                 return produce(state, draftState => {
                     draftState.machines[key] = {
                         key,
                         template,
                         currentState: template.initialState,
-                        desiredState: template.initialState
-                    }
+                        desiredState: template.initialState,
+                        data: template.initialData
+                    } as any
                 })
             }
         case STATE_SEEKING_MACHINE_HEARTBEAT:
@@ -44,6 +49,16 @@ export const reducer = (
             if (state.machines?.[action.payload.key] && action.payload?.newState) {
                 return produce(state, draftState => {
                     draftState.machines[action.payload.key].currentState = action.payload.newState
+                })
+            }
+            else {
+                return state
+            }
+        case STATE_SEEKING_INTERNAL_CHANGE:
+            if (state.machines?.[action.payload.key] && action.payload?.newState) {
+                return produce(state, draftState => {
+                    draftState.machines[action.payload.key].currentState = action.payload.newState
+                    draftState.machines[action.payload.key].data = { ...draftState.machines[action.payload.key].data, ...(action.payload.data || {}) }
                 })
             }
             else {
