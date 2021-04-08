@@ -67,7 +67,7 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
 }
 
 const disconnect = async (connectionId) => {
-    const { CharacterId, RoomId } = await documentClient.query({
+    await documentClient.query({
             TableName: ephemeraTable,
             KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
             ExpressionAttributeValues: {
@@ -76,28 +76,30 @@ const disconnect = async (connectionId) => {
             },
             IndexName: 'ConnectionIndex'
         }).promise()
-        .then(({ Items = [] }) => (Items[0] || {}))
-        .then(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
+        .then(({ Items = [] }) => (Items
+            .map(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
+            .map(({ CharacterId, RoomId }) => (
+                updateWithRoomMessage({
+                    RoomId,
+                    CharacterId,
+                    promises: [
+                        documentClient.put({
+                            TableName: ephemeraTable,
+                            Item: {
+                                EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                                DataCategory: 'Connection',
+                                RoomId,
+                                Connected: false
+                            }
+                        }).promise(),
+                        graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId, RoomId }) })
+                    ],
+                    messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
+                })
+            ))
+        ))
+        .then(promises => (Promise.all(promises)))
 
-    if (CharacterId) {
-        await updateWithRoomMessage({
-            RoomId,
-            CharacterId,
-            promises: [
-                documentClient.put({
-                    TableName: ephemeraTable,
-                    Item: {
-                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Connection',
-                        RoomId,
-                        Connected: false
-                    }
-                }).promise(),
-                graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId, RoomId }) })
-            ],
-            messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
-        })
-    }
     return { statusCode: 200 }
 }
 

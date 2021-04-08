@@ -16,17 +16,23 @@ jest.mock('./utilities', () => ({
         publish: jest.fn(() => ({ promise: () => ( Promise.resolve({}) )}))
     }
 }))
+jest.mock('/opt/uuid', () => ({
+    v4: jest.fn().mockReturnValue('TestUUID')
+}))
 const { disconnect, registerCharacter } = require('./app')
-const { documentClient, graphqlClient } = require('./utilities')
+const { documentClient, graphqlClient, SNS } = require('./utilities')
 
 describe("disconnect", () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
     it("should change nothing when called against a non-connected character", async () => {
         documentClient.query.mockReturnValue({ promise: () => (Promise.resolve({ Items: [] })) })
         const data = await disconnect('123')
         expect(graphqlClient.mutate.mock.calls.length).toBe(0)
         expect(data).toEqual({ statusCode: 200 })
     })
-    it("should update when called against a connected character", async () => {
+    it("should update when called against a single connected character", async () => {
         const expectedGraphQL = `mutation DisconnectCharacter {\nbroadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "ABC", RoomId: "123", Connected: false } }]) {\nCharacterInPlay {\nCharacterId\nRoomId\nConnected\n}\n}\n}`
         documentClient.query.mockReturnValueOnce({ promise: () => (
                 Promise.resolve({ Items: [
@@ -66,6 +72,106 @@ describe("disconnect", () => {
         const data = await disconnect('123')
         expect(graphqlClient.mutate.mock.calls.length).toBe(1)
         expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: expectedGraphQL })
+        expect(SNS.publish).toHaveBeenCalledWith({
+            Message: JSON.stringify({
+                putMessage: {
+                    Characters: ['ABC', 'DEF'],
+                    DisplayProtocol: 'World',
+                    WorldMessage: {
+                        Message: 'Test has disconnected.'
+                    },
+                    MessageId: 'TestUUID',
+                    RoomId: '123'
+                }
+            }, null, 4)
+        })
+        expect(data).toEqual({ statusCode: 200 })
+    })
+    it("should update when called against multiple connected characters", async () => {
+        const expectedGraphQL = [
+            `mutation DisconnectCharacter {\nbroadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "ABC", RoomId: "123", Connected: false } }]) {\nCharacterInPlay {\nCharacterId\nRoomId\nConnected\n}\n}\n}`,
+            `mutation DisconnectCharacter {\nbroadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "DEF", RoomId: "456", Connected: false } }]) {\nCharacterInPlay {\nCharacterId\nRoomId\nConnected\n}\n}\n}`
+        ]
+        documentClient.query.mockReturnValueOnce({ promise: () => (
+                Promise.resolve({ Items: [
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#ABC',
+                        ConnectionId: '123',
+                        RoomId: '123',
+                        Connected: true
+                    },
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#DEF',
+                        ConnectionId: '123',
+                        RoomId: '456',
+                        Connected: true
+                    }
+                ]})
+            )})
+            .mockReturnValueOnce({ promise: () => (
+                Promise.resolve({ Items: [
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#ABC',
+                        RoomId: '123',
+                        Connected: true
+                    }
+                ]})
+            )})
+            .mockReturnValueOnce({ promise: () => (
+                Promise.resolve({ Items: [
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#DEF',
+                        RoomId: '456',
+                        Connected: true
+                    },
+                    {
+                        EphemeraId: 'CHARACTERINPLAY#GHI',
+                        RoomId: '456',
+                        Connected: true
+                    }
+                ]})
+            )})
+        documentClient.put.mockReturnValue({ promise: () => ({}) })
+        documentClient.get.mockReturnValueOnce({ promise: () => (
+            Promise.resolve({ Item: {
+                Name: 'Test One'
+            }})
+        ) })
+        .mockReturnValueOnce({ promise: () => (
+            Promise.resolve({ Item: {
+                Name: 'Test Two'
+            }})
+        ) })
+        const data = await disconnect('123')
+        expect(graphqlClient.mutate.mock.calls.length).toBe(2)
+        expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: expectedGraphQL[0] })
+        expect(graphqlClient.mutate.mock.calls[1][0]).toEqual({ mutation: expectedGraphQL[1] })
+        expect(SNS.publish).toHaveBeenCalledWith({
+            Message: JSON.stringify({
+                putMessage: {
+                    Characters: ['ABC'],
+                    DisplayProtocol: 'World',
+                    WorldMessage: {
+                        Message: 'Test One has disconnected.'
+                    },
+                    MessageId: 'TestUUID',
+                    RoomId: '123'
+                }
+            }, null, 4)
+        })
+        expect(SNS.publish).toHaveBeenCalledWith({
+            Message: JSON.stringify({
+                putMessage: {
+                    Characters: ['DEF', 'GHI'],
+                    DisplayProtocol: 'World',
+                    WorldMessage: {
+                        Message: 'Test Two has disconnected.'
+                    },
+                    MessageId: 'TestUUID',
+                    RoomId: '456'
+                }
+            }, null, 4)
+        })
         expect(data).toEqual({ statusCode: 200 })
     })
 })

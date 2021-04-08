@@ -80,6 +80,10 @@ const updateDispatcher = ({ Updates = [] }) => {
         .then(({ messageWrites, deltaWrites, gqlWrites }) => {
             const gqlGroupOutput = gqlGroup(gqlWrites)
             return Promise.all([
+                //
+                // TODO:  Refactor this parallel dispatch into two (or perhaps three)
+                // separate services, running simultaneously by way of an SNS/SQS fanout.
+                //
                 batchDispatcher({ table: messageTable, items: messageWrites }),
                 batchDispatcher({ table: deltaTable, items: deltaWrites }),
                 ...(gqlWrites.length ? [ graphqlClient.mutate({ mutation: gqlGroupOutput }) ] : [])
