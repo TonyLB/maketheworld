@@ -1,1 +1,1 @@
-export const fetchCachedMessages = () => async () => {}
+export const fetchCachedMessages = () => async () => { return {} }

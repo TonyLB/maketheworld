@@ -2,7 +2,7 @@ import { Auth, API, graphqlOperation } from 'aws-amplify'
 import { getPlayer } from '../../../graphql/queries'
 import { changedPlayer } from '../../../graphql/subscriptions'
 
-import { activateCharacter } from '../../activeCharacters'
+import { registerCharacterSSM } from '../../activeCharacters'
 import { subscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 
@@ -29,7 +29,7 @@ const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
     })
     const characters = playerData.Characters ?? []
     characters.forEach((CharacterId) => {
-        dispatch(activateCharacter(CharacterId))
+        dispatch(registerCharacterSSM(CharacterId))
     })
 }
 

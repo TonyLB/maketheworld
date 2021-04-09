@@ -1,7 +1,7 @@
 import { immerable } from 'immer'
 import { StateSeekingMachineModule } from '../../reducers/stateSeekingMachine'
 import { ISSMTemplate } from '../../actions/stateSeekingMachine'
-import { getHeartbeat, getLastEvaluation, getSSMState } from './index'
+import { getHeartbeat, getLastEvaluation, getSSMStates, getSSMState } from './index'
 
 type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
 
@@ -48,7 +48,12 @@ describe('stateSeekingMachine selectors', () => {
     it('should return lastEvaluation', () => {
         expect(getLastEvaluation({ stateSeekingMachines: testState })).toEqual('500')
     })
-    it('should return getSSMState', () => {
+    it('should return getSSMStates for all entries', () => {
+        expect(getSSMStates({ stateSeekingMachines: testState })).toEqual({
+            test: 'INITIAL'
+        })
+    })
+    it('should return getSSMState for a single entry', () => {
         expect(getSSMState('test')({ stateSeekingMachines: testState })).toEqual('INITIAL')
     })
 })

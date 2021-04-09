@@ -40,7 +40,7 @@ export const setLastMessageSync = (CharacterId) => (value) => {
 // they fail, and use it to bump the FSM for activeCharacter into SUBSCRIBE_ERROR
 // state.
 //
-export const sync = ({ CharacterId, LastMessageSync }) => (dispatch) => {
+export const syncAction = ({ CharacterId, LastMessageSync }) => async (dispatch) => {
     const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
         dataTag: 'syncMessages',
         lastSyncCallback: (value) => {
@@ -51,10 +51,11 @@ export const sync = ({ CharacterId, LastMessageSync }) => (dispatch) => {
     })
 
     if (LastMessageSync) {
-        dispatch(syncFromMessagesDelta({ targetId: CharacterId, startingAt: LastMessageSync - 30000 }))
+        await dispatch(syncFromMessagesDelta({ targetId: CharacterId, startingAt: LastMessageSync - 30000 }))
     }
     else {
-        dispatch(syncFromMessages({ targetId: CharacterId }))
+        await dispatch(syncFromMessages({ targetId: CharacterId }))
     }
+    return {}
 
 }

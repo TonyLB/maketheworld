@@ -8,10 +8,11 @@ import { DEACTIVATE_CHARACTER, ACTIVE_CHARACTER_FSM_SUBSCRIBED } from '../../act
 
 const mockStore = configureStore()
 const store = mockStore({
-    activeCharacters: {
-        TESS: {
-            CharacterId: 'TESS',
-            state: ACTIVE_CHARACTER_FSM_SUBSCRIBED
+    stateSeekingMachines: {
+        machines: {
+            ['Subscribe::Character::TESS']: {
+                currentState: 'SYNCHRONIZEDD'
+            }    
         }
     },
     messages: [],

@@ -1,1 +1,1 @@
-export const subscribe = () => async () => ('TEST_SUBSCRIPTION')
+export const subscribeAction = () => async () => ('TEST_SUBSCRIPTION')

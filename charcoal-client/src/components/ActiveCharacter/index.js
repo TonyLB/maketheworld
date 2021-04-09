@@ -37,6 +37,9 @@ import React, { useContext, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { deactivateCharacter } from '../../actions/activeCharacters'
+//
+// TODO:  Rewrite activeCharacters selectors to refer to SSMs
+//
 import { getActiveCharacters, getActiveCharacterInPlayMessages } from '../../selectors/activeCharacters'
 import { getCharacters } from '../../selectors/characters'
 
@@ -51,6 +54,10 @@ export const ActiveCharacter = ({ CharacterId, children }) => {
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const inPlayMessages = useSelector(getActiveCharacterInPlayMessages(CharacterId))
     const info = useSelector(getCharacters)[CharacterId]
+    //
+    // TODO:  Rewrite commands available in ActiveCharacterContext to correspond to what
+    // the SSM actually provides
+    //
     const deactivate = useCallback(() => {
         dispatch(deactivateCharacter(CharacterId))
     }, [dispatch, CharacterId])

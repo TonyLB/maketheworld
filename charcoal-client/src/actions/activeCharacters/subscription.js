@@ -5,7 +5,7 @@ import { receiveMessage } from '../messages'
 //
 // subscribe manages the subscription itself
 //
-export const subscribe = (CharacterId) => async (dispatch) => {
+export const subscribeAction = ({ CharacterId }) => async (dispatch) => {
     const newMessageSubscription = await API.graphql(graphqlOperation(addedMessage, { Target: CharacterId }))
         .subscribe({
             next: (messageData) => {

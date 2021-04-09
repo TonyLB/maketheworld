@@ -3,16 +3,6 @@ import {
     List
 } from '@material-ui/core'
 
-import {
-    ACTIVE_CHARACTER_FSM_INITIAL,
-    ACTIVE_CHARACTER_FSM_RECONNECTING,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBING,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-    ACTIVE_CHARACTER_FSM_CONNECTING,
-    ACTIVE_CHARACTER_FSM_CONNECTED
-} from '../../actions/activeCharacters'
-
-
 import { PureMyCharacterListItem as MyCharacterListItem } from './MyCharacterListItem';
 
 const MyCharacterListItemStory = {
@@ -36,14 +26,20 @@ const MyCharacterListItemStory = {
     state: {
         control: {
             type: 'select',
-            defaultValue: ACTIVE_CHARACTER_FSM_INITIAL,
+            defaultValue: 'INITIAL',
             options: [
-                ACTIVE_CHARACTER_FSM_INITIAL,
-                ACTIVE_CHARACTER_FSM_SUBSCRIBING,
-                ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-                ACTIVE_CHARACTER_FSM_CONNECTING,
-                ACTIVE_CHARACTER_FSM_CONNECTED,
-                ACTIVE_CHARACTER_FSM_RECONNECTING
+                'INITIAL',
+                'FETCHING',
+                'FETCHED',
+                'SUBSCRIBING',
+                'SUBSCRIBED',
+                'UNSUBSCRIBING',
+                'SYNCHING',
+                'SYNCHRONIZED',
+                'REGISTERING',
+                'REGISTERED',
+                'DEREGISTERING',
+                'REREGISTERING'
             ]
         },
         description: 'State of the activeCharacter record',
@@ -79,5 +75,5 @@ export const Basic = Template.bind({})
 Basic.args = {
     Name: 'Tess',
     CharacterId: '1',
-    state: ACTIVE_CHARACTER_FSM_INITIAL
+    state: 'INITIAL'
 }

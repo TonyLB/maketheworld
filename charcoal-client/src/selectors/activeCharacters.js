@@ -1,36 +1,34 @@
-import { objectMap } from '../lib/objects'
-import {
-    ACTIVE_CHARACTER_FSM_INVALID,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBING,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-    ACTIVE_CHARACTER_FSM_CONNECTING,
-    ACTIVE_CHARACTER_FSM_CONNECTED,
-    ACTIVE_CHARACTER_FSM_RECONNECTING
-} from '../actions/activeCharacters'
+import { objectMap, reduceArrayToObject } from '../lib/objects'
 import { getMessages } from './messages'
 
 export const getActiveCharacters = (reduxState) => {
-    const activeCharacters = (reduxState && reduxState.activeCharacters) || {}
-    return objectMap(activeCharacters, ({
-        state,
-        ...rest }) => ({
-            ...rest,
-            state,
-            isSubscribing: state === ACTIVE_CHARACTER_FSM_SUBSCRIBING,
+    const stateSeekingMachines = (reduxState && reduxState.stateSeekingMachines?.machines) ?? {}
+    const characterMachineArray = Object.entries(stateSeekingMachines)
+        .filter(([key]) => (key.startsWith('Subscribe::Character::')))
+        .map(([key, value]) => ([key.slice(22), value]))
+        .reduce(reduceArrayToObject, {})
+    return objectMap(characterMachineArray, ({ currentState }) => ({
+            state: currentState,
+            isSubscribing: [
+                'SUBSCRIBING',
+                'SUBSCRIBED',
+                'SYNCHING'
+            ].includes(currentState),
             isSubscribed: [
-                ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-                ACTIVE_CHARACTER_FSM_CONNECTING,
-                ACTIVE_CHARACTER_FSM_CONNECTED,
-                ACTIVE_CHARACTER_FSM_RECONNECTING
-            ].includes(state),
-            isConnecting: state === ACTIVE_CHARACTER_FSM_CONNECTING,
-            isConnected: [ACTIVE_CHARACTER_FSM_RECONNECTING, ACTIVE_CHARACTER_FSM_CONNECTED].includes(state)
+                'SYNCHRONIZED',
+                'REGISTERING',
+                'REGISTERED',
+                'DEREGISTERING',
+                'REREGISTERING'
+            ].includes(currentState),
+            isConnecting: currentState === 'REGISTERING',
+            isConnected: ['REGISTERED', 'REREGISTERING'].includes(currentState)
         }))
 }
 
 export const getActiveCharacterState = (CharacterId) => (reduxState) => {
-    const { state = ACTIVE_CHARACTER_FSM_INVALID } = ((reduxState && reduxState.activeCharacters) ?? {})[CharacterId] ?? {}
-    return state
+    const { currentState = 'INVALID' } = (reduxState && reduxState.stateSeekingMachines?.machines?.[`Subscribe::Character::${CharacterId}`]) || {}
+    return currentState
 }
 
 export const getSubscribedCharacterIds = (state) => {

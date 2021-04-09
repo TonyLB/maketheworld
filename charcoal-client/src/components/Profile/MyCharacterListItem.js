@@ -18,23 +18,14 @@ import Spinner from '../Spinner'
 
 import useStyles from '../styles'
 
-import {
-    ACTIVE_CHARACTER_FSM_INITIAL,
-    ACTIVE_CHARACTER_FSM_RECONNECTING,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBING,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-    ACTIVE_CHARACTER_FSM_CONNECTING,
-    ACTIVE_CHARACTER_FSM_CONNECTED
-} from '../../actions/activeCharacters'
-
 import { getCharacters } from '../../selectors/characters'
-import { subscribeToMessages } from '../../actions/activeCharacters'
+import { subscribeCharacterSSM } from '../../actions/activeCharacters'
 import { getActiveCharacters } from '../../selectors/activeCharacters'
 
 export const PureMyCharacterListItem = ({
         CharacterId = '',
         Name = '',
-        state = ACTIVE_CHARACTER_FSM_INITIAL,
+        state = 'INITIAL',
         onEdit = () => {},
         onDisconnect = () => {},
         onSubscribe = () => {},
@@ -52,21 +43,21 @@ export const PureMyCharacterListItem = ({
                     <CreateIcon />
                 </IconButton>
             </Tooltip>
-            { (state === ACTIVE_CHARACTER_FSM_INITIAL) &&
+            { (state === 'INITIAL') &&
                 <Tooltip title={`Connect ${Name}`}>
                     <IconButton onClick={onSubscribe} >
                         <AccountIcon />
                     </IconButton>
                 </Tooltip>
             }
-            { (state === ACTIVE_CHARACTER_FSM_SUBSCRIBED) &&
+            { (state === 'SYNCHRONIZED') &&
                 <Tooltip title={`Connect ${Name}`}>
                     <IconButton onClick={() => {}} >
                         <ForumIcon />
                     </IconButton>
                 </Tooltip>
             }
-            { ([ACTIVE_CHARACTER_FSM_SUBSCRIBING, ACTIVE_CHARACTER_FSM_CONNECTING, ACTIVE_CHARACTER_FSM_RECONNECTING].includes(state)) &&
+            { (['SUBSCRIBING', 'SYNCHING', 'REGISTERING', 'REREGISTERING'].includes(state)) &&
                 <IconButton>
                     <Spinner />
                 </IconButton>
@@ -92,8 +83,8 @@ export const MyCharacterListItem = ({
     const dispatch = useDispatch()
     const Name = useSelector(getCharacters)[CharacterId]?.Name
     const state = useSelector(getActiveCharacters)[CharacterId]?.state
-    const onConnect = useCallback(() => {
-        dispatch(subscribeToMessages(CharacterId))
+    const onSubscribe = useCallback(() => {
+        dispatch(subscribeCharacterSSM(CharacterId))
     }, [dispatch, CharacterId])
 
     return <PureMyCharacterListItem
@@ -101,7 +92,7 @@ export const MyCharacterListItem = ({
         Name={Name}
         state={state}
         onEdit={onEdit}
-        onSubscribe={onConnect}
+        onSubscribe={onSubscribe}
         {...rest}
     />
 }

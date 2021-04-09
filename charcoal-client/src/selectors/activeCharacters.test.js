@@ -1,133 +1,89 @@
 import { getActiveCharacterState, getActiveCharacters } from './activeCharacters'
-import {
-    ACTIVE_CHARACTER_FSM_INVALID,
-    ACTIVE_CHARACTER_FSM_INITIAL,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBING,
-    ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-    ACTIVE_CHARACTER_FSM_CONNECTING,
-    ACTIVE_CHARACTER_FSM_CONNECTED,
-    ACTIVE_CHARACTER_FSM_RECONNECTING
-} from '../actions/activeCharacters'
 
 describe('activeCharacters selectors', () => {
     describe('getActiveCharacterState', () => {
         const testState = {
-            activeCharacters: {
-                ABC: {
-                    state: ACTIVE_CHARACTER_FSM_INITIAL,
-                    CharacterId: 'ABC'
+            stateSeekingMachines: {
+                machines: {
+                    ['Subscribe::Character::ABC']: { currentState: 'INITIAL' }
                 }
             }
         }
 
         it('should extract state from the object when available', () => {
-            expect(getActiveCharacterState('ABC')(testState)).toEqual(ACTIVE_CHARACTER_FSM_INITIAL)
+            expect(getActiveCharacterState('ABC')(testState)).toEqual('INITIAL')
         })
 
         it('should correct return invalid when object not available', () => {
-            expect(getActiveCharacterState('DEF')(testState)).toEqual(ACTIVE_CHARACTER_FSM_INVALID)
+            expect(getActiveCharacterState('DEF')(testState)).toEqual('INVALID')
         })
     })
 
     describe('getActiveCharactersUI', () => {
         const testState = {
-            activeCharacters: {
-                INVALID: {
-                    state: ACTIVE_CHARACTER_FSM_INVALID,
-                    CharacterId: 'INVALID'
-                },
-                INITIAL: {
-                    state: ACTIVE_CHARACTER_FSM_INITIAL,
-                    CharacterId: 'INITIAL'
-                },
-                SUBSCRIBING: {
-                    state: ACTIVE_CHARACTER_FSM_SUBSCRIBING,
-                    CharacterId: 'SUBSCRIBING'
-                },
-                SUBSCRIBED: {
-                    state: ACTIVE_CHARACTER_FSM_SUBSCRIBED,
-                    CharacterId: 'SUBSCRIBED',
-                    subscription: '123'
-                },
-                CONNECTING: {
-                    state: ACTIVE_CHARACTER_FSM_CONNECTING,
-                    CharacterId: 'CONNECTING',
-                    subscription: '123'
-                },
-                CONNECTED: {
-                    state: ACTIVE_CHARACTER_FSM_CONNECTED,
-                    CharacterId: 'CONNECTED',
-                    subscription: '123'
-                },
-                RECONNECTING: {
-                    state: ACTIVE_CHARACTER_FSM_RECONNECTING,
-                    CharacterId: 'RECONNECTING',
-                    subscription: '123'
+            stateSeekingMachines: {
+                machines: {
+                    ['Subscribe::Character::INITIAL']: { currentState: 'INITIAL' },
+                    ['Subscribe::Character::SUBSCRIBING']: { currentState: 'SUBSCRIBING' },
+                    ['Subscribe::Character::SUBSCRIBED']: { currentState: 'SUBSCRIBED' },
+                    ['Subscribe::Character::SYNCHING']: { currentState: 'SYNCHING' },
+                    ['Subscribe::Character::SYNCHRONIZED']: { currentState: 'SYNCHRONIZED' },
+                    ['Subscribe::Character::REGISTERING']: { currentState: 'REGISTERING' },
+                    ['Subscribe::Character::REGISTERED']: { currentState: 'REGISTERED' }
                 }
             }
         }
 
         it('should correctly derive values for all states', () => {
             expect(getActiveCharacters(testState)).toEqual({
-                INVALID: {
-                    CharacterId: 'INVALID',
-                    isConnecting: false,
-                    isConnected: false,
-                    isSubscribing: false,
-                    isSubscribed: false,
-                    state: ACTIVE_CHARACTER_FSM_INVALID
-                },
                 INITIAL: {
-                    CharacterId: 'INITIAL',
                     isConnecting: false,
                     isConnected: false,
                     isSubscribing: false,
                     isSubscribed: false,
-                    state: ACTIVE_CHARACTER_FSM_INITIAL
+                    state: 'INITIAL'
                 },
                 SUBSCRIBING: {
-                    CharacterId: 'SUBSCRIBING',
                     isConnecting: false,
                     isConnected: false,
                     isSubscribing: true,
                     isSubscribed: false,
-                    state: ACTIVE_CHARACTER_FSM_SUBSCRIBING
+                    state: 'SUBSCRIBING'
                 },
                 SUBSCRIBED: {
-                    CharacterId: 'SUBSCRIBED',
                     isConnecting: false,
                     isConnected: false,
                     isSubscribing: false,
                     isSubscribed: true,
-                    subscription: '123',
-                    state: ACTIVE_CHARACTER_FSM_SUBSCRIBED
+                    state: 'SUBSCRIBED'
                 },
-                CONNECTING: {
-                    CharacterId: 'CONNECTING',
+                SYNCHING: {
+                    isConnecting: false,
+                    isConnected: false,
+                    isSubscribing: false,
+                    isSubscribed: true,
+                    state: 'SYNCHING'
+                },
+                SYNCHRONIZED: {
+                    isConnecting: false,
+                    isConnected: false,
+                    isSubscribing: false,
+                    isSubscribed: true,
+                    state: 'SYNCHRONIZED'
+                },
+                REGISTERING: {
                     isConnecting: true,
                     isConnected: false,
                     isSubscribing: false,
                     isSubscribed: true,
-                    subscription: '123',
-                    state: ACTIVE_CHARACTER_FSM_CONNECTING
+                    state: 'REGISTERING'
                 },
-                CONNECTED: {
-                    CharacterId: 'CONNECTED',
+                REGISTERED: {
                     isConnecting: false,
                     isConnected: true,
                     isSubscribing: false,
                     isSubscribed: true,
-                    subscription: '123',
-                    state: ACTIVE_CHARACTER_FSM_CONNECTED
-                },
-                RECONNECTING: {
-                    CharacterId: 'RECONNECTING',
-                    isConnecting: false,
-                    isConnected: true,
-                    isSubscribing: false,
-                    isSubscribed: true,
-                    subscription: '123',
-                    state: ACTIVE_CHARACTER_FSM_RECONNECTING
+                    state: 'REGISTERED'
                 }
             })
         })
