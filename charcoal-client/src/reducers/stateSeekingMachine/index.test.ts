@@ -1,13 +1,14 @@
 import { immerable } from 'immer'
 import reducer, { StateSeekingMachineModule } from './index'
 import {
-    ISSMTemplate,
     STATE_SEEKING_MACHINE_REGISTER,
     STATE_SEEKING_MACHINE_HEARTBEAT,
     STATE_SEEKING_EXTERNAL_CHANGE,
+    STATE_SEEKING_EXTERNAL_DATA,
     STATE_SEEKING_INTERNAL_CHANGE,
     STATE_SEEKING_ASSERT_DESIRE
 } from '../../actions/stateSeekingMachine'
+import { ISSMTemplateAbstract } from '../../actions/stateSeekingMachine/baseClasses'
 
 type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
 
@@ -16,7 +17,7 @@ class TestData {
     valTwo: string = ''
 }
 
-const testTemplate: ISSMTemplate<testKeys, TestData> = {
+const testTemplate: ISSMTemplateAbstract<testKeys, TestData> = {
     initialState: 'INITIAL',
     initialData: new TestData(),
     states: {
@@ -49,7 +50,7 @@ const testState: StateSeekingMachineModule = {
             key: 'test',
             currentState: 'INITIAL',
             desiredState: 'INITIAL',
-            template: testTemplate,
+            template: testTemplate as any,
             data: new TestData()
         }
     }
@@ -157,6 +158,28 @@ describe('stateSeekingMachine reducer', () => {
                     desiredState: 'INITIAL',
                     template: testTemplate,
                     data: new TestData()
+                }
+            }
+        })
+    })
+    it('should register an external data-change', () => {
+        expect(reducer(testState, {
+            type: STATE_SEEKING_EXTERNAL_DATA,
+            payload: { key: 'test', data: { valOne: 'ABC' } }
+        })).toEqual({
+            [immerable]: true,
+            lastEvaluation: '100',
+            heartbeat: '100',
+            machines: {
+                test: {
+                    key: 'test',
+                    currentState: 'INITIAL',
+                    desiredState: 'INITIAL',
+                    template: testTemplate,
+                    data: {
+                        valOne: 'ABC',
+                        valTwo: ''
+                    }
                 }
             }
         })

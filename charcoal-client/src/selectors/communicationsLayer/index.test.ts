@@ -35,14 +35,13 @@ describe('communicationsLayer selectors', () => {
 
         it('should return webSocket info when defined', () => {
             expect(getLifeLine({
-                communicationsLayer: {
-                    lifeLine: {
+                stateSeekingMachines: produce(testStateSeekingMachineModule, draftModule => {
+                    draftModule.machines.LifeLine.data = {
                         webSocket: 'ABC',
                         pingInterval: 123,
                         refreshTimeout: 456
                     }
-                },
-                stateSeekingMachines: testStateSeekingMachineModule
+                })
             })).toEqual({
                 status: 'CONNECTED',
                 webSocket: 'ABC',

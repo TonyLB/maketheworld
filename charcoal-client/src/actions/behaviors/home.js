@@ -3,21 +3,20 @@ import { moveCharacter as moveCharacterGraphQL } from '../../graphql/mutations'
 
 import { sendWorldMessage } from '../messages'
 
-import { getCurrentName, getCurrentRoomId } from '../../selectors/connection'
-import { getMyCurrentCharacter } from '../../selectors/myCharacters'
+import { getCurrentName, getCurrentRoomId } from '../../selectors/activeCharacter'
+import { getMyCharacterById } from '../../selectors/myCharacters'
 
-export const goHome = () => (dispatch, getState) => {
+export const goHome = (CharacterId) => (dispatch, getState) => {
     const state = getState()
-    const { connection } = state
-    const currentCharacter = getMyCurrentCharacter(state)
+    const currentCharacter = getMyCharacterById(CharacterId)(state)
     const homeId = (currentCharacter && currentCharacter.HomeId) || 'VORTEX'
-    if (connection.characterId) {
-        const currentName = getCurrentName(state)
-        const currentRoomId = getCurrentRoomId(state)
+    if (CharacterId) {
+        const currentName = getCurrentName(CharacterId)(state)
+        const currentRoomId = getCurrentRoomId(CharacterId)(state)
         dispatch(sendWorldMessage({ RoomId: currentRoomId, Message: `${currentName} went home.` }))
             .then(() => (API.graphql(graphqlOperation(moveCharacterGraphQL, {
                 RoomId: homeId,
-                CharacterId: connection.characterId
+                CharacterId
             }))))
             //
             // The "character has arrived" message, view of the room, and adjustment of subscriptions will be

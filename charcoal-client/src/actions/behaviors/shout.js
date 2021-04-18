@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { updateMessages } from '../../graphql/mutations'
 
 
-import { getMyCurrentCharacter } from '../../selectors/myCharacters'
-import { getCurrentRoom } from '../../selectors/currentRoom'
+import { getMyCharacterById } from '../../selectors/myCharacters'
+import { getCurrentRoom } from '../../selectors/activeCharacter'
 import { getActiveCharacterList } from '../../selectors/charactersInPlay'
 
 import { activateConfirmDialog } from '../UI/confirmDialog'
@@ -31,10 +31,10 @@ export const sendShout = ({ message = '', roomIds = [], CharacterId, charactersI
     return API.graphql(graphqlOperation(updateMessages, { Updates: messageUpdates})).catch((err) => { console.log(err)})
 }
 
-export const shout = (message = 'Arrgh!') => (dispatch, getState) => {
+export const shout = (CharacterId) => (message = 'Arrgh!') => (dispatch, getState) => {
     const state = getState()
-    const currentCharacter = getMyCurrentCharacter(state)
-    const currentRoom = getCurrentRoom(state)
+    const currentCharacter = getMyCharacterById(CharacterId)(state)
+    const currentRoom = getCurrentRoom(CharacterId)(state)
     const charactersInPlay = getActiveCharacterList(state)
     const shoutMessage = `From ${(currentRoom && currentRoom.Name) || 'Unknown'}, ${(currentCharacter && currentCharacter.Name) || 'Someone'} shouts: ${message}`
     if (currentCharacter) {
@@ -51,7 +51,7 @@ export const shout = (message = 'Arrgh!') => (dispatch, getState) => {
             content: `Are you sure you want to shout?  It will be heard in ${roomIds.length} rooms.`,
             resolveButtonTitle: 'Shout!',
             resolve: () => {
-                sendShout({ message: shoutMessage, roomIds, CharacterId: currentCharacter.CharacterId, charactersInPlay })
+                sendShout({ message: shoutMessage, roomIds, CharacterId, charactersInPlay })
             }
         }))
     }    

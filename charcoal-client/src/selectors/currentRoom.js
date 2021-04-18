@@ -1,3 +1,9 @@
+//
+// REPLICATE TO ACTIVE-CHARACTER SELECTOR
+//
+// THEN MARK FOR OBLIVION
+//
+
 import { getMyCurrentCharacter } from './myCharacters'
 import { getActiveCharactersInRoom } from './charactersInPlay'
 import { getCurrentRoomId } from './connection'

@@ -143,7 +143,7 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
         }
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: "Registered" })
+            body: JSON.stringify({ messageType: "Registered", CharacterId })
         }
     }
     return { statusCode: 404 }

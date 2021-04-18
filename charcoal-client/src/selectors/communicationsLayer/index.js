@@ -1,9 +1,9 @@
-import { getSSMState } from '../stateSeekingMachine'
+import { getSSMState, getSSMData } from '../stateSeekingMachine'
 
 export const getLifeLine = (state = {}) => {
-    const { communicationsLayer: { lifeLine = {} } = {} } = state
+    const lifeLineData = getSSMData('LifeLine')(state)
     return {
-        ...lifeLine,
+        ...(lifeLineData || {}),
         status: getSSMState('LifeLine')(state) || 'INITIAL'
     }
 }

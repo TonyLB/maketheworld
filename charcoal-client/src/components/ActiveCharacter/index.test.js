@@ -11,7 +11,7 @@ const store = mockStore({
     stateSeekingMachines: {
         machines: {
             ['Subscribe::Character::TESS']: {
-                currentState: 'SYNCHRONIZEDD'
+                currentState: 'SYNCHRONIZED'
             }    
         }
     },

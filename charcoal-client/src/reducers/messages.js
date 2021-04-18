@@ -40,7 +40,7 @@ export const reducer = (state = [], action) => {
     switch (actionType) {
         case RECEIVE_MESSAGES:
             return (payload || []).reduce((previous, { DisplayProtocol = '', ...rest }) => {
-                const revisedPrevious = previous.filter(({ MessageId }) => (MessageId !== rest.MessageId))
+                const revisedPrevious = previous.filter(({ MessageId, Target }) => (MessageId !== rest.MessageId || Target !== rest.Target))
                 const newMessage = messageByProtocol(DisplayProtocol)(rest)
                 if (newMessage) {
                     return [ ...revisedPrevious, newMessage ]

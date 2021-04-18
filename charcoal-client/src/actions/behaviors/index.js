@@ -1,6 +1,5 @@
-import { getCurrentName, getCharacterId } from '../../selectors/connection'
+import { getCurrentName, getCurrentRoom } from '../../selectors/activeCharacter'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
-import { getCurrentRoom } from '../../selectors/currentRoom'
 
 import { sendPlayerMessage } from '../messages.js'
 import lookRoom from './lookRoom'
@@ -11,13 +10,13 @@ import announce from './announce'
 import shout from './shout'
 import help from './help'
 
-export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
+export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatch, getState) => {
     if (entry.match(/^\s*(?:look|l)\s*$/gi)) {
-        dispatch(lookRoom())
+        dispatch(lookRoom(CharacterId))
         return true
     }
     if (entry.match(/^\s*home\s*$/gi)) {
-        dispatch(goHome())
+        dispatch(goHome(CharacterId))
         return true
     }
     if (entry.match(/^\s*help\s*$/gi)) {
@@ -29,7 +28,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     if (match) {
         const [verb, object] = match.slice(1)
         if (verb.toLocaleLowerCase() === 'announce') {
-            dispatch(announce(object))
+            dispatch(announce(CharacterId)(object))
             return true
         }
         if (verb.toLocaleLowerCase() === 'shout') {
@@ -38,16 +37,15 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
         }
     }
     const state = getState()
-    const currentRoom = getCurrentRoom(state)
-    const currentName = getCurrentName(state)
-    const characterId = getCharacterId(state)
-    const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: characterId })(state)
+    const currentRoom = getCurrentRoom(CharacterId)(state)
+    const currentName = getCurrentName(CharacterId)(state)
+    const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: CharacterId })(state)
     const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(entry)
     if (lookMatch) {
         const object = lookMatch.slice(1)[0].toLowerCase().trim()
         const characterMatch = charactersInRoom.find(({ Name }) => (Name.toLowerCase() === object))
         if (characterMatch) {
-            dispatch(lookCharacter(characterMatch))
+            dispatch(lookCharacter(CharacterId)(characterMatch))
             return true
         }
     }
@@ -59,7 +57,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     if (entry.slice(0,1) === '"' && entry.length > 1) {
         dispatch(sendPlayerMessage({
             RoomId: currentRoom.PermanentId,
-            CharacterId: characterId,
+            CharacterId,
             Message: `${currentName} says "${entry.slice(1)}"`
         }))
         return true
@@ -67,7 +65,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     if (entry.slice(0,1) === '@' && entry.length > 1) {
         dispatch(sendPlayerMessage({
             RoomId: currentRoom.PermanentId,
-            CharacterId: characterId,
+            CharacterId,
             Message: entry.slice(1)
         }))
         return true
@@ -75,7 +73,7 @@ export const parseCommand = ({ entry, raiseError }) => (dispatch, getState) => {
     if (entry.slice(0,1) === ':' && entry.length > 1) {
         dispatch(sendPlayerMessage({
             RoomId: currentRoom.PermanentId,
-            CharacterId: characterId,
+            CharacterId,
             Message: `${currentName}${entry.slice(1).match(/^[,']/) ? "" : " "}${entry.slice(1)}`
         }))
         return true

@@ -1,7 +1,8 @@
 import { receiveMessage } from '../messages'
 
-export const lookCharacter = ({ Name, Pronouns, FirstImpression, OneCoolThing, Outfit }) => (dispatch) => {
+export const lookCharacter = (CharacterId) => ({ Name, Pronouns, FirstImpression, OneCoolThing, Outfit }) => (dispatch) => {
     return dispatch(receiveMessage({
+        Target: CharacterId,
         Message: [
             Name,
             ...(Pronouns ? [ `Pronouns: ${Pronouns}`] : []),

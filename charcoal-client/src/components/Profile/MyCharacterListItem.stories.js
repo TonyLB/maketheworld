@@ -56,6 +56,14 @@ const MyCharacterListItemStory = {
             category: 'Events'
         }
     },
+    onSubscribe: {
+        action: 'onSubscribe',
+        defaultValue: null,
+        description: 'Called when the person icon is clicked',
+        table: {
+            category: 'Events'
+        }
+    },
     onConnect: {
         action: 'onConnect',
         defaultValue: null,

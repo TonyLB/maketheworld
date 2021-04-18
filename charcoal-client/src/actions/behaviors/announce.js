@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { updateMessages } from '../../graphql/mutations'
 
-import { getMyCurrentCharacter } from '../../selectors/myCharacters'
-import { getCurrentNeighborhood } from '../../selectors/currentRoom'
+import { getMyCharacterById } from '../../selectors/myCharacters'
+import { getCurrentNeighborhood } from '../../selectors/activeCharacter'
 import { getRoomIdsInNeighborhood } from '../../selectors/permanentHeaders'
 import { getActiveCharacterList } from '../../selectors/charactersInPlay'
 
@@ -31,10 +31,10 @@ export const sendAnnouncement = ({ title = 'Announcement', message = '', roomIds
 
 }
 
-export const announce = (message = 'Announcement!') => (dispatch, getState) => {
+export const announce = (CharacterId) => (message = 'Announcement!') => (dispatch, getState) => {
     const state = getState()
-    const currentCharacter = getMyCurrentCharacter(state)
-    const currentNeighborhood = getCurrentNeighborhood(state)
+    const currentCharacter = getMyCharacterById(CharacterId)(state)
+    const currentNeighborhood = getCurrentNeighborhood(CharacterId)(state)
     const charactersInPlay = getActiveCharacterList(state)
     const announcementTitle = `Announcement from ${(currentCharacter && currentCharacter.Name) || 'Unknown'} in ${(currentNeighborhood && currentNeighborhood.Name) || 'Vortex'}`
     if (currentCharacter) {

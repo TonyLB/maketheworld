@@ -1,35 +1,48 @@
 import { WSS_ADDRESS } from '../../../config'
 import { registerSSM, assertIntent, externalStateChange } from '../../stateSeekingMachine'
 import { getLifeLine } from '../../../selectors/communicationsLayer'
-import { lifeLineSSMKeys, ILifeLineSSM, ILifeLineData, ILifeLineState, LifeLineSSMKey } from './baseClass'
+import { lifeLineSSMKeys, ILifeLineSSM, LifeLineData, ILifeLineState, LifeLineSSMKey } from './baseClass'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
+
+import { PubSub } from '../../../lib/pubSub'
 
 export const ESTABLISH_WEB_SOCKET_ATTEMPT = 'ESTABLISH_WEB_SOCKET_ATTEMPT'
 export const ESTABLISH_WEB_SOCKET_ERROR = 'ESTABLISH_WEB_SOCKET_ERROR'
 export const ESTABLISH_WEB_SOCKET_SUCCESS = 'ESTABLISH_WEB_SOCKET_SUCCESS'
 export const DISCONNECT_WEB_SOCKET = 'DISCONNECT_WEB_SOCKET'
 
+type LifeLineRegisterMessage = {
+    messageType: 'Registered';
+    CharacterId: string;
+}
+
+type LifeLinePubSubData = LifeLineRegisterMessage
+
+const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
+
 const stateUpdate = (newState: lifeLineSSMKeys) => externalStateChange<lifeLineSSMKeys>({ key: LifeLineSSMKey, newState })
 
-export const establishWebSocket = () => (dispatch: any) => {
-    return new Promise<ILifeLineData>((resolve, reject) => {
+export const establishWebSocket = ({ webSocket }: LifeLineData) => (dispatch: any): Promise<Partial<LifeLineData>> => {
+    return new Promise<LifeLineData>((resolve, reject) => {
         let setupSocket = new WebSocket(WSS_ADDRESS)
         setupSocket.onopen = () => {
             //
             // Make sure that any previous websocket is disconnected.
             //
-            dispatch(disconnectWebSocket)
+            if (webSocket) {
+                dispatch(disconnectWebSocket)
+            }
             const pingInterval = setInterval(() => { dispatch(socketDispatch('ping')({})) }, 300000)
             const refreshTimeout = setTimeout(() => { dispatch(stateUpdate('STALE')) }, 3600000 )
-            dispatch({
-                type: ESTABLISH_WEB_SOCKET_SUCCESS,
-                payload: {
-                    webSocket: setupSocket,
-                    pingInterval,
-                    refreshTimeout
-                }
+            resolve({
+                webSocket: setupSocket,
+                pingInterval,
+                refreshTimeout
             })
-            resolve({})
+        }
+        setupSocket.onmessage = (event) => {
+            const payload = JSON.parse(event.data || {}) as LifeLinePubSubData
+            LifeLinePubSub.publish(payload)
         }
         setupSocket.onerror = (event) => {
             reject()
@@ -37,8 +50,7 @@ export const establishWebSocket = () => (dispatch: any) => {
     })
 }
 
-export const disconnectWebSocket = () => async (dispatch: any, getState: any) => {
-    const { webSocket, pingInterval, refreshTimeout }: any = getLifeLine(getState()) || {}
+export const disconnectWebSocket = ({ webSocket, pingInterval, refreshTimeout }: LifeLineData) => async (dispatch: any, getState: any) => {
     if (pingInterval) {
         clearInterval(pingInterval)
     }
@@ -49,8 +61,21 @@ export const disconnectWebSocket = () => async (dispatch: any, getState: any) =>
         webSocket.close()
     }
     dispatch({ type: DISCONNECT_WEB_SOCKET })
-    return {}
+    return {
+        webSocket: null,
+        pingInterval: null,
+        refreshTimeout: null
+    }
 }
+
+//
+// TODO:  Create array storage in the lifelineData to keep track of listeners on the
+// socket.  Register response-listeners when a character is registered, and use them
+// to resolve the promise (so that registerCharacter can return a promise that
+// resolves when the character *has been* registered, rather than adding epicycles
+// permanently to the listener to always be on the lookout for a registerCharacter
+// pingback)
+//
 
 //
 // Implement a state-seeking machine to keep websockets connected where possible.
@@ -58,7 +83,7 @@ export const disconnectWebSocket = () => async (dispatch: any, getState: any) =>
 export class LifeLineTemplate implements ILifeLineSSM {
     ssmType: 'LifeLine' = 'LifeLine'
     initialState: lifeLineSSMKeys = 'INITIAL'
-    initialData: ILifeLineData = {}
+    initialData: LifeLineData = new LifeLineData()
     states: Record<lifeLineSSMKeys, ILifeLineState> = {
         INITIAL: {
             stateType: 'CHOICE',
@@ -99,7 +124,7 @@ export class LifeLineTemplate implements ILifeLineSSM {
     }
 }
 
-export type LifeLineSSM = IStateSeekingMachineAbstract<lifeLineSSMKeys, {}, LifeLineTemplate>
+export type LifeLineSSM = IStateSeekingMachineAbstract<lifeLineSSMKeys, LifeLineData, LifeLineTemplate>
 
 //
 // socketDispatch
@@ -119,6 +144,7 @@ export type LifeLineSSM = IStateSeekingMachineAbstract<lifeLineSSMKeys, {}, Life
 export const socketDispatch = (messageType: any) => (payload: any) => (dispatch: any, getState: any) => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
+        console.log('Sending webSocket message')
         webSocket.send(JSON.stringify({
             message: messageType,
             ...payload
@@ -126,9 +152,28 @@ export const socketDispatch = (messageType: any) => (payload: any) => (dispatch:
     }
 }
 
-export const registerCharacter = (CharacterId: string) => { socketDispatch('registercharacter')({ CharacterId }) }
+// export const registerCharacter = (CharacterId: string) => { socketDispatch('registercharacter')({ CharacterId }) }
 
 export const registerLifeLineSSM = (dispatch: any): void => {
     dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate() }))
     dispatch(assertIntent({ key: 'LifeLine', newState: 'CONNECTED' }))
 }
+
+export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
+    //
+    // TODO:  Create error messaging that rejects the promise if it gets some sort
+    // of register failure.
+    //
+    new Promise((resolve: any, reject: any) => {
+        LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
+            if (payload.messageType === 'Registered') {
+                const { CharacterId: registeredCharacterId } = payload
+                if (CharacterId === registeredCharacterId) {
+                    unsubscribe()
+                    resolve({})
+                }
+            }
+        })
+        dispatch(socketDispatch('registercharacter')({ CharacterId }))
+    })
+)

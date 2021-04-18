@@ -19,7 +19,7 @@ import Spinner from '../Spinner'
 import useStyles from '../styles'
 
 import { getCharacters } from '../../selectors/characters'
-import { subscribeCharacterSSM } from '../../actions/activeCharacters'
+import { subscribeCharacterSSM, connectCharacterSSM } from '../../actions/activeCharacters'
 import { getActiveCharacters } from '../../selectors/activeCharacters'
 
 export const PureMyCharacterListItem = ({
@@ -29,6 +29,7 @@ export const PureMyCharacterListItem = ({
         onEdit = () => {},
         onDisconnect = () => {},
         onSubscribe = () => {},
+        onConnect = () => {},
         ...rest
     }) => {
     const classes = useStyles()
@@ -52,7 +53,7 @@ export const PureMyCharacterListItem = ({
             }
             { (state === 'SYNCHRONIZED') &&
                 <Tooltip title={`Connect ${Name}`}>
-                    <IconButton onClick={() => {}} >
+                    <IconButton onClick={onConnect} >
                         <ForumIcon />
                     </IconButton>
                 </Tooltip>
@@ -72,7 +73,8 @@ PureMyCharacterListItem.propTypes = {
     state: PropTypes.string,
     onEdit: PropTypes.func,
     onDisconnect: PropTypes.func,
-    onSubscribe: PropTypes.func
+    onSubscribe: PropTypes.func,
+    onConnect: PropTypes.func
 }
 
 export const MyCharacterListItem = ({
@@ -86,6 +88,9 @@ export const MyCharacterListItem = ({
     const onSubscribe = useCallback(() => {
         dispatch(subscribeCharacterSSM(CharacterId))
     }, [dispatch, CharacterId])
+    const onConnect = useCallback(() => {
+        dispatch(connectCharacterSSM(CharacterId))
+    }, [dispatch, CharacterId])
 
     return <PureMyCharacterListItem
         CharacterId={CharacterId}
@@ -93,6 +98,7 @@ export const MyCharacterListItem = ({
         state={state}
         onEdit={onEdit}
         onSubscribe={onSubscribe}
+        onConnect={onConnect}
         {...rest}
     />
 }

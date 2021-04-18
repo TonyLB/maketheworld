@@ -3,29 +3,26 @@ import { moveCharacter as moveCharacterGraphQL, updateMessages } from '../../gra
 import { v4 as uuidv4 } from 'uuid'
 
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
-import { getCurrentRoom, getVisibleExits } from '../../selectors/currentRoom'
+import { getCurrentRoom, getVisibleExits, getCurrentName, getCurrentRoomId } from '../../selectors/activeCharacter'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 
-import { getCurrentName, getCurrentRoomId } from '../../selectors/connection'
 import { getCharacters } from '../../selectors/characters'
 
-export const moveCharacter = ({ ExitName, RoomId }) => (dispatch, getState) => {
+export const moveCharacter = (CharacterId) => ({ ExitName, RoomId }) => (dispatch, getState) => {
     const state = getState()
-    const { connection } = state
     const characters = getCharacters(state)
-    const CharacterId = connection.characterId
     const permanentHeaders = getPermanentHeaders(state)
     const destinationRoom = RoomId
         ? {
             ...permanentHeaders[RoomId],
-            Exits: getVisibleExits(state, RoomId)
+            Exits: getVisibleExits(CharacterId)(state, RoomId)
         }
         : {
-            ...getCurrentRoom(state),
-            Exits: getVisibleExits(state)
+            ...getCurrentRoom(CharacterId)(state),
+            Exits: getVisibleExits(CharacterId)(state)
         }
-    const currentName = getCurrentName(state)
-    const currentRoomId = getCurrentRoomId(state)
+    const currentName = getCurrentName(CharacterId)(state)
+    const currentRoomId = getCurrentRoomId(CharacterId)(state)
     const currentRoomCharacters = (currentRoomId && getActiveCharactersInRoom({ currentRoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
     const destinationRoomCharacters = RoomId && getActiveCharactersInRoom({ RoomId })(state)
     if (CharacterId) {

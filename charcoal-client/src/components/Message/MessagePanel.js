@@ -38,7 +38,7 @@ export const MessagePanel = () => {
     const localClasses = useMessagePanelStyles()
     const { CharacterId, inPlayMessages } = useActiveCharacter()
     const handleInput = useCallback((entry) => {
-        dispatch(parseCommand({ entry, raiseError: () => {} }))
+        dispatch(parseCommand(CharacterId)({ entry, raiseError: () => {} }))
         return true
     }, [dispatch])
     return <div className={localClasses.messagePanel}>

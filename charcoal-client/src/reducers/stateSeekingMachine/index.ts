@@ -5,6 +5,7 @@ import {
     STATE_SEEKING_MACHINE_REGISTER,
     STATE_SEEKING_MACHINE_HEARTBEAT,
     STATE_SEEKING_EXTERNAL_CHANGE,
+    STATE_SEEKING_EXTERNAL_DATA,
     STATE_SEEKING_INTERNAL_CHANGE,
     STATE_SEEKING_ASSERT_DESIRE
 } from '../../actions/stateSeekingMachine'
@@ -44,6 +45,18 @@ export const reducer = (
             return {
                 ...state,
                 heartbeat: action.payload
+            }
+        case STATE_SEEKING_EXTERNAL_DATA:
+            if (state.machines?.[action.payload.key]) {
+                return produce(state, draftState => {
+                    draftState.machines[action.payload.key].data = {
+                        ...(draftState.machines[action.payload.key].data ?? {}),
+                        ...action.payload.data
+                    }
+                })
+            }
+            else {
+                return state
             }
         case STATE_SEEKING_EXTERNAL_CHANGE:
             if (state.machines?.[action.payload.key] && action.payload?.newState) {

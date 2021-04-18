@@ -4,6 +4,7 @@ import { characterSSMClassGenerator, characterSSMKeys, CharacterSubscriptionData
 
 import cacheDB from '../../cacheDB'
 import { getLastMessageSync, syncAction } from './messageSync'
+import { registerCharacter } from '../communicationsLayer/lifeLine'
 import { subscribeAction } from './subscription'
 import { RECEIVE_MESSAGES } from '../messages'
 
@@ -44,7 +45,10 @@ export class CharacterSubscriptionTemplate extends characterSSMClassGenerator({
     subscribeAction,
     unsubscribeAction,
     syncAction,
-    registerAction: () => async () => ({}),
+    registerAction: ({ CharacterId }) => async (dispatch: any): Promise<Partial<CharacterSubscriptionData>> => {
+        dispatch(registerCharacter(CharacterId))
+        return {}
+    },
     deregisterAction: () => async () => ({})
 }){ }
 
@@ -56,4 +60,8 @@ export const registerCharacterSSM = (CharacterId: string) => (dispatch: any): vo
 
 export const subscribeCharacterSSM = (CharacterId: string) => (dispatch: any): void => {
     dispatch(assertIntent({ key: `Subscribe::Character::${CharacterId}`, newState: 'SYNCHRONIZED' }))
+}
+
+export const connectCharacterSSM = (CharacterId: string) => (dispatch: any): void => {
+    dispatch(assertIntent({ key: `Subscribe::Character::${CharacterId}`, newState: 'REGISTERED' }))
 }

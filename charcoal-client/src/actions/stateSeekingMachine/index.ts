@@ -14,6 +14,7 @@ export const STATE_SEEKING_MACHINE_REGISTER = 'STATE_SEEKING_MACHINE_REGISTER'
 export const STATE_SEEKING_MACHINE_HEARTBEAT = 'STATE_SEEKING_MACHINE_HEARTBEAT'
 export const STATE_SEEKING_MACHINE_EVALUATION = 'STATE_SEEKING_MACHINE_EVALUATION'
 export const STATE_SEEKING_EXTERNAL_CHANGE = 'STATE_SEEKING_EXTERNAL_CHANGE'
+export const STATE_SEEKING_EXTERNAL_DATA = 'STATE_SEEKING_EXTERNAL_DATA'
 export const STATE_SEEKING_INTERNAL_CHANGE = 'STATE_SEEKING_INTERNAL_CHANGE'
 export const STATE_SEEKING_ASSERT_DESIRE = 'STATE_SEEKING_ASSERT_DESIRE'
 
@@ -64,6 +65,11 @@ const ssmStateChange = <K extends string, D extends Record<string, any>>(payload
 export const externalStateChange = <K extends string>(payload: { key: string; newState: K; heartbeat?: string }) => {
     return ssmStateChange<K, any>({ ...payload, type: STATE_SEEKING_EXTERNAL_CHANGE })
 }
+
+export const externalDataChange = <D extends Record<string, any>>(payload: { key: string; data: Partial<D>}) => ({
+    type: STATE_SEEKING_EXTERNAL_DATA,
+    payload
+})
 
 const internalStateChange = <K extends string, D extends Record<string, any>>(payload: { key: string; newState: K; heartbeat?: string; data?: Partial<D> }) => {
     return ssmStateChange<K, D>({ ...payload, type: STATE_SEEKING_INTERNAL_CHANGE })

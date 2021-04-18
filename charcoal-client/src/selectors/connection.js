@@ -1,3 +1,7 @@
+//
+// MARKED FOR OBLIVION
+//
+
 import { getCharacters } from './characters'
 
 export const getMyCharacterInPlay = ({ connection, charactersInPlay }) => (connection && connection.characterId && charactersInPlay && charactersInPlay[connection.characterId]) || {}

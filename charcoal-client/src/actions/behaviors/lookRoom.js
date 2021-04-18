@@ -4,22 +4,21 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { receiveMessage } from '../messages'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
-import { getCharacterId } from '../../selectors/connection'
-import { getCurrentRoom, getVisibleExits } from '../../selectors/currentRoom'
+import { getCurrentRoom, getVisibleExits } from '../../selectors/activeCharacter'
 import { getPermanentHeaders } from '../../selectors/permanentHeaders'
 
-export const lookRoom = (props) => (dispatch, getState) => {
+export const lookRoom = (CharacterId) => (props) => (dispatch, getState) => {
     const { RoomId, showNeighborhoods = false, previousAncestry = '' } = props || {}
     const state = getState()
     const permanentHeaders = getPermanentHeaders(state)
     const currentRoom = RoomId
         ? {
             ...permanentHeaders[RoomId],
-            Exits: getVisibleExits(state, RoomId)
+            Exits: getVisibleExits(CharacterId)(state, RoomId)
         }
         : {
-            ...getCurrentRoom(state),
-            Exits: getVisibleExits(state)
+            ...getCurrentRoom(CharacterId)(state),
+            Exits: getVisibleExits(CharacterId)(state)
         }
     const currentAncestry = currentRoom.Ancestry
     const neighborhoodList = (showNeighborhoods && currentAncestry && currentAncestry
@@ -31,13 +30,13 @@ export const lookRoom = (props) => (dispatch, getState) => {
                 ? ancestryList
                 : [ ...ancestryList, `${item}`])
         }), { accumulatedAncestry: '', ancestryList: [] }).ancestryList) || []
-    const myCharacterId = getCharacterId(state)
 
     if (currentRoom && currentRoom.Name) {
         neighborhoodList.forEach((NeighborhoodId) => {
             const neighborhoodData = permanentHeaders && permanentHeaders[NeighborhoodId]
             if (neighborhoodData) {
                 dispatch(receiveMessage({
+                    Target: CharacterId,
                     DisplayProtocol: 'neighborhoodDescription',
                     Description: neighborhoodData.Description,
                     Name: neighborhoodData.Name,
@@ -45,7 +44,7 @@ export const lookRoom = (props) => (dispatch, getState) => {
                 }))
             }
         })
-        const Characters = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId })(state)
+        const Characters = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: CharacterId })(state)
         const RoomDescription = {
             Description: currentRoom.Description,
             Name: currentRoom.Name,
@@ -57,7 +56,7 @@ export const lookRoom = (props) => (dispatch, getState) => {
         return API.graphql(graphqlOperation(updateMessages, { Updates: [{
             putMessage: {
                 MessageId: uuidv4(),
-                Characters: [myCharacterId],
+                Characters: [CharacterId],
                 DisplayProtocol: "RoomDescription",
                 RoomDescription
             }

@@ -13,3 +13,7 @@ export const getSSMStates = ({ stateSeekingMachines} : { stateSeekingMachines: S
 export const getSSMState = (key: string) => ({ stateSeekingMachines }: { stateSeekingMachines: StateSeekingMachineModule }) => {
     return (stateSeekingMachines && stateSeekingMachines.machines?.[key]?.currentState) || null
 }
+
+export const getSSMData = (key: string) => ({ stateSeekingMachines }: { stateSeekingMachines: StateSeekingMachineModule }) => {
+    return (stateSeekingMachines && stateSeekingMachines.machines?.[key]?.data) || undefined
+}

@@ -1,12 +1,17 @@
 import { immerable } from 'immer'
 import { StateSeekingMachineModule } from '../../reducers/stateSeekingMachine'
-import { ISSMTemplate } from '../../actions/stateSeekingMachine'
-import { getHeartbeat, getLastEvaluation, getSSMStates, getSSMState } from './index'
+import { ISSMTemplateAbstract } from '../../actions/stateSeekingMachine/baseClasses'
+import { getHeartbeat, getLastEvaluation, getSSMStates, getSSMState, getSSMData } from './index'
 
 type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
 
-const testTemplate: ISSMTemplate<testKeys> = {
+class testData {
+    value: string = 'testData'
+}
+
+const testTemplate: ISSMTemplateAbstract<testKeys, testData> = {
     initialState: 'INITIAL',
+    initialData: new testData(),
     states: {
         INITIAL: {
             stateType: 'CHOICE',
@@ -36,6 +41,7 @@ const testState: StateSeekingMachineModule = {
             key: 'test',
             currentState: 'INITIAL',
             desiredState: 'INITIAL',
+            data: new testData(),
             template: testTemplate
         }
     }
@@ -55,5 +61,11 @@ describe('stateSeekingMachine selectors', () => {
     })
     it('should return getSSMState for a single entry', () => {
         expect(getSSMState('test')({ stateSeekingMachines: testState })).toEqual('INITIAL')
+    })
+
+    it('should return getSSMData for a single entry', () => {
+        expect(getSSMData('test')({ stateSeekingMachines: testState })).toEqual({
+            value: 'testData'
+        })
     })
 })
