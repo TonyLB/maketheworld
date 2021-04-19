@@ -900,6 +900,40 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
+  MessageSubscriptionBroadcastFunction:
+      Type: AWS::Serverless::Function
+      DependsOn:
+          - AppSyncAPI
+      Properties:
+          CodeUri: lambda/messageTopic/messageSubscriptionBroadcast
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs12.x
+          Timeout: 5
+          Environment:
+              Variables:
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+          Policies:
+            - Statement:
+              - Effect: Allow
+                Action: appsync:GraphQL
+                Resource: !Sub '${AppSyncAPI}/*'
+  MessagePersistFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/messageTopic/messagePersist
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs12.x
+          Timeout: 5
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_messages'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_message_delta'
   MessagesFunction:
       Type: AWS::Serverless::Function
       DependsOn:
@@ -976,13 +1010,21 @@ Resources:
       Type: AWS::SNS::Topic
       Properties:
           Subscription:
-              - Endpoint: !GetAtt MessagesFunction.Arn
+              - Endpoint: !GetAtt MessageSubscriptionBroadcastFunction.Arn
                 Protocol: lambda
-  MessageNotificationTopicPolicy:
+              - Endpoint: !GetAtt MessagePersistFunction.Arn
+                Protocol: lambda
+  MessageBroadcastPolicy:
       Type: AWS::Lambda::Permission
       Properties:
           Action: lambda:InvokeFunction
-          FunctionName: !Ref MessagesFunction
+          FunctionName: !Ref MessageSubscriptionBroadcastFunction
+          Principal: sns.amazonaws.com
+  MessagePersistPolicy:
+      Type: AWS::Lambda::Permission
+      Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref MessagePersistFunction
           Principal: sns.amazonaws.com
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
