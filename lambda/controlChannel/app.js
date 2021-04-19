@@ -52,17 +52,13 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
     const Characters = [ CharacterId, ...(RoomRecords.filter(({ EphemeraId, Connected }) => (EphemeraId && Connected)).map(({ EphemeraId }) => (removeType(EphemeraId))).filter((checkId) => (checkId !== CharacterId))) ]
     await SNS.publish({
         TopicArn: MESSAGE_SNS_ARN,
-        Message: JSON.stringify({
-            putMessage: {
-                Characters,
-                DisplayProtocol: "World",
-                WorldMessage: {
-                    Message: messageFunction(Name),
-                },
-                MessageId: uuidv4(),
-                RoomId
-            }
-        }, null, 4)
+        Message: JSON.stringify([{
+            Characters,
+            DisplayProtocol: "World",
+            Message: messageFunction(Name),
+            MessageId: uuidv4(),
+            RoomId
+        }], null, 4)
     }).promise()
 }
 

@@ -31,7 +31,30 @@ const gqlGroup = (items) => {
 
 const putMessage = (event) => {
 
-    const { MessageId, CreatedTime, Characters = [], DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription } = event
+    const { MessageId, CreatedTime, Characters = [], DisplayProtocol } = event
+    let WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription
+
+    const eventMapping = (props) => (props.reduce((previous, key) => ({ ...previous, [key]: event[key] }), {}))
+
+    switch(DisplayProtocol) {
+        case 'World':
+            WorldMessage = eventMapping(['Message'])
+            break
+        case 'Player':
+            CharacterMessage = eventMapping(['Message', 'CharacterId'])
+            break
+        case 'Direct':
+            DirectMessage = eventMapping(['Message', 'CharacterId', 'Title', 'Recipients'])
+            break
+        case 'Announce':
+            CharacterMessage = eventMapping(['Message', 'CharacterId', 'Title'])
+            break
+        case 'RoomDescription':
+            RoomDescription = eventMapping(['RoomId', 'Name', 'Description', 'Exits', 'Characters'])
+            break
+        default:
+            break
+    }
 
     const gqlWrites = broadcastMessages({
         MessageId,
@@ -48,7 +71,7 @@ const putMessage = (event) => {
     return Promise.resolve(gqlWrites)
 }
 
-const updateDispatcher = ({ Updates = [] }) => {
+const updateDispatcher = (Updates = []) => {
 
     //
     // TODO:  Replace Date.now() with a date translation of the incoming SNS Publish time
@@ -56,13 +79,10 @@ const updateDispatcher = ({ Updates = [] }) => {
     const epochTime = Date.now()
 
     const outputs = Updates.map((update) => {
-            if (update.putMessage) {
-                return putMessage({
-                    ...update.putMessage,
-                    CreatedTime: update.putMessage.CreatedTime || (epochTime + (update.putMessage.TimeOffset || 0))
-                })
-            }
-            return Promise.resolve([])
+            return putMessage({
+                ...update,
+                CreatedTime: update.CreatedTime || (epochTime + (update.TimeOffset || 0))
+            })
         }
     )
 
@@ -86,12 +106,13 @@ exports.handler = (event, context) => {
     // First check for Records, to see whether this is coming from the SNS topic subscription.
     //
     if (Records) {
-        return updateDispatcher({
-            Updates: Records.filter(({ Sns = {} }) => (Sns.Message))
+        return updateDispatcher(
+            Records.filter(({ Sns = {} }) => (Sns.Message))
                 .map(({ Sns }) => (Sns.Message))
                 .map((message) => (JSON.parse(message)))
                 .filter((message) => (message))
-        })
+                .reduce((previous, message) => ([...previous, ...message]), [])
+        )
     }
     //
     // Otherwise return a format error

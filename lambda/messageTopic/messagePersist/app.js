@@ -35,7 +35,7 @@ const batchDispatcher = ({ table, items }) => {
     return Promise.all(batchPromises)
 }
 
-const updateDispatcher = ({ Updates = [] }) => {
+const updateDispatcher = (Updates = []) => {
 
     //
     // TODO:  Replace Date.now() with a date translation of the incoming SNS Publish time
@@ -43,13 +43,10 @@ const updateDispatcher = ({ Updates = [] }) => {
     const epochTime = Date.now()
 
     const outputs = Updates.map((update) => {
-            if (update.putMessage) {
-                return putMessage({
-                    ...update.putMessage,
-                    CreatedTime: update.putMessage.CreatedTime || (epochTime + (update.putMessage.TimeOffset || 0))
-                })
-            }
-            return Promise.resolve({})
+            return putMessage({
+                ...update,
+                CreatedTime: update.CreatedTime || (epochTime + (update.TimeOffset || 0))
+            })
         }
     )
 
@@ -80,12 +77,13 @@ exports.handler = (event, context) => {
     // First check for Records, to see whether this is coming from the SNS topic subscription.
     //
     if (Records) {
-        return updateDispatcher({
-            Updates: Records.filter(({ Sns = {} }) => (Sns.Message))
+        return updateDispatcher(
+            Records.filter(({ Sns = {} }) => (Sns.Message))
                 .map(({ Sns }) => (Sns.Message))
                 .map((message) => (JSON.parse(message)))
                 .filter((message) => (message))
-        })
+                .reduce((previous, message) => ([...previous, ...message]), [])
+        )
     }
     //
     // Otherwise return a format error
