@@ -146,18 +146,48 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
 
 }
 
+const lookPermanent = async ({ PermanentId }) => {
+    // await SNS.publish({
+    //     TopicArn: MESSAGE_SNS_ARN,
+    //     Message: JSON.stringify([{
+    //         Characters,
+    //         DisplayProtocol: "World",
+    //         Message: messageFunction(Name),
+    //         MessageId: uuidv4(),
+    //         RoomId
+    //     }], null, 4)
+    // }).promise()
+    //
+    // TODO:  Refactor controlChannel to use tree-shaken AWS SDK v3 imports
+    // and include the Lambda invoke client to directly call Perception lambda
+    //
+}
+
 exports.disconnect = disconnect
 exports.registerCharacter = registerCharacter
 exports.handler = (event) => {
 
     const { connectionId, routeKey } = event.requestContext
-    const { message, CharacterId = '' } = event.body && JSON.parse(event.body) || {}
+    const request = event.body && JSON.parse(event.body) || {}
 
     if (routeKey === '$disconnect') {
         return disconnect(connectionId)
     }
-    if ((message === 'registercharacter') && CharacterId)
-        return registerCharacter({ connectionId, CharacterId})
+    switch(request.message) {
+        case 'registercharacter':
+            if (request.CharacterId) {
+                return registerCharacter({ connectionId, CharacterId: request.CharacterId})
+            }
+            break
+        //
+        // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
+        // from in-game actions like look
+        //
+        case 'look':
+            return lookPermanent(request)
+        default:
+            break
+    }
     return { statusCode: 200, body: JSON.stringify({}) }
 
 }

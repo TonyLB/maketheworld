@@ -17,7 +17,33 @@ const messageAndDeltaReducer = ({
 
 exports.putMessage = (event) => {
 
-    const { MessageId, CreatedTime, RoomId = null, Characters = [], DisplayProtocol, WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription } = event
+    const { MessageId, CreatedTime, Characters = [], DisplayProtocol, RoomId } = event
+    let WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription
+
+    const eventMapping = (props) => (props.reduce((previous, key) => ({ ...previous, [key]: event[key] }), {}))
+
+    switch(DisplayProtocol) {
+        case 'World':
+            WorldMessage = eventMapping(['Message'])
+            break
+        case 'Player':
+            CharacterMessage = eventMapping(['Message', 'CharacterId'])
+            break
+        case 'Direct':
+            DirectMessage = eventMapping(['Message', 'CharacterId', 'Title', 'Recipients'])
+            break
+        case 'Announce':
+            CharacterMessage = eventMapping(['Message', 'CharacterId', 'Title'])
+            break
+        case 'RoomDescription':
+            RoomDescription = {
+                ...eventMapping(['RoomId', 'Name', 'Description', 'Exits']),
+                Characters: event.RoomCharacters
+            }
+            break
+        default:
+            break
+    }
 
     const targets = [...(RoomId ? [`ROOM#${RoomId}`] : []), ...Characters.map((characterId) => (`CHARACTER#${characterId}`))]
 

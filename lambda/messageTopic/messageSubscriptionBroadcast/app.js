@@ -50,7 +50,10 @@ const putMessage = (event) => {
             CharacterMessage = eventMapping(['Message', 'CharacterId', 'Title'])
             break
         case 'RoomDescription':
-            RoomDescription = eventMapping(['RoomId', 'Name', 'Description', 'Exits', 'Characters'])
+            RoomDescription = {
+                ...eventMapping(['RoomId', 'Name', 'Description', 'Exits']),
+                Characters: event.RoomCharacters
+            }
             break
         default:
             break

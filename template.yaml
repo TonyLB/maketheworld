@@ -73,6 +73,12 @@ Resources:
               TableName: !Sub '${TablePrefix}_ephemera'
         - SNSCrudPolicy:
             TopicName: !GetAtt MessageNotificationTopic.TopicName
+        - Statement:
+          - Effect: "Allow"
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - !GetAtt PerceptionFunction.Arn
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -1026,6 +1032,23 @@ Resources:
           Action: lambda:InvokeFunction
           FunctionName: !Ref MessagePersistFunction
           Principal: sns.amazonaws.com
+  PerceptionFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/descriptionService/
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs12.x
+          Timeout: 5
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+                  MESSAGE_TOPIC_ARN: !Ref MessageNotificationTopic
+          Policies:
+            - SNSCrudPolicy:
+                TopicName: !GetAtt MessageNotificationTopic.TopicName
+            - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_permanents'
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
       DependsOn:

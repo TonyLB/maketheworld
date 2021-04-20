@@ -6,7 +6,6 @@ require('cross-fetch/polyfill')
 const { AWS_REGION } = process.env;
 
 exports.documentClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: AWS_REGION })
-exports.s3Client = new AWS.S3()
 exports.graphqlClient = new AppSync.AWSAppSyncClient({
     url: process.env.APPSYNC_ENDPOINT_URL,
     region: process.env.AWS_REGION,
