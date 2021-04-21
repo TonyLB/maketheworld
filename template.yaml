@@ -56,6 +56,7 @@ Resources:
           TABLE_PREFIX: !Ref TablePrefix
           APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           MESSAGE_SNS_ARN: !Ref MessageNotificationTopic
+          PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
       Policies:
         - Statement:
           - Effect: Allow
@@ -186,11 +187,47 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref RegisterCharacterRoute
       RouteResponseKey: "$default"
+  LookRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: look
+      AuthorizationType: NONE
+      OperationName: LookRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref LookInteg
+  LookInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Look Integtration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+  LookIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref LookInteg
+      IntegrationResponseKey: "/200/"
+  LookResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref LookRoute
+      RouteResponseKey: "$default"
   RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - PingRoute
     - RegisterCharacterRoute
+    - LookRoute
     - DisconnectRoute
     Properties:
       ApiId: !Ref RealTimeWebSocket

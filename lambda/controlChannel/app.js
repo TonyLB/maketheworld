@@ -7,10 +7,12 @@ const { v4: uuidv4 } = require('/opt/uuid')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns")
+const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
 const snsClient = new SNSClient({ region: REGION })
+const lambdaClient = new LambdaClient({ region: REGION })
 
 const { TABLE_PREFIX, MESSAGE_SNS_ARN } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -168,21 +170,20 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
 
 }
 
-const lookPermanent = async ({ PermanentId }) => {
-    // await SNS.publish({
-    //     TopicArn: MESSAGE_SNS_ARN,
-    //     Message: JSON.stringify([{
-    //         Characters,
-    //         DisplayProtocol: "World",
-    //         Message: messageFunction(Name),
-    //         MessageId: uuidv4(),
-    //         RoomId
-    //     }], null, 4)
-    // }).promise()
-    //
-    // TODO:  Refactor controlChannel to use tree-shaken AWS SDK v3 imports
-    // and include the Lambda invoke client to directly call Perception lambda
-    //
+const lookPermanent = async ({ CharacterId, PermanentId }) => {
+    await lambdaClient.send(new InvokeCommand({
+        FunctionName: process.env.PERCEPTION_SERVICE,
+        InvocationType: 'RequestResponse',
+        Payload: new TextEncoder().encode(JSON.stringify({
+            CreatedTime: Date.now(),
+            CharacterId,
+            PermanentId
+        }))
+    }))
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: "ActionComplete" })
+    }
 }
 
 exports.disconnect = disconnect

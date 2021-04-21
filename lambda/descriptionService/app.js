@@ -62,25 +62,12 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
     }
 }
 
-//
-// TODO:  Create descriptionTopic SNS topic in Template, and assign an Endpoint to this Lambda
-//
 exports.handler = async (event, context) => {
-    const { Records } = event
+    const { CreatedTime, CharacterId, PermanentId } = event
 
-    //
-    // First check for Records, to see whether this is coming from the SNS topic subscription.
-    //
-    if (Records) {
-        const descriptions = Records.filter(({ Sns = {} }) => (Sns.Message))
-            .map(({ Sns }) => (Sns.Message))
-            .map((message) => (JSON.parse(message)))
-            .filter(({ CreatedTime, CharacterId }) => (CreatedTime && CharacterId))
-        await Promise.all(descriptions.map(description => (publishMessage(description))))
+    if (CreatedTime && CharacterId && PermanentId) {
+        return publishMessage(event)
     }
-    //
-    // Otherwise return a format error
-    //
     else {
         context.fail(JSON.stringify(`Error: Unknown format ${event}`))
     }

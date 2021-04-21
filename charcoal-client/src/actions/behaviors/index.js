@@ -12,7 +12,7 @@ import help from './help'
 
 export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatch, getState) => {
     if (entry.match(/^\s*(?:look|l)\s*$/gi)) {
-        dispatch(lookRoom(CharacterId))
+        dispatch(lookRoom(CharacterId)())
         return true
     }
     if (entry.match(/^\s*home\s*$/gi)) {
