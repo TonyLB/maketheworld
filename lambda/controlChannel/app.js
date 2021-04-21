@@ -1,8 +1,16 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { documentClient, graphqlClient, gql, SNS } = require('./utilities')
+const { graphqlClient, gql } = require('./utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
+
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns")
+
+const REGION = process.env.AWS_REGION
+const dbClient = new DynamoDBClient({ region: REGION })
+const snsClient = new SNSClient({ region: REGION })
 
 const { TABLE_PREFIX, MESSAGE_SNS_ARN } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -10,6 +18,11 @@ const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
+//
+// TODO:  Create an EphemeraTopic SNS endpoint, and move the import of AppSync out to there,
+// where any cold-start latency is less relevant, then reroute all Ephemera updates in the
+// core Lambdas out to that outlet.
+//
 const disconnectGQL = ({ CharacterId, RoomId }) => (gql`mutation DisconnectCharacter {
     broadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: false } }]) {
         CharacterInPlay {
@@ -31,26 +44,28 @@ const connectGQL = ({ CharacterId, RoomId }) => (gql`mutation ConnectCharacter {
 }`)
 
 const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
-    const [{ Item: { Name } }, { Items: RoomRecords }] = await Promise.all([
-        documentClient.get({
+    const [{ Item: CharacterItem }, { Items: RoomItems }] = await Promise.all([
+        dbClient.send(new GetItemCommand({
             TableName: permanentsTable,
-            Key: {
+            Key: marshall({
                 PermanentId: `CHARACTER#${CharacterId}`,
                 DataCategory: 'Details'
-            }
-        }).promise(),
-        documentClient.query({
+            })
+        })),
+        dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
             KeyConditionExpression: 'RoomId = :RoomId',
-            ExpressionAttributeValues: {
+            ExpressionAttributeValues: marshall({
                 ':RoomId': RoomId
-            },
+            }),
             IndexName: 'RoomIndex'
-        }).promise(),
+        })),
         ...promises
     ])
+    const { Name = '' } = CharacterItem ? unmarshall(CharacterItem) : {}
+    const RoomRecords = RoomItems ? RoomItems.map(unmarshall) : []
     const Characters = [ CharacterId, ...(RoomRecords.filter(({ EphemeraId, Connected }) => (EphemeraId && Connected)).map(({ EphemeraId }) => (removeType(EphemeraId))).filter((checkId) => (checkId !== CharacterId))) ]
-    await SNS.publish({
+    await snsClient.send(new PublishCommand({
         TopicArn: MESSAGE_SNS_ARN,
         Message: JSON.stringify([{
             Characters,
@@ -59,42 +74,49 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
             MessageId: uuidv4(),
             RoomId
         }], null, 4)
-    }).promise()
+    }))
 }
 
 const disconnect = async (connectionId) => {
-    await documentClient.query({
-            TableName: ephemeraTable,
-            KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
-            ExpressionAttributeValues: {
-                ":EphemeraId": "CHARACTERINPLAY#",
-                ":ConnectionId": connectionId
-            },
-            IndexName: 'ConnectionIndex'
-        }).promise()
-        .then(({ Items = [] }) => (Items
+    const { Items = [] } = await dbClient.send(new QueryCommand({
+        TableName: ephemeraTable,
+        KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
+        ExpressionAttributeValues: marshall({
+            ":EphemeraId": "CHARACTERINPLAY#",
+            ":ConnectionId": connectionId
+        }),
+        IndexName: 'ConnectionIndex'
+    }))
+
+    await Promise.all(Items
+            .map(unmarshall)
             .map(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
             .map(({ CharacterId, RoomId }) => (
+                //
+                // TODO:  Refactor so that instead of sending individual SNS commands, the
+                // handler aggregates all of the messages and sends one SNS command with the
+                // whole set of simultaneous disconnects (and maybe a batch-write for the ephemera table)
+                //
                 updateWithRoomMessage({
                     RoomId,
                     CharacterId,
                     promises: [
-                        documentClient.put({
+                        dbClient.send(new PutItemCommand({
                             TableName: ephemeraTable,
-                            Item: {
+                            Item: marshall({
                                 EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                                 DataCategory: 'Connection',
                                 RoomId,
                                 Connected: false
-                            }
-                        }).promise(),
+                            })
+                        })),
                         graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId, RoomId }) })
                     ],
                     messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
                 })
-            ))
-        ))
-        .then(promises => (Promise.all(promises)))
+            )
+        )
+    )
 
     return { statusCode: 200 }
 }
@@ -102,28 +124,28 @@ const disconnect = async (connectionId) => {
 const registerCharacter = async ({ connectionId, CharacterId }) => {
 
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const { DataCategory, RoomId, Connected } = await documentClient.get({
-            TableName: ephemeraTable,
-            Key: {
-                EphemeraId,
-                DataCategory: 'Connection'
-            }
-        }).promise()
-        .then(({ Item = {} }) => (Item))
+    const { Item = {} } = await dbClient.send(new GetItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId,
+            DataCategory: 'Connection'
+        })
+    }))
+    const { DataCategory, RoomId, Connected } = unmarshall(Item)
     if (DataCategory) {
         const updatePromise = Promise.all([
-            documentClient.update({
+            dbClient.send(new UpdateItemCommand({
                 TableName: ephemeraTable,
-                Key: {
+                Key: marshall({
                     EphemeraId,
                     DataCategory: 'Connection'
-                },
+                }),
                 UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
-                ExpressionAttributeValues: {
+                ExpressionAttributeValues: marshall({
                     ":ConnectionId": connectionId,
                     ":Connected": true
-                }
-            }).promise(),
+                })
+            })),
             graphqlClient.mutate({ mutation: connectGQL({ CharacterId, RoomId }) })
         ])
         if (Connected) {

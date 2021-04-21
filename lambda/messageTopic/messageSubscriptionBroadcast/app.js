@@ -8,6 +8,20 @@ const gql = require('graphql-tag')
 require('cross-fetch/polyfill')
 const { broadcastMessages } = require('./broadcastMessages')
 
+//
+// TODO:  Evaluate whether it would be better to switch back to distributing message through
+// the LifeLine websocket connection (using APIGateway Management API to allow directly POSTing to
+// individual websockets, rather than depending on AppSync)
+//
+// Benefit:  One less place where a Lambda would need to import the (bloated) AppSyncGL packages.
+// Benefit:  Could overload the data structure directly, without restrictions from the GraphQL
+//    input limitations
+// Benefit:  Much cheaper per-message.
+// Complication:  Websocket has a 128k message-size maximum (about 30 pages of text)
+// Complication:  Much more likely to have a collision between messages and the hourly
+//    refresh of websockets.  Need to handle that.
+//
+
 const graphqlClient = new appsync.AWSAppSyncClient({
     url: process.env.APPSYNC_ENDPOINT_URL,
     region: process.env.AWS_REGION,
