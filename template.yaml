@@ -1086,6 +1086,8 @@ Resources:
                 TopicName: !GetAtt MessageNotificationTopic.TopicName
             - DynamoDBReadPolicy:
                 TableName: !Sub '${TablePrefix}_permanents'
+            - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_ephemera'
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
       DependsOn:
