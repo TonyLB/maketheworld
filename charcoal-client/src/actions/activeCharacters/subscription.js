@@ -12,5 +12,5 @@ export const subscribeAction = ({ CharacterId }) => async (dispatch) => {
                 dispatch(receiveMessage(messageData.value?.data?.addedMessage ?? {}))
             }
         })
-    return newMessageSubscription
+    return { subscription: newMessageSubscription }
 }
