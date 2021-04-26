@@ -3,6 +3,7 @@ import { registerSSM, assertIntent, externalStateChange } from '../../stateSeeki
 import { getLifeLine } from '../../../selectors/communicationsLayer'
 import { lifeLineSSMKeys, ILifeLineSSM, LifeLineData, ILifeLineState, LifeLineSSMKey } from './baseClass'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
+import { MessageFormat } from './messages'
 
 import { PubSub } from '../../../lib/pubSub'
 
@@ -10,13 +11,19 @@ export const ESTABLISH_WEB_SOCKET_ATTEMPT = 'ESTABLISH_WEB_SOCKET_ATTEMPT'
 export const ESTABLISH_WEB_SOCKET_ERROR = 'ESTABLISH_WEB_SOCKET_ERROR'
 export const ESTABLISH_WEB_SOCKET_SUCCESS = 'ESTABLISH_WEB_SOCKET_SUCCESS'
 export const DISCONNECT_WEB_SOCKET = 'DISCONNECT_WEB_SOCKET'
+export const RECEIVE_JSON_MESSAGES = 'RECEIVE_JSON_MESSAGES'
 
 type LifeLineRegisterMessage = {
     messageType: 'Registered';
     CharacterId: string;
 }
 
-type LifeLinePubSubData = LifeLineRegisterMessage
+type LifeLineReceiveMessage = {
+    messageType: 'Messages',
+    messages: MessageFormat[]
+}
+
+type LifeLinePubSubData = LifeLineRegisterMessage | LifeLineReceiveMessage
 
 const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -144,7 +151,6 @@ export type LifeLineSSM = IStateSeekingMachineAbstract<lifeLineSSMKeys, LifeLine
 export const socketDispatch = (messageType: any) => (payload: any) => (dispatch: any, getState: any) => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
-        console.log('Sending webSocket message')
         webSocket.send(JSON.stringify({
             message: messageType,
             ...payload
@@ -152,11 +158,21 @@ export const socketDispatch = (messageType: any) => (payload: any) => (dispatch:
     }
 }
 
-// export const registerCharacter = (CharacterId: string) => { socketDispatch('registercharacter')({ CharacterId }) }
+const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
+    console.log('receiveMessages payload', payload)
+    if (payload.messageType === 'Messages') {
+        console.log('Receive Messages', payload.messages)
+        dispatch({
+            type: RECEIVE_JSON_MESSAGES,
+            payload: payload.messages
+        })
+    }
+}
 
 export const registerLifeLineSSM = (dispatch: any): void => {
     dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate() }))
     dispatch(assertIntent({ key: 'LifeLine', newState: 'CONNECTED' }))
+    LifeLinePubSub.subscribe(receiveMessages(dispatch))
 }
 
 export const registerCharacter = (CharacterId: string) => (dispatch: any) => (

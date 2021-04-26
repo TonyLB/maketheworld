@@ -1,5 +1,6 @@
 import messages from './messages.js'
 import { RECEIVE_MESSAGES } from '../actions/messages.js'
+import { RECEIVE_JSON_MESSAGES } from '../actions/communicationsLayer/lifeLine'
 import {
     playerMessage,
     worldMessage,
@@ -37,6 +38,17 @@ describe('Messages reducer', () => {
                 WorldMessage: {
                     Message: 'The tesseract pulses ominously'
                 }
+            }]
+        })).toEqual([new worldMessage({
+            MessageId: '1',
+            Message: 'The tesseract pulses ominously'
+        })])
+        expect(messages([], {
+            type: RECEIVE_JSON_MESSAGES,
+            payload: [{
+                DisplayProtocol: '',
+                MessageId: '1',
+                Message: 'The tesseract pulses ominously'
             }]
         })).toEqual([new worldMessage({
             MessageId: '1',

@@ -6,15 +6,13 @@ const { v4: uuidv4 } = require('/opt/uuid')
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
-const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns")
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
-const snsClient = new SNSClient({ region: REGION })
 const lambdaClient = new LambdaClient({ region: REGION })
 
-const { TABLE_PREFIX, MESSAGE_SNS_ARN } = process.env;
+const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
 
@@ -46,36 +44,24 @@ const connectGQL = ({ CharacterId, RoomId }) => (gql`mutation ConnectCharacter {
 }`)
 
 const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
-    const [{ Item: CharacterItem }, { Items: RoomItems }] = await Promise.all([
-        dbClient.send(new GetItemCommand({
-            TableName: permanentsTable,
-            Key: marshall({
-                PermanentId: `CHARACTER#${CharacterId}`,
-                DataCategory: 'Details'
-            })
-        })),
-        dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            KeyConditionExpression: 'RoomId = :RoomId',
-            ExpressionAttributeValues: marshall({
-                ':RoomId': RoomId
-            }),
-            IndexName: 'RoomIndex'
-        })),
-        ...promises
-    ])
+    const { Item: CharacterItem } = await dbClient.send(new GetItemCommand({
+        TableName: permanentsTable,
+        Key: marshall({
+            PermanentId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Details'
+        })
+    }))
     const { Name = '' } = CharacterItem ? unmarshall(CharacterItem) : {}
-    const RoomRecords = RoomItems ? RoomItems.map(unmarshall) : []
-    const Characters = [ CharacterId, ...(RoomRecords.filter(({ EphemeraId, Connected }) => (EphemeraId && Connected)).map(({ EphemeraId }) => (removeType(EphemeraId))).filter((checkId) => (checkId !== CharacterId))) ]
-    await snsClient.send(new PublishCommand({
-        TopicArn: MESSAGE_SNS_ARN,
-        Message: JSON.stringify([{
-            Characters,
+    await lambdaClient.send(new InvokeCommand({
+        FunctionName: process.env.MESSAGE_SERVICE,
+        InvocationType: 'RequestResponse',
+        Payload: new TextEncoder().encode(JSON.stringify([{
+            Targets: [CharacterId, RoomId],
             DisplayProtocol: "World",
             Message: messageFunction(Name),
             MessageId: uuidv4(),
             RoomId
-        }], null, 4)
+        }]))
     }))
 }
 
@@ -170,7 +156,7 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
 
 }
 
-const lookPermanent = async ({ CharacterId, PermanentId }) => {
+const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     await lambdaClient.send(new InvokeCommand({
         FunctionName: process.env.PERCEPTION_SERVICE,
         InvocationType: 'RequestResponse',
@@ -185,6 +171,51 @@ const lookPermanent = async ({ CharacterId, PermanentId }) => {
         body: JSON.stringify({ messageType: "ActionComplete" })
     }
 }
+
+const say = async ({ CharacterId, Message } = {}) => {
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    const [{ Item: EphemeraItem = {} }, { Item: CharacterItem }] = await Promise.all([
+        dbClient.send(new GetItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId,
+                DataCategory: 'Connection'
+            })
+        })),
+        dbClient.send(new GetItemCommand({
+            TableName: permanentsTable,
+            Key: marshall({
+                PermanentId: `CHARACTER#${CharacterId}`,
+                DataCategory: 'Details'
+            })
+        })),
+
+    ])
+    const { RoomId } = unmarshall(EphemeraItem)
+    const { Name } = unmarshall(CharacterItem)
+    if (RoomId) {
+        const output = {
+            Messages: [{
+                MessageId: uuidv4(),
+                CreatedTime: Date.now(),
+                Targets: [RoomId],
+                DisplayProtocol: 'Player',
+                CharacterId,
+                Message: `${Name} says "${Message}"`
+            }]
+        }
+        await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.MESSAGE_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify(output))
+        }))
+    }
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: "ActionComplete" })
+    }
+}
+
 
 exports.disconnect = disconnect
 exports.registerCharacter = registerCharacter
@@ -206,8 +237,15 @@ exports.handler = (event) => {
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look
         //
-        case 'look':
-            return lookPermanent(request)
+        case 'action':
+            switch(request.actionType) {
+                case 'look':
+                    return lookPermanent(request.payload)
+                case 'say':
+                    return say(request.payload)
+                default:
+                    break        
+            }
         default:
             break
     }

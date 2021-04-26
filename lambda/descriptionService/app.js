@@ -114,7 +114,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
                 }, { Description: '', Name: '', Exits: [] })
             const Message = JSON.stringify([{
                 CreatedTime,
-                Characters: [CharacterId],
+                Targets: [CharacterId],
                 MessageId: uuid(),
                 DisplayProtocol: "RoomDescription",
                 RoomId: objectKey,

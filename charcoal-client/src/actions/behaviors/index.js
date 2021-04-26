@@ -1,5 +1,6 @@
 import { getCurrentName, getCurrentRoom } from '../../selectors/activeCharacter'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
+import { socketDispatch } from '../communicationsLayer/lifeLine'
 
 import { sendPlayerMessage } from '../messages.js'
 import lookRoom from './lookRoom'
@@ -55,11 +56,13 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
         return true
     }
     if (entry.slice(0,1) === '"' && entry.length > 1) {
-        dispatch(sendPlayerMessage({
-            RoomId: currentRoom.PermanentId,
-            CharacterId,
-            Message: `${currentName} says "${entry.slice(1)}"`
-        }))
+        dispatch(socketDispatch('action')({ actionType: 'say', payload: { CharacterId, Message: entry.slice(1) } }))
+
+        // dispatch(sendPlayerMessage({
+        //     RoomId: currentRoom.PermanentId,
+        //     CharacterId,
+        //     Message: `${currentName} says "${entry.slice(1)}"`
+        // }))
         return true
     }
     if (entry.slice(0,1) === '@' && entry.length > 1) {
