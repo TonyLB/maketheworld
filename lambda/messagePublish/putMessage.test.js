@@ -1,22 +1,21 @@
 const { putMessage } = require('./putMessage')
+jest.mock('@aws-sdk/util-dynamodb')
+const { marshall } = require('@aws-sdk/util-dynamodb')
 
 describe("putMessage", () => {
-    const realDateNow = Date.now.bind(global.Date)
 
-    const separator = `\n        `
-    const testStart = `broadcastMessage(Message: {${separator}MessageId: "123"${separator}Target: "987"${separator}CreatedTime: 123451234567${separator}`
+    beforeEach(() => {
+        marshall.mockImplementation((record) => (Object.entries(record).filter(([_, value]) => (value !== undefined)).reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})))
+    })
 
     it('should add a new world message', async () => {
 
         const data = await putMessage({
             MessageId: '123',
             CreatedTime: 123451234567,
-            RoomId: 'ABC',
-            Characters: ['987'],
+            Targets: ['CHARACTER#987', 'ROOM#ABC'],
             DisplayProtocol: 'World',
-            WorldMessage: {
-                Message: 'Test'
-            }
+            Message: 'Test'
         })
         expect(data).toEqual({
             messageWrites: [
@@ -34,7 +33,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'ROOM#ABC',
+                            MessageId: 'CHARACTER#987',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -43,7 +42,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'CHARACTER#987',
+                            MessageId: 'ROOM#ABC',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -71,13 +70,10 @@ describe("putMessage", () => {
         const data = await putMessage({
             MessageId: '123',
             CreatedTime: 123451234567,
-            RoomId: 'ABC',
-            Characters: ['987'],
+            Targets: ['CHARACTER#987', 'ROOM#ABC'],
             DisplayProtocol: 'Player',
-            CharacterMessage: {
-                CharacterId: '456',
-                Message: 'Test'
-            }
+            CharacterId: '456',
+            Message: 'Test'
         })
         expect(data).toEqual({
             messageWrites: [
@@ -96,7 +92,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'ROOM#ABC',
+                            MessageId: 'CHARACTER#987',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -105,7 +101,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'CHARACTER#987',
+                            MessageId: 'ROOM#ABC',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -134,15 +130,12 @@ describe("putMessage", () => {
         const data = await putMessage({
             MessageId: '123',
             CreatedTime: 123451234567,
-            RoomId: 'ABC',
-            Characters: ['987'],
+            Targets: ['CHARACTER#987', 'ROOM#ABC'],
             DisplayProtocol: 'Direct',
-            DirectMessage: {
-                CharacterId: '456',
-                Message: 'Test',
-                Title: 'TestTitle',
-                Recipients: ['987']
-            }
+            CharacterId: '456',
+            Message: 'Test',
+            Title: 'TestTitle',
+            Recipients: ['987']
         })
         expect(data).toEqual({
             messageWrites: [
@@ -163,7 +156,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'ROOM#ABC',
+                            MessageId: 'CHARACTER#987',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -172,7 +165,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'CHARACTER#987',
+                            MessageId: 'ROOM#ABC',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -203,14 +196,11 @@ describe("putMessage", () => {
         const data = await putMessage({
             MessageId: '123',
             CreatedTime: 123451234567,
-            RoomId: 'ABC',
-            Characters: ['987'],
+            Targets: ['CHARACTER#987', 'ROOM#ABC'],
             DisplayProtocol: 'Announce',
-            AnnounceMessage: {
-                CharacterId: '456',
-                Message: 'Test',
-                Title: 'TestTitle'
-            }
+            CharacterId: '456',
+            Message: 'Test',
+            Title: 'TestTitle'
         })
         expect(data).toEqual({
             messageWrites: [
@@ -230,7 +220,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'ROOM#ABC',
+                            MessageId: 'CHARACTER#987',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -239,7 +229,7 @@ describe("putMessage", () => {
                 {
                     PutRequest: {
                         Item: {
-                            MessageId: 'CHARACTER#987',
+                            MessageId: 'ROOM#ABC',
                             DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
@@ -269,27 +259,24 @@ describe("putMessage", () => {
         const data = await putMessage({
             MessageId: '123',
             CreatedTime: 123451234567,
-            RoomId: 'ABC',
-            Characters: ['987'],
+            Targets: ['CHARACTER#987'],
             DisplayProtocol: 'RoomDescription',
-            RoomDescription: {
-                RoomId: '456',
-                Name: 'TestRoom',
-                Description: 'A sterile cell.',
-                Exits: [
-                    {
-                        RoomId: '345',
-                        Name: 'archway',
-                        Visibility: 'Public'
-                    }
-                ],
-                Characters: [
-                    {
-                        CharacterId: 'ABC',
-                        Pronouns: 'She, her'
-                    }
-                ]
-            }
+            RoomId: '456',
+            Name: 'TestRoom',
+            Description: 'A sterile cell.',
+            Exits: [
+                {
+                    RoomId: '345',
+                    Name: 'archway',
+                    Visibility: 'Public'
+                }
+            ],
+            RoomCharacters: [
+                {
+                    CharacterId: 'ABC',
+                    Pronouns: 'She, her'
+                }
+            ]
         })
         expect(data).toEqual({
             messageWrites: [
@@ -315,15 +302,6 @@ describe("putMessage", () => {
                                     Pronouns: 'She, her'
                                 }
                             ],
-                            CreatedTime: 123451234567
-                        }
-                    }
-                },
-                {
-                    PutRequest: {
-                        Item: {
-                            MessageId: 'ROOM#ABC',
-                            DataCategory: 'MESSAGE#123',
                             CreatedTime: 123451234567
                         }
                     }

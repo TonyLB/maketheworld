@@ -1107,18 +1107,22 @@ Resources:
           Handler: app.handler
           MemorySize: 128
           Runtime: nodejs12.x
-          Timeout: 5
+          Timeout: 20
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
-                  MESSAGE_TOPIC_ARN: !Ref MessageNotificationTopic
+                  MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
           Policies:
-            - SNSCrudPolicy:
-                TopicName: !GetAtt MessageNotificationTopic.TopicName
             - DynamoDBReadPolicy:
                 TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBReadPolicy:
                 TableName: !Sub '${TablePrefix}_ephemera'
+            - Statement:
+              - Effect: "Allow"
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt MessagePublishFunction.Arn
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
       DependsOn:

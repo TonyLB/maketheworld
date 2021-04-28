@@ -1,6 +1,5 @@
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { DynamoDBClient, ScanCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 
 const { resolveTargets } = require('./resolveTargets')
 const { putMessage } = require('./putMessage')
@@ -35,7 +34,6 @@ const removeType = (value) => value.split('#').slice(1).join('#')
 
 const batchDispatcher = ({ table, items }) => {
     const groupBatches = items
-        .map(marshall)
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 19) {
                 return {
@@ -97,7 +95,6 @@ exports.handler = async (event) => {
     const { Messages = [] } = event
 
     const resolved = await resolveTargets(dbClient)(Messages)
-    console.log('resolved', JSON.stringify(resolved, null, 4))
     const { resolvedMessages, byConnectionId } = resolved
     await Promise.all([
         ...Object.entries(byConnectionId)

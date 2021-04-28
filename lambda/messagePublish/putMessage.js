@@ -1,6 +1,8 @@
 // Copyright 2021 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
+const { marshall } = require('@aws-sdk/util-dynamodb')
+
 const { messageAndDeltas } = require('./delta')
 
 const messageAndDeltaReducer = ({
@@ -20,7 +22,7 @@ const messageAndDeltaReducer = ({
 //
 exports.putMessage = (event) => {
 
-    const { MessageId, CreatedTime, Characters = [], DisplayProtocol, RoomId } = event
+    const { MessageId, CreatedTime, Targets = [], DisplayProtocol } = event
     let WorldMessage, CharacterMessage, DirectMessage, AnnounceMessage, RoomDescription
 
     const eventMapping = (props) => (props.reduce((previous, key) => ({ ...previous, [key]: event[key] }), {}))
@@ -36,7 +38,7 @@ exports.putMessage = (event) => {
             DirectMessage = eventMapping(['Message', 'CharacterId', 'Title', 'Recipients'])
             break
         case 'Announce':
-            CharacterMessage = eventMapping(['Message', 'CharacterId', 'Title'])
+            AnnounceMessage = eventMapping(['Message', 'CharacterId', 'Title'])
             break
         case 'RoomDescription':
             RoomDescription = {
@@ -48,9 +50,7 @@ exports.putMessage = (event) => {
             break
     }
 
-    const targets = [...(RoomId ? [`ROOM#${RoomId}`] : []), ...Characters.map((characterId) => (`CHARACTER#${characterId}`))]
-
-    const { messageWrites, deltaWrites } = targets.map((Target) => (messageAndDeltas({
+    const { messageWrites, deltaWrites } = Targets.map((Target) => (messageAndDeltas({
             MessageId,
             CreatedTime,
             Target,
@@ -63,7 +63,7 @@ exports.putMessage = (event) => {
         })))
         .reduce(messageAndDeltaReducer, { messageWrites: {}, deltaWrites: {} })
     return Promise.resolve({
-        messageWrites: Object.values(messageWrites).sort(({ index: indexA }, { index: indexB }) => (indexA - indexB)).map(({ index, ...item }) => ({ PutRequest: { Item: item }})),
-        deltaWrites: Object.values(deltaWrites).sort(({ index: indexA }, { index: indexB }) => (indexA - indexB)).map(({ index, ...item }) => ({ PutRequest: { Item: item }}))
+        messageWrites: Object.values(messageWrites).sort(({ index: indexA }, { index: indexB }) => (indexA - indexB)).map(({ index, ...item }) => ({ PutRequest: { Item: marshall(item, { removeUndefinedValues: true }) }})),
+        deltaWrites: Object.values(deltaWrites).sort(({ index: indexA }, { index: indexB }) => (indexA - indexB)).map(({ index, ...item }) => ({ PutRequest: { Item: marshall(item, { removeUndefinedValues: true }) }}))
     })
 }

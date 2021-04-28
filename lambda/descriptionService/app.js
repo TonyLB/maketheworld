@@ -1,8 +1,6 @@
 // Import required AWS SDK clients and commands for Node.js
-const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns")
-
-// Import required AWS SDK clients and commands for Node.js
 const { DynamoDBClient, QueryCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
+const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { v4: uuid } = require("uuid")
 
@@ -10,8 +8,8 @@ const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
 
-const sns = new SNSClient(params)
 const ddbClient = new DynamoDBClient(params)
+const lambdaClient = new LambdaClient(params)
 
 const splitType = (value) => {
     const sections = value.split('#')
@@ -112,9 +110,9 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
                             return { Description, Name, Exits }
                     }
                 }, { Description: '', Name: '', Exits: [] })
-            const Message = JSON.stringify([{
+            const Message = {
                 CreatedTime,
-                Targets: [CharacterId],
+                Targets: [`CHARACTER#${CharacterId}`],
                 MessageId: uuid(),
                 DisplayProtocol: "RoomDescription",
                 RoomId: objectKey,
@@ -131,10 +129,11 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
                     Pronouns,
                 })),
                 ...aggregate
-            }], null, 4)
-            await sns.send(new PublishCommand({
-                TopicArn: process.env.MESSAGE_TOPIC_ARN,
-                Message
+            }
+            await lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.MESSAGE_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify([Message]))
             }))
             return
         default:

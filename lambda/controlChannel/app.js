@@ -52,17 +52,19 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
         })
     }))
     const { Name = '' } = CharacterItem ? unmarshall(CharacterItem) : {}
-    await lambdaClient.send(new InvokeCommand({
-        FunctionName: process.env.MESSAGE_SERVICE,
-        InvocationType: 'RequestResponse',
-        Payload: new TextEncoder().encode(JSON.stringify([{
-            Targets: [CharacterId, RoomId],
-            DisplayProtocol: "World",
-            Message: messageFunction(Name),
-            MessageId: uuidv4(),
-            RoomId
-        }]))
-    }))
+    await Promise.all([
+        lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.MESSAGE_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({ Messages: [{
+                Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
+                DisplayProtocol: "World",
+                Message: messageFunction(Name),
+                MessageId: uuidv4()
+            }]}))
+        })),
+        ...promises
+    ])
 }
 
 const disconnect = async (connectionId) => {
@@ -198,7 +200,7 @@ const say = async ({ CharacterId, Message } = {}) => {
             Messages: [{
                 MessageId: uuidv4(),
                 CreatedTime: Date.now(),
-                Targets: [RoomId],
+                Targets: [`ROOM#${RoomId}`],
                 DisplayProtocol: 'Player',
                 CharacterId,
                 Message: `${Name} says "${Message}"`
