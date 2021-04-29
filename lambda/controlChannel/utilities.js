@@ -1,8 +1,6 @@
 const { AppSync, gql } = require('/opt/appsync')
 require('cross-fetch/polyfill')
 
-const { AWS_REGION } = process.env;
-
 exports.graphqlClient = new AppSync.AWSAppSyncClient({
     url: process.env.APPSYNC_ENDPOINT_URL,
     region: process.env.AWS_REGION,

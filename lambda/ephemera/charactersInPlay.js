@@ -1,9 +1,11 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { documentClient, graphqlClient, gql } = require('./utilities')
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
 
-const { v4: uuidv4 } = require('/opt/uuid')
+const REGION = process.env.AWS_REGION
+const dbClient = new DynamoDBClient({ region: REGION })
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -16,83 +18,97 @@ const promiseDebug = (result) => {
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
-const updateMap = (previous, { CharacterId, ...rest }) => ({
-    ...previous,
-    [CharacterId]: {
-        CharacterId,
-        ...(previous[CharacterId] || {}),
-        ...rest
-    }
-})
+const getCharactersInPlay = async () => {
 
-const getCharactersInPlay = () => {
-
-    return documentClient.query({
+    const { Items = [] } = dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
             KeyConditionExpression: 'DataCategory = :DataCategory and begins_with(EphemeraId, :EphemeraId)',
-            ExpressionAttributeValues: {
+            ExpressionAttributeValues: marshall({
                 ":EphemeraId": "CHARACTERINPLAY#",
                 ":DataCategory": "Connection"
-            },
+            }),
             IndexName: 'DataCategoryIndex'
-        }).promise()
-        .then(({ Items = [] }) => (Items.map(({ EphemeraId, RoomId, Connected }) => ({
+        }))
+    return Items.map(unmarshall)
+        .map(({ EphemeraId, RoomId, Connected }) => ({
             CharacterId: removeType(EphemeraId),
             RoomId,
             Connected
-        }))))
+        }))
 }
 
-const putCharacterInPlay = async ({ CharacterId, RoomId, Connected }) => {
+//
+// ConnectionId should only be passed by direct call from Lambda functions
+//
+const putCharacterInPlay = async ({ CharacterId, RoomId, Connected, ConnectionId }) => {
 
     if (!CharacterId) {
         return []
     }
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
 
-    const oldRecord = await documentClient.get({
-            TableName: ephemeraTable,
-            Key: {
-                EphemeraId,
-                DataCategory: 'Connection'
-            }
-        }).promise()
-        .then(({ Item = {} }) => (Item))
-    let newRoomId = null
+    let expressionAttributes = {}
+    let setExpressions = []
+    let removeExpressions = []
     if (RoomId) {
-        newRoomId = RoomId
+        expressionAttributes[':RoomId'] = RoomId
+        setExpressions = [...setExpressions, 'RoomId = :RoomId']
     }
-    if (!newRoomId && oldRecord) {
-        newRoomId = oldRecord.RoomId
+    if (Connected !== undefined) {
+        expressionAttributes[':Connected'] = Connected
+        setExpressions = [...setExpressions, 'Connected = :Connected']
     }
-    if (!newRoomId) {
-        newRoomId = await documentClient.get({
+    if (ConnectionId) {
+        expressionAttributes[':ConnectionId'] = ConnectionId
+        setExpressions = [...setExpressions, 'ConnectionId = :ConnectionId']
+    }
+    else if (ConnectionId !== undefined) {
+        removeExpressions = [...removeExpressions, 'ConnectionId']
+    }
+    const updateExpression = [
+        setExpressions.length ? `SET ${setExpressions.join(', ')}`: '',
+        removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}`: '',
+    ].filter((value) => (value)).join(' ')
+    const { Attributes } = await dbClient.send(new UpdateItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId,
+            DataCategory: 'Connection'
+        }),
+        UpdateExpression: updateExpression,
+        ExpressionAttributeValues: marshall(expressionAttributes),
+        ReturnValues: 'ALL_NEW'
+    }))
+    let newRecord = unmarshall(Attributes)
+    if (!newRecord.RoomId) {
+        const { Item } = await dbClient.send(new GetItemCommand({
             TableName: permanentsTable,
-            Key: {
+            Key: marshall({
                 PermanentId: `CHARACTER#${CharacterId}`,
                 DataCategory: 'Details'
-            }
-        })
-            .promise()
-            .then(({ Item = {} }) => (Item))
-            .then(({ HomeId = '' }) => (HomeId || 'VORTEX'))
-    }
-    const newConnected = (Connected !== undefined) ? Connected : oldRecord.Connected
-    return documentClient.put({
+            }),
+            ProjectionExpression: "RoomId"
+        }))
+        const { RoomId = 'VORTEX' } = unmarshall(Item)
+        const { Attributes: newAttributes } = await dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
-            Item: {
+            Key: marshall({
                 EphemeraId,
-                DataCategory: 'Connection',
-                RoomId: newRoomId,
-                Connected: newConnected,
-                ...((newConnected && oldRecord && oldRecord.ConnectionId) ? { ConnectionId: oldRecord.ConnectionId } : {})
-            }
-        }).promise()
-        .then(() => ([ { CharacterInPlay: {
-            CharacterId,
-            RoomId: newRoomId,
-            Connected: Connected !== undefined ? Connected : oldRecord.Connected || false
-        }}]))
+                DataCategory: 'Connection'
+            }),
+            UpdateExpression: 'SET RoomId = :RoomId',
+            ExpressionAttributeValues: marshall({
+                ':RoomId': RoomId
+            }),
+            ReturnValues: 'ALL_NEW'
+        }))
+        newRecord = unmarshall(newAttributes)
+    }
+    return [ { CharacterInPlay: {
+        CharacterId,
+        RoomId: newRecord.RoomId,
+        Connected: newRecord.Connected
+    }}];
 }
 
 exports.getCharactersInPlay = getCharactersInPlay

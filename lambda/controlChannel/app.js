@@ -19,9 +19,12 @@ const permanentsTable = `${TABLE_PREFIX}_permanents`
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
 //
-// TODO:  Create an EphemeraTopic SNS endpoint, and move the import of AppSync out to there,
+// TODO:  Create an EphemeraTopic Lambda endpoint, and move the import of AppSync out to there,
 // where any cold-start latency is less relevant, then reroute all Ephemera updates in the
 // core Lambdas out to that outlet.
+//
+// Bonus: That Lambda can handle ConnectionIds without security concerns, which should allow
+// for substantially simplifying handling throughout the core Lambdas
 //
 const disconnectGQL = ({ CharacterId, RoomId }) => (gql`mutation DisconnectCharacter {
     broadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: false } }]) {
@@ -174,6 +177,9 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     }
 }
 
+//
+// TODO:  Would it be waaaay more efficient overall to denormalize Name into CharacterInPlay Ephemera?
+//
 const say = async ({ CharacterId, Message } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const [{ Item: EphemeraItem = {} }, { Item: CharacterItem }] = await Promise.all([
