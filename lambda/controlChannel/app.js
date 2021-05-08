@@ -1,7 +1,6 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { graphqlClient, gql } = require('./utilities')
 const { v4: uuidv4 } = require('/opt/uuid')
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
@@ -18,34 +17,6 @@ const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
-//
-// TODO:  Create an EphemeraTopic Lambda endpoint, and move the import of AppSync out to there,
-// where any cold-start latency is less relevant, then reroute all Ephemera updates in the
-// core Lambdas out to that outlet.
-//
-// Bonus: That Lambda can handle ConnectionIds without security concerns, which should allow
-// for substantially simplifying handling throughout the core Lambdas
-//
-const disconnectGQL = ({ CharacterId, RoomId }) => (gql`mutation DisconnectCharacter {
-    broadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: false } }]) {
-        CharacterInPlay {
-            CharacterId
-            RoomId
-            Connected
-        }
-    }
-}`)
-
-const connectGQL = ({ CharacterId, RoomId }) => (gql`mutation ConnectCharacter {
-    broadcastEphemera (Ephemera: [{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: true } }]) {
-        CharacterInPlay {
-            CharacterId
-            RoomId
-            Connected
-        }
-    }
-}`)
-
 const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
     const { Item: CharacterItem } = await dbClient.send(new GetItemCommand({
         TableName: permanentsTable,
@@ -58,7 +29,7 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
     await Promise.all([
         lambdaClient.send(new InvokeCommand({
             FunctionName: process.env.MESSAGE_SERVICE,
-            InvocationType: 'RequestResponse',
+            InvocationType: 'Event',
             Payload: new TextEncoder().encode(JSON.stringify({ Messages: [{
                 Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
                 DisplayProtocol: "World",
@@ -86,24 +57,34 @@ const disconnect = async (connectionId) => {
             .map(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
             .map(({ CharacterId, RoomId }) => (
                 //
-                // TODO:  Refactor so that instead of sending individual SNS commands, the
-                // handler aggregates all of the messages and sends one SNS command with the
-                // whole set of simultaneous disconnects (and maybe a batch-write for the ephemera table)
+                // TODO:  Refactor so that instead of sending individual Lambda commands, the
+                // handler aggregates all of the messages and sends one command with the
+                // whole set of simultaneous disconnects
+                //
+                // TODO:  Refactor so that commands are sent in the correct order (connect before messages,
+                // messages before disconnect) to avoid parallel race conditions that can cause either failure
+                // to broadcast "Player has connected" messages, or GoneException errors (for messages sent
+                // incorrectly to disconnected characters)
                 //
                 updateWithRoomMessage({
                     RoomId,
                     CharacterId,
                     promises: [
-                        dbClient.send(new PutItemCommand({
-                            TableName: ephemeraTable,
-                            Item: marshall({
-                                EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                                DataCategory: 'Connection',
-                                RoomId,
-                                Connected: false
-                            })
-                        })),
-                        graphqlClient.mutate({ mutation: disconnectGQL({ CharacterId, RoomId }) })
+                        lambdaClient.send(new InvokeCommand({
+                            FunctionName: process.env.EPHEMERA_SERVICE,
+                            InvocationType: 'Event',
+                            Payload: new TextEncoder().encode(JSON.stringify({
+                                action: 'updateEphemera',
+                                directCall: true,
+                                Updates: [{
+                                    putCharacterInPlay: {
+                                        CharacterId,
+                                        Connected: false,
+                                        ConnectionId: null
+                                    }
+                                }]
+                            }))
+                        }))                        
                     ],
                     messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
                 })
@@ -127,19 +108,21 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
     const { DataCategory, RoomId, Connected } = unmarshall(Item)
     if (DataCategory) {
         const updatePromise = Promise.all([
-            dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId,
-                    DataCategory: 'Connection'
-                }),
-                UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
-                ExpressionAttributeValues: marshall({
-                    ":ConnectionId": connectionId,
-                    ":Connected": true
-                })
-            })),
-            graphqlClient.mutate({ mutation: connectGQL({ CharacterId, RoomId }) })
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'updateEphemera',
+                    directCall: true,
+                    Updates: [{
+                        putCharacterInPlay: {
+                            CharacterId,
+                            Connected: true,
+                            ConnectionId: connectionId
+                        }
+                    }]
+                }))
+            }))
         ])
         if (Connected) {
             await updatePromise
@@ -162,14 +145,15 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
 }
 
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
+    const arguments = {
+        CreatedTime: Date.now(),
+        CharacterId,
+        PermanentId
+    }
     await lambdaClient.send(new InvokeCommand({
         FunctionName: process.env.PERCEPTION_SERVICE,
-        InvocationType: 'RequestResponse',
-        Payload: new TextEncoder().encode(JSON.stringify({
-            CreatedTime: Date.now(),
-            CharacterId,
-            PermanentId
-        }))
+        InvocationType: 'Event',
+        Payload: new TextEncoder().encode(JSON.stringify(arguments))
     }))
     return {
         statusCode: 200,
@@ -214,7 +198,7 @@ const say = async ({ CharacterId, Message } = {}) => {
         }
         await lambdaClient.send(new InvokeCommand({
             FunctionName: process.env.MESSAGE_SERVICE,
-            InvocationType: 'RequestResponse',
+            InvocationType: 'Event',
             Payload: new TextEncoder().encode(JSON.stringify(output))
         }))
     }

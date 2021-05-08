@@ -55,7 +55,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
                     IndexName: 'RoomIndex'
                 })).then(({ Items }) => {
                     if (Items.length === 0) {
-                        return { Items: [] }
+                        return { Responses: { [PermanentTableName]: [] } }
                     }
                     const Keys = Items
                         .map(unmarshall)
@@ -132,8 +132,8 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
             }
             await lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.MESSAGE_SERVICE,
-                InvocationType: 'RequestResponse',
-                Payload: new TextEncoder().encode(JSON.stringify([Message]))
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({ Messages: [Message] }))
             }))
             return
         default:

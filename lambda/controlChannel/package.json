@@ -8,8 +8,6 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.13.0",
     "@aws-sdk/client-lambda": "^3.13.0",
-    "@aws-sdk/client-sns": "^3.13.0",
-    "@aws-sdk/util-dynamodb": "^3.13.0",
-    "cross-fetch": "^3.0.5"
+    "@aws-sdk/util-dynamodb": "^3.13.0"
   }
 }

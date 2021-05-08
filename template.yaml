@@ -42,44 +42,33 @@ Resources:
   ControlChannelFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Tracing: Active
       CodeUri: lambda/controlChannel/
       Handler: app.handler
       MemorySize: 128
       Runtime: nodejs12.x
       Timeout: 10
       Layers:
-        - !Ref AppSyncLambdaLayer
         - !Ref UUIDLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
-          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
           MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
+          EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
       Policies:
-        - Statement:
-          - Effect: Allow
-            Action:
-            - 'execute-api:ManageConnections'
-            Resource:
-            - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
-        - Statement:
-          - Effect: Allow
-            Action: appsync:GraphQL
-            Resource: !Sub '${AppSyncAPI}/*'
         - DynamoDBReadPolicy:
-              TableName: !Sub '${TablePrefix}_permanents'
-        - DynamoDBCrudPolicy:
-              TableName: !Sub '${TablePrefix}_ephemera'
-        - SNSCrudPolicy:
-            TopicName: !GetAtt MessageNotificationTopic.TopicName
+            TableName: !Sub '${TablePrefix}_permanents'
+        - DynamoDBReadPolicy:
+            TableName: !Sub '${TablePrefix}_ephemera'
         - Statement:
-          - Effect: "Allow"
+          - Effect: Allow
             Action:
               - lambda:InvokeFunction
             Resource:
               - !GetAtt PerceptionFunction.Arn
               - !GetAtt MessagePublishFunction.Arn
+              - !GetAtt EphemeraFunction.Arn
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -775,6 +764,7 @@ Resources:
   EphemeraFunction:
       Type: AWS::Serverless::Function
       Properties:
+          Tracing: Active
           CodeUri: lambda/ephemera/
           Handler: app.handler
           MemorySize: 256
@@ -988,6 +978,7 @@ Resources:
   MessagePublishFunction:
     Type: AWS::Serverless::Function
     Properties:
+        Tracing: Active
         CodeUri: lambda/messagePublish/
         Handler: app.handler
         MemorySize: 128
@@ -1103,6 +1094,7 @@ Resources:
   PerceptionFunction:
       Type: AWS::Serverless::Function
       Properties:
+          Tracing: Active
           CodeUri: lambda/descriptionService/
           Handler: app.handler
           MemorySize: 128
