@@ -46,7 +46,7 @@ Resources:
       CodeUri: lambda/controlChannel/
       Handler: app.handler
       MemorySize: 128
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Timeout: 10
       Layers:
         - !Ref UUIDLambdaLayer
@@ -359,7 +359,7 @@ Resources:
         Description: Lambda layer to import the appsync libraries
         ContentUri: lambda/appSyncLayer/
         CompatibleRuntimes:
-          - nodejs12.x
+          - nodejs14.x
   UUIDLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -367,7 +367,7 @@ Resources:
         Description: Lambda layer to import the uuid library
         ContentUri: lambda/uuidLayer/
         CompatibleRuntimes:
-          - nodejs12.x
+          - nodejs14.x
 
   StorageAPIExecutionRole:
     Type: AWS::IAM::Role
@@ -657,7 +657,7 @@ Resources:
           CodeUri: lambda/initialize/
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 30
           Layers:
               - !Ref AppSyncLambdaLayer
@@ -768,7 +768,7 @@ Resources:
           CodeUri: lambda/ephemera/
           Handler: app.handler
           MemorySize: 256
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Layers:
               - !Ref UUIDLambdaLayer
               - !Ref AppSyncLambdaLayer
@@ -892,7 +892,7 @@ Resources:
           CodeUri: lambda/permanents/
           Handler: app.handler
           MemorySize: 256
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 30
           Layers:
               - !Ref UUIDLambdaLayer
@@ -941,7 +941,7 @@ Resources:
           CodeUri: lambda/messageTopic/messageSubscriptionBroadcast
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 30
           Environment:
               Variables:
@@ -965,7 +965,7 @@ Resources:
           CodeUri: lambda/messageTopic/messagePersist
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 5
           Environment:
               Variables:
@@ -982,7 +982,7 @@ Resources:
         CodeUri: lambda/messagePublish/
         Handler: app.handler
         MemorySize: 128
-        Runtime: nodejs12.x
+        Runtime: nodejs14.x
         Timeout: 30
         Environment:
             Variables:
@@ -1007,7 +1007,7 @@ Resources:
           CodeUri: lambda/messages/
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 5
           Layers:
               - !Ref UUIDLambdaLayer
@@ -1098,7 +1098,7 @@ Resources:
           CodeUri: lambda/descriptionService/
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 20
           Environment:
               Variables:

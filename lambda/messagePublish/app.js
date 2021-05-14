@@ -1,3 +1,5 @@
+const AWSXray = require('aws-xray-sdk')
+
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { DynamoDBClient, ScanCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
 
@@ -5,7 +7,6 @@ const { resolveTargets } = require('./resolveTargets')
 const { putMessage } = require('./putMessage')
 
 const REGION = process.env.AWS_REGION
-const dbClient = new DynamoDBClient({ region: REGION })
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
     endpoint: process.env.WEBSOCKET_API
@@ -33,6 +34,7 @@ const deltaTable = `${process.env.TABLE_PREFIX}_message_delta`
 const removeType = (value) => value.split('#').slice(1).join('#')
 
 const batchDispatcher = ({ table, items }) => {
+    const dbClient = AWSXray.captureAWSv3Client(new DynamoDBClient({ region: REGION }))
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 19) {
@@ -93,6 +95,7 @@ const persistMessages = (Updates = []) => {
 
 exports.handler = async (event) => {
     const { Messages = [] } = event
+    const dbClient = AWSXray.captureAWSv3Client(new DynamoDBClient({ region: REGION }))
 
     const resolved = await resolveTargets(dbClient)(Messages)
     const { resolvedMessages, byConnectionId } = resolved

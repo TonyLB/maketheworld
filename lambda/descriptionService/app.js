@@ -1,4 +1,6 @@
 // Import required AWS SDK clients and commands for Node.js
+const AWSXRay = require('aws-xray-sdk')
+
 const { DynamoDBClient, QueryCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
@@ -7,9 +9,6 @@ const { v4: uuid } = require("uuid")
 const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
-
-const ddbClient = new DynamoDBClient(params)
-const lambdaClient = new LambdaClient(params)
 
 const splitType = (value) => {
     const sections = value.split('#')
@@ -26,10 +25,12 @@ const stripType = (value) => value.split('#').slice(1).join('#')
 //
 // TODO: Accept more types of objects, and parse their data accordingly
 //
-const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
+const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegment) => {
     //
     // TODO:  Expand what you query from DynamoDB for the record
     //
+    const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
+    const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient(params), subsegment)
     const [objectType, objectKey] = splitType(PermanentId)
     switch(objectType) {
         case 'ROOM':
@@ -43,41 +44,40 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
                         ":PermanentId": PermanentId,
                     })
                 }))
-            const characterResults = await ddbClient.send(new QueryCommand({
-                    TableName: EphemeraTableName,
-                    KeyConditionExpression: "RoomId = :RoomId",
-                    FilterExpression: 'Connected = :True',
-                    ExpressionAttributeValues: marshall({
-                        ":RoomId": stripType(PermanentId),
-                        ":True": true
-                    }),
-                    ProjectionExpression: 'EphemeraId',
-                    IndexName: 'RoomIndex'
-                })).then(({ Items }) => {
-                    if (Items.length === 0) {
-                        return { Responses: { [PermanentTableName]: [] } }
-                    }
-                    const Keys = Items
-                        .map(unmarshall)
-                        .map(({ EphemeraId }) => (stripType(EphemeraId)))
-                        .filter((value) => (value))
-                        .map((CharacterId) => (marshall({
-                            PermanentId: `CHARACTER#${CharacterId}`,
-                            DataCategory: 'Details'
-                        }))
-                    )
-                    //
-                    // TODO:  Research whether in v3 I need a batch-splitter to deal with the 25-item maximum
-                    // on batch operations.
-                    //
-                    return ddbClient.send(new BatchGetItemCommand({
-                        RequestItems: {
-                            [PermanentTableName]: {
-                                Keys
-                            }
-                        }
+            const { Items = [] } = await ddbClient.send(new QueryCommand({
+                TableName: EphemeraTableName,
+                KeyConditionExpression: "RoomId = :RoomId",
+                FilterExpression: 'Connected = :True',
+                ExpressionAttributeValues: marshall({
+                    ":RoomId": stripType(PermanentId),
+                    ":True": true
+                }),
+                ProjectionExpression: 'EphemeraId',
+                IndexName: 'RoomIndex'
+            }))
+            let characterResults = { Responses: { [PermanentTableName]: [] } }
+            if (Items.length !== 0) {
+                const Keys = Items
+                    .map(unmarshall)
+                    .map(({ EphemeraId }) => (stripType(EphemeraId)))
+                    .filter((value) => (value))
+                    .map((CharacterId) => (marshall({
+                        PermanentId: `CHARACTER#${CharacterId}`,
+                        DataCategory: 'Details'
                     }))
-                })
+                )
+                //
+                // TODO:  Research whether in v3 I need a batch-splitter to deal with the 25-item maximum
+                // on batch operations.
+                //
+                characterResults = await ddbClient.send(new BatchGetItemCommand({
+                    RequestItems: {
+                        [PermanentTableName]: {
+                            Keys
+                        }
+                    }
+                }))
+            }
             const CharacterItems = characterResults && characterResults.Responses && characterResults.Responses[PermanentTableName]
             const aggregate = RoomItems.map(unmarshall)
                 .reduce(({ Description, Name, Exits }, Item) => {
@@ -142,10 +142,15 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }) => {
 }
 
 exports.handler = async (event, context) => {
+
     const { CreatedTime, CharacterId, PermanentId } = event
 
     if (CreatedTime && CharacterId && PermanentId) {
-        return publishMessage(event)
+        return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
+            const returnVal = await publishMessage(event, subsegment)
+            subsegment.close()
+            return returnVal
+        })
     }
     else {
         context.fail(JSON.stringify(`Error: Unknown format ${event}`))

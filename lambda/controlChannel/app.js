@@ -3,13 +3,15 @@
 
 const { v4: uuidv4 } = require('/opt/uuid')
 
+const AWSXRay = require('aws-xray-sdk')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 
 const REGION = process.env.AWS_REGION
-const dbClient = new DynamoDBClient({ region: REGION })
-const lambdaClient = new LambdaClient({ region: REGION })
+const dbClientBase = new DynamoDBClient({ region: REGION })
+let dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
+const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGION }))
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -152,7 +154,7 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     }
     await lambdaClient.send(new InvokeCommand({
         FunctionName: process.env.PERCEPTION_SERVICE,
-        InvocationType: 'Event',
+        InvocationType: 'RequestResponse',
         Payload: new TextEncoder().encode(JSON.stringify(arguments))
     }))
     return {
@@ -212,6 +214,8 @@ const say = async ({ CharacterId, Message } = {}) => {
 exports.disconnect = disconnect
 exports.registerCharacter = registerCharacter
 exports.handler = (event) => {
+
+    dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
 
     const { connectionId, routeKey } = event.requestContext
     const request = event.body && JSON.parse(event.body) || {}
