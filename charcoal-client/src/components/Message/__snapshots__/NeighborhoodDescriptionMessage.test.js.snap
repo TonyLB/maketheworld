@@ -2,7 +2,7 @@
 
 exports[`NeighborhoodDescriptionMessage component should render empty message 1`] = `
 <li
-  class="MuiListItem-root makeStyles-neighborhoodMessage-30 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+  class="MuiListItem-root makeStyles-neighborhoodMessage-37 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
 >
   <div
     class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"
@@ -37,7 +37,7 @@ exports[`NeighborhoodDescriptionMessage component should render empty message 1`
 
 exports[`NeighborhoodDescriptionMessage component should render test message 1`] = `
 <li
-  class="MuiListItem-root makeStyles-neighborhoodMessage-90 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
+  class="MuiListItem-root makeStyles-neighborhoodMessage-112 MuiListItem-gutters MuiListItem-alignItemsFlexStart"
 >
   <div
     class="MuiListItemIcon-root MuiListItemIcon-alignItemsFlexStart"

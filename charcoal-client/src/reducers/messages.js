@@ -1,4 +1,5 @@
 import { RECEIVE_MESSAGES, SET_MESSAGE_OPEN } from '../actions/messages.js'
+import { RECEIVE_JSON_MESSAGES } from '../actions/communicationsLayer/lifeLine'
 import {
     playerMessage,
     worldMessage,
@@ -35,6 +36,27 @@ const messageByProtocol = (displayProtocol) => (rest) => {
     }
 }
 
+const messageFromJson = ({ DisplayProtocol, ...props }) => {
+    switch (DisplayProtocol) {
+        case 'Player':
+            return (props?.Message) ? (new playerMessage(props)) : null
+        case 'Announce':
+            return (props?.Message) ? (new announcementMessage(props)) : null
+        case 'Direct':
+            return (props?.Message) ? (new directMessage(props)) : null
+        case 'RoomDescription':
+        case 'roomDescription':
+            return new roomDescription(props)
+        case 'neighborhoodDescription':
+            return new neighborhoodDescription(props)
+        default:
+            return (props?.Message) ? (new worldMessage(props)) : null
+    }   
+}
+
+//
+// TODO:  Refactor the message store to use a Typescript union rather than class dispatching.
+//
 export const reducer = (state = [], action) => {
     const { type: actionType = 'NOOP', payload } = action || {}
     switch (actionType) {
@@ -42,6 +64,18 @@ export const reducer = (state = [], action) => {
             return (payload || []).reduce((previous, { DisplayProtocol = '', ...rest }) => {
                 const revisedPrevious = previous.filter(({ MessageId, Target }) => (MessageId !== rest.MessageId || Target !== rest.Target))
                 const newMessage = messageByProtocol(DisplayProtocol)(rest)
+                if (newMessage) {
+                    return [ ...revisedPrevious, newMessage ]
+                }
+                else {
+                    return previous
+                }
+            }, state).sort(messageSort)
+        case RECEIVE_JSON_MESSAGES:
+            console.log('Payload', payload)
+            return (payload || []).reduce((previous, { DisplayProtocol = '', ...rest }) => {
+                const revisedPrevious = previous.filter(({ MessageId, Target }) => (MessageId !== rest.MessageId || Target !== rest.Target))
+                const newMessage = messageFromJson({ DisplayProtocol, ...rest })
                 if (newMessage) {
                     return [ ...revisedPrevious, newMessage ]
                 }

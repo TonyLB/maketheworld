@@ -40,7 +40,7 @@ export const characterSSMClassGenerator = ({
         INITIAL: {
             stateType: 'CHOICE',
             key: 'INITIAL',
-            choices: ['SUBSCRIBING']
+            choices: ['FETCHING']
         },
         FETCHING: {
             stateType: 'ATTEMPT',

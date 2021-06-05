@@ -34,7 +34,6 @@ Resources:
   ControlChannelPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - RealTimeWebSocket
       - ControlChannelFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -43,36 +42,33 @@ Resources:
   ControlChannelFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Tracing: Active
       CodeUri: lambda/controlChannel/
       Handler: app.handler
       MemorySize: 128
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Timeout: 10
       Layers:
-        - !Ref AppSyncLambdaLayer
         - !Ref UUIDLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
-          APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-          MESSAGE_SNS_ARN: !Ref MessageNotificationTopic
+          PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
+          MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
+          EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
       Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Sub '${TablePrefix}_permanents'
+        - DynamoDBReadPolicy:
+            TableName: !Sub '${TablePrefix}_ephemera'
         - Statement:
           - Effect: Allow
             Action:
-            - 'execute-api:ManageConnections'
+              - lambda:InvokeFunction
             Resource:
-            - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RealTimeWebSocket}/*'
-        - Statement:
-          - Effect: Allow
-            Action: appsync:GraphQL
-            Resource: !Sub '${AppSyncAPI}/*'
-        - DynamoDBReadPolicy:
-              TableName: !Sub '${TablePrefix}_permanents'
-        - DynamoDBCrudPolicy:
-              TableName: !Sub '${TablePrefix}_ephemera'
-        - SNSCrudPolicy:
-            TopicName: !GetAtt MessageNotificationTopic.TopicName
+              - !GetAtt PerceptionFunction.Arn
+              - !GetAtt MessagePublishFunction.Arn
+              - !GetAtt EphemeraFunction.Arn
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -180,11 +176,47 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref RegisterCharacterRoute
       RouteResponseKey: "$default"
+  ActionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: action
+      AuthorizationType: NONE
+      OperationName: ActionRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ActionInteg
+  ActionInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Action Integtration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+  ActionIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref ActionInteg
+      IntegrationResponseKey: "/200/"
+  ActionResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref ActionRoute
+      RouteResponseKey: "$default"
   RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - PingRoute
     - RegisterCharacterRoute
+    - ActionRoute
     - DisconnectRoute
     Properties:
       ApiId: !Ref RealTimeWebSocket
@@ -327,7 +359,7 @@ Resources:
         Description: Lambda layer to import the appsync libraries
         ContentUri: lambda/appSyncLayer/
         CompatibleRuntimes:
-          - nodejs12.x
+          - nodejs14.x
   UUIDLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -335,7 +367,7 @@ Resources:
         Description: Lambda layer to import the uuid library
         ContentUri: lambda/uuidLayer/
         CompatibleRuntimes:
-          - nodejs12.x
+          - nodejs14.x
 
   StorageAPIExecutionRole:
     Type: AWS::IAM::Role
@@ -625,7 +657,7 @@ Resources:
           CodeUri: lambda/initialize/
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 30
           Layers:
               - !Ref AppSyncLambdaLayer
@@ -732,10 +764,11 @@ Resources:
   EphemeraFunction:
       Type: AWS::Serverless::Function
       Properties:
+          Tracing: Active
           CodeUri: lambda/ephemera/
           Handler: app.handler
           MemorySize: 256
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Layers:
               - !Ref UUIDLambdaLayer
               - !Ref AppSyncLambdaLayer
@@ -859,7 +892,7 @@ Resources:
           CodeUri: lambda/permanents/
           Handler: app.handler
           MemorySize: 256
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 30
           Layers:
               - !Ref UUIDLambdaLayer
@@ -900,6 +933,72 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
+  MessageSubscriptionBroadcastFunction:
+      Type: AWS::Serverless::Function
+      DependsOn:
+          - AppSyncAPI
+      Properties:
+          CodeUri: lambda/messageTopic/messageSubscriptionBroadcast
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs14.x
+          Timeout: 30
+          Environment:
+              Variables:
+                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_ephemera'
+            - Statement:
+              - Effect: Allow
+                Action: execute-api:ManageConnections
+                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+            - Statement:
+              - Effect: Allow
+                Action: appsync:GraphQL
+                Resource: !Sub '${AppSyncAPI}/*'
+  MessagePersistFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/messageTopic/messagePersist
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs14.x
+          Timeout: 5
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+          Policies:
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_messages'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_message_delta'
+  MessagePublishFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+        Tracing: Active
+        CodeUri: lambda/messagePublish/
+        Handler: app.handler
+        MemorySize: 128
+        Runtime: nodejs14.x
+        Timeout: 30
+        Environment:
+            Variables:
+                WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
+                TABLE_PREFIX: !Ref TablePrefix
+        Policies:
+          - DynamoDBReadPolicy:
+              TableName: !Sub '${TablePrefix}_ephemera'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_messages'
+          - DynamoDBCrudPolicy:
+              TableName: !Sub '${TablePrefix}_message_delta'
+          - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   MessagesFunction:
       Type: AWS::Serverless::Function
       DependsOn:
@@ -908,7 +1007,7 @@ Resources:
           CodeUri: lambda/messages/
           Handler: app.handler
           MemorySize: 128
-          Runtime: nodejs12.x
+          Runtime: nodejs14.x
           Timeout: 5
           Layers:
               - !Ref UUIDLambdaLayer
@@ -976,14 +1075,46 @@ Resources:
       Type: AWS::SNS::Topic
       Properties:
           Subscription:
-              - Endpoint: !GetAtt MessagesFunction.Arn
+              - Endpoint: !GetAtt MessageSubscriptionBroadcastFunction.Arn
                 Protocol: lambda
-  MessageNotificationTopicPolicy:
+              - Endpoint: !GetAtt MessagePersistFunction.Arn
+                Protocol: lambda
+  MessageBroadcastPolicy:
       Type: AWS::Lambda::Permission
       Properties:
           Action: lambda:InvokeFunction
-          FunctionName: !Ref MessagesFunction
+          FunctionName: !Ref MessageSubscriptionBroadcastFunction
           Principal: sns.amazonaws.com
+  MessagePersistPolicy:
+      Type: AWS::Lambda::Permission
+      Properties:
+          Action: lambda:InvokeFunction
+          FunctionName: !Ref MessagePersistFunction
+          Principal: sns.amazonaws.com
+  PerceptionFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          Tracing: Active
+          CodeUri: lambda/descriptionService/
+          Handler: app.handler
+          MemorySize: 128
+          Runtime: nodejs14.x
+          Timeout: 20
+          Environment:
+              Variables:
+                  TABLE_PREFIX: !Ref TablePrefix
+                  MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
+          Policies:
+            - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_permanents'
+            - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_ephemera'
+            - Statement:
+              - Effect: "Allow"
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt MessagePublishFunction.Arn
   MutationUpdatePermanents:
       Type: AWS::AppSync::Resolver
       DependsOn:

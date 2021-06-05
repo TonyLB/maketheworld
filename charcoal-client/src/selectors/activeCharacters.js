@@ -10,6 +10,8 @@ export const getActiveCharacters = (reduxState) => {
     return objectMap(characterMachineArray, ({ currentState }) => ({
             state: currentState,
             isSubscribing: [
+                'FETCHING',
+                'FETCHED',
                 'SUBSCRIBING',
                 'SUBSCRIBED',
                 'SYNCHING'

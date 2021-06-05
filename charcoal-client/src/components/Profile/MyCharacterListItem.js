@@ -58,7 +58,7 @@ export const PureMyCharacterListItem = ({
                     </IconButton>
                 </Tooltip>
             }
-            { (['SUBSCRIBING', 'SYNCHING', 'REGISTERING', 'REREGISTERING'].includes(state)) &&
+            { (['FETCHING', 'FETCHED', 'SUBSCRIBING', 'SUBSCRIBED', 'SYNCHING', 'REGISTERING', 'REREGISTERING'].includes(state)) &&
                 <IconButton>
                     <Spinner />
                 </IconButton>

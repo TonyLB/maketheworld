@@ -1,0 +1,22 @@
+{
+  "name": "descriptionservice",
+  "version": "1.0.0",
+  "description": "Lambda handler for description microservice that sends a description from the permanents data to a user as a message",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Anthony Lower-Basch",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^26.6.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.13.0",
+    "@aws-sdk/client-lambda": "^3.13.1",
+    "@aws-sdk/client-sns": "^3.13.0",
+    "@aws-sdk/util-dynamodb": "^3.13.0",
+    "aws-xray-sdk": "^3.3.3",
+    "uuid": "^8.3.2"
+  }
+}

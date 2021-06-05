@@ -22,7 +22,7 @@ const cacheDBCast = cacheDB as any
 
 const fetchAction = ({ CharacterId }: { CharacterId: string}) => async (dispatch: any): Promise<Partial<CharacterSubscriptionData>> => {
 
-    const LastMessageSync = await getLastMessageSync()
+    const LastMessageSync = await getLastMessageSync(CharacterId)
     const messages = await cacheDBCast.messages.where("Target").equals(CharacterId).toArray()
 
     dispatch({
