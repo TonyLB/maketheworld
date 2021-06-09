@@ -3,7 +3,10 @@ const { documentClient, } = require('../utilities')
 
 const { permanentAndDeltas } = require('../delta')
 
-exports.putCharacter = ({
+const { TABLE_PREFIX } = process.env;
+const ephemeraTable = `${TABLE_PREFIX}_ephemera`
+
+exports.putCharacter = async ({
     CharacterId: passedCharacterId,
     Name,
     Pronouns,
@@ -15,7 +18,8 @@ exports.putCharacter = ({
 
     const CharacterId = passedCharacterId || uuidv4()
 
-    return permanentAndDeltas({
+    try {
+        const writes = await permanentAndDeltas({
             PutRequest: {
                 Item: {
                     PermanentId: `CHARACTER#${CharacterId}`,
@@ -29,8 +33,31 @@ exports.putCharacter = ({
                 }
             }
         })
-        .then((writes) => (documentClient.batchWrite({ RequestItems: writes }).promise()))
-        .then(() => ([{
+
+        await Promise.all([
+            documentClient.batchWrite({ RequestItems: writes }).promise(),
+            documentClient.update({
+                TableName: ephemeraTable,
+                Key: {
+                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                    DataCategory: 'Connection',
+                },
+                UpdateExpression: 'SET #name = :name, Pronouns = :pronouns, FirstImpression = :firstImpression, OneCoolThing = :oneCoolThing, Outfit = :outfit',
+                ExpressionAttributeValues: {
+                    ':pronouns': Pronouns,
+                    ':firstImpression': FirstImpression,
+                    ':oneCoolThing': OneCoolThing,
+                    ':outfit': Outfit,
+                    ':name': Name,
+                    ':id': `CHARACTERINPLAY#${CharacterId}`
+                },
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                },
+                ConditionExpression: 'EphemeraId = :id'
+            }).promise()
+        ])
+        return [{
             Character: {
                 CharacterId,
                 Name,
@@ -40,7 +67,11 @@ exports.putCharacter = ({
                 Outfit,
                 HomeId
             }
-        }]))
-        .catch((err) => ({ error: err.stack }))
+        }]
+
+    }
+    catch (err) {
+        return { error: err.stack }
+    }
 
 }

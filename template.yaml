@@ -924,6 +924,8 @@ Resources:
                   TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanent_delta'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_ephemera'
   PermanentsDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
