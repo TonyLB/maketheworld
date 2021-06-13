@@ -40,20 +40,37 @@ const getCharactersInPlay = async () => {
 //
 // ConnectionId should only be passed by direct call from Lambda functions
 //
-const putCharacterInPlay = async ({ CharacterId, RoomId, Connected, ConnectionId }) => {
+const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...rest }) => {
 
     if (!CharacterId) {
         return []
     }
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
 
+    const requiredFields = ['RoomId', 'Name']
+    const optionalFields = ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing']
+    const allFields = [...requiredFields, ...optionalFields]
     let expressionAttributes = {}
     let setExpressions = []
     let removeExpressions = []
-    if (RoomId) {
-        expressionAttributes[':RoomId'] = RoomId
-        setExpressions = [...setExpressions, 'RoomId = :RoomId']
-    }
+    let expressionNames
+    requiredFields.forEach((key) => {
+        if (rest[key]) {
+            expressionAttributes[`:${key}`] = rest[key]
+            setExpressions = [...setExpressions, `${key === 'Name' ? '#name' : key} = :${key}`]
+            if (key === 'Name') {
+                expressionNames = {
+                    '#name': 'Name'
+                }
+            }
+        }
+    })
+    optionalFields.forEach((key) => {
+        if (rest[key] !== undefined) {
+            expressionAttributes[`:${key}`] = rest[key]
+            setExpressions = [...setExpressions, `${key} = :${key}`]
+        }
+    })
     if (Connected !== undefined) {
         expressionAttributes[':Connected'] = Connected
         setExpressions = [...setExpressions, 'Connected = :Connected']
@@ -77,6 +94,7 @@ const putCharacterInPlay = async ({ CharacterId, RoomId, Connected, ConnectionId
         }),
         UpdateExpression: updateExpression,
         ExpressionAttributeValues: marshall(expressionAttributes),
+        ...(expressionNames ? { ExpressionAttributeNames: expressionNames } : {}),
         ReturnValues: 'ALL_NEW'
     }))
     let newRecord = unmarshall(Attributes)
@@ -85,12 +103,9 @@ const putCharacterInPlay = async ({ CharacterId, RoomId, Connected, ConnectionId
     // ephemera record.  If not, go to the Permanents table to fetch the data that needs to
     // be denormalized.
     //
-    const requiredFields = ['RoomId', 'Name']
-    const optionalFields = ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing']
-    const allFields = [...requiredFields, ...optionalFields]
     if (
-        requiredFields.filter((key) => (!newRecord[key])) ||
-        optionalFields.filter((key) => (newRecord[key] === undefined))
+        requiredFields.find((key) => (!newRecord[key])) ||
+        optionalFields.find((key) => (newRecord[key] === undefined))
     ) {
         const { Item } = await dbClient.send(new GetItemCommand({
             TableName: permanentsTable,
