@@ -3,7 +3,7 @@ import baseMessage from './base.js'
 export class roomDescription extends baseMessage {
     constructor(props = {}) {
         super(props)
-        const { MessageId, Description = 'This is a place.', Name='A place', Ancestry='PLACE', RoomId, ParentId, PermanentId, Exits=[], Players=[], Characters=[], Recap=[], open=false, Target } = props
+        const { MessageId, Description = 'This is a place.', Name='A place', Ancestry='PLACE', RoomId, ParentId, PermanentId, Exits=[], Players=[], Characters=[], RoomCharacters=[], Recap=[], open=false, Target } = props
         this.MessageId = MessageId
         this.Description = Description
         this.Name = Name
@@ -11,7 +11,7 @@ export class roomDescription extends baseMessage {
         this.Exits = Exits
         this.RoomId = RoomId || PermanentId
         this.ParentId = ParentId
-        this.Players = [...Players, ...Characters]
+        this.Players = [...Players, ...Characters, ...RoomCharacters]
         this.Recap = Recap
         this.open = open
         this.Target = Target

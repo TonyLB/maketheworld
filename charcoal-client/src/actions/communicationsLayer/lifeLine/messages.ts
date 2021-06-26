@@ -44,7 +44,7 @@ type MessageFormatRoomDescription = {
         RoomId: string;
         Visibility: string;
     }>;
-    Characters: Array<{
+    RoomCharacters: Array<{
         CharacterId: string;
         Name: string;
         FirstImpression: string;
