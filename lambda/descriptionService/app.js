@@ -52,33 +52,13 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                     ":RoomId": stripType(PermanentId),
                     ":True": true
                 }),
-                ProjectionExpression: 'EphemeraId',
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                },
+                ProjectionExpression: 'EphemeraId, #name, FirstImpression, OneCoolThing, Outfit, Pronouns',
                 IndexName: 'RoomIndex'
             }))
-            let characterResults = { Responses: { [PermanentTableName]: [] } }
-            if (Items.length !== 0) {
-                const Keys = Items
-                    .map(unmarshall)
-                    .map(({ EphemeraId }) => (stripType(EphemeraId)))
-                    .filter((value) => (value))
-                    .map((CharacterId) => (marshall({
-                        PermanentId: `CHARACTER#${CharacterId}`,
-                        DataCategory: 'Details'
-                    }))
-                )
-                //
-                // TODO:  Research whether in v3 I need a batch-splitter to deal with the 25-item maximum
-                // on batch operations.
-                //
-                characterResults = await ddbClient.send(new BatchGetItemCommand({
-                    RequestItems: {
-                        [PermanentTableName]: {
-                            Keys
-                        }
-                    }
-                }))
-            }
-            const CharacterItems = characterResults && characterResults.Responses && characterResults.Responses[PermanentTableName]
+            const CharacterItems = (Items && Items.map(unmarshall)) || []
             const aggregate = RoomItems.map(unmarshall)
                 .reduce(({ Description, Name, Exits }, Item) => {
                     const dataType = Item.DataCategory.split('#')[0]
@@ -120,8 +100,8 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 // TODO:  Replace Ancestry with a new map system
                 //
                 Ancestry: '',
-                RoomCharacters: CharacterItems.map(unmarshall).map(({ PermanentId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns }) => ({
-                    CharacterId: PermanentId.split('#').slice(1).join('#'),
+                RoomCharacters: CharacterItems.map(({ EphemeraId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns }) => ({
+                    CharacterId: EphemeraId.split('#').slice(1).join('#'),
                     Name,
                     FirstImpression,
                     OneCoolThing,

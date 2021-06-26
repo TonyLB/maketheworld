@@ -924,6 +924,8 @@ Resources:
                   TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanent_delta'
+            - DynamoDBCrudPolicy:
+                  TableName: !Sub '${TablePrefix}_ephemera'
   PermanentsDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -1543,6 +1545,11 @@ Resources:
                   CharacterId: String!
                   RoomId: String!
                   Connected: Boolean
+                  Name: String
+                  OneCoolThing: String
+                  Outfit: String
+                  Pronouns: String
+                  FirstImpression: String
               }
               input CharacterInPlayInput @aws_iam @aws_cognito_user_pools {
                   CharacterId: String!
@@ -1553,6 +1560,11 @@ Resources:
                   CharacterId: String!
                   RoomId: String
                   Connected: Boolean
+                  Name: String
+                  OneCoolThing: String
+                  Outfit: String
+                  Pronouns: String
+                  FirstImpression: String
               }
               type ChangedEphemera @aws_iam @aws_cognito_user_pools {
                 CharacterInPlay: CharacterInPlay

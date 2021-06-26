@@ -159,9 +159,7 @@ export const socketDispatch = (messageType: any) => (payload: any) => (dispatch:
 }
 
 const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
-    console.log('receiveMessages payload', payload)
     if (payload.messageType === 'Messages') {
-        console.log('Receive Messages', payload.messages)
         dispatch({
             type: RECEIVE_JSON_MESSAGES,
             payload: payload.messages
