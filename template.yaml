@@ -766,6 +766,7 @@ Resources:
       Properties:
           Tracing: Active
           CodeUri: lambda/ephemera/
+          Timeout: 30
           Handler: app.handler
           MemorySize: 256
           Runtime: nodejs14.x
@@ -900,6 +901,7 @@ Resources:
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
                   APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
                   S3_BUCKET:
                     Fn::ImportValue:
@@ -924,8 +926,12 @@ Resources:
                   TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanent_delta'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_ephemera'
+            - Statement:
+              - Effect: "Allow"
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt EphemeraFunction.Arn
   PermanentsDataSource:
       Type: AWS::AppSync::DataSource
       Properties:

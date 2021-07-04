@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT-0
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
+
+const { denormalizeCharacter } = require('./denormalize.js')
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -107,36 +109,13 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
         requiredFields.find((key) => (!newRecord[key])) ||
         optionalFields.find((key) => (newRecord[key] === undefined))
     ) {
-        const { Item } = await dbClient.send(new GetItemCommand({
-            TableName: permanentsTable,
-            Key: marshall({
-                PermanentId: `CHARACTER#${CharacterId}`,
-                DataCategory: 'Details'
-            }),
-            ProjectionExpression: allFields.map((key) => (key === 'Name' ? '#name' : key)).join(', '),
-            ExpressionAttributeNames: { '#name': 'Name' }
-        }))
-        const fromCharacterPermanent = unmarshall(Item)
-        const newExpressionAttributes = Object.assign({}, ...(allFields.filter((key) => fromCharacterPermanent[key]).map((key) => ({ [`:${key}`]: fromCharacterPermanent[key] }))))
-        const newUpdateExpression = allFields.filter((key) => fromCharacterPermanent[key]).map((key) => (`${key === 'Name' ? '#name' : key} = :${key}`)).join(', ')
-        const { Attributes: newAttributes } = await dbClient.send(new UpdateItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId,
-                DataCategory: 'Connection'
-            }),
-            UpdateExpression: `SET ${newUpdateExpression}`,
-            ExpressionAttributeValues: marshall(newExpressionAttributes),
-            ExpressionAttributeNames: { '#name': 'Name' },
-            ReturnValues: 'ALL_NEW'
-        }))
-        newRecord = unmarshall(newAttributes)
+        newRecord = await denormalizeCharacter({ CharacterId })
     }
     const remap = Object.assign({}, ...(allFields.map((key) => ({ [key]: newRecord[key] }))))
     return [ { CharacterInPlay: {
+        ...remap,
         CharacterId,
-        Connected: newRecord.Connected,
-        ...remap
+        Connected: newRecord.Connected
     }}];
 }
 

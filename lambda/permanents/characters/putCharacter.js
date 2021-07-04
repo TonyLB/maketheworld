@@ -1,10 +1,10 @@
 const { v4: uuidv4 } = require('/opt/uuid')
 const { documentClient, } = require('../utilities')
 
-const { permanentAndDeltas } = require('../delta')
+const AWSXRay = require('aws-xray-sdk')
+const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
+const { permanentAndDeltas } = require('../delta')
 
 exports.putCharacter = async ({
     CharacterId: passedCharacterId,
@@ -16,6 +16,7 @@ exports.putCharacter = async ({
     HomeId
 }) => {
 
+    const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: process.env.AWS_REGION }))
     const CharacterId = passedCharacterId || uuidv4()
 
     try {
@@ -36,26 +37,20 @@ exports.putCharacter = async ({
 
         await Promise.all([
             documentClient.batchWrite({ RequestItems: writes }).promise(),
-            documentClient.update({
-                TableName: ephemeraTable,
-                Key: {
-                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Connection',
-                },
-                UpdateExpression: 'SET #name = :name, Pronouns = :pronouns, FirstImpression = :firstImpression, OneCoolThing = :oneCoolThing, Outfit = :outfit',
-                ExpressionAttributeValues: {
-                    ':pronouns': Pronouns,
-                    ':firstImpression': FirstImpression,
-                    ':oneCoolThing': OneCoolThing,
-                    ':outfit': Outfit,
-                    ':name': Name,
-                    ':id': `CHARACTERINPLAY#${CharacterId}`
-                },
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                },
-                ConditionExpression: 'EphemeraId = :id'
-            }).promise()
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'denormalize',
+                    PermanentId: `CHARACTER#${CharacterId}`,
+                    data: {
+                        Pronouns,
+                        FirstImpression,
+                        OneCoolThing,
+                        Outfit,
+                        Name
+                    }
+                }))
+            }))
         ])
         return [{
             Character: {
@@ -71,6 +66,7 @@ exports.putCharacter = async ({
 
     }
     catch (err) {
+        console.log(err)
         return { error: err.stack }
     }
 
