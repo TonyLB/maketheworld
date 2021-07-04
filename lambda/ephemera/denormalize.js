@@ -70,14 +70,9 @@ const denormalizeFactory = ({
     }
     const ExpressionAttributeNames = expressionAttributeNamesGenerator(([key]) => fromPermanent[key])
 
-    //
-    // TODO:  Handle the case where a reserved attribute is not provided in the incoming data (and therefore should not be updated)
-    //
-    // TODO:  Handle the case where an optional attribute is provided as NULL (and therefore should be removed)
-    //
-    const newExpressionAttributes = Object.assign({}, ...(allFields.filter((key) => fromPermanent[key]).map((key) => ({ [`:${key}`]: fromPermanent[key] }))))
+    const newExpressionAttributes = Object.assign({}, ...(allFields.filter((key) => (fromPermanent[key] !== undefined)).map((key) => ({ [`:${key}`]: fromPermanent[key] }))))
     if (Object.keys(newExpressionAttributes).length) {
-        const newUpdateExpression = allFields.filter((key) => fromPermanent[key]).map((key) => (`${remapAttributes[key] ?? key} = :${key}`)).join(', ')
+        const newUpdateExpression = allFields.filter((key) => (fromPermanent[key] !== undefined)).map((key) => (`${remapAttributes[key] ?? key} = :${key}`)).join(', ')
         const { Attributes: newAttributes } = await dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
