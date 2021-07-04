@@ -11,23 +11,47 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
 
-const denormalizeCharacter = async ({ CharacterId, data }) => {
+const denormalizeFactory = ({
+    label,
+    ephemeraPrefix,
+    permanentPrefix,
+    dataCategory,
+    requiredFields = [],
+    optionalFields = [],
+    extraReturnFields = [],
+    reservedMapping = {}
+} ) => async ({ [`${label}Id`]: ItemId, data }) => {
 
-    if (!CharacterId) {
-        return []
+    if (!ItemId) {
+        return {}
     }
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const PermanentId = `CHARACTER#${CharacterId}`
+    const EphemeraId = `${ephemeraPrefix}#${ItemId}`
+    const PermanentId = `${permanentPrefix}#${ItemId}`
 
-    const requiredFields = ['Name']
-    const optionalFields = ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing']
     const allFields = [...requiredFields, ...optionalFields]
 
     let newRecord = {}
 
-    let fromCharacterPermanent = {}
+    const remapAttributes = allFields.reduce(
+            (previousAttributes, fieldName) =>
+        {
+            const remapAttribute = reservedMapping[fieldName]
+            if (remapAttribute) {
+                return {
+                    ...previousAttributes,
+                    [fieldName]: remapAttribute
+                }
+            }
+            else {
+                return previousAttributes
+            }
+        }, {})
+    const ExpressionAttributeNames = Object.values(remapAttributes).length
+        ? Object.entries(remapAttributes).reduce((previous, [key, value]) => ({...previous, [value]: key }), {})
+        : undefined
+    let fromPermanent = {}
     if (data) {
-        fromCharacterPermanent = data
+        fromPermanent = data
     }
     else {
         const { Item } = await dbClient.send(new GetItemCommand({
@@ -36,33 +60,49 @@ const denormalizeCharacter = async ({ CharacterId, data }) => {
                 PermanentId,
                 DataCategory: 'Details'
             }),
-            ProjectionExpression: allFields.map((key) => (key === 'Name' ? '#name' : key)).join(', '),
-            ExpressionAttributeNames: { '#name': 'Name' }
+            ProjectionExpression: allFields.map((key) => remapAttributes[key] ?? key).join(', '),
+            ExpressionAttributeNames
         }))
-        fromCharacterPermanent = unmarshall(Item)    
+        fromPermanent = unmarshall(Item)
     }
-    const newExpressionAttributes = Object.assign({}, ...(allFields.filter((key) => fromCharacterPermanent[key]).map((key) => ({ [`:${key}`]: fromCharacterPermanent[key] }))))
+    //
+    // TODO:  Handle the case where a reserved attribute is not provided in the incoming data (and therefore should not be updated)
+    //
+    // TODO:  Handle the case where an optional attribute is provided as NULL (and therefore should be removed)
+    //
+    const newExpressionAttributes = Object.assign({}, ...(allFields.filter((key) => fromPermanent[key]).map((key) => ({ [`:${key}`]: fromPermanent[key] }))))
     if (Object.keys(newExpressionAttributes).length) {
-        const newUpdateExpression = allFields.filter((key) => fromCharacterPermanent[key]).map((key) => (`${key === 'Name' ? '#name' : key} = :${key}`)).join(', ')
+        const newUpdateExpression = allFields.filter((key) => fromPermanent[key]).map((key) => (`${remapAttributes[key] ?? key} = :${key}`)).join(', ')
         const { Attributes: newAttributes } = await dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
                 EphemeraId,
-                DataCategory: 'Connection'
+                DataCategory: dataCategory
             }),
             UpdateExpression: `SET ${newUpdateExpression}`,
             ExpressionAttributeValues: marshall(newExpressionAttributes),
-            ExpressionAttributeNames: { '#name': 'Name' },
+            ExpressionAttributeNames,
             ReturnValues: 'ALL_NEW'
         }))
         newRecord = unmarshall(newAttributes)    
     }
 
-    const remap = Object.assign({}, ...([...allFields, 'Connected'].map((key) => ({ [key]: newRecord[key] }))))
+    const remap = Object.assign({}, ...([...allFields, ...extraReturnFields].map((key) => ({ [key]: newRecord[key] }))))
     return {
-        CharacterId,
+        [`${label}Id`]: ItemId,
         ...remap
     }
 }
+
+const denormalizeCharacter = denormalizeFactory({
+    label: 'Character',
+    ephemeraPrefix: 'CHARACTERINPLAY',
+    permanentPrefix: 'CHARACTER',
+    dataCategory: 'Connection',
+    requiredFields: ['Name'],
+    optionalFields: ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing'],
+    extraReturnFields: ['Connected'],
+    reservedMapping: { Name: '#name' }
+})
 
 exports.denormalizeCharacter = denormalizeCharacter

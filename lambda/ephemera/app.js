@@ -43,11 +43,11 @@ const updateDispatcher = ({ Updates = [] }) => {
         .then((finalOutputs) => finalOutputs.reduce((previous, output) => ([ ...previous, ...output ]), []))
 }
 
-const denormalizeDispatcher = ({ PermanentId }) => {
+const denormalizeDispatcher = ({ PermanentId, data }) => {
     const [type, payload] = splitPermanentId(PermanentId)
     switch(type) {
         case 'CHARACTER':
-            return denormalizeCharacter({ CharacterId: payload })
+            return denormalizeCharacter({ CharacterId: payload, data })
         default:
             return Promise({})
     }
