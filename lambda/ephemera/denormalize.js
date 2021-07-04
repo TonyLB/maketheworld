@@ -46,14 +46,17 @@ const denormalizeFactory = ({
                 return previousAttributes
             }
         }, {})
-    const ExpressionAttributeNames = Object.values(remapAttributes).length
-        ? Object.entries(remapAttributes).reduce((previous, [key, value]) => ({...previous, [value]: key }), {})
-        : undefined
     let fromPermanent = {}
+    const expressionAttributeNamesGenerator = (filterFunc) => (
+        Object.values(remapAttributes).length
+            ? Object.entries(remapAttributes).filter(filterFunc).reduce((previous, [key, value]) => ({...previous, [value]: key }), {})
+            : undefined
+    )
     if (data) {
         fromPermanent = data
     }
     else {
+        const allExpressionAttributeNames = expressionAttributeNamesGenerator(() => (true))
         const { Item } = await dbClient.send(new GetItemCommand({
             TableName: permanentsTable,
             Key: marshall({
@@ -61,10 +64,12 @@ const denormalizeFactory = ({
                 DataCategory: 'Details'
             }),
             ProjectionExpression: allFields.map((key) => remapAttributes[key] ?? key).join(', '),
-            ExpressionAttributeNames
+            ...(Object.values(allExpressionAttributeNames).length ? { ExpressionAttributeNames: allExpressionAttributeNames } : {})
         }))
         fromPermanent = unmarshall(Item)
     }
+    const ExpressionAttributeNames = expressionAttributeNamesGenerator(([key]) => fromPermanent[key])
+
     //
     // TODO:  Handle the case where a reserved attribute is not provided in the incoming data (and therefore should not be updated)
     //
@@ -81,7 +86,7 @@ const denormalizeFactory = ({
             }),
             UpdateExpression: `SET ${newUpdateExpression}`,
             ExpressionAttributeValues: marshall(newExpressionAttributes),
-            ExpressionAttributeNames,
+            ...(Object.values(ExpressionAttributeNames).length ? { ExpressionAttributeNames } : {}),
             ReturnValues: 'ALL_NEW'
         }))
         newRecord = unmarshall(newAttributes)    
