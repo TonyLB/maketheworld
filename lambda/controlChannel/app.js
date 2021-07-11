@@ -109,11 +109,22 @@ const disconnect = async (connectionId) => {
     return { statusCode: 200 }
 }
 
-//
-// TODO:  Create a connect handler that will update the Global -> Connections data
-// in advance of registering a particular character (to facilitate delivering
-// ephemera Updates through websocket connections rather than by way of graphQL)
-//
+const connect = async (connectionId) => {
+
+    await dbClient.send(new UpdateItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId: 'Global',
+            DataCategory: 'Connections'
+        }),
+        UpdateExpression: 'ADD connections :connection',
+        ExpressionAttributeValues: {
+            ':connection': { 'SS': [connectionId] }
+        }
+    }))
+
+    return { statusCode: 200 }
+}
 
 const registerCharacter = async ({ connectionId, CharacterId }) => {
 
@@ -128,17 +139,6 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
     const { DataCategory, RoomId, Connected } = unmarshall(Item)
     if (DataCategory) {
         const updatePromise = Promise.all([
-            dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: 'Global',
-                    DataCategory: 'Connections'
-                }),
-                UpdateExpression: 'ADD connections :connection',
-                ExpressionAttributeValues: {
-                    ':connection': { 'SS': [connectionId] }
-                }
-            })),
             //
             // TODO:  Add Connection -> connectionId data elements to the Ephemera table that will record the
             // authenticated player and the list of characters connected to a given connection.
@@ -167,6 +167,12 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
                 RoomId,
                 CharacterId,
                 promises: [ updatePromise ],
+                //
+                // TODO:  Refactor updateWithRoomMessage to take advantage of the fact that we can
+                // now pull denormalized character information from the Ephemera table on the first
+                // GetItem up at the top of this procedure (i.e. we can pre-determine
+                // the messages to be delivered rather than pass a callback)
+                //
                 messageFunction: (Name) => (`${Name || 'Someone'} has connected.`)
             })
         }
@@ -245,6 +251,7 @@ const say = async ({ CharacterId, Message } = {}) => {
 
 
 exports.disconnect = disconnect
+exports.connect = connect
 exports.registerCharacter = registerCharacter
 exports.handler = (event) => {
 
@@ -253,6 +260,9 @@ exports.handler = (event) => {
     const { connectionId, routeKey } = event.requestContext
     const request = event.body && JSON.parse(event.body) || {}
 
+    if (routeKey === '$connect') {
+        return connect(connectionId)
+    }
     if (routeKey === '$disconnect') {
         return disconnect(connectionId)
     }
