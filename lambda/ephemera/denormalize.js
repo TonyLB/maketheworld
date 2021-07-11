@@ -105,4 +105,15 @@ const denormalizeCharacter = denormalizeFactory({
     reservedMapping: { Name: '#name' }
 })
 
+const denormalizeRoom = denormalizeFactory({
+    label: 'Room',
+    ephemeraPrefix: 'ROOMINPLAY',
+    permanentPrefix: 'ROOM',
+    dataCategory: 'Details',
+    requiredFields: ['Name'],
+    optionalFields: ['Description'],
+    reservedMapping: { Name: '#name' }
+})
+
 exports.denormalizeCharacter = denormalizeCharacter
+exports.denormalizeRoom = denormalizeRoom
