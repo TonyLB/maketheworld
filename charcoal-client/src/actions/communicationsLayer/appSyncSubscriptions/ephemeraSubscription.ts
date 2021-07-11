@@ -38,38 +38,8 @@ const receiveEphemeraChange = (payload: IChangedEphemera[]) => (dispatch: any, g
         payload
     }
     dispatch(action)
-    //
-    // TODO:  Refactor server-side connection logging so that when a character is connected it
-    // handles (a) sending the room description message to give them the current state of their
-    // surroundings, and (b) sending the 'X has connected.' message to everyone nearby.  Should
-    // be much easier once we refactor messaging as a microservice behing an SQS/SNS disconnect.
-    //
-
-    // const newState = {
-    //     ...state,
-    //     charactersInPlay: charactersInPlayReducer(state.charactersInPlay || {}, action)
-    // }
-    // const myCharacter = getMyCharacterInPlay(newState)
-    // const myCurrentCharacter = getMyCurrentCharacter(newState)
-    // const myPreviousCharacter = getMyCharacterInPlay(state)
-    // if (myCharacter.CharacterId === payload.CharacterId) {
-    //     //
-    //     // Handle actions that depend upon changes in the state of your own character.
-    //     //
-    //     const currentNeighborhood = getCurrentNeighborhood(state)
-    //     const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
-    //     if (myCharacter && myCharacter.Connected && myCharacter.RoomId && !(myPreviousCharacter && myPreviousCharacter.Connected && myPreviousCharacter.RoomId === myCharacter.RoomId)) {
-    //         return API.graphql(graphqlOperation(getRoomRecap, { PermanentId: payload.RoomId }))
-    //             .then(({ data }) => (data))
-    //             .then(({ getRoomRecap }) => (getRoomRecap))
-    //             .then((Recap) => {
-    //                 dispatch(lookRoom({ RoomId: myCharacter.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
-    //                 const { Name = 'Someone' } = myCurrentCharacter || {}
-    //                 dispatch(sendWorldMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` }))
-    //             })
-    //     }
-    // }
 }
+
 const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
     const subscription = API.graphql(graphqlOperation(changedEphemera))
         .subscribe({
