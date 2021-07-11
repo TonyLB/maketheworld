@@ -5,6 +5,7 @@ const { graphqlClient, gql } = require('./utilities')
 
 const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
 const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
+const { queueClear, queueState } = require('./feedbackQueue')
 
 const broadcastGQL = (Updates) => (gql`mutation BroadcastGQL {
     broadcastEphemera (Ephemera: [
@@ -59,12 +60,14 @@ exports.handler = async (event, context) => {
 
     const { action = 'NO-OP', directCall = false, ...payload } = event
 
+    queueClear()
     switch(action) {
         case 'getCharactersInPlay':
             return getCharactersInPlay()
         
         case 'updateEphemera':
-            const updates = await updateDispatcher(payload)
+            await updateDispatcher(payload)
+            const updates = queueState()
             if (directCall) {
                 await graphqlClient.mutate({ mutation: broadcastGQL(updates) })
             }
@@ -72,21 +75,10 @@ exports.handler = async (event, context) => {
 
         case 'denormalize':
             const denormalize = await denormalizeDispatcher(payload)
-            if (denormalize) {
-                if (payload.PermanentId.slice(0, 9) === 'CHARACTER') {
-                    const denormalizeUpdates = [{
-                        CharacterInPlay: denormalize
-                    }]
-                    await graphqlClient.mutate({ mutation: broadcastGQL(denormalizeUpdates) })
-                    return denormalizeUpdates
-                }
-                else {
-                    return denormalize
-                }
+            if (queueState()) {
+                await graphqlClient.mutate({ mutation: broadcastGQL(queueState()) })
             }
-            else {
-                return []
-            }
+            return denormalize
 
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))

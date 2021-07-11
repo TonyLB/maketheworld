@@ -54,7 +54,19 @@ const disconnect = async (connectionId) => {
         IndexName: 'ConnectionIndex'
     }))
 
-    await Promise.all(Items
+    await Promise.all([
+        dbClient.send(new UpdateItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId: 'Global',
+                DataCategory: 'Connections'
+            }),
+            UpdateExpression: 'DELETE connections :connection',
+            ExpressionAttributeValues: {
+                ':connection': { 'SS': [connectionId] }
+            }
+        })),
+        ...(Items
             .map(unmarshall)
             .map(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
             .map(({ CharacterId, RoomId }) => (
@@ -90,12 +102,18 @@ const disconnect = async (connectionId) => {
                     ],
                     messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
                 })
-            )
-        )
+            ))
+        )]
     )
 
     return { statusCode: 200 }
 }
+
+//
+// TODO:  Create a connect handler that will update the Global -> Connections data
+// in advance of registering a particular character (to facilitate delivering
+// ephemera Updates through websocket connections rather than by way of graphQL)
+//
 
 const registerCharacter = async ({ connectionId, CharacterId }) => {
 
@@ -110,6 +128,21 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
     const { DataCategory, RoomId, Connected } = unmarshall(Item)
     if (DataCategory) {
         const updatePromise = Promise.all([
+            dbClient.send(new UpdateItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId: 'Global',
+                    DataCategory: 'Connections'
+                }),
+                UpdateExpression: 'ADD connections :connection',
+                ExpressionAttributeValues: {
+                    ':connection': { 'SS': [connectionId] }
+                }
+            })),
+            //
+            // TODO:  Add Connection -> connectionId data elements to the Ephemera table that will record the
+            // authenticated player and the list of characters connected to a given connection.
+            //
             lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.EPHEMERA_SERVICE,
                 InvocationType: 'Event',

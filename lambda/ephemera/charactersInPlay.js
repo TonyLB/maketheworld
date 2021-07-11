@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: MIT-0
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
 
 const { denormalizeCharacter } = require('./denormalize.js')
+const { queueAdd } = require('./feedbackQueue.js')
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 const promiseDebug = (result) => {
     console.log(result)
@@ -112,11 +112,11 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
         newRecord = await denormalizeCharacter({ CharacterId })
     }
     const remap = Object.assign({}, ...(allFields.map((key) => ({ [key]: newRecord[key] }))))
-    return [ { CharacterInPlay: {
+    queueAdd({ CharacterInPlay: {
         ...remap,
         CharacterId,
         Connected: newRecord.Connected
-    }}];
+    }})
 }
 
 exports.getCharactersInPlay = getCharactersInPlay

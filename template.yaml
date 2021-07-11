@@ -59,7 +59,7 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_permanents'
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
         - Statement:
           - Effect: Allow
