@@ -4,6 +4,7 @@
 const { graphqlClient, gql } = require('./utilities')
 
 const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
+const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
 
 const broadcastGQL = (Updates) => (gql`mutation BroadcastGQL {
     broadcastEphemera (Ephemera: [
@@ -19,6 +20,16 @@ const broadcastGQL = (Updates) => (gql`mutation BroadcastGQL {
     }
 }`)
 
+const splitPermanentId = (PermanentId) => {
+    const sections = PermanentId.split('#')
+    if (!(sections.length > 1)) {
+        return [PermanentId]
+    }
+    else {
+        return [sections[0], sections.slice(1).join('#')]
+    }
+}
+
 const updateDispatcher = ({ Updates = [] }) => {
     const outputs = Updates.map((update) => {
         if (update.putCharacterInPlay) {
@@ -30,6 +41,18 @@ const updateDispatcher = ({ Updates = [] }) => {
 
     return Promise.all(outputs)
         .then((finalOutputs) => finalOutputs.reduce((previous, output) => ([ ...previous, ...output ]), []))
+}
+
+const denormalizeDispatcher = ({ PermanentId, data }) => {
+    const [type, payload] = splitPermanentId(PermanentId)
+    switch(type) {
+        case 'CHARACTER':
+            return denormalizeCharacter({ CharacterId: payload, data })
+        case 'ROOM':
+            return denormalizeRoom({ RoomId: payload, data })
+        default:
+            return Promise({})
+    }
 }
 
 exports.handler = async (event, context) => {
@@ -46,6 +69,24 @@ exports.handler = async (event, context) => {
                 await graphqlClient.mutate({ mutation: broadcastGQL(updates) })
             }
             return updates
+
+        case 'denormalize':
+            const denormalize = await denormalizeDispatcher(payload)
+            if (denormalize) {
+                if (payload.PermanentId.slice(0, 9) === 'CHARACTER') {
+                    const denormalizeUpdates = [{
+                        CharacterInPlay: denormalize
+                    }]
+                    await graphqlClient.mutate({ mutation: broadcastGQL(denormalizeUpdates) })
+                    return denormalizeUpdates
+                }
+                else {
+                    return denormalize
+                }
+            }
+            else {
+                return []
+            }
 
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
