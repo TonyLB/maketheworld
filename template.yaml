@@ -69,6 +69,10 @@ Resources:
               - !GetAtt PerceptionFunction.Arn
               - !GetAtt MessagePublishFunction.Arn
               - !GetAtt EphemeraFunction.Arn
+        - Statement:
+          - Effect: Allow
+            Action: execute-api:ManageConnections
+            Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -805,6 +809,7 @@ Resources:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
                   APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_ephemera'
@@ -814,6 +819,10 @@ Resources:
                 - Effect: Allow
                   Action: appsync:GraphQL
                   Resource: !Sub '${AppSyncAPI}/*'
+            - Statement:
+              - Effect: Allow
+                Action: execute-api:ManageConnections
+                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   EphemeraDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
