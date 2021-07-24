@@ -4,6 +4,7 @@
 const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
 const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
 const { queueClear, queueState, queueFlush } = require('./feedbackQueue')
+const { fetchEphemera } = require('./fetch')
 
 const splitPermanentId = (PermanentId) => {
     const sections = PermanentId.split('#')
@@ -47,6 +48,9 @@ exports.handler = async (event, context) => {
         case 'getCharactersInPlay':
             return getCharactersInPlay()
         
+        case 'fetchEphemera':
+            return fetchEphemera()
+
         case 'updateEphemera':
             await updateDispatcher(payload)
             const updates = queueState()

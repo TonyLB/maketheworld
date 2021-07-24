@@ -75,6 +75,9 @@ const internalStateChange = <K extends string, D extends Record<string, any>>(pa
     return ssmStateChange<K, D>({ ...payload, type: STATE_SEEKING_INTERNAL_CHANGE })
 }
 
+//
+// TODO:  Expand iterateOneSSM (and unit tests) to account for HOLD stateType nodes
+//
 export const iterateOneSSM = ({ key, heartbeat }: { key: string; heartbeat: string }) => (dispatch: any, getState: any) => {
     const focusState = getState()?.stateSeekingMachines?.machines?.[key]
     if (focusState && focusState.desiredState !== focusState.currentState) {
@@ -86,7 +89,13 @@ export const iterateOneSSM = ({ key, heartbeat }: { key: string; heartbeat: stri
         if (executionPath.length > 0) {
             const currentStep = focusState.template.states[focusState.currentState]
             const firstStep = focusState.template.states[executionPath[0]]
-            if (currentStep.stateType === 'CHOICE') {
+            if (['HOLD', 'CHOICE'].includes(currentStep.stateType)) {
+                if (currentStep.stateType === 'HOLD') {
+                    const conditionalResult = currentStep.condition(focusState.data, getState)
+                    if (!conditionalResult) {
+                        return Promise.resolve({})
+                    }
+                }
                 dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: executionPath[0], heartbeat }))
             }
             if (firstStep.stateType === 'ATTEMPT') {

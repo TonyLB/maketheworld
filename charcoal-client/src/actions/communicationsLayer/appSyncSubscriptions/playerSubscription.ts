@@ -112,6 +112,7 @@ const syncAction = ({ PlayerName: username }: PlayerSubscriptionData) => async (
 export class PlayerSubscriptionTemplate extends subscriptionSSMClassGenerator<PlayerSubscriptionData, 'PlayerSubscription'>({
     ssmType: 'PlayerSubscription',
     initialData: new PlayerSubscriptionData(),
+    condition: () => (true),
     subscribeAction,
     unsubscribeAction,
     syncAction

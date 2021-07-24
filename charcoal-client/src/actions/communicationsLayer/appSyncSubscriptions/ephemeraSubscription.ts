@@ -6,6 +6,7 @@ import { fetchCharactersInPlay } from '../../characters'
 
 import { subscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
+import { getLifeLine } from '../../../selectors/communicationsLayer'
 
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
@@ -23,6 +24,7 @@ interface IChangedEphemera {
         CharacterId: string;
         RoomId: string;
         Connected: boolean;
+        Name: string;
     }
 }
 
@@ -80,6 +82,10 @@ const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<E
 export class EphemeraSubscriptionTemplate extends subscriptionSSMClassGenerator<EphemeraSubscriptionData, 'EphemeraSubscription'>({
     ssmType: 'EphemeraSubscription',
     initialData: new EphemeraSubscriptionData(),
+    condition: (_, getState) => {
+        const { status } = getLifeLine(getState())
+        return status === 'CONNECTED'
+    },
     subscribeAction,
     unsubscribeAction,
     syncAction

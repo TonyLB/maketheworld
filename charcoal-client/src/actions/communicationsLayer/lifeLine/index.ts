@@ -175,6 +175,10 @@ export const registerLifeLineSSM = (dispatch: any): void => {
     LifeLinePubSub.subscribe(receiveEphemera(dispatch))
 }
 
+export const fetchEphemera = (dispatch: any) => {
+    dispatch(socketDispatch('fetchephemera'))()
+}
+
 export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
     //
     // TODO:  Create error messaging that rejects the promise if it gets some sort

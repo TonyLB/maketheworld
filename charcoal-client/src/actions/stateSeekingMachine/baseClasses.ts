@@ -20,7 +20,18 @@ export interface ISSMAttemptState<K, D extends Record<string, any>> {
     reject: K;
 }
 
-export type ISSMPotentialState<K, D extends Record<string, any>> = ISSMChoiceState<K> | ISSMAttemptState<K, D>
+export interface ISSMHoldCondition<D extends Record<string, any>> {
+    (data: D, getState: any): Boolean;
+}
+
+export interface ISSMHoldState<K, D extends Record<string, any>> {
+    key: K;
+    stateType: 'HOLD';
+    condition: ISSMHoldCondition<D>;
+    next: K;
+}
+
+export type ISSMPotentialState<K, D extends Record<string, any>> = ISSMChoiceState<K> | ISSMAttemptState<K, D> | ISSMHoldState<K, D>
 
 export interface ISSMTemplateAbstract<K extends string, D extends Record<string, any>> {
     initialState: K;

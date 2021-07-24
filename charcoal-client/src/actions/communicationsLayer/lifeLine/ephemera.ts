@@ -8,6 +8,7 @@ type CharacterInPlayUpdate = {
     CharacterId: string;
     Connected: boolean;
     RoomId: string;
+    Name: string;
 }
 
 export type EphemeraFormat = {
