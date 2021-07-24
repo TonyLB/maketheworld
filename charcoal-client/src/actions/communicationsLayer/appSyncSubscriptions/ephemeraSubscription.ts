@@ -7,6 +7,7 @@ import { fetchCharactersInPlay } from '../../characters'
 import { subscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 import { getLifeLine } from '../../../selectors/communicationsLayer'
+import { socketDispatch } from '../lifeLine'
 
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
@@ -73,6 +74,12 @@ const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<E
     // TODO:  Remove fetchCharactersInPlay ATTEMPT and ERROR states (since they're now handled by the SSM)
     //
     dispatch(fetchCharactersInPlay())
+    //
+    // TODO:  Write a handler subscription that can be applied to track when fetchephemera has returned
+    // all relevant updates, and then write a promise-wrapper that holds the state-advance from SYNCHRONIZING
+    // to SYNCHRONIZED, until the results are back.
+    //
+    dispatch(socketDispatch('fetchEphemera')({}))
     return {}
 }
 

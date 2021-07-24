@@ -4,6 +4,12 @@
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand } = require('@aws-sdk/client-dynamodb')
 
+const REGION = process.env.AWS_REGION
+const dbClient = new DynamoDBClient({ region: REGION })
+
+const { TABLE_PREFIX } = process.env;
+const ephemeraTable = `${TABLE_PREFIX}_ephemera`
+
 //
 // Some temporary functions to (poorly) handle serialization from the Ephemera
 // table structures to the format that is (currently) delivered over the
@@ -48,8 +54,8 @@ const serialize = ({
     }
 }
 
-const fetchEphemera = () => {
-    const { Items = [] } = dbClient.send(new QueryCommand({
+const fetchEphemera = async () => {
+    const { Items = [] } = await dbClient.send(new QueryCommand({
         TableName: ephemeraTable,
         KeyConditionExpression: 'DataCategory = :DataCategory and begins_with(EphemeraId, :EphemeraId)',
         ExpressionAttributeValues: marshall({

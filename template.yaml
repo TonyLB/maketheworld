@@ -208,6 +208,41 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref RegisterCharacterRoute
       RouteResponseKey: "$default"
+  FetchEphemeraRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: fetchEphemera
+      AuthorizationType: NONE
+      OperationName: FetchEphemeraRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref FetchEphemeraInteg
+  FetchEphemeraInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Fetch Ephemera
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+  FetchEphemeraIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref FetchEphemeraInteg
+      IntegrationResponseKey: "/200/"
+  FetchEphemeraResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref FetchEphemeraRoute
+      RouteResponseKey: "$default"
   ActionRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

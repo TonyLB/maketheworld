@@ -185,6 +185,18 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
 
 }
 
+const fetchEphemera = async () => {
+    const { Payload = {} } =  await lambdaClient.send(new InvokeCommand({
+        FunctionName: process.env.EPHEMERA_SERVICE,
+        InvocationType: 'RequestResponse',
+        Payload: new TextEncoder().encode(JSON.stringify({ action: 'fetchEphemera' }))
+    }))
+    return {
+        statusCode: 200,
+        body: new TextDecoder('ascii').decode(Payload)
+    }
+}
+
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     const arguments = {
         CreatedTime: Date.now(),
@@ -272,6 +284,8 @@ exports.handler = (event) => {
                 return registerCharacter({ connectionId, CharacterId: request.CharacterId})
             }
             break
+        case 'fetchEphemera':
+            return fetchEphemera()
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look
