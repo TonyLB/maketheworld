@@ -44,20 +44,20 @@ const receiveEphemeraChange = (payload: IChangedEphemera[]) => (dispatch: any, g
 }
 
 const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
-    const subscription = API.graphql(graphqlOperation(changedEphemera))
-        .subscribe({
-            next: (ephemeraData: { value?: { data?: { changedEphemera?: IChangedEphemera[] }}}) => {
-                const { value = {} } = ephemeraData
-                const { data = {} } = value
-                const { changedEphemera = [] } = data
-                dispatch(receiveEphemeraChange(changedEphemera))
-            }
-        })
+    // const subscription = API.graphql(graphqlOperation(changedEphemera))
+    //     .subscribe({
+    //         next: (ephemeraData: { value?: { data?: { changedEphemera?: IChangedEphemera[] }}}) => {
+    //             const { value = {} } = ephemeraData
+    //             const { data = {} } = value
+    //             const { changedEphemera = [] } = data
+    //             dispatch(receiveEphemeraChange(changedEphemera))
+    //         }
+    //     })
 
-    dispatch({
-        type: SUBSCRIPTION_SUCCESS,
-        payload: { ephemera: subscription }
-    })
+    // dispatch({
+    //     type: SUBSCRIPTION_SUCCESS,
+    //     payload: { ephemera: subscription }
+    // })
     return {}
 }
 

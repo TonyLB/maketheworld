@@ -109,14 +109,16 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
         requiredFields.find((key) => (!newRecord[key])) ||
         optionalFields.find((key) => (newRecord[key] === undefined))
     ) {
-        newRecord = await denormalizeCharacter({ CharacterId })
+        await denormalizeCharacter({ CharacterId })
     }
-    const remap = Object.assign({}, ...(allFields.map((key) => ({ [key]: newRecord[key] }))))
-    queueAdd({ CharacterInPlay: {
-        ...remap,
-        CharacterId,
-        Connected: newRecord.Connected
-    }})
+    else {
+        queueAdd({ CharacterInPlay: {
+            Name: newRecord.Name,
+            RoomId: newRecord.RoomId,
+            CharacterId,
+            Connected: newRecord.Connected
+        }})
+    }
 }
 
 exports.getCharactersInPlay = getCharactersInPlay

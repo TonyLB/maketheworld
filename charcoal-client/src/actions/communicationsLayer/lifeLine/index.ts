@@ -7,6 +7,7 @@ import { MessageFormat } from './messages'
 import { EphemeraFormat } from './ephemera'
 
 import { PubSub } from '../../../lib/pubSub'
+import { RECEIVE_EPHEMERA_CHANGE } from '../appSyncSubscriptions/ephemeraSubscription'
 
 export const ESTABLISH_WEB_SOCKET_ATTEMPT = 'ESTABLISH_WEB_SOCKET_ATTEMPT'
 export const ESTABLISH_WEB_SOCKET_ERROR = 'ESTABLISH_WEB_SOCKET_ERROR'
@@ -164,7 +165,10 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
 
 const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData }) => {
     if (payload.messageType === 'Ephemera') {
-        console.log('Ephemera Updates: ', payload.updates)
+        dispatch({
+            type: RECEIVE_EPHEMERA_CHANGE,
+            payload: payload.updates
+        })
     }
 }
 

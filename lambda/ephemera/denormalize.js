@@ -96,7 +96,7 @@ const denormalizeFactory = ({
         [`${label}Id`]: ItemId,
         ...remap
     }
-    feedbackCallback(returnValue)
+    return feedbackCallback(returnValue)
 }
 
 const denormalizeCharacter = denormalizeFactory({
@@ -106,11 +106,16 @@ const denormalizeCharacter = denormalizeFactory({
     dataCategory: 'Connection',
     requiredFields: ['Name'],
     optionalFields: ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing'],
-    extraReturnFields: ['Connected'],
+    extraReturnFields: ['Connected', 'RoomId'],
     reservedMapping: { Name: '#name' },
     feedbackCallback: (item) => {
         const returnValue = {
-            CharacterInPlay: item
+            CharacterInPlay: {
+                Name: item.Name,
+                CharacterId: item.CharacterId,
+                Connected: item.Connected,
+                RoomId: item.RoomId
+            }
         }
         queueAdd(returnValue)
         return returnValue

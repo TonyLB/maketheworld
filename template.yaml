@@ -837,23 +837,15 @@ Resources:
           Handler: app.handler
           MemorySize: 256
           Runtime: nodejs14.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_ephemera'
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-            - Statement:
-                - Effect: Allow
-                  Action: appsync:GraphQL
-                  Resource: !Sub '${AppSyncAPI}/*'
             - Statement:
               - Effect: Allow
                 Action: execute-api:ManageConnections

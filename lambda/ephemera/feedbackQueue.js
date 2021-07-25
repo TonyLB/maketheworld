@@ -4,7 +4,6 @@
 // for code-simplicity and legibility.
 //
 
-const { graphqlClient, gql } = require('./utilities')
 const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb')
 const { unmarshall, marshall } = require('@aws-sdk/util-dynamodb')
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
@@ -18,20 +17,6 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION })
-
-const broadcastGQL = (Updates) => (gql`mutation BroadcastGQL {
-    broadcastEphemera (Ephemera: [
-            ${Updates.map(({ CharacterInPlay: { CharacterId, RoomId, Connected } = {} }) =>
-                (`{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: ${Connected ? 'true' : 'false'} } }`))
-                .join('\n            ')}
-        ]) {
-        CharacterInPlay {
-            CharacterId
-            RoomId
-            Connected
-        }
-    }
-}`)
 
 let queueStorage = []
 
@@ -56,12 +41,12 @@ const queueFlush = async () => {
         }),
         ProjectionExpression: 'connections'
     }))
-    const { connections } = unmarshall(Item)
+
+    const connections = [...(unmarshall(Item).connections || [])]
 
     if (queueStorage.length > 0) {
-        await Promise.all([
-            graphqlClient.mutate({ mutation: broadcastGQL(queueStorage) }),
-            [...connections].map((ConnectionId) => (
+        await Promise.all(
+            connections.map((ConnectionId) => (
                 apiClient.send(new PostToConnectionCommand({
                     ConnectionId,
                     Data: JSON.stringify({
@@ -70,7 +55,7 @@ const queueFlush = async () => {
                     }, null, 4)
                 }))
             ))
-        ])
+        )
     }
     queueStorage = []
 }
