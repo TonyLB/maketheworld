@@ -859,23 +859,6 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt EphemeraFunction.Arn
-  QueryGetCharactersInPlay:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getCharactersInPlay
-          DataSourceName: !GetAtt EphemeraDataSource.Name
-          RequestMappingTemplate: >
-              $util.toJson({
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "action": "getCharactersInPlay"
-                  }
-              })
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetRoomRecap:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1676,19 +1659,10 @@ Resources:
                       Updates: [PermanentInput]
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
-                  updateEphemera(
-                      Updates: [EphemeraUpdateInput]
-                  ): [ChangedEphemera]
-                  @aws_iam @aws_cognito_user_pools
-                  broadcastEphemera(
-                      Ephemera: [EphemeraInput]
-                  ): [ChangedEphemera]
-                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
                   getPlayerCharacters: [Character]
-                  getCharactersInPlay: [CharacterInPlay]
                   getRoomRecap(PermanentId: String!): [Message]
                   syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse
                   syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
@@ -1696,8 +1670,6 @@ Resources:
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
                   @aws_subscribe(mutations: ["putPlayer"])
-                  changedEphemera: [ChangedEphemera]
-                  @aws_subscribe(mutations: ["updateEphemera", "broadcastEphemera", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
                   addedMessage (Target: String!): Message

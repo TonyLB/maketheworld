@@ -52,17 +52,15 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
     }
     const matchedExit = currentRoom.Exits.find(({ Name }) => ( entry.toLowerCase().trim() === Name.toLowerCase() || entry.toLowerCase().trim() === `go ${Name.toLowerCase()}`))
     if (matchedExit) {
+        //
+        // TODO:  Replace moveCharacter action with call to the webSocket LifeLine (after
+        // creating backing functionality in the ControlChannel Lambda)
+        //
         dispatch(moveCharacter({ ExitName: matchedExit.Name, RoomId: matchedExit.RoomId }))
         return true
     }
     if (entry.slice(0,1) === '"' && entry.length > 1) {
         dispatch(socketDispatch('action')({ actionType: 'say', payload: { CharacterId, Message: entry.slice(1) } }))
-
-        // dispatch(sendPlayerMessage({
-        //     RoomId: currentRoom.PermanentId,
-        //     CharacterId,
-        //     Message: `${currentName} says "${entry.slice(1)}"`
-        // }))
         return true
     }
     if (entry.slice(0,1) === '@' && entry.length > 1) {

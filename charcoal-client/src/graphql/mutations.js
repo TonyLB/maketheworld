@@ -46,6 +46,11 @@ export const moveCharacter = /* GraphQL */ `
         CharacterId
         RoomId
         Connected
+        Name
+        OneCoolThing
+        Outfit
+        Pronouns
+        FirstImpression
       }
     }
   }
@@ -323,28 +328,6 @@ export const updatePermanents = /* GraphQL */ `
         ToRoomId
         Name
         Delete
-      }
-    }
-  }
-`;
-export const updateEphemera = /* GraphQL */ `
-  mutation UpdateEphemera($Updates: [EphemeraUpdateInput]) {
-    updateEphemera(Updates: $Updates) {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
-      }
-    }
-  }
-`;
-export const broadcastEphemera = /* GraphQL */ `
-  mutation BroadcastEphemera($Ephemera: [EphemeraInput]) {
-    broadcastEphemera(Ephemera: $Ephemera) {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
       }
     }
   }

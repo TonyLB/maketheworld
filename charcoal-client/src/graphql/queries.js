@@ -24,15 +24,6 @@ export const getPlayerCharacters = /* GraphQL */ `
     }
   }
 `;
-export const getCharactersInPlay = /* GraphQL */ `
-  query GetCharactersInPlay {
-    getCharactersInPlay {
-      CharacterId
-      RoomId
-      Connected
-    }
-  }
-`;
 export const getRoomRecap = /* GraphQL */ `
   query GetRoomRecap($PermanentId: String!) {
     getRoomRecap(PermanentId: $PermanentId) {
