@@ -2,7 +2,6 @@ import { getCurrentName, getCurrentRoom } from '../../selectors/activeCharacter'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 import { socketDispatch } from '../communicationsLayer/lifeLine'
 
-import { sendPlayerMessage } from '../messages.js'
 import lookRoom from './lookRoom'
 import lookCharacter from './lookCharacter'
 import moveCharacter from './moveCharacter'
@@ -39,7 +38,6 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
     }
     const state = getState()
     const currentRoom = getCurrentRoom(CharacterId)(state)
-    const currentName = getCurrentName(CharacterId)(state)
     const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: CharacterId })(state)
     const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(entry)
     if (lookMatch) {
@@ -60,19 +58,11 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
         return true
     }
     if (entry.slice(0,1) === '@' && entry.length > 1) {
-        dispatch(sendPlayerMessage({
-            RoomId: currentRoom.PermanentId,
-            CharacterId,
-            Message: entry.slice(1)
-        }))
+        dispatch(socketDispatch('action')({ actionType: 'spoof', payload: { CharacterId, Message: entry.slice(1) } }))
         return true
     }
     if (entry.slice(0,1) === ':' && entry.length > 1) {
-        dispatch(sendPlayerMessage({
-            RoomId: currentRoom.PermanentId,
-            CharacterId,
-            Message: `${currentName}${entry.slice(1).match(/^[,']/) ? "" : " "}${entry.slice(1)}`
-        }))
+        dispatch(socketDispatch('action')({ actionType: 'pose', payload: { CharacterId, Message: entry.slice(1) } }))
         return true
     }
     if (entry) {

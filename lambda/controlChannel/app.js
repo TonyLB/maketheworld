@@ -214,12 +214,9 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     }
 }
 
-//
-// TODO:  Would it be waaaay more efficient overall to denormalize Name into CharacterInPlay Ephemera?
-//
-const say = async ({ CharacterId, Message } = {}) => {
+const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const [{ Item: EphemeraItem = {} }, { Item: CharacterItem }] = await Promise.all([
+    const [{ Item: EphemeraItem = {} }] = await Promise.all([
         dbClient.send(new GetItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
@@ -227,17 +224,8 @@ const say = async ({ CharacterId, Message } = {}) => {
                 DataCategory: 'Connection'
             })
         })),
-        dbClient.send(new GetItemCommand({
-            TableName: permanentsTable,
-            Key: marshall({
-                PermanentId: `CHARACTER#${CharacterId}`,
-                DataCategory: 'Details'
-            })
-        })),
-
     ])
-    const { RoomId } = unmarshall(EphemeraItem)
-    const { Name } = unmarshall(CharacterItem)
+    const { RoomId, Name } = unmarshall(EphemeraItem)
     if (RoomId) {
         const output = {
             Messages: [{
@@ -246,7 +234,7 @@ const say = async ({ CharacterId, Message } = {}) => {
                 Targets: [`ROOM#${RoomId}`],
                 DisplayProtocol: 'Player',
                 CharacterId,
-                Message: `${Name} says "${Message}"`
+                Message: messageCallback({ Name, Message })
             }]
         }
         await lambdaClient.send(new InvokeCommand({
@@ -402,7 +390,11 @@ exports.handler = (event) => {
                 case 'look':
                     return lookPermanent(request.payload)
                 case 'say':
-                    return say(request.payload)
+                    return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name} says "${Message}"`)})
+                case 'pose':
+                    return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
+                case 'spoof':
+                    return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
                 case 'move':
                     return moveCharacter(request.payload)
                 case 'home':

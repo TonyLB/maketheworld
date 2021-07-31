@@ -8,13 +8,8 @@ import {
 } from '../graphql/mutations'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
-import { lookRoom } from './behaviors/lookRoom'
-import { sendWorldMessage } from './messages'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
-import { getMyCharacterInPlay } from '../selectors/connection'
-import { getCurrentNeighborhood } from '../selectors/currentRoom'
 import { getPlayer } from '../selectors/player'
-import charactersInPlayReducer from '../reducers/charactersInPlay'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'

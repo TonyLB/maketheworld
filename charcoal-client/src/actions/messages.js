@@ -35,45 +35,11 @@ export const setMessageOpen = ({ MessageId, open }) => ({
     }
 })
 
-export const sendWorldMessage = ({RoomId = null, Message, Characters = []}) => (dispatch, getState) => {
-    const state = getState()
-    const roomCharacters = (RoomId && getActiveCharactersInRoom({ RoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
-    if (Message) {
-        return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
-            RoomId,
-            Characters: [...(new Set([ ...Characters, ...roomCharacters ]))],
-            MessageId: uuidv4(),
-            DisplayProtocol: "World",
-            WorldMessage: {
-                Message
-            }
-        }}]}))
-        .catch((err) => { console.log(err)})
-    }
-    return Promise.resolve({})
-}
-
-export const sendPlayerMessage = ({RoomId = null, Message, CharacterId, Characters = []}) => (dispatch, getState) => {
-    const state = getState()
-    console.log(`RoomId: ${RoomId}`)
-    const roomCharacters = (RoomId && getActiveCharactersInRoom({ RoomId })(state).map(({ CharacterId }) => (CharacterId))) || []
-    console.log(roomCharacters)
-    if (Message) {
-        return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
-            RoomId,
-            Characters: [...(new Set([ ...Characters, ...roomCharacters ]))],
-            MessageId: uuidv4(),
-            DisplayProtocol: "Player",
-            CharacterMessage: {
-                CharacterId,
-                Message
-            }
-        }}]}))
-        .catch((err) => { console.log(err)})
-    }
-    return Promise.resolve({})
-}
-
+//
+// Refactor DirectMessages to work through the controlChannel, then remove Announce and Shout (until
+// better structures are in place for such messaging), and you should be able to remove updateMessages
+// and the message Subscription from AppSync (leaving only message Sync)
+//
 export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => (dispatch, getState) => {
     if (Message) {
         return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
