@@ -261,6 +261,113 @@ const say = async ({ CharacterId, Message } = {}) => {
     }
 }
 
+const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback } = {}) => {
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    if (RoomId) {
+        const CreatedTime = Date.now()
+
+        const [{ Item = {} }] = await Promise.all([
+            dbClient.send(new GetItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId,
+                    DataCategory: 'Connection',
+                }),
+                ProjectionExpression: "#name, RoomId",
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                }
+            })),
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'updateEphemera',
+                    directCall: true,
+                    Updates: [{
+                        putCharacterInPlay: {
+                            CharacterId,
+                            RoomId
+                        }
+                    }]
+                }))
+            })),
+            //
+            // TODO:  Check first whether the room is already present, and only after
+            // that fails denormalize out of permanents.
+            //
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'denormalize',
+                    PermanentId: `ROOM#${RoomId}`
+                }))
+            }))
+
+        ])
+        const { Name = 'Someone', RoomId: CurrentRoomId } = unmarshall(Item)
+        const messages = [{
+            MessageId: uuidv4(),
+            CreatedTime,
+            TimeOffset: -1,
+            Targets: [`CHARACTER#${CharacterId}`, `ROOM#${CurrentRoomId}`],
+            DisplayProtocol: "World",
+            Message: messageCallback(Name)
+        },
+        {
+            MessageId: uuidv4(),
+            CreatedTime,
+            TimeOffset: 1,
+            RoomId,
+            Targets: [ `CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
+            DisplayProtocol: "World",
+            Message: `${Name} has arrived.`
+        }]
+        //
+        // TODO: Refactor Message Service so that perception messages can be sent as part of the payload,
+        // parsed by an invoke from MESSAGE, then folded into the list and delivered simultaneously.
+        //
+        // Alternately, maybe fold the Perception service directly into the Message service, if it is
+        // never going to be called without returning a message.
+        //
+        await Promise.all([
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.MESSAGE_SERVICE,
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({ Messages: messages }))
+            })),
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.PERCEPTION_SERVICE,
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    CreatedTime,
+                    CharacterId,
+                    PermanentId: `ROOM#${RoomId}`
+                }))
+            }))
+        ])
+    }
+}
+
+const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
+    await moveCharacterWithMessage({ CharacterId, RoomId, messageCallback: (Name) => (`${Name} left${ ExitName ? ` by ${ExitName} exit` : ''}.`)})
+}
+
+const goHome = async ({ CharacterId } = {}) => {
+
+    const { Item = {} } = await dbClient.send(new GetItemCommand({
+        TableName: permanentsTable,
+        Key: marshall({
+            PermanentId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Details'
+        }),
+        ProjectionExpression: 'HomeId'
+    }))
+    const { HomeId = 'VORTEX' } = unmarshall(Item)
+    await moveCharacterWithMessage({ CharacterId, RoomId: HomeId, messageCallback: (Name) => (`${Name} left to go home.`)})
+
+}
 
 exports.disconnect = disconnect
 exports.connect = connect
@@ -296,6 +403,10 @@ exports.handler = (event) => {
                     return lookPermanent(request.payload)
                 case 'say':
                     return say(request.payload)
+                case 'move':
+                    return moveCharacter(request.payload)
+                case 'home':
+                    return goHome(request.payload)
                 default:
                     break        
             }

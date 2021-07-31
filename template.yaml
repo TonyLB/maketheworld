@@ -903,35 +903,6 @@ Resources:
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationMoveCharacterResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: moveCharacter
-          DataSourceName: !GetAtt EphemeraDataSource.Name
-          RequestMappingTemplate: >
-              #if(!($ctx.args.CharacterId))
-                  $util.error("CharacterId field required")
-              #end
-              #if(!($ctx.args.RoomId))
-                  $util.error("RoomId field required")
-              #end
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "action": "updateEphemera",
-                    "Updates": [{
-                      "putCharacterInPlay": {
-                        "CharacterId": $util.toJson($ctx.args.CharacterId),
-                        "RoomId": $util.toJson($ctx.args.RoomId)
-                      }
-                    }]
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PermanentsFunction:
       Type: AWS::Serverless::Function
       DependsOn:
@@ -1635,10 +1606,6 @@ Resources:
                       Characters: [String]
                     ): PlayerSubscription
                   @aws_iam @aws_cognito_user_pools
-                  moveCharacter(
-                      CharacterId: String!
-                      RoomId: String!
-                  ): [ChangedEphemera]
                   updateMessages(
                       Updates: [MessageUpdateInput]
                   ): String

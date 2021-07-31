@@ -19,6 +19,10 @@ import { PolymorphicMessage } from '../Message'
 
 const itemContent = (viewAsCharacterId) => (_, data) => {
     const { CharacterId, Message, MessageTime: MessageTimeData, ThreadId, Description, Name, Exits, Players } = data
+    //
+    // TODO: Replace global clickable:true for RoomExits with clickable only on the most recent instance
+    // of the current room description message
+    //
     return <PolymorphicMessage viewAsCharacterId={viewAsCharacterId}>
         { CharacterId && <CharacterAvatar CharacterId={CharacterId} />}
         { Message && <MessageContent>{Message}</MessageContent>}
@@ -32,6 +36,8 @@ const itemContent = (viewAsCharacterId) => (_, data) => {
                 Name={Name}
                 RoomId={RoomId}
                 Visibility={Visibility}
+                viewAsCharacterId={viewAsCharacterId}
+                clickable={true}
             />
         ))}
         { Players && Players.map(({

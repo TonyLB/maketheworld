@@ -39,22 +39,6 @@ export const putPlayer = /* GraphQL */ `
     }
   }
 `;
-export const moveCharacter = /* GraphQL */ `
-  mutation MoveCharacter($CharacterId: String!, $RoomId: String!) {
-    moveCharacter(CharacterId: $CharacterId, RoomId: $RoomId) {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
-        Name
-        OneCoolThing
-        Outfit
-        Pronouns
-        FirstImpression
-      }
-    }
-  }
-`;
 export const updateMessages = /* GraphQL */ `
   mutation UpdateMessages($Updates: [MessageUpdateInput]) {
     updateMessages(Updates: $Updates)

@@ -52,10 +52,6 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
     }
     const matchedExit = currentRoom.Exits.find(({ Name }) => ( entry.toLowerCase().trim() === Name.toLowerCase() || entry.toLowerCase().trim() === `go ${Name.toLowerCase()}`))
     if (matchedExit) {
-        //
-        // TODO:  Replace moveCharacter action with call to the webSocket LifeLine (after
-        // creating backing functionality in the ControlChannel Lambda)
-        //
         dispatch(moveCharacter({ ExitName: matchedExit.Name, RoomId: matchedExit.RoomId }))
         return true
     }
