@@ -4,6 +4,14 @@
 
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
+import {
+    BrowserRouter as Router,
+    Switch,
+    Route,
+    Link,
+    useRouteMatch,
+    useParams
+} from "react-router-dom"
 
 import './index.css'
 
@@ -22,24 +30,6 @@ import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
 
 import ActiveCharacter from '../ActiveCharacter'
 import { getCharacters } from '../../selectors/characters'
-
-const TabPanel = (props) => {
-    const { children, value, index, ...other } = props
-
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`vertical-tabpanel-${index}`}
-            aria-labelledby={`vertical-tab-${index}`}
-            {...other}
-        >
-            <Box style={{ height: "100%" }}>
-                {children}
-            </Box>
-        </div>
-    )
-}
 
 const a11yProps = (index) => {
     return {
@@ -97,11 +87,27 @@ const useStyles = makeStyles((theme) => ({
 }))
 
 const tabList = ({ large, subscribedCharacterIds = [], characters }) => ([
-    <Tab key="Profile" label="Profile" value="profile" {...a11yProps(0)} icon={<PeopleAltIcon />} />,
+    <Tab
+        key="Profile"
+        label="Profile"
+        value="profile"
+        {...a11yProps(0)}
+        icon={<PeopleAltIcon />}
+        component={Link}
+        to="/"
+    />,
     ...subscribedCharacterIds.reduce(
         (previous, characterId, index) => ([
             ...previous,
-            <Tab key={`inPlay-${characterId}`} label={`Play: ${characters[characterId]?.Name}`} value={`inPlay-${characterId}`} {...a11yProps(1+(index*2))} icon={<ForumIcon />} />,
+            <Tab
+                key={`inPlay-${characterId}`}
+                label={`Play: ${characters[characterId]?.Name}`}
+                value={`inPlay-${characterId}`}
+                {...a11yProps(1+(index*2))}
+                icon={<ForumIcon />}
+                component={Link}
+                to={`/Character/${characterId}/Play`}
+            />,
             <Tab key={`message-${characterId}`} label={`Chat: ${characters[characterId]?.Name}`} value={`messages-${characterId}`} {...a11yProps(2+(index*2))} icon={<MailIcon />} />
         ]), []),
     <Tab key="Map" label="Map" value="map" {...a11yProps(3+(subscribedCharacterIds.length*2))} icon={<ExploreIcon />} />,
@@ -134,6 +140,21 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 }
 
+const CharacterRouterSwitch = ({ messagePanel }) => {
+    const { CharacterId } = useParams()
+    let { path } = useRouteMatch()
+    return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
+        <Switch>
+            <Route path={`${path}/Play`}>
+                {messagePanel}
+            </Route>
+            <Route path={`${path}/Map`}>
+
+            </Route>
+        </Switch>
+    </ActiveCharacter>
+}
+
 export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
@@ -145,59 +166,46 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, thre
         setValue(newValue);
     }
 
-    return <div className={`fullScreen ${classes.grid}`}>
-        <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
-        <div className={classes.tabs}>
-            <Tabs
-                classes={{ vertical: 'tabRootVertical' }}
-                orientation={portrait ? "horizontal" : "vertical"}
-                variant="scrollable"
-                scrollButtons="on"
-                value={value}
-                onChange={handleChange}
-                aria-label="MakeTheWorld navigation"
-                indicatorColor="primary"
-                textColor="primary"
-            >
-                {tabList({ large, subscribedCharacterIds, characters })}
-            </Tabs>
-        </div>
-
-        <div className={classes.content}>
-            <TabPanel value={value} index={'profile'} style={{ width: "100%", height: "100%" }}>
-                {profilePanel}
-            </TabPanel>
-            {
-                subscribedCharacterIds.map((characterId) => (
-                    <ActiveCharacter key={`Character-${characterId}`} CharacterId={characterId}>
-                        <TabPanel value={value} index={`inPlay-${characterId}`} style={{ width: "100%", height: "100%" }}>
-                            {messagePanel}
-                        </TabPanel>
-                    </ActiveCharacter>
-                ))
-            }
-            {/* <TabPanel value={value} index={'messages'} style={{ width: "100%", height: "100%" }}>
-                {threadPanel}
-            </TabPanel>
-            <TabPanel
-                value={value}
-                index={'map'}
-                style={{ height: "100%" }}
-            >
-                {mapPanel}
-            </TabPanel>
-            <TabPanel value={value} index={'who'} style={{ height: "100%" }}>
-                {whoPanel}
-            </TabPanel> */}
-        </div>
-
-        {large
-            ? <div className={classes.sidebar}>
-                {/* {whoPanel} */}
+    return <Router>
+        <div className={`fullScreen ${classes.grid}`}>
+            <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
+            <div className={classes.tabs}>
+                <Tabs
+                    classes={{ vertical: 'tabRootVertical' }}
+                    orientation={portrait ? "horizontal" : "vertical"}
+                    variant="scrollable"
+                    scrollButtons="on"
+                    value={value}
+                    onChange={handleChange}
+                    aria-label="Navigation"
+                    indicatorColor="primary"
+                    textColor="primary"
+                >
+                    {tabList({ large, subscribedCharacterIds, characters })}
+                </Tabs>
             </div>
-            : []
-        }
-    </div>
+
+            <div className={classes.content}>
+                <div style={{ width: "100%", height: "100%" }}>
+                    <Switch>
+                        <Route path="/Character/:CharacterId">
+                            <CharacterRouterSwitch messagePanel={messagePanel} />
+                        </Route>
+                        <Route path="/">
+                            {profilePanel}
+                        </Route>
+                    </Switch>
+                </div>
+            </div>
+
+            {large
+                ? <div className={classes.sidebar}>
+                    {/* {whoPanel} */}
+                </div>
+                : []
+            }
+        </div>
+    </Router>
 
 }
 
