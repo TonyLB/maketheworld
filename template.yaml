@@ -1234,22 +1234,6 @@ Resources:
             }
         ResponseMappingTemplate: >
             $util.toJson($ctx.result)
-  MutationBroadcastEphemera:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: broadcastEphemera
-        DataSourceName: !GetAtt NoneDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "payload": $util.toJson($ctx.args.Ephemera)
-            }
-        ResponseMappingTemplate: >
-            $util.toJson($ctx.result)
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:
@@ -1564,40 +1548,6 @@ Resources:
                 Items: [Message]
                 LastEvaluatedKey: MessageLastEvaluatedKey
                 LastSync: Long
-              }
-              type CharacterInPlay @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String!
-                  Connected: Boolean
-                  Name: String
-                  OneCoolThing: String
-                  Outfit: String
-                  Pronouns: String
-                  FirstImpression: String
-              }
-              input CharacterInPlayInput @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String
-                  Connected: Boolean
-              }
-              input CharacterInPlayDirectInput @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String
-                  Connected: Boolean
-                  Name: String
-                  OneCoolThing: String
-                  Outfit: String
-                  Pronouns: String
-                  FirstImpression: String
-              }
-              type ChangedEphemera @aws_iam @aws_cognito_user_pools {
-                CharacterInPlay: CharacterInPlay
-              }
-              input EphemeraInput @aws_iam @aws_cognito_user_pools {
-                CharacterInPlay: CharacterInPlayDirectInput
-              }
-              input EphemeraUpdateInput {
-                putCharacterInPlay: CharacterInPlayInput
               }
               type Mutation {
                   putPlayer(
