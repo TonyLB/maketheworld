@@ -9,9 +9,16 @@ export const useCommunicationsLayer = () => {
     const dispatch = useDispatch()
 
     //
-    // TODO:  Revamp web-socket procedures to create and maintain one
-    // web-socket for the session (and adapt protocols to handle
-    // events for multiple characters)
+    // TODO:  Dispatch registerEphemera only as a .then on the
+    // dispatch of registerLifeLineSSM, rather than in parallel
+    // with establishing the LifeLine.
+    //
+    // Doing this will require figuring out how to depend a dispatch
+    // upon the reaching of a particular state in a state machine.
+    //
+    // Alternately, the EphemeraSSM can be altered to include a holding
+    // pattern that waits for a live webSocket.  This will require
+    // some revamping of the SSM system to allow for holding patterns.
     //
     useEffect(() => {
         dispatch(registerLifeLineSSM)

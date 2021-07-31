@@ -1,11 +1,7 @@
-import { API, graphqlOperation } from 'aws-amplify'
-import { getPlayer } from '../../../graphql/queries'
-import { changedEphemera } from '../../../graphql/subscriptions'
-
-import { fetchCharactersInPlay } from '../../characters'
-
-import { subscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS, subscriptionSSMKeys } from './baseClasses'
+import { subscriptionSSMClassGenerator, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
+import { getLifeLine } from '../../../selectors/communicationsLayer'
+import { socketDispatch } from '../lifeLine'
 
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
@@ -23,6 +19,7 @@ interface IChangedEphemera {
         CharacterId: string;
         RoomId: string;
         Connected: boolean;
+        Name: string;
     }
 }
 
@@ -38,53 +35,9 @@ const receiveEphemeraChange = (payload: IChangedEphemera[]) => (dispatch: any, g
         payload
     }
     dispatch(action)
-    //
-    // TODO:  Refactor server-side connection logging so that when a character is connected it
-    // handles (a) sending the room description message to give them the current state of their
-    // surroundings, and (b) sending the 'X has connected.' message to everyone nearby.  Should
-    // be much easier once we refactor messaging as a microservice behing an SQS/SNS disconnect.
-    //
-
-    // const newState = {
-    //     ...state,
-    //     charactersInPlay: charactersInPlayReducer(state.charactersInPlay || {}, action)
-    // }
-    // const myCharacter = getMyCharacterInPlay(newState)
-    // const myCurrentCharacter = getMyCurrentCharacter(newState)
-    // const myPreviousCharacter = getMyCharacterInPlay(state)
-    // if (myCharacter.CharacterId === payload.CharacterId) {
-    //     //
-    //     // Handle actions that depend upon changes in the state of your own character.
-    //     //
-    //     const currentNeighborhood = getCurrentNeighborhood(state)
-    //     const previousAncestry = (currentNeighborhood && currentNeighborhood.ancestry)
-    //     if (myCharacter && myCharacter.Connected && myCharacter.RoomId && !(myPreviousCharacter && myPreviousCharacter.Connected && myPreviousCharacter.RoomId === myCharacter.RoomId)) {
-    //         return API.graphql(graphqlOperation(getRoomRecap, { PermanentId: payload.RoomId }))
-    //             .then(({ data }) => (data))
-    //             .then(({ getRoomRecap }) => (getRoomRecap))
-    //             .then((Recap) => {
-    //                 dispatch(lookRoom({ RoomId: myCharacter.RoomId, Recap, showNeighborhoods: true, previousAncestry }))
-    //                 const { Name = 'Someone' } = myCurrentCharacter || {}
-    //                 dispatch(sendWorldMessage({ RoomId: myCharacter.RoomId, Message: `${Name} has ${(myPreviousCharacter.Connected) ? 'arrived' : 'connected'}.` }))
-    //             })
-    //     }
-    // }
 }
-const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
-    const subscription = API.graphql(graphqlOperation(changedEphemera))
-        .subscribe({
-            next: (ephemeraData: { value?: { data?: { changedEphemera?: IChangedEphemera[] }}}) => {
-                const { value = {} } = ephemeraData
-                const { data = {} } = value
-                const { changedEphemera = [] } = data
-                dispatch(receiveEphemeraChange(changedEphemera))
-            }
-        })
 
-    dispatch({
-        type: SUBSCRIPTION_SUCCESS,
-        payload: { ephemera: subscription }
-    })
+const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
     return {}
 }
 
@@ -98,9 +51,11 @@ const unsubscribeAction = () => async (dispatch: any, getState: any): Promise<Pa
 
 const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
     //
-    // TODO:  Remove fetchCharactersInPlay ATTEMPT and ERROR states (since they're now handled by the SSM)
+    // TODO:  Write a handler subscription that can be applied to track when fetchephemera has returned
+    // all relevant updates, and then write a promise-wrapper that holds the state-advance from SYNCHRONIZING
+    // to SYNCHRONIZED, until the results are back.
     //
-    dispatch(fetchCharactersInPlay())
+    dispatch(socketDispatch('fetchEphemera')({}))
     return {}
 }
 
@@ -110,6 +65,10 @@ const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<E
 export class EphemeraSubscriptionTemplate extends subscriptionSSMClassGenerator<EphemeraSubscriptionData, 'EphemeraSubscription'>({
     ssmType: 'EphemeraSubscription',
     initialData: new EphemeraSubscriptionData(),
+    condition: (_, getState) => {
+        const { status } = getLifeLine(getState())
+        return status === 'CONNECTED'
+    },
     subscribeAction,
     unsubscribeAction,
     syncAction

@@ -31,17 +31,6 @@ export const changedPlayer = /* GraphQL */ `
     }
   }
 `;
-export const changedEphemera = /* GraphQL */ `
-  subscription ChangedEphemera {
-    changedEphemera {
-      CharacterInPlay {
-        CharacterId
-        RoomId
-        Connected
-      }
-    }
-  }
-`;
 export const changedPermanents = /* GraphQL */ `
   subscription ChangedPermanents {
     changedPermanents {

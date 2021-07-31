@@ -1,7 +1,7 @@
 const AWSXray = require('aws-xray-sdk')
 
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
-const { DynamoDBClient, ScanCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
 
 const { resolveTargets } = require('./resolveTargets')
 const { putMessage } = require('./putMessage')
@@ -68,7 +68,7 @@ const persistMessages = (Updates = []) => {
     const outputs = Updates.map((update) => {
             return putMessage({
                 ...update,
-                CreatedTime: update.CreatedTime || (epochTime + (update.TimeOffset || 0))
+                CreatedTime: (update.CreatedTime || epochTime) + (update.TimeOffset || 0)
             })
         }
     )
@@ -99,6 +99,7 @@ exports.handler = async (event) => {
 
     const resolved = await resolveTargets(dbClient)(Messages)
     const { resolvedMessages, byConnectionId } = resolved
+    const epochTime = Date.now()
     await Promise.all([
         ...Object.entries(byConnectionId)
             .map(([ConnectionId, messages]) => (
@@ -106,7 +107,10 @@ exports.handler = async (event) => {
                     ConnectionId,
                     Data: JSON.stringify({
                         messageType: 'Messages',
-                        messages
+                        messages: messages.map(({ CreatedTime, TimeOffset = 0, ...rest }) => ({
+                            CreatedTime: (CreatedTime || epochTime) + TimeOffset,
+                            ...rest
+                        }))
                     }, null, 4)
                 }))
             )),

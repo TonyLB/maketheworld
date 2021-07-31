@@ -1,24 +1,10 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { graphqlClient, gql } = require('./utilities')
-
 const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
 const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
-
-const broadcastGQL = (Updates) => (gql`mutation BroadcastGQL {
-    broadcastEphemera (Ephemera: [
-            ${Updates.map(({ CharacterInPlay: { CharacterId, RoomId, Connected } = {} }) => 
-                (`{ CharacterInPlay: { CharacterId: "${CharacterId}", RoomId: "${RoomId}", Connected: ${Connected ? 'true' : 'false'} } }`))
-                .join('\n            ')}
-        ]) {
-        CharacterInPlay {
-            CharacterId
-            RoomId
-            Connected
-        }
-    }
-}`)
+const { queueClear, queueState, queueFlush } = require('./feedbackQueue')
+const { fetchEphemera } = require('./fetch')
 
 const splitPermanentId = (PermanentId) => {
     const sections = PermanentId.split('#')
@@ -35,12 +21,10 @@ const updateDispatcher = ({ Updates = [] }) => {
         if (update.putCharacterInPlay) {
                 return putCharacterInPlay(update.putCharacterInPlay)
             }
-            return Promise.resolve([])
-        }
-    )
+        return Promise.resolve([])
+    })
 
     return Promise.all(outputs)
-        .then((finalOutputs) => finalOutputs.reduce((previous, output) => ([ ...previous, ...output ]), []))
 }
 
 const denormalizeDispatcher = ({ PermanentId, data }) => {
@@ -59,34 +43,28 @@ exports.handler = async (event, context) => {
 
     const { action = 'NO-OP', directCall = false, ...payload } = event
 
+    queueClear()
     switch(action) {
         case 'getCharactersInPlay':
             return getCharactersInPlay()
         
+        case 'fetchEphemera':
+            return fetchEphemera()
+
         case 'updateEphemera':
-            const updates = await updateDispatcher(payload)
+            await updateDispatcher(payload)
+            const updates = queueState()
             if (directCall) {
-                await graphqlClient.mutate({ mutation: broadcastGQL(updates) })
+                await queueFlush()
             }
             return updates
 
         case 'denormalize':
             const denormalize = await denormalizeDispatcher(payload)
-            if (denormalize) {
-                if (payload.PermanentId.slice(0, 9) === 'CHARACTER') {
-                    const denormalizeUpdates = [{
-                        CharacterInPlay: denormalize
-                    }]
-                    await graphqlClient.mutate({ mutation: broadcastGQL(denormalizeUpdates) })
-                    return denormalizeUpdates
-                }
-                else {
-                    return denormalize
-                }
+            if (queueState()) {
+                await queueFlush()
             }
-            else {
-                return []
-            }
+            return denormalize
 
         default:
             context.fail(JSON.stringify(`Error: Unknown action: ${action}`))

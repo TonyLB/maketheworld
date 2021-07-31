@@ -59,7 +59,7 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_permanents'
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
         - Statement:
           - Effect: Allow
@@ -69,6 +69,10 @@ Resources:
               - !GetAtt PerceptionFunction.Arn
               - !GetAtt MessagePublishFunction.Arn
               - !GetAtt EphemeraFunction.Arn
+        - Statement:
+          - Effect: Allow
+            Action: execute-api:ManageConnections
+            Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -96,6 +100,34 @@ Resources:
         application/json: >
           {
             "action": "disconnect"
+          }
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref ConnectInteg
+  ConnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Connect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+      RequestTemplates:
+        application/json: >
+          {
+            "action": "connect"
           }
   PingRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -175,6 +207,41 @@ Resources:
     Properties:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref RegisterCharacterRoute
+      RouteResponseKey: "$default"
+  FetchEphemeraRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: fetchEphemera
+      AuthorizationType: NONE
+      OperationName: FetchEphemeraRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref FetchEphemeraInteg
+  FetchEphemeraInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Fetch Ephemera
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+  FetchEphemeraIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref FetchEphemeraInteg
+      IntegrationResponseKey: "/200/"
+  FetchEphemeraResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref FetchEphemeraRoute
       RouteResponseKey: "$default"
   ActionRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -770,22 +837,19 @@ Resources:
           Handler: app.handler
           MemorySize: 256
           Runtime: nodejs14.x
-          Layers:
-              - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
+                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_ephemera'
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
             - Statement:
-                - Effect: Allow
-                  Action: appsync:GraphQL
-                  Resource: !Sub '${AppSyncAPI}/*'
+              - Effect: Allow
+                Action: execute-api:ManageConnections
+                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   EphemeraDataSource:
       Type: AWS::AppSync::DataSource
       Properties:
@@ -795,23 +859,6 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt EphemeraFunction.Arn
-  QueryGetCharactersInPlay:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getCharactersInPlay
-          DataSourceName: !GetAtt EphemeraDataSource.Name
-          RequestMappingTemplate: >
-              $util.toJson({
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "action": "getCharactersInPlay"
-                  }
-              })
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   QueryGetRoomRecap:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -853,35 +900,6 @@ Resources:
                     #if ($ctx.args.exclusiveStartKey)
                     , "exclusiveStartKey": $util.toJson($ctx.args.exclusiveStartKey)
                     #end
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  MutationMoveCharacterResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: moveCharacter
-          DataSourceName: !GetAtt EphemeraDataSource.Name
-          RequestMappingTemplate: >
-              #if(!($ctx.args.CharacterId))
-                  $util.error("CharacterId field required")
-              #end
-              #if(!($ctx.args.RoomId))
-                  $util.error("RoomId field required")
-              #end
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "action": "updateEphemera",
-                    "Updates": [{
-                      "putCharacterInPlay": {
-                        "CharacterId": $util.toJson($ctx.args.CharacterId),
-                        "RoomId": $util.toJson($ctx.args.RoomId)
-                      }
-                    }]
                   }
               }
           ResponseMappingTemplate: "$util.toJson($ctx.result)"
@@ -1216,22 +1234,6 @@ Resources:
             }
         ResponseMappingTemplate: >
             $util.toJson($ctx.result)
-  MutationBroadcastEphemera:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: broadcastEphemera
-        DataSourceName: !GetAtt NoneDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "payload": $util.toJson($ctx.args.Ephemera)
-            }
-        ResponseMappingTemplate: >
-            $util.toJson($ctx.result)
   Schema:
       Type: AWS::AppSync::GraphQLSchema
       Properties:
@@ -1547,40 +1549,6 @@ Resources:
                 LastEvaluatedKey: MessageLastEvaluatedKey
                 LastSync: Long
               }
-              type CharacterInPlay @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String!
-                  Connected: Boolean
-                  Name: String
-                  OneCoolThing: String
-                  Outfit: String
-                  Pronouns: String
-                  FirstImpression: String
-              }
-              input CharacterInPlayInput @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String
-                  Connected: Boolean
-              }
-              input CharacterInPlayDirectInput @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  RoomId: String
-                  Connected: Boolean
-                  Name: String
-                  OneCoolThing: String
-                  Outfit: String
-                  Pronouns: String
-                  FirstImpression: String
-              }
-              type ChangedEphemera @aws_iam @aws_cognito_user_pools {
-                CharacterInPlay: CharacterInPlay
-              }
-              input EphemeraInput @aws_iam @aws_cognito_user_pools {
-                CharacterInPlay: CharacterInPlayDirectInput
-              }
-              input EphemeraUpdateInput {
-                putCharacterInPlay: CharacterInPlayInput
-              }
               type Mutation {
                   putPlayer(
                       PlayerName: String,
@@ -1588,10 +1556,6 @@ Resources:
                       Characters: [String]
                     ): PlayerSubscription
                   @aws_iam @aws_cognito_user_pools
-                  moveCharacter(
-                      CharacterId: String!
-                      RoomId: String!
-                  ): [ChangedEphemera]
                   updateMessages(
                       Updates: [MessageUpdateInput]
                   ): String
@@ -1612,19 +1576,10 @@ Resources:
                       Updates: [PermanentInput]
                   ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
-                  updateEphemera(
-                      Updates: [EphemeraUpdateInput]
-                  ): [ChangedEphemera]
-                  @aws_iam @aws_cognito_user_pools
-                  broadcastEphemera(
-                      Ephemera: [EphemeraInput]
-                  ): [ChangedEphemera]
-                  @aws_iam @aws_cognito_user_pools
               }
               type Query {
                   getPlayer(PlayerName: String!): Player
                   getPlayerCharacters: [Character]
-                  getCharactersInPlay: [CharacterInPlay]
                   getRoomRecap(PermanentId: String!): [Message]
                   syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse
                   syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
@@ -1632,8 +1587,6 @@ Resources:
               type Subscription {
                   changedPlayer (PlayerName: String): PlayerSubscription
                   @aws_subscribe(mutations: ["putPlayer"])
-                  changedEphemera: [ChangedEphemera]
-                  @aws_subscribe(mutations: ["updateEphemera", "broadcastEphemera", "moveCharacter"])
                   changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
                   addedMessage (Target: String!): Message

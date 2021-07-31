@@ -54,7 +54,19 @@ const disconnect = async (connectionId) => {
         IndexName: 'ConnectionIndex'
     }))
 
-    await Promise.all(Items
+    await Promise.all([
+        dbClient.send(new UpdateItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId: 'Global',
+                DataCategory: 'Connections'
+            }),
+            UpdateExpression: 'DELETE connections :connection',
+            ExpressionAttributeValues: {
+                ':connection': { 'SS': [connectionId] }
+            }
+        })),
+        ...(Items
             .map(unmarshall)
             .map(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
             .map(({ CharacterId, RoomId }) => (
@@ -90,9 +102,26 @@ const disconnect = async (connectionId) => {
                     ],
                     messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
                 })
-            )
-        )
+            ))
+        )]
     )
+
+    return { statusCode: 200 }
+}
+
+const connect = async (connectionId) => {
+
+    await dbClient.send(new UpdateItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId: 'Global',
+            DataCategory: 'Connections'
+        }),
+        UpdateExpression: 'ADD connections :connection',
+        ExpressionAttributeValues: {
+            ':connection': { 'SS': [connectionId] }
+        }
+    }))
 
     return { statusCode: 200 }
 }
@@ -110,6 +139,10 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
     const { DataCategory, RoomId, Connected } = unmarshall(Item)
     if (DataCategory) {
         const updatePromise = Promise.all([
+            //
+            // TODO:  Add Connection -> connectionId data elements to the Ephemera table that will record the
+            // authenticated player and the list of characters connected to a given connection.
+            //
             lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.EPHEMERA_SERVICE,
                 InvocationType: 'Event',
@@ -134,6 +167,12 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
                 RoomId,
                 CharacterId,
                 promises: [ updatePromise ],
+                //
+                // TODO:  Refactor updateWithRoomMessage to take advantage of the fact that we can
+                // now pull denormalized character information from the Ephemera table on the first
+                // GetItem up at the top of this procedure (i.e. we can pre-determine
+                // the messages to be delivered rather than pass a callback)
+                //
                 messageFunction: (Name) => (`${Name || 'Someone'} has connected.`)
             })
         }
@@ -144,6 +183,18 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
     }
     return { statusCode: 404 }
 
+}
+
+const fetchEphemera = async () => {
+    const { Payload = {} } =  await lambdaClient.send(new InvokeCommand({
+        FunctionName: process.env.EPHEMERA_SERVICE,
+        InvocationType: 'RequestResponse',
+        Payload: new TextEncoder().encode(JSON.stringify({ action: 'fetchEphemera' }))
+    }))
+    return {
+        statusCode: 200,
+        body: new TextDecoder('ascii').decode(Payload)
+    }
 }
 
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
@@ -163,12 +214,9 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     }
 }
 
-//
-// TODO:  Would it be waaaay more efficient overall to denormalize Name into CharacterInPlay Ephemera?
-//
-const say = async ({ CharacterId, Message } = {}) => {
+const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const [{ Item: EphemeraItem = {} }, { Item: CharacterItem }] = await Promise.all([
+    const [{ Item: EphemeraItem = {} }] = await Promise.all([
         dbClient.send(new GetItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
@@ -176,17 +224,8 @@ const say = async ({ CharacterId, Message } = {}) => {
                 DataCategory: 'Connection'
             })
         })),
-        dbClient.send(new GetItemCommand({
-            TableName: permanentsTable,
-            Key: marshall({
-                PermanentId: `CHARACTER#${CharacterId}`,
-                DataCategory: 'Details'
-            })
-        })),
-
     ])
-    const { RoomId } = unmarshall(EphemeraItem)
-    const { Name } = unmarshall(CharacterItem)
+    const { RoomId, Name } = unmarshall(EphemeraItem)
     if (RoomId) {
         const output = {
             Messages: [{
@@ -195,7 +234,7 @@ const say = async ({ CharacterId, Message } = {}) => {
                 Targets: [`ROOM#${RoomId}`],
                 DisplayProtocol: 'Player',
                 CharacterId,
-                Message: `${Name} says "${Message}"`
+                Message: messageCallback({ Name, Message })
             }]
         }
         await lambdaClient.send(new InvokeCommand({
@@ -210,8 +249,116 @@ const say = async ({ CharacterId, Message } = {}) => {
     }
 }
 
+const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback } = {}) => {
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    if (RoomId) {
+        const CreatedTime = Date.now()
+
+        const [{ Item = {} }] = await Promise.all([
+            dbClient.send(new GetItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId,
+                    DataCategory: 'Connection',
+                }),
+                ProjectionExpression: "#name, RoomId",
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                }
+            })),
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'updateEphemera',
+                    directCall: true,
+                    Updates: [{
+                        putCharacterInPlay: {
+                            CharacterId,
+                            RoomId
+                        }
+                    }]
+                }))
+            })),
+            //
+            // TODO:  Check first whether the room is already present, and only after
+            // that fails denormalize out of permanents.
+            //
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'denormalize',
+                    PermanentId: `ROOM#${RoomId}`
+                }))
+            }))
+
+        ])
+        const { Name = 'Someone', RoomId: CurrentRoomId } = unmarshall(Item)
+        const messages = [{
+            MessageId: uuidv4(),
+            CreatedTime,
+            TimeOffset: -1,
+            Targets: [`CHARACTER#${CharacterId}`, `ROOM#${CurrentRoomId}`],
+            DisplayProtocol: "World",
+            Message: messageCallback(Name)
+        },
+        {
+            MessageId: uuidv4(),
+            CreatedTime,
+            TimeOffset: 1,
+            RoomId,
+            Targets: [ `CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
+            DisplayProtocol: "World",
+            Message: `${Name} has arrived.`
+        }]
+        //
+        // TODO: Refactor Message Service so that perception messages can be sent as part of the payload,
+        // parsed by an invoke from MESSAGE, then folded into the list and delivered simultaneously.
+        //
+        // Alternately, maybe fold the Perception service directly into the Message service, if it is
+        // never going to be called without returning a message.
+        //
+        await Promise.all([
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.MESSAGE_SERVICE,
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({ Messages: messages }))
+            })),
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.PERCEPTION_SERVICE,
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    CreatedTime,
+                    CharacterId,
+                    PermanentId: `ROOM#${RoomId}`
+                }))
+            }))
+        ])
+    }
+}
+
+const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
+    await moveCharacterWithMessage({ CharacterId, RoomId, messageCallback: (Name) => (`${Name} left${ ExitName ? ` by ${ExitName} exit` : ''}.`)})
+}
+
+const goHome = async ({ CharacterId } = {}) => {
+
+    const { Item = {} } = await dbClient.send(new GetItemCommand({
+        TableName: permanentsTable,
+        Key: marshall({
+            PermanentId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Details'
+        }),
+        ProjectionExpression: 'HomeId'
+    }))
+    const { HomeId = 'VORTEX' } = unmarshall(Item)
+    await moveCharacterWithMessage({ CharacterId, RoomId: HomeId, messageCallback: (Name) => (`${Name} left to go home.`)})
+
+}
 
 exports.disconnect = disconnect
+exports.connect = connect
 exports.registerCharacter = registerCharacter
 exports.handler = (event) => {
 
@@ -220,6 +367,9 @@ exports.handler = (event) => {
     const { connectionId, routeKey } = event.requestContext
     const request = event.body && JSON.parse(event.body) || {}
 
+    if (routeKey === '$connect') {
+        return connect(connectionId)
+    }
     if (routeKey === '$disconnect') {
         return disconnect(connectionId)
     }
@@ -229,6 +379,8 @@ exports.handler = (event) => {
                 return registerCharacter({ connectionId, CharacterId: request.CharacterId})
             }
             break
+        case 'fetchEphemera':
+            return fetchEphemera()
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look
@@ -238,7 +390,15 @@ exports.handler = (event) => {
                 case 'look':
                     return lookPermanent(request.payload)
                 case 'say':
-                    return say(request.payload)
+                    return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name} says "${Message}"`)})
+                case 'pose':
+                    return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
+                case 'spoof':
+                    return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
+                case 'move':
+                    return moveCharacter(request.payload)
+                case 'home':
+                    return goHome(request.payload)
                 default:
                     break        
             }

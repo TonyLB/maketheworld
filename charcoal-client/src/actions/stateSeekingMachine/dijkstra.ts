@@ -25,6 +25,8 @@ const possibleIntents = <T extends ISSMTemplate>(
     switch(node.stateType) {
         case 'CHOICE':
             return node.choices
+        case 'HOLD':
+            return [node.next]
         case 'ATTEMPT':
             return [node.resolve]
         default:

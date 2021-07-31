@@ -9,9 +9,8 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.21.0",
     "@aws-sdk/client-dynamodb": "^3.13.1",
-    "@aws-sdk/util-dynamodb": "^3.13.1",
-    "aws-sdk": "^2.720.0",
-    "cross-fetch": "^3.0.5"
+    "@aws-sdk/util-dynamodb": "^3.13.1"
   }
 }

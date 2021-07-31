@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT-0
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { queueAdd } = require('./feedbackQueue');
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -19,7 +20,10 @@ const denormalizeFactory = ({
     requiredFields = [],
     optionalFields = [],
     extraReturnFields = [],
-    reservedMapping = {}
+    reservedMapping = {},
+    feedbackCallback = (item) => {
+        return [item]
+    }
 } ) => async ({ [`${label}Id`]: ItemId, data }) => {
 
     if (!ItemId) {
@@ -88,10 +92,11 @@ const denormalizeFactory = ({
     }
 
     const remap = Object.assign({}, ...([...allFields, ...extraReturnFields].map((key) => ({ [key]: newRecord[key] }))))
-    return {
+    const returnValue = {
         [`${label}Id`]: ItemId,
         ...remap
     }
+    return feedbackCallback(returnValue)
 }
 
 const denormalizeCharacter = denormalizeFactory({
@@ -101,8 +106,20 @@ const denormalizeCharacter = denormalizeFactory({
     dataCategory: 'Connection',
     requiredFields: ['Name'],
     optionalFields: ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing'],
-    extraReturnFields: ['Connected'],
-    reservedMapping: { Name: '#name' }
+    extraReturnFields: ['Connected', 'RoomId'],
+    reservedMapping: { Name: '#name' },
+    feedbackCallback: (item) => {
+        const returnValue = {
+            CharacterInPlay: {
+                Name: item.Name,
+                CharacterId: item.CharacterId,
+                Connected: item.Connected,
+                RoomId: item.RoomId
+            }
+        }
+        queueAdd(returnValue)
+        return returnValue
+    }
 })
 
 const denormalizeRoom = denormalizeFactory({

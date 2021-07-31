@@ -1,18 +1,19 @@
-import { ISSMTemplateAbstract, ISSMPotentialState, ISSMAction } from '../../stateSeekingMachine/baseClasses'
+import { ISSMTemplateAbstract, ISSMPotentialState, ISSMAction, ISSMHoldCondition } from '../../stateSeekingMachine/baseClasses'
 
 export const SUBSCRIPTION_SUCCESS = 'SUBSCRIPTION_SUCCESS'
 
-export type subscriptionSSMKeys = 'INITIAL' | 'SUBSCRIBING' | 'SUBSCRIBED' | 'SYNCHING' | 'SYNCHRONIZED' | 'UNSUBSCRIBING'
+export type subscriptionSSMKeys = 'INITIAL' | 'AVAILABLE' | 'SUBSCRIBING' | 'SUBSCRIBED' | 'SYNCHING' | 'SYNCHRONIZED' | 'UNSUBSCRIBING'
 export type cachedSubscriptionSSMKeys = 'INITIAL' | 'FETCHING' | 'FETCHED' | 'SUBSCRIBING' | 'SUBSCRIBED' | 'SYNCHING' | 'SYNCHRONIZED' | 'UNSUBSCRIBING'
 
 //
 // Implement a state-seeking machine to keep websockets connected where possible.
 //
 export const subscriptionSSMClassGenerator = <D extends Record<string, any>, T extends string>({
-    ssmType, initialData, subscribeAction, unsubscribeAction, syncAction
+    ssmType, initialData, condition, subscribeAction, unsubscribeAction, syncAction
 }: {
     ssmType: T;
     initialData: D;
+    condition: ISSMHoldCondition<D>;
     subscribeAction: ISSMAction<D>;
     unsubscribeAction: ISSMAction<D>;
     syncAction: ISSMAction<D>
@@ -24,7 +25,13 @@ export const subscriptionSSMClassGenerator = <D extends Record<string, any>, T e
         INITIAL: {
             stateType: 'CHOICE',
             key: 'INITIAL',
-            choices: ['SUBSCRIBING']
+            choices: ['AVAILABLE']
+        },
+        AVAILABLE: {
+            stateType: 'HOLD',
+            key: 'AVAILABLE',
+            condition,
+            next: 'SUBSCRIBING'
         },
         SUBSCRIBING: {
             stateType: 'ATTEMPT',
@@ -75,7 +82,7 @@ export const cachedSubscriptionSSMClassGenerator = <D extends Record<string, any
     syncAction: ISSMAction<D>
 }) => class implements ISSMTemplateAbstract<cachedSubscriptionSSMKeys, D> {
     ssmType: T = ssmType
-    initialState: subscriptionSSMKeys = 'INITIAL'
+    initialState: cachedSubscriptionSSMKeys = 'INITIAL'
     initialData: D = initialData
     states: Record<cachedSubscriptionSSMKeys, ISSMPotentialState<cachedSubscriptionSSMKeys, D>> = {
         INITIAL: {

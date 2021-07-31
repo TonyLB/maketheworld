@@ -4,8 +4,10 @@ import { getLifeLine } from '../../../selectors/communicationsLayer'
 import { lifeLineSSMKeys, ILifeLineSSM, LifeLineData, ILifeLineState, LifeLineSSMKey } from './baseClass'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 import { MessageFormat } from './messages'
+import { EphemeraFormat } from './ephemera'
 
 import { PubSub } from '../../../lib/pubSub'
+import { RECEIVE_EPHEMERA_CHANGE } from '../appSyncSubscriptions/ephemeraSubscription'
 
 export const ESTABLISH_WEB_SOCKET_ATTEMPT = 'ESTABLISH_WEB_SOCKET_ATTEMPT'
 export const ESTABLISH_WEB_SOCKET_ERROR = 'ESTABLISH_WEB_SOCKET_ERROR'
@@ -23,7 +25,12 @@ type LifeLineReceiveMessage = {
     messages: MessageFormat[]
 }
 
-type LifeLinePubSubData = LifeLineRegisterMessage | LifeLineReceiveMessage
+type LifeLineReceiveEphemera = {
+    messageType: 'Ephemera',
+    updates: EphemeraFormat[]
+}
+
+type LifeLinePubSubData = LifeLineRegisterMessage | LifeLineReceiveMessage | LifeLineReceiveEphemera
 
 const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -74,15 +81,6 @@ export const disconnectWebSocket = ({ webSocket, pingInterval, refreshTimeout }:
         refreshTimeout: null
     }
 }
-
-//
-// TODO:  Create array storage in the lifelineData to keep track of listeners on the
-// socket.  Register response-listeners when a character is registered, and use them
-// to resolve the promise (so that registerCharacter can return a promise that
-// resolves when the character *has been* registered, rather than adding epicycles
-// permanently to the listener to always be on the lookout for a registerCharacter
-// pingback)
-//
 
 //
 // Implement a state-seeking machine to keep websockets connected where possible.
@@ -143,8 +141,6 @@ export type LifeLineSSM = IStateSeekingMachineAbstract<lifeLineSSMKeys, LifeLine
 // TODO:  The internal function needs to throw errors if there is no webSocket, or if the
 // webSocket has closed or timed out.
 //
-// TODO:  Create typescript constraints for messageType and payload
-//
 // TODO:  Enqueue messages that come in when status is not connected, and flush the
 //   queue through the lifeline when status returns to connected.
 //
@@ -167,10 +163,24 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
     }
 }
 
+const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData }) => {
+    if (payload.messageType === 'Ephemera') {
+        dispatch({
+            type: RECEIVE_EPHEMERA_CHANGE,
+            payload: payload.updates
+        })
+    }
+}
+
 export const registerLifeLineSSM = (dispatch: any): void => {
     dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate() }))
     dispatch(assertIntent({ key: 'LifeLine', newState: 'CONNECTED' }))
     LifeLinePubSub.subscribe(receiveMessages(dispatch))
+    LifeLinePubSub.subscribe(receiveEphemera(dispatch))
+}
+
+export const fetchEphemera = (dispatch: any) => {
+    dispatch(socketDispatch('fetchephemera'))()
 }
 
 export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
