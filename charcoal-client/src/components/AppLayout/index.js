@@ -18,7 +18,6 @@ import './index.css'
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 import Tabs from '@material-ui/core/Tabs'
 import Tab from '@material-ui/core/Tab'
-import Box from '@material-ui/core/Box'
 import Snackbar from '@material-ui/core/Snackbar'
 import IconButton from '@material-ui/core/IconButton'
 import CloseIcon from '@material-ui/icons/Close'
@@ -27,9 +26,11 @@ import ForumIcon from '@material-ui/icons/Forum'
 import MailIcon from '@material-ui/icons/Mail'
 import ExploreIcon from '@material-ui/icons/Explore'
 import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
+import HomeIcon from '@material-ui/icons/Home'
 
 import ActiveCharacter from '../ActiveCharacter'
 import { getCharacters } from '../../selectors/characters'
+import InDevelopment from '../InDevelopment'
 
 const a11yProps = (index) => {
     return {
@@ -88,11 +89,11 @@ const useStyles = makeStyles((theme) => ({
 
 const tabList = ({ large, subscribedCharacterIds = [], characters }) => ([
     <Tab
-        key="Profile"
-        label="Profile"
-        value="profile"
+        key="Home"
+        label="Home"
+        value="home"
         {...a11yProps(0)}
-        icon={<PeopleAltIcon />}
+        icon={<HomeIcon />}
         component={Link}
         to="/"
     />,
@@ -149,16 +150,16 @@ const CharacterRouterSwitch = ({ messagePanel }) => {
                 {messagePanel}
             </Route>
             <Route path={`${path}/Map`}>
-
+                <InDevelopment />
             </Route>
         </Switch>
     </ActiveCharacter>
 }
 
-export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
-    const [value, setValue] = useState('profile')
+    const [value, setValue] = useState('home')
     const classes = useStyles()
     const characters = useSelector(getCharacters)
 
@@ -188,11 +189,38 @@ export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, thre
             <div className={classes.content}>
                 <div style={{ width: "100%", height: "100%" }}>
                     <Switch>
+                        <Route path="/Character/Archived">
+                            <InDevelopment />
+                        </Route>
                         <Route path="/Character/:CharacterId">
                             <CharacterRouterSwitch messagePanel={messagePanel} />
                         </Route>
+                        <Route path="/Forum/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Calendar/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Scenes/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Stories/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Chat/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Logs/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/CodeOfConduct/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Maps/">
+                            <InDevelopment />
+                        </Route>
                         <Route path="/">
-                            {profilePanel}
+                            {homePanel}
                         </Route>
                     </Switch>
                 </div>
