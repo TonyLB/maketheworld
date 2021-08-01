@@ -126,7 +126,11 @@ export const Home = ({
         >
             { myCharacters.map(({ Name, CharacterId }) => (
                 CharacterId && <Grid key={`${Name}:${CharacterId}`} item sm={3}>
-                    <Card>
+                    <Card onClick={() => {
+                        if (CharacterId) {
+                            history.push(`/Character/${CharacterId}/Play`)
+                        }
+                    }}>
                         <CardHeader
                             avatar={<Avatar>{Name[0] ? Name[0].toUpperCase() : '?'}</Avatar>}
                             title={Name}

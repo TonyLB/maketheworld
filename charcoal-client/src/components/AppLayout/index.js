@@ -31,6 +31,7 @@ import HomeIcon from '@material-ui/icons/Home'
 import ActiveCharacter from '../ActiveCharacter'
 import { getCharacters } from '../../selectors/characters'
 import InDevelopment from '../InDevelopment'
+import { navigationTabs } from '../../selectors/navigationTabs'
 
 const a11yProps = (index) => {
     return {
@@ -87,7 +88,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }))
 
-const tabList = ({ large, subscribedCharacterIds = [], characters }) => ([
+const tabList = ({ large, navigationTabs = [], subscribedCharacterIds = [], characters }) => ([
     <Tab
         key="Home"
         label="Home"
@@ -97,22 +98,32 @@ const tabList = ({ large, subscribedCharacterIds = [], characters }) => ([
         component={Link}
         to="/"
     />,
-    ...subscribedCharacterIds.reduce(
-        (previous, characterId, index) => ([
-            ...previous,
-            <Tab
-                key={`inPlay-${characterId}`}
-                label={`Play: ${characters[characterId]?.Name}`}
-                value={`inPlay-${characterId}`}
-                {...a11yProps(1+(index*2))}
-                icon={<ForumIcon />}
-                component={Link}
-                to={`/Character/${characterId}/Play`}
-            />,
-            <Tab key={`message-${characterId}`} label={`Chat: ${characters[characterId]?.Name}`} value={`messages-${characterId}`} {...a11yProps(2+(index*2))} icon={<MailIcon />} />
-        ]), []),
-    <Tab key="Map" label="Map" value="map" {...a11yProps(3+(subscribedCharacterIds.length*2))} icon={<ExploreIcon />} />,
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4+subscribedCharacterIds.length*2)} icon={<PeopleAltIcon />} />])
+    ...(navigationTabs.map(({ href, label }, index) => (
+        <Tab
+            key={href}
+            label={label}
+            value={href}
+            {...a11yProps(index + 1)}
+            icon={<ForumIcon />}
+            component={Link}
+            to={href}
+        />
+    ))),
+    // ...subscribedCharacterIds.reduce(
+    //     (previous, characterId, index) => ([
+    //         ...previous,
+    //         <Tab
+    //             key={`inPlay-${characterId}`}
+    //             label={`Play: ${characters[characterId]?.Name}`}
+    //             value={`inPlay-${characterId}`}
+    //             {...a11yProps(1+(index*2))}
+    //             icon={<ForumIcon />}
+    //             component={Link}
+    //             to={`/Character/${characterId}/Play`}
+    //         />,
+    //         <Tab key={`message-${characterId}`} label={`Chat: ${characters[characterId]?.Name}`} value={`messages-${characterId}`} {...a11yProps(2+(index*2))} icon={<MailIcon />} />
+    //     ]), []),
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
 ])
 
 const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
@@ -157,6 +168,7 @@ const CharacterRouterSwitch = ({ messagePanel }) => {
 }
 
 export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+    const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const [value, setValue] = useState('home')
@@ -182,7 +194,7 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
                     indicatorColor="primary"
                     textColor="primary"
                 >
-                    {tabList({ large, subscribedCharacterIds, characters })}
+                    {tabList({ large, navigationTabs: navigationTabsData, subscribedCharacterIds, characters })}
                 </Tabs>
             </div>
 

@@ -9,6 +9,7 @@ import { parseCommand } from '../../actions/behaviors'
 import LineEntry from '../LineEntry'
 import useStyles from '../styles'
 import { useActiveCharacter } from '../ActiveCharacter'
+import useAutoPin from '../../slices/navigationTabs/useAutoPin'
 
 const useMessagePanelStyles = makeStyles((theme) => ({
     messagePanel: {
@@ -36,7 +37,8 @@ export const MessagePanel = () => {
     const dispatch = useDispatch()
     const classes = useStyles()
     const localClasses = useMessagePanelStyles()
-    const { CharacterId, inPlayMessages } = useActiveCharacter()
+    const { CharacterId, inPlayMessages, info: { Name = '???' } = {} } = useActiveCharacter()
+    useAutoPin({ href: `/Character/${CharacterId}/Play`, label: `Play: ${Name}`})
     const handleInput = useCallback((entry) => {
         dispatch(parseCommand(CharacterId)({ entry, raiseError: () => {} }))
         return true
