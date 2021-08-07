@@ -10,7 +10,8 @@ import {
     Route,
     Link,
     useRouteMatch,
-    useParams
+    useParams,
+    useLocation
 } from "react-router-dom"
 
 import './index.css'
@@ -31,7 +32,7 @@ import HomeIcon from '@material-ui/icons/Home'
 import ActiveCharacter from '../ActiveCharacter'
 import { getCharacters } from '../../selectors/characters'
 import InDevelopment from '../InDevelopment'
-import { navigationTabs } from '../../selectors/navigationTabs'
+import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
 
 const a11yProps = (index) => {
     return {
@@ -88,7 +89,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }))
 
-const tabList = ({ large, navigationTabs = [], subscribedCharacterIds = [], characters }) => ([
+const tabList = ({ large, navigationTabs = [] }) => ([
     <Tab
         key="Home"
         label="Home"
@@ -109,20 +110,6 @@ const tabList = ({ large, navigationTabs = [], subscribedCharacterIds = [], char
             to={href}
         />
     ))),
-    // ...subscribedCharacterIds.reduce(
-    //     (previous, characterId, index) => ([
-    //         ...previous,
-    //         <Tab
-    //             key={`inPlay-${characterId}`}
-    //             label={`Play: ${characters[characterId]?.Name}`}
-    //             value={`inPlay-${characterId}`}
-    //             {...a11yProps(1+(index*2))}
-    //             icon={<ForumIcon />}
-    //             component={Link}
-    //             to={`/Character/${characterId}/Play`}
-    //         />,
-    //         <Tab key={`message-${characterId}`} label={`Chat: ${characters[characterId]?.Name}`} value={`messages-${characterId}`} {...a11yProps(2+(index*2))} icon={<MailIcon />} />
-    //     ]), []),
     ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
 ])
 
@@ -167,37 +154,37 @@ const CharacterRouterSwitch = ({ messagePanel }) => {
     </ActiveCharacter>
 }
 
-export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+const NavigationTabs = () => {
+    const { pathname } = useLocation()
+    const selectedTab = useSelector(navigationTabSelected(pathname))
     const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
-    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
-    const [value, setValue] = useState('home')
     const classes = useStyles()
-    const characters = useSelector(getCharacters)
+    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
+    return <div className={classes.tabs}>
+        <Tabs
+            classes={{ vertical: 'tabRootVertical' }}
+            orientation={portrait ? "horizontal" : "vertical"}
+            variant="scrollable"
+            scrollButtons="on"
+            value={selectedTab ? selectedTab.href : 'home'}
+            aria-label="Navigation"
+            indicatorColor="primary"
+            textColor="primary"
+        >
+            {tabList({ large, navigationTabs: navigationTabsData })}
+        </Tabs>
+    </div>
+}
 
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
-    }
+export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
+    const classes = useStyles()
 
     return <Router>
         <div className={`fullScreen ${classes.grid}`}>
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
-            <div className={classes.tabs}>
-                <Tabs
-                    classes={{ vertical: 'tabRootVertical' }}
-                    orientation={portrait ? "horizontal" : "vertical"}
-                    variant="scrollable"
-                    scrollButtons="on"
-                    value={value}
-                    onChange={handleChange}
-                    aria-label="Navigation"
-                    indicatorColor="primary"
-                    textColor="primary"
-                >
-                    {tabList({ large, navigationTabs: navigationTabsData, subscribedCharacterIds, characters })}
-                </Tabs>
-            </div>
-
+            <NavigationTabs />
             <div className={classes.content}>
                 <div style={{ width: "100%", height: "100%" }}>
                     <Switch>
