@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import PropTypes from "prop-types"
 
@@ -9,6 +9,8 @@ import { parseCommand } from '../../actions/behaviors'
 import LineEntry from '../LineEntry'
 import useStyles from '../styles'
 import { useActiveCharacter } from '../ActiveCharacter'
+import useAutoPin from '../../slices/navigationTabs/useAutoPin'
+import { registerCharacterSSM } from '../../actions/activeCharacters'
 
 const useMessagePanelStyles = makeStyles((theme) => ({
     messagePanel: {
@@ -36,7 +38,11 @@ export const MessagePanel = () => {
     const dispatch = useDispatch()
     const classes = useStyles()
     const localClasses = useMessagePanelStyles()
-    const { CharacterId, inPlayMessages } = useActiveCharacter()
+    const { CharacterId, inPlayMessages, info: { Name = '???' } = {} } = useActiveCharacter()
+    useAutoPin({ href: `/Character/${CharacterId}/Play`, label: `Play: ${Name}`})
+    useEffect(() => {
+        dispatch(registerCharacterSSM({ CharacterId, defaultIntent: 'REGISTERED' }))
+    }, [dispatch, CharacterId])
     const handleInput = useCallback((entry) => {
         dispatch(parseCommand(CharacterId)({ entry, raiseError: () => {} }))
         return true

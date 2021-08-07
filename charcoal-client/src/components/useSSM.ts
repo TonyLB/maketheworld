@@ -11,7 +11,7 @@ export const useStateSeekingMachines = () => {
         if (heartbeat !== lastEvaluation) {
             dispatch(iterateAllSSMs)
         }
-    }, [heartbeat, lastEvaluation])
+    }, [dispatch, heartbeat, lastEvaluation])
 }
 
 export default useStateSeekingMachines

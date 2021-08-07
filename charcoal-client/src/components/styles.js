@@ -312,6 +312,14 @@ export const useStyles = makeStyles(theme => ({
     svgLightBlueContrast: {
         fill: theme.palette.getContrastText(blue[50])
     },
+    homeContents: {
+        flexGrow: 1,
+        padding: "10px"
+    },
+    homeGrid: {
+        width: "100%",
+        padding: "10px"
+    },
     profileContents: {
         width: "calc(100% - 40px)",
         height: "100%",

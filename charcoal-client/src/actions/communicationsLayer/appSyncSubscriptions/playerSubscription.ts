@@ -27,14 +27,14 @@ const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
         type: PLAYER_UPDATE,
         data: playerData
     })
-    const characters = playerData.Characters ?? []
-    characters.forEach((CharacterId) => {
-        dispatch(registerCharacterSSM(CharacterId))
-    })
+    // const characters = playerData.Characters ?? []
+    // characters.forEach((CharacterId) => {
+    //     dispatch(registerCharacterSSM({ CharacterId, defaultIntent: 'SYNCHRONIZED' }))
+    // })
 }
 
 const fetchPlayer = (username: string) => async (dispatch: any) => {
-    const response = await API.graphql(graphqlOperation(getPlayer, { PlayerName: username })) ?? {}
+    const response = await (API.graphql(graphqlOperation(getPlayer, { PlayerName: username })) ?? {}) as any
     const playerData = response.data?.getPlayer || { PlayerName: username }
     await dispatch(playerUpdate(playerData))
 }
@@ -63,7 +63,7 @@ interface IChangedPlayer {
 const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
     const { username = '' } = await Auth.currentAuthenticatedUser()
 
-    const playerSubscription = API.graphql(graphqlOperation(changedPlayer, { PlayerName: username}))
+    const playerSubscription = (API.graphql(graphqlOperation(changedPlayer, { PlayerName: username})) as any)
         .subscribe({
             next: (message: { value?: { data?: { changedPlayer?: IChangedPlayer } } } = {}) => {
                 const { Type, PlayerInfo, CharacterInfo, GrantInfo } = message.value?.data?.changedPlayer ?? { Type: '' }

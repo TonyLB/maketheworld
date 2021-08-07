@@ -54,8 +54,8 @@ export class CharacterSubscriptionTemplate extends characterSSMClassGenerator({
 
 export type CharacterSubscriptionSSM = IStateSeekingMachineAbstract<characterSSMKeys, CharacterSubscriptionData, CharacterSubscriptionTemplate>
 
-export const registerCharacterSSM = (CharacterId: string) => (dispatch: any): void => {
-    dispatch(registerSSM({ key: `Subscribe::Character::${CharacterId}`, template: new CharacterSubscriptionTemplate(CharacterId) }))
+export const registerCharacterSSM = ({ CharacterId, defaultIntent } : { CharacterId: string, defaultIntent: characterSSMKeys }) => (dispatch: any): void => {
+    dispatch(registerSSM({ key: `Subscribe::Character::${CharacterId}`, template: new CharacterSubscriptionTemplate(CharacterId), defaultIntent }))
 }
 
 export const subscribeCharacterSSM = (CharacterId: string) => (dispatch: any): void => {

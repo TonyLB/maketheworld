@@ -1,4 +1,4 @@
-import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
+import { configureStore } from '@reduxjs/toolkit'
 import thunk from 'redux-thunk'
 import backups from '../reducers/backups.js'
 import characters from '../reducers/characters.js'
@@ -19,33 +19,29 @@ import settings from '../reducers/settings'
 import clientSettings from '../reducers/clientSettings'
 import uiReducer from '../reducers/UI'
 
-export const storeReducer = combineReducers({
-    backups,
-    characters,
-    communicationsLayer,
-    connection,
-    charactersInPlay,
-    clientSettings,
-    grants,
-    messages,
-    role,
-    permanentHeaders,
-    exits,
-    maps,
-    player,
-    settings,
-    stateSeekingMachines,
-    subscriptions,
-    UI: uiReducer,
-    webSocket
-})
+import navigationTabs from '../slices/navigationTabs'
 
-export const store = createStore(
-    storeReducer,
-    window.__REDUX_DEVTOOLS_EXTENSION__
-        ? compose(
-            applyMiddleware(thunk),
-            window.__REDUX_DEVTOOLS_EXTENSION__()
-        )
-        : applyMiddleware(thunk)
-)
+export const store = configureStore({
+    reducer: {
+        backups,
+        characters,
+        communicationsLayer,
+        connection,
+        charactersInPlay,
+        clientSettings,
+        grants,
+        messages,
+        role,
+        permanentHeaders,
+        exits,
+        maps,
+        player,
+        settings,
+        stateSeekingMachines,
+        subscriptions,
+        UI: uiReducer,
+        webSocket,
+        navigationTabs
+    },
+    middleware: [thunk]
+})

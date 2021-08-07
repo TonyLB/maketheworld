@@ -20,6 +20,7 @@ import { popFeedback } from '../../actions/UI/feedback'
 
 import AppLayout from '../AppLayout'
 import Profile from '../Profile'
+import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import useStateSeekingMachines from '../useSSM'
 import useCommunicationsLayer from '../useCommunicationsLayer'
@@ -55,6 +56,7 @@ export const AppController = () => {
     }, [dispatch])
 
     return <AppLayout
+        homePanel={<Home {...profileArgs} />}
         profilePanel={<Profile {...profileArgs} />}
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}

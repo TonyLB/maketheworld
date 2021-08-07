@@ -4,13 +4,21 @@
 
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
+import {
+    BrowserRouter as Router,
+    Switch,
+    Route,
+    Link,
+    useRouteMatch,
+    useParams,
+    useLocation
+} from "react-router-dom"
 
 import './index.css'
 
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 import Tabs from '@material-ui/core/Tabs'
 import Tab from '@material-ui/core/Tab'
-import Box from '@material-ui/core/Box'
 import Snackbar from '@material-ui/core/Snackbar'
 import IconButton from '@material-ui/core/IconButton'
 import CloseIcon from '@material-ui/icons/Close'
@@ -19,27 +27,12 @@ import ForumIcon from '@material-ui/icons/Forum'
 import MailIcon from '@material-ui/icons/Mail'
 import ExploreIcon from '@material-ui/icons/Explore'
 import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
+import HomeIcon from '@material-ui/icons/Home'
 
 import ActiveCharacter from '../ActiveCharacter'
 import { getCharacters } from '../../selectors/characters'
-
-const TabPanel = (props) => {
-    const { children, value, index, ...other } = props
-
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`vertical-tabpanel-${index}`}
-            aria-labelledby={`vertical-tab-${index}`}
-            {...other}
-        >
-            <Box style={{ height: "100%" }}>
-                {children}
-            </Box>
-        </div>
-    )
-}
+import InDevelopment from '../InDevelopment'
+import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
 
 const a11yProps = (index) => {
     return {
@@ -96,16 +89,28 @@ const useStyles = makeStyles((theme) => ({
     }
 }))
 
-const tabList = ({ large, subscribedCharacterIds = [], characters }) => ([
-    <Tab key="Profile" label="Profile" value="profile" {...a11yProps(0)} icon={<PeopleAltIcon />} />,
-    ...subscribedCharacterIds.reduce(
-        (previous, characterId, index) => ([
-            ...previous,
-            <Tab key={`inPlay-${characterId}`} label={`Play: ${characters[characterId]?.Name}`} value={`inPlay-${characterId}`} {...a11yProps(1+(index*2))} icon={<ForumIcon />} />,
-            <Tab key={`message-${characterId}`} label={`Chat: ${characters[characterId]?.Name}`} value={`messages-${characterId}`} {...a11yProps(2+(index*2))} icon={<MailIcon />} />
-        ]), []),
-    <Tab key="Map" label="Map" value="map" {...a11yProps(3+(subscribedCharacterIds.length*2))} icon={<ExploreIcon />} />,
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(4+subscribedCharacterIds.length*2)} icon={<PeopleAltIcon />} />])
+const tabList = ({ large, navigationTabs = [] }) => ([
+    <Tab
+        key="Home"
+        label="Home"
+        value="home"
+        {...a11yProps(0)}
+        icon={<HomeIcon />}
+        component={Link}
+        to="/"
+    />,
+    ...(navigationTabs.map(({ href, label }, index) => (
+        <Tab
+            key={href}
+            label={label}
+            value={href}
+            {...a11yProps(index + 1)}
+            icon={<ForumIcon />}
+            component={Link}
+            to={href}
+        />
+    ))),
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
 ])
 
 const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
@@ -134,70 +139,100 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 }
 
-export const AppLayout = ({ whoPanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+const CharacterRouterSwitch = ({ messagePanel }) => {
+    const { CharacterId } = useParams()
+    let { path } = useRouteMatch()
+    return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
+        <Switch>
+            <Route path={`${path}/Play`}>
+                {messagePanel}
+            </Route>
+            <Route path={`${path}/Map`}>
+                <InDevelopment />
+            </Route>
+        </Switch>
+    </ActiveCharacter>
+}
+
+const NavigationTabs = () => {
+    const { pathname } = useLocation()
+    const selectedTab = useSelector(navigationTabSelected(pathname))
+    const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
-    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
-    const [value, setValue] = useState('profile')
     const classes = useStyles()
-    const characters = useSelector(getCharacters)
-
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
-    }
-
-    return <div className={`fullScreen ${classes.grid}`}>
-        <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
-        <div className={classes.tabs}>
-            <Tabs
-                classes={{ vertical: 'tabRootVertical' }}
-                orientation={portrait ? "horizontal" : "vertical"}
-                variant="scrollable"
-                scrollButtons="on"
-                value={value}
-                onChange={handleChange}
-                aria-label="MakeTheWorld navigation"
-                indicatorColor="primary"
-                textColor="primary"
-            >
-                {tabList({ large, subscribedCharacterIds, characters })}
-            </Tabs>
-        </div>
-
-        <div className={classes.content}>
-            <TabPanel value={value} index={'profile'} style={{ width: "100%", height: "100%" }}>
-                {profilePanel}
-            </TabPanel>
-            {
-                subscribedCharacterIds.map((characterId) => (
-                    <ActiveCharacter key={`Character-${characterId}`} CharacterId={characterId}>
-                        <TabPanel value={value} index={`inPlay-${characterId}`} style={{ width: "100%", height: "100%" }}>
-                            {messagePanel}
-                        </TabPanel>
-                    </ActiveCharacter>
-                ))
-            }
-            {/* <TabPanel value={value} index={'messages'} style={{ width: "100%", height: "100%" }}>
-                {threadPanel}
-            </TabPanel>
-            <TabPanel
-                value={value}
-                index={'map'}
-                style={{ height: "100%" }}
-            >
-                {mapPanel}
-            </TabPanel>
-            <TabPanel value={value} index={'who'} style={{ height: "100%" }}>
-                {whoPanel}
-            </TabPanel> */}
-        </div>
-
-        {large
-            ? <div className={classes.sidebar}>
-                {/* {whoPanel} */}
-            </div>
-            : []
-        }
+    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
+    return <div className={classes.tabs}>
+        <Tabs
+            classes={{ vertical: 'tabRootVertical' }}
+            orientation={portrait ? "horizontal" : "vertical"}
+            variant="scrollable"
+            scrollButtons="on"
+            value={selectedTab ? selectedTab.href : 'home'}
+            aria-label="Navigation"
+            indicatorColor="primary"
+            textColor="primary"
+        >
+            {tabList({ large, navigationTabs: navigationTabsData })}
+        </Tabs>
     </div>
+}
+
+export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+    const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
+    const classes = useStyles()
+
+    return <Router>
+        <div className={`fullScreen ${classes.grid}`}>
+            <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
+            <NavigationTabs />
+            <div className={classes.content}>
+                <div style={{ width: "100%", height: "100%" }}>
+                    <Switch>
+                        <Route path="/Character/Archived">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Character/:CharacterId">
+                            <CharacterRouterSwitch messagePanel={messagePanel} />
+                        </Route>
+                        <Route path="/Forum/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Calendar/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Scenes/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Stories/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Chat/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Logs/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/CodeOfConduct/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/Maps/">
+                            <InDevelopment />
+                        </Route>
+                        <Route path="/">
+                            {homePanel}
+                        </Route>
+                    </Switch>
+                </div>
+            </div>
+
+            {large
+                ? <div className={classes.sidebar}>
+                    {/* {whoPanel} */}
+                </div>
+                : []
+            }
+        </div>
+    </Router>
 
 }
 

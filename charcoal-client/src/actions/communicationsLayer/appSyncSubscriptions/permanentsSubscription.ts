@@ -68,7 +68,7 @@ const fetchAction: ISSMAction<PermanentSubscriptionSSMData> = (data) => async (d
 }
 
 const subscribeAction: ISSMAction<PermanentSubscriptionSSMData> = (data) => async (dispatch: any, getState: any) => {
-    const subscription = await API.graphql(graphqlOperation(changedPermanents))
+    const subscription = await (API.graphql(graphqlOperation(changedPermanents)) as any)
         .subscribe({
             next: (neighborhoodData?: { value?: { data?: { changedPermanents?: Array<any> }}}) => {
                 const changedPermanents = neighborhoodData?.value?.data?.changedPermanents ?? []
