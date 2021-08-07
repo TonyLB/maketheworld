@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { getHeartbeat } from '../../selectors/stateSeekingMachine';
+import { getHeartbeat, getSSMState } from '../../selectors/stateSeekingMachine';
 import dijkstra from './dijkstra'
 import { LifeLineSSM, LifeLineTemplate } from '../communicationsLayer/lifeLine'
 import { PermanentsSubscriptionSSM, PermanentsSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/permanentsSubscription'
@@ -18,10 +18,34 @@ export const STATE_SEEKING_EXTERNAL_DATA = 'STATE_SEEKING_EXTERNAL_DATA'
 export const STATE_SEEKING_INTERNAL_CHANGE = 'STATE_SEEKING_INTERNAL_CHANGE'
 export const STATE_SEEKING_ASSERT_DESIRE = 'STATE_SEEKING_ASSERT_DESIRE'
 
-export const registerSSM = (payload: { key: string, template: ISSMTemplate }) => ({
-    type: STATE_SEEKING_MACHINE_REGISTER,
-    payload
-})
+export const registerSSM = <K extends string>({ key, template, defaultIntent, intent }: {
+    key: string,
+    template: ISSMTemplate,
+    defaultIntent?: K,
+    intent?: K
+}) => (dispatch: any, getState: any ) => {
+    const currentState = getSSMState(key)(getState())
+    if (currentState) {
+        if (intent) {
+            dispatch(assertIntent<K>({ key, newState: intent }))
+        }
+    }
+    else {
+        dispatch({
+            type: STATE_SEEKING_MACHINE_REGISTER,
+            payload: {
+                key,
+                template
+            }
+        })
+        if (intent) {
+            dispatch(assertIntent<K>({ key, newState: intent }))
+        }
+        else if (defaultIntent) {
+            dispatch(assertIntent<K>({ key, newState: defaultIntent }))
+        }
+    }
+}
 
 export const assertIntent = <K extends string>(payload: { key: string; newState: K; heartbeat?: string }) => (dispatch: any, getState: any) => {
     const state = getState()
@@ -47,10 +71,18 @@ const ssmStateChange = <K extends string, D extends Record<string, any>>(payload
     const currentHeartbeat = getHeartbeat(state)
     const newHeartbeat = payload.heartbeat ?? uuidv4()
     if (newHeartbeat !== currentHeartbeat) {
-        dispatch({
-            type: STATE_SEEKING_MACHINE_HEARTBEAT,
-            payload: newHeartbeat
-        })
+        //
+        // TODO:  Research whether you really need to use this setTimeout in order to make sure
+        // that the heartbeat update doesn't get into race conditions with sufficiently quick
+        // asynchronous ACTION nodes... seems awfully hacky, and generates multiple heartbeat/renders
+        // when it doesn't have to.
+        //
+        setTimeout(() => {
+            dispatch({
+                type: STATE_SEEKING_MACHINE_HEARTBEAT,
+                payload: newHeartbeat
+            })
+        }, 0)
     }
     dispatch({
         type: payload.type,
@@ -75,9 +107,6 @@ const internalStateChange = <K extends string, D extends Record<string, any>>(pa
     return ssmStateChange<K, D>({ ...payload, type: STATE_SEEKING_INTERNAL_CHANGE })
 }
 
-//
-// TODO:  Expand iterateOneSSM (and unit tests) to account for HOLD stateType nodes
-//
 export const iterateOneSSM = ({ key, heartbeat }: { key: string; heartbeat: string }) => (dispatch: any, getState: any) => {
     const focusState = getState()?.stateSeekingMachines?.machines?.[key]
     if (focusState && focusState.desiredState !== focusState.currentState) {

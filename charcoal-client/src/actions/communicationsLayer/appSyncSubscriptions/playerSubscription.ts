@@ -27,10 +27,10 @@ const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
         type: PLAYER_UPDATE,
         data: playerData
     })
-    const characters = playerData.Characters ?? []
-    characters.forEach((CharacterId) => {
-        dispatch(registerCharacterSSM(CharacterId))
-    })
+    // const characters = playerData.Characters ?? []
+    // characters.forEach((CharacterId) => {
+    //     dispatch(registerCharacterSSM({ CharacterId, defaultIntent: 'SYNCHRONIZED' }))
+    // })
 }
 
 const fetchPlayer = (username: string) => async (dispatch: any) => {

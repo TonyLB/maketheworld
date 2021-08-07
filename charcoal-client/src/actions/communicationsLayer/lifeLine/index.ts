@@ -173,8 +173,7 @@ const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
 }
 
 export const registerLifeLineSSM = (dispatch: any): void => {
-    dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate() }))
-    dispatch(assertIntent({ key: 'LifeLine', newState: 'CONNECTED' }))
+    dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate(), defaultIntent: 'CONNECTED' }))
     LifeLinePubSub.subscribe(receiveMessages(dispatch))
     LifeLinePubSub.subscribe(receiveEphemera(dispatch))
 }
