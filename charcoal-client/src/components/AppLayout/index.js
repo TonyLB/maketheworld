@@ -32,6 +32,9 @@ import HomeIcon from '@material-ui/icons/Home'
 import ActiveCharacter from '../ActiveCharacter'
 import { getCharacters } from '../../selectors/characters'
 import InDevelopment from '../InDevelopment'
+
+import MapHome from '../Maps'
+
 import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
 
 const a11yProps = (index) => {
@@ -216,7 +219,7 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
                             <InDevelopment />
                         </Route>
                         <Route path="/Maps/">
-                            <InDevelopment />
+                            <MapHome />
                         </Route>
                         <Route path="/">
                             {homePanel}
@@ -227,7 +230,7 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
 
             {large
                 ? <div className={classes.sidebar}>
-                    {/* {whoPanel} */}
+                    {whoPanel}
                 </div>
                 : []
             }

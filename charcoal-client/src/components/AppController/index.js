@@ -24,6 +24,7 @@ import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import useStateSeekingMachines from '../useSSM'
 import useCommunicationsLayer from '../useCommunicationsLayer'
+import InDevelopment from '../InDevelopment'
 
 export const AppController = () => {
     useStateSeekingMachines()
@@ -62,6 +63,7 @@ export const AppController = () => {
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
         subscribedCharacterIds={subscribedCharacterIds}
+        whoPanel={<InDevelopment />}
     />
 }
 

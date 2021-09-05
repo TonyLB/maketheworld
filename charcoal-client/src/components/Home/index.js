@@ -43,13 +43,13 @@ export const Home = ({
     const history = useHistory()
 
     return <Box className={classes.homeContents}>
-        <center>
+        <div style={{ textAlign: "center" }}>
             <h2>Make the World</h2>
             A text-based platform for cooperative storytelling
             <Divider />
             <h2>Organize</h2>
             <Divider />
-        </center>
+        </div>
         <Grid
             className={classes.homeGrid}
             container
@@ -62,37 +62,37 @@ export const Home = ({
                 {
                     icon: <ForumIcon />,
                     title: 'Forum',
-                    href: '/Forum'
+                    href: '/Forum/'
                 },
                 {
                     icon: <CalendarIcon />,
                     title: 'Calendar',
-                    href: '/Calendar'
+                    href: '/Calendar/'
                 },
                 {
                     icon: null,
                     title: 'Scenes',
-                    href: '/Scenes'
+                    href: '/Scenes/'
                 },
                 {
                     icon: null,
                     title: 'Stories',
-                    href: '/Stories'
+                    href: '/Stories/'
                 },
                 {
                     icon: <ChatIcon />,
                     title: 'Out-of-game Chat',
-                    href: '/Chat'
+                    href: '/Chat/'
                 },
                 {
                     icon: <MapIcon />,
                     title: 'Maps',
-                    href: '/Maps'
+                    href: '/Maps/'
                 },
                 {
                     icon: null,
                     title: 'Logs',
-                    href: '/Logs'
+                    href: '/Logs/'
                 }
             ].map(({ icon, title, href }) => (
                 <Grid key={title} item sm={3}>
@@ -111,11 +111,11 @@ export const Home = ({
                 </Grid>
             )) }
         </Grid>
-        <center>
+        <div style={{ textAlign: "center" }}>
             <Divider />
             <h2>Play</h2>
             <Divider />
-        </center>
+        </div>
         <Grid
             className={classes.homeGrid}
             container
@@ -141,11 +141,11 @@ export const Home = ({
                 </Grid>))
             }
         </Grid>
-        <center>
+        <div style={{ textAlign: "center" }}>
             <Divider />
             <h2>Administer</h2>
             <Divider />
-        </center>
+        </div>
         <Grid
             className={classes.homeGrid}
             container
