@@ -27,19 +27,23 @@ describe('nestedToFlat', () => {
         expect(compare).toEqual([
             {
                 name: 'A',
-                level: 0
+                level: 0,
+                verticalRows: 2
             },
             {
                 name: 'B',
                 level: 1,
+                verticalRows: 0
             },
             {
                 name: 'C',
                 level: 1,
+                verticalRows: 0
             },
             {
                 name: 'G',
-                level: 0
+                level: 0,
+                verticalRows: 0
             }
         ])
     })
@@ -71,31 +75,38 @@ describe('nestedToFlat', () => {
         expect(compare).toEqual([
             {
                 name: 'A',
-                level: 0
+                level: 0,
+                verticalRows: 5
             },
             {
                 name: 'B',
                 level: 1,
+                verticalRows: 0
             },
             {
                 name: 'C',
-                level: 1
+                level: 1,
+                verticalRows: 1
             },
             {
                 name: 'D',
                 level: 2,
+                verticalRows: 1
             },
             {
                 name: 'E',
-                level: 3
+                level: 3,
+                verticalRows: 0
             },
             {
                 name: 'F',
-                level: 1
+                level: 1,
+                verticalRows: 0
             },
             {
                 name: 'G',
-                level: 0
+                level: 0,
+                verticalRows: 0
             }
         ])
     })

@@ -1,5 +1,6 @@
 export type FlatTreeRow<T extends {}> = T & {
     level: number;
+    verticalRows: number;
 }
 
 export type FlatTree<T extends {}> = FlatTreeRow<T>[]

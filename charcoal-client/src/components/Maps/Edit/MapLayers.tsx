@@ -20,8 +20,9 @@ import Paper from '@material-ui/core/Paper'
 import { makeStyles } from "@material-ui/core/styles"
 
 import useMapStyles from './useMapStyles'
-import LayerRow from './LayerRow'
 import produce from 'immer'
+
+import DraggableTree from '../../DraggableTree/DraggableTree'
 
 type MapLayersProps = {
 }
@@ -41,35 +42,39 @@ const fn = (order: number[], active?: boolean, originalIndex?: number, curIndex?
     ? { y: 20 + (curIndex ?? 0) * 40 + (y ?? 0), scale: 1.1, zIndex: 1, shadow: 15, immediate: (n: string): boolean => n === 'y' || n === 'zIndex' }
     : { y: 20 + order.indexOf(index) * 40, scale: 1, zIndex: 0, shadow: 1, immediate: false }
 
-export const MapLayers: FunctionComponent<MapLayersProps>= ({}) => {
-    const localClasses = useMapStyles()
-    const items = ['One', 'Two', 'Three']
-    const order = useRef(items.map((_, index) => index))
-    const [springs, setSprings] = useSprings(items.length, fn(order.current))
+// export const MapLayers: FunctionComponent<MapLayersProps>= ({}) => {
+//     const localClasses = useMapStyles()
+//     const items = ['One', 'Two', 'Three']
+//     const order = useRef(items.map((_, index) => index))
+//     const [springs, setSprings] = useSprings(items.length, fn(order.current))
 
-    const bind = useDrag(({ args: [originalIndex], active, movement: [, y] }) => {
-        const curIndex = order.current.indexOf(originalIndex)
-        const curRow = clamp(Math.round((curIndex * 40 + y) / 40), 0, items.length - 1)
-        const newOrder = arrayMove(order.current, curIndex, curRow)
-        setSprings(fn(newOrder, active, originalIndex, curIndex, y)) // Feed springs new style data, they'll animate the view without causing a single render
-        if (!active) order.current = newOrder
-    })
+//     const bind = useDrag(({ args: [originalIndex], active, movement: [, y] }) => {
+//         const curIndex = order.current.indexOf(originalIndex)
+//         const curRow = clamp(Math.round((curIndex * 40 + y) / 40), 0, items.length - 1)
+//         const newOrder = arrayMove(order.current, curIndex, curRow)
+//         setSprings(fn(newOrder, active, originalIndex, curIndex, y)) // Feed springs new style data, they'll animate the view without causing a single render
+//         if (!active) order.current = newOrder
+//     })
     
-    return <React.Fragment>
-        { springs.map(({ zIndex, shadow, y, scale }, i) => (
-            <animated.div
-                {...bind(i)}
-                key={i}
-                style={{
-                    zIndex,
-                    // boxShadow: shadow.to((s) => `rgba(0, 0, 0, 0.15) 0px ${s}px ${2 * s}px 0px`),
-                    y,
-                    scale
-                }}
-                children={items[i]}
-            />
-        ))}
-    </React.Fragment>
+//     return <React.Fragment>
+//         { springs.map(({ zIndex, shadow, y, scale }, i) => (
+//             <animated.div
+//                 {...bind(i)}
+//                 key={i}
+//                 style={{
+//                     zIndex,
+//                     // boxShadow: shadow.to((s) => `rgba(0, 0, 0, 0.15) 0px ${s}px ${2 * s}px 0px`),
+//                     y,
+//                     scale
+//                 }}
+//                 children={items[i]}
+//             />
+//         ))}
+//     </React.Fragment>
+// }
+
+export const MapLayers: FunctionComponent<MapLayersProps> = ({}) => {
+    return <DraggableTree />
 }
 
 export default MapLayers
