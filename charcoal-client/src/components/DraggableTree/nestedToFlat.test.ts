@@ -28,6 +28,7 @@ describe('nestedToFlat', () => {
             {
                 name: 'A',
                 level: 0,
+                open: true,
                 verticalRows: 2
             },
             {
@@ -76,6 +77,7 @@ describe('nestedToFlat', () => {
             {
                 name: 'A',
                 level: 0,
+                open: true,
                 verticalRows: 5
             },
             {
@@ -86,11 +88,13 @@ describe('nestedToFlat', () => {
             {
                 name: 'C',
                 level: 1,
+                open: true,
                 verticalRows: 1
             },
             {
                 name: 'D',
                 level: 2,
+                open: true,
                 verticalRows: 1
             },
             {
@@ -101,6 +105,46 @@ describe('nestedToFlat', () => {
             {
                 name: 'F',
                 level: 1,
+                verticalRows: 0
+            },
+            {
+                name: 'G',
+                level: 0,
+                verticalRows: 0
+            }
+        ])
+    })
+    it('returns rows correctly when some closed', () => {
+        const compare = nestedToFlat<ITest>([{
+                name: 'A',
+                open: false,
+                children: [{
+                    name: 'B',
+                    children: []
+                },
+                {
+                    name: 'C',
+                    children: [
+                        { name: 'D', children: [
+                            { name: 'E', children: [] }
+                        ] }
+                    ],
+                },
+                {
+                    name: 'F',
+                    children: []
+                }]
+            },
+            {
+                name: 'G',
+                children: []
+            }])
+
+        expect(compare).toEqual([
+            {
+                name: 'A',
+                level: 0,
+                open: false,
                 verticalRows: 0
             },
             {
