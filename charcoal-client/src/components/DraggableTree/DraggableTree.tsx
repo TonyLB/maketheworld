@@ -1,6 +1,4 @@
 import React, { FunctionComponent, useReducer } from 'react'
-import { useTransition, useSpring, animated, config } from 'react-spring'
-import Button from '@material-ui/core/Button'
 
 import { NestedTree, NestedTreeEntry, FlatTree, FlatTreeRow } from './interfaces'
 
@@ -113,15 +111,6 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
     )
     const items = nestedToFlat(treeOne)
     const lastRootRow = findIndexFromRight<FlatTreeRow<TestItem>>(items, ({ level }) => (level === 0))
-    const rootSpring = useSpring({ height: (lastRootRow === null) ? 0 : lastRootRow * 30 })
-    const transitions = useTransition(items.map(({ name, level, verticalRows, open }) => ({ name, verticalLineHeight: `${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`, transform: `translate3d(${(level + 1) * 30}px,0px, 0)`, open })), {
-        config: config.stiff,
-        keys: ({ name }: { name: string }) => name,
-        enter: ({ transform, verticalLineHeight, open }) => ({ transform, height: '30px', opacity: 1, open, verticalLineHeight }),
-        update: ({ transform, verticalLineHeight, open }) => ({ transform, opacity: 1, verticalLineHeight, open }),
-        leave: ({ transform }) => ({ height: '0px', transform, opacity: 0, verticalLineHeight: `0px` }),
-        from: ({ transform, verticalLineHeight }) => ({ opacity: 0, transform, height: '0px', verticalLineHeight }),
-    })
 
     // const bind = useDrag(({ args: [originalIndex], active, movement: [, y] }) => {
     //     const curIndex = order.current.indexOf(originalIndex)
@@ -132,33 +121,26 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
     // })
     
     return <div style={{position: "relative", zIndex: 0 }}>
-        <SideVerticalLine height={rootSpring.height} />
-        { transitions(({ transform, opacity, height, verticalLineHeight }, { name, open }) => (
-            <animated.div
-                // {...bind(i)}
-                style={{
-                    // zIndex,
-                    // boxShadow: shadow.to((s) => `rgba(0, 0, 0, 0.15) 0px ${s}px ${2 * s}px 0px`),
-                    height: height as any,
-                    opacity: opacity as any,
-                    zIndex: 2 as any,
-                    // scale
-                }}
-            >
-                <animated.div
+        <SideVerticalLine height={(lastRootRow === null) ? 0 : lastRootRow * 30} />
+        { items.map(({ name, level, verticalRows, open }) => (
+            <div style={{
+                height: `30px`,
+                zIndex: 2,
+            }}>
+                <div
                     className={localClasses.highlighted}
                     style={{
-                        transform: transform as any
+                        transform: `translate3d(${(level + 1) * 30}px,0px, 0)`
                     }}
                 >
                     { (open !== undefined) && <Collapsar left={-15} open={open} onClick={() => { treeDispatch({ type: open ? 'CLOSE' : 'OPEN', key: name })}} />}
                     <HorizontalLine />
-                    <VerticalLine left={15} height={verticalLineHeight} />
+                    <VerticalLine left={15} height={`${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`} />
                     <div>
                         {name}
                     </div>
-                </animated.div>
-            </animated.div>
+                </div>
+            </div>
         ))}
     </div>
 }
