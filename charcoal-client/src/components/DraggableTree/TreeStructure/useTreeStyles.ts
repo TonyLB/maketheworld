@@ -1,17 +1,18 @@
 import { makeStyles } from "@material-ui/core/styles"
+import Dash from './Dash.svg'
 
 export const useTreeStyles = makeStyles((theme) => ({
     VerticalLine: {
         position: "absolute",
         width: "0px",
-        top: "30px",
+        top: "34px",
         borderLeft: "1px dashed rgba(0, 0, 0, 0.6)",
         zIndex: 1
     },
     SideVerticalLine: {
         position: "absolute",
-        left: "15px",
-        top: "15px",
+        left: "17px",
+        top: "17px",
         width: "0px",
         borderLeft: "1px dashed rgba(0, 0, 0, 0.6)",
         zIndex: 0
@@ -19,9 +20,9 @@ export const useTreeStyles = makeStyles((theme) => ({
     HorizontalLine: {
         position: "absolute",
         top: "0px",
-        left: "-15px",
+        left: "-17px",
         height: "50%",
-        width: "15px",
+        width: "17px",
         borderBottom: "1px dashed rgba(0, 0, 0, 0.6)",
         zIndex: 1
     },
@@ -36,6 +37,35 @@ export const useTreeStyles = makeStyles((theme) => ({
         backgroundColor: "white",
         border: "1px solid black",
         zIndex: 2
+    },
+    TreeContentSections: {
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        display: "grid",
+        gridTemplateAreas: `"handle content"`,
+        gridTemplateColumns: "30px 1fr",
+        gridTemplateRows: "1fr",
+        gridGap: "2px"
+    },
+    TreeContentHandle: {
+        position: "absolute",
+        width: "30px",
+        height: "100%",
+        gridArea: "handle",
+        backgroundImage: `url(${Dash})`,
+        borderRadius: "5px 0px 0px 5px",
+        color: "white",
+        background: "lightgrey"
+    },
+    TreeContent: {
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        gridArea: "content",
+        borderRadius: "0px 5px 5px 0px",
+        color: "black",
+        background: "lightblue"
     }
 }))
 
