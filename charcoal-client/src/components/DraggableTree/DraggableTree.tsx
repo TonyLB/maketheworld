@@ -15,11 +15,14 @@ import TreeContent from './TreeStructure/TreeContent'
 import produce from 'immer'
 import useDraggableTreeStyles from './useTreeStyles'
 
-type MapLayersProps = {
-}
-
-type TestItem = {
-    name: string
+type DraggableTreeProps<T> = {
+    tree: NestedTree<T>,
+    getKey: (arg: T) => string,
+    renderComponent: (arg: T) => React.ReactNode,
+    //
+    // ToDo:  Create callbacks for all data-changes that the tree can percolate
+    // up to the lifted state (e.g. "onOpen", "onClose")
+    //
 }
 
 const clamp = (value: number, min: number, max: number): number => (
@@ -47,27 +50,27 @@ type TreeAction = {
     key: string
 }
 
-const recursiveUpdate = (tree: NestedTree<TestItem>, update: (arg: NestedTreeEntry<TestItem>) => void ): void => {
+const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: NestedTreeEntry<T>) => void ): void => {
     tree.forEach(item => {
         update(item)
         recursiveUpdate(item.children, update)
     })
 }
 
-const treeStateReducer = (state: NestedTree<TestItem>, action: TreeAction): NestedTree<TestItem> => (
+const treeStateReducer = <T extends object>(getKey: (arg: T) => string) => (state: NestedTree<T>, action: TreeAction): NestedTree<T> => (
     produce(state, draft => {
         switch(action.type) {
             case 'CLOSE':
-                recursiveUpdate(draft, (item: NestedTreeEntry<TestItem>) => {
-                    if (item.name === action.key) {
-                        item.open = false
+                recursiveUpdate(draft as NestedTree<T>, (entry: NestedTreeEntry<T>) => {
+                    if (getKey(entry.item) === action.key) {
+                        entry.open = false
                     }
                 })
                 break;
             case 'OPEN':
-                recursiveUpdate(draft, (item: NestedTreeEntry<TestItem>) => {
-                    if (item.name === action.key) {
-                        item.open = true
+                recursiveUpdate(draft as NestedTree<T>, (entry: NestedTreeEntry<T>) => {
+                    if (getKey(entry.item) === action.key) {
+                        entry.open = true
                     }
                 })
                 break;
@@ -75,55 +78,24 @@ const treeStateReducer = (state: NestedTree<TestItem>, action: TreeAction): Nest
     })
 )
 
-export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
+export const DraggableTree = <T extends object>({ tree, getKey, renderComponent }: DraggableTreeProps<T>) => {
     const localClasses = useDraggableTreeStyles()
-    const [treeOne, treeDispatch]: [NestedTree<TestItem>, any] = useReducer(
-        treeStateReducer,
-        [{
-            name: 'One',
-            children: [{
-                name: 'One-A',
-                children: []
-            },
-            {
-                name: 'One-B',
-                children: []
-            }]
-        },
-        {
-            name: 'Two',
-            children: []
-        },
-        {
-            name: 'Three',
-            children: [{
-                name: 'Three-A',
-                children: [{
-                    name: 'Three-A-i',
-                    children: []
-                },
-                {
-                    name: 'Three-A-ii',
-                    children: []
-                }]
-            },
-            {
-                name: 'Three-B',
-                children: []
-            }]
-        }]
+    const [treeOne, treeDispatch]: [NestedTree<T>, any] = useReducer(
+        treeStateReducer(getKey),
+        tree
     )
     const items = nestedToFlat(treeOne)
+    console.log(`Items: ${JSON.stringify(items, null, 4)}`)
     const maxLevel = items.reduce((previous, { level }) => ((level > previous) ? level : previous), 0)
-    const lastRootRow = findIndexFromRight<FlatTreeRow<TestItem>>(items, ({ level }) => (level === 0))
+    const lastRootRow = findIndexFromRight<FlatTreeRow<T>>(items, ({ level }) => (level === 0))
 
     const [draggingStyles, draggingApi] = useSpring(() => ({ opacity: 0, zIndex: -10, y: 0, x: 0, immediate: true }))
 
-    const [draggingName, setDraggingName] = useState('')
+    const [draggingItem, setDraggingItem] = useState(null)
 
-    const bind = useDrag(({ args: [name, startY, startX], active, last, first, movement: [x, y] }) => {
+    const bind = useDrag(({ args: [item, startY, startX], active, last, first, movement: [x, y] }) => {
         if (first) {
-            setDraggingName(name)
+            setDraggingItem({ ...item })
             draggingApi({ opacity: 1 })
         }
         if (active) {
@@ -136,10 +108,8 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
             if (draggingStyles.y?.set) {
                 draggingStyles.y.set(startY + y)
             }
-            // draggingApi({ x: startX + x, y: startY + y, immediate: true })
         }
         if (last) {
-            // draggingApi([{ opacity: 0 }, { display: "none", immediate: true }])
             draggingApi([{ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') }])
         }
     })
@@ -156,16 +126,17 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
                 // display: draggingStyles.display as any
             }}
         >
-            <TreeContent name={draggingName} />
+            <TreeContent item={draggingItem} renderComponent={renderComponent} />
         </animated.div>
-        { items.map(({ name, level, verticalRows, open }, index) => (
-            <div style={{
+        { items.map(({ level, verticalRows = 0, open, item }, index) => {
+            console.log(`Item: ${JSON.stringify(item, null, 4)}`)
+            return <div style={{
                     position: 'absolute',
                     height: `30px`,
                     zIndex: 2,
                     top: `${index * 32}px`
                 }}
-                key={name}
+                key={getKey(item)}
             >
                 <div
                     className={localClasses.Highlighted}
@@ -173,13 +144,13 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
                         transform: `translate3d(${(level + 1) * 34}px,0px, 0)`
                     }}
                 >
-                    { (open !== undefined) && <Collapsar left={-17} open={open} onClick={() => { treeDispatch({ type: open ? 'CLOSE' : 'OPEN', key: name })}} />}
+                    { (open !== undefined) && <Collapsar left={-17} open={open} onClick={() => { treeDispatch({ type: open ? 'CLOSE' : 'OPEN', key: getKey(item) })}} />}
                     <HorizontalLine />
                     <VerticalLine left={17} height={`${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`} />
-                    <TreeContent name={name} bind={bind(name, index * 32, (level + 1) * 32)} />
+                    <TreeContent item={item} bind={bind(item, index * 32, (level + 1) * 32)} renderComponent={renderComponent} />
                 </div>
             </div>
-        ))}
+        })}
     </div>
 }
 

@@ -1,10 +1,10 @@
 import { FlatTree, FlatTreeRow, NestedTree, NestedTreeEntry } from './interfaces'
 
 const entryToRows = <T>(entry: NestedTreeEntry<T>, level: number = 0): FlatTree<T> => {
-    const { children, open, ...rest } = entry
+    const { children, open, item } = entry
     const rowsFromChildren = (open === false) ? [] : children.map<FlatTree<T>>((child) => (entryToRows(child, level + 1)))
     const primaryRow = {
-            ...rest,
+            item,
             level,
             open: children.length ? open ?? true : undefined,
             verticalRows: (rowsFromChildren.length > 0)

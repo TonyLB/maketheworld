@@ -11,31 +11,31 @@ interface ITest {
 describe('consolidateToLevel', () => {
     const testTree = {
         levelsInProgress: [{
-            name: 'A',
+            item: { name: 'A' },
             children: [{
-                name: 'B',
+                item: { name: 'B' },
                 children: []
             }]
         },
         {
-            name: 'C',
+            item: { name: 'C' },
             children: [{
-                name: 'D',
+                item: { name: 'D' },
                 children: []
             }]
         },
         {
-            name: 'E',
+            item: { name: 'E' },
             children: []
         },
         {
-            name: 'F',
+            item: { name: 'F' },
             children: []
         }],
         rootOutput: [{
-            name: 'G',
+            item: { name: 'G' },
             children: [{
-                name: 'H',
+                item: { name: 'H' },
                 children: []
             }]
         }]
@@ -48,18 +48,18 @@ describe('consolidateToLevel', () => {
     it('consolidates a single level', () => {
         expect(consolidateToLevel<ITest>({ inProgress: {
             levelsInProgress: [{
-                name: 'A',
+                item: { name: 'A' },
                 children: []
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 children: []
             }],
             rootOutput: []
         }, newLevel: 0 })).toEqual({ levelsInProgress: [{
-                name: 'A',
+                item: { name: 'A' },
                 children: [{
-                    name: 'B',
+                    item: { name: 'B' },
                     children: []
                 }]
             }],
@@ -70,28 +70,27 @@ describe('consolidateToLevel', () => {
     it('consolidates a sibling level', () => {
         const output = consolidateToLevel<ITest>({ inProgress: {
             levelsInProgress: [{
-                name: 'A',
+                item: { name: 'A' },
                 children: []
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 children: []
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 children: []
             }],
             rootOutput: []
         }, newLevel: 1 })
-        console.log(JSON.stringify(output, null, 4))
         expect(output).toEqual({ levelsInProgress: [{
-                name: 'A',
+                item: { name: 'A' },
                 children: []
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 children: [{
-                    name: 'C',
+                    item: { name: 'C' },
                     children :[]
                 }]
             }],
@@ -103,30 +102,30 @@ describe('consolidateToLevel', () => {
     it('returns conslidate for lower level', () => {
         expect(consolidateToLevel<ITest>({ inProgress: testTree, newLevel: 2 })).toEqual({
             levelsInProgress: [{
-                name: 'A',
+                item: { name: 'A' },
                 children: [{
-                    name: 'B',
+                    item: { name: 'B' },
                     children: []
                 }]
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 children: [{
-                    name: 'D',
+                    item: { name: 'D' },
                     children: []
                 }]
             },
             {
-                name: 'E',
+                item: { name: 'E' },
                 children: [{
-                    name: 'F',
+                    item: { name: 'F' },
                     children: []
                 }]
             }],
             rootOutput: [{
-                name: 'G',
+                item: { name: 'G' },
                 children: [{
-                    name: 'H',
+                    item: { name: 'H' },
                     children: []
                 }]
             }]                
@@ -137,28 +136,28 @@ describe('consolidateToLevel', () => {
         expect(consolidateToLevel<ITest>({ inProgress: testTree, newLevel: -1 })).toEqual({
             levelsInProgress: [],
             rootOutput: [{
-                name: 'G',
+                item: { name: 'G' },
                 children: [{
-                    name: 'H',
+                    item: { name: 'H' },
                     children: []
                 }]
             },
             {
-                name: 'A',
+                item: { name: 'A' },
                 children: [{
-                    name: 'B',
+                    item: { name: 'B' },
                     children: []
                 },
                 {
-                    name: 'C',
+                    item: { name: 'C' },
                     children: [{
-                        name: 'D',
+                        item: { name: 'D' },
                         children: []
                     },
                     {
-                        name: 'E',
+                        item: { name: 'E' },
                         children: [{
-                            name: 'F',
+                            item: { name: 'F' },
                             children: []
                         }]
                     }]
@@ -175,91 +174,96 @@ describe('flatToNested', () => {
     it('returns nesting for simple conversion', () => {
         const compare = flatToNested<ITest>([
             {
-                name: 'A',
+                item: { name: 'A' },
                 level: 0
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 level: 1,
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 level: 1,
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 level: 0
             }
         ])
-        console.log(JSON.stringify(compare, null, 4))
         expect(compare).toEqual([{
-            name: 'A',
+            item: { name: 'A' },
             children: [{
-                name: 'B',
+                item: { name: 'B' },
                 children: []
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 children: []
             }]
         },
         {
-            name: 'G',
+            item: { name: 'G' },
             children: []
         }])
     })
     it('returns nesting for complex conversion', () => {
         const compare = flatToNested<ITest>([
             {
-                name: 'A',
+                item: { name: 'A' },
                 level: 0
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 level: 1,
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 level: 1
             },
             {
-                name: 'D',
+                item: { name: 'D' },
                 level: 2,
             },
             {
-                name: 'E',
+                item: { name: 'E' },
                 level: 3
             },
             {
-                name: 'F',
+                item: { name: 'F' },
                 level: 1
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 level: 0
             }
         ])
         expect(compare).toEqual([{
-            name: 'A',
+            item: { name: 'A' },
             children: [{
-                name: 'B',
+                item: { name: 'B' },
                 children: []
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 children: [
-                    { name: 'D', children: [
-                        { name: 'E', children: [] }
-                    ] }
+                    {
+                        item: { name: 'D' },
+                        children: [
+                            {
+                                item: { name: 'E' },
+                                children: []
+                            }
+                        ]
+                    }
                 ],
             },
             {
-                name: 'F',
+                item: { name: 'F' },
                 children: []
             }]
         },
         {
-            name: 'G',
+            item: { name: 'G' },
             children: []
         }])
     })

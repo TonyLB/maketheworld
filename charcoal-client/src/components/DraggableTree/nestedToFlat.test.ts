@@ -10,39 +10,39 @@ describe('nestedToFlat', () => {
     })
     it('returns rows for simple conversion', () => {
         const compare = nestedToFlat<ITest>([{
-                name: 'A',
+                item: { name: 'A' },
                 children: [{
-                    name: 'B',
+                    item: { name: 'B' },
                     children: []
                 },
                 {
-                    name: 'C',
+                    item: { name: 'C' },
                     children: []
                 }]
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 children: []
             }])
         expect(compare).toEqual([
             {
-                name: 'A',
+                item: { name: 'A' },
                 level: 0,
                 open: true,
                 verticalRows: 2
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 level: 1,
                 verticalRows: 0
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 level: 1,
                 verticalRows: 0
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 level: 0,
                 verticalRows: 0
             }
@@ -50,65 +50,71 @@ describe('nestedToFlat', () => {
     })
     it('returns rows for complex conversion', () => {
         const compare = nestedToFlat<ITest>([{
-                name: 'A',
+                item: { name: 'A' },
                 children: [{
-                    name: 'B',
+                    item: { name: 'B' },
                     children: []
                 },
                 {
-                    name: 'C',
+                    item: { name: 'C' },
                     children: [
-                        { name: 'D', children: [
-                            { name: 'E', children: [] }
-                        ] }
+                        {
+                            item: { name: 'D' },
+                            children: [
+                                {
+                                    item: { name: 'E' },
+                                    children: []
+                                }
+                            ]
+                        }
                     ],
                 },
                 {
-                    name: 'F',
+                    item: { name: 'F' },
                     children: []
                 }]
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 children: []
             }])
 
         expect(compare).toEqual([
             {
-                name: 'A',
+                item: { name: 'A' },
                 level: 0,
                 open: true,
                 verticalRows: 5
             },
             {
-                name: 'B',
+                item: { name: 'B' },
                 level: 1,
                 verticalRows: 0
             },
             {
-                name: 'C',
+                item: { name: 'C' },
                 level: 1,
                 open: true,
                 verticalRows: 1
             },
             {
-                name: 'D',
+                item: { name: 'D' },
                 level: 2,
                 open: true,
                 verticalRows: 1
             },
             {
-                name: 'E',
+                item: { name: 'E' },
                 level: 3,
                 verticalRows: 0
             },
             {
-                name: 'F',
+                item: { name: 'F' },
                 level: 1,
                 verticalRows: 0
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 level: 0,
                 verticalRows: 0
             }
@@ -116,39 +122,45 @@ describe('nestedToFlat', () => {
     })
     it('returns rows correctly when some closed', () => {
         const compare = nestedToFlat<ITest>([{
-                name: 'A',
+                item: { name: 'A' },
                 open: false,
                 children: [{
-                    name: 'B',
+                    item: { name: 'B' },
                     children: []
                 },
                 {
-                    name: 'C',
+                    item: { name: 'C' },
                     children: [
-                        { name: 'D', children: [
-                            { name: 'E', children: [] }
-                        ] }
+                        {
+                            item: { name: 'D' },
+                            children: [
+                                {
+                                    item: { name: 'E' },
+                                    children: []
+                                }
+                            ]
+                        }
                     ],
                 },
                 {
-                    name: 'F',
+                    item: { name: 'F' },
                     children: []
                 }]
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 children: []
             }])
 
         expect(compare).toEqual([
             {
-                name: 'A',
+                item: { name: 'A' },
                 level: 0,
                 open: false,
                 verticalRows: 0
             },
             {
-                name: 'G',
+                item: { name: 'G' },
                 level: 0,
                 verticalRows: 0
             }
