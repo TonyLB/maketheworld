@@ -1,7 +1,6 @@
-import { animated, SpringValue } from 'react-spring'
-import useTreeStyles from './useTreeStyles'
-import Plus from './Plus.svg'
-import Dash from './Dash.svg'
+import useTreeStyles from '../useTreeStyles'
+import Plus from '../Plus.svg'
+import Dash from '../Dash.svg'
 
 export const Collapsar = ({ left, open, onClick }: { left: number, open: boolean, onClick: any }) => {
     const localClasses = useTreeStyles()

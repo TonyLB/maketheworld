@@ -13,6 +13,7 @@ import SideVerticalLine from './TreeStructure/SideVertical'
 import Collapsar from './TreeStructure/Collapsar'
 import TreeContent from './TreeStructure/TreeContent'
 import produce from 'immer'
+import useDraggableTreeStyles from './useTreeStyles'
 
 type MapLayersProps = {
 }
@@ -74,32 +75,6 @@ const treeStateReducer = (state: NestedTree<TestItem>, action: TreeAction): Nest
     })
 )
 
-const useDraggableTreeStyles = makeStyles((theme) => ({
-    highlighted: {
-        position: "relative",
-        width: "320px",
-        height: "30px",
-        marginTop: "2px",
-        marginBottom: "2px",
-        lineHeight: "30px",
-        fontSize: "14.5px",
-        touchAction: "none",
-        userSelect: "none"
-    },
-    dragging: {
-        position: "absolute",
-        width: "320px",
-        height: "30px",
-        marginTop: "2px",
-        marginBottom: "2px",
-        lineHeight: "30px",
-        fontSize: "14.5px",
-        touchAction: "none",
-        userSelect: "none",
-        zIndex: 10
-    }
-}))
-
 export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
     const localClasses = useDraggableTreeStyles()
     const [treeOne, treeDispatch]: [NestedTree<TestItem>, any] = useReducer(
@@ -139,9 +114,10 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
         }]
     )
     const items = nestedToFlat(treeOne)
+    const maxLevel = items.reduce((previous, { level }) => ((level > previous) ? level : previous), 0)
     const lastRootRow = findIndexFromRight<FlatTreeRow<TestItem>>(items, ({ level }) => (level === 0))
 
-    const [draggingStyles, draggingApi] = useSpring(() => ({ opacity: 0, y: 0, x: 0, immediate: true }))
+    const [draggingStyles, draggingApi] = useSpring(() => ({ opacity: 0, zIndex: -10, y: 0, x: 0, immediate: true }))
 
     const [draggingName, setDraggingName] = useState('')
 
@@ -151,35 +127,48 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
             draggingApi({ opacity: 1 })
         }
         if (active) {
-            draggingStyles.x.set(startX + x)
-            draggingStyles.y.set(startY + y)
+            if (draggingStyles.zIndex?.set) {
+                draggingStyles.zIndex.set(10)
+            }
+            if (draggingStyles.x?.set) {
+                draggingStyles.x.set(clamp(startX + x, 0, (maxLevel + 2) * 32))
+            }
+            if (draggingStyles.y?.set) {
+                draggingStyles.y.set(startY + y)
+            }
             // draggingApi({ x: startX + x, y: startY + y, immediate: true })
         }
         if (last) {
-            draggingApi({ opacity: 0 })
+            // draggingApi([{ opacity: 0 }, { display: "none", immediate: true }])
+            draggingApi([{ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') }])
         }
     })
     
     return <div style={{position: "relative", zIndex: 0 }}>
         <SideVerticalLine height={(lastRootRow === null) ? 0 : lastRootRow * 30} />
         <animated.div
-            className={localClasses.dragging}
+            className={`${localClasses.Highlighted} ${localClasses.Dragging}`}
             style={{
                 opacity: draggingStyles.opacity as any,
                 x: draggingStyles.x,
-                y: draggingStyles.y
-        }}>
+                y: draggingStyles.y,
+                zIndex: draggingStyles.zIndex as any
+                // display: draggingStyles.display as any
+            }}
+        >
             <TreeContent name={draggingName} />
         </animated.div>
         { items.map(({ name, level, verticalRows, open }, index) => (
             <div style={{
+                    position: 'absolute',
                     height: `30px`,
                     zIndex: 2,
+                    top: `${index * 32}px`
                 }}
                 key={name}
             >
                 <div
-                    className={localClasses.highlighted}
+                    className={localClasses.Highlighted}
                     style={{
                         transform: `translate3d(${(level + 1) * 34}px,0px, 0)`
                     }}
@@ -187,7 +176,7 @@ export const DraggableTree: FunctionComponent<MapLayersProps>= ({}) => {
                     { (open !== undefined) && <Collapsar left={-17} open={open} onClick={() => { treeDispatch({ type: open ? 'CLOSE' : 'OPEN', key: name })}} />}
                     <HorizontalLine />
                     <VerticalLine left={17} height={`${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`} />
-                    <TreeContent name={name} bind={bind(name, index * 32, (level + 1) * 34)} />
+                    <TreeContent name={name} bind={bind(name, index * 32, (level + 1) * 32)} />
                 </div>
             </div>
         ))}

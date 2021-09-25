@@ -66,7 +66,36 @@ export const useTreeStyles = makeStyles((theme) => ({
         borderRadius: "0px 5px 5px 0px",
         color: "black",
         background: "lightblue"
-    }
+    },
+    Highlighted: {
+        position: "relative",
+        width: "320px",
+        height: "30px",
+        marginTop: "2px",
+        marginBottom: "2px",
+        lineHeight: "30px",
+        fontSize: "14.5px",
+        touchAction: "none",
+        userSelect: "none",
+    },
+    Dragging: {
+        '& div$Highlighted': {
+            position: "absolute",
+        },
+        '& div$TreeContent': {
+            backgroundImage: '',
+            color: "blue",
+            background: "#ffffffaa",
+            border: "1px solid blue"
+        },
+        '& div$TreeContentHandle': {
+            backgroundImage: '',
+            color: "blue",
+            background: "#ffffffaa",
+            border: "1px solid blue"
+        }
+},
+
 }))
 
 export default useTreeStyles

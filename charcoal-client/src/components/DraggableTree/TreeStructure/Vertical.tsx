@@ -1,4 +1,4 @@
-import useTreeStyles from './useTreeStyles'
+import useTreeStyles from '../useTreeStyles'
 
 export const VerticalLine = ({ height, left }: { height: any, left: any }) => {
     const localClasses = useTreeStyles()

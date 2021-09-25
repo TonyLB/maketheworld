@@ -1,4 +1,4 @@
-import useTreeStyles from './useTreeStyles'
+import useTreeStyles from '../useTreeStyles'
 
 export const TreeContent = ({ name, bind }: { name: string, bind?: any }) => {
     const localClasses = useTreeStyles()
