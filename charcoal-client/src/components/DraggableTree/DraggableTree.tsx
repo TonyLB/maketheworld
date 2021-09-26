@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useReducer, useState } from 'react'
+import React, { FunctionComponent, useReducer, useState, useMemo } from 'react'
 import { makeStyles } from "@material-ui/core/styles"
 import { useSpring, animated } from 'react-spring'
 import { useDrag } from 'react-use-gesture'
@@ -19,6 +19,8 @@ type DraggableTreeProps<T> = {
     tree: NestedTree<T>,
     getKey: (arg: T) => string,
     renderComponent: (arg: T) => React.ReactNode,
+    onOpen: (key: string) => void,
+    onClose: (key: string) => void
     //
     // ToDo:  Create callbacks for all data-changes that the tree can percolate
     // up to the lifted state (e.g. "onOpen", "onClose")
@@ -57,7 +59,7 @@ const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: Ne
     })
 }
 
-const treeStateReducer = <T extends object>(getKey: (arg: T) => string) => (state: NestedTree<T>, action: TreeAction): NestedTree<T> => (
+export const treeStateReducer = <T extends object>(getKey: (arg: T) => string) => (state: NestedTree<T>, action: TreeAction): NestedTree<T> => (
     produce(state, draft => {
         switch(action.type) {
             case 'CLOSE':
@@ -78,20 +80,35 @@ const treeStateReducer = <T extends object>(getKey: (arg: T) => string) => (stat
     })
 )
 
-export const DraggableTree = <T extends object>({ tree, getKey, renderComponent }: DraggableTreeProps<T>) => {
+export const DraggableTree = <T extends object>({
+        tree,
+        getKey,
+        renderComponent,
+        onOpen,
+        onClose
+    }: DraggableTreeProps<T>) => {
     const localClasses = useDraggableTreeStyles()
-    const [treeOne, treeDispatch]: [NestedTree<T>, any] = useReducer(
-        treeStateReducer(getKey),
-        tree
-    )
-    const items = nestedToFlat(treeOne)
-    console.log(`Items: ${JSON.stringify(items, null, 4)}`)
+    const [draggingItem, setDraggingItem]: [T | null, any] = useState(null)
+    const items = useMemo(() => {
+            let calculationTree = tree
+            if (draggingItem) {
+                calculationTree = produce(calculationTree, draft => {
+                    const draggingKey = getKey(draggingItem)
+                    recursiveUpdate(draft as NestedTree<T>, (entry: NestedTreeEntry<T>) => {
+                        if (getKey(entry.item) === draggingKey) {
+                            entry.draggingSource = true
+                            entry.open = false
+                        }
+                    })
+                })
+            }
+            return nestedToFlat(calculationTree)
+        }, [tree, draggingItem])
     const maxLevel = items.reduce((previous, { level }) => ((level > previous) ? level : previous), 0)
     const lastRootRow = findIndexFromRight<FlatTreeRow<T>>(items, ({ level }) => (level === 0))
 
     const [draggingStyles, draggingApi] = useSpring(() => ({ opacity: 0, zIndex: -10, y: 0, x: 0, immediate: true }))
 
-    const [draggingItem, setDraggingItem] = useState(null)
 
     const bind = useDrag(({ args: [item, startY, startX], active, last, first, movement: [x, y] }) => {
         if (first) {
@@ -110,6 +127,7 @@ export const DraggableTree = <T extends object>({ tree, getKey, renderComponent 
             }
         }
         if (last) {
+            setDraggingItem(null)
             draggingApi([{ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') }])
         }
     })
@@ -128,8 +146,7 @@ export const DraggableTree = <T extends object>({ tree, getKey, renderComponent 
         >
             <TreeContent item={draggingItem} renderComponent={renderComponent} />
         </animated.div>
-        { items.map(({ level, verticalRows = 0, open, item }, index) => {
-            console.log(`Item: ${JSON.stringify(item, null, 4)}`)
+        { items.map(({ level, verticalRows = 0, open, draggingSource, item }, index) => {
             return <div style={{
                     position: 'absolute',
                     height: `30px`,
@@ -139,12 +156,20 @@ export const DraggableTree = <T extends object>({ tree, getKey, renderComponent 
                 key={getKey(item)}
             >
                 <div
-                    className={localClasses.Highlighted}
+                    className={`${localClasses.Highlighted} ${(draggingSource && localClasses.DraggingSource) || ''}`}
                     style={{
                         transform: `translate3d(${(level + 1) * 34}px,0px, 0)`
                     }}
                 >
-                    { (open !== undefined) && <Collapsar left={-17} open={open} onClick={() => { treeDispatch({ type: open ? 'CLOSE' : 'OPEN', key: getKey(item) })}} />}
+                    { (open !== undefined) && <Collapsar left={-17} open={open} onClick={() => {
+                            if (open) {
+                                onClose(getKey(item))
+                            }
+                            else {
+                                onOpen(getKey(item))
+                            }
+                        }} />
+                    }
                     <HorizontalLine />
                     <VerticalLine left={17} height={`${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`} />
                     <TreeContent item={item} bind={bind(item, index * 32, (level + 1) * 32)} renderComponent={renderComponent} />

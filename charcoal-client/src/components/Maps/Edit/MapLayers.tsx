@@ -1,6 +1,6 @@
 import { FunctionComponent, useReducer } from 'react'
 
-import DraggableTree from '../../DraggableTree/DraggableTree'
+import DraggableTree, { treeStateReducer } from '../../DraggableTree/DraggableTree'
 import { NestedTree } from '../../DraggableTree/interfaces'
 
 type MapLayersProps = {
@@ -12,9 +12,11 @@ type TestItem = {
 
 const simpleRender = ({ name }: TestItem): React.ReactNode => (name)
 
+const getMapKey = ({ name }: TestItem) => (name)
+
 export const MapLayers: FunctionComponent<MapLayersProps> = ({}) => {
     const [tree, treeDispatch]: [NestedTree<TestItem>, any] = useReducer(
-        (state) => (state),
+        treeStateReducer(getMapKey),
         [{
             item: { name: 'One' },
             children: [{
@@ -49,8 +51,13 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({}) => {
             }]
         }]
     )
-    console.log(tree)
-    return <DraggableTree tree={tree} getKey={({ name }) => (name)} renderComponent={simpleRender}/>
+    return <DraggableTree
+        tree={tree}
+        getKey={getMapKey}
+        renderComponent={simpleRender}
+        onOpen={(key) => { treeDispatch({ type: 'OPEN', key }) }}
+        onClose={(key) => { treeDispatch({ type: 'CLOSE', key }) }}
+    />
 }
 
 export default MapLayers

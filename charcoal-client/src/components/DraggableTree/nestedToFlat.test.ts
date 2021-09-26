@@ -63,6 +63,7 @@ describe('nestedToFlat', () => {
                             children: [
                                 {
                                     item: { name: 'E' },
+                                    draggingSource: true,
                                     children: []
                                 }
                             ]
@@ -106,6 +107,7 @@ describe('nestedToFlat', () => {
             {
                 item: { name: 'E' },
                 level: 3,
+                draggingSource: true,
                 verticalRows: 0
             },
             {

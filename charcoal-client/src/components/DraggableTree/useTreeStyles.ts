@@ -82,20 +82,21 @@ export const useTreeStyles = makeStyles((theme) => ({
         '& div$Highlighted': {
             position: "absolute",
         },
-        '& div$TreeContent': {
-            backgroundImage: '',
-            color: "blue",
-            background: "#ffffffaa",
-            border: "1px solid blue"
-        },
-        '& div$TreeContentHandle': {
+        '& div$TreeContent, & div$TreeContentHandle': {
             backgroundImage: '',
             color: "blue",
             background: "#ffffffaa",
             border: "1px solid blue"
         }
-},
-
+    },
+    DraggingSource: {
+        '& div$TreeContent, & div$TreeContentHandle': {
+            backgroundImage: '',
+            color: "black",
+            background: "#ffffffaa",
+            border: "1px solid black"
+        }
+    }
 }))
 
 export default useTreeStyles
