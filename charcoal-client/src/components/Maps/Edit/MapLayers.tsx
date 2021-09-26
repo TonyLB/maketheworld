@@ -1,6 +1,6 @@
 import { FunctionComponent, useReducer } from 'react'
 
-import DraggableTree, { treeStateReducer } from '../../DraggableTree/DraggableTree'
+import DraggableTree, { treeStateReducer } from '../../DraggableTree'
 import { NestedTree } from '../../DraggableTree/interfaces'
 
 type MapLayersProps = {

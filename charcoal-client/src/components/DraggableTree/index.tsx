@@ -1,5 +1,4 @@
-import React, { FunctionComponent, useReducer, useState, useMemo } from 'react'
-import { makeStyles } from "@material-ui/core/styles"
+import React, { useState, useMemo } from 'react'
 import { useSpring, animated } from 'react-spring'
 import { useDrag } from 'react-use-gesture'
 
@@ -31,25 +30,19 @@ const clamp = (value: number, min: number, max: number): number => (
     value < min ? min : value > max ? max : value
 )
 
-const arrayMove = (values: any[], from: number, to: number, rows: number = 1): any[] => {
-    return produce(values, (draftState) => {
-        draftState.splice(to, 0, ...draftState.splice(from, rows))
-    })
-}
-
-const fn = (order: number[], active?: boolean, originalIndex?: number, curIndex?: number, y?: number) => (index: number): { y: number, scale: number, zIndex: any, shadow: number, immediate: any } =>
-  active && index === originalIndex
-    ? { y: 20 + (curIndex ?? 0) * 40 + (y ?? 0), scale: 1.1, zIndex: 1, shadow: 15, immediate: (n: string): boolean => n === 'y' || n === 'zIndex' }
-    : { y: 20 + order.indexOf(index) * 40, scale: 1, zIndex: 0, shadow: 1, immediate: false }
-
 const findIndexFromRight = <T extends unknown>(arr: T[], test: (arg: T) => boolean): number | null => (arr.reduceRight<number | null>((previous, item, index) => (previous ? previous : test(item) ? index : null), null))
 
-type TreeAction = {
+type TreeAction<T> = {
     type: 'CLOSE',
     key: string
 } | {
     type: 'OPEN',
     key: string
+} | {
+    type: 'ADD',
+    parentKey?: string,
+    position: number,
+    entry: NestedTreeEntry<T>
 }
 
 const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: NestedTreeEntry<T>) => void ): void => {
@@ -59,7 +52,7 @@ const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: Ne
     })
 }
 
-export const treeStateReducer = <T extends object>(getKey: (arg: T) => string) => (state: NestedTree<T>, action: TreeAction): NestedTree<T> => (
+export const treeStateReducer = <T extends object>(getKey: (arg: T) => string) => (state: NestedTree<T>, action: TreeAction<T>): NestedTree<T> => (
     produce(state, draft => {
         switch(action.type) {
             case 'CLOSE':
@@ -76,9 +69,27 @@ export const treeStateReducer = <T extends object>(getKey: (arg: T) => string) =
                     }
                 })
                 break;
-            }
+            case 'ADD':
+                const { parentKey, position, entry } = action
+                if (parentKey !== undefined) {
+                    recursiveUpdate(draft as NestedTree<T>, (probeEntry: NestedTreeEntry<T>) => {
+                        if (getKey(probeEntry.item) === parentKey) {
+                            probeEntry.children.splice(position, 0, entry)
+                        }
+                    })
+                }
+                else {
+                    (draft as NestedTree<T>).splice(position, 0, entry)
+                }
+                break;
+        }
     })
 )
+
+type DraggingTarget = {
+    parentKey: string;
+    position: number
+} | null
 
 export const DraggableTree = <T extends object>({
         tree,
@@ -89,6 +100,7 @@ export const DraggableTree = <T extends object>({
     }: DraggableTreeProps<T>) => {
     const localClasses = useDraggableTreeStyles()
     const [draggingItem, setDraggingItem]: [T | null, any] = useState(null)
+    const [draggingTarget, setDraggingTarget]: [DraggingTarget, any] = useState<DraggingTarget>(null)
     const items = useMemo(() => {
             let calculationTree = tree
             if (draggingItem) {
@@ -101,14 +113,26 @@ export const DraggableTree = <T extends object>({
                         }
                     })
                 })
+                if (draggingTarget) {
+                    const { parentKey, position } = draggingTarget
+                    calculationTree = treeStateReducer(getKey)(calculationTree, {
+                        type: 'ADD',
+                        parentKey,
+                        position,
+                        entry: {
+                            item: draggingItem,
+                            children: [],
+                            draggingTarget: true
+                        }
+                    })
+                }
             }
             return nestedToFlat(calculationTree)
-        }, [tree, draggingItem])
+        }, [tree, draggingItem, draggingTarget])
     const maxLevel = items.reduce((previous, { level }) => ((level > previous) ? level : previous), 0)
     const lastRootRow = findIndexFromRight<FlatTreeRow<T>>(items, ({ level }) => (level === 0))
 
     const [draggingStyles, draggingApi] = useSpring(() => ({ opacity: 0, zIndex: -10, y: 0, x: 0, immediate: true }))
-
 
     const bind = useDrag(({ args: [item, startY, startX], active, last, first, movement: [x, y] }) => {
         if (first) {
@@ -124,6 +148,30 @@ export const DraggableTree = <T extends object>({
             }
             if (draggingStyles.y?.set) {
                 draggingStyles.y.set(startY + y)
+            }
+            const rows = items.filter(({ draggingTarget }) => (!draggingTarget))
+            const rowIndex = clamp(Math.floor((startY + y) / 32), 0, rows.length)
+            let newParentKey: string | undefined = undefined
+            let newPosition: number | null = null
+            if (rowIndex === 0) {
+                newPosition = 0
+            }
+            else {
+                newParentKey = getKey(rows[rowIndex - 1].item)
+                newPosition = 0
+            }
+            if (rowIndex > 0 && rows[rowIndex - 1].draggingSource) {
+                setDraggingTarget(null)
+            }
+            else {
+                if (draggingTarget) {
+                    if (!(newParentKey === draggingTarget.parentKey) || (newPosition !== draggingTarget.position)) {
+                        setDraggingTarget({ parentKey: newParentKey, position: newPosition })
+                    }
+                }
+                else {
+                    setDraggingTarget({ parentKey: newParentKey, position: newPosition })
+                }    
             }
         }
         if (last) {
@@ -141,22 +189,21 @@ export const DraggableTree = <T extends object>({
                 x: draggingStyles.x,
                 y: draggingStyles.y,
                 zIndex: draggingStyles.zIndex as any
-                // display: draggingStyles.display as any
             }}
         >
             <TreeContent item={draggingItem} renderComponent={renderComponent} />
         </animated.div>
-        { items.map(({ level, verticalRows = 0, open, draggingSource, item }, index) => {
+        { items.map(({ level, verticalRows = 0, open, draggingSource, draggingTarget, item }, index) => {
             return <div style={{
                     position: 'absolute',
                     height: `30px`,
                     zIndex: 2,
                     top: `${index * 32}px`
                 }}
-                key={getKey(item)}
+                key={draggingTarget ? `target-${getKey(item)}` : getKey(item) }
             >
                 <div
-                    className={`${localClasses.Highlighted} ${(draggingSource && localClasses.DraggingSource) || ''}`}
+                    className={`${localClasses.Highlighted} ${(draggingSource && localClasses.DraggingSource) || ''} ${(draggingTarget && localClasses.DraggingTarget) || ''}`}
                     style={{
                         transform: `translate3d(${(level + 1) * 34}px,0px, 0)`
                     }}

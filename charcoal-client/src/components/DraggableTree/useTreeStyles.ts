@@ -96,6 +96,14 @@ export const useTreeStyles = makeStyles((theme) => ({
             background: "#ffffffaa",
             border: "1px solid black"
         }
+    },
+    DraggingTarget: {
+        '& div$TreeContent, & div$TreeContentHandle': {
+            backgroundImage: '',
+            color: "white",
+            background: "blue",
+            border: "1px solid lightblue"
+        }
     }
 }))
 

@@ -34,7 +34,8 @@ describe('nestedToFlat', () => {
             {
                 item: { name: 'B' },
                 level: 1,
-                verticalRows: 0
+                verticalRows: 0,
+                ancestry: [{}]
             },
             {
                 item: { name: 'C' },
