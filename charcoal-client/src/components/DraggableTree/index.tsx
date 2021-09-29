@@ -105,37 +105,39 @@ export const DraggableTree = <T extends object>({
     const localClasses = useDraggableTreeStyles()
     const [draggingEntry, setDraggingEntry]: [DraggingEntry<T>, any] = useState<DraggingEntry<T>>(null)
     const [draggingTarget, setDraggingTarget]: [DraggingTarget, any] = useState<DraggingTarget>(null)
-    const [items, displayItems] = useMemo(() => {
-            let calculationTree = tree
-            let displayTree = tree
-            if (draggingEntry) {
-                calculationTree = produce(calculationTree, draft => {
-                    const draggingKey = draggingEntry.key
-                    recursiveUpdate(draft as NestedTree<T>, (entry: NestedTreeEntry<T>) => {
-                        if (entry.key === draggingKey) {
-                            entry.draggingSource = true
-                            entry.open = false
-                        }
-                    })
+    const [calculationTree, items] = useMemo(() => {
+        let calculationTree = tree
+        if (draggingEntry) {
+            calculationTree = produce(calculationTree, draft => {
+                const draggingKey = draggingEntry.key
+                recursiveUpdate(draft as NestedTree<T>, (entry: NestedTreeEntry<T>) => {
+                    if (entry.key === draggingKey) {
+                        entry.draggingSource = true
+                        entry.open = false
+                    }
                 })
-                displayTree = calculationTree
-                if (draggingTarget) {
-                    const { parentKey, position } = draggingTarget
-                    displayTree = treeStateReducer(displayTree, {
-                        type: 'ADD',
-                        parentKey,
-                        position,
-                        entry: {
-                            key: draggingEntry.key,
-                            item: draggingEntry.item,
-                            children: [],
-                            draggingTarget: true
-                        }
-                    })
+            })
+        }
+        return [calculationTree, nestedToFlat(calculationTree)]
+    }, [tree, draggingEntry])
+    const displayItems = useMemo(() => {
+        let displayTree = calculationTree
+        if (draggingEntry && draggingTarget) {
+            const { parentKey, position } = draggingTarget
+            displayTree = treeStateReducer(calculationTree, {
+                type: 'ADD',
+                parentKey,
+                position,
+                entry: {
+                    key: draggingEntry.key,
+                    item: draggingEntry.item,
+                    children: [],
+                    draggingTarget: true
                 }
-            }
-            return [nestedToFlat(calculationTree), nestedToFlat(displayTree)]
-        }, [tree, draggingEntry, draggingTarget])
+            })
+        }
+        return nestedToFlat(displayTree)
+    }, [tree, calculationTree, draggingEntry, draggingTarget])
     const maxLevel = displayItems.reduce((previous, { level }) => ((level > previous) ? level : previous), 0)
     //
     // TODO: Refactor so that lastRootRow displays correctly when dragging to end of root level
@@ -150,11 +152,6 @@ export const DraggableTree = <T extends object>({
             draggingApi({ opacity: 1 })
         }
         if (active) {
-            //
-            // TODO: Refactor so that draggingTarget is not legitimate if it would end in the same position
-            // as the draggingSource (even if the target isn't being dragged visually over the source to
-            // cause that outcome)
-            //
             if (draggingStyles.zIndex?.set) {
                 draggingStyles.zIndex.set(10)
             }
@@ -167,18 +164,24 @@ export const DraggableTree = <T extends object>({
             const rowIndex = clamp(Math.floor((startY + y + 16) / 32), 0, items.length)
             let newParentKey: string | undefined = undefined
             let newPosition: number | null = null
+            const { key: draggingSourceKey = undefined, position: draggingSourcePosition = null } = draggingEntry?.draggingPoints[draggingEntry.draggingPoints.length-1] ?? {}
             if (rowIndex === 0) {
                 newPosition = 0
             }
             else {
-                const prospectives = [...items[rowIndex - 1].draggingPoints, { key: items[rowIndex - 1].key, position: 0 }]
+                const prospectives = [...items[rowIndex - 1].draggingPoints, ...(items[rowIndex - 1].open === false ? [] : [{ key: items[rowIndex - 1].key, position: 0 }])]
                 const closestProspective = prospectives
                     .map((value, index) => ({ ...value, xOffset: Math.abs((index + 1) * 32 - (startX + x)) }))
                     .reduce<{ key?: string, position: number | null, xOffset: number }>((previous, value) => ((value.xOffset < previous.xOffset) ? value : previous ), { position: null, xOffset: Infinity })
-                newParentKey = closestProspective.key
-                newPosition = closestProspective.position
+                if (closestProspective.position !== null && !((closestProspective.key === draggingEntry?.key) ||
+                        ((closestProspective.key === draggingSourceKey) &&
+                        ((closestProspective.position === draggingSourcePosition) || (draggingSourcePosition === closestProspective.position + 1))
+                    ))) {
+                    newParentKey = closestProspective.key
+                    newPosition = closestProspective.position
+                }
             }
-            if (rowIndex > 0 && items[rowIndex - 1].draggingSource) {
+            if (newPosition === null) {
                 setDraggingTarget(null)
             }
             else {
