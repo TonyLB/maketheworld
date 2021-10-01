@@ -67,6 +67,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({}) => {
         renderComponent={simpleRender}
         onOpen={(key) => { treeDispatch({ type: 'OPEN', key }) }}
         onClose={(key) => { treeDispatch({ type: 'CLOSE', key }) }}
+        onMove={({ fromKey, toKey, position }) => { treeDispatch({ type: 'MOVE', fromKey, toKey, position })}}
     />
 }
 

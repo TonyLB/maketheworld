@@ -18,8 +18,9 @@ type DraggableTreeProps<T> = {
     tree: NestedTree<T>,
     getKey: (arg: T) => string,
     renderComponent: (arg: T) => React.ReactNode,
-    onOpen: (key: string) => void,
-    onClose: (key: string) => void
+    onOpen?: (key: string) => void,
+    onClose?: (key: string) => void,
+    onMove?: (args: { fromKey: string, toKey?: string, position: number }) => void
     //
     // ToDo:  Create callbacks for all data-changes that the tree can percolate
     // up to the lifted state (e.g. "onOpen", "onClose")
@@ -39,10 +40,18 @@ type TreeAction<T extends object> = {
     type: 'OPEN',
     key: string
 } | {
+    type: 'REMOVE',
+    fromKey: string
+} | {
     type: 'ADD',
-    parentKey?: string,
+    toKey?: string,
     position: number,
     entry: NestedTreeEntry<T>
+} | {
+    type: 'MOVE',
+    fromKey: string,
+    toKey?: string,
+    position: number,
 }
 
 const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: NestedTreeEntry<T>) => void ): void => {
@@ -52,10 +61,37 @@ const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: Ne
     })
 }
 
+export const findInTree = <T extends object>(tree: NestedTree<T>, key: string): NestedTreeEntry<T> | undefined => (
+    tree.reduce<NestedTreeEntry<T> | undefined>((previous, item) => (previous ? previous : (item.key === key) ? item : findInTree(item.children, key)), undefined)
+)
+
 export type TreeReducerFn<T extends object> = Reducer<NestedTree<T>, TreeAction<T>>
 
 export const treeStateReducer = <T extends object>(state: NestedTree<T>, action: TreeAction<T>): NestedTree<T> => (
     produce(state, draft => {
+        const addAction = ({ toKey, position, entry }: { toKey?: string, position: number, entry: NestedTreeEntry<T>}) => {
+            if (toKey !== undefined) {
+                recursiveUpdate(draft as NestedTree<T>, (probeEntry: NestedTreeEntry<T>) => {
+                    if (probeEntry.key === toKey) {
+                        probeEntry.children.splice(position, 0, entry)
+                    }
+                })
+            }
+            else {
+                (draft as NestedTree<T>).splice(position, 0, entry)
+            }
+        }
+        const removeAction = ({ fromKey }: { fromKey: string }) => {
+            const topLevelIndex = draft.findIndex(({ key }) => (key === fromKey))
+            if (topLevelIndex > -1) {
+                draft.splice(topLevelIndex, 1)
+            }
+            else {
+                recursiveUpdate(draft as NestedTree<T>, (probeEntry: NestedTreeEntry<T>) => {
+                    probeEntry.children = probeEntry.children.filter(({ key }) => (key !== fromKey))
+                })
+            }
+        }
         switch(action.type) {
             case 'CLOSE':
                 recursiveUpdate(draft as NestedTree<T>, (entry: NestedTreeEntry<T>) => {
@@ -72,16 +108,18 @@ export const treeStateReducer = <T extends object>(state: NestedTree<T>, action:
                 })
                 break;
             case 'ADD':
-                const { parentKey, position, entry } = action
-                if (parentKey !== undefined) {
-                    recursiveUpdate(draft as NestedTree<T>, (probeEntry: NestedTreeEntry<T>) => {
-                        if (probeEntry.key === parentKey) {
-                            probeEntry.children.splice(position, 0, entry)
-                        }
-                    })
-                }
-                else {
-                    (draft as NestedTree<T>).splice(position, 0, entry)
+                addAction(action)
+                break;
+            case 'REMOVE':
+                removeAction(action)
+                break;
+            case 'MOVE':
+                console.log('Move attempt (${action.fromKey})!')
+                const entry: NestedTreeEntry<T> | undefined = findInTree(draft as NestedTree<T>, action.fromKey)
+                if (entry) {
+                    console.log(entry)
+                    removeAction(action)
+                    addAction({ ...action, entry })
                 }
                 break;
         }
@@ -99,8 +137,9 @@ export const DraggableTree = <T extends object>({
         tree,
         getKey,
         renderComponent,
-        onOpen,
-        onClose
+        onOpen = () => {},
+        onClose = () => {},
+        onMove = () => {}
     }: DraggableTreeProps<T>) => {
     const localClasses = useDraggableTreeStyles()
     const [draggingEntry, setDraggingEntry]: [DraggingEntry<T>, any] = useState<DraggingEntry<T>>(null)
@@ -126,7 +165,7 @@ export const DraggableTree = <T extends object>({
             const { parentKey, position } = draggingTarget
             displayTree = treeStateReducer(calculationTree, {
                 type: 'ADD',
-                parentKey,
+                toKey: parentKey,
                 position,
                 entry: {
                     key: draggingEntry.key,
@@ -151,7 +190,7 @@ export const DraggableTree = <T extends object>({
             setDraggingEntry({ ...entry })
             draggingApi({ opacity: 1 })
         }
-        if (active) {
+        if (active || last) {
             if (draggingStyles.zIndex?.set) {
                 draggingStyles.zIndex.set(10)
             }
@@ -181,23 +220,30 @@ export const DraggableTree = <T extends object>({
                     newPosition = closestProspective.position
                 }
             }
-            if (newPosition === null) {
-                setDraggingTarget(null)
+            if (last) {
+                console.log('Drag ending!')
+                console.log(`New Position: ${newPosition}`)
+                if (newPosition !== null) {
+                    onMove({ fromKey: entry.key, toKey: newParentKey, position: newPosition })
+                }
+                setDraggingEntry(null)
+                draggingApi([{ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') }])
             }
             else {
-                if (draggingTarget) {
-                    if (!(newParentKey === draggingTarget.parentKey) || (newPosition !== draggingTarget.position)) {
-                        setDraggingTarget({ parentKey: newParentKey, position: newPosition })
-                    }
+                if (newPosition === null) {
+                    setDraggingTarget(null)
                 }
                 else {
-                    setDraggingTarget({ parentKey: newParentKey, position: newPosition })
-                }    
+                    if (draggingTarget) {
+                        if (!(newParentKey === draggingTarget.parentKey) || (newPosition !== draggingTarget.position)) {
+                            setDraggingTarget({ parentKey: newParentKey, position: newPosition })
+                        }
+                    }
+                    else {
+                        setDraggingTarget({ parentKey: newParentKey, position: newPosition })
+                    }    
+                }
             }
-        }
-        if (last) {
-            setDraggingEntry(null)
-            draggingApi([{ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') }])
         }
     })
     

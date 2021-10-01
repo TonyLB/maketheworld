@@ -1,4 +1,4 @@
-import { treeStateReducer } from './index'
+import { treeStateReducer, findInTree } from './index'
 import { NestedTree } from './interfaces'
 
 type TestItem = {
@@ -44,10 +44,26 @@ describe('DraggableTree', () => {
             children: []
         }]
     }
+    describe('findInTree', () => {
+        it('correctly pulls top-level element', () => {
+            expect(findInTree(testTree, 'Two')).toEqual({
+                key: 'Two',
+                item: { name: 'Two' },
+                children: []
+            })
+        })
+        it('correctly pulls child element', () => {
+            expect(findInTree(testTree, 'One-B')).toEqual({
+                key: 'One-B',
+                item: { name: 'One-B' },
+                children: []
+            })
+        })
+    })
     describe('treeStateReducer', () => {
         describe('ADD action', () => {
             it('correctly adds to the middle of siblings', () => {
-                expect(treeStateReducer(testTree, { type: 'ADD', parentKey: 'One', position: 1, entry: addEntry }))
+                expect(treeStateReducer(testTree, { type: 'ADD', toKey: 'One', position: 1, entry: addEntry }))
                     .toEqual([{
                         key: 'One',
                         item: { name: 'One' },
@@ -78,7 +94,7 @@ describe('DraggableTree', () => {
                         item: { name: 'Three' },
                         children: []
                     }])
-                expect(treeStateReducer(testTree, { type: 'ADD', parentKey: undefined, position: 1, entry: addEntry }))
+                expect(treeStateReducer(testTree, { type: 'ADD', toKey: undefined, position: 1, entry: addEntry }))
                     .toEqual([{
                         key: 'One',
                         item: { name: 'One' },
@@ -111,7 +127,7 @@ describe('DraggableTree', () => {
                     }])
             })
             it('correctly adds to the start of siblings', () => {
-                expect(treeStateReducer(testTree, { type: 'ADD', parentKey: 'One', position: 0, entry: addEntry }))
+                expect(treeStateReducer(testTree, { type: 'ADD', toKey: 'One', position: 0, entry: addEntry }))
                     .toEqual([{
                         key: 'One',
                         item: { name: 'One' },
@@ -142,7 +158,7 @@ describe('DraggableTree', () => {
                         item: { name: 'Three' },
                         children: []
                     }])
-                expect(treeStateReducer(testTree, { type: 'ADD', parentKey: undefined, position: 0, entry: addEntry }))
+                expect(treeStateReducer(testTree, { type: 'ADD', toKey: undefined, position: 0, entry: addEntry }))
                     .toEqual([addEntry,
                     {
                         key: 'One',
@@ -175,7 +191,7 @@ describe('DraggableTree', () => {
                     }])
             })
             it('correctly adds to the end of siblings', () => {
-                expect(treeStateReducer(testTree, { type: 'ADD', parentKey: 'One', position: 3, entry: addEntry }))
+                expect(treeStateReducer(testTree, { type: 'ADD', toKey: 'One', position: 3, entry: addEntry }))
                     .toEqual([{
                         key: 'One',
                         item: { name: 'One' },
@@ -206,7 +222,7 @@ describe('DraggableTree', () => {
                         item: { name: 'Three' },
                         children: []
                     }])
-                expect(treeStateReducer(testTree, { type: 'ADD', parentKey: undefined, position: 3, entry: addEntry }))
+                expect(treeStateReducer(testTree, { type: 'ADD', toKey: undefined, position: 3, entry: addEntry }))
                     .toEqual([{
                         key: 'One',
                         item: { name: 'One' },
@@ -241,13 +257,71 @@ describe('DraggableTree', () => {
         })
         describe('REMOVE action', () => {
             it('correctly removes from the middle of siblings', () => {
-
+                expect(treeStateReducer(testTree, { type: 'REMOVE', fromKey: 'One-B' }))
+                    .toEqual([{
+                        key: 'One',
+                        item: { name: 'One' },
+                        children: [{
+                            key: 'One-A',
+                            item: { name: 'One-A' },
+                            children: []
+                        },
+                        {
+                            key: 'One-C',
+                            item: { name: 'One-C' },
+                            children: []
+                        }]
+                    },
+                    {
+                        key: 'Two',
+                        item: { name: 'Two' },
+                        children: []
+                    },
+                    {
+                        key: 'Three',
+                        item: { name: 'Three' },
+                        children: []
+                }])
             })
             it('correctly removes from the start of siblings', () => {
-
+                expect(treeStateReducer(testTree, { type: 'REMOVE', fromKey: 'One' }))
+                    .toEqual([{
+                        key: 'Two',
+                        item: { name: 'Two' },
+                        children: []
+                    },
+                    {
+                        key: 'Three',
+                        item: { name: 'Three' },
+                        children: []
+                }])
             })
             it('correctly removes from the end of siblings', () => {
-
+                expect(treeStateReducer(testTree, { type: 'REMOVE', fromKey: 'One-C' }))
+                    .toEqual([{
+                        key: 'One',
+                        item: { name: 'One' },
+                        children: [{
+                            key: 'One-A',
+                            item: { name: 'One-A' },
+                            children: []
+                        },
+                        {
+                            key: 'One-B',
+                            item: { name: 'One-B' },
+                            children: []
+                        }]
+                    },
+                    {
+                        key: 'Two',
+                        item: { name: 'Two' },
+                        children: []
+                    },
+                    {
+                        key: 'Three',
+                        item: { name: 'Three' },
+                        children: []
+                }])
             })
         })
     })
