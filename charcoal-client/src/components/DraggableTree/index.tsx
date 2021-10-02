@@ -18,6 +18,7 @@ type DraggableTreeProps<T> = {
     tree: NestedTree<T>,
     getKey: (arg: T) => string,
     renderComponent: (arg: T) => React.ReactNode,
+    renderHandle: (arg: T) => React.ReactNode,
     onOpen?: (key: string) => void,
     onClose?: (key: string) => void,
     onMove?: (args: { fromKey: string, toKey?: string, position: number }) => void
@@ -137,6 +138,7 @@ export const DraggableTree = <T extends object>({
         tree,
         getKey,
         renderComponent,
+        renderHandle,
         onOpen = () => {},
         onClose = () => {},
         onMove = () => {}
@@ -221,8 +223,6 @@ export const DraggableTree = <T extends object>({
                 }
             }
             if (last) {
-                console.log('Drag ending!')
-                console.log(`New Position: ${newPosition}`)
                 if (newPosition !== null) {
                     onMove({ fromKey: entry.key, toKey: newParentKey, position: newPosition })
                 }
@@ -287,7 +287,7 @@ export const DraggableTree = <T extends object>({
                     }
                     <HorizontalLine />
                     <VerticalLine left={17} height={`${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`} />
-                    <TreeContent item={item} bind={bind(entry, index * 32, (level + 1) * 32)} renderComponent={renderComponent} />
+                    <TreeContent item={item} bind={bind(entry, index * 32, (level + 1) * 32)} renderComponent={renderComponent} renderHandle={renderHandle} />
                 </div>
             </div>
         })}

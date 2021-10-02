@@ -53,10 +53,11 @@ export const useTreeStyles = makeStyles((theme) => ({
         width: "30px",
         height: "100%",
         gridArea: "handle",
-        backgroundImage: `url(${Dash})`,
         borderRadius: "5px 0px 0px 5px",
-        color: "white",
-        background: "lightgrey"
+        color: "grey",
+        background: "lightgrey",
+        textAlign: "center",
+        paddingTop: "2.5px"
     },
     TreeContent: {
         position: "absolute",
