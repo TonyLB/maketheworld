@@ -33,6 +33,22 @@ const handleRender = ({ type }: TestItem): React.ReactNode => {
     }
 }
 
+const canDrop = ({ dropEntry, toEntry }: { dropEntry: TestItem, toEntry: TestItem | null, position: number | null}) => {
+    if (toEntry) {
+        switch(toEntry.type) {
+            case 'EXITGROUP':
+                return ['EXITGROUP', 'EXIT'].includes(dropEntry.type)
+            case 'ROOMGROUP':
+                return ['ROOMGROUP', 'ROOM'].includes(dropEntry.type)
+            default:
+                return false
+        }
+    }
+    else {
+        return ['EXITGROUP', 'ROOMGROUP'].includes(dropEntry.type)
+    }
+}
+
 const getMapKey = ({ name }: TestItem) => (name)
 
 const typedTreeReducer: TreeReducerFn<TestItem> = treeStateReducer
@@ -117,6 +133,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({}) => {
         onOpen={(key) => { treeDispatch({ type: 'OPEN', key }) }}
         onClose={(key) => { treeDispatch({ type: 'CLOSE', key }) }}
         onMove={({ fromKey, toKey, position }) => { treeDispatch({ type: 'MOVE', fromKey, toKey, position })}}
+        canDrop={canDrop}
     />
 }
 

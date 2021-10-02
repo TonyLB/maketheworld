@@ -21,11 +21,8 @@ type DraggableTreeProps<T> = {
     renderHandle: (arg: T) => React.ReactNode,
     onOpen?: (key: string) => void,
     onClose?: (key: string) => void,
-    onMove?: (args: { fromKey: string, toKey?: string, position: number }) => void
-    //
-    // ToDo:  Create callbacks for all data-changes that the tree can percolate
-    // up to the lifted state (e.g. "onOpen", "onClose")
-    //
+    onMove?: (args: { fromKey: string, toKey?: string, position: number }) => void,
+    canDrop?: (args: { dropEntry: T, toEntry: T | null, position: number }) => boolean
 }
 
 const clamp = (value: number, min: number, max: number): number => (
@@ -115,10 +112,8 @@ export const treeStateReducer = <T extends object>(state: NestedTree<T>, action:
                 removeAction(action)
                 break;
             case 'MOVE':
-                console.log('Move attempt (${action.fromKey})!')
                 const entry: NestedTreeEntry<T> | undefined = findInTree(draft as NestedTree<T>, action.fromKey)
                 if (entry) {
-                    console.log(entry)
                     removeAction(action)
                     addAction({ ...action, entry })
                 }
@@ -141,7 +136,8 @@ export const DraggableTree = <T extends object>({
         renderHandle,
         onOpen = () => {},
         onClose = () => {},
-        onMove = () => {}
+        onMove = () => {},
+        canDrop = () => (true)
     }: DraggableTreeProps<T>) => {
     const localClasses = useDraggableTreeStyles()
     const [draggingEntry, setDraggingEntry]: [DraggingEntry<T>, any] = useState<DraggingEntry<T>>(null)
@@ -207,10 +203,16 @@ export const DraggableTree = <T extends object>({
             let newPosition: number | null = null
             const { key: draggingSourceKey = undefined, position: draggingSourcePosition = null } = draggingEntry?.draggingPoints[draggingEntry.draggingPoints.length-1] ?? {}
             if (rowIndex === 0) {
-                newPosition = 0
+                if (entry && canDrop({ dropEntry: entry.item, toEntry: null, position: 0 })) {
+                    newPosition = 0
+                }
             }
             else {
                 const prospectives = [...items[rowIndex - 1].draggingPoints, ...(items[rowIndex - 1].open === false ? [] : [{ key: items[rowIndex - 1].key, position: 0 }])]
+                    .filter(({ key, position }) => {
+                        const toEntry = key ? findInTree(calculationTree, key) : null
+                        return entry ? canDrop({ dropEntry: entry.item, toEntry: (toEntry ?? { item: null }).item, position }) : false
+                    })
                 const closestProspective = prospectives
                     .map((value, index) => ({ ...value, xOffset: Math.abs((index + 1) * 32 - (startX + x)) }))
                     .reduce<{ key?: string, position: number | null, xOffset: number }>((previous, value) => ((value.xOffset < previous.xOffset) ? value : previous ), { position: null, xOffset: Infinity })
