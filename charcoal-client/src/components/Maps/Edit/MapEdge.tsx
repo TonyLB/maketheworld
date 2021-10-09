@@ -1,8 +1,15 @@
 import React from 'react'
 
-export const MapEdge = ({ fromPosition, toPosition, fromNode, toNode }) => {
-    const { x: fromX, y: fromY } = fromPosition
-    const { x: toX, y: toY } = toPosition
+type MapEdgeProps = {
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+    fromRoomId: string;
+    toRoomId: string;
+}
+
+export const MapEdge = ({ fromX, fromY, toX, toY, fromRoomId, toRoomId }: MapEdgeProps) => {
     const edgeLength = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2))
     if (edgeLength < 60 ||
         fromX === undefined || Number.isNaN(fromX) ||
@@ -12,12 +19,8 @@ export const MapEdge = ({ fromPosition, toPosition, fromNode, toNode }) => {
         return null
     }
     const multiplier = 30.0 / edgeLength
-    //
-    // TODO:  Optimize math calculations for performance.  Possibly memoize the
-    // expensive offset calculations.
-    //
     return <line
-        key={`${fromNode.PermanentId}-${toNode.PermanentId}`}
+        key={`${fromRoomId}-${toRoomId}`}
         x1={fromX + (toX - fromX) * multiplier}
         y1={fromY + (toY - fromY) * multiplier}
         x2={toX - (toX - fromX) * multiplier}

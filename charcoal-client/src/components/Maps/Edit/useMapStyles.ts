@@ -1,3 +1,4 @@
+import { blue } from "@material-ui/core/colors"
 import { makeStyles } from "@material-ui/core/styles"
 
 export const useMapStyles = makeStyles((theme) => ({
@@ -64,6 +65,12 @@ export const useMapStyles = makeStyles((theme) => ({
         fontSize: "14.5px",
         background: "lightblue",
         touchAction: "none",
+    },
+    svgLightBlue: {
+        fill: blue[50]
+    },
+    svgLightBlueContrast: {
+        fill: theme.palette.getContrastText(blue[50])
     },
 }))
 

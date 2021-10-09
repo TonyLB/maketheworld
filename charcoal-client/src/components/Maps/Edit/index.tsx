@@ -31,7 +31,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 key: 'One-A',
                 item: {
                     name: 'One-A',
-                    type: 'EXIT'
+                    type: 'EXIT',
+                    fromRoomId: 'Three-A-i',
+                    toRoomId: 'Three-A-ii'
                 },
                 children: []
             },
@@ -39,7 +41,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 key: 'One-B',
                 item: {
                     name: 'One-B',
-                    type: 'EXIT'
+                    type: 'EXIT',
+                    fromRoomId: 'Three-A-ii',
+                    toRoomId: 'Three-A-i'
                 },
                 children: []
             }]
@@ -67,16 +71,30 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 children: [{
                     key: 'Three-A-i',
                     item: {
-                        name: 'Three-A-i',
-                        type: 'ROOM'
+                        name: '3-A-1',
+                        type: 'ROOM',
+                        x: 300,
+                        y: 200
                     },
                     children: []
                 },
                 {
                     key: 'Three-A-ii',
                     item: {
-                        name: 'Three-A-ii',
-                        type: 'ROOM'
+                        name: '3-A-2',
+                        type: 'ROOM',
+                        x: 400,
+                        y: 200
+                    },
+                    children: []
+                },
+                {
+                    key: 'Three-A-iii',
+                    item: {
+                        name: '3-A-3',
+                        type: 'ROOM',
+                        x: 200,
+                        y: 200
                     },
                     children: []
                 }]
@@ -94,7 +112,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
 
     return <div className={localClasses.grid}>
         <div className={localClasses.content} >
-            <MapArea />
+            <MapArea tree={tree} />
         </div>
         <div className={localClasses.sidebar} >
             <MapLayers tree={tree} setTree={setTree} />
