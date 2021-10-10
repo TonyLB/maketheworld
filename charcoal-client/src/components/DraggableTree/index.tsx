@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Reducer } from 'react'
+import React, { useState, useMemo, Reducer, FunctionComponent } from 'react'
 import { useSpring, animated } from 'react-spring'
 import { useDrag } from 'react-use-gesture'
 
@@ -16,8 +16,7 @@ import useDraggableTreeStyles from './useTreeStyles'
 
 type DraggableTreeProps<T> = {
     tree: NestedTree<T>,
-    getKey: (arg: T) => string,
-    renderComponent: (arg: T) => React.ReactNode,
+    renderComponent: FunctionComponent<T & { key?: string }>,
     renderHandle: (arg: T) => React.ReactNode,
     onOpen?: (key: string) => void,
     onClose?: (key: string) => void,
@@ -52,7 +51,7 @@ type TreeAction<T extends object> = {
     position: number,
 }
 
-const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: NestedTreeEntry<T>) => void ): void => {
+export const recursiveUpdate = <T extends object>(tree: NestedTree<T>, update: (arg: NestedTreeEntry<T>) => void ): void => {
     tree.forEach(item => {
         update(item)
         recursiveUpdate(item.children, update)
@@ -131,7 +130,6 @@ type DraggingEntry<T> = FlatTreeRow<T> | null
 
 export const DraggableTree = <T extends object>({
         tree,
-        getKey,
         renderComponent,
         renderHandle,
         onOpen = () => {},
@@ -260,17 +258,17 @@ export const DraggableTree = <T extends object>({
                 zIndex: draggingStyles.zIndex as any
             }}
         >
-            <TreeContent item={draggingEntry && draggingEntry.item} renderComponent={renderComponent} />
+            { draggingEntry && <TreeContent item={draggingEntry.item} renderComponent={renderComponent} /> }
         </animated.div>
         { displayItems.map((entry, index) => {
-            const { level, verticalRows = 0, open, draggingSource, draggingTarget, item } = entry
+            const { level, verticalRows = 0, open, draggingSource, draggingTarget, item, key } = entry
             return <div style={{
                     position: 'absolute',
                     height: `30px`,
                     zIndex: 2,
                     top: `${index * 32}px`
                 }}
-                key={draggingTarget ? `target-${getKey(item)}` : getKey(item) }
+                key={draggingTarget ? `target-${key}` : key }
             >
                 <div
                     className={`${localClasses.Highlighted} ${(draggingSource && localClasses.DraggingSource) || ''} ${(draggingTarget && localClasses.DraggingTarget) || ''}`}
@@ -280,16 +278,16 @@ export const DraggableTree = <T extends object>({
                 >
                     { (open !== undefined) && <Collapsar left={-17} open={open} onClick={() => {
                             if (open) {
-                                onClose(getKey(item))
+                                onClose(key)
                             }
                             else {
-                                onOpen(getKey(item))
+                                onOpen(key)
                             }
                         }} />
                     }
                     <HorizontalLine />
                     <VerticalLine left={17} height={`${verticalRows > 0 ? (verticalRows * 30) - 15 : 0}px`} />
-                    <TreeContent item={item} bind={bind(entry, index * 32, (level + 1) * 32)} renderComponent={renderComponent} renderHandle={renderHandle} />
+                    <TreeContent item={{ ...item, itemKey: key }} bind={bind(entry, index * 32, (level + 1) * 32)} renderComponent={renderComponent} renderHandle={renderHandle} />
                 </div>
             </div>
         })}

@@ -72,6 +72,26 @@ export const useMapStyles = makeStyles((theme) => ({
     svgLightBlueContrast: {
         fill: theme.palette.getContrastText(blue[50])
     },
+    renderWrapper: {
+        width: "100%",
+        height: "100%",
+        display: 'grid',
+        gridTemplateAreas: `"visibilityControl content"`,
+        gridTemplateColumns: "20px 1fr"
+    },
+    visibilityControl: {
+        gridArea: 'visibilityControl',
+        paddingTop: "4px"
+    },
+    overriddenVisibilityControl: {
+        gridArea: 'visibilityControl',
+        paddingTop: "4px",
+        opacity: "0.4",
+    },
+    renderContent: {
+        gridArea: 'content',
+        paddingLeft: "5px"
+    }
 }))
 
 export default useMapStyles

@@ -36,6 +36,9 @@ export const treeToVisible = (tree: MapTree): VisibleMapItems => {
         previous,
         { item, children, key }
     ) => {
+        if (!item.visible) {
+            return previous
+        }
         const childResult = treeToVisible(children)
         switch(item.type) {
             case 'ROOM':

@@ -2,23 +2,34 @@ import { NestedTree } from '../../DraggableTree/interfaces'
 
 export type TestItemType = 'EXITGROUP' | 'EXIT' | 'ROOMGROUP' | 'ROOM'
 
-export type MapRoom = {
-    type: 'ROOM';
+export type InheritedVisibilityType = "True" | "False" | 'OverrideTrue' | 'OverrideFalse'
+
+interface MapObjectBase {
+    type: TestItemType;
     name: string;
+}
+
+export interface MapRoom extends MapObjectBase {
+    type: 'ROOM';
     x: number;
     y: number;
 }
 
-export type MapExit = {
+export interface MapExit extends MapObjectBase {
     type: 'EXIT';
-    name: string;
     toRoomId: string;
     fromRoomId: string;
 }
 
-export type TestItem = MapRoom | MapExit | {
+export interface MapGroup extends MapObjectBase {
     type: 'ROOMGROUP' | 'EXITGROUP';
-    name: string;
 }
 
+type TestItemBase = MapRoom | MapExit | MapGroup
+
+export type TestItem = TestItemBase & { visible: boolean }
+
+export type ProcessedTestItem = TestItemBase & { visible: InheritedVisibilityType }
+
 export type MapTree = NestedTree<TestItem>
+
