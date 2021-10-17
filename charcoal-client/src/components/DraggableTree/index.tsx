@@ -188,7 +188,12 @@ export const DraggableTree = <T extends object>({
         }
         if (active || last) {
             if (draggingStyles.zIndex?.set) {
-                draggingStyles.zIndex.set(10)
+                if (active) {
+                    draggingStyles.zIndex.set(10)
+                }
+                else {
+                    draggingStyles.zIndex.set(-5)
+                }
             }
             if (draggingStyles.x?.set) {
                 draggingStyles.x.set(clamp(startX + x, 0, (maxLevel + 2) * 32))

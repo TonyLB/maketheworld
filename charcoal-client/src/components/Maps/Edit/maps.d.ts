@@ -63,7 +63,8 @@ export type MapReducerAction = {
     type: 'ENDDRAG';
 }
 export type MapReducerState = VisibleMapItems & {
-    mapD3: MapDThree
+    mapD3: MapDThree;
 }
 
 export type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
+export type MapDispatch = (action: MapReducerAction) => void

@@ -19,6 +19,7 @@ export const useMapStyles = makeStyles((theme) => ({
     },
     grid: {
         backgroundColor: theme.palette.background.paper,
+        height: '100%',
         display: 'grid',
         justifyContent: "stretch",
         gridTemplateAreas: `"content"`,

@@ -58,9 +58,9 @@ export class MapDThreeIterator extends Object {
         this.nodes = nodes.map((node) => {
             if (previousNodesByRoomId[node.roomId]) {
                 return {
-                    ...previousNodesByRoomId[node.roomId],
-                    x: node.x,
-                    y: node.y
+                    ...node,
+                    x: previousNodesByRoomId[node.roomId].x,
+                    y: previousNodesByRoomId[node.roomId].y
                 }
             }
             return node

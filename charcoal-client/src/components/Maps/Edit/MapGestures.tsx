@@ -7,6 +7,7 @@ type RoomGestureProps = PropsWithChildren<{
     localDispatch: (action: MapReducerAction) => void;
     x: number;
     y: number;
+    scale: number;
 }>
 
 //
@@ -14,11 +15,11 @@ type RoomGestureProps = PropsWithChildren<{
 // dynamically configured useGesture hook around a component that does not
 // need to know about them
 //
-export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, x, y, localDispatch, children }) => {
+export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, x, y, scale, localDispatch, children }) => {
     const bind = useGesture({
         onDrag: ({ offset: [ x, y ]}) => {
-            const destX = Math.max(-265, Math.min(265, x - 300))
-            const destY = Math.max(-165, Math.min(165, y - 200))
+            const destX = Math.max(-265, Math.min(265, (x / scale) - 300))
+            const destY = Math.max(-165, Math.min(165, (y / scale) - 200))
             localDispatch({
                 type: 'SETNODE',
                 roomId,
@@ -32,7 +33,7 @@ export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, x, y,
     },
     {
         drag: {
-            from: () => [x, y]
+            from: () => [x * scale, y * scale]
         }
     })
     return <React.Fragment>{ React.Children.map(children, (child: any) => (React.cloneElement(child, bind()))) }</React.Fragment>

@@ -1,17 +1,14 @@
-import React, { FunctionComponent, useMemo, useReducer, useEffect } from 'react'
+import React, { FunctionComponent, useReducer, useEffect } from 'react'
 
 import useMapStyles from './useMapStyles'
 import {
     MapTree,
-    MapRoom,
     MapReducer,
     MapReducerState,
     VisibleMapItems
 } from './maps'
-import MapRoomComponent from './MapRoom'
-import MapEdgeComponent from './MapEdge'
 import MapDThree, { SimNode } from './MapDThree'
-import { RoomGestures } from './MapGestures'
+import MapDisplay from './MapDisplay'
 
 type MapAreaProps = {
     tree: MapTree;
@@ -48,18 +45,17 @@ const mapReducer: MapReducer = (state, action) => {
     const returnVal = (endState: MapReducerState, nodes: SimNode[]): MapReducerState => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
         return {
-            mapD3: endState.mapD3,
+            ...endState,
             rooms: endState.rooms.map((room) => ({
                 ...room,
                 ...(xyByRoomId[room.roomId] || {})
-            })),
-            exits: endState.exits
+            }))
         }
     }
     switch(action.type) {
         case 'UPDATETREE':
             state.mapD3.update(action.tree)
-            return returnVal({ mapD3: state.mapD3, ...treeToVisible(action.tree) }, state.mapD3.nodes)
+            return returnVal({ ...state, ...treeToVisible(action.tree) }, state.mapD3.nodes)
         case 'TICK':
             return returnVal(state, action.nodes)
         case 'SETCALLBACK':
@@ -105,61 +101,9 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
             tree
         })
     }, [tree, mapDispatch])
-    const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
 
-    //
-    // TODO: Use autoSizer to figure out the size of the parent div, then set an initial scale to nearly fill
-    // that.  Create a non-filled background so folks can see where the artboard is.  Create wheelZoom
-    // useGestures for the artboard that will allow users to dynamically change the zoom.  Adjust the
-    // useDrag functionality so that it compensates for the (now explicit) zoom level.
-    //
-    return <svg width="600" height="400" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
-        <defs>
-            <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
-                    refX='10' refY='5'>
-                <path d='M0,0 V10 L10,5 Z' fill='#000000' />
-            </marker>
-        </defs>
-        {
-            exits.map(({ fromRoomId, toRoomId }) => {
-                const from = roomsByRoomId[fromRoomId]
-                const fromX = from === undefined ? undefined : from.x + 300
-                const fromY = from === undefined ? undefined : from.y + 200
-                const to = roomsByRoomId[toRoomId]
-                const toX = to === undefined ? undefined : to.x + 300
-                const toY = to === undefined ? undefined : to.y + 200
-                return <MapEdgeComponent
-                    fromX={fromX}
-                    fromY={fromY}
-                    toX={toX}
-                    toY={toY}
-                    fromRoomId={fromRoomId}
-                    toRoomId={toRoomId}
-                />
-            })
-        }
-        {
-            rooms.map((room) => ({
-                className: localClasses.svgLightBlue,
-                contrastClassName: localClasses.svgLightBlueContrast,
-                ...room,
-                Name: room.name,
-                PermanentId: room.roomId,
-                x: room.x + 300,
-                y: room.y + 200
-            }))
-            .map((room) => (
-                <RoomGestures
-                    roomId={room.roomId}
-                    x={room.x}
-                    y={room.y}
-                    localDispatch={mapDispatch}
-                >
-                    <MapRoomComponent {...room} />
-                </RoomGestures>
-            ))
-        }
-    </svg>
+    return <MapDisplay rooms={rooms} exits={exits} mapDispatch={mapDispatch} />
+
 }
 
 export default MapArea
