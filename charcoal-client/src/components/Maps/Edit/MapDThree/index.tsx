@@ -1,5 +1,5 @@
-import { VisibleMapRoom } from '../MapArea'
-import { MapTree, MapExit } from '../maps'
+
+import { MapTree } from '../maps'
 import {
     SimulationNodeDatum,
     SimulationLinkDatum,
@@ -14,7 +14,6 @@ import boundingForceFactory from './boundingForce'
 import gridInfluenceForceFactory from './gridInfluenceForce'
 import forceFlexLink from './forceFlexLink'
 import treeToSimulation from './treeToSimulation';
-import { isNonNullChain } from 'typescript'
 
 export type SimCallback = (nodes: SimNode[]) => void
 

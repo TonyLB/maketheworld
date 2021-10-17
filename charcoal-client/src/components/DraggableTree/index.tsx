@@ -1,6 +1,6 @@
 import React, { useState, useMemo, Reducer, FunctionComponent } from 'react'
 import { useSpring, animated } from 'react-spring'
-import { useDrag } from 'react-use-gesture'
+import { useDrag } from '@use-gesture/react'
 
 import { NestedTree, NestedTreeEntry, FlatTreeRow } from './interfaces'
 

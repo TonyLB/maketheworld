@@ -1,7 +1,7 @@
 // Foundational imports (React, Redux, etc.)
 import React, { useReducer, useEffect, useState, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useGesture } from 'react-use-gesture'
+import { useGesture } from '@use-gesture/react'
 import { forceSimulation, forceCollide } from 'd3-force'
 
 // MaterialUI imports

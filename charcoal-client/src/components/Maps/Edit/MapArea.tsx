@@ -1,28 +1,19 @@
 import React, { FunctionComponent, useMemo, useReducer, useEffect } from 'react'
 
-import {
-    useRouteMatch,
-    useHistory,
-    useParams
-} from "react-router-dom"
-
 import useMapStyles from './useMapStyles'
-import { MapTree, MapRoom, MapExit } from './maps'
+import {
+    MapTree,
+    MapRoom,
+    MapReducer,
+    MapReducerState,
+    VisibleMapItems
+} from './maps'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import MapDThree, { SimNode } from './MapDThree'
 
 type MapAreaProps = {
     tree: MapTree;
-}
-
-export interface VisibleMapRoom extends MapRoom {
-    key: string
-}
-
-type VisibleMapItems = {
-    rooms: VisibleMapRoom[];
-    exits: MapExit[];
 }
 
 const mergeVisibleMapItems = (...args: VisibleMapItems[]): VisibleMapItems => (
@@ -51,30 +42,6 @@ export const treeToVisible = (tree: MapTree): VisibleMapItems => {
         }
     }, { rooms: [], exits: [] })
 }
-
-type MapReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACK' | 'SETNODE' | 'ENDDRAG'
-type MapReducerAction = {
-    type: 'UPDATETREE';
-    tree: MapTree;
-} | {
-    type: 'TICK';
-    nodes: SimNode[];
-} | {
-    type: 'SETCALLBACK';
-    callback: any
-} | {
-    type: 'SETNODE';
-    roomId: string;
-    x: number;
-    y: number;
-} | {
-    type: 'ENDDRAG';
-}
-type MapReducerState = VisibleMapItems & {
-    mapD3: MapDThree
-}
-
-type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
 
 const mapReducer: MapReducer = (state, action) => {
     const returnVal = (endState: MapReducerState, nodes: SimNode[]): MapReducerState => {

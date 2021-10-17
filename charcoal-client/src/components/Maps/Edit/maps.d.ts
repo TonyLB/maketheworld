@@ -34,3 +34,36 @@ export type ProcessedTestItem = TestItemBase & { visible: InheritedVisibilityTyp
 
 export type MapTree = NestedTree<TestItem>
 export type MapTreeEntry = NestedTreeEntry<TestItem>
+
+export interface VisibleMapRoom extends MapRoom {
+    key: string
+}
+
+type VisibleMapItems = {
+    rooms: VisibleMapRoom[];
+    exits: MapExit[];
+}
+
+export type MapReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACK' | 'SETNODE' | 'ENDDRAG'
+export type MapReducerAction = {
+    type: 'UPDATETREE';
+    tree: MapTree;
+} | {
+    type: 'TICK';
+    nodes: SimNode[];
+} | {
+    type: 'SETCALLBACK';
+    callback: any
+} | {
+    type: 'SETNODE';
+    roomId: string;
+    x: number;
+    y: number;
+} | {
+    type: 'ENDDRAG';
+}
+export type MapReducerState = VisibleMapItems & {
+    mapD3: MapDThree
+}
+
+export type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
