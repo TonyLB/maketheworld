@@ -83,6 +83,11 @@ export class MapDThreeIterator extends Object {
                 node.fy = y
             }
         })
+        this.simulation?.nodes(this.nodes)
+            .force("boundingBox", this.boundingForce)
+            .force("gridDrift", this.gridInfluenceForce)
+            .force("link", this.forceFlexLink)
+            .restart()
         if (this.simulation && this.simulation.alpha() < 0.1) {
             this.simulation.alpha(1)
                 .alphaTarget(0.5)

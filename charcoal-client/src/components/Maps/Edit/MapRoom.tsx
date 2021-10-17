@@ -7,8 +7,6 @@ type MapRoomProps = {
     contrastClassName: string;
     x: number;
     y: number;
-    onClick: any;
-    clickable: boolean;
     icon: any;
     openContextMenu: any;
     Locked: boolean;
@@ -21,8 +19,6 @@ export const MapRoom = ({
         contrastClassName,
         x,
         y,
-        onClick,
-        clickable=false,
         icon,
         openContextMenu = null,
         Locked,
@@ -57,8 +53,6 @@ export const MapRoom = ({
             cy={0}
             r={30}
             className={className}
-            onClick={onClick}
-            style={{ cursor: clickable ? 'pointer' : '' }}
             {...rest}
         />
         <text

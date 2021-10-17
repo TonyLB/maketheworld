@@ -11,6 +11,7 @@ import {
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import MapDThree, { SimNode } from './MapDThree'
+import { RoomGestures } from './MapGestures'
 
 type MapAreaProps = {
     tree: MapTree;
@@ -106,7 +107,13 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
     }, [tree, mapDispatch])
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
 
-    return <svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
+    //
+    // TODO: Use autoSizer to figure out the size of the parent div, then set an initial scale to nearly fill
+    // that.  Create a non-filled background so folks can see where the artboard is.  Create wheelZoom
+    // useGestures for the artboard that will allow users to dynamically change the zoom.  Adjust the
+    // useDrag functionality so that it compensates for the (now explicit) zoom level.
+    //
+    return <svg width="600" height="400" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
         <defs>
             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                     refX='10' refY='5'>
@@ -141,7 +148,16 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
                 x: room.x + 300,
                 y: room.y + 200
             }))
-            .map((room) => (<MapRoomComponent {...room} />))
+            .map((room) => (
+                <RoomGestures
+                    roomId={room.roomId}
+                    x={room.x}
+                    y={room.y}
+                    localDispatch={mapDispatch}
+                >
+                    <MapRoomComponent {...room} />
+                </RoomGestures>
+            ))
         }
     </svg>
 }
