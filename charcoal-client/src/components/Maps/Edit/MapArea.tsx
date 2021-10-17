@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo } from 'react'
+import React, { FunctionComponent, useMemo, useReducer, useEffect } from 'react'
 
 import {
     useRouteMatch,
@@ -10,12 +10,13 @@ import useMapStyles from './useMapStyles'
 import { MapTree, MapRoom, MapExit } from './maps'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
+import MapDThree, { SimNode } from './MapDThree'
 
 type MapAreaProps = {
     tree: MapTree;
 }
 
-interface VisibleMapRoom extends MapRoom {
+export interface VisibleMapRoom extends MapRoom {
     key: string
 }
 
@@ -51,11 +52,92 @@ export const treeToVisible = (tree: MapTree): VisibleMapItems => {
     }, { rooms: [], exits: [] })
 }
 
+type MapReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACK' | 'SETNODE' | 'ENDDRAG'
+type MapReducerAction = {
+    type: 'UPDATETREE';
+    tree: MapTree;
+} | {
+    type: 'TICK';
+    nodes: SimNode[];
+} | {
+    type: 'SETCALLBACK';
+    callback: any
+} | {
+    type: 'SETNODE';
+    roomId: string;
+    x: number;
+    y: number;
+} | {
+    type: 'ENDDRAG';
+}
+type MapReducerState = VisibleMapItems & {
+    mapD3: MapDThree
+}
+
+type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
+
+const mapReducer: MapReducer = (state, action) => {
+    const returnVal = (endState: MapReducerState, nodes: SimNode[]): MapReducerState => {
+        const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})
+        return {
+            mapD3: endState.mapD3,
+            rooms: endState.rooms.map((room) => ({
+                ...room,
+                ...(xyByRoomId[room.roomId] || {})
+            })),
+            exits: endState.exits
+        }
+    }
+    switch(action.type) {
+        case 'UPDATETREE':
+            state.mapD3.update(action.tree)
+            return returnVal({ mapD3: state.mapD3, ...treeToVisible(action.tree) }, state.mapD3.nodes)
+        case 'TICK':
+            return returnVal(state, action.nodes)
+        case 'SETCALLBACK':
+            state.mapD3.setCallback(action.callback)
+            return state
+        case 'SETNODE':
+            state.mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
+            return state
+        case 'ENDDRAG':
+            state.mapD3.endDrag()
+            return state
+        default:
+            return state
+    }
+}
+
 export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
     const localClasses = useMapStyles()
 
-    const { rooms, exits } = useMemo<VisibleMapItems>(() => (treeToVisible(tree)), [tree])
-    const roomsByKey = rooms.reduce<Record<string, MapRoom>>((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
+    //
+    // TODO: Lift useGesture code from Map/EditMap.js, and wire it into a separate helper function here that
+    // can be applied when the MapArea tool is in the correct mode (drag)
+    //
+    // In fact, make a whole toolbox of different gesture-spreads to apply to the room and exit objects.
+    //
+    //
+    // TODO: Create a useReducer call here to keep a local state synchronized with the nodes of a MapDThree instance
+    //
+    const [{ mapD3, rooms, exits }, mapDispatch] = useReducer(mapReducer, tree, (tree: MapTree) => {
+        const mapD3 = new MapDThree(tree)
+        const { rooms, exits } = treeToVisible(tree)
+        return { mapD3, rooms, exits }
+    })
+    useEffect(() => {
+        mapDispatch({
+            type: 'SETCALLBACK',
+            callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) }
+        })
+    }, [mapDispatch])
+    useEffect(() => {
+        mapDispatch({
+            type: 'UPDATETREE',
+            tree
+        })
+    }, [tree, mapDispatch])
+    const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
 
     return <svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
         <defs>
@@ -65,15 +147,22 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
             </marker>
         </defs>
         {
-            exits.map(({ fromRoomId, toRoomId }) => (<MapEdgeComponent
-                    fromX={roomsByKey[fromRoomId]?.x}
-                    fromY={roomsByKey[fromRoomId]?.y}
-                    toX={roomsByKey[toRoomId]?.x}
-                    toY={roomsByKey[toRoomId]?.y}
+            exits.map(({ fromRoomId, toRoomId }) => {
+                const from = roomsByRoomId[fromRoomId]
+                const fromX = from === undefined ? undefined : from.x + 300
+                const fromY = from === undefined ? undefined : from.y + 200
+                const to = roomsByRoomId[toRoomId]
+                const toX = to === undefined ? undefined : to.x + 300
+                const toY = to === undefined ? undefined : to.y + 200
+                return <MapEdgeComponent
+                    fromX={fromX}
+                    fromY={fromY}
+                    toX={toX}
+                    toY={toY}
                     fromRoomId={fromRoomId}
                     toRoomId={toRoomId}
                 />
-            ))
+            })
         }
         {
             rooms.map((room) => ({
@@ -81,9 +170,11 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
                 contrastClassName: localClasses.svgLightBlueContrast,
                 ...room,
                 Name: room.name,
-                PermanentId: room.name
+                PermanentId: room.roomId,
+                x: room.x + 300,
+                y: room.y + 200
             }))
-            .map(MapRoomComponent)
+            .map((room) => (<MapRoomComponent {...room} />))
         }
     </svg>
 }

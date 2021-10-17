@@ -25,7 +25,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
             key: 'One',
             item: {
                 name: 'One',
-                type: 'EXITGROUP',
+                type: 'GROUP',
                 visible: true,
             },
             children: [{
@@ -33,8 +33,8 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 item: {
                     name: 'One-A',
                     type: 'EXIT',
-                    fromRoomId: 'Three-A-i',
-                    toRoomId: 'Three-A-ii',
+                    fromRoomId: 'ABC',
+                    toRoomId: 'DEF',
                     visible: true,
                 },
                 children: []
@@ -44,8 +44,8 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 item: {
                     name: 'One-B',
                     type: 'EXIT',
-                    fromRoomId: 'Three-A-ii',
-                    toRoomId: 'Three-A-i',
+                    fromRoomId: 'DEF',
+                    toRoomId: 'ABC',
                     visible: true,
                 },
                 children: []
@@ -55,7 +55,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
             key: 'Two',
             item: {
                 name: 'Two',
-                type: 'EXITGROUP',
+                type: 'GROUP',
                 visible: true,
             },
             children: []
@@ -64,14 +64,14 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
             key: 'Three',
             item: {
                 name: 'Three',
-                type: 'ROOMGROUP',
+                type: 'GROUP',
                 visible: true,
             },
             children: [{
                 key: 'Three-A',
                 item: {
                     name: 'Three-A',
-                    type: 'ROOMGROUP',
+                    type: 'GROUP',
                     visible: true,
                 },
                 children: [{
@@ -79,8 +79,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                     item: {
                         name: '3-A-1',
                         type: 'ROOM',
-                        x: 300,
-                        y: 200,
+                        roomId: 'ABC',
+                        x: 0,
+                        y: 0,
                         visible: true,
                     },
                     children: []
@@ -90,8 +91,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                     item: {
                         name: '3-A-2',
                         type: 'ROOM',
-                        x: 400,
-                        y: 200,
+                        roomId: 'DEF',
+                        x: 100,
+                        y: 0,
                         visible: true,
                     },
                     children: []
@@ -101,8 +103,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                     item: {
                         name: '3-A-3',
                         type: 'ROOM',
-                        x: 200,
-                        y: 200,
+                        roomId: 'GHI',
+                        x: -100,
+                        y: 0,
                         visible: true,
                     },
                     children: []
@@ -112,7 +115,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 key: 'Three-B',
                 item: {
                     name: 'Three-B',
-                    type: 'ROOMGROUP',
+                    type: 'GROUP',
                     visible: true,
                 },
                 children: []

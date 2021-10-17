@@ -4,6 +4,7 @@ import RoomGroupIcon from '@material-ui/icons/LocationCity'
 import RoomIcon from '@material-ui/icons/Home'
 import ExitGroupIcon from '@material-ui/icons/Shuffle'
 import ExitIcon from '@material-ui/icons/CallMade'
+import LayersIcon from '@material-ui/icons/Layers'
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff'
 import VisibilityIcon from '@material-ui/icons/Visibility'
 import produce from 'immer'
@@ -41,12 +42,10 @@ const renderComponent = (setVisibility: (key: string, value: boolean) => void) =
 
 const handleRender = ({ type }: ProcessedTestItem): React.ReactNode => {
     switch(type) {
-        case 'EXITGROUP':
-            return <ExitGroupIcon />
+        case 'GROUP':
+            return <LayersIcon />
         case 'EXIT':
             return <ExitIcon />
-        case 'ROOMGROUP':
-            return <RoomGroupIcon />
         case 'ROOM':
             return <RoomIcon />
     }
@@ -55,16 +54,14 @@ const handleRender = ({ type }: ProcessedTestItem): React.ReactNode => {
 const canDrop = ({ dropEntry, toEntry }: { dropEntry: ProcessedTestItem, toEntry: ProcessedTestItem | null, position: number | null}) => {
     if (toEntry) {
         switch(toEntry.type) {
-            case 'EXITGROUP':
-                return ['EXITGROUP', 'EXIT'].includes(dropEntry.type)
-            case 'ROOMGROUP':
-                return ['ROOMGROUP', 'ROOM'].includes(dropEntry.type)
+            case 'GROUP':
+                return true
             default:
                 return false
         }
     }
     else {
-        return ['EXITGROUP', 'ROOMGROUP'].includes(dropEntry.type)
+        return dropEntry.type === 'GROUP'
     }
 }
 

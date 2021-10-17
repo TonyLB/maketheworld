@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 
 type MapRoomProps = {
     PermanentId: string;
@@ -31,20 +31,22 @@ export const MapRoom = ({
         currentLine: string;
         lines: string[];
     }
-    const lineBreakout = (Name.split(/\s+/) as string[])
-        .reduce<LineBreakout>(({ currentLine, lines }, word) => (
-            ((`${currentLine} ${word}`.length < 10) || !currentLine)
-                ? {
-                    currentLine: `${currentLine} ${word}`,
-                    lines
-                }
-                : {
-                    currentLine: word,
-                    lines: [...lines, currentLine]
-                }
-        ), { currentLine: '', lines: []})
-    const lines = [ ...lineBreakout.lines, lineBreakout.currentLine ]
+    const lines = useMemo(() => {
+        const lineBreakout = (Name.split(/\s+/) as string[])
+            .reduce<LineBreakout>(({ currentLine, lines }, word) => (
+                ((`${currentLine} ${word}`.length < 10) || !currentLine)
+                    ? {
+                        currentLine: `${currentLine} ${word}`,
+                        lines
+                    }
+                    : {
+                        currentLine: word,
+                        lines: [...lines, currentLine]
+                    }
+            ), { currentLine: '', lines: []})
+        return [ ...lineBreakout.lines, lineBreakout.currentLine ]
                 .map((word) => (word.length > 10 ? `${word.slice(0, 7)}...` : word))
+    }, [Name])
     if (x === undefined || Number.isNaN(x) || y === undefined || Number.isNaN(y)) {
         return null
     }

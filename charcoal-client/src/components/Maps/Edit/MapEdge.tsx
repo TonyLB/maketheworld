@@ -1,21 +1,23 @@
 import React from 'react'
 
 type MapEdgeProps = {
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
+    fromX?: number;
+    fromY?: number;
+    toX?: number;
+    toY?: number;
     fromRoomId: string;
     toRoomId: string;
 }
 
 export const MapEdge = ({ fromX, fromY, toX, toY, fromRoomId, toRoomId }: MapEdgeProps) => {
-    const edgeLength = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2))
-    if (edgeLength < 60 ||
-        fromX === undefined || Number.isNaN(fromX) ||
+    if (fromX === undefined || Number.isNaN(fromX) ||
         fromY === undefined || Number.isNaN(fromY) ||
         toX === undefined || Number.isNaN(toX) ||
         toY === undefined || Number.isNaN(toY)) {
+        return null
+    }
+    const edgeLength = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2))
+    if (edgeLength < 60) {
         return null
     }
     const multiplier = 30.0 / edgeLength
