@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, useRef } from 'react'
+import { FunctionComponent, useState, useRef, useEffect } from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
@@ -26,9 +26,13 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
         maxScale: 4.0
     })
     const scrollingWindowRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        if (scrollingWindowRef.current) {
+            scrollingWindowRef.current.addEventListener("mousewheel", (event) => { event.preventDefault() })
+        }
+    }, [scrollingWindowRef])
     const bind = useGesture({
         onWheel: ({ event, movement: [, y]}) => {
-            event.preventDefault()
             const oldScale = scale
             const newScale = Math.max(windowDetails.minScale, Math.min(windowDetails.maxScale, scale * Math.pow(2, -y / 1000)))
             setScale(newScale)
