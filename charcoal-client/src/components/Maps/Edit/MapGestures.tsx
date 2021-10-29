@@ -1,6 +1,7 @@
-import React, { FunctionComponent, PropsWithChildren } from 'react'
+import React, { FunctionComponent, PropsWithChildren, useContext, useMemo } from 'react'
 import { useGesture } from '@use-gesture/react'
-import { MapReducerAction } from './maps'
+import { MapReducerAction, ToolSelected } from './maps'
+import ToolSelectContext from './ToolSelectContext'
 
 type RoomGestureProps = PropsWithChildren<{
     roomId: string;
@@ -16,19 +17,24 @@ type RoomGestureProps = PropsWithChildren<{
 // need to know about them
 //
 export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, x, y, scale, localDispatch, children }) => {
+    const toolSelected = useContext<ToolSelected>(ToolSelectContext)
     const bind = useGesture({
-        onDrag: ({ offset: [ x, y ]}) => {
-            const destX = Math.max(-265, Math.min(265, (x / scale) - 300))
-            const destY = Math.max(-165, Math.min(165, (y / scale) - 200))
-            localDispatch({
-                type: 'SETNODE',
-                roomId,
-                x: destX,
-                y: destY
-            })
+        onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
+            if (toolSelected === 'Move') {
+                const destX = Math.max(-265, Math.min(265, (x / scale) - 300))
+                const destY = Math.max(-165, Math.min(165, (y / scale) - 200))
+                localDispatch({
+                    type: 'SETNODE',
+                    roomId,
+                    x: destX,
+                    y: destY
+                })
+            }
         },
         onDragEnd: () => {
-            localDispatch({ type: 'ENDDRAG' })
+            if (toolSelected === 'Move') {
+                localDispatch({ type: 'ENDDRAG' })
+            }
         }
     },
     {

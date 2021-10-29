@@ -11,6 +11,7 @@ import MapArea from './MapArea'
 import MapLayers from './MapLayers'
 import { MapTree, ToolSelected } from './maps'
 import ToolSelect from './ToolSelect'
+import ToolSelectContext from './ToolSelectContext'
 
 type MapEditProps = {
 }
@@ -125,17 +126,19 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
         }]
     )
 
-    return <div className={localClasses.grid}>
-        <div className={localClasses.content} >
-            <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
-                <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
+    return <ToolSelectContext.Provider value={toolSelected}>
+        <div className={localClasses.grid}>
+            <div className={localClasses.content} >
+                <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
+                    <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
+                </div>
+                <MapArea tree={tree}/>
             </div>
-            <MapArea tree={tree} />
+            <div className={localClasses.sidebar} >
+                <MapLayers tree={tree} setTree={setTree} />
+            </div>
         </div>
-        <div className={localClasses.sidebar} >
-            <MapLayers tree={tree} setTree={setTree} />
-        </div>
-    </div>
+    </ToolSelectContext.Provider>
 }
 
 export default MapEdit
