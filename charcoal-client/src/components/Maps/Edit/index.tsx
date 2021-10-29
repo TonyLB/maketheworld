@@ -9,7 +9,7 @@ import {
 import useMapStyles from './useMapStyles'
 import MapArea from './MapArea'
 import MapLayers from './MapLayers'
-import { MapTree } from './maps'
+import { MapTree, ToolSelected } from './maps'
 import ToolSelect from './ToolSelect'
 
 type MapEditProps = {
@@ -21,6 +21,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     const history = useHistory()
     const { mapId }: { mapId: string } = useParams()
 
+    const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [tree, setTree] = useState<MapTree>(
         [{
             key: 'One',
@@ -127,7 +128,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     return <div className={localClasses.grid}>
         <div className={localClasses.content} >
             <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
-                <ToolSelect />
+                <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
             </div>
             <MapArea tree={tree} />
         </div>

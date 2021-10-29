@@ -28,6 +28,7 @@ export const localStyles = makeStyles((theme) => ({
 }))
 
 export interface ToolSelectProps {
+    toolSelected: ToolSelected,
     onChange?: (toolSelected: ToolSelected) => void
 }
 
@@ -38,6 +39,7 @@ interface ToolSelectGroups {
 
 export const ToolSelect = (props: ToolSelectProps) => {
     const {
+        toolSelected,
         onChange = () => {}
     } = props
     const classes = localStyles()
@@ -63,19 +65,17 @@ export const ToolSelect = (props: ToolSelectProps) => {
             icon: <TwoWayExitIcon />
         }
     ]
-    const [currentTool, setCurrentTool] = useState<ToolSelected>('Select')
     return <ButtonGroup orientation="vertical" aria-label="vertical outlined primary button group">
         {
             tools.map(({ key, icon }) => (
                 <IconButton
                     key={key}
-                    color={ currentTool === key ? 'primary' : 'default' }
+                    color={ toolSelected === key ? 'primary' : 'default' }
                     classes={{
                         root: classes.normal,
                         ['colorPrimary']: classes['normal.selected']
                     }}
                     onClick={() => {
-                        setCurrentTool(key)
                         onChange(key)
                     }}
 
