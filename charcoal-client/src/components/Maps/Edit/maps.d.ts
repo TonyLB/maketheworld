@@ -68,3 +68,5 @@ export type MapReducerState = VisibleMapItems & {
 
 export type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
 export type MapDispatch = (action: MapReducerAction) => void
+
+export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
