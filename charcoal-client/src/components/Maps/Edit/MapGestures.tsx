@@ -5,6 +5,7 @@ import ToolSelectContext from './ToolSelectContext'
 
 type RoomGestureProps = PropsWithChildren<{
     roomId: string;
+    zLevel: number;
     localDispatch: (action: MapReducerAction) => void;
     x: number;
     y: number;
@@ -16,9 +17,15 @@ type RoomGestureProps = PropsWithChildren<{
 // dynamically configured useGesture hook around a component that does not
 // need to know about them
 //
-export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, x, y, scale, localDispatch, children }) => {
+export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
     const toolSelected = useContext<ToolSelected>(ToolSelectContext)
     const bind = useGesture({
+        onDragStart: () => {
+            localDispatch({
+                type: 'STARTDRAG',
+                lockThreshold: zLevel
+            })
+        },
         onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
             if (toolSelected === 'Move') {
                 const destX = Math.max(-265, Math.min(265, (x / scale) - 300))

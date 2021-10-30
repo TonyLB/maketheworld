@@ -73,6 +73,10 @@ export const useMapStyles = makeStyles((theme) => ({
     svgLightBlueContrast: {
         fill: theme.palette.getContrastText(blue[50])
     },
+    roomNode: {
+        fill: blue[50],
+        touchAction: "none"
+    },
     renderWrapper: {
         width: "100%",
         height: "100%",

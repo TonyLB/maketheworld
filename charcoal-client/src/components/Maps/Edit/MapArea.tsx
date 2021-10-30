@@ -5,10 +5,13 @@ import {
     MapTree,
     MapReducer,
     MapReducerState,
-    VisibleMapItems
+    VisibleMapItems,
+    TestItem
 } from './maps'
 import MapDThree, { SimNode } from './MapDThree'
 import MapDisplay from './MapDisplay'
+import produce from 'immer'
+import { recursiveUpdate } from '../../DraggableTree'
 
 type MapAreaProps = {
     tree: MapTree;
@@ -21,18 +24,19 @@ const mergeVisibleMapItems = (...args: VisibleMapItems[]): VisibleMapItems => (
     )
 )
 
-export const treeToVisible = (tree: MapTree): VisibleMapItems => {
+export const treeToVisible = (tree: MapTree, zLevel?: number): VisibleMapItems => {
     return tree.reduce<VisibleMapItems>((
         previous,
-        { item, children, key }
+        { item, children, key },
+        index
     ) => {
         if (!item.visible) {
             return previous
         }
-        const childResult = treeToVisible(children)
+        const childResult = treeToVisible(children, zLevel ?? index)
         switch(item.type) {
             case 'ROOM':
-                return mergeVisibleMapItems(previous, { rooms: [{ ...item, key }], exits: [] }, childResult)
+                return mergeVisibleMapItems(previous, { rooms: [{ ...item, key, zLevel: zLevel ?? index }], exits: [] }, childResult)
             case 'EXIT':
                 return mergeVisibleMapItems(previous, { rooms: [], exits: [item] }, childResult)
             default:
@@ -52,21 +56,56 @@ const mapReducer: MapReducer = (state, action) => {
             }))
         }
     }
+    const stabilize = (state: MapReducerState): MapReducerState => {
+        const previousNodesByRoomId = (state.mapD3.nodes as SimNode[]).reduce<Record<string, SimNode>>((previous, node) => {
+            return {
+                ...previous,
+                [node.roomId]: node
+            }
+        }, {})
+        const updatedTree: MapTree = produce<MapTree>(state.tree, draft => {
+            recursiveUpdate<TestItem>(draft, (node) => {
+                if (node.item.type === 'ROOM') {
+                    const previous = previousNodesByRoomId[node.item.roomId]
+                    if (previous && previous.x !== undefined && previous.y !== undefined) {
+                        node.item.x = previous.x
+                        node.item.y = previous.y
+                    }
+                }
+            })
+        })
+        return returnVal({ ...state, tree: updatedTree }, state.mapD3.nodes)
+    }
     switch(action.type) {
         case 'UPDATETREE':
+            //
+            // TODO: Diff trees to figure out what the lockThreshold should be, given what (if anything) has
+            // changed about what layers different elements are on (movement within layers means no change
+            // to the D3 map, pretty sure ... which will be important to lift node positioning state up without
+            // creating an infinite loop of updates causing node iterations causing updates)
+            //
             state.mapD3.update(action.tree)
-            return returnVal({ ...state, ...treeToVisible(action.tree) }, state.mapD3.nodes)
+            return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
         case 'TICK':
             return returnVal(state, action.nodes)
-        case 'SETCALLBACK':
-            state.mapD3.setCallback(action.callback)
+        case 'SETCALLBACKS':
+            state.mapD3.setCallbacks(action.callback, action.stabilityCallback)
             return state
+        case 'STARTDRAG':
+            const newState = stabilize(state)
+            newState.mapD3.update(newState.tree, action.lockThreshold)
+            return newState
         case 'SETNODE':
             state.mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
             return state
         case 'ENDDRAG':
             state.mapD3.endDrag()
             return state
+        case 'STABILIZE':
+            //
+            // TODO: Transfer nodes repositioning information into local tree state
+            //
+            return stabilize(state)
         default:
             return state
     }
@@ -87,12 +126,13 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
     const [{ mapD3, rooms, exits }, mapDispatch] = useReducer(mapReducer, tree, (tree: MapTree) => {
         const mapD3 = new MapDThree(tree)
         const { rooms, exits } = treeToVisible(tree)
-        return { mapD3, rooms, exits }
+        return { mapD3, rooms, exits, tree }
     })
     useEffect(() => {
         mapDispatch({
-            type: 'SETCALLBACK',
-            callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) }
+            type: 'SETCALLBACKS',
+            callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) },
+            stabilityCallback: () => { mapDispatch({ type: 'STABILIZE' })}
         })
     }, [mapDispatch])
     useEffect(() => {

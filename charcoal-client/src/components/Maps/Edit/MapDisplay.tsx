@@ -32,7 +32,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
         }
     }, [scrollingWindowRef])
     const bind = useGesture({
-        onWheel: ({ event, movement: [, y]}) => {
+        onWheel: ({ movement: [, y] }) => {
             const oldScale = scale
             const newScale = Math.max(windowDetails.minScale, Math.min(windowDetails.maxScale, scale * Math.pow(2, -y / 1000)))
             setScale(newScale)
@@ -106,7 +106,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
                         }
                         {
                             rooms.map((room) => ({
-                                className: localClasses.svgLightBlue,
+                                className: localClasses.roomNode,
                                 contrastClassName: localClasses.svgLightBlueContrast,
                                 ...room,
                                 Name: room.name,
@@ -119,6 +119,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
                                     roomId={room.roomId}
                                     x={room.x}
                                     y={room.y}
+                                    zLevel={room.zLevel}
                                     localDispatch={mapDispatch}
                                     scale={scale}
                                 >

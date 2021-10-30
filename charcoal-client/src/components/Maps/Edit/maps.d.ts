@@ -36,7 +36,8 @@ export type MapTree = NestedTree<TestItem>
 export type MapTreeEntry = NestedTreeEntry<TestItem>
 
 export interface VisibleMapRoom extends MapRoom {
-    key: string
+    key: string;
+    zLevel: number;
 }
 
 type VisibleMapItems = {
@@ -44,7 +45,7 @@ type VisibleMapItems = {
     exits: MapExit[];
 }
 
-export type MapReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACK' | 'SETNODE' | 'ENDDRAG'
+export type MapReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACKS' | 'SETNODE' | 'STARTDRAG' | 'ENDDRAG' | 'STABILIZE'
 export type MapReducerAction = {
     type: 'UPDATETREE';
     tree: MapTree;
@@ -52,18 +53,25 @@ export type MapReducerAction = {
     type: 'TICK';
     nodes: SimNode[];
 } | {
-    type: 'SETCALLBACK';
-    callback: any
+    type: 'SETCALLBACKS';
+    callback: any;
+    stabilityCallback: any;
 } | {
     type: 'SETNODE';
     roomId: string;
     x: number;
     y: number;
 } | {
+    type: 'STARTDRAG';
+    lockThreshold: number;
+} | {
     type: 'ENDDRAG';
+} | {
+    type: 'STABILIZE';
 }
 export type MapReducerState = VisibleMapItems & {
     mapD3: MapDThree;
+    tree: MapTree;
 }
 
 export type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState

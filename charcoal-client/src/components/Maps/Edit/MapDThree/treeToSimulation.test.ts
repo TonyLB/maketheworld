@@ -55,28 +55,34 @@ describe('treeToSimulation', () => {
                     roomId: 'GHI',
                     visible: true,
                     x: 300,
-                    y: 300
+                    y: 300,
                 },
                 children: []
             }]
         }])).toEqual({
             nodes: [{
                 id: 'Two-A',
+                roomId: 'GHI',
                 x: 300,
                 y: 300,
-                visible: true
+                visible: true,
+                zLevel: 1
             },
             {
                 id: 'One-B',
+                roomId: 'DEF',
                 x: 300,
                 y: 200,
-                visible: true
+                visible: true,
+                zLevel: 0
             },
             {
                 id: 'One-A',
+                roomId: 'ABC',
                 x: 200,
                 y: 200,
-                visible: true
+                visible: true,
+                zLevel: 0
             }],
             links: []
         })
@@ -180,21 +186,27 @@ describe('treeToSimulation', () => {
         }])).toEqual({
             nodes: [{
                 id: 'Two-A',
+                roomId: 'GHI',
                 x: 300,
                 y: 400,
-                visible: true
+                visible: true,
+                zLevel: 1,
             },
             {
                 id: 'One-B',
+                roomId: 'DEF',
                 x: 300,
                 y: 200,
-                visible: true
+                visible: true,
+                zLevel: 0
             },
             {
                 id: 'One-A',
+                roomId: 'ABC',
                 x: 300,
                 y: 300,
-                visible: true
+                visible: true,
+                zLevel: 0
             }],
             links: [{
                 id: 'Two-A-One-A',

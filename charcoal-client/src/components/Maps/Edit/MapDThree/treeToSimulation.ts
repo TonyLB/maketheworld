@@ -6,6 +6,7 @@ import { MapTree, MapTreeEntry } from '../maps'
 
 export type SimNode = SimulationNodeDatum & {
     id: string;
+    zLevel?: number;
     roomId: string;
     visible: boolean;
 }
@@ -21,21 +22,26 @@ type SimulationReturn = {
     links: SimulationLinkDatum<SimNode>[]
 }
 
-const simulationNodes = (treeEntry: MapTreeEntry): NodeRecord => {
+const simulationNodes = (treeEntry: MapTreeEntry, zLevel: number, lockThreshold?: number): NodeRecord => {
     const { children = [], key, item } = treeEntry
     const childrenNodes = children.reduceRight<NodeRecord>((previous: NodeRecord, child: MapTreeEntry) => ({
         ...previous,
-        ...simulationNodes(child)
+        ...simulationNodes(child, zLevel, lockThreshold)
     }), {})
     if (item.type === 'ROOM') {
         return {
             ...childrenNodes,
             [item.roomId]: {
                 id: key,
+                zLevel,
                 roomId: item.roomId,
                 x: item.x,
                 y: item.y,
-                visible: item.visible
+                visible: item.visible,
+                ...(((lockThreshold !== undefined) && (lockThreshold < zLevel)) ? {
+                    fx: item.x,
+                    fy: item.y
+                } : {})
             }
         }
     }
@@ -67,12 +73,13 @@ const simulationLinks = (treeEntry: MapTreeEntry): LinkRecord => {
     
 }
 
-export const treeToSimulation = (tree: MapTree): SimulationReturn => {
+export const treeToSimulation = (tree: MapTree, lockThreshold?: number): SimulationReturn => {
     const { nodes, links } = tree.reduceRight<{ nodes: NodeRecord, links: LinkRecord }>((
             { nodes: previousNodes, links: previousLinks },
-            treeEntry
+            treeEntry,
+            index
         ) => {
-            const layerNodes = simulationNodes(treeEntry)
+            const layerNodes = simulationNodes(treeEntry, index, lockThreshold)
             const combinedNodes = { ...previousNodes, ...layerNodes }
             //
             // Links are filtered so that a given exit can only effect either (a) rooms defined on the same

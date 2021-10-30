@@ -5,6 +5,8 @@ import {
     SimulationLinkDatum,
     Simulation,
     forceSimulation,
+    forceX,
+    forceY,
     forceCollide
 } from 'd3-force'
 
@@ -22,6 +24,7 @@ export class MapDThreeIterator extends Object {
     links: SimulationLinkDatum<SimulationNodeDatum>[] = []
     simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>>
     callback: SimCallback = () => {}
+    onStability: SimCallback = () => {}
     get boundingForce() {
         return boundingForceFactory(this.nodes)
     }
@@ -45,22 +48,26 @@ export class MapDThreeIterator extends Object {
         this.simulation.on('tick', () => {
             this.callback?.(this.nodes)
         })
+        this.simulation.on('end', () => {
+            console.log('Stability callback')
+            this.onStability?.(this.nodes)
+        })
     }
-    update(tree: MapTree) {
+    update(tree: MapTree, lockThreshold?: number) {
         const previousNodesByRoomId = this.nodes.reduce<Record<string, SimNode>>((previous, node) => {
             return {
                 ...previous,
                 [node.roomId]: node
             }
         }, {})
-        const { nodes, links } = treeToSimulation(tree)
+        const { nodes, links } = treeToSimulation(tree, lockThreshold)
         this.links = links
         this.nodes = nodes.map((node) => {
             if (previousNodesByRoomId[node.roomId]) {
                 return {
                     ...node,
                     x: previousNodesByRoomId[node.roomId].x,
-                    y: previousNodesByRoomId[node.roomId].y
+                    y: previousNodesByRoomId[node.roomId].y,
                 }
             }
             return node
@@ -73,17 +80,20 @@ export class MapDThreeIterator extends Object {
             .alpha(1.0)
             .restart()
     }
-    setCallback(callback: SimCallback) {
+    setCallbacks(callback: SimCallback, stabilityCallback: SimCallback) {
         this.callback = callback
+        this.onStability = stabilityCallback
     }
     dragNode({ roomId, x, y }: { roomId: string, x: number, y: number }) {
-        this.nodes.forEach((node) => {
-            if (node.roomId === roomId) {
-                node.fx = x
-                node.fy = y
-            }
-        })
         this.simulation?.nodes(this.nodes)
+            .force("draggingForceX", forceX<SimNode>()
+                .x(x)
+                .strength(({ roomId: nodeRoomId }: SimNode) => (nodeRoomId === roomId ? 1 : 0))
+            )
+            .force("draggingForceY", forceY<SimNode>()
+                .y(y)
+                .strength(({ roomId: nodeRoomId }: SimNode) => (nodeRoomId === roomId ? 1 : 0))
+            )
             .force("boundingBox", this.boundingForce)
             .force("gridDrift", this.gridInfluenceForce)
             .force("link", this.forceFlexLink)
@@ -95,10 +105,7 @@ export class MapDThreeIterator extends Object {
         }
     }
     endDrag() {
-        this.nodes.forEach((node) => {
-            node.fx = null
-            node.fy = null
-        })
+        this.simulation.force("draggingForceX", null).force("draggingForceY", null)
         if (this.simulation) {
             this.simulation.alphaTarget(0)
         }
