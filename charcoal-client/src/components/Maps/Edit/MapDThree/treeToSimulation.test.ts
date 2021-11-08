@@ -2,10 +2,7 @@ import treeToSimulation from "./treeToSimulation"
 
 describe('treeToSimulation', () => {
     it('converts empty tree', () => {
-        expect(treeToSimulation([])).toEqual({
-            nodes: [],
-            links: []
-        })
+        expect(treeToSimulation([])).toEqual([])
     })
     it('converts room layers', () => {
         expect(treeToSimulation([{
@@ -59,10 +56,25 @@ describe('treeToSimulation', () => {
                 },
                 children: []
             }]
-        }])).toEqual({
+        }])).toEqual([{
+            key: 'Two',
             nodes: [{
                 id: 'Two-A',
                 roomId: 'GHI',
+                cascadeNode: false,
+                x: 300,
+                y: 300,
+                visible: true,
+                zLevel: 1
+            }],
+            links: []
+        },
+        {
+            key: 'One',
+            nodes: [{
+                id: 'Two-A',
+                roomId: 'GHI',
+                cascadeNode: true,
                 x: 300,
                 y: 300,
                 visible: true,
@@ -71,6 +83,7 @@ describe('treeToSimulation', () => {
             {
                 id: 'One-B',
                 roomId: 'DEF',
+                cascadeNode: false,
                 x: 300,
                 y: 200,
                 visible: true,
@@ -79,13 +92,14 @@ describe('treeToSimulation', () => {
             {
                 id: 'One-A',
                 roomId: 'ABC',
+                cascadeNode: false,
                 x: 200,
                 y: 200,
                 visible: true,
                 zLevel: 0
             }],
             links: []
-        })
+        }])
     })
     it('combines exit layers', () => {
         expect(treeToSimulation([{
@@ -183,10 +197,25 @@ describe('treeToSimulation', () => {
                 },
                 children: []
             }]
-        }])).toEqual({
+        }])).toEqual([{
+            key: 'Two',
             nodes: [{
                 id: 'Two-A',
                 roomId: 'GHI',
+                cascadeNode: false,
+                x: 300,
+                y: 400,
+                visible: true,
+                zLevel: 1,
+            }],
+            links: []
+        },
+        {
+            key: 'One',
+            nodes: [{
+                id: 'Two-A',
+                roomId: 'GHI',
+                cascadeNode: true,
                 x: 300,
                 y: 400,
                 visible: true,
@@ -195,6 +224,7 @@ describe('treeToSimulation', () => {
             {
                 id: 'One-B',
                 roomId: 'DEF',
+                cascadeNode: false,
                 x: 300,
                 y: 200,
                 visible: true,
@@ -203,12 +233,19 @@ describe('treeToSimulation', () => {
             {
                 id: 'One-A',
                 roomId: 'ABC',
+                cascadeNode: false,
                 x: 300,
                 y: 300,
                 visible: true,
                 zLevel: 0
             }],
             links: [{
+                id: 'One-A-Two-A',
+                source: 'One-A',
+                target: 'Two-A',
+                visible: true
+            },
+            {
                 id: 'Two-A-One-A',
                 source: 'Two-A',
                 target: 'One-A',
@@ -226,5 +263,5 @@ describe('treeToSimulation', () => {
                 target: 'One-B',
                 visible: true
             }]
-        })
+        }])
     })})

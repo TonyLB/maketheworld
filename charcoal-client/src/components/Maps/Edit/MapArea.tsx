@@ -84,17 +84,23 @@ const mapReducer: MapReducer = (state, action) => {
             // to the D3 map, pretty sure ... which will be important to lift node positioning state up without
             // creating an infinite loop of updates causing node iterations causing updates)
             //
+            // Alternately:  Instead of a lockThreshold, run one D3 simulation per layer, with earlier layers
+            // cascading their changes forward to fixed nodes in the simulations of later layers.  Then each
+            // simulation can stabilize independently (although earlier layers will almost certainly stabilize
+            // first, as they won't keep having their alpha reset by cascading updates)
+            //
             state.mapD3.update(action.tree)
             return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
         case 'TICK':
             return returnVal(state, action.nodes)
         case 'SETCALLBACKS':
-            state.mapD3.setCallbacks(action.callback, action.stabilityCallback)
+            state.mapD3.setCallbacks({ onTick: action.callback, onStability: action.stabilityCallback })
             return state
         case 'STARTDRAG':
-            const newState = stabilize(state)
-            newState.mapD3.update(newState.tree, action.lockThreshold)
-            return newState
+            // const newState = stabilize(state)
+            // newState.mapD3.update(newState.tree, action.lockThreshold)
+            // return newState
+            return state
         case 'SETNODE':
             state.mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
             return state
@@ -123,8 +129,8 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
     //
     // TODO: Create a useReducer call here to keep a local state synchronized with the nodes of a MapDThree instance
     //
-    const [{ mapD3, rooms, exits }, mapDispatch] = useReducer(mapReducer, tree, (tree: MapTree) => {
-        const mapD3 = new MapDThree(tree)
+    const [{ rooms, exits }, mapDispatch] = useReducer(mapReducer, tree, (tree: MapTree) => {
+        const mapD3 = new MapDThree({ tree })
         const { rooms, exits } = treeToVisible(tree)
         return { mapD3, rooms, exits, tree }
     })

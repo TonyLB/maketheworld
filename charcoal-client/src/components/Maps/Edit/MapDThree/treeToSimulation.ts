@@ -2,11 +2,22 @@ import {
     SimulationNodeDatum,
     SimulationLinkDatum
 } from 'd3-force';
+import { Link } from 'react-router-dom';
+import { NestedTreeEntry } from '../../../DraggableTree/interfaces';
 import { MapTree, MapTreeEntry } from '../maps'
 
+//
+// STEP 1: Edit SimNode so that it carries a boolean saying whether (for a given simulation) the
+// node is fixed or moving
+//
+
+//
+// STEP 5: Remove zLevel and all lockThreshold code
+//
 export type SimNode = SimulationNodeDatum & {
     id: string;
     zLevel?: number;
+    cascadeNode: boolean;
     roomId: string;
     visible: boolean;
 }
@@ -18,30 +29,27 @@ type LinkRecord = {
     visible?: boolean
 }[]
 type SimulationReturn = {
+    key: string,
     nodes: SimNode[],
     links: SimulationLinkDatum<SimNode>[]
 }
 
-const simulationNodes = (treeEntry: MapTreeEntry, zLevel: number, lockThreshold?: number): NodeRecord => {
+const simulationNodes = (treeEntry: MapTreeEntry): NodeRecord => {
     const { children = [], key, item } = treeEntry
     const childrenNodes = children.reduceRight<NodeRecord>((previous: NodeRecord, child: MapTreeEntry) => ({
         ...previous,
-        ...simulationNodes(child, zLevel, lockThreshold)
+        ...simulationNodes(child)
     }), {})
     if (item.type === 'ROOM') {
         return {
             ...childrenNodes,
             [item.roomId]: {
                 id: key,
-                zLevel,
+                cascadeNode: false,
                 roomId: item.roomId,
                 x: item.x,
                 y: item.y,
-                visible: item.visible,
-                ...(((lockThreshold !== undefined) && (lockThreshold < zLevel)) ? {
-                    fx: item.x,
-                    fy: item.y
-                } : {})
+                visible: item.visible
             }
         }
     }
@@ -73,33 +81,58 @@ const simulationLinks = (treeEntry: MapTreeEntry): LinkRecord => {
     
 }
 
-export const treeToSimulation = (tree: MapTree, lockThreshold?: number): SimulationReturn => {
-    const { nodes, links } = tree.reduceRight<{ nodes: NodeRecord, links: LinkRecord }>((
-            { nodes: previousNodes, links: previousLinks },
-            treeEntry,
-            index
+export const treeToSimulation = (tree: MapTree): SimulationReturn[] => {
+    type TreeToSimReduceReturn = {
+        allLinks: LinkRecord,
+        layers: {
+            key: string,
+            nodes: NodeRecord,
+            links: LinkRecord
+        }[]
+    }
+    const simList: TreeToSimReduceReturn = tree.reduceRight<TreeToSimReduceReturn>((
+            { allLinks: previousLinks, layers },
+            treeEntry
         ) => {
-            const layerNodes = simulationNodes(treeEntry, index, lockThreshold)
+            //
+            // Mark all nodes from previous layers as being cascade nodes
+            //
+            const previousNodes = Object.entries((layers.length > 0) ? layers[layers.length-1].nodes : {} as NodeRecord).map<[string, SimNode]>(([key, node]) => ([key, {
+                ...node,
+                cascadeNode: true
+            }])).reduce<NodeRecord>((previous, [key, node]) => ({ ...previous, [key]: node }), {})
+
+            //
+            // Combine nodes from this layer into the NodeRecord
+            //
+            const layerNodes = simulationNodes(treeEntry)
             const combinedNodes = { ...previousNodes, ...layerNodes }
+
             //
             // Links are filtered so that a given exit can only effect either (a) rooms defined on the same
             // layer, or (b) rooms defined on later layers.  No looping back into the "past"
             //
-            const layerLinks = simulationLinks(treeEntry)
-                .filter(({ source, target }) => (layerNodes[target as string] && combinedNodes[source as string]))
-                .map(({ source, target, ...rest }) => ({ source: combinedNodes[source].id, target: combinedNodes[target].id, ...rest }))
+            const allLinks: LinkRecord = [
+                ...previousLinks,
+                ...simulationLinks(treeEntry)
+            ]
+            const layerLinks = allLinks
+                .filter(({ source, target }) => (combinedNodes[source] && combinedNodes[target] && !(combinedNodes[source].cascadeNode && combinedNodes[target].cascadeNode)))
+                .map(({ source, target, ...rest }) => ({ ...rest, source: combinedNodes[source].id, target: combinedNodes[target].id }))
             return {
-                nodes: {
-                    ...previousNodes,
-                    ...layerNodes
-                },
-                links: [
-                    ...previousLinks,
-                    ...layerLinks
+                allLinks,
+                layers: [
+                    ...layers,
+                    {
+                        key: treeEntry.key,
+                        nodes: combinedNodes,
+                        links: layerLinks
+                    }
                 ]
             }
-        }, { nodes: {}, links: [] })
-    return { nodes: Object.values(nodes), links }
+        }, { allLinks: [], layers: [] })
+
+    return simList.layers.map<SimulationReturn>(({ key, nodes, links }) => ({ key, nodes: Object.values(nodes), links }))
 }
 
 export default treeToSimulation
