@@ -37,13 +37,10 @@ export class MapDThreeIterator extends Object {
         return gridInfluenceForceFactory(this.nodes, 50)
     }
     get forceFlexLink() {
-        console.log(`Re-establishing flex-links: ${this.key}`)
-        console.log(this.links)
-        console.log(this.nodes)
-        //
-        // forceFlexLink mutates the link values with gleeful abandon, so we need to create a deep copy for it to muck with
-        //
-        return (forceFlexLink(this.links.map((link) => ({ ...link }))).minDistance(70) as any).maxDistance(180).id(({ id }: { id: string }) => (id)).initialize(this.nodes)
+        return forceFlexLink(
+                this.links.map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest })),
+                this.nodes
+            ).minDistance(70).maxDistance(180).id(({ id }: { id: string }) => (id))
     }
     constructor(key: string, nodes: MapNodes, links: MapLinks) {
         super()
@@ -71,7 +68,6 @@ export class MapDThreeIterator extends Object {
     // can be forced to also restart its simulation.
     //
     update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false): boolean {
-        console.log(`Updating: ${this.key}`)
         const nodesFound: Record<string, boolean> = this.nodes.reduce<Record<string, boolean>>((previous, node) => ({ ...previous, [node.roomId]: false }), {})
         type NestedLinkMap = Record<string, Record<string, boolean>>
         const linksFound: NestedLinkMap = this.links.reduce<NestedLinkMap>((previous, { source, target }) => {
@@ -108,7 +104,6 @@ export class MapDThreeIterator extends Object {
         links.forEach(({ source, target }) => {
             const sourceId = typeof source === "string" ? source : (source as SimNode).id
             const targetId = typeof target === "string" ? target : (target as SimNode).id
-            console.log(`x2 Source: ${sourceId}, Target: ${targetId}`)
             if (sourceId && targetId) {
                 if (linksFound[sourceId] === undefined || linksFound[sourceId][targetId] === undefined) {
                     anyDifference = true
@@ -119,15 +114,11 @@ export class MapDThreeIterator extends Object {
                 }
             }
         })
-        console.log('Links found')
-        console.log(linksFound)
-        console.log(this.links)
         anyDifference = anyDifference || (Object.values(linksFound).filter((links) => (Object.values(links).filter((found) => (!found)))).length > 0)
 
         this.simulation.nodes(nodes)
         this.nodes = nodes
         if (anyDifference || forceRestart) {
-            console.log(`Resetting simulation: ${this.key}`)
             this.simulation
                 .force("boundingBox", this.boundingForce)
                 .force("gridDrift", this.gridInfluenceForce)
@@ -195,7 +186,10 @@ export class MapDThreeIterator extends Object {
             }
             return node
         })
-        this.simulation.nodes(this.nodes).tick(1)
+        this.simulation
+            .nodes(this.nodes)
+            .force("link", this.forceFlexLink)
+            .tick(1)
     }
 }
 
@@ -262,11 +256,7 @@ export class MapDThree extends Object {
         type PreviousLayerRecords = Record<string, { found: boolean; index: number, simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>> }>
         const previousLayersByKey = this.layers.reduce<PreviousLayerRecords>((previous, { key, simulation }, index) => ({ ...previous, [key]: { index, found: false, simulation } }), {})
 
-        console.log('Set Tree')
-        console.log(tree)
         const incomingLayers = treeToSimulation(tree)
-        console.log('Incoming layers')
-        console.log(incomingLayers)
         let forceRestart = false
 
         type IncomingLayersReduce = {

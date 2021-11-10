@@ -79,6 +79,28 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                     children: []
                 },
                 {
+                    key: 'One-C',
+                    item: {
+                        name: 'One-C',
+                        type: 'EXIT',
+                        fromRoomId: 'ABC',
+                        toRoomId: 'GHI',
+                        visible: true,
+                    },
+                    children: []
+                },
+                {
+                    key: 'One-D',
+                    item: {
+                        name: 'One-D',
+                        type: 'EXIT',
+                        fromRoomId: 'GHI',
+                        toRoomId: 'ABC',
+                        visible: true,
+                    },
+                    children: []
+                },
+                {
                     key: 'Three-A-i',
                     item: {
                         name: '3-A-1',
