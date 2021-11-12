@@ -1,9 +1,6 @@
 import {
     SimulationNodeDatum,
-    SimulationLinkDatum,
 } from 'd3-force'
-import { Link } from 'react-router-dom'
-import { TypeOfTag } from 'typescript'
 
 //
 // Crib the algorithm from the d3-force link force implementation, and tweak it to allow
@@ -98,13 +95,13 @@ class ForceFlexLink <L extends { source: string, target: string }, N extends Sim
     }
 
     setLinks(links: L[]) {
-      this.links = links
-      this.initialize()
+        this.links = links
+        this.initialize()
     }
 
     setNodes(nodes: N[]) {
-      this.nodes = this.indexNodes(nodes)
-      this.initialize()
+        this.nodes = this.indexNodes(nodes)
+        this.initialize()
     }
 
     applyForce(alpha: number) {
@@ -142,121 +139,93 @@ class ForceFlexLink <L extends { source: string, target: string }, N extends Sim
     }
 }
 
-interface FlexLinkForceFunction<L extends { source: string, target: string }, N extends SimulationNodeDatum> {
-  (alpha: number): void;
-  //
-  // Lots of tricky typescript overloaded function interfaces to attend to D3's function-chaining calling patterns
-  //
-  links(): L[];
-  links(links: L[]): FlexLinkForceFunction<L, N>;
-  nodes(): N[];
-  nodes(nodes: N[]): FlexLinkForceFunction<L, N>;
-  id(): { (arg: N): string };
-  id(newId: { (arg: N): string }): FlexLinkForceFunction<L, N>;
-  iterations(): number;
-  iterations(iterations: number): FlexLinkForceFunction<L, N>;
-  strength(): LinkCalculationFunction<L>;
-  strength(arg: number | LinkCalculationFunction<L>): FlexLinkForceFunction<L, N>;
-  minDistance(): LinkCalculationFunction<L>;
-  maxDistance(arg: number | LinkCalculationFunction<L>): FlexLinkForceFunction<L, N>;
+//
+// This type replicates the chainable-function pattern of D3:
+//    * If an argument is passed it side-effects the internal data, then returns the force function
+//      that the method was chained off of
+//    * If no argument is passed it returns the internal data
+//
+interface ChainableFlexFunction<L extends { source: string, target: string }, N extends SimulationNodeDatum, Arg> {
+    (): Arg;
+    (arg: Arg): FlexLinkForceFunction<L, N>;
 }
+
+//
+// Some functions are handled somewhat differently:
+//    * If they are passed a function, they store that function
+//    * If they are passed a number, the store a constant function that returns that number
+//
+interface ChainableNumericFlexFunction<L extends { source: string, target: string }, N extends SimulationNodeDatum> {
+    (): LinkCalculationFunction<L>;
+    (arg: number | LinkCalculationFunction<L>): FlexLinkForceFunction<L, N>;
+}
+
+interface FlexLinkForceFunction<L extends { source: string, target: string }, N extends SimulationNodeDatum> {
+    (alpha: number): void;
+
+    links: ChainableFlexFunction<L, N, L[]>;
+    nodes: ChainableFlexFunction<L, N, N[]>;
+    id: ChainableFlexFunction<L, N, { (arg: N): string }>;
+    iterations: ChainableFlexFunction<L, N, number>;
+    strength: ChainableNumericFlexFunction<L, N>;
+    minDistance: ChainableNumericFlexFunction<L, N>;
+    maxDistance: ChainableNumericFlexFunction<L, N>;
+}
+
+//
+// Find the subset of the keys that has numeric flex function types (to constrain assignment of those in the chaining function below)
+//
+type FlexLinkNumericKeys<L extends { source: string, target: string }, N extends SimulationNodeDatum> = {[P in keyof ForceFlexLink<L, N>]-?: ForceFlexLink<L, N>[P] extends LinkCalculationFunction<L> ? P : never }[keyof ForceFlexLink<L, N>]
 
 //
 // This wrapper function repackages the ForceFlexLink class methods in the chainable syntax typical
 // of D3 functions.  To do this it sets out the structure and implementations implied above.
 //
 export const forceFlexLink = <L extends { source: string, target: string }, N extends SimulationNodeDatum>(links: L[], nodes: N[]) => {
-  const flexLink = new ForceFlexLink<L, N>(links || [], nodes || [])
+    const flexLink = new ForceFlexLink<L, N>(links || [], nodes || [])
 
-  const force = (alpha: number) => {
-    flexLink.applyForce(alpha)
-  }
-
-  //
-  // Chainable methods are added as properties of the function, so that anyone possessing the
-  // force function can update the internals in D3's standard syntax
-  //
-  function linksFunction(): L[]
-  function linksFunction(links: L[]): FlexLinkForceFunction<L, N>
-  function linksFunction(links?: L[]) {
-    if (links !== undefined) {
-      flexLink.setLinks(links)
-      return force as unknown as FlexLinkForceFunction<L, N>
+    const d3EmulationFactory = <T>(getForce: () => FlexLinkForceFunction<L, N>, setFunction: (arg: T) => void, getFunction: () => T): ChainableFlexFunction<L, N, T> => {
+        return ((args?: T) => {
+            if (args !== undefined) {
+                setFunction(args)
+                return getForce()
+            }
+            return getFunction()
+        }) as ChainableFlexFunction<L, N, T>
     }
-    return flexLink.links
-  }
-  force.links = linksFunction
 
-  function nodesFunction(): N[]
-  function nodesFunction(nodes: N[]): FlexLinkForceFunction<L, N>
-  function nodesFunction(nodes?: N[]) {
-    if (nodes !== undefined) {
-      flexLink.setNodes(nodes)
-      return force as unknown as FlexLinkForceFunction<L, N>
+    const d3NumericEmulationFactory = (key: FlexLinkNumericKeys<L, N>, getForce: () => FlexLinkForceFunction<L, N>): ChainableNumericFlexFunction<L, N> => {
+        const setFunction = (arg: LinkCalculationFunction<L>) => {
+            flexLink[key] = arg
+            flexLink.initialize()
+        }
+        const getFunction = () => flexLink[key]
+        return ((args?: number | LinkCalculationFunction<L>) => {
+            if (args !== undefined) {
+                setFunction(typeof args === "function" ? args : constant(+args))
+                return getForce()
+            }
+            return getFunction()
+        }) as ChainableNumericFlexFunction<L, N>
     }
-    return Object.values(flexLink.nodes)
-  }
-  force.nodes = nodesFunction
 
-  function id(): { (arg: N): string }
-  function id(newId: { (arg: N): string }): FlexLinkForceFunction<L, N>
-  function id(newId?: { (arg: N): string }) {
-    if (newId !== undefined) {
-      flexLink.reindex(newId)
-      return force as unknown as FlexLinkForceFunction<L, N>
-    }
-    return flexLink.id
-  }
-  force.id = id
-
-  function iterations(): number
-  function iterations(iterations: number): FlexLinkForceFunction<L, N>
-  function iterations(iterations?: number) {
-    if (iterations !== undefined) {
-      flexLink.iterations = iterations
-      return force as unknown as FlexLinkForceFunction<L, N>
-    }
-    return flexLink.iterations
-  }
-
-  function strength(): LinkCalculationFunction<L>
-  function strength(strengthArg: number | LinkCalculationFunction<L>): FlexLinkForceFunction<L, N>
-  function strength(strengthArg?: number | LinkCalculationFunction<L>) {
-    if (strengthArg) {
-      flexLink.strength = typeof strengthArg === "function" ? strengthArg : constant(+strengthArg)
-      flexLink.initialize()
-      return force as unknown as FlexLinkForceFunction<L, N>
-    }
-    return flexLink.strength
-  }
-
-  force.strength = strength
-
-  function minDistance(): LinkCalculationFunction<L>
-  function minDistance(minDistanceArg: number | LinkCalculationFunction<L>): FlexLinkForceFunction<L, N>
-  function minDistance(minDistanceArg?: number | LinkCalculationFunction<L>) {
-    if (minDistanceArg) {
-      flexLink.minDistance = typeof minDistanceArg === "function" ? minDistanceArg : constant(+minDistanceArg)
-      flexLink.initialize()
-      return force as unknown as FlexLinkForceFunction<L, N>
-    }
-    return flexLink.minDistance
-  }
-
-  force.minDistance = minDistance
-
-  function maxDistance(): LinkCalculationFunction<L>
-  function maxDistance(maxDistanceArg: number | LinkCalculationFunction<L>): FlexLinkForceFunction<L, N>
-  function maxDistance(maxDistanceArg?: number | LinkCalculationFunction<L>) {
-    if (maxDistanceArg) {
-      flexLink.maxDistance = typeof maxDistanceArg === "function" ? maxDistanceArg : constant(+maxDistanceArg)
-      flexLink.initialize()
-      return force as unknown as FlexLinkForceFunction<L, N>
-    }
-    return flexLink.maxDistance
-  }
-
-  force.maxDistance = maxDistance
+    const force: FlexLinkForceFunction<L, N> = Object.assign(
+        (alpha: number) => {
+            flexLink.applyForce(alpha)
+        },
+        {
+            links: d3EmulationFactory(() => force, flexLink.setLinks.bind(flexLink), () => flexLink.links),
+            nodes: d3EmulationFactory(() => force, flexLink.setNodes.bind(flexLink), () => Object.values(flexLink.nodes)),
+            id: d3EmulationFactory(() => force, flexLink.reindex.bind(flexLink), () => flexLink.id),
+            iterations: d3EmulationFactory(() => force, (iterations) => { flexLink.iterations = iterations }, () => flexLink.iterations),
+            strength: d3NumericEmulationFactory("strength", () => force),
+            minDistance: d3NumericEmulationFactory("minDistance", () => force),
+            maxDistance: d3NumericEmulationFactory("maxDistance", () => force)
+        //
+        // Explicitly type to be "all the properties of the function, except the callable"
+        //
+        } as { [P in keyof FlexLinkForceFunction<L, N>]: FlexLinkForceFunction<L, N>[P] }
+  )
 
   return force;
 }
