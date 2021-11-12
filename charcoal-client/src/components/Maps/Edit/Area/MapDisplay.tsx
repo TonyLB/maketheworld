@@ -2,12 +2,14 @@ import { FunctionComponent, useState, useRef, useEffect } from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
-import useMapStyles from './useMapStyles'
+import useMapStyles from '../useMapStyles'
 import {
     MapRoom,
-    MapDispatch,
     VisibleMapItems
-} from './maps'
+} from '../maps'
+import {
+    MapDispatch
+} from './area'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import { RoomGestures } from './MapGestures'

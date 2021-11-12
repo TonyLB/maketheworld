@@ -1,17 +1,19 @@
 import React, { FunctionComponent, useReducer, useEffect } from 'react'
 
-import useMapStyles from './useMapStyles'
+import useMapStyles from '../useMapStyles'
 import {
     MapTree,
-    MapReducer,
-    MapReducerState,
     VisibleMapItems,
     TestItem
-} from './maps'
-import MapDThree, { SimNode } from './MapDThree'
+} from '../maps'
+import {
+    MapReducer,
+    MapReducerState
+} from './area'
+import MapDThree, { SimNode } from '../MapDThree'
 import MapDisplay from './MapDisplay'
 import produce from 'immer'
-import { recursiveUpdate } from '../../DraggableTree'
+import { recursiveUpdate } from '../../../DraggableTree'
 
 type MapAreaProps = {
     tree: MapTree;
@@ -45,6 +47,34 @@ export const treeToVisible = (tree: MapTree, zLevel?: number): VisibleMapItems =
     }, { rooms: [], exits: [] })
 }
 
+//
+// TODO: STEP 1
+//
+// Restructure mapReducer as mapAreaReducer, to localize concerns.  Possibly:
+//    * Create MapArea folder inside Maps/Edit
+//    * Create a mapArea.d.ts interface definition file
+//    * Break off mapAreaReducer into its own module
+//
+
+//
+// TODO: STEP 2
+//
+// Create a mapReducer module in Maps/Edit and create more powerful reduction tools
+// for the lifted state contained in Map/Edit/index.tsx
+//
+
+//
+// TODO: STEP 3
+//
+// Create an addRoom action for the top level reducer.
+//
+
+//
+// TODO: STEP 4
+//
+// Update MapGestures.tsx to handle the add-room UI mode, and to add rooms.
+// Create a time-and-position debouncer to prevent rapid creation of streams of rooms.
+//
 const mapReducer: MapReducer = (state, action) => {
     const returnVal = (endState: MapReducerState, nodes: SimNode[]): MapReducerState => {
         const xyByRoomId = nodes.reduce<Record<string, { x?: number; y?: number}>>((previous, { roomId, x, y }) => ({ ...previous, [roomId]: { x: x || 0, y: y || 0 }}), {})

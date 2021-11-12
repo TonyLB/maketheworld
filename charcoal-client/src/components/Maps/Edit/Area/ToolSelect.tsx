@@ -8,7 +8,7 @@ import OneWayExitIcon from '@material-ui/icons/TrendingFlat'
 import TwoWayExitIcon from '@material-ui/icons/SyncAlt'
 import RoomIcon from '@material-ui/icons/Home'
 import MoveIcon from '@material-ui/icons/OpenWith'
-import { ToolSelected } from './maps'
+import { ToolSelected } from './area'
 
 export const localStyles = makeStyles((theme) => ({
     normal: {

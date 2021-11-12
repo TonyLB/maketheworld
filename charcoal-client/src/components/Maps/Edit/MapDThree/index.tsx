@@ -54,6 +54,11 @@ export class MapDThreeIterator extends Object {
             .force("link", this.forceFlexLink)
             .force("collision", forceCollide(40).iterations(3))
 
+        //
+        // TODO:  Replace onTick-based cascade with a cascade force that can refer back to previous layers and set
+        // fx/fy values during the applForce stage.  Then refactor all the places that we reinitialize forces
+        // to account for our having mucked with the nodes structure during cascade
+        //
         this.simulation.on('tick', () => {
             this.callback?.(this.nodes)
         })

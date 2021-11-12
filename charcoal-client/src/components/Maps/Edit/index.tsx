@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react'
+import React, { FunctionComponent, useState, useReducer } from 'react'
 
 import {
     useRouteMatch,
@@ -7,15 +7,27 @@ import {
 } from "react-router-dom"
 
 import useMapStyles from './useMapStyles'
-import MapArea from './MapArea'
+import MapArea from './Area'
 import MapLayers from './MapLayers'
-import { MapTree, ToolSelected } from './maps'
-import ToolSelect from './ToolSelect'
-import ToolSelectContext from './ToolSelectContext'
+import { MapTree } from './maps'
+import { ToolSelected } from './Area/area'
+import ToolSelect from './Area/ToolSelect'
+import ToolSelectContext from './Area/ToolSelectContext'
 
 type MapEditProps = {
 }
 
+// type MapReducerActionTypes = 'update' | 'addRoom'
+
+// type MapReducerAction = {
+//     type: 'update';
+//     newTree: MapTree;
+// } | {
+//     type: 'addRoom';
+//     newRoom:
+// }
+
+// const MapEditReducer = (state: MapTree, )
 export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     const localClasses = useMapStyles()
     const { url } = useRouteMatch()
