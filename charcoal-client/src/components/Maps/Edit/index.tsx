@@ -13,21 +13,12 @@ import { MapTree } from './maps'
 import { ToolSelected } from './Area/area'
 import ToolSelect from './Area/ToolSelect'
 import ToolSelectContext from './Area/ToolSelectContext'
+import { MapReducer } from './reducer.d'
+import mapReducer from './reducer'
 
 type MapEditProps = {
 }
 
-// type MapReducerActionTypes = 'update' | 'addRoom'
-
-// type MapReducerAction = {
-//     type: 'update';
-//     newTree: MapTree;
-// } | {
-//     type: 'addRoom';
-//     newRoom:
-// }
-
-// const MapEditReducer = (state: MapTree, )
 export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     const localClasses = useMapStyles()
     const { url } = useRouteMatch()
@@ -35,7 +26,8 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     const { mapId }: { mapId: string } = useParams()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
-    const [tree, setTree] = useState<MapTree>(
+    const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(
+        mapReducer,
         [{
             key: 'One',
             item: {
@@ -158,7 +150,8 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 },
                 children: []
             }]
-        }]
+        }],
+        (tree) => ({ tree })
     )
 
     return <ToolSelectContext.Provider value={toolSelected}>
@@ -170,7 +163,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 <MapArea tree={tree}/>
             </div>
             <div className={localClasses.sidebar} >
-                <MapLayers tree={tree} setTree={setTree} />
+                <MapLayers tree={tree} setTree={(tree) => { dispatch({ type: 'updateTree', tree }) }} />
             </div>
         </div>
     </ToolSelectContext.Provider>

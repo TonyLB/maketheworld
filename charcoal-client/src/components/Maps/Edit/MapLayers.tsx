@@ -12,7 +12,7 @@ import produce from 'immer'
 import DraggableTree, { treeStateReducer, recursiveUpdate } from '../../DraggableTree'
 import { NestedTree, NestedTreeEntry } from '../../DraggableTree/interfaces'
 
-import { TestItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
+import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
 import useMapStyles from './useMapStyles'
 
 type MapLayersProps = {
@@ -67,7 +67,7 @@ const canDrop = ({ dropEntry, toEntry }: { dropEntry: ProcessedTestItem, toEntry
 
 const setTreeVisibility = (tree: MapTree, { key, visibility }: { key: string, visibility: boolean }): MapTree => (
     produce(tree, (draft) => {
-        recursiveUpdate<TestItem>(draft as MapTree, (probe: NestedTreeEntry<TestItem>) => {
+        recursiveUpdate<MapItem>(draft as MapTree, (probe: NestedTreeEntry<MapItem>) => {
             if (probe.key === key) {
                 probe.item.visible = visibility
             }
@@ -75,7 +75,7 @@ const setTreeVisibility = (tree: MapTree, { key, visibility }: { key: string, vi
     })
 )
 
-const setInheritedVisibility = ({ children, item, ...rest }: NestedTreeEntry<TestItem>): NestedTreeEntry<ProcessedTestItem> => {
+const setInheritedVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapItem>): NestedTreeEntry<ProcessedTestItem> => {
     const visible = item.visible ? 'OverrideTrue' : 'OverrideFalse'
     return {
         item: {
@@ -87,7 +87,7 @@ const setInheritedVisibility = ({ children, item, ...rest }: NestedTreeEntry<Tes
     }
 }
 
-const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<TestItem>): NestedTreeEntry<ProcessedTestItem> => {
+const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapItem>): NestedTreeEntry<ProcessedTestItem> => {
     if (item.visible) {            
         return {
             item: {

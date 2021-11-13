@@ -1,7 +1,7 @@
 import {
     MapTree,
     VisibleMapItems,
-    TestItem
+    MapItem
 } from '../maps'
 import { SimNode } from '../MapDThree'
 import { MapAreaReducer, MapAreaReducerState } from './area'
@@ -55,7 +55,7 @@ export const mapAreaReducer: MapAreaReducer = (state, action) => {
             }
         }, {})
         const updatedTree: MapTree = produce<MapTree>(state.tree, draft => {
-            recursiveUpdate<TestItem>(draft, (node) => {
+            recursiveUpdate<MapItem>(draft, (node) => {
                 if (node.item.type === 'ROOM') {
                     const previous = previousNodesByRoomId[node.item.roomId]
                     if (previous && previous.x !== undefined && previous.y !== undefined) {

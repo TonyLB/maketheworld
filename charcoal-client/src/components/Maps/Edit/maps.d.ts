@@ -26,14 +26,14 @@ export interface MapGroup extends MapObjectBase {
     type: 'GROUP';
 }
 
-type TestItemBase = MapRoom | MapExit | MapGroup
+type MapItemBase = MapRoom | MapExit | MapGroup
 
-export type TestItem = TestItemBase & { visible: boolean }
+export type MapItem = MapItemBase & { visible: boolean }
 
-export type ProcessedTestItem = TestItemBase & { visible: InheritedVisibilityType }
+export type ProcessedTestItem = MapItemBase & { visible: InheritedVisibilityType }
 
-export type MapTree = NestedTree<TestItem>
-export type MapTreeEntry = NestedTreeEntry<TestItem>
+export type MapTree = NestedTree<MapItem>
+export type MapTreeEntry = NestedTreeEntry<MapItem>
 
 export interface VisibleMapRoom extends MapRoom {
     key: string;
