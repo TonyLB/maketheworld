@@ -1,12 +1,12 @@
 import React, { FunctionComponent, PropsWithChildren, useContext, useMemo } from 'react'
 import { useGesture } from '@use-gesture/react'
-import { MapReducerAction, ToolSelected } from './area'
+import { MapAreaReducerAction, ToolSelected } from './area'
 import ToolSelectContext from './ToolSelectContext'
 
 type RoomGestureProps = PropsWithChildren<{
     roomId: string;
     zLevel: number;
-    localDispatch: (action: MapReducerAction) => void;
+    localDispatch: (action: MapAreaReducerAction) => void;
     x: number;
     y: number;
     scale: number;

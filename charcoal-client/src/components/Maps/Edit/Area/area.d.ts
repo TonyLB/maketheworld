@@ -2,8 +2,8 @@ import { MapTree, VisibleMapItems } from '../maps'
 import { SimNode } from '../MapDThree/treeToSimulation'
 import { MapDThree } from '../MapDThree'
 
-export type MapReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACKS' | 'SETNODE' | 'STARTDRAG' | 'ENDDRAG' | 'STABILIZE'
-export type MapReducerAction = {
+export type MapAreaReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACKS' | 'SETNODE' | 'STARTDRAG' | 'ENDDRAG' | 'STABILIZE'
+export type MapAreaReducerAction = {
     type: 'UPDATETREE';
     tree: MapTree;
 } | {
@@ -26,12 +26,12 @@ export type MapReducerAction = {
 } | {
     type: 'STABILIZE';
 }
-export type MapReducerState = VisibleMapItems & {
+export type MapAreaReducerState = VisibleMapItems & {
     mapD3: MapDThree;
     tree: MapTree;
 }
 
-export type MapReducer = (state: MapReducerState, action: MapReducerAction) => MapReducerState
-export type MapDispatch = (action: MapReducerAction) => void
+export type MapAreaReducer = (state: MapAreaReducerState, action: MapAreaReducerAction) => MapAreaReducerState
+export type MapAreaDispatch = (action: MapAreaReducerAction) => void
 
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'

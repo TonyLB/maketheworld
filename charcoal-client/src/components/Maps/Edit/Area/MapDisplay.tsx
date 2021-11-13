@@ -8,14 +8,14 @@ import {
     VisibleMapItems
 } from '../maps'
 import {
-    MapDispatch
+    MapAreaDispatch
 } from './area'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import { RoomGestures } from './MapGestures'
 
 interface MapDisplayProps extends VisibleMapItems {
-    mapDispatch: MapDispatch;
+    mapDispatch: MapAreaDispatch;
 }
 
 export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, mapDispatch }) => {
