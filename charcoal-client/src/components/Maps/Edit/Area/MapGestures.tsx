@@ -17,7 +17,7 @@ type RoomGestureProps = PropsWithChildren<{
 // dynamically configured useGesture hook around a component that does not
 // need to know about them
 //
-export const RoomGestures:FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
+export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
     const toolSelected = useContext<ToolSelected>(ToolSelectContext)
     const bind = useGesture({
         onDragStart: () => {

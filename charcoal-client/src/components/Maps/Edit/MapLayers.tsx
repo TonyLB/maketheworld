@@ -14,10 +14,11 @@ import { NestedTree, NestedTreeEntry } from '../../DraggableTree/interfaces'
 
 import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
 import useMapStyles from './useMapStyles'
+import { MapDispatch } from './reducer.d'
 
 type MapLayersProps = {
     tree: MapTree;
-    setTree: (arg: MapTree) => void;
+    dispatch: MapDispatch;
 }
 
 const VisibilityControl = ({ visible, onClick }: { visible: InheritedVisibilityType; onClick: () => void }) => {
@@ -110,10 +111,16 @@ const processTreeVisibility = ({ children, item, ...rest }: NestedTreeEntry<MapI
     }
 }
 
-export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, setTree }) => {
+export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch }) => {
     const processedTree = useMemo<NestedTree<ProcessedTestItem>>(() => (
         tree.map<NestedTreeEntry<ProcessedTestItem>>(processTreeVisibility)
     ), [tree])
+    const setTree = (tree: MapTree): void => {
+        dispatch({
+            type: 'updateTree',
+            tree
+        })
+    }
     return <DraggableTree
         tree={processedTree}
         renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}

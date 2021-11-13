@@ -160,10 +160,10 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                     <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
                 </div>
-                <MapArea tree={tree}/>
+                <MapArea tree={tree} dispatch={dispatch}/>
             </div>
             <div className={localClasses.sidebar} >
-                <MapLayers tree={tree} setTree={(tree) => { dispatch({ type: 'updateTree', tree }) }} />
+                <MapLayers tree={tree} dispatch={dispatch} />
             </div>
         </div>
     </ToolSelectContext.Provider>

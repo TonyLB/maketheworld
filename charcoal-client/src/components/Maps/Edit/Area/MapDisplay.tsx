@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, useRef, useEffect } from 'react'
+import { FunctionComponent, useState, useRef, useEffect, useContext } from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
@@ -8,17 +8,20 @@ import {
     VisibleMapItems
 } from '../maps'
 import {
-    MapAreaDispatch
+    MapAreaDispatch,
+    ToolSelected
 } from './area'
 import MapRoomComponent from './MapRoom'
 import MapEdgeComponent from './MapEdge'
 import { RoomGestures } from './MapGestures'
+import ToolSelectContext from './ToolSelectContext'
 
 interface MapDisplayProps extends VisibleMapItems {
     mapDispatch: MapAreaDispatch;
+    onClick: React.MouseEventHandler<SVGElement>;
 }
 
-export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, mapDispatch }) => {
+export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, mapDispatch, onClick = () => {} }) => {
     const localClasses = useMapStyles()
     const [scale, setScale] = useState(0)
     const [windowDetails, setWindowDetails] = useState({
@@ -53,6 +56,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
             }
         }
     })
+    const toolSelected = useContext<ToolSelected>(ToolSelectContext)
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
@@ -69,6 +73,14 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
                     maxScale: midScalePoint * 4.0
                 })
             }
+            const onClickScaled = (event: React.MouseEvent<SVGElement>) => {
+                if (toolSelected === 'AddRoom' && scale) {
+                    const rect = event.currentTarget.getBoundingClientRect()
+                    const newClientX = (event.pageX - rect.left) / scale - 300
+                    const newClientY = (event.pageY - rect.top) / scale - 200
+                    onClick({ ...event, clientX: newClientX, clientY: newClientY })
+                }
+            }
             return <div style={{ width: Math.max(width, 600 * scale), height: Math.max(height, 400 * scale), backgroundColor: "#aaaaaa" }} {...bind()}>
                 <div style={{
                     position: "absolute",
@@ -81,7 +93,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({ rooms, exits, m
                     left: Math.max(0, (width - 600 * scale) / 2),
                     backgroundColor: "white"
                 }}>
-                    <svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet">
+                    <svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
                         <defs>
                             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                                     refX='10' refY='5'>

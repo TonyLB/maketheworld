@@ -7,9 +7,11 @@ import {
 import MapDThree, { SimNode } from '../MapDThree'
 import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible } from './reducer'
+import { MapDispatch } from '../reducer.d'
 
 type MapAreaProps = {
     tree: MapTree;
+    dispatch: MapDispatch;
 }
 
 //
@@ -19,8 +21,11 @@ type MapAreaProps = {
 // Create a time-and-position debouncer to prevent rapid creation of streams of rooms.
 //
 
+const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
+    dispatch({ type: 'addRoom', x: clientX, y: clientY })
+}
 
-export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
     const localClasses = useMapStyles()
 
     //
@@ -51,7 +56,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree }) => {
         })
     }, [tree, mapDispatch])
 
-    return <MapDisplay rooms={rooms} exits={exits} mapDispatch={mapDispatch} />
+    return <MapDisplay rooms={rooms} exits={exits} mapDispatch={mapDispatch} onClick={backgroundOnClick(dispatch)} />
 
 }
 
