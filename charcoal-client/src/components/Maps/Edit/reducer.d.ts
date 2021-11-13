@@ -1,10 +1,14 @@
 import { MapTree } from './maps'
 
-export type MapReducerTypes = 'updateTree'
+export type MapReducerTypes = 'updateTree' | 'addRoom'
 
 export type MapReducerAction = {
     type: 'updateTree';
     tree: MapTree
+} | {
+    type: 'addRoom';
+    x: number;
+    y: number;
 }
 
 export type MapReducerState = {

@@ -13,19 +13,6 @@ type MapAreaProps = {
 }
 
 //
-// TODO: STEP 2
-//
-// Create a mapReducer module in Maps/Edit and create more powerful reduction tools
-// for the lifted state contained in Map/Edit/index.tsx
-//
-
-//
-// TODO: STEP 3
-//
-// Create an addRoom action for the top level reducer.
-//
-
-//
 // TODO: STEP 4
 //
 // Update MapGestures.tsx to handle the add-room UI mode, and to add rooms.
