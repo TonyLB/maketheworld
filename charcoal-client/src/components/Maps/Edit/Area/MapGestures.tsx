@@ -20,26 +20,31 @@ type RoomGestureProps = PropsWithChildren<{
 export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLevel, x, y, scale, localDispatch, children }) => {
     const toolSelected = useContext<ToolSelected>(ToolSelectContext)
     const bind = useGesture({
-        onDragStart: () => {
-            localDispatch({
-                type: 'STARTDRAG',
-                lockThreshold: zLevel
-            })
-        },
         onDrag: ({ offset: [ x, y ] }: { offset: [number, number] }) => {
-            if (toolSelected === 'Move') {
-                const destX = Math.max(-265, Math.min(265, (x / scale) - 300))
-                const destY = Math.max(-165, Math.min(165, (y / scale) - 200))
-                localDispatch({
-                    type: 'SETNODE',
-                    roomId,
-                    x: destX,
-                    y: destY
-                })
+            const destX = Math.max(-265, Math.min(265, (x / scale) - 300))
+            const destY = Math.max(-165, Math.min(165, (y / scale) - 200))
+            switch(toolSelected) {
+                case 'Move':
+                    localDispatch({
+                        type: 'SETNODE',
+                        roomId,
+                        x: destX,
+                        y: destY
+                    })
+                    break;
+                case 'OneWayExit':
+                case 'TwoWayExit':
+                    localDispatch({
+                        type: 'DRAGEXIT',
+                        roomId,
+                        x: destX,
+                        y: destY
+                    })
+                break;
             }
         },
         onDragEnd: () => {
-            if (toolSelected === 'Move') {
+            if (['Move', 'OneWayExit', 'TwoWayExit'].includes(toolSelected)) {
                 localDispatch({ type: 'ENDDRAG' })
             }
         }

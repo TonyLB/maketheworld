@@ -15,7 +15,9 @@ import { SimNode } from './treeToSimulation'
 import boundingForceFactory from './boundingForce'
 import gridInfluenceForceFactory from './gridInfluenceForce'
 import forceFlexLink from './forceFlexLink'
-import treeToSimulation from './treeToSimulation';
+import cascadeForce from './cascadeForce'
+import treeToSimulation from './treeToSimulation'
+import ExitDragD3Layer from './exitDragSimulation'
 
 export type SimCallback = (nodes: SimNode[]) => void
 
@@ -42,13 +44,19 @@ export class MapDThreeIterator extends Object {
                 this.nodes
             ).minDistance(70).maxDistance(180).id(({ id }: { id: string }) => (id))
     }
-    constructor(key: string, nodes: MapNodes, links: MapLinks) {
+    constructor(key: string, nodes: MapNodes, links: MapLinks, getCascadeNodes?: () => MapNodes) {
         super()
         this.key = key
         this.nodes = nodes
         this.links = links
         this.simulation = forceSimulation(this.nodes)
             .alphaDecay(0.15)
+
+        if (getCascadeNodes) {
+            this.simulation.force("cascade", cascadeForce(getCascadeNodes, this.nodes).id(({ roomId }) => roomId))
+        }
+
+        this.simulation
             .force("boundingBox", this.boundingForce)
             .force("gridDrift", this.gridInfluenceForce)
             .force("link", this.forceFlexLink)
@@ -72,7 +80,7 @@ export class MapDThreeIterator extends Object {
     // or deletions of nodes.  It returns that value to the controller, so that in the case of a change any successive layer
     // can be forced to also restart its simulation.
     //
-    update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false): boolean {
+    update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false, getCascadeNodes?: () => MapNodes): boolean {
         const nodesFound: Record<string, boolean> = this.nodes.reduce<Record<string, boolean>>((previous, node) => ({ ...previous, [node.roomId]: false }), {})
         type NestedLinkMap = Record<string, Record<string, boolean>>
         const linksFound: NestedLinkMap = this.links.reduce<NestedLinkMap>((previous, { source, target }) => {
@@ -124,6 +132,9 @@ export class MapDThreeIterator extends Object {
         this.simulation.nodes(nodes)
         this.nodes = nodes
         if (anyDifference || forceRestart) {
+            if (getCascadeNodes) {
+                this.simulation.force("cascade", cascadeForce(getCascadeNodes, this.nodes).id(({ roomId }) => roomId))
+            }
             this.simulation
                 .force("boundingBox", this.boundingForce)
                 .force("gridDrift", this.gridInfluenceForce)
@@ -173,49 +184,50 @@ export class MapDThreeIterator extends Object {
             this.simulation.alphaTarget(0).restart()
         }
     }
-    //
-    // Cascade accepts incoming node data (in a map by roomID) and updates fx/fy on cascade nodes
-    // where possible (which it always *should* be, but ... y'know...)
-    //
-    cascade(nodesByRoomId: Record<string, SimNode>): void {
-        this.nodes = this.nodes.map((node) => {
-            if (node.cascadeNode) {
-                const cascadingNode = nodesByRoomId[node.roomId]
-                if (cascadingNode) {
-                    return {
-                        ...node,
-                        fx: cascadingNode.fx ?? cascadingNode.x,
-                        fy: cascadingNode.fy ?? cascadingNode.y
-                    }
-                }
-            }
-            return node
-        })
-        this.simulation
-            .nodes(this.nodes)
-            .force("link", this.forceFlexLink)
-            .tick(1)
-    }
+}
+
+const getCurrentExits = (mapDThree: MapDThree, roomId: string): string[] => {
+    const currentExits = mapDThree.layers.reduce<Record<string, boolean>>((previous, layer) => (
+        layer.links
+            .filter(({ source }) => {
+                const matchNode = mapDThree.nodes.find(({ id }) => (id === source))
+                return matchNode && matchNode.roomId === roomId
+            })
+            .map(({ target }) => {
+                const matchNode = mapDThree.nodes.find(({ id }) => (id === target))
+                return matchNode ? matchNode.roomId as string : ''
+            })
+            .filter((value) => value)
+            .reduce<Record<string, boolean>>((accumulator, roomId) => ({ ...accumulator, [roomId]: true }), previous)
+    ), {})
+    return [ ...Object.keys(currentExits), roomId ]
 }
 
 export class MapDThree extends Object {
     layers: MapDThreeIterator[] = []
+    exitDragLayer?: ExitDragD3Layer
     stable: boolean = true
     onStability: SimCallback = () => {}
     onTick: SimCallback = () => {}
-    constructor({ tree, onStability, onTick }: {
+    onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
+    onAddExit?: (fromRoomId: string, toRoomId: string) => void
+    constructor({ tree, onStability, onTick, onExitDrag, onAddExit }: {
         tree: MapTree,
         onStability?: SimCallback,
-        onTick?: SimCallback
+        onTick?: SimCallback,
+        onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void,
+        onAddExit?: (fromRoomId: string, toRoomId: string) => void
     }) {
         super()
         const layers = treeToSimulation(tree)
         this.layers = layers.map(({ key, nodes, links }, index) => {
-            const newMap = new MapDThreeIterator(key, nodes, links)
+            const newMap = new MapDThreeIterator(key, nodes, links, index > 0 ? () => (this.layers[index-1].nodes) : () => [])
             newMap.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
             return newMap
         })
         this.setCallbacks({ onTick, onStability })
+        this.onExitDrag = onExitDrag
+        this.onAddExit = onAddExit
         this.checkStability()
     }
     //
@@ -309,7 +321,7 @@ export class MapDThree extends Object {
                 if (previousIndex !== index) {
                     forceRestart = true
                 }
-                const layerUpdateResult = layerToUpdate.update(currentNodes, incomingLayer.links, forceRestart)
+                const layerUpdateResult = layerToUpdate.update(currentNodes, incomingLayer.links, forceRestart, previous.layers.length > 0 ? () => previous.layers[previous.layers.length-1].nodes : () => [])
                 forceRestart = forceRestart || layerUpdateResult
 
                 return {
@@ -397,8 +409,44 @@ export class MapDThree extends Object {
             this.checkStability()
         }
     }
+    //
+    // dragExit creates (if needed) a dragging layer and passes data into its simulation
+    //
+    dragExit({ roomId, x, y }: { roomId: string, x: number, y: number }): void {
+        if (!this.exitDragLayer) {
+            this.exitDragLayer = new ExitDragD3Layer(() => (this.nodes), roomId, getCurrentExits(this, roomId))
+            if (this.onExitDrag) {
+                this.exitDragLayer.onTick = this.onExitDrag
+            }
+        }
+        this.exitDragLayer.drag(x, y)
+    }
     endDrag(): void {
         this.layers.forEach((layer) => { layer.endDrag() })
+        if (this.exitDragLayer) {
+            console.log(`On Exit Drag Layer End Drag`)
+            const dragNode = this.exitDragLayer.nodes.find(({ roomId }) => (roomId === 'DRAG-TARGET'))
+            console.log(JSON.stringify(dragNode, null, 4))
+            if (dragNode && this.onAddExit) {
+                console.log('Evaluating for targets to add exit')
+                const currentExits = getCurrentExits(this, this.exitDragLayer.sourceRoomId)
+                const closeTargets = this.nodes
+                    .map(({ fx, x, fy, y, ...rest }) => ({ x: fx ?? (x || 0), y: fy ?? (y || 0), ...rest }))
+                    .filter(({ x, y }) => (Math.abs((dragNode.x || 0) - x) < 30 && Math.abs((dragNode.y || 0) - y)))
+                    .filter(({ roomId }) => (!currentExits.includes(roomId)))
+                    .map(({ roomId, x, y }) => ({
+                        roomId,
+                        distance: Math.pow((dragNode.x || 0) - (x || 0), 2) + Math.pow((dragNode.y || 0) - (y || 0), 2)
+                    }))
+                    // .filter(({ distance }) => (distance < 900))
+                    .sort(({ distance: a }, { distance: b }) => ( a - b ))
+                if (closeTargets.length > 0) {
+                    this.onAddExit(this.exitDragLayer.sourceRoomId, closeTargets[0].roomId)
+                }
+            }
+            this.exitDragLayer.endDrag()
+            this.exitDragLayer = undefined
+        }
     }
     //
     // cascade takes positions from layer index and cascades them forward to later layers
@@ -413,13 +461,12 @@ export class MapDThree extends Object {
                     //
                     // If cascading off of the topmost layer of the simulation, deliver to simulation onTick
                     //
+                    //
+                    // TODO:  Assign onTick only to the topmost layer
+                    //
                     if (index === this.layers.length - 1) {
                         this.onTick(this.nodes)
                     }
-                    else {
-                        const nodesByRoomId = this.layers[index].nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.roomId]: node }), {})
-                        this.layers[index + 1].cascade(nodesByRoomId)
-                    }    
                 }
             })
         }

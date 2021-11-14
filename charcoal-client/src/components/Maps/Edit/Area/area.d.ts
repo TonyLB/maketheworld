@@ -19,8 +19,10 @@ export type MapAreaReducerAction = {
     x: number;
     y: number;
 } | {
-    type: 'STARTDRAG';
-    lockThreshold: number;
+    type: 'DRAGEXIT';
+    roomId: string;
+    x: number;
+    y: number;
 } | {
     type: 'ENDDRAG';
 } | {

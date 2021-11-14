@@ -9,6 +9,10 @@ export type MapReducerAction = {
     type: 'addRoom';
     x: number;
     y: number;
+} | {
+    type: 'addExit';
+    fromRoomId: string;
+    toRoomId: string;
 }
 
 export type MapReducerState = {

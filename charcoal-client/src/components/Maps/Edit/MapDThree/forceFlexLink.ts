@@ -7,10 +7,6 @@ import {
 // a safe range between minimum and maximum distance, where no force is applied.
 //
 
-//
-// TODO: Convert to Typescript
-//
-
 const constant = (x: number): { (): number } => (() => (x))
 
 const jiggle = () => ((Math.random() - 0.5) * 1e-6)

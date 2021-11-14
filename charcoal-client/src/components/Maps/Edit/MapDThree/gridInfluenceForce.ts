@@ -3,6 +3,9 @@ import {
 } from 'd3-force';
 
 export const gridInfluenceForceFactory = <T extends SimulationNodeDatum>(nodes: T[], granularity: number) => (alpha: number) => {
+    //
+    // TODO: Experiment with replacing sqrtAlpha with alpha ... it may be causing wonky behavior
+    //
     const sqrtAlpha = Math.sqrt(alpha)
     nodes.forEach((node) => {
         const targetX = Math.round((node.x || 0) / granularity) * granularity

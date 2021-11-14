@@ -87,16 +87,14 @@ export const mapAreaReducer: MapAreaReducer = (state, action) => {
         case 'SETCALLBACKS':
             state.mapD3.setCallbacks({ onTick: action.callback, onStability: action.stabilityCallback })
             return state
-        case 'STARTDRAG':
-            // const newState = stabilize(state)
-            // newState.mapD3.update(newState.tree, action.lockThreshold)
-            // return newState
-            return state
         case 'SETNODE':
             state.mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
             return state
         case 'ENDDRAG':
             state.mapD3.endDrag()
+            return state
+        case 'DRAGEXIT':
+            state.mapD3.dragExit({ roomId: action.roomId, x: action.x, y: action.y })
             return state
         case 'STABILIZE':
             //

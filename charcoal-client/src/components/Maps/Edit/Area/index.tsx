@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useReducer, useEffect } from 'react'
+import React, { FunctionComponent, useReducer, useEffect, useState } from 'react'
 
 import useMapStyles from '../useMapStyles'
 import {
@@ -15,10 +15,9 @@ type MapAreaProps = {
 }
 
 //
-// TODO: STEP 4
+// TODO: STEP 7
 //
-// Update MapGestures.tsx to handle the add-room UI mode, and to add rooms.
-// Create a time-and-position debouncer to prevent rapid creation of streams of rooms.
+// Apply addLink on dragEnd
 //
 
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
@@ -28,17 +27,15 @@ const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGEl
 export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
     const localClasses = useMapStyles()
 
-    //
-    // TODO: Lift useGesture code from Map/EditMap.js, and wire it into a separate helper function here that
-    // can be applied when the MapArea tool is in the correct mode (drag)
-    //
-    // In fact, make a whole toolbox of different gesture-spreads to apply to the room and exit objects.
-    //
-    //
-    // TODO: Create a useReducer call here to keep a local state synchronized with the nodes of a MapDThree instance
-    //
+    const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
     const [{ rooms, exits }, mapDispatch] = useReducer(mapAreaReducer, tree, (tree: MapTree) => {
-        const mapD3 = new MapDThree({ tree })
+        const mapD3 = new MapDThree({
+            tree,
+            onExitDrag: setExitDrag,
+            onAddExit: (fromRoomId, toRoomId) => {
+                dispatch({ type: 'addExit', fromRoomId, toRoomId })
+            }
+        })
         const { rooms, exits } = treeToVisible(tree)
         return { mapD3, rooms, exits, tree }
     })
@@ -56,7 +53,25 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
         })
     }, [tree, mapDispatch])
 
-    return <MapDisplay rooms={rooms} exits={exits} mapDispatch={mapDispatch} onClick={backgroundOnClick(dispatch)} />
+    const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
+    const decoratorCircles = exitDragSourceRoom
+        ? [
+            { x: exitDragSourceRoom.x, y: exitDragSourceRoom.y },
+            { x: exitDrag.x, y: exitDrag.y }
+        ]: []
+    //
+    // TODO: Derive double from the current toolSelect setting somewhere along the line
+    //
+    const decoratorExits = exitDragSourceRoom
+        ? [{ fromX: exitDragSourceRoom.x, fromY: exitDragSourceRoom.y, toX: exitDrag.x, toY: exitDrag.y, double: true }]: []
+    return <MapDisplay
+        rooms={rooms}
+        exits={exits}
+        mapDispatch={mapDispatch}
+        onClick={backgroundOnClick(dispatch)}
+        decoratorCircles={decoratorCircles}
+        decoratorExits={decoratorExits}
+    />
 
 }
 
