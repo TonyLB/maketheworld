@@ -94,7 +94,7 @@ export const mapAreaReducer: MapAreaReducer = (state, action) => {
             state.mapD3.endDrag()
             return state
         case 'DRAGEXIT':
-            state.mapD3.dragExit({ roomId: action.roomId, x: action.x, y: action.y })
+            state.mapD3.dragExit({ roomId: action.roomId, x: action.x, y: action.y, double: action.double })
             return state
         case 'STABILIZE':
             //

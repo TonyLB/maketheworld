@@ -16,16 +16,18 @@ export class ExitDragD3Layer extends Object {
     nodes: MapNodes = []
     getSourceNodes: () => MapNodes
     sourceRoomId: string
-    sourceExits: string[] = []
+    double: boolean = false
+    invalidTargets: string[] = []
     ticksLocked: boolean = false
     onTick: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void = () => {}
     simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>>
 
-    constructor(getNodes: () => MapNodes, sourceRoomId: string, sourceExits: string[]) {
+    constructor(getNodes: () => MapNodes, sourceRoomId: string, double: boolean, invalidTargets: string[]) {
         super()
         this.getSourceNodes = getNodes
         this.sourceRoomId = sourceRoomId
-        this.sourceExits = sourceExits
+        this.double = double
+        this.invalidTargets = invalidTargets
         this.nodes = [
             ...getNodes().map(({ id, roomId, fx, fy, x, y, visible }) => ({
                 id,
@@ -46,7 +48,7 @@ export class ExitDragD3Layer extends Object {
         ]
         this.simulation = forceSimulation(this.nodes)
             .force("cascade", cascadeForce(this.getSourceNodes, this.nodes))
-            .force("seeker", exitSeekerForce(this.nodes).id(({ roomId }) => (roomId)).currentExits(this.sourceExits))
+            .force("seeker", exitSeekerForce(this.nodes).id(({ roomId }) => (roomId)).invalidTargets(this.invalidTargets))
             .alphaTarget(0.5)
             .alphaDecay(0.15)
             .on("tick", () => {

@@ -32,8 +32,8 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
         const mapD3 = new MapDThree({
             tree,
             onExitDrag: setExitDrag,
-            onAddExit: (fromRoomId, toRoomId) => {
-                dispatch({ type: 'addExit', fromRoomId, toRoomId })
+            onAddExit: (fromRoomId, toRoomId, double) => {
+                dispatch({ type: 'addExit', fromRoomId, toRoomId, double })
             }
         })
         const { rooms, exits } = treeToVisible(tree)

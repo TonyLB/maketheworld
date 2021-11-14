@@ -12,7 +12,7 @@ class ExitSeekerForce<N extends SimulationNodeDatum> extends Object {
     x: number = 0
     y: number = 0
     iterations: number = 3
-    currentExits: string[] = []
+    invalidTargets: string[] = []
     id: { (arg: N): string } = ({ index }) => (`${index}`)
 
     indexNodes: { (nodes: N[]): Record<string, N> } = (nodes) => (nodes.reduce<Record<string, N>>((previous, node) => ({ ...previous, [this.id(node)]: node }), {}))
@@ -42,8 +42,8 @@ class ExitSeekerForce<N extends SimulationNodeDatum> extends Object {
         this.iterations = iterations
     }
 
-    setCurrentExits(currentExits: string[]) {
-        this.currentExits = currentExits
+    setInvalidTargets(invalidTargets: string[]) {
+        this.invalidTargets = invalidTargets
     }
 
     applyForce(alpha: number) {
@@ -65,7 +65,7 @@ class ExitSeekerForce<N extends SimulationNodeDatum> extends Object {
                 .reduce<Record<string, { x: number; y: number; distanceSquared: number; attract: boolean }>>(
                     (previous, { id, x, y, distanceSquared }) => ({ ...previous, [id]: { x, y, distanceSquared, attract: true } }), {})
             const mappedNodes = Object.values(produce(mappedNodesById, (draft) => {
-                this.currentExits.forEach((exit) => {
+                this.invalidTargets.forEach((exit) => {
                     if (draft[exit]) {
                         draft[exit].attract = false
                     }
@@ -120,7 +120,7 @@ export interface SeekerForceFunction<N extends SimulationNodeDatum> {
     id: ChainableSeekerFunction<N, { (arg: N): string }>;
     x: ChainableSeekerFunction<N, number>;
     y: ChainableSeekerFunction<N, number>;
-    currentExits: ChainableSeekerFunction<N, string[]>;
+    invalidTargets: ChainableSeekerFunction<N, string[]>;
     iterations: ChainableSeekerFunction<N, number>;
 }
 
@@ -146,7 +146,7 @@ export const seekerForce = <N extends SimulationNodeDatum>(nodes: N[]): SeekerFo
             id: d3EmulationFactory(() => force, seeker.reindex.bind(seeker), () => seeker.id),
             x: d3EmulationFactory(() => force, seeker.setX.bind(seeker), () => seeker.x),
             y: d3EmulationFactory(() => force, seeker.setY.bind(seeker), () => seeker.y),
-            currentExits: d3EmulationFactory(() => force, seeker.setCurrentExits.bind(seeker), () => seeker.currentExits),
+            invalidTargets: d3EmulationFactory(() => force, seeker.setInvalidTargets.bind(seeker), () => seeker.invalidTargets),
             iterations: d3EmulationFactory(() => force, seeker.setIterations.bind(seeker), () => seeker.iterations)
         }
     )

@@ -38,7 +38,8 @@ export const RoomGestures: FunctionComponent<RoomGestureProps> = ({ roomId, zLev
                         type: 'DRAGEXIT',
                         roomId,
                         x: destX,
-                        y: destY
+                        y: destY,
+                        double: toolSelected === 'TwoWayExit'
                     })
                 break;
             }

@@ -23,6 +23,7 @@ export type MapAreaReducerAction = {
     roomId: string;
     x: number;
     y: number;
+    double: boolean;
 } | {
     type: 'ENDDRAG';
 } | {

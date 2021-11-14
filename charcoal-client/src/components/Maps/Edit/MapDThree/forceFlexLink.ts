@@ -58,25 +58,26 @@ class ForceFlexLink <L extends { source: string, target: string }, N extends Sim
             [target]: (state.target ?? 0) + 1
         })
         const countsByNode = this.links.reduce<Record<string, number>>((previous, { source, target }) => (addToCounts(addToCounts(previous, source), target)), {})
-        this.calculationData = this.links.map<LinkCalculationData<L>>((link) => {
-            const sourceCount = countsByNode[link.source] ?? 0
-            const targetCount = countsByNode[link.target] ?? 0
-            const preliminaryCalculation: LinkCalculationData<L> = {
-                link,
-                sourceCount,
-                targetCount,
-                bias: sourceCount / (sourceCount + targetCount),
-                minDistance: 70,
-                maxDistance: 120,
-                strength: 0
-            }
-            return {
-                ...preliminaryCalculation,
-                minDistance: this.minDistance(preliminaryCalculation),
-                maxDistance: this.maxDistance(preliminaryCalculation),
-                strength: this.strength(preliminaryCalculation)
-            }
-        })
+        this.calculationData = this.links
+            .map<LinkCalculationData<L>>((link) => {
+                const sourceCount = countsByNode[link.source] ?? 0
+                const targetCount = countsByNode[link.target] ?? 0
+                const preliminaryCalculation: LinkCalculationData<L> = {
+                    link,
+                    sourceCount,
+                    targetCount,
+                    bias: sourceCount / (sourceCount + targetCount),
+                    minDistance: 70,
+                    maxDistance: 120,
+                    strength: 0
+                }
+                return {
+                    ...preliminaryCalculation,
+                    minDistance: this.minDistance(preliminaryCalculation),
+                    maxDistance: this.maxDistance(preliminaryCalculation),
+                    strength: this.strength(preliminaryCalculation)
+                }
+            })
     }
 
     constructor(links: L[], nodes: N[]) {

@@ -116,8 +116,12 @@ export const treeToSimulation = (tree: MapTree): SimulationReturn[] => {
                 ...previousLinks,
                 ...simulationLinks(treeEntry)
             ]
+            //
+            // TODO: Consider a refactor where we don't map to the source and target IDs, but rather map to roomIDs, to keep the data
+            // representation in keeping with other places where we store links (i.e., fromRoomId and toRoomId)
+            //
             const layerLinks = allLinks
-                .filter(({ source, target }) => (combinedNodes[source] && combinedNodes[target] && !(combinedNodes[source].cascadeNode && combinedNodes[target].cascadeNode)))
+                .filter(({ source, target }) => (combinedNodes[source] && combinedNodes[target]))
                 .map(({ source, target, ...rest }) => ({ ...rest, source: combinedNodes[source].id, target: combinedNodes[target].id }))
             return {
                 allLinks,

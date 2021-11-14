@@ -39,8 +39,14 @@ export class MapDThreeIterator extends Object {
         return gridInfluenceForceFactory(this.nodes, 50)
     }
     get forceFlexLink() {
+        //
+        // TODO: When we refactor to stop storing links by internal ID and store roomID, this will need to be changed.
+        //
+        const nodesById = this.nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.id]: node }), {})
         return forceFlexLink(
-                this.links.map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest })),
+                this.links
+                    .map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest }))
+                    .filter(({ source, target }) => (nodesById[source]?.cascadeNode === false || nodesById[target]?.cascadeNode === false)),
                 this.nodes
             ).minDistance(70).maxDistance(180).id(({ id }: { id: string }) => (id))
     }
@@ -186,9 +192,18 @@ export class MapDThreeIterator extends Object {
     }
 }
 
-const getCurrentExits = (mapDThree: MapDThree, roomId: string): string[] => {
-    const currentExits = mapDThree.layers.reduce<Record<string, boolean>>((previous, layer) => (
-        layer.links
+//
+// Check through the current links in the map and compile a list of rooms that are already as linked as this
+// operation can make them:
+//    * If a one-way link, reject all rooms that the focus room has an exit to
+//    * If a two-way link, reject only rooms that the focus room has both an exit to and an entry from
+//
+const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean = false): string[] => {
+    const currentExits = mapDThree.layers.reduce<Record<string, { from: boolean; to: boolean }>>((previous, layer) => {
+        //
+        // Add to the current accumulator the rooms that the focus room has an exit TO in this layer
+        //
+        const fromFocusRoom = layer.links
             .filter(({ source }) => {
                 const matchNode = mapDThree.nodes.find(({ id }) => (id === source))
                 return matchNode && matchNode.roomId === roomId
@@ -198,8 +213,40 @@ const getCurrentExits = (mapDThree: MapDThree, roomId: string): string[] => {
                 return matchNode ? matchNode.roomId as string : ''
             })
             .filter((value) => value)
-            .reduce<Record<string, boolean>>((accumulator, roomId) => ({ ...accumulator, [roomId]: true }), previous)
-    ), {})
+            .reduce<Record<string, { from: boolean; to: boolean }>>(
+                (accumulator, targetRoomId) => ({ ...accumulator, [targetRoomId]: { to: accumulator[targetRoomId]?.to ?? false, from : true } }),
+                previous
+            )
+        if (double) {
+            //
+            // Add to the current accumulator the rooms that the focus room has an entry FROM in this layer
+            //
+            const alsoToFocusRoom = layer.links
+                .filter(({ target }) => {
+                    const matchNode = mapDThree.nodes.find(({ id }) => (id === target))
+                    return matchNode && matchNode.roomId === roomId
+                })
+                .map(({ source }) => {
+                    const matchNode = mapDThree.nodes.find(({ id }) => (id === source))
+                    return matchNode ? matchNode.roomId as string : ''
+                })
+                .filter((value) => value)
+                .reduce<Record<string, { from: boolean; to: boolean }>>(
+                    (accumulator, targetRoomId) => ({ ...accumulator, [targetRoomId]: { from: accumulator[targetRoomId]?.from ?? false, to : true } }),
+                    fromFocusRoom
+                )
+            return alsoToFocusRoom
+        }
+        else {
+            return fromFocusRoom
+        }
+    }, {})
+    //
+    // Use the aggregate data to make a decision
+    //
+    if (double) {
+        return [ ...Object.entries(currentExits).filter(([_, { to, from }]) => (to && from)).map(([key]) => key), roomId ]
+    }
     return [ ...Object.keys(currentExits), roomId ]
 }
 
@@ -210,13 +257,13 @@ export class MapDThree extends Object {
     onStability: SimCallback = () => {}
     onTick: SimCallback = () => {}
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
-    onAddExit?: (fromRoomId: string, toRoomId: string) => void
+    onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     constructor({ tree, onStability, onTick, onExitDrag, onAddExit }: {
         tree: MapTree,
         onStability?: SimCallback,
         onTick?: SimCallback,
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void,
-        onAddExit?: (fromRoomId: string, toRoomId: string) => void
+        onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
         const layers = treeToSimulation(tree)
@@ -412,9 +459,9 @@ export class MapDThree extends Object {
     //
     // dragExit creates (if needed) a dragging layer and passes data into its simulation
     //
-    dragExit({ roomId, x, y }: { roomId: string, x: number, y: number }): void {
+    dragExit({ roomId, x, y, double }: { roomId: string, x: number, y: number, double: boolean }): void {
         if (!this.exitDragLayer) {
-            this.exitDragLayer = new ExitDragD3Layer(() => (this.nodes), roomId, getCurrentExits(this, roomId))
+            this.exitDragLayer = new ExitDragD3Layer(() => (this.nodes), roomId, double, getInvalidExits(this, roomId, double))
             if (this.onExitDrag) {
                 this.exitDragLayer.onTick = this.onExitDrag
             }
@@ -424,24 +471,28 @@ export class MapDThree extends Object {
     endDrag(): void {
         this.layers.forEach((layer) => { layer.endDrag() })
         if (this.exitDragLayer) {
-            console.log(`On Exit Drag Layer End Drag`)
             const dragNode = this.exitDragLayer.nodes.find(({ roomId }) => (roomId === 'DRAG-TARGET'))
-            console.log(JSON.stringify(dragNode, null, 4))
             if (dragNode && this.onAddExit) {
-                console.log('Evaluating for targets to add exit')
-                const currentExits = getCurrentExits(this, this.exitDragLayer.sourceRoomId)
+                const invalidExits = getInvalidExits(this, this.exitDragLayer.sourceRoomId, this.exitDragLayer.double)
                 const closeTargets = this.nodes
                     .map(({ fx, x, fy, y, ...rest }) => ({ x: fx ?? (x || 0), y: fy ?? (y || 0), ...rest }))
                     .filter(({ x, y }) => (Math.abs((dragNode.x || 0) - x) < 30 && Math.abs((dragNode.y || 0) - y)))
-                    .filter(({ roomId }) => (!currentExits.includes(roomId)))
+                    .filter(({ roomId }) => (!invalidExits.includes(roomId)))
                     .map(({ roomId, x, y }) => ({
                         roomId,
                         distance: Math.pow((dragNode.x || 0) - (x || 0), 2) + Math.pow((dragNode.y || 0) - (y || 0), 2)
                     }))
-                    // .filter(({ distance }) => (distance < 900))
+                    .filter(({ distance }) => (distance < 900))
                     .sort(({ distance: a }, { distance: b }) => ( a - b ))
                 if (closeTargets.length > 0) {
-                    this.onAddExit(this.exitDragLayer.sourceRoomId, closeTargets[0].roomId)
+                    const addExit = this.onAddExit
+                    const exitDragLayer = this.exitDragLayer
+                    //
+                    // TODO: Figure out why there's a set-state problem if this setTimeout is omitted
+                    //
+                    setTimeout(() => {
+                        addExit(exitDragLayer.sourceRoomId, closeTargets[0].roomId, exitDragLayer.double)
+                    }, 0)
                 }
             }
             this.exitDragLayer.endDrag()
