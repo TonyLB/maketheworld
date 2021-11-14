@@ -23,6 +23,44 @@ const splitType = (value) => {
 const stripType = (value) => value.split('#').slice(1).join('#')
 
 //
+// TODO: Create a data-structure for Version-View
+//
+// TODO: Decide whether to recalculate Version-View reactively, or denormalize its calculation into
+//       an always-updated variable on the character.
+// DENORMALIZED OPTION:
+//    * Recalculation would be caused by:
+//      - Activation of a Scene or Adventure
+//      - Deactivation of a Scene or Adventure
+//      - Addition of a Room to the character's default personal Version or draft version in Preview
+//      - Activation of Preview-Mode on a character draft Version
+//      - Deactivation of Preview-Mode on a character draft version
+//      - ?? Addition/removal of a Room from a Scene or Adventure in progress ??
+//
+// DENORMALIZATION FIRST ITERATION:
+//    * Only global Scenes/Adventures ... denormalize only on activate/deactivate
+//
+// COMPROMISE:
+//    * Denormalize not the Version-View, but rather then current Version of the RoomId the character
+//      is currently inhabiting.  Recalculate on any of the Denormalize options above, or on movement.
+//    * Still recalculate the Version-View reactively, when needed
+//    * This allows you to calculate a Rooms-Effected x Character-Effected differential when one of
+//      the denormalizing events up above fires, and then limit your recalculation to those players
+//      who are in a room that is effected for them
+//
+// NEEDED:
+//    * Function to calculate Room x Character for a denormalizing action
+//    * Function to calculate Version for RoomId x CharacterId (when denormalizing or when moving)
+//    * Utility function to calculate Version-View hierarchy as a helper to the Room-Version-find
+//    * Eventually, some way to prevent or resolve conflicting Versions (or to merge Diffs, in the most
+//      sophisticated implementation)
+//
+// NEEDED???:
+//    * A way, further, within a given version to calculate which *Layer* Room representation the
+//      character is inhabiting?  Maybe too soon for that iteration (since there's no Value-Net
+//      yet)
+//
+
+//
 // TODO: Accept more types of objects, and parse their data accordingly
 //
 const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegment) => {
@@ -36,6 +74,13 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
         case 'ROOM':
             //
             // TODO:  After debugging, combine two sequential awaits in a parallel Promise.all
+            //
+            // TODO:  Instead of having RoomItems pull from whatever table entry has the right
+            // PermanentId, consider the following:
+            //    * The different Versions of the relevant Room
+            //    * What the character's current Version-View order is (as defined by Version
+            //      inheritance, their personal Versions (need a name for that), and any Adventure
+            //      or scene they are active in (whether invite-only, opt-in, or global))
             //
             const { Items: RoomItems } = await ddbClient.send(new QueryCommand({
                     TableName: PermanentTableName,
@@ -69,6 +114,10 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                                 Description: Item.Description,
                                 Exits
                             }
+                        //
+                        // TODO: Remove EXIT storage at the Room level, and replace it with EXIT storage at the
+                        // Map level.
+                        //
                         case 'EXIT':
                             return {
                                 Description,

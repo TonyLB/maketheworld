@@ -12,6 +12,10 @@ export const MapEdge = ({ fromPosition, toPosition, fromNode, toNode }) => {
         return null
     }
     const multiplier = 30.0 / edgeLength
+    //
+    // TODO:  Optimize math calculations for performance.  Possibly memoize the
+    // expensive offset calculations.
+    //
     return <line
         key={`${fromNode.PermanentId}-${toNode.PermanentId}`}
         x1={fromX + (toX - fromX) * multiplier}
