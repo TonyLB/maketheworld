@@ -10,6 +10,8 @@ const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
 
+const { wmlGrammar } = require('./wml')
+
 const splitType = (value) => {
     const sections = value.split('#')
     if (sections.length) {
@@ -59,6 +61,18 @@ const stripType = (value) => value.split('#').slice(1).join('#')
 //      character is inhabiting?  Maybe too soon for that iteration (since there's no Value-Net
 //      yet)
 //
+
+//
+// INSTEAD OF THE ABOVE
+//
+// Create a world-markup-language combining XML notation with JSX-like inclusion of code,
+// parsed by an Ohm-generated parser and evaluated within a context that layers
+// World-state, Story-Global-State, Story-Character-State, and Character-State.
+// Allow the definition of the schema of variables stored within each context in
+// the WML files and keep their values updated in Ephemera.  Evaluate and execute
+// code on each describe to give a custom description per character.
+//
+
 
 //
 // TODO: Accept more types of objects, and parse their data accordingly
@@ -172,7 +186,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
 
 exports.handler = async (event, context) => {
 
-    const { CreatedTime, CharacterId, PermanentId } = event
+    const { CreatedTime, CharacterId, PermanentId, Evaluate, wml } = event
 
     if (CreatedTime && CharacterId && PermanentId) {
         return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
@@ -181,8 +195,14 @@ exports.handler = async (event, context) => {
             return returnVal
         })
     }
-    else {
-        context.fail(JSON.stringify(`Error: Unknown format ${event}`))
+
+    if (Evaluate) {
+        const match = wmlGrammar.match(wml)
+        if (match.succeeded()) {
+            return JSON.stringify({ evaluated: wml })
+        }
+        return JSON.stringify({ error: match.message })
     }
+    context.fail(JSON.stringify(`Error: Unknown format ${event}`))
 
 }
