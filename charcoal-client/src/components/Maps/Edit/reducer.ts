@@ -10,6 +10,41 @@ export const mapReducer: MapReducer = (state, action) => {
                 ...state,
                 tree: action.tree
             }
+        case 'updateNodes':
+            const { repositioningById } = action
+            return produce<MapReducerState>(state, (draft) => {
+                //
+                // TODO:  Figure out the synchronization back and forth so that updates to the
+                // *position* of nodes in the tree doesn't cause a loop back to update the
+                // *structure* of the tree and reset all of the MapDThree simulations
+                //
+                recursiveUpdate(draft.tree, ({ item }) => {
+                    if (item.type === 'ROOM' && repositioningById[item.roomId]) {
+                        if (Math.round(item.x) !== Math.round(repositioningById[item.roomId].x)) {
+                            item.x = repositioningById[item.roomId].x
+                        }
+                        if (Math.round(item.y) !== Math.round(repositioningById[item.roomId].y)) {
+                            item.y = repositioningById[item.roomId].y
+                        }
+                    }
+                })
+            })
+        case 'addLayer':
+            return {
+                ...state,
+                tree: [
+                    {
+                        children: [],
+                        key: uuidv4(),
+                        item: {
+                            type: 'GROUP',
+                            name: 'Untitled',
+                            visible: true
+                        }
+                    },
+                    ...state.tree
+                ]
+            }
         case 'addRoom':
             return produce<MapReducerState>(state, (draft) => {
                 //

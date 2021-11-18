@@ -28,129 +28,15 @@ export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(
         mapReducer,
-        [{
-            key: 'One',
-            item: {
-                name: 'One',
-                type: 'GROUP',
-                visible: true,
-            },
-            children: []
-        },
-        {
-            key: 'Two',
-            item: {
-                name: 'Two',
-                type: 'GROUP',
-                visible: true,
-            },
-            children: []
-        },
-        {
-            key: 'Three',
-            item: {
-                name: 'Three',
-                type: 'GROUP',
-                visible: true,
-            },
-            children: [{
-                key: 'Three-A',
+            [{
+                key: 'One',
                 item: {
-                    name: 'Three-A',
-                    type: 'GROUP',
-                    visible: true,
-                },
-                children: [{
-                    key: 'One-A',
-                    item: {
-                        name: 'One-A',
-                        type: 'EXIT',
-                        fromRoomId: 'ABC',
-                        toRoomId: 'DEF',
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'One-B',
-                    item: {
-                        name: 'One-B',
-                        type: 'EXIT',
-                        fromRoomId: 'DEF',
-                        toRoomId: 'ABC',
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'One-C',
-                    item: {
-                        name: 'One-C',
-                        type: 'EXIT',
-                        fromRoomId: 'ABC',
-                        toRoomId: 'GHI',
-                        visible: true,
-                    },
-                    children: []
-                },
-                // {
-                //     key: 'One-D',
-                //     item: {
-                //         name: 'One-D',
-                //         type: 'EXIT',
-                //         fromRoomId: 'GHI',
-                //         toRoomId: 'ABC',
-                //         visible: true,
-                //     },
-                //     children: []
-                // },
-                {
-                    key: 'Three-A-i',
-                    item: {
-                        name: '3-A-1',
-                        type: 'ROOM',
-                        roomId: 'ABC',
-                        x: 0,
-                        y: 0,
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'Three-A-ii',
-                    item: {
-                        name: '3-A-2',
-                        type: 'ROOM',
-                        roomId: 'DEF',
-                        x: 100,
-                        y: 0,
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'Three-A-iii',
-                    item: {
-                        name: '3-A-3',
-                        type: 'ROOM',
-                        roomId: 'GHI',
-                        x: -100,
-                        y: 0,
-                        visible: true,
-                    },
-                    children: []
-                }]
-            },
-            {
-                key: 'Three-B',
-                item: {
-                    name: 'Three-B',
+                    name: 'One',
                     type: 'GROUP',
                     visible: true,
                 },
                 children: []
-            }]
-        }],
+            }],
         (tree) => ({ tree })
     )
 

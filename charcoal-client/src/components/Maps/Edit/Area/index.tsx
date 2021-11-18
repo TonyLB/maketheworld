@@ -14,12 +14,6 @@ type MapAreaProps = {
     dispatch: MapDispatch;
 }
 
-//
-// TODO: STEP 7
-//
-// Apply addLink on dragEnd
-//
-
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
@@ -43,7 +37,19 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
         mapDispatch({
             type: 'SETCALLBACKS',
             callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) },
-            stabilityCallback: () => { mapDispatch({ type: 'STABILIZE' })}
+            stabilityCallback: (nodes: SimNode[]) => {
+                mapDispatch({ type: 'STABILIZE'})
+                dispatch({
+                    type: 'updateNodes',
+                    repositioningById: nodes.reduce<Record<string, { x: number; y: number }>>((previous, node) => ({
+                        ...previous,
+                        [node.roomId]: {
+                            x: node.x ?? 0,
+                            y: node.y ?? 0
+                        }
+                    }), {})
+                })
+            }
         })
     }, [mapDispatch])
     useEffect(() => {

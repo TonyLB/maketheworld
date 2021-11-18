@@ -1,10 +1,13 @@
 import { MapTree } from './maps'
 
-export type MapReducerTypes = 'updateTree' | 'addRoom'
+export type MapReducerTypes = 'updateTree' | 'addRoom' | 'addLayer'
 
 export type MapReducerAction = {
     type: 'updateTree';
     tree: MapTree
+} | {
+    type: 'updateNodes';
+    repositioningById: Record<string, { x: number, y: number }>
 } | {
     type: 'addRoom';
     x: number;
@@ -14,6 +17,8 @@ export type MapReducerAction = {
     fromRoomId: string;
     toRoomId: string;
     double: boolean;
+} | {
+    type: 'addLayer';
 }
 
 export type MapReducerState = {

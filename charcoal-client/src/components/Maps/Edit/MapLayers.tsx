@@ -15,6 +15,7 @@ import { NestedTree, NestedTreeEntry } from '../../DraggableTree/interfaces'
 import { MapItem, MapTree, ProcessedTestItem, InheritedVisibilityType } from './maps'
 import useMapStyles from './useMapStyles'
 import { MapDispatch } from './reducer.d'
+import Button from '@material-ui/core/Button'
 
 type MapLayersProps = {
     tree: MapTree;
@@ -121,15 +122,20 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ tree, dispatch })
             tree
         })
     }
-    return <DraggableTree
-        tree={processedTree}
-        renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}
-        renderHandle={handleRender}
-        onOpen={(key) => { setTree(treeStateReducer(tree, { type: 'OPEN', key })) } }
-        onClose={(key) => { setTree(treeStateReducer(tree, { type: 'CLOSE', key })) } }
-        onMove={({ fromKey, toKey, position }) => { setTree(treeStateReducer(tree, { type: 'MOVE', fromKey, toKey, position })) }}
-        canDrop={canDrop}
-    />
+    return <React.Fragment>
+        <div>
+            <Button onClick={() => { dispatch({ type: 'addLayer' }) }}>Add Layer</Button>
+        </div>
+        <DraggableTree
+            tree={processedTree}
+            renderComponent={renderComponent((key, visibility) => { setTree(setTreeVisibility(tree, { key, visibility })) })}
+            renderHandle={handleRender}
+            onOpen={(key) => { setTree(treeStateReducer(tree, { type: 'OPEN', key })) } }
+            onClose={(key) => { setTree(treeStateReducer(tree, { type: 'CLOSE', key })) } }
+            onMove={({ fromKey, toKey, position }) => { setTree(treeStateReducer(tree, { type: 'MOVE', fromKey, toKey, position })) }}
+            canDrop={canDrop}
+        />
+    </React.Fragment>
 }
 
 export default MapLayers

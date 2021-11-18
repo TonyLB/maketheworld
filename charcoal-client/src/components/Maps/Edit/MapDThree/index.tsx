@@ -333,7 +333,7 @@ export class MapDThree extends Object {
             // Find where (if at all) this layer is positioned in current data
             //
 
-            const previousIndex = previousLayersByKey[incomingLayer.key].index
+            const previousIndex = previousLayersByKey[incomingLayer.key]?.index
 
             //
             // Map existing positions (where known) onto incoming nodes
@@ -398,7 +398,8 @@ export class MapDThree extends Object {
                     new MapDThreeIterator(
                         incomingLayer.key,
                         incomingLayer.nodes,
-                        incomingLayer.links
+                        incomingLayer.links,
+                        index > 0 ? () => (this.layers[index-1].nodes) : undefined
                     )
                 ],
                 previousLayersByKey: previous.previousLayersByKey
@@ -501,6 +502,9 @@ export class MapDThree extends Object {
     }
     //
     // cascade takes positions from layer index and cascades them forward to later layers
+    //
+    //
+    // TODO:  Evaluate how to extract the onTick function from this old structure and deprecate
     //
     cascade(startingIndex: number) {
         return () => {
