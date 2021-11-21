@@ -1,0 +1,86 @@
+WorldMarkupLangage {
+    WMLExpression = LayerExpression*
+
+    //
+    // This section defines the tags that make up the WML language
+    //
+
+    LayerExpression = TagExpression<"Layer", "key", none, LayerLegalContents>
+    LayerLegalContents = RoomExpression
+
+    RoomExpression = TagExpression<"Room", "key", none, RoomContents>
+    RoomContents = TextContents
+            | NameExpression
+
+    NameExpression = ValueTag<"Name">
+
+    ValueTag<label> = TagExpression<label, none, none, TextContents>
+    TextContents = string | EmbeddedJSExpression
+
+    //
+    // The following define the ways in which tags can be structured
+    //
+
+    TagExpression<tag, tagLiteralArgs, tagProgramArgs, LegalContents> = TagOpen<tag, tagLiteralArgs, tagProgramArgs> LegalContents* TagClose<tag>
+    string = (~("<" | "{") any | "\\<" | "\\{" | space)+
+    TagOpen<tag, tagLiteralArgs, tagProgramArgs> = "<" tag TagArgument<tagLiteralArgs, tagProgramArgs>* ">"
+    TagArgument<tagLiteralArgs, tagProgramArgs> = TagLiteralArgument<tagLiteralArgs> | TagProgramArgument<tagProgramArgs>
+    TagLiteralArgument<tagLiteralArgs> = tagArgumentQuoted<tagLiteralArgs>
+    TagProgramArgument<tagProgramArgs> = tagArgumentQuoted<tagProgramArgs> | TagArgumentBracketed<tagProgramArgs>
+    tagArgumentQuoted<tagLegalArgs> = tagLegalArgs "=\"" tagArgValueQuoted
+    TagArgumentBracketed<tagLegalArgs> = #(tagLegalArgs "={") JSExpression* "}"
+    tagArgValueQuoted = ("\\\"" | ~"\"" any)* "\""
+    TagClose<tag> = "</" tag ">"
+    none = ~">" ">"
+
+    //
+    // EmbeddedJSExpression parses from the starting open bracket through to the
+    //   *MATCHING* close bracket, using a subset of JS syntax that concentrates
+    //   on all the ways that JS could let you mess up that matching (quotes,
+    //   nesting, and template literals figuring high on the list)
+    //
+    // While we could, technically, validate the entire ES5 JS Syntax (after all,
+    // Ohm publishes their schema), it wouldn't gain us any value here, and it
+    // has a quite noticeable resource cost:  Compiling that schema and executing
+    // it slows the perception Lambda function down to a crawl.  If a need for
+    // such pre-processing emerges, look into how to optimize compiling and executing
+    // very large Ohm schemata.
+    //
+    EmbeddedJSExpression = "{" JSExpression* "}"
+    JSExpression = EmbeddedJSExpression
+                    | JSDoubleQuotedString
+                    | JSSingleQuotedString
+                    | JSTemplateString
+                    | JSText
+    JSDoubleQuotedString = "\"" JSNoDoubleQuote* "\""
+    JSNoDoubleQuote = "\\\"" | (~"\"" any)
+    JSSingleQuotedString = "\'" JSNoSingleQuote* "\'"
+    JSNoSingleQuote = "\\\'" | (~"\'" any)
+    JSTemplateString = "`" (JSNoBackQuote | JSTemplateEvaluation )* "`"
+    JSTemplateEvaluation = "${" JSExpression "}"
+    JSNoBackQuote = "\\`" | (~("`" | "${") any)
+    JSText = ("\\{" | "\\\"" | "\\'" | "\\`" | "\\}" | (~("{" | "\"" | "\'" | "`" | "}") any))+
+
+    // Override Ohm's built-in definition of space.  Cribbed from es5.ohm
+    space := whitespace | lineTerminator | comment
+
+	sourceCharacter = any
+    whitespace = "\t"
+                | "\x0B"    -- verticalTab
+                | "\x0C"    -- formFeed
+                | " "
+                | "\u00A0"  -- noBreakSpace
+                | "\uFEFF"  -- byteOrderMark
+                | unicodeSpaceSeparator
+
+	unicodeSpaceSeparator = "\u2000".."\u200B" | "\u3000"
+
+    lineTerminator = "\n" | "\r" | "\u2028" | "\u2029"
+    lineTerminatorSequence = "\n" | "\r" ~"\n" | "\u2028" | "\u2029" | "\r\n"
+
+    comment = multiLineComment | singleLineComment
+
+    multiLineComment = "/*" (~"*/" sourceCharacter)* "*/"
+    singleLineComment = "//" (~lineTerminator sourceCharacter)*
+
+}

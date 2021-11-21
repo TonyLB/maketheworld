@@ -959,6 +959,47 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
+  AssetBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+          BucketName: !Sub '${TablePrefix}-assets'
+  AssetHandlerFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+          CodeUri: lambda/assetHandler/
+          Handler: app.handler
+          MemorySize: 256
+          Runtime: nodejs14.x
+          Timeout: 30
+          Policies:
+            - Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${AssetBucket}/*"
+                      - AssetBucket: !Sub '${TablePrefix}-assets'
+            - Statement:
+              - Effect: Allow
+                Action:
+                  - s3:DeleteObject
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:s3:::${AssetBucket}/upload/*"
+                      - AssetBucket: !Sub '${TablePrefix}-assets'
+          Events:
+            BucketEvent:
+              Type: S3
+              Properties:
+                Bucket: !Ref AssetBucket
+                Filter:
+                  S3Key:
+                    Rules:
+                      - Name: prefix
+                        Value: upload/
+                Events: s3:ObjectCreated:*
   MessageSubscriptionBroadcastFunction:
       Type: AWS::Serverless::Function
       DependsOn:

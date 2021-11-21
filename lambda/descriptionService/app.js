@@ -10,8 +10,6 @@ const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
 
-const { wmlGrammar } = require('./wml')
-
 const splitType = (value) => {
     const sections = value.split('#')
     if (sections.length) {
@@ -186,7 +184,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
 
 exports.handler = async (event, context) => {
 
-    const { CreatedTime, CharacterId, PermanentId, Evaluate, wml } = event
+    const { CreatedTime, CharacterId, PermanentId } = event
 
     if (CreatedTime && CharacterId && PermanentId) {
         return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
@@ -196,13 +194,6 @@ exports.handler = async (event, context) => {
         })
     }
 
-    if (Evaluate) {
-        const match = wmlGrammar.match(wml)
-        if (match.succeeded()) {
-            return JSON.stringify({ evaluated: wml })
-        }
-        return JSON.stringify({ error: match.message })
-    }
     context.fail(JSON.stringify(`Error: Unknown format ${event}`))
 
 }
