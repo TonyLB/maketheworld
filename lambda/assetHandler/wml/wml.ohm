@@ -1,9 +1,13 @@
 WorldMarkupLangage {
-    WMLExpression = LayerExpression*
 
     //
     // This section defines the tags that make up the WML language
     //
+
+    AssetExpression = TagExpression<"Asset", "key", none, AssetLegalContents>
+    AssetLegalContents = LayerExpression
+            | NameExpression
+            | string
 
     LayerExpression = TagExpression<"Layer", "key", none, LayerLegalContents>
     LayerLegalContents = RoomExpression
