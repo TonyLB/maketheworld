@@ -1,14 +1,6 @@
-const confirmRequiredProps = (tag, requiredProperties) => (node) => {
-    const { props, contents } = node.dbSchema()
-    const propErrors = requiredProperties.filter((prop) => (props[prop] === undefined || !(props[prop]?.literal || props[prop]?.expression)))
-    return {
-        tag,
-        props,
-        contents,
-        ...(propErrors.length > 0 ? { errors: propErrors.map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} is a required property for ${tag} tags.`))} : {})
-    }
+const { confirmRequiredProps, aggregateErrors, wmlProcess, validate } = require('./processing')
 
-}
+const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
 const dbSchema = {
     //
@@ -59,16 +51,10 @@ const dbSchema = {
         }
     },
     RoomExpression(node) {
-        return confirmRequiredProps('Room', ['key'])(node)
+        return confirmRequiredProps(['key'], ['key'])(node.dbSchema())
     },
     LayerExpression(node) {
-        const parsedProps = confirmRequiredProps('Layer', ['key'])(node)
-        const { key = 'NO-KEY', ...otherProps } = parsedProps?.props ?? {}
-        return {
-            ...parsedProps,
-            key,
-            props: otherProps
-        }
+        return confirmRequiredProps(['key'], ['key'])(node.dbSchema())
     },
     NameExpression(node) {
         return {
@@ -77,32 +63,34 @@ const dbSchema = {
         }
     },
     AssetExpression(node) {
-        const parsedProps = confirmRequiredProps('Asset', ['key'])(node)
-        const { key= { literal: 'NO-KEY' }, ...otherProps } = parsedProps?.props ?? {}
+        const parsedProps = wmlProcess([
+                confirmRequiredProps(['key', 'fileName'], ['key', 'fileName']),
+                validate(fileNameValidator),
+                aggregateErrors
+            ])(node)
+        const consolidate = (previous) => ({ layers = [], ...rest }) => ({
+            ...previous,
+            layers: [
+                ...previous.layers,
+                ...layers
+            ],
+            ...rest
+        })
+        const { contents, ...otherProps } = parsedProps
         return parsedProps.contents
-            .reduce((previous, { tag, props, contents }) => {
+            .reduce((previous, { tag, ...rest }) => {
                 switch(tag) {
                     case 'Layer':
-                        return {
-                            ...previous,
-                            layers: [
-                                ...previous.layers,
-                                {
-                                    props,
-                                    contents
-                                }
-                            ]
-                        }
+                        return consolidate(previous)({ layers: [rest] })
                     case 'Name':
-                        return { ...previous, name: contents.join(' ') }
+                        return consolidate(previous)({ name: rest.contents.join(' ') })
                     default:
                         return previous
                 }
             }, {
                 name: 'Untitled',
-                key: key.literal,
-                props: otherProps,
-                layers: []
+                layers: [],
+                ...otherProps
             })
     }
 }

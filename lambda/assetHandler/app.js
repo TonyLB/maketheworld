@@ -23,7 +23,10 @@ exports.handler = async (event, context) => {
     
         const keyPrefix = key.split('/').slice(0, 1).join('/')
         if (keyPrefix === 'upload') {
-            const objectName = key.split('/').slice(1).join('/')
+            const objectNameItems = key.split('/').slice(1)
+            const objectPrefix = objectNameItems.length > 1
+                ? `${objectNameItems.slice(0, -1).join('/')}/`
+                : ''
             const client = new S3Client(params)
             const { Body: contentStream } = await client.send(new GetObjectCommand({
                 Bucket: bucket,
@@ -34,11 +37,20 @@ exports.handler = async (event, context) => {
     
             if (match.succeeded()) {
     
-                await client.send(new CopyObjectCommand({
-                    Bucket: bucket,
-                    CopySource: `${bucket}/${key}`,
-                    Key: `drafts/${objectName}`
-                }))
+                const dbSchema = wmlSemantics(match).dbSchema()
+                if (dbSchema.errors.length || !dbSchema.fileName) {
+                    //
+                    // TODO: Implement DynamoDB asset-handler storage to keep meta-data
+                    // about the asset registry for the system
+                    //
+                }
+                else {
+                    await client.send(new CopyObjectCommand({
+                        Bucket: bucket,
+                        CopySource: `${bucket}/${key}`,
+                        Key: `drafts/${objectPrefix}${dbSchema.fileName}`
+                    }))
+                }
         
             }
     

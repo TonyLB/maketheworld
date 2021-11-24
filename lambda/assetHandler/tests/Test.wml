@@ -1,5 +1,7 @@
-<Layer key="123">
-    <Room key="345">
-        Hello, world!
-    </Room>
-</Layer>
+<Asset key="TEST" fileName="wmlTest">
+    <Layer key="123">
+        <Room key="345">
+            Hello, world!
+        </Room>
+    </Layer>
+</Asset>
