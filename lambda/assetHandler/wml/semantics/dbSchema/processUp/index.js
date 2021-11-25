@@ -1,26 +1,14 @@
-//
-// confirmRequiredProps scans the node structure directly in dbSchema conversion of a
-// type that wraps TagExpression, and checks its tag-opening properties for required
-// keys.  It also lifts some literal props (which will, by syntax, not need evaluation)
-// out of the props object to top-level properties.
-//
-// Arguments of first currying:
-//    requiredProperties:  A list of strings corresponding to property keys
-//    liftLiteralProps: A list of strings corresponding to literal property keys
-//
-// Arguments of second currying:
-//    node:  The return-value of node.dbSchema executed upon a TagExpression node:
-//      { tag, props, contents, errors }
-//    NOTE:  By syntax, the 'tag' value should always correspond to the tag element
-//       of the chosen syntactic rule
-//
+const aggregateErrors = ({ contents = [], errors = [], ...rest }) => ({
+    contents,
+    errors: contents.reduce((previous, { errors = [] }) => ([...previous, ...errors]), errors),
+    ...rest
+})
 
-const confirmRequiredProps = (requiredProperties, liftLiteralProps = []) => ({ tag, props, contents, errors = [] }) => {
-    const propErrors = requiredProperties
-        .filter((prop) => (props[prop] === undefined || !(props[prop]?.literal || props[prop]?.expression)))
-        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} is a required property for ${tag.sourceString} tags.`))
+const desourceTag = ({ tag, ...rest }) => ({ tag: tag.sourceString, ...rest })
+
+const liftLiteralProps = (liftLiteralProps = []) => ({ props, ...rest }) => {
     return {
-        tag: tag.sourceString,
+        ...rest,
         //
         // Lift the specified literal props out of their structure to this level
         //
@@ -28,18 +16,10 @@ const confirmRequiredProps = (requiredProperties, liftLiteralProps = []) => ({ t
         //
         // Pass on the props that aren't lifted in their more complex structure
         //
-        props: Object.entries(props).filter(([key]) => (!liftLiteralProps.includes(key))).reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {}),
-        contents,
-        errors: [...propErrors, ...errors]
+        props: Object.entries(props).filter(([key]) => (!liftLiteralProps.includes(key))).reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
     }
 
 }
-
-const aggregateErrors = ({ contents = [], errors = [], ...rest }) => ({
-    contents,
-    errors: contents.reduce((previous, { errors = [] }) => ([...previous, ...errors]), errors),
-    ...rest
-})
 
 const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     const tags = Object.keys(tagsMap)
@@ -87,6 +67,12 @@ const validate = (validationFunction) => (node) => {
     return node
 }
 
+const confirmRequiredProps = (requiredProperties) => ({ tag, props }) => {
+    return requiredProperties
+        .filter((prop) => (props[prop] === undefined || !(props[prop]?.literal || props[prop]?.expression)))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} is a required property for ${tag.sourceString} tags.`))
+}
+
 const wmlProcessUpNonRecursive = (processFunctions = []) => (node) => (
     processFunctions.reduce((previous, process) => (process(previous)), node)
 )
@@ -96,9 +82,11 @@ const wmlProcessUp = (processFunctions = []) => ({ contents = [], ...rest }) => 
     return processFunctions.reduce((previous, process) => (process(previous)), { contents: newContents, ...rest })
 }
 
+exports.desourceTag = desourceTag
 exports.confirmRequiredProps = confirmRequiredProps
 exports.aggregateErrors = aggregateErrors
 exports.validate = validate
+exports.liftLiteralProps = liftLiteralProps
 exports.liftLiteralTags = liftLiteralTags
 exports.liftUntagged = liftUntagged
 exports.wmlProcessUpNonRecursive = wmlProcessUpNonRecursive

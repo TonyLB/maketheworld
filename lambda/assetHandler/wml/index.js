@@ -36,14 +36,42 @@ const wmlSemantics = wmlGrammar.createSemantics()
     })
     .addOperation('dbSchema', dbSchema)
 
+//
+// TODO:  Determine whether explicitly indexing these values is worthwhile, or if the index
+// is always equal to its position in the top-level output array
+//
+const flattenAndNumber = (includeFunction) => (node, startingIndex = 0) => {
+    const flattenReducer = (previous, node) => {
+        const { startingIndex: previousStartingIndex, flattenedContents: previousContents } = previous
+        const newFlattenedContents = flattenAndNumber(includeFunction)(node, previousStartingIndex)
+        return {
+            flattenedContents: [...previousContents, ...newFlattenedContents],
+            startingIndex: previousStartingIndex + newFlattenedContents.length
+        }
+    }
+    const flattenedNode = includeFunction(node) ? [{ ...node, index: startingIndex }] : []
+    const { flattenedContents } = node.contents.reduce(
+        flattenReducer,
+        {
+            flattenedContents: [],
+            startingIndex: startingIndex + flattenedNode.length
+        }
+    )
+    return [
+        ...flattenedNode,
+        ...flattenedContents
+    ]
+}
+
 const dbEntries = (match) => {
     const firstPass = wmlSemantics(match).dbSchema()
     const secondPass = wmlProcessDown([
             assignContextTagIds({ Layer: 'layerId' }, ({ tag }) => (tag === 'Room'))
         ])(firstPass)
-    const dbSchema = wmlProcessUp([
+    const thirdPass = wmlProcessUp([
             aggregateErrors
         ])(secondPass)
+    const dbSchema = flattenAndNumber(({ tag }) => (['Room'].includes(tag)))(thirdPass)
     return dbSchema
 }
 

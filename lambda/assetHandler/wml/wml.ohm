@@ -12,7 +12,7 @@ WorldMarkupLangage {
     LayerExpression = TagExpression<"Layer", "key", none, LayerLegalContents>
     LayerLegalContents = RoomExpression
 
-    RoomExpression = TagExpression<"Room", "key", none, RoomContents>
+    RoomExpression = TagExpression<"Room", ("key" | "display"), none, RoomContents>
     RoomContents = TextContents
             | NameExpression
 

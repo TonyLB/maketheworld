@@ -1,8 +1,9 @@
 const {
+    desourceTag,
     confirmRequiredProps,
-    aggregateErrors,
     wmlProcessUpNonRecursive,
     validate,
+    liftLiteralProps,
     liftLiteralTags,
     liftUntagged
 } = require('./processUp')
@@ -59,13 +60,20 @@ const dbSchema = {
     },
     RoomExpression(node) {
         return wmlProcessUpNonRecursive([
-            confirmRequiredProps(['key'], ['key']),
+            desourceTag,
+            validate(confirmRequiredProps(['key'])),
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
+            liftLiteralProps(['key', 'display']),
             liftLiteralTags({ Name: 'name' }),
-            liftUntagged('render')
+            liftUntagged('render'),
         ])(node.dbSchema())
     },
     LayerExpression(node) {
-        return confirmRequiredProps(['key'], ['key'])(node.dbSchema())
+        return wmlProcessUpNonRecursive([
+                desourceTag,
+                validate(confirmRequiredProps(['key'])),
+                liftLiteralProps(['key'])
+            ])(node.dbSchema())
     },
     NameExpression(node) {
         return {
@@ -75,7 +83,9 @@ const dbSchema = {
     },
     AssetExpression(node) {
         return wmlProcessUpNonRecursive([
-                confirmRequiredProps(['key', 'fileName'], ['key', 'fileName']),
+                desourceTag,
+                validate(confirmRequiredProps(['key', 'fileName'])),
+                liftLiteralProps(['key', 'fileName']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftUntagged('description')
