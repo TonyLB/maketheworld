@@ -1,4 +1,11 @@
-const { confirmRequiredProps, aggregateErrors, wmlProcess, validate } = require('./processing')
+const {
+    confirmRequiredProps,
+    aggregateErrors,
+    wmlProcessUpNonRecursive,
+    validate,
+    liftLiteralTags,
+    liftUntagged
+} = require('./processUp')
 
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
@@ -51,7 +58,11 @@ const dbSchema = {
         }
     },
     RoomExpression(node) {
-        return confirmRequiredProps(['key'], ['key'])(node.dbSchema())
+        return wmlProcessUpNonRecursive([
+            confirmRequiredProps(['key'], ['key']),
+            liftLiteralTags({ Name: 'name' }),
+            liftUntagged('render')
+        ])(node.dbSchema())
     },
     LayerExpression(node) {
         return confirmRequiredProps(['key'], ['key'])(node.dbSchema())
@@ -63,35 +74,12 @@ const dbSchema = {
         }
     },
     AssetExpression(node) {
-        const parsedProps = wmlProcess([
+        return wmlProcessUpNonRecursive([
                 confirmRequiredProps(['key', 'fileName'], ['key', 'fileName']),
                 validate(fileNameValidator),
-                aggregateErrors
-            ])(node)
-        const consolidate = (previous) => ({ layers = [], ...rest }) => ({
-            ...previous,
-            layers: [
-                ...previous.layers,
-                ...layers
-            ],
-            ...rest
-        })
-        const { contents, ...otherProps } = parsedProps
-        return parsedProps.contents
-            .reduce((previous, { tag, ...rest }) => {
-                switch(tag) {
-                    case 'Layer':
-                        return consolidate(previous)({ layers: [rest] })
-                    case 'Name':
-                        return consolidate(previous)({ name: rest.contents.join(' ') })
-                    default:
-                        return previous
-                }
-            }, {
-                name: 'Untitled',
-                layers: [],
-                ...otherProps
-            })
+                liftLiteralTags({ Name: 'name' }),
+                liftUntagged('description')
+            ])(node.dbSchema())
     }
 }
 

@@ -37,13 +37,36 @@ const confirmRequiredProps = (requiredProperties, liftLiteralProps = []) => ({ t
 
 const aggregateErrors = ({ contents = [], errors = [], ...rest }) => ({
     contents,
-    errors: contents.reduce((previous, node) => ([...previous, ...(aggregateErrors(node)?.errors ??[])]), errors),
+    errors: contents.reduce((previous, { errors = [] }) => ([...previous, ...errors]), errors),
     ...rest
 })
 
-const wmlProcess = (processFunctions = []) => (node) => (
-    processFunctions.reduce((previous, process) => (process(previous)), node.dbSchema())
-)
+const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
+    const tags = Object.keys(tagsMap)
+    const tagsToLift = contents.filter(({ tag }) => (tags.includes(tag)))
+    const unliftedItems = contents.filter(({ tag }) => (!tags.includes(tag)))
+    const tagOutcomes = tagsToLift.reduce((previous, { tag, contents }) => ({
+        ...previous,
+        [tagsMap[tag]]: contents.join(' ')
+    }), {})
+    return {
+        contents: unliftedItems,
+        ...rest,
+        ...tagOutcomes
+    }
+}
+
+const liftUntagged = (label) => ({ contents = [], ...rest }) => {
+    const itemsToLift = contents.filter(({ tag }) => (!tag))
+    const unliftedTags = contents.filter(({ tag }) => (tag))
+    const aggregation = (items) => (items.join(''))
+    return {
+        contents: unliftedTags,
+        ...rest,
+        [label]: aggregation(itemsToLift)
+    }
+    
+}
 
 //
 // validate is a wrapper that turns a function of the sort (node) => string[] returning error strings into
@@ -64,7 +87,19 @@ const validate = (validationFunction) => (node) => {
     return node
 }
 
+const wmlProcessUpNonRecursive = (processFunctions = []) => (node) => (
+    processFunctions.reduce((previous, process) => (process(previous)), node)
+)
+
+const wmlProcessUp = (processFunctions = []) => ({ contents = [], ...rest }) => {
+    const newContents = contents.map(wmlProcessUp(processFunctions))
+    return processFunctions.reduce((previous, process) => (process(previous)), { contents: newContents, ...rest })
+}
+
 exports.confirmRequiredProps = confirmRequiredProps
 exports.aggregateErrors = aggregateErrors
-exports.wmlProcess = wmlProcess
 exports.validate = validate
+exports.liftLiteralTags = liftLiteralTags
+exports.liftUntagged = liftUntagged
+exports.wmlProcessUpNonRecursive = wmlProcessUpNonRecursive
+exports.wmlProcessUp = wmlProcessUp

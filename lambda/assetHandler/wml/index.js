@@ -3,6 +3,8 @@ const path = require('path')
 const ohm = require('ohm-js')
 const { compileCode } = require('./compileCode')
 const { dbSchema } = require('./semantics/dbSchema')
+const { wmlProcessDown, assignContextTagIds } = require('./semantics/dbSchema/processDown')
+const { wmlProcessUp, aggregateErrors } = require('./semantics/dbSchema/processUp')
 
 const wmlSchema = fs.readFileSync(path.join(__dirname, 'wml.ohm'))
 
@@ -34,5 +36,17 @@ const wmlSemantics = wmlGrammar.createSemantics()
     })
     .addOperation('dbSchema', dbSchema)
 
+const dbEntries = (match) => {
+    const firstPass = wmlSemantics(match).dbSchema()
+    const secondPass = wmlProcessDown([
+            assignContextTagIds({ Layer: 'layerId' }, ({ tag }) => (tag === 'Room'))
+        ])(firstPass)
+    const dbSchema = wmlProcessUp([
+            aggregateErrors
+        ])(secondPass)
+    return dbSchema
+}
+
 exports.wmlGrammar = wmlGrammar
 exports.wmlSemantics = wmlSemantics
+exports.dbEntries = dbEntries

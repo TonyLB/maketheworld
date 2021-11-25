@@ -1,7 +1,11 @@
 // Import required AWS SDK clients and commands for Node.js
 const { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3")
 
-const { wmlGrammar, wmlSemantics } = require("./wml/")
+const { wmlGrammar, dbEntries } = require("./wml/")
+const {
+    wmlProcessDown,
+    assignContextTagIds
+} = require('./wml/semantics/dbSchema/processDown')
 
 const params = { region: process.env.AWS_REGION }
 
@@ -37,7 +41,10 @@ exports.handler = async (event, context) => {
     
             if (match.succeeded()) {
     
-                const dbSchema = wmlSemantics(match).dbSchema()
+                const firstPass = wmlSemantics(match).dbSchema()
+                const dbSchema = wmlProcessDown([
+                        assignContextTagIds({ Layer: 'layerId' }, ({ tag }) => (tag === 'Room'))
+                    ])(firstPass)
                 if (dbSchema.errors.length || !dbSchema.fileName) {
                     //
                     // TODO: Implement DynamoDB asset-handler storage to keep meta-data
@@ -73,7 +80,7 @@ exports.handler = async (event, context) => {
     if (event.Evaluate) {
         const match = wmlGrammar.match(event.wml)
         if (match.succeeded()) {
-            const dbSchema = wmlSemantics(match).dbSchema()
+            const dbSchema = dbEntries(match)
             console.log(JSON.stringify(dbSchema, null, 4))
             return JSON.stringify({ evaluated: dbSchema })
         }
