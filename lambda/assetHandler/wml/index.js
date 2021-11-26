@@ -57,66 +57,51 @@ const mergeToRooms = (elements) => {
     // TODO: Consider replacing render and name lists with DRY elements that manage the
     // complications of conditional lists internally
     //
-    const reduceInRoomContext = ({ render: previousRender = [], exitsByConditionList: previousExits = [], name: previousName = [] }, element) => {
-        const { to, display = 'replace', conditions = [], render = "", name = "" } = element
+    const reduceInRoomContext = ({ render: previousRender = [], exits: previousExits = [], name: previousName = [] }, element) => {
+        const mergeRender = (previous = { render: [] }, { display, render }) => {
+            //
+            // TODO: Handle modes of display other than replace
+            //
+            return { display, render }
+        }
+        const mergeName = (previous = { render: [] }, { display, name }) => {
+            //
+            // TODO: Handle modes of display other than replace
+            //
+            return { display, name }
+        }
+        const mergeExit = (previous = {}, exit) => ({ exits: [
+            ...(previous?.exits || []).filter((exitProbe) => (exitProbe.to !== exit.to)),
+            { to: exit.to }
+        ]})
+        const mergeSameConditions = (mergeFunction) => (previous, { conditions, ...rest }) => {
+            const mergeCandidate = previous.slice(-1)[0]
+            if (mergeCandidate && shallowEqual(mergeCandidate.conditions, conditions)) {
+                return [
+                    ...previous.slice(0, previous.length - 1),
+                    { conditions, ...(mergeFunction(mergeCandidate, rest)) }
+                ]
+            }
+            else {
+                return [...previous, { conditions, ...(mergeFunction(undefined, rest)) }]
+            }
+        }
+        const { render = "", name = "" } = element
         switch(element.tag) {
             case 'Room':
-                //
-                // TODO: Handle modes of display other than replace
-                //
-
-                //
-                // TODO: Build more sophisticated merge functionality that can tell when
-                // two elements can be combined (e.g. their conditions are identical)
-                //
                 return {
-                    render: [
-                        ...previousRender,
-                        ...(render ? [{ conditions, display, render }] : [])
-                    ],
-                    name: [
-                        ...previousName,
-                        ...(name ? [{ conditions, display, name }] : [])
-                    ],
-                    exitsByConditionList: previousExits
+                    render: render ? mergeSameConditions(mergeRender)(previousRender, element) : previousRender,
+                    name: name ? mergeSameConditions(mergeName)(previousName, element) : previousName,
+                    exits: previousExits
                 }
             case 'Exit':
-                const matchedExitIndex = previousExits.findIndex(({ conditions: probeConditions }) => (shallowEqual(conditions, probeConditions)))
-                if (matchedExitIndex !== -1) {
-                    const matchedExitConditional = previousExits[matchedExitIndex]
-                    return {
-                        render: previousRender,
-                        name: previousName,
-                        exitsByConditionList: [
-                            {
-                                ...matchedExitConditional,
-                                exits: [
-                                    ...matchedExitConditional.exits,
-                                    {
-                                        to
-                                    }
-                                ]
-                            },
-                            ...previousExits.slice(0, matchedExitIndex),
-                            ...previousExits.slice(matchedExitIndex + 1)
-                        ]
-                    }
-                }
-                else {
-                    return {
-                        render: previousRender,
-                        name: previousName,
-                        exitsByConditionList: [
-                            {
-                                conditions,
-                                exits: [{ to }]
-                            },
-                            ...previousExits
-                        ]
-                    }
+                return {
+                    render: previousRender,
+                    name: previousName,
+                    exits: mergeSameConditions(mergeExit)(previousExits, element)
                 }
             default:
-                return { render: previousRender, exitsByConditionList: previousExits, name: previousName }
+                return { render: previousRender, exits: previousExits, name: previousName }
         }
     }
     const roomsById = elements.reduce(
@@ -124,7 +109,7 @@ const mergeToRooms = (elements) => {
             const roomId = (element.tag === 'Room' && element.key) || (element.tag === 'Exit' && element.from)
             return {
                 ...previous,
-                [roomId]: reduceInRoomContext(previous[roomId] || { render: [], exitsByToAndFrom: [], name: [] }, element)
+                [roomId]: reduceInRoomContext(previous[roomId] || { render: [], exits: [], name: [] }, element)
             }
         }, {}
     )
