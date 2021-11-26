@@ -21,6 +21,21 @@ const liftLiteralProps = (liftLiteralProps = []) => ({ props, ...rest }) => {
 
 }
 
+const liftExpressionProps = (liftExpressionProps = []) => ({ props, ...rest }) => {
+    return {
+        ...rest,
+        //
+        // Lift the specified expression props out of their structure to this level
+        //
+        ...(liftExpressionProps.reduce((previous, key) => ({ ...previous, [key]: props?.[key]?.expression }), {})),
+        //
+        // Pass on the props that aren't lifted in their more complex structure
+        //
+        props: Object.entries(props).filter(([key]) => (!liftExpressionProps.includes(key))).reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
+    }
+
+}
+
 const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     const tags = Object.keys(tagsMap)
     const tagsToLift = contents.filter(({ tag }) => (tags.includes(tag)))
@@ -73,6 +88,18 @@ const confirmRequiredProps = (requiredProperties) => ({ tag, props }) => {
         .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} is a required property for ${tag.sourceString} tags.`))
 }
 
+const confirmLiteralProps = (literalOnlyProperties) => ({ tag, props }) => {
+    return literalOnlyProperties
+        .filter((prop) => (props[prop] & !props[prop]?.literal))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass a literal (not expression) value for ${tag.sourceString} tags.`))
+}
+
+const confirmExpressionProps = (expressionOnlyProperties) => ({ tag, props }) => {
+    return expressionOnlyProperties
+        .filter((prop) => (props[prop] & !props[prop]?.expression))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass an expression (not literal) value for ${tag.sourceString} tags.`))
+}
+
 const wmlProcessUpNonRecursive = (processFunctions = []) => (node) => (
     processFunctions.reduce((previous, process) => (process(previous)), node)
 )
@@ -84,9 +111,12 @@ const wmlProcessUp = (processFunctions = []) => ({ contents = [], ...rest }) => 
 
 exports.desourceTag = desourceTag
 exports.confirmRequiredProps = confirmRequiredProps
+exports.confirmLiteralProps = confirmLiteralProps
+exports.confirmExpressionProps = confirmExpressionProps
 exports.aggregateErrors = aggregateErrors
 exports.validate = validate
 exports.liftLiteralProps = liftLiteralProps
+exports.liftExpressionProps = liftExpressionProps
 exports.liftLiteralTags = liftLiteralTags
 exports.liftUntagged = liftUntagged
 exports.wmlProcessUpNonRecursive = wmlProcessUpNonRecursive

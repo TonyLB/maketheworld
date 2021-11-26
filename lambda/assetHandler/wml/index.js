@@ -3,7 +3,7 @@ const path = require('path')
 const ohm = require('ohm-js')
 const { compileCode } = require('./compileCode')
 const { dbSchema } = require('./semantics/dbSchema')
-const { wmlProcessDown, assignContextTagIds } = require('./semantics/dbSchema/processDown')
+const { wmlProcessDown, aggregateConditionals } = require('./semantics/dbSchema/processDown')
 const { wmlProcessUp, aggregateErrors } = require('./semantics/dbSchema/processUp')
 
 const wmlSchema = fs.readFileSync(path.join(__dirname, 'wml.ohm'))
@@ -36,10 +36,13 @@ const wmlSemantics = wmlGrammar.createSemantics()
     })
     .addOperation('dbSchema', dbSchema)
 
+const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
+
 //
 // TODO:  Determine whether explicitly indexing these values is worthwhile, or if the index
 // is always equal to its position in the top-level output array
 //
+
 const flattenAndNumber = (includeFunction) => (node, startingIndex = 0) => {
     const flattenReducer = (previous, node) => {
         const { startingIndex: previousStartingIndex, flattenedContents: previousContents } = previous
@@ -66,12 +69,12 @@ const flattenAndNumber = (includeFunction) => (node, startingIndex = 0) => {
 const dbEntries = (match) => {
     const firstPass = wmlSemantics(match).dbSchema()
     const secondPass = wmlProcessDown([
-            assignContextTagIds({ Layer: 'layerId' }, ({ tag }) => (tag === 'Room'))
+            aggregateConditionals(tagCondition(['Room']))
         ])(firstPass)
     const thirdPass = wmlProcessUp([
             aggregateErrors
         ])(secondPass)
-    const dbSchema = flattenAndNumber(({ tag }) => (['Room'].includes(tag)))(thirdPass)
+    const dbSchema = flattenAndNumber(tagCondition(['Room']))(thirdPass)
     return dbSchema
 }
 

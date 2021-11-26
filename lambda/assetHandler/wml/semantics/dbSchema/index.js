@@ -4,8 +4,11 @@ const {
     wmlProcessUpNonRecursive,
     validate,
     liftLiteralProps,
+    liftExpressionProps,
     liftLiteralTags,
-    liftUntagged
+    liftUntagged,
+    confirmExpressionProps,
+    confirmLiteralProps
 } = require('./processUp')
 
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
@@ -62,6 +65,7 @@ const dbSchema = {
         return wmlProcessUpNonRecursive([
             desourceTag,
             validate(confirmRequiredProps(['key'])),
+            validate(confirmLiteralProps(['key'])),
             validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
             liftLiteralProps(['key', 'display']),
             liftLiteralTags({ Name: 'name' }),
@@ -71,8 +75,16 @@ const dbSchema = {
     LayerExpression(node) {
         return wmlProcessUpNonRecursive([
                 desourceTag,
-                validate(confirmRequiredProps(['key'])),
+                validate(confirmLiteralProps(['key'])),
                 liftLiteralProps(['key'])
+            ])(node.dbSchema())
+    },
+    ConditionExpression(node) {
+        return wmlProcessUpNonRecursive([
+                desourceTag,
+                validate(confirmRequiredProps(['if'])),
+                validate(confirmExpressionProps(['if'])),
+                liftExpressionProps(['if'])
             ])(node.dbSchema())
     },
     NameExpression(node) {
@@ -85,6 +97,7 @@ const dbSchema = {
         return wmlProcessUpNonRecursive([
                 desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
+                validate(confirmLiteralProps(['key', 'fileName'])),
                 liftLiteralProps(['key', 'fileName']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),

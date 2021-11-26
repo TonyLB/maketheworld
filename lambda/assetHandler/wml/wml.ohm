@@ -6,11 +6,19 @@ WorldMarkupLangage {
 
     AssetExpression = TagExpression<"Asset", ("key" | "fileName"), none, AssetLegalContents>
     AssetLegalContents = LayerExpression
+            | ConditionExpression
             | NameExpression
             | string
 
+    ConditionExpression = TagExpression<"Condition", none, "if", ConditionLegalContents>
+    ConditionLegalContents = RoomExpression
+            | ConditionExpression
+            | TextContents
+            | LayerExpression
+
     LayerExpression = TagExpression<"Layer", "key", none, LayerLegalContents>
     LayerLegalContents = RoomExpression
+            | ConditionExpression
 
     RoomExpression = TagExpression<"Room", ("key" | "display"), none, RoomContents>
     RoomContents = TextContents

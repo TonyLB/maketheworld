@@ -20,6 +20,19 @@ const assignContextTagIds = (tagsMap, assignTest = () => true) => (node, ancestr
     return node
 }
 
+const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
+    if (assignTest(node)) {
+        const conditions = ancestry
+            .filter(({ tag }) => (tag === 'Condition'))
+            .map((node) => (node["if"]))
+        return {
+            ...node,
+            conditions
+        }
+    }
+    return node
+}
+
 const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
     const { contents, ...rest } = node
     const newNode = processFunctions.reduce((previous, process) => (process(previous, ancestry)), rest)
@@ -30,4 +43,5 @@ const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
 }
 
 exports.assignContextTagIds = assignContextTagIds
+exports.aggregateConditionals = aggregateConditionals
 exports.wmlProcessDown = wmlProcessDown
