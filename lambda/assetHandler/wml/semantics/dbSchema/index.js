@@ -13,6 +13,19 @@ const {
 
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
+const processTagProps = (tag, props) => ({
+    tag,
+    props: props.children
+        .map((prop) => prop.dbSchema())
+        .reduce((previous, { argument, expression, literal }) => ({
+            ...previous,
+            [argument]: {
+                expression,
+                literal
+            }
+        }), {})
+})
+
 const dbSchema = {
     //
     // TODO: Parse out string-internal white-space as needed
@@ -42,18 +55,10 @@ const dbSchema = {
         }
     },
     TagOpen(open, tag, props, close) {
-        return {
-            tag,
-            props: props.children
-                .map((prop) => prop.dbSchema())
-                .reduce((previous, { argument, expression, literal }) => ({
-                    ...previous,
-                    [argument]: {
-                        expression,
-                        literal
-                    }
-                }), {})
-        }
+        return processTagProps(tag, props)
+    },
+    TagSelfClosing(open, tag, props, close) {
+        return processTagProps(tag, props)
     },
     TagExpression(open, contents, close) {
         return {
@@ -70,6 +75,13 @@ const dbSchema = {
             liftLiteralProps(['key', 'display']),
             liftLiteralTags({ Name: 'name' }),
             liftUntagged('render'),
+        ])(node.dbSchema())
+    },
+    ExitExpression(node) {
+        return wmlProcessUpNonRecursive([
+            desourceTag,
+            validate(confirmLiteralProps(['key', 'to', 'from'])),
+            liftLiteralProps(['key', 'to', 'from'])
         ])(node.dbSchema())
     },
     LayerExpression(node) {

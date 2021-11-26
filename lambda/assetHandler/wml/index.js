@@ -3,8 +3,8 @@ const path = require('path')
 const ohm = require('ohm-js')
 const { compileCode } = require('./compileCode')
 const { dbSchema } = require('./semantics/dbSchema')
-const { wmlProcessDown, aggregateConditionals } = require('./semantics/dbSchema/processDown')
-const { wmlProcessUp, aggregateErrors } = require('./semantics/dbSchema/processUp')
+const { wmlProcessDown, aggregateConditionals, assignExitContext } = require('./semantics/dbSchema/processDown')
+const { wmlProcessUp, aggregateErrors, validate } = require('./semantics/dbSchema/processUp')
 
 const wmlSchema = fs.readFileSync(path.join(__dirname, 'wml.ohm'))
 
@@ -69,12 +69,18 @@ const flattenAndNumber = (includeFunction) => (node, startingIndex = 0) => {
 const dbEntries = (match) => {
     const firstPass = wmlSemantics(match).dbSchema()
     const secondPass = wmlProcessDown([
-            aggregateConditionals(tagCondition(['Room']))
+            aggregateConditionals(tagCondition(['Room', 'Exit'])),
+            assignExitContext
         ])(firstPass)
     const thirdPass = wmlProcessUp([
+            //
+            // TODO: Refactor exit validation to assign roomId context as in processDown, then do the calculation (and better error message) knowing all three of
+            // to, from and roomId.
+            //
+            validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
             aggregateErrors
         ])(secondPass)
-    const dbSchema = flattenAndNumber(tagCondition(['Room']))(thirdPass)
+    const dbSchema = flattenAndNumber(tagCondition(['Room', 'Exit']))(thirdPass)
     return dbSchema
 }
 

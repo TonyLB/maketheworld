@@ -15,14 +15,20 @@ WorldMarkupLangage {
             | ConditionExpression
             | TextContents
             | LayerExpression
+            | ExitExpression
 
     LayerExpression = TagExpression<"Layer", "key", none, LayerLegalContents>
     LayerLegalContents = RoomExpression
             | ConditionExpression
+            | ExitExpression
+
+    ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none>
+            | TagSelfClosing<"Exit", ("key" | "to" | "from"), none>
 
     RoomExpression = TagExpression<"Room", ("key" | "display"), none, RoomContents>
     RoomContents = TextContents
             | NameExpression
+            | ExitExpression
 
     NameExpression = ValueTag<"Name">
 
@@ -35,6 +41,7 @@ WorldMarkupLangage {
 
     TagExpression<tag, tagLiteralArgs, tagProgramArgs, LegalContents> = TagOpen<tag, tagLiteralArgs, tagProgramArgs> LegalContents* TagClose<tag>
     string = (~("<" | "{") any | "\\<" | "\\{" | space)+
+    TagSelfClosing<tag, tagLiteralArgs, tagProgramArgs> = "<" tag TagArgument<tagLiteralArgs, tagProgramArgs>* "/>"
     TagOpen<tag, tagLiteralArgs, tagProgramArgs> = "<" tag TagArgument<tagLiteralArgs, tagProgramArgs>* ">"
     TagArgument<tagLiteralArgs, tagProgramArgs> = TagLiteralArgument<tagLiteralArgs> | TagProgramArgument<tagProgramArgs>
     TagLiteralArgument<tagLiteralArgs> = tagArgumentQuoted<tagLiteralArgs>

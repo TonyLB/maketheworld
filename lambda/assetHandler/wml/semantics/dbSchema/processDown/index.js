@@ -1,3 +1,11 @@
+const addError = (node, error) => ({
+    ...node,
+    errors: [
+        ...(node.errors || []),
+        error
+    ]
+})
+
 const topDownMap = (ancestorList) => (
     ancestorList.reduce((previous, { tag, ...rest }) => ({
         ...previous,
@@ -20,6 +28,40 @@ const assignContextTagIds = (tagsMap, assignTest = () => true) => (node, ancestr
     return node
 }
 
+const assignExitContext = (node, ancestry) => {
+    if (node.tag === 'Exit') {
+        const { to, from } = node
+        const ancestryMap = topDownMap(ancestry)
+        const roomId = ancestryMap.Room && ancestryMap.Room.key
+        if (!roomId) {
+            return node
+        }
+        if (to && from) {
+            if (roomId !== to && roomId !== from) {
+                return addError(node, `Cannot assign both to (${to}) and from (${from}) different from containing room (${roomId}) in Exit tag.`)
+            }
+            return node
+        }
+        else {
+            if (to) {
+                return {
+                    ...node,
+                    from: roomId
+                }
+            }
+            else {
+                if (from) {
+                    return {
+                        ...node,
+                        to: roomId
+                    }
+                }
+            }
+        }
+    }
+    return node
+}
+
 const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
     if (assignTest(node)) {
         const conditions = ancestry
@@ -34,7 +76,7 @@ const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
 }
 
 const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
-    const { contents, ...rest } = node
+    const { contents = [], ...rest } = node
     const newNode = processFunctions.reduce((previous, process) => (process(previous, ancestry)), rest)
     return {
         ...newNode,
@@ -43,5 +85,6 @@ const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
 }
 
 exports.assignContextTagIds = assignContextTagIds
+exports.assignExitContext = assignExitContext
 exports.aggregateConditionals = aggregateConditionals
 exports.wmlProcessDown = wmlProcessDown

@@ -70,7 +70,7 @@ const liftUntagged = (label) => ({ contents = [], ...rest }) => {
 const validate = (validationFunction) => (node) => {
     const errorStrings = validationFunction(node)
     if (errorStrings.length) {
-        const { errors, ...rest } = node
+        const { errors = [], ...rest } = node
         return {
             ...rest,
             errors: [
