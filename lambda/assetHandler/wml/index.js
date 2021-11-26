@@ -2,9 +2,9 @@ const fs = require('fs')
 const path = require('path')
 const ohm = require('ohm-js')
 const { compileCode } = require('./compileCode')
-const { dbSchema } = require('./semantics/dbSchema')
-const { wmlProcessDown, aggregateConditionals, assignExitContext } = require('./semantics/dbSchema/processDown')
-const { wmlProcessUp, aggregateErrors, validate } = require('./semantics/dbSchema/processUp')
+const { schema } = require('./semantics/schema')
+const { wmlProcessDown, aggregateConditionals, assignExitContext } = require('./semantics/schema/processDown')
+const { wmlProcessUp, aggregateErrors, validate } = require('./semantics/schema/processUp')
 
 const wmlSchema = fs.readFileSync(path.join(__dirname, 'wml.ohm'))
 
@@ -34,40 +34,20 @@ const wmlSemantics = wmlGrammar.createSemantics()
             return `${open.sourceString}${contents.eval()}${close.sourceString}`
         }
     })
-    .addOperation('dbSchema', dbSchema)
+    .addOperation('schema', schema)
 
 const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
 
-//
-// TODO:  Determine whether explicitly indexing these values is worthwhile, or if the index
-// is always equal to its position in the top-level output array
-//
-
-const flattenAndNumber = (includeFunction) => (node, startingIndex = 0) => {
-    const flattenReducer = (previous, node) => {
-        const { startingIndex: previousStartingIndex, flattenedContents: previousContents } = previous
-        const newFlattenedContents = flattenAndNumber(includeFunction)(node, previousStartingIndex)
-        return {
-            flattenedContents: [...previousContents, ...newFlattenedContents],
-            startingIndex: previousStartingIndex + newFlattenedContents.length
-        }
-    }
-    const flattenedNode = includeFunction(node) ? [{ ...node, index: startingIndex }] : []
-    const { flattenedContents } = node.contents.reduce(
-        flattenReducer,
-        {
-            flattenedContents: [],
-            startingIndex: startingIndex + flattenedNode.length
-        }
+const flattenToElements = (includeFunction) => (node) => {
+    const flattenedNode = includeFunction(node) ? [node] : []
+    return node.contents.reduce(
+        (previous, node) => ([...previous, ...flattenToElements(includeFunction)(node)]),
+        flattenedNode
     )
-    return [
-        ...flattenedNode,
-        ...flattenedContents
-    ]
 }
 
 const dbEntries = (match) => {
-    const firstPass = wmlSemantics(match).dbSchema()
+    const firstPass = wmlSemantics(match).schema()
     const secondPass = wmlProcessDown([
             aggregateConditionals(tagCondition(['Room', 'Exit'])),
             assignExitContext
@@ -80,7 +60,7 @@ const dbEntries = (match) => {
             validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
             aggregateErrors
         ])(secondPass)
-    const dbSchema = flattenAndNumber(tagCondition(['Room', 'Exit']))(thirdPass)
+    const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(thirdPass)
     return dbSchema
 }
 

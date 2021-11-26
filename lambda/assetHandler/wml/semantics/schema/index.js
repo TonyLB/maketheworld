@@ -16,7 +16,7 @@ const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+
 const processTagProps = (tag, props) => ({
     tag,
     props: props.children
-        .map((prop) => prop.dbSchema())
+        .map((prop) => prop.schema())
         .reduce((previous, { argument, expression, literal }) => ({
             ...previous,
             [argument]: {
@@ -26,7 +26,7 @@ const processTagProps = (tag, props) => ({
         }), {})
 })
 
-const dbSchema = {
+const schema = {
     //
     // TODO: Parse out string-internal white-space as needed
     //
@@ -37,7 +37,7 @@ const dbSchema = {
         return this.sourceString
     },
     _iter(...nodes) {
-        return nodes.map((node) => (node.dbSchema())).join('')
+        return nodes.map((node) => (node.schema())).join('')
     },
     tagArgValueQuoted(value, _) {
         return value.sourceString
@@ -45,13 +45,13 @@ const dbSchema = {
     TagArgumentBracketed(argument, openBracket, expression, closeBracket) {
         return {
             argument: argument.sourceString,
-            expression: expression.dbSchema()
+            expression: expression.schema()
         }
     },
     tagArgumentQuoted(argument, openQuote, literal) {
         return {
             argument: argument.sourceString,
-            literal: literal.dbSchema()
+            literal: literal.schema()
         }
     },
     TagOpen(open, tag, props, close) {
@@ -62,8 +62,8 @@ const dbSchema = {
     },
     TagExpression(open, contents, close) {
         return {
-            ...open.dbSchema(),
-            contents: contents.children.map(item => item.dbSchema())
+            ...open.schema(),
+            contents: contents.children.map(item => item.schema())
         }
     },
     RoomExpression(node) {
@@ -75,21 +75,21 @@ const dbSchema = {
             liftLiteralProps(['key', 'display']),
             liftLiteralTags({ Name: 'name' }),
             liftUntagged('render'),
-        ])(node.dbSchema())
+        ])(node.schema())
     },
     ExitExpression(node) {
         return wmlProcessUpNonRecursive([
             desourceTag,
             validate(confirmLiteralProps(['key', 'to', 'from'])),
             liftLiteralProps(['key', 'to', 'from'])
-        ])(node.dbSchema())
+        ])(node.schema())
     },
     LayerExpression(node) {
         return wmlProcessUpNonRecursive([
                 desourceTag,
                 validate(confirmLiteralProps(['key'])),
                 liftLiteralProps(['key'])
-            ])(node.dbSchema())
+            ])(node.schema())
     },
     ConditionExpression(node) {
         return wmlProcessUpNonRecursive([
@@ -97,11 +97,11 @@ const dbSchema = {
                 validate(confirmRequiredProps(['if'])),
                 validate(confirmExpressionProps(['if'])),
                 liftExpressionProps(['if'])
-            ])(node.dbSchema())
+            ])(node.schema())
     },
     NameExpression(node) {
         return {
-            ...node.dbSchema(),
+            ...node.schema(),
             tag: 'Name'
         }
     },
@@ -114,8 +114,8 @@ const dbSchema = {
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftUntagged('description')
-            ])(node.dbSchema())
+            ])(node.schema())
     }
 }
 
-exports.dbSchema = dbSchema
+exports.schema = schema

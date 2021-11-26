@@ -5,7 +5,7 @@ const { wmlGrammar, dbEntries } = require("./wml/")
 const {
     wmlProcessDown,
     assignContextTagIds
-} = require('./wml/semantics/dbSchema/processDown')
+} = require('./wml/semantics/schema/processDown')
 
 const params = { region: process.env.AWS_REGION }
 
