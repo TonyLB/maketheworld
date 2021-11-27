@@ -36,6 +36,21 @@ const liftExpressionProps = (liftExpressionProps = []) => ({ props, ...rest }) =
 
 }
 
+const liftBooleanProps = (liftBooleanProps = []) => ({ props, ...rest }) => {
+    return {
+        ...rest,
+        //
+        // Lift the specified expression props out of their structure to this level
+        //
+        ...(liftBooleanProps.reduce((previous, key) => ({ ...previous, [key]: props?.[key]?.literal || false }), {})),
+        //
+        // Pass on the props that aren't lifted in their more complex structure
+        //
+        props: Object.entries(props).filter(([key]) => (!liftBooleanProps.includes(key))).reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
+    }
+
+}
+
 const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     const tags = Object.keys(tagsMap)
     const tagsToLift = contents.filter(({ tag }) => (tags.includes(tag)))
@@ -117,6 +132,7 @@ exports.aggregateErrors = aggregateErrors
 exports.validate = validate
 exports.liftLiteralProps = liftLiteralProps
 exports.liftExpressionProps = liftExpressionProps
+exports.liftBooleanProps = liftBooleanProps
 exports.liftLiteralTags = liftLiteralTags
 exports.liftUntagged = liftUntagged
 exports.wmlProcessUpNonRecursive = wmlProcessUpNonRecursive

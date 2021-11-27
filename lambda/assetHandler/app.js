@@ -114,6 +114,7 @@ exports.handler = async (event, context) => {
                 return JSON.stringify({ errors: schema.errors })
             }
             const assetRegistryItems = assetRegistryEntries(schema)
+            console.log(JSON.stringify(assetRegistryItems, null, 4))
             return JSON.stringify({ evaluated: assetRegistryItems })
         }
         return JSON.stringify({ errors: [match.message] })

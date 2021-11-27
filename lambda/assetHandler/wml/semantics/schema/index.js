@@ -5,6 +5,7 @@ const {
     validate,
     liftLiteralProps,
     liftExpressionProps,
+    liftBooleanProps,
     liftLiteralTags,
     liftUntagged,
     confirmExpressionProps,
@@ -54,6 +55,12 @@ const schema = {
             literal: literal.schema()
         }
     },
+    tagBooleanArgument(argument, lookAhead) {
+        return {
+            argument: argument.sourceString,
+            literal: true
+        }
+    },
     TagOpen(open, tag, props, close) {
         return processTagProps(tag, props)
     },
@@ -73,6 +80,7 @@ const schema = {
             validate(confirmLiteralProps(['key'])),
             validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
             liftLiteralProps(['key', 'display']),
+            liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
             liftUntagged('render'),
         ])(node.schema())
