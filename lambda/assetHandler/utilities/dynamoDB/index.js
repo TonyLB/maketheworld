@@ -1,5 +1,6 @@
 const { GetItemCommand, PutItemCommand, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb")
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
+const { v4: uuidv4 } = require("uuid")
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -49,12 +50,13 @@ const replaceRangeByDataCategory = async (dbClient, DataCategory, items, equalit
     })
     const { Items: currentItems = [] } = await dbClient.send(query)
     const currentItemsByPermanentId = currentItems.map(unmarshall).reduce((previous, { PermanentId, ...rest }) => ({ ...previous, [PermanentId]: { PermanentId, ...rest }}), {})
+    const scopedToPermanent = currentItems.map(unmarshall).filter(({ scopedId }) => (scopedId)).reduce((previous, { scopedId, PermanentId }) => ({ ...previous, [scopedId]: PermanentId }), {})
     //
     // Use a quick mutable map to track state as we combine several array
     // conditions
     //
-    let stateByPermanentId = Object.keys(currentItemsByPermanentId).reduce(
-        (previous, PermanentId) => ({
+    let stateByPermanentId = Object.values(currentItemsByPermanentId).reduce(
+        (previous, { PermanentId }) => ({
             ...previous,
             [PermanentId]: {
                 DeleteRequest: {
@@ -63,19 +65,21 @@ const replaceRangeByDataCategory = async (dbClient, DataCategory, items, equalit
             }
         }), {})
     items.forEach((item) => {
-        const { PermanentId } = item
-        if (PermanentId) {
-            if (equalityFunction(currentItemsByPermanentId?.[PermanentId] ?? {}, item)) {
-                stateByPermanentId[PermanentId] = 'ignore'
-            }
-            else {
-                stateByPermanentId[PermanentId] = {
-                    PutRequest: {
-                        Item: marshall({
-                            DataCategory,
-                            ...item
-                        }, { removeUndefinedValues: true })
-                    }
+        const { key, isGlobal, ...rest } = item
+        const targetPermanentId = isGlobal ? `ROOM#${key}` : scopedToPermanent[key]
+        if (targetPermanentId && equalityFunction(currentItemsByPermanentId?.[targetPermanentId] ?? {}, { PermanentId: targetPermanentId, scopedId: key, ...rest })) {
+            stateByPermanentId[targetPermanentId] = 'ignore'
+        }
+        else {
+            const newPermanentId = targetPermanentId || `ROOM#${uuidv4()}`
+            stateByPermanentId[newPermanentId] = {
+                PutRequest: {
+                    Item: marshall({
+                        DataCategory,
+                        PermanentId: newPermanentId,
+                        scopedId: key,
+                        ...rest
+                    }, { removeUndefinedValues: true })
                 }
             }
         }

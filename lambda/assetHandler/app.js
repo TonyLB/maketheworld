@@ -72,7 +72,7 @@ exports.handler = async (event, context) => {
                                 `ASSET#${asset.key}`,
                                 assetRegistryItems
                                     .filter(({ tag }) => (tag === 'Room'))
-                                    .map(({ tag, key, ...rest }) => ({ PermanentId: `ROOM#${key}`, ...rest })),
+                                    .map(({ tag, ...rest }) => (rest)),
                                 //
                                 // TODO: When Room entries are expanded to store more than the sheer fact of their
                                 // existence (likely as part of Map storage), extend this equality function to compensate
