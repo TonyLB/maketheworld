@@ -9,7 +9,9 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.42.0",
     "@aws-sdk/client-s3": "^3.42.0",
+    "@aws-sdk/util-dynamodb": "^3.42.0",
     "ohm-js": "^16.0.0",
     "uuid": "^8.3.2"
   }

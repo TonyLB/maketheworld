@@ -1,13 +1,18 @@
 // Import required AWS SDK clients and commands for Node.js
 const { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3")
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb")
 
-const { wmlGrammar, dbEntries } = require("./wml/")
+const { wmlGrammar, dbEntries, validatedSchema, assetRegistryEntries } = require("./wml/")
 const {
     wmlProcessDown,
     assignContextTagIds
 } = require('./wml/semantics/schema/processDown')
+const { replaceItem, replaceRangeByDataCategory } = require('./utilities/dynamoDB')
 
 const params = { region: process.env.AWS_REGION }
+const { TABLE_PREFIX } = process.env;
+const ephemeraTable = `${TABLE_PREFIX}_ephemera`
+const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 const streamToString = (stream) => (
     new Promise((resolve, reject) => {
@@ -31,8 +36,8 @@ exports.handler = async (event, context) => {
             const objectPrefix = objectNameItems.length > 1
                 ? `${objectNameItems.slice(0, -1).join('/')}/`
                 : ''
-            const client = new S3Client(params)
-            const { Body: contentStream } = await client.send(new GetObjectCommand({
+            const s3Client = new S3Client(params)
+            const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
                 Bucket: bucket,
                 Key: key
             }))
@@ -41,27 +46,51 @@ exports.handler = async (event, context) => {
     
             if (match.succeeded()) {
     
-                const firstPass = wmlSemantics(match).dbSchema()
-                const dbSchema = wmlProcessDown([
-                        assignContextTagIds({ Layer: 'layerId' }, ({ tag }) => (tag === 'Room'))
-                    ])(firstPass)
-                if (dbSchema.errors.length || !dbSchema.fileName) {
+                const schema = validatedSchema(match)
+                if (schema.errors.length || !schema.fileName) {
                     //
-                    // TODO: Implement DynamoDB asset-handler storage to keep meta-data
-                    // about the asset registry for the system
+                    // TODO: Stronger error handling
                     //
+                    console.log(`ERROR`)
                 }
                 else {
-                    await client.send(new CopyObjectCommand({
-                        Bucket: bucket,
-                        CopySource: `${bucket}/${key}`,
-                        Key: `drafts/${objectPrefix}${dbSchema.fileName}`
-                    }))
+                    const assetRegistryItems = assetRegistryEntries(schema)
+                    const dbClient = new DynamoDBClient(params)
+                    const asset = assetRegistryItems.find(({ tag }) => (tag === 'Asset'))
+                    if (asset && asset.key) {
+                        const fileName = `drafts/${objectPrefix}${schema.fileName}`
+                        await Promise.all([
+                            replaceItem(dbClient, {
+                                PermanentId: `ASSET#${asset.key}`,
+                                DataCategory: 'Details',
+                                fileName,
+                                name: asset.name,
+                                description: asset.description
+                            }),
+                            replaceRangeByDataCategory(
+                                dbClient,
+                                `ASSET#${asset.key}`,
+                                assetRegistryItems
+                                    .filter(({ tag }) => (tag === 'Room'))
+                                    .map(({ tag, key, ...rest }) => ({ PermanentId: `ROOM#${key}`, ...rest })),
+                                //
+                                // TODO: When Room entries are expanded to store more than the sheer fact of their
+                                // existence (likely as part of Map storage), extend this equality function to compensate
+                                //
+                                (incoming) => Boolean(incoming?.PermanentId)
+                            ),
+                            s3Client.send(new CopyObjectCommand({
+                                Bucket: bucket,
+                                CopySource: `${bucket}/${key}`,
+                                Key: fileName
+                            }))
+                        ])
+                    }
                 }
         
             }
     
-            await client.send(new DeleteObjectCommand({
+            await s3Client.send(new DeleteObjectCommand({
                 Bucket: bucket,
                 Key: key
             }))
@@ -80,11 +109,14 @@ exports.handler = async (event, context) => {
     if (event.Evaluate) {
         const match = wmlGrammar.match(event.wml)
         if (match.succeeded()) {
-            const dbSchema = dbEntries(match)
-            console.log(JSON.stringify(dbSchema, null, 4))
-            return JSON.stringify({ evaluated: dbSchema })
+            const schema = validatedSchema(match)
+            if (schema.errors.length > 0)  {
+                return JSON.stringify({ errors: schema.errors })
+            }
+            const assetRegistryItems = assetRegistryEntries(schema)
+            return JSON.stringify({ evaluated: assetRegistryItems })
         }
-        return JSON.stringify({ error: match.message })
+        return JSON.stringify({ errors: [match.message] })
     }
     context.fail(JSON.stringify(`Error: Unknown format ${event}`))
 

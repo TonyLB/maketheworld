@@ -116,24 +116,60 @@ const mergeToRooms = (elements) => {
     return roomsById
 }
 
-const dbEntries = (match) => {
+const validatedSchema = (match) => {
     const firstPass = wmlSemantics(match).schema()
     const secondPass = wmlProcessDown([
-            aggregateConditionals(tagCondition(['Room', 'Exit'])),
-            assignExitContext
-        ])(firstPass)
+        aggregateConditionals(tagCondition(['Room', 'Exit'])),
+        assignExitContext
+    ])(firstPass)
     const thirdPass = wmlProcessUp([
-            //
-            // TODO: Refactor exit validation to assign roomId context as in processDown, then do the calculation (and better error message) knowing all three of
-            // to, from and roomId.
-            //
-            validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
-            aggregateErrors
-        ])(secondPass)
-    const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(thirdPass)
+        //
+        // TODO: Refactor exit validation to assign roomId context as in processDown, then do the calculation (and better error message) knowing all three of
+        // to, from and roomId.
+        //
+        validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
+        aggregateErrors
+    ])(secondPass)
+    return thirdPass
+}
+
+const dbEntries = (schema) => {
+    const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(schema)
     return mergeToRooms(dbSchema)
+}
+
+const assetRegistryEntries = (schema) => {
+    //
+    // TODO:  Create a breakdown that returns an element for the Asset details, and then
+    // elements (once) for each Room that associates it with that Asset and gives it its
+    // global UUID (while providing a mapping back to its scoped ID inside the Asset
+    // blueprint)
+    //
+    const elements = flattenToElements(tagCondition(['Asset', 'Room']))(schema)
+    return elements.map(({ tag, ...rest }) => {
+        const { name, fileName, key } = rest
+        switch(tag) {
+            case 'Asset':
+                return {
+                    tag,
+                    name,
+                    fileName,
+                    key
+                }
+            case 'Room':
+                return {
+                    tag,
+                    name,
+                    key
+                }
+            default:
+                return { tag, ...rest }
+        }
+    })
 }
 
 exports.wmlGrammar = wmlGrammar
 exports.wmlSemantics = wmlSemantics
+exports.validatedSchema = validatedSchema
 exports.dbEntries = dbEntries
+exports.assetRegistryEntries = assetRegistryEntries
