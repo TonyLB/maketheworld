@@ -1,0 +1,16 @@
+<Asset key="TEST" fileName="wmlTest">
+    <Layer key="123">
+        <Room key="345">
+            Hello, world!
+            <Name>Welcome Area</Name>
+            <Exit to="VORTEX">vortex</Exit>
+            <Exit from="VORTEX">welcome</Exit>
+        </Room>
+        <Room global key="VORTEX">
+            A swirling pool of flickering energy, thick enough to stand on,
+            but not exactly comfortingly solid. There's a murmuring sound
+            of rustling leaves.  Doorways leading from this place stand
+            equidistant around you.
+        </Room>
+    </Layer>
+</Asset>

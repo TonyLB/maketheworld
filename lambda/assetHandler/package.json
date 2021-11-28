@@ -1,0 +1,18 @@
+{
+  "name": "assethandler",
+  "version": "1.0.0",
+  "description": "Handler lambda for S3 events in the MakeTheWorld asset storage system",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.42.0",
+    "@aws-sdk/client-s3": "^3.42.0",
+    "@aws-sdk/util-dynamodb": "^3.42.0",
+    "ohm-js": "^16.0.0",
+    "uuid": "^8.3.2"
+  }
+}

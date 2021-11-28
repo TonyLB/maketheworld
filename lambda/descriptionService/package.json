@@ -17,6 +17,7 @@
     "@aws-sdk/client-sns": "^3.13.0",
     "@aws-sdk/util-dynamodb": "^3.13.0",
     "aws-xray-sdk": "^3.3.3",
+    "ohm-js": "^16.0.0",
     "uuid": "^8.3.2"
   }
 }
