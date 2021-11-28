@@ -3,25 +3,14 @@ const { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = r
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb")
 
 const { wmlGrammar, dbEntries, validatedSchema, assetRegistryEntries } = require("./wml/")
-const {
-    wmlProcessDown,
-    assignContextTagIds
-} = require('./wml/semantics/schema/processDown')
 const { replaceItem, replaceRangeByDataCategory } = require('./utilities/dynamoDB')
+const { cacheAsset } = require('./cache.js')
+const { streamToString } = require('./utilities/stream')
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
-
-const streamToString = (stream) => (
-    new Promise((resolve, reject) => {
-      const chunks = []
-      stream.on("data", (chunk) => chunks.push(chunk))
-      stream.on("error", reject)
-      stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")))
-    })
-)
 
 exports.handler = async (event, context) => {
 
@@ -107,17 +96,10 @@ exports.handler = async (event, context) => {
     //
 
     if (event.Evaluate) {
-        const match = wmlGrammar.match(event.wml)
-        if (match.succeeded()) {
-            const schema = validatedSchema(match)
-            if (schema.errors.length > 0)  {
-                return JSON.stringify({ errors: schema.errors })
-            }
-            const assetRegistryItems = assetRegistryEntries(schema)
-            console.log(JSON.stringify(assetRegistryItems, null, 4))
-            return JSON.stringify({ evaluated: assetRegistryItems })
-        }
-        return JSON.stringify({ errors: [match.message] })
+        const assetId = event.assetId
+        const fileName = await cacheAsset(assetId)
+
+        return JSON.stringify({ fileName })
     }
     context.fail(JSON.stringify(`Error: Unknown format ${event}`))
 

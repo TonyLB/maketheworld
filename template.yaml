@@ -974,6 +974,7 @@ Resources:
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
+                  S3_BUCKET: !Sub '${TablePrefix}-assets'
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_permanents'

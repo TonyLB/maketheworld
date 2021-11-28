@@ -41,6 +41,11 @@ const replaceItem = async (dbClient, item) => {
     await dbClient.send(putItem)
 }
 
+//
+// TODO:  Figure out how to generalize this functionality, and separate the utility (comparing
+// a desired state to the current state and making the needed changes) from the specific functionality
+// of this case (parsing the scoping variables, etc.)
+//
 const replaceRangeByDataCategory = async (dbClient, DataCategory, items, equalityFunction) => {
     const query = new QueryCommand({
         TableName: permanentsTable,
