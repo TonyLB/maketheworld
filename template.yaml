@@ -978,6 +978,8 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_permanents'
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_ephemera'
             - Statement:
               - Effect: Allow
                 Action:

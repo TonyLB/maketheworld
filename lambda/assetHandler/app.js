@@ -9,9 +9,6 @@ const { cacheAsset } = require('./cache.js')
 const { streamToString } = require('./utilities/stream')
 
 const params = { region: process.env.AWS_REGION }
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 exports.handler = async (event, context) => {
 
