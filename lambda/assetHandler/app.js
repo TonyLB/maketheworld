@@ -1,9 +1,10 @@
 // Import required AWS SDK clients and commands for Node.js
 const { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3")
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb")
+const { v4: uuidv4 } = require("uuid")
 
 const { wmlGrammar, dbEntries, validatedSchema, assetRegistryEntries } = require("./wml/")
-const { replaceItem, replaceRangeByDataCategory } = require('./utilities/dynamoDB')
+const { replaceItem, mergeIntoDataRange } = require('./utilities/dynamoDB')
 const { cacheAsset } = require('./cache.js')
 const { streamToString } = require('./utilities/stream')
 
@@ -56,18 +57,42 @@ exports.handler = async (event, context) => {
                                 name: asset.name,
                                 description: asset.description
                             }),
-                            replaceRangeByDataCategory(
+                            mergeIntoDataRange({
                                 dbClient,
-                                `ASSET#${asset.key}`,
-                                assetRegistryItems
+                                table: 'permanent',
+                                search: { DataCategory: `ASSET#${asset.key}` },
+                                items: assetRegistryItems
                                     .filter(({ tag }) => (tag === 'Room'))
                                     .map(({ tag, ...rest }) => (rest)),
-                                //
-                                // TODO: When Room entries are expanded to store more than the sheer fact of their
-                                // existence (likely as part of Map storage), extend this equality function to compensate
-                                //
-                                (incoming) => Boolean(incoming?.PermanentId)
-                            ),
+                                mergeFunction: ({ current, incoming }) => {
+                                    if (!incoming) {
+                                        return 'delete'
+                                    }
+                                    if (!current) {
+                                        const { key, isGlobal, ...rest } = incoming
+                                        return {
+                                            scopedId: key,
+                                            ...rest
+                                        }
+                                    }
+                                    //
+                                    // TODO: When Room entries are expanded to store more than the sheer fact of their
+                                    // existence (likely as part of Map storage), extend this function to compensate
+                                    // by testing whether an update is needed
+                                    //
+                                    return 'ignore'
+                                },
+                                extractKey: (item, current) => {
+                                    if (item.isGlobal) {
+                                        return `ROOM#${item.key}`
+                                    }
+                                    const scopedToPermanent = current.find(({ scopedId }) => (scopedId === item.key))
+                                    if (scopedToPermanent) {
+                                        return scopedToPermanent.PermanentId
+                                    }
+                                    return `ROOM#${uuidv4()}`
+                                }
+                            }),
                             s3Client.send(new CopyObjectCommand({
                                 Bucket: bucket,
                                 CopySource: `${bucket}/${key}`,

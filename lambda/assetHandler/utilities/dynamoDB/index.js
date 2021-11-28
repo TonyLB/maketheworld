@@ -42,59 +42,130 @@ const replaceItem = async (dbClient, item) => {
 }
 
 //
-// TODO:  Figure out how to generalize this functionality, and separate the utility (comparing
-// a desired state to the current state and making the needed changes) from the specific functionality
-// of this case (parsing the scoping variables, etc.)
+// mergeIntoDataRange queries a given data search (either using the primary sort if Permanent/EphemeraId is
+// specified in the search, or the DataCategory index if DataCategory is specified) and compares it
+// against incoming data.  The 'table' argument should pass only 'permanent' or 'ephemera' strings.
 //
-const replaceRangeByDataCategory = async (dbClient, DataCategory, items, equalityFunction) => {
-    const query = new QueryCommand({
-        TableName: permanentsTable,
-        KeyConditionExpression: "DataCategory = :dc",
-        ExpressionAttributeValues: marshall({ ":dc": DataCategory }),
-        IndexName: 'DataCategoryIndex'
-    })
-    const { Items: currentItems = [] } = await dbClient.send(query)
-    const currentItemsByPermanentId = currentItems.map(unmarshall).reduce((previous, { PermanentId, ...rest }) => ({ ...previous, [PermanentId]: { PermanentId, ...rest }}), {})
-    const scopedToPermanent = currentItems.map(unmarshall).filter(({ scopedId }) => (scopedId)).reduce((previous, { scopedId, PermanentId }) => ({ ...previous, [scopedId]: PermanentId }), {})
+// Incoming records will either already possess the unmatched key (in the case where extractKey is null),
+// or will generate that key by calling extractKey with two arguments:  first the element in question,
+// and second the entire list of current items.  (e.g.:  This is used to match scoped keys to global
+// IDs of Rooms in WML schemata)
+//
+// A given record _already_ in the database will either match (by PermanentId and DataCategory) with
+// an incoming record, or it will not.  Likewise, a given incoming record will either match a record
+// already present, or it will not.
+//
+// The merge function takes a map of two-element tuples, incoming and current, indexed by the key
+// (DataCategory, or Permanent/EphemeraId) that is *not* specified in the search.  Each of these
+// tuples will contain either:
+//    * A match (both incoming and current elements specified)
+//    * An unmatched incoming element
+//    * An unmatched current element
+//
+// The merge function must return a different map on the same keys.  Each key will specify either:
+//    * The string 'ignore', which will do nothing
+//    * The string 'delete', which will eliminate the current element if present
+//    * An object that, together with the two keys unique to that position in the map, will be
+//      made into the body of a PutItem operation
+//
+const mergeIntoDataRange = async ({
+    dbClient,
+    table,
+    search: {
+        DataCategory,
+        PermanentId,
+        EphemeraId
+    },
+    items,
+    mergeFunction,
+    extractKey = null
+}) => {
     //
-    // Use a quick mutable map to track state as we combine several array
-    // conditions
+    // TODO:  Better error handling and validation throughout
     //
-    let stateByPermanentId = Object.values(currentItemsByPermanentId).reduce(
-        (previous, { PermanentId }) => ({
+    const TableName = table === 'permanent' ? permanentsTable : ephemeraTable
+    if ((DataCategory === undefined ? 0 : 1) + (PermanentId === undefined ? 0 : 1) + (EphemeraId === undefined ? 0 : 1) > 1) {
+        console.log(`ERROR: mergeIntoDataRange accepts only one of 'DataCategory', 'EphemeraId', and 'PermanentId' search terms`)
+        return;
+    }
+    const keyLabel = table === 'permanent'
+        ? PermanentId ? 'DataCategory' : 'PermanentId'
+        : EphemeraId ? 'DataCategory': 'EphemeraId'
+    const extractKeyDefault = (item) => (item[keyLabel])
+    const KeyConditionExpression = DataCategory
+        ? `DataCategory = :dc`
+        : PermanentId
+            ? `PermanentId = :pid`
+            : `EphemeraId = eid`
+    const { Items: dbItems = [] } = await dbClient.send(new QueryCommand({
+        TableName,
+        KeyConditionExpression,
+        ExpressionAttributeValues: marshall({
+            ":dc": DataCategory,
+            ":pid": PermanentId,
+            ":eid": EphemeraId
+        }, { removeUndefinedValues: true }),
+        ...(DataCategory ? { IndexName: 'DataCategoryIndex' } : {})
+    }))
+    const currentItems = dbItems.map(unmarshall)
+    const incomingItems = items.map((item) => ({
+            [keyLabel]: extractKey ? extractKey(item, currentItems) : extractKeyDefault(item),
+            ...item
+        }))
+    const firstPassMerging = currentItems.reduce((previous, item) => ({
             ...previous,
-            [PermanentId]: {
-                DeleteRequest: {
-                    Key: marshall({ PermanentId, DataCategory })
-                }
-            }
+            [extractKeyDefault(item)]: { current: item }
         }), {})
-    items.forEach((item) => {
-        const { key, isGlobal, ...rest } = item
-        const targetPermanentId = isGlobal ? `ROOM#${key}` : scopedToPermanent[key]
-        if (targetPermanentId && equalityFunction(currentItemsByPermanentId?.[targetPermanentId] ?? {}, { PermanentId: targetPermanentId, scopedId: key, ...rest })) {
-            stateByPermanentId[targetPermanentId] = 'ignore'
-        }
-        else {
-            const newPermanentId = targetPermanentId || `ROOM#${uuidv4()}`
-            stateByPermanentId[newPermanentId] = {
-                PutRequest: {
-                    Item: marshall({
-                        DataCategory,
-                        PermanentId: newPermanentId,
-                        scopedId: key,
-                        ...rest
-                    }, { removeUndefinedValues: true })
-                }
+    const secondPassMerging = incomingItems.reduce((previous, item) => {
+        const key = extractKeyDefault(item)
+        return {
+            ...previous,
+            [key]: {
+                ...(previous[key] || {}),
+                incoming: item
             }
+        }
+    }, firstPassMerging)
+    const thirdPassMerging = Object.entries(secondPassMerging)
+        .reduce((previous, [key, items]) => ({
+            ...previous,
+            [key]: mergeFunction(items)
+        }), {})
+    const deleteRecord = (key) => ({
+        DeleteRequest: {
+            Key: marshall({
+                DataCategory,
+                PermanentId,
+                EphemeraId,
+                [keyLabel]: key
+            }, { removeUndefinedValues: true })
         }
     })
-
+    const fourthPassMerging = Object.entries(thirdPassMerging)
+        .filter(([key, value]) => (value !== 'ignore'))
+        .map(([key, value]) => {
+            if (value === 'delete') {
+                return deleteRecord(key)
+            }
+            else {
+                return {
+                    PutRequest: {
+                        Item: marshall({
+                            DataCategory,
+                            PermanentId,
+                            EphemeraId,
+                            [keyLabel]: key,
+                            ...value
+                        }, { removeUndefinedValues: true })
+                    }
+                }
+            }
+        })
     await batchWriteDispatcher(dbClient, {
-        table: permanentsTable,
-        items: Object.values(stateByPermanentId).filter((value) => (value !== 'ignore'))
+        table: TableName,
+        items: fourthPassMerging
     })
 }
 
 exports.replaceItem = replaceItem
-exports.replaceRangeByDataCategory = replaceRangeByDataCategory
+exports.mergeIntoDataRange = mergeIntoDataRange
