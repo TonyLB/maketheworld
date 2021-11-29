@@ -107,7 +107,6 @@ const globalizeDBEntries = async (dbClient, assetId, dbEntriesList) => {
                 [key]: newEphemeraId
             }
         }, currentScopedToPermanentMapping)
-    console.log(`DBEntries: ${JSON.stringify(dbEntriesList, null, 4)}`)
     const globalizedDBEntries = dbEntriesList
         .map(({ key, isGlobal, exits, ...rest }) => ({
             EphemeraId: scopedToPermanentMapping[key],
@@ -124,7 +123,6 @@ const globalizeDBEntries = async (dbClient, assetId, dbEntriesList) => {
             ...rest
         }))
         .filter(({ EphemeraId }) => (EphemeraId))
-    console.log(`Globalized Entries: ${JSON.stringify(globalizedDBEntries, null, 4)}`)
     return globalizedDBEntries
 }
 

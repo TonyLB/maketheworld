@@ -3,8 +3,8 @@
         <Room key="345">
             Hello, world!
             <Name>Welcome Area</Name>
-            <Exit to="VORTEX">vortex</Exit>
-            <Exit from="VORTEX">welcome</Exit>
+            <Exit to="VORTEX" />
+            <Exit from="VORTEX" />
         </Room>
         <Room global key="VORTEX">
             A swirling pool of flickering energy, thick enough to stand on,
@@ -13,4 +13,9 @@
             equidistant around you.
         </Room>
     </Layer>
+    <Condition if={true}>
+        <Room global key="VORTEX">
+            Alternate
+        </Room>
+    </Condition>
 </Asset>

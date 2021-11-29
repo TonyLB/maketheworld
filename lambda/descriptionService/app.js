@@ -6,6 +6,8 @@ const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { v4: uuid } = require("uuid")
 
+const { compileCode } = require('./compileCode')
+
 const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
@@ -22,55 +24,136 @@ const splitType = (value) => {
 
 const stripType = (value) => value.split('#').slice(1).join('#')
 
-//
-// TODO: Create a data-structure for Version-View
-//
-// TODO: Decide whether to recalculate Version-View reactively, or denormalize its calculation into
-//       an always-updated variable on the character.
-// DENORMALIZED OPTION:
-//    * Recalculation would be caused by:
-//      - Activation of a Scene or Adventure
-//      - Deactivation of a Scene or Adventure
-//      - Addition of a Room to the character's default personal Version or draft version in Preview
-//      - Activation of Preview-Mode on a character draft Version
-//      - Deactivation of Preview-Mode on a character draft version
-//      - ?? Addition/removal of a Room from a Scene or Adventure in progress ??
-//
-// DENORMALIZATION FIRST ITERATION:
-//    * Only global Scenes/Adventures ... denormalize only on activate/deactivate
-//
-// COMPROMISE:
-//    * Denormalize not the Version-View, but rather then current Version of the RoomId the character
-//      is currently inhabiting.  Recalculate on any of the Denormalize options above, or on movement.
-//    * Still recalculate the Version-View reactively, when needed
-//    * This allows you to calculate a Rooms-Effected x Character-Effected differential when one of
-//      the denormalizing events up above fires, and then limit your recalculation to those players
-//      who are in a room that is effected for them
-//
-// NEEDED:
-//    * Function to calculate Room x Character for a denormalizing action
-//    * Function to calculate Version for RoomId x CharacterId (when denormalizing or when moving)
-//    * Utility function to calculate Version-View hierarchy as a helper to the Room-Version-find
-//    * Eventually, some way to prevent or resolve conflicting Versions (or to merge Diffs, in the most
-//      sophisticated implementation)
-//
-// NEEDED???:
-//    * A way, further, within a given version to calculate which *Layer* Room representation the
-//      character is inhabiting?  Maybe too soon for that iteration (since there's no Value-Net
-//      yet)
-//
+let memoSpace = {}
+const clearMemoSpace = () => {
+    memoSpace = {}
+}
+const memoizedEvaluate = (expression) => {
+    if (memoSpace[expression]) {
+        return expression
+    }
+    //
+    // TODO: Create sandbox serialization in Ephemera, and use it to populate
+    // the sandbox for evaluating code
+    //
 
-//
-// INSTEAD OF THE ABOVE
-//
-// Create a world-markup-language combining XML notation with JSX-like inclusion of code,
-// parsed by an Ohm-generated parser and evaluated within a context that layers
-// World-state, Story-Global-State, Story-Character-State, and Character-State.
-// Allow the definition of the schema of variables stored within each context in
-// the WML files and keep their values updated in Ephemera.  Evaluate and execute
-// code on each describe to give a custom description per character.
-//
+    //
+    // TODO: Create set operators for the sandbox that throw an error when
+    // attempting to set global variables during a pure evaluation
+    //
+    try {
+        const outcome = compileCode(`return (${expression})`)({})
+        memoSpace[expression] = outcome
+        return outcome
+    }
+    catch(e) {
+        const outcome = '{#ERROR}'
+        memoSpace[expression] = outcome
+        return outcome
+    }
+}
 
+const evaluateConditionalList = (list = []) => {
+    if (list.length > 0) {
+        const [first, ...rest] = list
+        if (Boolean(memoizedEvaluate(first))) {
+            return evaluateConditionalList(rest)
+        }
+        else {
+            return false
+        }
+    }
+    return true
+}
+
+const render = async ({ assets, EphemeraId }, subsegment) => {
+    const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
+    const [objectType] = splitType(EphemeraId)
+    clearMemoSpace()
+    switch(objectType) {
+        case 'ROOM':
+            const { Items: RoomItems } = await ddbClient.send(new QueryCommand({
+                TableName: EphemeraTableName,
+                KeyConditionExpression: 'EphemeraId = :ephemera',
+                ExpressionAttributeValues: marshall({
+                    ":ephemera": EphemeraId
+                })
+            }))
+            const renderOutput = RoomItems
+                .map(unmarshall)
+                .filter(({ DataCategory }) => (DataCategory.slice(0, 6) === 'ASSET#' && assets.includes(DataCategory.slice(6))))
+                //
+                // TODO: Figure out a sorting sequence less naive than alphabetical
+                //
+                .sort(({ DataCategory: DCA }, { DataCategory: DCB }) => (DCA.localeCompare(DCB)))
+                .reduce((previous, { render }) => ([
+                        ...previous,
+                        ...render
+                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                            .reduce((accumulate, { render }) => ([...accumulate, ...render]), [])
+                    ]), [])
+                //
+                // TODO: Evaluate expressions before inserting them
+                //
+                .join('')
+            return renderOutput
+            //
+            // TODO: Step 2
+            //
+            // Caching in the memoized list, evaluate conditionals as you go through to determine
+            // which elements to add to the description.
+            //
+
+            //
+            // TODO: Step 3
+            //
+            // Aggregate values for render, name, and exits.
+            //
+
+            //
+            // TODO: Step 4
+            //
+            // Create a rough description heading, comparable to the prior version (below)
+            //
+
+            //
+            // TODO: Step 5
+            //
+            // Rewrite publishMessage in place, to use this new data structure.
+            //
+
+            //
+            // TODO: Step 6
+            //
+            // Create a Meta::Room DataCategory in Ephemera to hold information about the Room:
+            //    * What characters are actively present in the room (with denormalized data)
+            //    * What inactive characters are present in the room
+            //    * (Maybe) What Assets exist in the Asset Manager for the room (to limit the search
+            //      of what Assets to cache, based on where a character is and what their access is)
+            //
+
+            //
+            // TODO: Step 7
+            //
+            // Update Meta::Room whenever a character moves, connects, or disconnects
+            //
+
+            //
+            // TODO: Step 8
+            //
+            // Update Meta::Room whenever a character is updated?  Or maybe we should stop hover-showing
+            // that information, and instead make a perception function for looking at characters?
+            //
+
+            //
+            // TODO: Step 9
+            //
+            // Update render to include the characters present in the room
+            //
+        default:
+            return null
+    }
+}
 
 //
 // TODO: Accept more types of objects, and parse their data accordingly
@@ -186,6 +269,16 @@ exports.handler = async (event, context) => {
 
     const { CreatedTime, CharacterId, PermanentId } = event
 
+    if (event.render) {
+        return AWSXRay.captureAsyncFunc('render', async (subsegment) => {
+            const returnVal = await render({
+                EphemeraId: event.EphemeraId,
+                assets: event.assets
+            }, subsegment)
+            subsegment.close()
+            return returnVal
+        })
+    }
     if (CreatedTime && CharacterId && PermanentId) {
         return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
             const returnVal = await publishMessage(event, subsegment)

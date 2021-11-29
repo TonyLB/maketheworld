@@ -34,8 +34,11 @@ const schema = {
     JSExpression(node) {
         return this.sourceString
     },
-    string(node) {
+    stringText(node) {
         return this.sourceString
+    },
+    spaceCompressor(node) {
+        return ' '
     },
     _iter(...nodes) {
         return nodes.map((node) => (node.schema())).join('')
