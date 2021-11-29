@@ -79,37 +79,33 @@ const render = async ({ assets, EphemeraId }, subsegment) => {
                     ":ephemera": EphemeraId
                 })
             }))
-            const renderOutput = RoomItems
+            const { render, name, exits } = RoomItems
                 .map(unmarshall)
                 .filter(({ DataCategory }) => (DataCategory.slice(0, 6) === 'ASSET#' && assets.includes(DataCategory.slice(6))))
                 //
                 // TODO: Figure out a sorting sequence less naive than alphabetical
                 //
                 .sort(({ DataCategory: DCA }, { DataCategory: DCB }) => (DCA.localeCompare(DCB)))
-                .reduce((previous, { render }) => ([
+                .reduce((previous, { render, name, exits }) => ({
                         ...previous,
-                        ...render
+                        render: render
                             .filter(({ conditions }) => (evaluateConditionalList(conditions)))
-                            .reduce((accumulate, { render }) => ([...accumulate, ...render]), [])
-                    ]), [])
+                            .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
+                        name: name
+                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                            .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
+                        exits: exits
+                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                            .reduce((accumulate, { exits }) => ([...accumulate, ...exits]), previous.exits),
+                }), { render: [], name: [], exits: [] })
                 //
                 // TODO: Evaluate expressions before inserting them
                 //
-                .join('')
-            return renderOutput
-            //
-            // TODO: Step 2
-            //
-            // Caching in the memoized list, evaluate conditionals as you go through to determine
-            // which elements to add to the description.
-            //
-
-            //
-            // TODO: Step 3
-            //
-            // Aggregate values for render, name, and exits.
-            //
-
+            return {
+                render: render.join(''),
+                name: name.join(''),
+                exits
+            }
             //
             // TODO: Step 4
             //

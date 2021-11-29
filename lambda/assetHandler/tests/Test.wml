@@ -7,6 +7,7 @@
             <Exit from="VORTEX" />
         </Room>
         <Room global key="VORTEX">
+            <Name>Vortex</Name>
             A swirling pool of flickering energy, thick enough to stand on,
             but not exactly comfortingly solid. There's a murmuring sound
             of rustling leaves.  Doorways leading from this place stand
