@@ -96,6 +96,13 @@ const disconnect = async (connectionId) => {
                                         Connected: false,
                                         ConnectionId: null
                                     }
+                                },
+                                {
+                                    addCharacterToRoom: {
+                                        CharacterId,
+                                        RoomId,
+                                        Connected: false,
+                                    }
                                 }]
                             }))
                         }))                        
@@ -152,6 +159,14 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
                     Updates: [{
                         putCharacterInPlay: {
                             CharacterId,
+                            Connected: true,
+                            ConnectionId: connectionId
+                        }
+                    },
+                    {
+                        addCharacterToRoom: {
+                            CharacterId,
+                            RoomId,
                             Connected: true,
                             ConnectionId: connectionId
                         }
@@ -254,47 +269,19 @@ const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback }
     if (RoomId) {
         const CreatedTime = Date.now()
 
-        const [{ Item = {} }] = await Promise.all([
-            dbClient.send(new GetItemCommand({
+        const { Item = {} } = await dbClient.send(new GetItemCommand({
                 TableName: ephemeraTable,
                 Key: marshall({
                     EphemeraId,
                     DataCategory: 'Connection',
                 }),
-                ProjectionExpression: "#name, RoomId",
+                ProjectionExpression: "#name, RoomId, Connected, ConnectionId",
                 ExpressionAttributeNames: {
-                    '#name': 'Name'
+                    '#name': 'Name',
                 }
-            })),
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.EPHEMERA_SERVICE,
-                InvocationType: 'RequestResponse',
-                Payload: new TextEncoder().encode(JSON.stringify({
-                    action: 'updateEphemera',
-                    directCall: true,
-                    Updates: [{
-                        putCharacterInPlay: {
-                            CharacterId,
-                            RoomId
-                        }
-                    }]
-                }))
-            })),
-            //
-            // TODO:  Check first whether the room is already present, and only after
-            // that fails denormalize out of permanents.
-            //
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.EPHEMERA_SERVICE,
-                InvocationType: 'RequestResponse',
-                Payload: new TextEncoder().encode(JSON.stringify({
-                    action: 'denormalize',
-                    PermanentId: `ROOM#${RoomId}`
-                }))
             }))
 
-        ])
-        const { Name = 'Someone', RoomId: CurrentRoomId } = unmarshall(Item)
+        const { Name = 'Someone', RoomId: CurrentRoomId, Connected, ConnectionId } = unmarshall(Item)
         const messages = [{
             MessageId: uuidv4(),
             CreatedTime,
@@ -312,6 +299,48 @@ const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback }
             DisplayProtocol: "World",
             Message: `${Name} has arrived.`
         }]
+        await Promise.all([
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'updateEphemera',
+                    directCall: true,
+                    Updates: [{
+                        putCharacterInPlay: {
+                            CharacterId,
+                            RoomId
+                        },
+                    },
+                    {
+                        addCharacterToRoom: {
+                            CharacterId,
+                            RoomId,
+                            Connected,
+                            ConnectionId
+                        },
+                    },
+                    {
+                        removeCharacterFromRoom: {
+                            CharacterId,
+                            RoomId: CurrentRoomId
+                        }
+                    }]
+                }))
+            })),
+            //
+            // TODO:  Check first whether the room is already present, and only after
+            // that fails denormalize out of permanents.
+            //
+            lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.EPHEMERA_SERVICE,
+                InvocationType: 'RequestResponse',
+                Payload: new TextEncoder().encode(JSON.stringify({
+                    action: 'denormalize',
+                    PermanentId: `ROOM#${RoomId}`
+                }))
+            })),
+
         //
         // TODO: Refactor Message Service so that perception messages can be sent as part of the payload,
         // parsed by an invoke from MESSAGE, then folded into the list and delivered simultaneously.
@@ -319,7 +348,6 @@ const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback }
         // Alternately, maybe fold the Perception service directly into the Message service, if it is
         // never going to be called without returning a message.
         //
-        await Promise.all([
             lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.MESSAGE_SERVICE,
                 InvocationType: 'Event',

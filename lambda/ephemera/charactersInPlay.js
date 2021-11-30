@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, UpdateItemCommand, GetItemCommand, Update } = require('@aws-sdk/client-dynamodb')
 
 const { denormalizeCharacter } = require('./denormalize.js')
 const { queueAdd } = require('./feedbackQueue.js')
@@ -121,5 +121,68 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
     }
 }
 
+const addCharacterToRoom = async ({ CharacterId, RoomId, Connected, ConnectionId }) => {
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    const { Item } = await dbClient.send(new GetItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId,
+            DataCategory: 'Connection'
+        }),
+        ProjectionExpression: '#name',
+        ExpressionAttributeNames: { '#name': 'Name' }
+    }))
+    const { Name } = unmarshall(Item)
+    if (Connected) {
+        await dbClient.send(new UpdateItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId: `ROOM#${RoomId}`,
+                DataCategory: 'Meta::Room'
+            }),
+            UpdateExpression: "SET activeCharacters.#characterId = :character REMOVE inactiveCharacters.#characterId",
+            ExpressionAttributeNames: { "#characterId": EphemeraId },
+            ExpressionAttributeValues: marshall({
+                ":character": {
+                    EphemeraId,
+                    Name,
+                    ConnectionId
+                }
+            }, { removeUndefinedValues: true })
+        }))
+    }
+    else {
+        await dbClient.send(new UpdateItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId: `ROOM#${RoomId}`,
+                DataCategory: 'Meta::Room'
+            }),
+            UpdateExpression: "SET inactiveCharacters.#characterId = :character REMOVE activeCharacters.#characterId",
+            ExpressionAttributeNames: { "#characterId": EphemeraId },
+            ExpressionAttributeValues: marshall({
+                ":character": {
+                    EphemeraId,
+                    Name
+                }
+            }, { removeUndefinedValues: true })
+        }))
+    }
+}
+
+const removeCharacterFromRoom = async ({ CharacterId, RoomId }) => {
+    await dbClient.send(new UpdateItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId: `ROOM#${RoomId}`,
+            DataCategory: 'Meta::Room'
+        }),
+        UpdateExpression: "REMOVE inactiveCharacters.#characterId, activeCharacters.#characterId",
+        ExpressionAttributeNames: { "#characterId": `CHARACTERINPLAY#${CharacterId}` }
+    }))
+}
+
 exports.getCharactersInPlay = getCharactersInPlay
 exports.putCharacterInPlay = putCharacterInPlay
+exports.addCharacterToRoom = addCharacterToRoom
+exports.removeCharacterFromRoom = removeCharacterFromRoom
