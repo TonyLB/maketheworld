@@ -66,7 +66,7 @@ const evaluateConditionalList = (list = []) => {
     return true
 }
 
-const render = async ({ assets, EphemeraId }, subsegment) => {
+const renderItem = async ({ assets, EphemeraId }, subsegment) => {
     const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
     const [objectType] = splitType(EphemeraId)
     clearMemoSpace()
@@ -106,18 +106,6 @@ const render = async ({ assets, EphemeraId }, subsegment) => {
                 name: name.join(''),
                 exits
             }
-            //
-            // TODO: Step 4
-            //
-            // Create a rough description heading, comparable to the prior version (below)
-            //
-
-            //
-            // TODO: Step 5
-            //
-            // Rewrite publishMessage in place, to use this new data structure.
-            //
-
             //
             // TODO: Step 6
             //
@@ -164,72 +152,9 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
     switch(objectType) {
         case 'ROOM':
             //
-            // TODO:  After debugging, combine two sequential awaits in a parallel Promise.all
+            // TODO: Create a system to look up the assets that a given character has access to
             //
-            // TODO:  Instead of having RoomItems pull from whatever table entry has the right
-            // PermanentId, consider the following:
-            //    * The different Versions of the relevant Room
-            //    * What the character's current Version-View order is (as defined by Version
-            //      inheritance, their personal Versions (need a name for that), and any Adventure
-            //      or scene they are active in (whether invite-only, opt-in, or global))
-            //
-            const { Items: RoomItems } = await ddbClient.send(new QueryCommand({
-                    TableName: PermanentTableName,
-                    KeyConditionExpression: "PermanentId = :PermanentId",
-                    ExpressionAttributeValues: marshall({
-                        ":PermanentId": PermanentId,
-                    })
-                }))
-            const { Items = [] } = await ddbClient.send(new QueryCommand({
-                TableName: EphemeraTableName,
-                KeyConditionExpression: "RoomId = :RoomId",
-                FilterExpression: 'Connected = :True',
-                ExpressionAttributeValues: marshall({
-                    ":RoomId": stripType(PermanentId),
-                    ":True": true
-                }),
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                },
-                ProjectionExpression: 'EphemeraId, #name, FirstImpression, OneCoolThing, Outfit, Pronouns',
-                IndexName: 'RoomIndex'
-            }))
-            const CharacterItems = (Items && Items.map(unmarshall)) || []
-            const aggregate = RoomItems.map(unmarshall)
-                .reduce(({ Description, Name, Exits }, Item) => {
-                    const dataType = Item.DataCategory.split('#')[0]
-                    switch(dataType) {
-                        case 'Details':
-                            return {
-                                Name: Item.Name,
-                                Description: Item.Description,
-                                Exits
-                            }
-                        //
-                        // TODO: Remove EXIT storage at the Room level, and replace it with EXIT storage at the
-                        // Map level.
-                        //
-                        case 'EXIT':
-                            return {
-                                Description,
-                                Name,
-                                Exits: [
-                                    ...Exits,
-                                    {
-                                        RoomId: stripType(Item.DataCategory),
-                                        Name: Item.Name,
-                                        //
-                                        // TODO:  Figure out how to rework maps to do away with Grant-based visibility,
-                                        // and then put the proper logic here.
-                                        //
-                                        Visibility: 'Public'
-                                    }
-                                ]
-                            }
-                        default:
-                            return { Description, Name, Exits }
-                    }
-                }, { Description: '', Name: '', Exits: [] })
+            const { render: Description, name: Name, exits } = await renderItem({ assets: ['TEST'], EphemeraId: PermanentId })
             const Message = {
                 CreatedTime,
                 Targets: [`CHARACTER#${CharacterId}`],
@@ -240,15 +165,10 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 // TODO:  Replace Ancestry with a new map system
                 //
                 Ancestry: '',
-                RoomCharacters: CharacterItems.map(({ EphemeraId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns }) => ({
-                    CharacterId: EphemeraId.split('#').slice(1).join('#'),
-                    Name,
-                    FirstImpression,
-                    OneCoolThing,
-                    Outfit,
-                    Pronouns,
-                })),
-                ...aggregate
+                RoomCharacters: [],
+                Description,
+                Name,
+                Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
             }
             await lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.MESSAGE_SERVICE,
