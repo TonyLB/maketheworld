@@ -3,8 +3,8 @@
         <Room key="345">
             Hello, world!
             <Name>Welcome Area</Name>
-            <Exit to="VORTEX" />
-            <Exit from="VORTEX" />
+            <Exit to="VORTEX">vortex</Exit>
+            <Exit from="VORTEX">welcome</Exit>
         </Room>
         <Room global key="VORTEX">
             <Name>Vortex</Name>

@@ -24,7 +24,7 @@ WorldMarkupLangage {
             | ConditionExpression
             | ExitExpression
 
-    ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, none>
+    ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, string>
             | TagSelfClosing<"Exit", ("key" | "to" | "from"), none, none>
 
     RoomExpression = TagExpression<"Room", ("key" | "display"), none, "global", RoomContents>

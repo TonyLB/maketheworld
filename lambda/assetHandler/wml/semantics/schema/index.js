@@ -92,7 +92,8 @@ const schema = {
         return wmlProcessUpNonRecursive([
             desourceTag,
             validate(confirmLiteralProps(['key', 'to', 'from'])),
-            liftLiteralProps(['key', 'to', 'from'])
+            liftLiteralProps(['key', 'to', 'from']),
+            liftUntagged('name')
         ])(node.schema())
     },
     LayerExpression(node) {
