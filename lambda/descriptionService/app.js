@@ -106,15 +106,6 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
                 name: name.join(''),
                 exits
             }
-            //
-            // TODO: Step 6
-            //
-            // Create a Meta::Room DataCategory in Ephemera to hold information about the Room:
-            //    * What characters are actively present in the room (with denormalized data)
-            //    * What inactive characters are present in the room
-            //    * (Maybe) What Assets exist in the Asset Manager for the room (to limit the search
-            //      of what Assets to cache, based on where a character is and what their access is)
-            //
 
             //
             // TODO: Step 7
@@ -133,6 +124,13 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
             // TODO: Step 9
             //
             // Update render to include the characters present in the room
+            //
+
+            //
+            // TODO: Step 10
+            //
+            // Restructure messagePublish lambda to take advantage of the room meta-data when
+            // resolving Room targets
             //
         default:
             return null
