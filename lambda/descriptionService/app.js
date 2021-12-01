@@ -108,19 +108,6 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
             }
 
             //
-            // TODO: Step 7
-            //
-            // Update Meta::Room whenever a character moves, connects, or disconnects
-            //
-
-            //
-            // TODO: Step 8
-            //
-            // Update Meta::Room whenever a character is updated?  Or maybe we should stop hover-showing
-            // that information, and instead make a perception function for looking at characters?
-            //
-
-            //
             // TODO: Step 9
             //
             // Update render to include the characters present in the room

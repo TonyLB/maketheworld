@@ -1,7 +1,8 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { getCharactersInPlay, putCharacterInPlay, addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInPlay')
+const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
+const { addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInRoom')
 const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
 const { queueClear, queueState, queueFlush } = require('./feedbackQueue')
 const { fetchEphemera } = require('./fetch')
