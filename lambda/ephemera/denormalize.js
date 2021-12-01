@@ -4,6 +4,7 @@
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
 const { queueAdd } = require('./feedbackQueue');
+const { addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInRoom')
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -99,14 +100,14 @@ const denormalizeFactory = ({
     return feedbackCallback(returnValue)
 }
 
-const denormalizeCharacter = denormalizeFactory({
+const denormalizeCharacterHelper = denormalizeFactory({
     label: 'Character',
     ephemeraPrefix: 'CHARACTERINPLAY',
     permanentPrefix: 'CHARACTER',
     dataCategory: 'Connection',
     requiredFields: ['Name'],
     optionalFields: ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing'],
-    extraReturnFields: ['Connected', 'RoomId'],
+    extraReturnFields: ['Connected', 'RoomId', 'ConnectionId'],
     reservedMapping: { Name: '#name' },
     feedbackCallback: (item) => {
         const returnValue = {
@@ -118,9 +119,23 @@ const denormalizeCharacter = denormalizeFactory({
             }
         }
         queueAdd(returnValue)
-        return returnValue
+        return [returnValue, item.ConnectionId]
     }
 })
+
+const denormalizeCharacter = async (...args) => {
+    const tempVal = await denormalizeCharacterHelper(...args)
+    const [returnValue, ConnectionId] = tempVal
+    const { CharacterInPlay: { CharacterId, Name, Connected, RoomId }} = returnValue
+    await addCharacterToRoom({
+        CharacterId,
+        Name,
+        Connected,
+        RoomId,
+        ConnectionId
+    })
+    return returnValue
+}
 
 const denormalizeRoom = denormalizeFactory({
     label: 'Room',

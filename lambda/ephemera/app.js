@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 
 const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
+const { addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInRoom')
 const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
 const { queueClear, queueState, queueFlush } = require('./feedbackQueue')
 const { fetchEphemera } = require('./fetch')
@@ -19,8 +20,14 @@ const splitPermanentId = (PermanentId) => {
 const updateDispatcher = ({ Updates = [] }) => {
     const outputs = Updates.map((update) => {
         if (update.putCharacterInPlay) {
-                return putCharacterInPlay(update.putCharacterInPlay)
-            }
+            return putCharacterInPlay(update.putCharacterInPlay)
+        }
+        if (update.addCharacterToRoom) {
+            return addCharacterToRoom(update.addCharacterToRoom)
+        }
+        if (update.removeCharacterFromRoom) {
+            return removeCharacterFromRoom(update.removeCharacterFromRoom)
+        }
         return Promise.resolve([])
     })
 

@@ -34,8 +34,11 @@ const schema = {
     JSExpression(node) {
         return this.sourceString
     },
-    string(node) {
+    stringText(node) {
         return this.sourceString
+    },
+    spaceCompressor(node) {
+        return ' '
     },
     _iter(...nodes) {
         return nodes.map((node) => (node.schema())).join('')
@@ -89,7 +92,8 @@ const schema = {
         return wmlProcessUpNonRecursive([
             desourceTag,
             validate(confirmLiteralProps(['key', 'to', 'from'])),
-            liftLiteralProps(['key', 'to', 'from'])
+            liftLiteralProps(['key', 'to', 'from']),
+            liftUntagged('name')
         ])(node.schema())
     },
     LayerExpression(node) {

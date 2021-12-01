@@ -72,7 +72,10 @@ const mergeToRooms = (elements) => {
         }
         const mergeExit = (previous = {}, exit) => ({ exits: [
             ...(previous?.exits || []).filter((exitProbe) => (exitProbe.to !== exit.to)),
-            { to: exit.to }
+            {
+                to: exit.to,
+                name: exit.name ? exit.name.trim() : undefined
+            }
         ]})
         const mergeSameConditions = (mergeFunction) => (previous, { conditions, ...rest }) => {
             const mergeCandidate = previous.slice(-1)[0]

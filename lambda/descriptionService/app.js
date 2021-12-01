@@ -6,6 +6,8 @@ const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { v4: uuid } = require("uuid")
 
+const { compileCode } = require('./compileCode')
+
 const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
@@ -22,55 +24,101 @@ const splitType = (value) => {
 
 const stripType = (value) => value.split('#').slice(1).join('#')
 
-//
-// TODO: Create a data-structure for Version-View
-//
-// TODO: Decide whether to recalculate Version-View reactively, or denormalize its calculation into
-//       an always-updated variable on the character.
-// DENORMALIZED OPTION:
-//    * Recalculation would be caused by:
-//      - Activation of a Scene or Adventure
-//      - Deactivation of a Scene or Adventure
-//      - Addition of a Room to the character's default personal Version or draft version in Preview
-//      - Activation of Preview-Mode on a character draft Version
-//      - Deactivation of Preview-Mode on a character draft version
-//      - ?? Addition/removal of a Room from a Scene or Adventure in progress ??
-//
-// DENORMALIZATION FIRST ITERATION:
-//    * Only global Scenes/Adventures ... denormalize only on activate/deactivate
-//
-// COMPROMISE:
-//    * Denormalize not the Version-View, but rather then current Version of the RoomId the character
-//      is currently inhabiting.  Recalculate on any of the Denormalize options above, or on movement.
-//    * Still recalculate the Version-View reactively, when needed
-//    * This allows you to calculate a Rooms-Effected x Character-Effected differential when one of
-//      the denormalizing events up above fires, and then limit your recalculation to those players
-//      who are in a room that is effected for them
-//
-// NEEDED:
-//    * Function to calculate Room x Character for a denormalizing action
-//    * Function to calculate Version for RoomId x CharacterId (when denormalizing or when moving)
-//    * Utility function to calculate Version-View hierarchy as a helper to the Room-Version-find
-//    * Eventually, some way to prevent or resolve conflicting Versions (or to merge Diffs, in the most
-//      sophisticated implementation)
-//
-// NEEDED???:
-//    * A way, further, within a given version to calculate which *Layer* Room representation the
-//      character is inhabiting?  Maybe too soon for that iteration (since there's no Value-Net
-//      yet)
-//
+let memoSpace = {}
+const clearMemoSpace = () => {
+    memoSpace = {}
+}
+const memoizedEvaluate = (expression) => {
+    if (memoSpace[expression]) {
+        return expression
+    }
+    //
+    // TODO: Create sandbox serialization in Ephemera, and use it to populate
+    // the sandbox for evaluating code
+    //
 
-//
-// INSTEAD OF THE ABOVE
-//
-// Create a world-markup-language combining XML notation with JSX-like inclusion of code,
-// parsed by an Ohm-generated parser and evaluated within a context that layers
-// World-state, Story-Global-State, Story-Character-State, and Character-State.
-// Allow the definition of the schema of variables stored within each context in
-// the WML files and keep their values updated in Ephemera.  Evaluate and execute
-// code on each describe to give a custom description per character.
-//
+    //
+    // TODO: Create set operators for the sandbox that throw an error when
+    // attempting to set global variables during a pure evaluation
+    //
+    try {
+        const outcome = compileCode(`return (${expression})`)({})
+        memoSpace[expression] = outcome
+        return outcome
+    }
+    catch(e) {
+        const outcome = '{#ERROR}'
+        memoSpace[expression] = outcome
+        return outcome
+    }
+}
 
+const evaluateConditionalList = (list = []) => {
+    if (list.length > 0) {
+        const [first, ...rest] = list
+        if (Boolean(memoizedEvaluate(first))) {
+            return evaluateConditionalList(rest)
+        }
+        else {
+            return false
+        }
+    }
+    return true
+}
+
+const renderItem = async ({ assets, EphemeraId }, subsegment) => {
+    const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
+    const [objectType] = splitType(EphemeraId)
+    clearMemoSpace()
+    switch(objectType) {
+        case 'ROOM':
+            const { Items: RoomItemsRaw } = await ddbClient.send(new QueryCommand({
+                TableName: EphemeraTableName,
+                KeyConditionExpression: 'EphemeraId = :ephemera',
+                ExpressionAttributeValues: marshall({
+                    ":ephemera": EphemeraId
+                })
+            }))
+            const RoomItems = RoomItemsRaw.map(unmarshall)
+            const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
+            const { render, name, exits } = RoomItems
+                .filter(({ DataCategory }) => (DataCategory.slice(0, 6) === 'ASSET#' && assets.includes(DataCategory.slice(6))))
+                //
+                // TODO: Figure out a sorting sequence less naive than alphabetical
+                //
+                .sort(({ DataCategory: DCA }, { DataCategory: DCB }) => (DCA.localeCompare(DCB)))
+                .reduce((previous, { render, name, exits }) => ({
+                        ...previous,
+                        render: render
+                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                            .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
+                        name: name
+                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                            .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
+                        exits: exits
+                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                            .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: stripType(to), ...rest }))]), previous.exits),
+                }), { render: [], name: [], exits: [] })
+                //
+                // TODO: Evaluate expressions before inserting them
+                //
+            return {
+                render: render.join(''),
+                name: name.join(''),
+                exits,
+                characters: Object.values((RoomMeta ?? {}).activeCharacters || {})
+            }
+
+            //
+            // TODO: Step 10
+            //
+            // Restructure messagePublish lambda to take advantage of the room meta-data when
+            // resolving Room targets
+            //
+        default:
+            return null
+    }
+}
 
 //
 // TODO: Accept more types of objects, and parse their data accordingly
@@ -85,72 +133,9 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
     switch(objectType) {
         case 'ROOM':
             //
-            // TODO:  After debugging, combine two sequential awaits in a parallel Promise.all
+            // TODO: Create a system to look up the assets that a given character has access to
             //
-            // TODO:  Instead of having RoomItems pull from whatever table entry has the right
-            // PermanentId, consider the following:
-            //    * The different Versions of the relevant Room
-            //    * What the character's current Version-View order is (as defined by Version
-            //      inheritance, their personal Versions (need a name for that), and any Adventure
-            //      or scene they are active in (whether invite-only, opt-in, or global))
-            //
-            const { Items: RoomItems } = await ddbClient.send(new QueryCommand({
-                    TableName: PermanentTableName,
-                    KeyConditionExpression: "PermanentId = :PermanentId",
-                    ExpressionAttributeValues: marshall({
-                        ":PermanentId": PermanentId,
-                    })
-                }))
-            const { Items = [] } = await ddbClient.send(new QueryCommand({
-                TableName: EphemeraTableName,
-                KeyConditionExpression: "RoomId = :RoomId",
-                FilterExpression: 'Connected = :True',
-                ExpressionAttributeValues: marshall({
-                    ":RoomId": stripType(PermanentId),
-                    ":True": true
-                }),
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                },
-                ProjectionExpression: 'EphemeraId, #name, FirstImpression, OneCoolThing, Outfit, Pronouns',
-                IndexName: 'RoomIndex'
-            }))
-            const CharacterItems = (Items && Items.map(unmarshall)) || []
-            const aggregate = RoomItems.map(unmarshall)
-                .reduce(({ Description, Name, Exits }, Item) => {
-                    const dataType = Item.DataCategory.split('#')[0]
-                    switch(dataType) {
-                        case 'Details':
-                            return {
-                                Name: Item.Name,
-                                Description: Item.Description,
-                                Exits
-                            }
-                        //
-                        // TODO: Remove EXIT storage at the Room level, and replace it with EXIT storage at the
-                        // Map level.
-                        //
-                        case 'EXIT':
-                            return {
-                                Description,
-                                Name,
-                                Exits: [
-                                    ...Exits,
-                                    {
-                                        RoomId: stripType(Item.DataCategory),
-                                        Name: Item.Name,
-                                        //
-                                        // TODO:  Figure out how to rework maps to do away with Grant-based visibility,
-                                        // and then put the proper logic here.
-                                        //
-                                        Visibility: 'Public'
-                                    }
-                                ]
-                            }
-                        default:
-                            return { Description, Name, Exits }
-                    }
-                }, { Description: '', Name: '', Exits: [] })
+            const { render: Description, name: Name, exits, characters } = await renderItem({ assets: ['TEST'], EphemeraId: PermanentId })
             const Message = {
                 CreatedTime,
                 Targets: [`CHARACTER#${CharacterId}`],
@@ -161,15 +146,10 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 // TODO:  Replace Ancestry with a new map system
                 //
                 Ancestry: '',
-                RoomCharacters: CharacterItems.map(({ EphemeraId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns }) => ({
-                    CharacterId: EphemeraId.split('#').slice(1).join('#'),
-                    Name,
-                    FirstImpression,
-                    OneCoolThing,
-                    Outfit,
-                    Pronouns,
-                })),
-                ...aggregate
+                RoomCharacters: characters.map(({ EphemeraId, ...rest }) => ({ CharacterId: stripType(EphemeraId), ...rest })),
+                Description,
+                Name,
+                Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
             }
             await lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.MESSAGE_SERVICE,
@@ -186,6 +166,16 @@ exports.handler = async (event, context) => {
 
     const { CreatedTime, CharacterId, PermanentId } = event
 
+    if (event.render) {
+        return AWSXRay.captureAsyncFunc('render', async (subsegment) => {
+            const returnVal = await render({
+                EphemeraId: event.EphemeraId,
+                assets: event.assets
+            }, subsegment)
+            subsegment.close()
+            return returnVal
+        })
+    }
     if (CreatedTime && CharacterId && PermanentId) {
         return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
             const returnVal = await publishMessage(event, subsegment)

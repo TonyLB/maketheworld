@@ -1,4 +1,4 @@
-const { GetItemCommand, PutItemCommand, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb")
+const { GetItemCommand, PutItemCommand, QueryCommand, BatchWriteItemCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { v4: uuidv4 } = require("uuid")
 
@@ -28,6 +28,37 @@ const batchWriteDispatcher = (dbClient, { table, items }) => {
             [table]: itemList
         } }))))
     return Promise.all(batchPromises)
+}
+
+const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) => {
+    const groupBatches = items
+        .reduce((({ current, requestLists }, item) => {
+            if (current.length > 39) {
+                return {
+                    requestLists: [ ...requestLists, current ],
+                    current: [item]
+                }
+            }
+            else {
+                return {
+                    requestLists,
+                    current: [...current, item]
+                }
+            }
+        }), { current: [], requestLists: []})
+    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
+        .filter((itemList) => (itemList.length))
+        .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
+            [table]: {
+                Keys: itemList,
+                ProjectionExpression: projectionExpression
+            }
+        } }))))
+    return Promise.all(batchPromises)
+        .then((outcomes) => (outcomes.reduce((previous, { Items = [] }) => ([
+            ...previous,
+            ...Items.map(unmarshall)
+        ]), [])))
 }
 
 //
@@ -169,3 +200,5 @@ const mergeIntoDataRange = async ({
 
 exports.replaceItem = replaceItem
 exports.mergeIntoDataRange = mergeIntoDataRange
+exports.batchGetDispatcher = batchGetDispatcher
+exports.batchWriteDispatcher = batchWriteDispatcher
