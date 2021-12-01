@@ -72,15 +72,16 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
     clearMemoSpace()
     switch(objectType) {
         case 'ROOM':
-            const { Items: RoomItems } = await ddbClient.send(new QueryCommand({
+            const { Items: RoomItemsRaw } = await ddbClient.send(new QueryCommand({
                 TableName: EphemeraTableName,
                 KeyConditionExpression: 'EphemeraId = :ephemera',
                 ExpressionAttributeValues: marshall({
                     ":ephemera": EphemeraId
                 })
             }))
+            const RoomItems = RoomItemsRaw.map(unmarshall)
+            const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
             const { render, name, exits } = RoomItems
-                .map(unmarshall)
                 .filter(({ DataCategory }) => (DataCategory.slice(0, 6) === 'ASSET#' && assets.includes(DataCategory.slice(6))))
                 //
                 // TODO: Figure out a sorting sequence less naive than alphabetical
@@ -96,7 +97,7 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
                             .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
                         exits: exits
                             .filter(({ conditions }) => (evaluateConditionalList(conditions)))
-                            .reduce((accumulate, { exits }) => ([...accumulate, ...exits]), previous.exits),
+                            .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: stripType(to), ...rest }))]), previous.exits),
                 }), { render: [], name: [], exits: [] })
                 //
                 // TODO: Evaluate expressions before inserting them
@@ -104,14 +105,9 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
             return {
                 render: render.join(''),
                 name: name.join(''),
-                exits
+                exits,
+                characters: Object.values((RoomMeta ?? {}).activeCharacters || {})
             }
-
-            //
-            // TODO: Step 9
-            //
-            // Update render to include the characters present in the room
-            //
 
             //
             // TODO: Step 10
@@ -139,7 +135,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
             //
             // TODO: Create a system to look up the assets that a given character has access to
             //
-            const { render: Description, name: Name, exits } = await renderItem({ assets: ['TEST'], EphemeraId: PermanentId })
+            const { render: Description, name: Name, exits, characters } = await renderItem({ assets: ['TEST'], EphemeraId: PermanentId })
             const Message = {
                 CreatedTime,
                 Targets: [`CHARACTER#${CharacterId}`],
@@ -150,7 +146,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 // TODO:  Replace Ancestry with a new map system
                 //
                 Ancestry: '',
-                RoomCharacters: [],
+                RoomCharacters: characters.map(({ EphemeraId, ...rest }) => ({ CharacterId: stripType(EphemeraId), ...rest })),
                 Description,
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
