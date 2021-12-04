@@ -14,7 +14,6 @@ import { getMyCharacters } from '../../selectors/player'
 import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
-import { getSubscribedCharacterIds } from '../../selectors/activeCharacters'
 import { getFirstFeedback } from '../../selectors/UI/feedback'
 import { popFeedback } from '../../actions/UI/feedback'
 
@@ -31,7 +30,6 @@ export const AppController = () => {
     useCommunicationsLayer()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
-    const subscribedCharacterIds = useSelector(getSubscribedCharacterIds)
     const dispatch = useDispatch()
 
     useEffect(() => {
@@ -62,7 +60,6 @@ export const AppController = () => {
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
-        subscribedCharacterIds={subscribedCharacterIds}
         whoPanel={<InDevelopment />}
     />
 }

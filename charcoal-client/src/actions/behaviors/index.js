@@ -1,44 +1,25 @@
-import { getCurrentRoom } from '../../selectors/activeCharacter'
-import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 import { socketDispatch } from '../communicationsLayer/lifeLine'
 
-import lookRoom from './lookRoom'
-import lookCharacter from './lookCharacter'
-import moveCharacter from './moveCharacter'
-import goHome from './home'
 import help from './help'
 
 export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatch, getState) => {
-    if (entry.match(/^\s*(?:look|l)\s*$/gi)) {
-        dispatch(lookRoom(CharacterId)())
-        return true
-    }
-    if (entry.match(/^\s*home\s*$/gi)) {
-        dispatch(goHome(CharacterId))
-        return true
-    }
+    //
+    // TODO: Build ControlChannel functions to parse free text entries looking for actions of
+    // looking at characters, looking at the room, and traversing exits.  Replace the front-end
+    // parsing with a round-trip call to the back-end parser.
+    //
     if (entry.match(/^\s*help\s*$/gi)) {
         dispatch(help())
         return true
     }
     const re = /^\s*(\w+)\s+(.*)$/gi
     const state = getState()
-    const currentRoom = getCurrentRoom(CharacterId)(state)
-    const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: CharacterId })(state)
-    const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(entry)
-    if (lookMatch) {
-        const object = lookMatch.slice(1)[0].toLowerCase().trim()
-        const characterMatch = charactersInRoom.find(({ Name }) => (Name.toLowerCase() === object))
-        if (characterMatch) {
-            dispatch(lookCharacter(CharacterId)(characterMatch))
-            return true
-        }
-    }
-    const matchedExit = currentRoom.Exits.find(({ Name }) => ( entry.toLowerCase().trim() === Name.toLowerCase() || entry.toLowerCase().trim() === `go ${Name.toLowerCase()}`))
-    if (matchedExit) {
-        dispatch(moveCharacter({ ExitName: matchedExit.Name, RoomId: matchedExit.RoomId }))
-        return true
-    }
+
+    //
+    // TODO: Add more graphical mode-switching to the text entry, so that you can visually differentiate whether you're
+    // saying things, or entering commands, or posing, or spoofing.  Replace prefix codes with keyboard shortcuts that
+    // change the mode (as well as a Speed-Dial set of buttons for switching context)
+    //
     if (entry.slice(0,1) === '"' && entry.length > 1) {
         dispatch(socketDispatch('action')({ actionType: 'say', payload: { CharacterId, Message: entry.slice(1) } }))
         return true
@@ -52,7 +33,11 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
         return true
     }
     if (entry) {
-        raiseError()
+        dispatch(socketDispatch('command')({ CharacterId, command: entry }))
+        //
+        // TODO: Use raiseError to handle return errors from the back-end command parser
+        //
+        return true
     }
     return false
 }

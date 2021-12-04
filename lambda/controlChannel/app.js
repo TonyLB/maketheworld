@@ -10,6 +10,7 @@ const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
 const { validateJWT } = require('./validateJWT')
+const { parseCommand } = require('./parse')
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -433,6 +434,26 @@ const goHome = async ({ CharacterId } = {}) => {
 
 }
 
+const executeAction = (request) => {
+    switch(request.actionType) {
+        case 'look':
+            return lookPermanent(request.payload)
+        case 'say':
+            return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name} says "${Message}"`)})
+        case 'pose':
+            return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
+        case 'spoof':
+            return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
+        case 'move':
+            return moveCharacter(request.payload)
+        case 'home':
+            return goHome(request.payload)
+        default:
+            break        
+    }
+    return { statusCode: 200, body: JSON.stringify({}) }
+}
+
 exports.disconnect = disconnect
 exports.connect = connect
 exports.registerCharacter = registerCharacter
@@ -537,22 +558,16 @@ exports.handler = async (event, context) => {
         // from in-game actions like look
         //
         case 'action':
-            switch(request.actionType) {
-                case 'look':
-                    return lookPermanent(request.payload)
-                case 'say':
-                    return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name} says "${Message}"`)})
-                case 'pose':
-                    return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
-                case 'spoof':
-                    return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
-                case 'move':
-                    return moveCharacter(request.payload)
-                case 'home':
-                    return goHome(request.payload)
-                default:
-                    break        
+            return executeAction(request)
+        case 'command':
+            const actionPayload = await parseCommand({ dbClient, CharacterId: request.CharacterId, command: request.command })
+            if (actionPayload.actionType) {
+                return executeAction(actionPayload)
             }
+            //
+            // TODO: Build more elaborate error-handling pass-backs
+            //
+            break;
         default:
             break
     }

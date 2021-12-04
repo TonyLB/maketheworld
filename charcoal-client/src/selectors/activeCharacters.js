@@ -33,12 +33,6 @@ export const getActiveCharacterState = (CharacterId) => (reduxState) => {
     return currentState
 }
 
-export const getSubscribedCharacterIds = (state) => {
-    const myCharacters = state.player?.Characters ?? []
-    const activeCharacters = getActiveCharacters(state)
-    return myCharacters.filter((characterId) => (activeCharacters[characterId]?.isSubscribed))
-}
-
 export const getActiveCharacterInPlayMessages = (CharacterId) => (state) => {
     const messages = getMessages(state)
     return messages
