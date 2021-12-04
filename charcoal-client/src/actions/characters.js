@@ -2,14 +2,11 @@ import { Auth, API, graphqlOperation } from 'aws-amplify'
 import { v4 as uuidv4 } from 'uuid'
 
 import { getPlayerCharacters } from '../graphql/queries'
-import {
-    putPlayer as putPlayerGraphQL,
-    updatePermanents
-} from '../graphql/mutations'
 
 import { closeMyCharacterDialog } from './UI/myCharacterDialog'
 import { getMyCurrentCharacter } from '../selectors/myCharacters'
 import { getPlayer } from '../selectors/player'
+import { socketDispatchPromise } from './communicationsLayer/lifeLine'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
 export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
@@ -42,6 +39,10 @@ export const fetchMyCharacters = () => (dispatch, getState) => {
     }
 }
 
+//
+// TODO: putMyCharacter function has not yet been QA-tested in the web-client.  When
+// a screen for updating character assets is live again, test.
+//
 export const putMyCharacter = ({
     name = '',
     characterId = '',
@@ -51,41 +52,18 @@ export const putMyCharacter = ({
     oneCoolThing = '',
     homeId = ''
 }) => async (dispatch, getState) => {
-    const state = getState()
-    const player = getPlayer(state)
     const finalCharacterId = characterId || uuidv4()
-    const newCharacter = !(player.Characters || []).includes(finalCharacterId)
-    return Promise.all([
-        API.graphql(graphqlOperation(updatePermanents, { Updates: [
-            {
-                putCharacter:
-                    {
-                        Name: name,
-                        CharacterId: finalCharacterId,
-                        ...(pronouns ? { Pronouns: pronouns ? pronouns : null } : {}),
-                        ...(firstImpression ? { FirstImpression: firstImpression ? firstImpression : null } : {}),
-                        ...(pronouns ? { Outfit: outfit ? outfit : null } : {}),
-                        ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
-                        ...(homeId ? { HomeId: homeId } : {})
-                    }
-            }
-        ]})),
-        //
-        // For a new character, update player list and set beginning grant
-        //
-        ...(newCharacter
-            ? [
-                API.graphql(graphqlOperation(putPlayerGraphQL, {
-                    ...player,
-                    Characters: [
-                        ...(player.Characters || []),
-                        finalCharacterId
-                    ]
-                }))
-            ]
-            : []
-        )
-    ])
+    const { username } = await Auth.currentAuthenticatedUser()
+    return dispatch(socketDispatchPromise('putCharacter')({
+        Name: name,
+        CharacterId: finalCharacterId,
+        Player: username,
+        ...(pronouns ? { Pronouns: pronouns ? pronouns : null } : {}),
+        ...(firstImpression ? { FirstImpression: firstImpression ? firstImpression : null } : {}),
+        ...(pronouns ? { Outfit: outfit ? outfit : null } : {}),
+        ...(oneCoolThing ? { OneCoolThing: oneCoolThing ? oneCoolThing : null } : {}),
+        ...(homeId ? { HomeId: homeId } : {})
+    }))
 }
 
 export const putMyCharacterAndCloseDialog = (characterData) => (dispatch) => {

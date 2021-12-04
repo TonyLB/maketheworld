@@ -1,37 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const putPlayer = /* GraphQL */ `
-  mutation PutPlayer(
-    $PlayerName: String
-    $CodeOfConductConsent: Boolean
-    $Characters: [String]
-  ) {
-    putPlayer(
-      PlayerName: $PlayerName
-      CodeOfConductConsent: $CodeOfConductConsent
-      Characters: $Characters
-    ) {
-      Type
-      PlayerName
-      PlayerInfo {
-        PlayerName
-        CodeOfConductConsent
-        Characters
-      }
-      CharacterInfo {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-      }
-    }
-  }
-`;
 export const updateMessages = /* GraphQL */ `
   mutation UpdateMessages($Updates: [MessageUpdateInput]) {
     updateMessages(Updates: $Updates)

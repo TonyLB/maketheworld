@@ -6,6 +6,10 @@ const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 
 const { permanentAndDeltas } = require('../delta')
 
+//
+// TODO: When all putCharacter functionality is guaranteed lifted to the
+// ControlChannel, remove this module
+//
 exports.putCharacter = async ({
     CharacterId: passedCharacterId,
     Name,

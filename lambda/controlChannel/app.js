@@ -463,7 +463,7 @@ exports.handler = async (event, context) => {
             // we coordinate updating the character and messaging the player here.
             //
             if (request.CharacterId) {
-                const { CharacterId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns, Player } = request
+                const { CharacterId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns, Player, RequestId } = request
                 //
                 // TODO: Restructure permanents storage so that Player denormalizes Name information into the Characters
                 // item
@@ -490,6 +490,7 @@ exports.handler = async (event, context) => {
                             const Data = JSON.stringify({
                                 messageType: 'Player',
                                 PlayerName: removeType(PermanentId),
+                                RequestId,
                                 ...rest
                             })
                             return Promise.all(connections.map((ConnectionId) => (

@@ -712,50 +712,6 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  MutationPutPlayerResolver:
-    Type: AWS::AppSync::Resolver
-    DependsOn: Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: putPlayer
-        DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            $util.qr($ctx.stash.put("PlayerName", $ctx.args.PlayerName))
-            #if ($util.isNullOrEmpty($PlayerName))
-              $util.qr($ctx.stash.put("PlayerName", $context.identity.username))
-            #end
-            #set ($Characters = [])
-            #if ($ctx.args && $util.isList($ctx.args.Characters))
-              #set ($Characters = $ctx.args.Characters)
-            #end
-            {
-                "version": "2017-02-28",
-                "operation": "PutItem",
-                "key": {
-                    "PermanentId": $util.dynamodb.toStringJson("PLAYER#${ctx.stash.PlayerName}"),
-                    "DataCategory": $util.dynamodb.toStringJson("Details")
-                },
-                "attributeValues": {
-                    "Characters": $util.dynamodb.toListJson($Characters),
-                    "CodeOfConductConsent":
-                      #if($ctx.args.CodeOfConductConsent)
-                        $util.dynamodb.toBooleanJson($ctx.args.CodeOfConductConsent)
-                      #else
-                        $util.dynamodb.toBooleanJson(false)
-                      #end
-                }
-            }
-        ResponseMappingTemplate: >
-          $util.toJson({
-            "Type": "PLAYER",
-            "PlayerName": $ctx.stash.PlayerName,
-            "PlayerInfo": {
-              "PlayerName": $ctx.stash.PlayerName,
-              "CodeOfConductConsent": $util.defaultIfNull($ctx.result.CodeOfConductConsent, false),
-              "Characters": $ctx.result.Characters
-            }
-          })
   QueryPlayerCharactersResolver:
       Type: AWS::AppSync::Resolver
       DependsOn: Schema
@@ -1528,12 +1484,6 @@ Resources:
                 LastSync: Long
               }
               type Mutation {
-                  putPlayer(
-                      PlayerName: String,
-                      CodeOfConductConsent: Boolean
-                      Characters: [String]
-                    ): PlayerSubscription
-                  @aws_iam @aws_cognito_user_pools
                   updateMessages(
                       Updates: [MessageUpdateInput]
                   ): String
