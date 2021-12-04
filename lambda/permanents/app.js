@@ -16,10 +16,6 @@ const { getNodeTree } = require('./nodeTree/nodeTree')
 
 const { putRoom } = require('./putRoom/putRoom')
 
-const { putGrant } = require('./grants/putGrant')
-const { getGrants } = require('./grants/getGrants')
-const { revokeGrant } = require('./grants/revokeGrant')
-
 const { getExits } = require('./exits/getExits')
 const { putExit } = require('./exits/putExit')
 const { deleteExit } = require('./exits/deleteExit')
@@ -42,14 +38,8 @@ const updateDispatcher = ({ Updates = [] }) => {
             if (update.putRoom) {
                 return putRoom({ arguments: update.putRoom })
             }
-            if (update.putGrant) {
-                return putGrant(update.putGrant)
-            }
             if (update.putCharacter) {
                 return putCharacter(update.putCharacter)
-            }
-            if (update.revokeGrant) {
-                return revokeGrant(update.revokeGrant)
             }
             if (update.putExit) {
                 return putExit(update.putExit)

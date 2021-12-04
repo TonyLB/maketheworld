@@ -16,7 +16,6 @@ import {
 import HouseIcon from '@material-ui/icons/House'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import CreateIcon from '@material-ui/icons/Create'
 import ExitIcon from '@material-ui/icons/ExitToApp'
 import HiddenIcon from '@material-ui/icons/VisibilityOff'
 
@@ -26,7 +25,6 @@ import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
 import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
-import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import { setMessageOpen } from '../../actions/messages'
 import RecapMessage from './RecapMessage'
 import AnnouncementMessage from './AnnouncementMessage'
@@ -136,7 +134,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
                         ? open
                             ? <ExpandLessIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: false })) }} />
                             : <ExpandMoreIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: true })) }} />
-                        : (Grants && (Grants[RoomId].Edit || Grants[ParentId].Edit)) && <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
+                        : null
                 }
             </ListItemSecondaryAction>
         </ListItem>

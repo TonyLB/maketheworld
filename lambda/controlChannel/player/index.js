@@ -1,9 +1,41 @@
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { UpdateItemCommand, Update, GetItemCommand } = require('@aws-sdk/client-dynamodb')
+const { UpdateItemCommand, GetItemCommand, QueryCommand } = require('@aws-sdk/client-dynamodb')
 
 const { TABLE_PREFIX } = process.env;
+const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
 
+const splitType = (value) => {
+    const sections = value.split('#')
+    if (sections.length) {
+        return [sections[0], sections.slice(1).join('#')]
+    }
+    else {
+        return ['', '']
+    }
+}
+
+const getPlayerByConnectionId = async (dbClient, connectionId) => {
+    const { Items = [] } = await dbClient.send(new QueryCommand({
+        TableName: ephemeraTable,
+        IndexName: 'DataCategoryIndex',
+        KeyConditionExpression: 'DataCategory = :dc',
+        ExpressionAttributeValues: marshall({
+            ":dc": `CONNECTION#${connectionId}`
+        }),
+        ProjectionExpression: 'EphemeraId'
+    }))
+    const playerName = Items
+        .map(unmarshall)
+        .reduce((previous, { EphemeraId }) => {
+            const [ itemType, itemKey ] = splitType(EphemeraId)
+            if (itemType === 'PLAYER') {
+                return itemKey
+            }
+            return previous
+        }, '')
+    return playerName
+}
 //
 // TODO: Remove direct access to Characters list and instead make secured outlets for
 // adding characters and archiving them.
@@ -57,27 +89,36 @@ const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductCo
     }
 }
 
-const whoAmI = async (dbClient, username, RequestId) => {
-    const { Item } = await dbClient.send(new GetItemCommand({
-        TableName: permanentsTable,
-        Key: marshall({
-            PermanentId: `PLAYER#${username}`,
-            DataCategory: 'Details'
-        })
-    }))
-    const { Characters, CodeOfConductConsent } = unmarshall(Item)
-    return {
-        statusCode: 200,
-        body: JSON.stringify({
-            messageType: 'Player',
-            PlayerName: username,
-            Characters,
-            CodeOfConductConsent,
-            RequestId
-        })
+const whoAmI = async (dbClient, connectionId, RequestId) => {
+    const username = await getPlayerByConnectionId(dbClient, connectionId)
+    if (username) {
+        const { Item } = await dbClient.send(new GetItemCommand({
+            TableName: permanentsTable,
+            Key: marshall({
+                PermanentId: `PLAYER#${username}`,
+                DataCategory: 'Details'
+            })
+        }))
+        const { Characters, CodeOfConductConsent } = unmarshall(Item)
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                messageType: 'Player',
+                PlayerName: username,
+                Characters,
+                CodeOfConductConsent,
+                RequestId
+            })
+        }
     }
-
-
+    else {
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                messageType: 'Error'
+            })
+        }
+    }
 }
 
 exports.putPlayer = putPlayer

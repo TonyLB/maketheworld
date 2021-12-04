@@ -84,17 +84,7 @@ export const putMyCharacter = ({
                         ...(player.Characters || []),
                         finalCharacterId
                     ]
-                })),
-                API.graphql(graphqlOperation(updatePermanents, { Updates: [
-                    {
-                        putGrant: {
-                            CharacterId: finalCharacterId,
-                            Resource: 'MINIMUM',
-                            Roles: 'PLAYER',
-                            Actions: ''
-                        }
-                    }
-                ]})),
+                }))
             ]
             : []
         )

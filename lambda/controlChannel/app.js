@@ -453,18 +453,7 @@ exports.handler = (event, context) => {
         case 'fetchEphemera':
             return fetchEphemera()
         case 'whoAmI':
-            const { userName } = request
-            if (userName) {
-                return whoAmI(dbClient, userName, request.RequestId)
-            }
-            else {
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({
-                        messageType: 'Error'
-                    })
-                }
-            }
+            return whoAmI(dbClient, connectionId, request.RequestId)
         case 'putPlayer':
             return putPlayer(request.PlayerName)({ Characters: request.Characters, CodeOfConductConsent: request.CodeOfConductConsent })
         //

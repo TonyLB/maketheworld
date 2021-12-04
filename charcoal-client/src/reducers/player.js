@@ -1,4 +1,4 @@
-import { PLAYER_UPDATE } from '../actions/player.js'
+import { PLAYER_UPDATE } from '../actions/communicationsLayer/appSyncSubscriptions/playerSubscription'
 
 export const reducer = (state = {}, action = {}) => {
     const { type: actionType = "NOOP", data = {} } = action

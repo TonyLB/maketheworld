@@ -709,37 +709,6 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  QueryGetPlayerResolver:
-    Type: AWS::AppSync::Resolver
-    DependsOn: Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Query
-        FieldName: getPlayer
-        DataSourceName: !GetAtt PermanentsDynamoDBTableDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "GetItem",
-                "key": {
-                    "PermanentId": $util.dynamodb.toStringJson("PLAYER#${ctx.args.PlayerName}"),
-                    "DataCategory": $util.dynamodb.toStringJson("Details")
-                }
-            }
-        ResponseMappingTemplate: >
-            #set($Consent = false)
-            #if ($ctx.result && $util.isBoolean($ctx.result.CodeOfConductConsent))
-                #set($Consent = $ctx.result.CodeOfConductConsent)
-            #end
-            #set($Characters = [])
-            #if ($ctx.result && $util.isList($ctx.result.Characters))
-                #set($Characters = $ctx.result.Characters)
-            #end
-            $util.toJson({
-                "PlayerName": $ctx.args.PlayerName,
-                "CodeOfConductConsent": $Consent,
-                "Characters": $Characters
-            })
   MutationPutPlayerResolver:
     Type: AWS::AppSync::Resolver
     DependsOn: Schema
@@ -1601,7 +1570,6 @@ Resources:
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
-                  getPlayer(PlayerName: String!): Player
                   getPlayerCharacters: [Character]
                   getRoomRecap(PermanentId: String!): [Message]
                   syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse

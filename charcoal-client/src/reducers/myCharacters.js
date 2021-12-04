@@ -1,6 +1,4 @@
 import { FETCH_MY_CHARACTERS_ATTEMPT, FETCH_MY_CHARACTERS_SUCCESS, RECEIVE_MY_CHARACTER_CHANGE } from '../actions/characters.js'
-import { GRANT_UPDATE, GRANT_REVOKE } from '../actions/player'
-
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
     switch (actionType) {
@@ -23,27 +21,15 @@ export const reducer = (state = '', action = {}) => {
                 },
                 data: payload
             }
+        //
+        // TODO:  This has been simplified down to a ridiculous degree by the removal of GRANT_ADD and GRANT_REVOKE.
+        // It probably should now be part of some other reducer (like Player) with denormalized handling through
+        // the ControlChannel outlet
+        //
         case RECEIVE_MY_CHARACTER_CHANGE:
-        case GRANT_REVOKE:
-        case GRANT_UPDATE:
             const previousCharacter = state.data.find(({ CharacterId }) => (CharacterId === payload.CharacterId)) || {}
             let characterData = null
             switch(actionType) {
-                case GRANT_REVOKE:
-                    characterData = {
-                        ...previousCharacter,
-                        Grants: (previousCharacter.Grants || []).filter(({ Resource }) => (Resource !== payload.Resource))
-                    }
-                    break
-                case GRANT_UPDATE:
-                    characterData = {
-                        ...previousCharacter,
-                        Grants: [
-                            ...(previousCharacter.Grants || []).filter(({ Resource }) => (Resource !== payload.Resource)),
-                            payload
-                        ]
-                    }
-                    break
                 case RECEIVE_MY_CHARACTER_CHANGE:
                     characterData = payload
                     break

@@ -6,8 +6,6 @@ import { neighborhoodUpdate } from '../../neighborhoods'
 import cacheDB from '../../../cacheDB'
 import { deltaFactory } from '../../deltaSync'
 
-import { getPermanentsLastSync } from '../../../selectors/communicationsLayer'
-
 import { ISSMAction, IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 import { cachedSubscriptionSSMKeys, cachedSubscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS } from './baseClasses'
 
@@ -27,7 +25,6 @@ const fetchCached = async (dispatch: any) => {
     const backups = cacheDBCast.backups.toArray().then((items: { Backup: any } []) => (items.map((item) => ({ Backup: item }))))
     const rooms = cacheDBCast.rooms.toArray().then((items: { Room: any }[]) => (items.map((item) => ({ Room: item }))))
     const characters = cacheDBCast.characters.toArray().then((items: { Character: any }[]) => (items.map((item) => ({ Character: item }))))
-    const grants = cacheDBCast.grants.toArray().then((items: { Grant: any }[]) => (items.map((item) => ({ Grant: item }))))
     const exits = cacheDBCast.exits.toArray().then((items: { Exit: any }[]) => (items.map((item) => ({ Exit: item }))))
     const roles = cacheDBCast.roles.toArray().then((items: { Role: any }[]) => (items.map((item) => ({ Role: item }))))
 
@@ -38,7 +35,6 @@ const fetchCached = async (dispatch: any) => {
         backups,
         rooms,
         characters,
-        grants,
         exits,
         roles
     ]).then((items) => (items.reduce((previous, item) => ([ ...previous, ...item ]), [])))

@@ -16,7 +16,6 @@ export const neighborhoodUpdate = (neighborhoods) => async (dispatch) => {
         cacheDB.backups.bulkPut(neighborhoods.filter(({ Backup }) => (Backup)).map(({ Backup }) => (Backup))),
         cacheDB.rooms.bulkPut(neighborhoods.filter(({ Room }) => (Room)).map(({ Room }) => (Room))),
         cacheDB.characters.bulkPut(neighborhoods.filter(({ Character }) => (Character)).map(({ Character }) => (Character))),
-        cacheDB.grants.bulkPut(neighborhoods.filter(({ Grant }) => (Grant)).map(({ Grant }) => (Grant))),
         cacheDB.exits.bulkPut(neighborhoods.filter(({ Exit }) => (Exit)).map(({ Exit }) => (Exit))),
         cacheDB.roles.bulkPut(neighborhoods.filter(({ Role }) => (Role)).map(({ Role }) => (Role)))
     ])
@@ -35,7 +34,6 @@ export const fetchCached = async (dispatch) => {
     const backups = cacheDB.backups.toArray().then((items) => (items.map((item) => ({ Backup: item }))))
     const rooms = cacheDB.rooms.toArray().then((items) => (items.map((item) => ({ Room: item }))))
     const characters = cacheDB.characters.toArray().then((items) => (items.map((item) => ({ Character: item }))))
-    const grants = cacheDB.grants.toArray().then((items) => (items.map((item) => ({ Grant: item }))))
     const exits = cacheDB.exits.toArray().then((items) => (items.map((item) => ({ Exit: item }))))
     const roles = cacheDB.roles.toArray().then((items) => (items.map((item) => ({ Role: item }))))
 
@@ -46,7 +44,6 @@ export const fetchCached = async (dispatch) => {
         backups,
         rooms,
         characters,
-        grants,
         exits,
         roles
     ]).then((items) => (items.reduce((previous, item) => ([ ...previous, ...item ]), [])))

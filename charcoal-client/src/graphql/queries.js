@@ -1,15 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const getPlayer = /* GraphQL */ `
-  query GetPlayer($PlayerName: String!) {
-    getPlayer(PlayerName: $PlayerName) {
-      PlayerName
-      CodeOfConductConsent
-      Characters
-    }
-  }
-`;
 export const getPlayerCharacters = /* GraphQL */ `
   query GetPlayerCharacters {
     getPlayerCharacters {

@@ -22,6 +22,9 @@ export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 const stateUpdate = (newState: lifeLineSSMKeys) => externalStateChange<lifeLineSSMKeys>({ key: LifeLineSSMKey, newState })
 
 export const establishWebSocket = ({ webSocket, incrementalBackoff }: LifeLineData) => (dispatch: any): Promise<Partial<LifeLineData>> => {
+    //
+    // Pull a Cognito authentication token in order to connect to the webSocket
+    //
     return Auth.currentSession()
         .then((session) => (session.getIdToken().getJwtToken()))
         .then((token) => (new Promise<Partial<LifeLineData>>((resolve, reject) => {
@@ -47,7 +50,7 @@ export const establishWebSocket = ({ webSocket, incrementalBackoff }: LifeLineDa
                 LifeLinePubSub.publish(payload)
             }
             setupSocket.onerror = (event) => {
-                setTimeout(() => { reject({ incrementalBackoff: incrementalBackoff * 2 })}, 1000 * incrementalBackoff)
+                setTimeout(() => { reject({ incrementalBackoff: Math.min(incrementalBackoff * 2, 20000) })}, 1000 * incrementalBackoff)
             }
         })
     ))
