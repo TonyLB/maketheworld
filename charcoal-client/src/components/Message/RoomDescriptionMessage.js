@@ -22,11 +22,11 @@ import HiddenIcon from '@material-ui/icons/VisibilityOff'
 import useStyles from '../styles'
 
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
-import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { setMessageOpen } from '../../actions/messages'
 import RecapMessage from './RecapMessage'
 import AnnouncementMessage from './AnnouncementMessage'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
 
@@ -35,7 +35,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
     const ParentId = Ancestry.split('#').reverse()[0]
 
     const dispatch = useDispatch()
-    const { CharacterId: myCharacterId, Grants } = useSelector(getMyCurrentCharacter)
+    const { CharacterId: myCharacterId } = useActiveCharacter()
     const charactersInPlay = useSelector(getCharactersInPlay)
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <React.Fragment>

@@ -1,84 +1,37 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import {
-    TextField,
-    InputAdornment,
-    IconButton,
-    Popper
+    TextField
 } from '@material-ui/core'
-import { Autocomplete } from '@material-ui/lab'
-import HelpIcon from '@material-ui/icons/Help'
 
-import { getAvailableBehaviors } from '../selectors/currentRoom'
 import { getSettings } from '../selectors/settings'
 import { getClientSettings } from '../selectors/clientSettings'
 
 export const LineEntry = ({ callback = () => {}, ...rest }) => {
-    const availableBehaviors = useSelector(getAvailableBehaviors)
     const [value, setValue] = useState('')
-    const [open, setAutocompleteOpen] = useState(false)
     const { ChatPrompt } = useSelector(getSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
-    const onChange = useCallback((_, incomingValue) => {
-        const callbackResult = callback(incomingValue || '')
-        setAutocompleteOpen(false)
-        if (callbackResult) {
-            setValue('')
-        }
-    }, [callback, setAutocompleteOpen, setValue])
 
     return (
-        <Autocomplete
-            id="line-entry-autocomplete"
-            freeSolo
-            open={open}
-            options={availableBehaviors}
-            style={{ width: "100%" }}
-            PopperComponent={(props) => (<Popper {...props} placement={"top"} />)}
-            inputValue={value}
-            onClose={() => {
-                setAutocompleteOpen(false)
-            }}
-            onChange={onChange}
-            onInputChange={(_, incomingValue, reason) => {
-                if (reason === 'input') {
-                    setValue(incomingValue || '')
+        <TextField
+            placeholder={ChatPrompt}
+            multiline={!(TextEntryLines === 1)}
+            rows={TextEntryLines || 2}
+            value={value}
+            onKeyPress={(event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault()
+                    const callbackResult = callback(value || '')
+                    if (callbackResult) {
+                        setValue('')
+                    }
                 }
             }}
-            renderInput={(params) => {
-                return <TextField
-                    {...params}
-                    placeholder={ChatPrompt}
-                    multiline={!(TextEntryLines === 1)}
-                    rows={TextEntryLines || 2}
-                    onKeyPress={(event) => {
-                        if (event.key === 'Enter' && !open) {
-                            event.preventDefault()
-                            const callbackResult = callback(value || '')
-                            if (callbackResult) {
-                                setValue('')
-                            }
-                        }
-                    }}
-                    onKeyDown={(event) => {
-                        if (event.key === 'ArrowUp' && !open) {
-                            setAutocompleteOpen(true)
-                        }
-                    }}
-                    InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <IconButton onClick={() => { setAutocompleteOpen(!open) }}>
-                                    <HelpIcon />
-                                </IconButton>
-                            </InputAdornment>
-                        )
-                    }}
-                    fullWidth
-                    {...rest}
-                />
+            onChange={(event) => {
+                setValue(event.target.value)
             }}
+            fullWidth
+            {...rest}
         />
     )
 }

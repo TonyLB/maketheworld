@@ -1,11 +1,6 @@
-import { Auth, API, graphqlOperation } from 'aws-amplify'
+import { Auth } from 'aws-amplify'
 import { v4 as uuidv4 } from 'uuid'
 
-import { getPlayerCharacters } from '../graphql/queries'
-
-import { closeMyCharacterDialog } from './UI/myCharacterDialog'
-import { getMyCurrentCharacter } from '../selectors/myCharacters'
-import { getPlayer } from '../selectors/player'
 import { socketDispatchPromise } from './communicationsLayer/lifeLine'
 
 export const FETCH_MY_CHARACTERS_SUCCESS = 'FETCH_MY_CHARACTERS_SUCCESS'
@@ -26,18 +21,6 @@ export const fetchMyCharactersSuccess = (payload) => ({
     type: FETCH_MY_CHARACTERS_SUCCESS,
     payload
 })
-
-export const fetchMyCharacters = () => (dispatch, getState) => {
-    const { myCharacters } = getState()
-
-    if (!(myCharacters && myCharacters.meta && myCharacters.meta.fetching)){
-        dispatch(fetchMyCharactersAttempt())
-        return API.graphql(graphqlOperation(getPlayerCharacters))
-            .then(({ data }) => (data || {}))
-            .then(({ getPlayerCharacters }) => (getPlayerCharacters || []))
-            .then((payload) => (dispatch(fetchMyCharactersSuccess(payload))))
-    }
-}
 
 //
 // TODO: putMyCharacter function has not yet been QA-tested in the web-client.  When
@@ -66,29 +49,7 @@ export const putMyCharacter = ({
     }))
 }
 
-export const putMyCharacterAndCloseDialog = (characterData) => (dispatch) => {
-    return dispatch(putMyCharacter(characterData))
-        .then(() => {
-            dispatch(closeMyCharacterDialog())
-        })
-}
-
 export const receiveMyCharacterChange = (payload) => ({
     type: RECEIVE_MY_CHARACTER_CHANGE,
     payload
 })
-
-export const setCurrentCharacterHome = (HomeId) => (dispatch, getState) => {
-    const state = getState()
-    const currentCharacter = getMyCurrentCharacter(state)
-    dispatch(putMyCharacter({
-        name: currentCharacter.Name,
-        characterId: currentCharacter.CharacterId,
-        pronouns: currentCharacter.Pronouns,
-        firstImpression: currentCharacter.FirstImpression,
-        outfit: currentCharacter.Outfit,
-        oneCoolThing: currentCharacter.OneCoolThing,
-        homeId: HomeId
-    }))
-
-}
