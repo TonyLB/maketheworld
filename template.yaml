@@ -1241,19 +1241,6 @@ Resources:
                   Name: String!
                   Actions: String!
               }
-              type Grant @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  Resource: String!
-                  Actions: String
-                  Roles: String
-                  Revoke: Boolean
-              }
-              input GrantInput {
-                CharacterId: String!
-                Resource: String!
-                Actions: String
-                Roles: String
-              }
               type Character @aws_iam @aws_cognito_user_pools {
                   PlayerName: String
                   Name: String!
@@ -1447,7 +1434,6 @@ Resources:
                   PlayerName: String!
                   PlayerInfo: Player
                   CharacterInfo: Character
-                  GrantInfo: Grant
               }
               type MapRoomEntry @aws_iam @aws_cognito_user_pools {
                   PermanentId: String!
@@ -1497,7 +1483,6 @@ Resources:
                 Role: Role
                 Backup: Backup
                 Character: Character
-                Grant: Grant
                 Exit: Exit
               }
               input PermanentInput @aws_iam @aws_cognito_user_pools {
@@ -1507,8 +1492,6 @@ Resources:
                 putBackup: BackupInput
                 putRoom: RoomInput
                 putCharacter: CharacterInput
-                putGrant: GrantInput
-                revokeGrant: GrantInput
                 putExit: ExitInput
                 deleteExit: ExitInput
               }
@@ -1576,8 +1559,6 @@ Resources:
                   syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
               }
               type Subscription {
-                  changedPlayer (PlayerName: String): PlayerSubscription
-                  @aws_subscribe(mutations: ["putPlayer"])
                   changedPermanents: [ChangedPermanent]
                   @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
                   addedMessage (Target: String!): Message

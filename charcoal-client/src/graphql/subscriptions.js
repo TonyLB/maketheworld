@@ -1,36 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const changedPlayer = /* GraphQL */ `
-  subscription ChangedPlayer($PlayerName: String) {
-    changedPlayer(PlayerName: $PlayerName) {
-      Type
-      PlayerName
-      PlayerInfo {
-        PlayerName
-        CodeOfConductConsent
-        Characters
-      }
-      CharacterInfo {
-        PlayerName
-        Name
-        CharacterId
-        Pronouns
-        FirstImpression
-        Outfit
-        OneCoolThing
-        HomeId
-      }
-      GrantInfo {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
-    }
-  }
-`;
 export const changedPermanents = /* GraphQL */ `
   subscription ChangedPermanents {
     changedPermanents {
@@ -86,13 +56,6 @@ export const changedPermanents = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-      }
-      Grant {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
       }
       Exit {
         FromRoomId

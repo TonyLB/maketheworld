@@ -16,7 +16,6 @@ import CloseArrowIcon from '@material-ui/icons/ChevronRight'
 
 import { getActiveCharacterList } from '../selectors/charactersInPlay'
 import { getCharacterId } from '../selectors/connection'
-import { getPermanentHeaders } from '../selectors/permanentHeaders'
 import { activateDirectMessageDialog } from '../actions/UI/directMessageDialog'
 import { useStyles } from './styles'
 
@@ -28,7 +27,6 @@ export const WhoDrawer = ({
     const whoIsActive = useSelector(getActiveCharacterList)
     const myCharacterId = useSelector(getCharacterId)
     const classes = useStyles()
-    const permanentHeaders = useSelector(getPermanentHeaders)
     const dispatch = useDispatch()
 
     return (
@@ -55,17 +53,11 @@ export const WhoDrawer = ({
                 <TableBody>
                     {
                         whoIsActive.map(({ CharacterId, Name, RoomId, color }) => {
-                            const neighborhoodName = (permanentHeaders &&
-                                RoomId &&
-                                permanentHeaders[RoomId] &&
-                                (
-                                    (
-                                        permanentHeaders[RoomId].ParentId &&
-                                        permanentHeaders[permanentHeaders[RoomId].ParentId] &&
-                                        permanentHeaders[permanentHeaders[RoomId].ParentId].Name
-                                    ) ||
-                                    permanentHeaders[RoomId].Name
-                                )) || '??????'
+                            //
+                            // TODO: Figure out how to present a workable room/area name using the new WML Asset
+                            // system.
+                            //
+                            const neighborhoodName = '??????'
                             return (
                                 <TableRow key={CharacterId} hover onClick={() => { dispatch(activateDirectMessageDialog(CharacterId)) }}>
                                     <TableCell>

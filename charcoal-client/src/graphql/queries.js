@@ -128,13 +128,6 @@ export const syncPermanents = /* GraphQL */ `
           OneCoolThing
           HomeId
         }
-        Grant {
-          CharacterId
-          Resource
-          Actions
-          Roles
-          Revoke
-        }
         Exit {
           FromRoomId
           ToRoomId

@@ -29,13 +29,6 @@ export const putPlayer = /* GraphQL */ `
         OneCoolThing
         HomeId
       }
-      GrantInfo {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
     }
   }
 `;
@@ -156,13 +149,6 @@ export const createBackup = /* GraphQL */ `
         OneCoolThing
         HomeId
       }
-      Grant {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
       Exit {
         FromRoomId
         ToRoomId
@@ -228,13 +214,6 @@ export const restoreBackup = /* GraphQL */ `
         OneCoolThing
         HomeId
       }
-      Grant {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
-      }
       Exit {
         FromRoomId
         ToRoomId
@@ -299,13 +278,6 @@ export const updatePermanents = /* GraphQL */ `
         Outfit
         OneCoolThing
         HomeId
-      }
-      Grant {
-        CharacterId
-        Resource
-        Actions
-        Roles
-        Revoke
       }
       Exit {
         FromRoomId

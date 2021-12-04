@@ -1,4 +1,4 @@
-import { getCurrentName, getCurrentRoom } from '../../selectors/activeCharacter'
+import { getCurrentRoom } from '../../selectors/activeCharacter'
 import { getActiveCharactersInRoom } from '../../selectors/charactersInPlay'
 import { socketDispatch } from '../communicationsLayer/lifeLine'
 
@@ -6,8 +6,6 @@ import lookRoom from './lookRoom'
 import lookCharacter from './lookCharacter'
 import moveCharacter from './moveCharacter'
 import goHome from './home'
-import announce from './announce'
-import shout from './shout'
 import help from './help'
 
 export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatch, getState) => {
@@ -24,18 +22,6 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
         return true
     }
     const re = /^\s*(\w+)\s+(.*)$/gi
-    const match = re.exec(entry)
-    if (match) {
-        const [verb, object] = match.slice(1)
-        if (verb.toLocaleLowerCase() === 'announce') {
-            dispatch(announce(CharacterId)(object))
-            return true
-        }
-        if (verb.toLocaleLowerCase() === 'shout') {
-            dispatch(shout(object))
-            return true
-        }
-    }
     const state = getState()
     const currentRoom = getCurrentRoom(CharacterId)(state)
     const charactersInRoom = getActiveCharactersInRoom({ RoomId: currentRoom.PermanentId, myCharacterId: CharacterId })(state)
