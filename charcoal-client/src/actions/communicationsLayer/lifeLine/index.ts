@@ -155,19 +155,19 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
     }
 }
 
-const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData }) => {
-    if (payload.messageType === 'Ephemera') {
-        dispatch({
-            type: RECEIVE_EPHEMERA_CHANGE,
-            payload: payload.updates
-        })
-    }
-}
+// const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData }) => {
+//     if (payload.messageType === 'Ephemera') {
+//         dispatch({
+//             type: RECEIVE_EPHEMERA_CHANGE,
+//             payload: payload.updates
+//         })
+//     }
+// }
 
 export const registerLifeLineSSM = (dispatch: any): void => {
     dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate(), defaultIntent: 'CONNECTED' }))
     LifeLinePubSub.subscribe(receiveMessages(dispatch))
-    LifeLinePubSub.subscribe(receiveEphemera(dispatch))
+    // LifeLinePubSub.subscribe(receiveEphemera(dispatch))
 }
 
 export const fetchEphemera = (dispatch: any) => {

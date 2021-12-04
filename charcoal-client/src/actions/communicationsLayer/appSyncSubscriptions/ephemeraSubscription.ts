@@ -1,12 +1,9 @@
 import { subscriptionSSMClassGenerator, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 import { getLifeLine } from '../../../selectors/communicationsLayer'
-import { socketDispatch } from '../lifeLine'
-
-
-export const PLAYER_UPDATE = 'PLAYER_UPDATE'
-export const GRANT_UPDATE = 'GRANT_UPDATE'
-export const GRANT_REVOKE = 'GRANT_REVOKE'
+import { socketDispatchPromise } from '../lifeLine'
+import { LifeLineData } from '../lifeLine/baseClass'
+import { EphemeraFormat } from '../lifeLine/ephemera'
 
 class EphemeraSubscriptionData {
 }
@@ -25,20 +22,22 @@ interface IChangedEphemera {
 
 export const RECEIVE_EPHEMERA_CHANGE = 'RECEIVE_EPHEMERA_CHANGE'
 
-const receiveEphemeraChange = (payload: IChangedEphemera[]) => (dispatch: any, getState: any) => {
-    const state = getState()
-    //
-    // Update the store and create a predicted next state
-    //
-    const action = {
-        type: RECEIVE_EPHEMERA_CHANGE,
-        payload
-    }
-    dispatch(action)
-}
+const receiveEphemeraChange = (payload: EphemeraFormat[]) => ({
+    type: RECEIVE_EPHEMERA_CHANGE,
+    payload
+})
 
 const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
-    return {}
+    const lifeLine = getLifeLine(getState()) as LifeLineData
+
+    const lifeLineSubscription = lifeLine.subscribe(({ payload }) => {
+        if (payload.messageType === 'Ephemera') {
+            const { updates } = payload
+            dispatch(receiveEphemeraChange(updates))
+        }
+    })
+
+    return { subscription: lifeLineSubscription }
 }
 
 const unsubscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
@@ -50,12 +49,7 @@ const unsubscribeAction = () => async (dispatch: any, getState: any): Promise<Pa
 }
 
 const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<EphemeraSubscriptionData>> => {
-    //
-    // TODO:  Write a handler subscription that can be applied to track when fetchephemera has returned
-    // all relevant updates, and then write a promise-wrapper that holds the state-advance from SYNCHRONIZING
-    // to SYNCHRONIZED, until the results are back.
-    //
-    dispatch(socketDispatch('fetchEphemera')({}))
+    await dispatch(socketDispatchPromise('fetchEphemera')({}))
     return {}
 }
 

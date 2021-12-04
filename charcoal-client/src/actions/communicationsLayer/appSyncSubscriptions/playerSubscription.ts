@@ -12,7 +12,10 @@ export const GRANT_UPDATE = 'GRANT_UPDATE'
 export const GRANT_REVOKE = 'GRANT_REVOKE'
 
 class PlayerSubscriptionData {
-    PlayerName: string = ''
+    PlayerName: string = '';
+    subscription?: {
+        unsubscribe: () => void
+    }
 }
 
 const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
@@ -22,27 +25,6 @@ const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
     })
 }
 
-interface IChangedPlayer {
-    Type?: string;
-    PlayerInfo?: PlayerData;
-    CharacterInfo?: any;
-}
-
-//
-// TODO: Step 2
-//
-// Remove playerUpdate and receiveMyCharacterChange from graphQL subscription, and insted
-// hand a subscription off of the controlChannel LifeLine (including rewriting sync and
-// unsubscribe to deal with lifeline connection)
-//
-
-//
-// TODO: Step 3
-//
-// Remove Grant functionality from throughout the application (to be replaced as we
-// extend the Asset management system)
-//
-
 //
 // TODO: Step 4
 //
@@ -50,7 +32,6 @@ interface IChangedPlayer {
 // updatePermanent, and much of the functionality of putCharacter in updatePermanent)
 //
 const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
-    const { username = '' } = await Auth.currentAuthenticatedUser()
     const lifeLine = getLifeLine(getState()) as LifeLineData
 
     const lifeLineSubscription = lifeLine.subscribe(({ payload }) => {
@@ -60,23 +41,14 @@ const subscribeAction = () => async (dispatch: any, getState: any): Promise<Part
         }
     })
 
-    dispatch({
-        type: SUBSCRIPTION_SUCCESS,
-        payload: { player: {
-            unsubscribe: () => {
-                lifeLineSubscription.unsubscribe()
-            }
-        } }
-    })
-    return { PlayerName: username }
+    return { subscription: lifeLineSubscription }
 }
 
-const unsubscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
-    const playerSubscription: any = getState().communicationsLayer.appSyncSubscriptions.player?.subscription
-    if (playerSubscription) {
-        await playerSubscription.unsubscribe()
+const unsubscribeAction = ({ subscription }: PlayerSubscriptionData) => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
+    if (subscription) {
+        subscription.unsubscribe()
     }
-    return {}
+    return { subscription: undefined }
 }
 
 const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
