@@ -56,6 +56,17 @@ Resources:
           PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
           MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
           EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
+          COGNITO_USER_POOL_CLIENT:
+            Fn::ImportValue:
+              !Sub "${PermanentsStack}-UserPoolClient"
+          COGNITO_KEYS_URL:
+            Fn::Sub:
+              - "https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}/.well-known/jwks.json"
+              -
+                  Region: !Ref AWS::Region
+                  CognitoUserPool:
+                    Fn::ImportValue:
+                      !Sub "${PermanentsStack}-UserPoolId"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_permanents'
@@ -101,6 +112,12 @@ Resources:
           {
             "action": "disconnect"
           }
+  #
+  # TODO: Add a Lambda Authorizor on ConnectRoute, and use its output to
+  # know which CognitoID is connecting the WebSocket.  Store that in association
+  # with the connectionID and use that for security throughout, rather than
+  # relying upon the client to send the proper userName information
+  #
   ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -112,6 +129,13 @@ Resources:
         - '/'
         - - 'integrations'
           - !Ref ConnectInteg
+      #
+      # $connect is the only WebSocket action that can take a query parameter:  We pass a JWT token
+      # from Cognito to authenticate
+      #
+      RequestParameters:
+          route.request.querystring.Authorization:
+            Required: false
   ConnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -173,22 +197,32 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref PingRoute
       RouteResponseKey: "$default"
-  RegisterCharacterRoute:
+  #
+  # The Route defines the mapping from a key to a particular integration.  In this case, the $default
+  # key catches everything not specified explicitly
+  #
+  DefaultRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      RouteKey: registercharacter
+      RouteKey: $default
       AuthorizationType: NONE
-      OperationName: RegisterCharacterRoute
+      OperationName: DefaultRoute
+      RouteResponseSelectionExpression: $default
       Target: !Join
         - '/'
         - - 'integrations'
-          - !Ref RegisterCharacterInteg
-  RegisterCharacterInteg:
+          - !Ref DefaultInteg
+  #
+  # The integration connects the incoming message with a specific target.  In this case, we use
+  # a direct AWS-PROXY to integrate with our lambda invocation, passing the incoming message
+  # unchanged.
+  #
+  DefaultInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      Description: Register Name Integtration
+      Description: Default Integration
       IntegrationType: AWS_PROXY
       IntegrationUri:
           Fn::Sub:
@@ -196,95 +230,35 @@ Resources:
               -
                   Region: !Ref AWS::Region
                   ChannelArn: !GetAtt ControlChannelFunction.Arn
-  RegisterCharacterIntegrationResponse:
+  #
+  # According to documentation, an IntegrationResponse shouldn't be necessary, but whenever
+  # I don't include it, messaging goes wonky.  Maybe it's superstition at this point, but I'm
+  # leaving it in.
+  #
+  DefaultIntegrationResponse:
     Type: AWS::ApiGatewayV2::IntegrationResponse
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      IntegrationId: !Ref RegisterCharacterInteg
+      IntegrationId: !Ref DefaultInteg
       IntegrationResponseKey: "/200/"
-  RegisterCharacterResponse:
+  #
+  # A Response tells the Websocket to return the return-value of the NodeJS handler function as
+  # a websocket message in response to the incoming data.  This isn't strictly necessary (we could
+  # explicitly invoke the post-to-connection API), but it's convenient.
+  #
+  DefaultResponse:
     Type: AWS::ApiGatewayV2::RouteResponse
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      RouteId: !Ref RegisterCharacterRoute
-      RouteResponseKey: "$default"
-  FetchEphemeraRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      RouteKey: fetchEphemera
-      AuthorizationType: NONE
-      OperationName: FetchEphemeraRoute
-      Target: !Join
-        - '/'
-        - - 'integrations'
-          - !Ref FetchEphemeraInteg
-  FetchEphemeraInteg:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      Description: Fetch Ephemera
-      IntegrationType: AWS_PROXY
-      IntegrationUri:
-          Fn::Sub:
-              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
-              -
-                  Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt ControlChannelFunction.Arn
-  FetchEphemeraIntegrationResponse:
-    Type: AWS::ApiGatewayV2::IntegrationResponse
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      IntegrationId: !Ref FetchEphemeraInteg
-      IntegrationResponseKey: "/200/"
-  FetchEphemeraResponse:
-    Type: AWS::ApiGatewayV2::RouteResponse
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      RouteId: !Ref FetchEphemeraRoute
-      RouteResponseKey: "$default"
-  ActionRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      RouteKey: action
-      AuthorizationType: NONE
-      OperationName: ActionRoute
-      Target: !Join
-        - '/'
-        - - 'integrations'
-          - !Ref ActionInteg
-  ActionInteg:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      Description: Action Integtration
-      IntegrationType: AWS_PROXY
-      IntegrationUri:
-          Fn::Sub:
-              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
-              -
-                  Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt ControlChannelFunction.Arn
-  ActionIntegrationResponse:
-    Type: AWS::ApiGatewayV2::IntegrationResponse
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      IntegrationId: !Ref ActionInteg
-      IntegrationResponseKey: "/200/"
-  ActionResponse:
-    Type: AWS::ApiGatewayV2::RouteResponse
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
-      RouteId: !Ref ActionRoute
+      RouteId: !Ref DefaultRoute
       RouteResponseKey: "$default"
   RealTimeDeployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
     - PingRoute
-    - RegisterCharacterRoute
-    - ActionRoute
+    - ConnectRoute
     - DisconnectRoute
+    - DefaultRoute
     Properties:
       ApiId: !Ref RealTimeWebSocket
   RealTimeStage:

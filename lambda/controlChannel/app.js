@@ -5,8 +5,10 @@ const { v4: uuidv4 } = require('/opt/uuid')
 
 const AWSXRay = require('aws-xray-sdk')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
+const { putPlayer, whoAmI } = require('./player')
+const { validateJWT } = require('./validateJWT')
 
 const REGION = process.env.AWS_REGION
 const dbClientBase = new DynamoDBClient({ region: REGION })
@@ -44,17 +46,39 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
 }
 
 const disconnect = async (connectionId) => {
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: ephemeraTable,
-        KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
-        ExpressionAttributeValues: marshall({
-            ":EphemeraId": "CHARACTERINPLAY#",
-            ":ConnectionId": connectionId
-        }),
-        IndexName: 'ConnectionIndex'
-    }))
+    const DataCategory = `CONNECTION#${connectionId}`
+    const [{ Items = [] }, { Items: PlayerItems = []}] = await Promise.all([
+        dbClient.send(new QueryCommand({
+            TableName: ephemeraTable,
+            KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
+            ExpressionAttributeValues: marshall({
+                ":EphemeraId": "CHARACTERINPLAY#",
+                ":ConnectionId": connectionId
+            }),
+            IndexName: 'ConnectionIndex'
+        })),
+        dbClient.send(new QueryCommand({
+            TableName: ephemeraTable,
+            IndexName: 'DataCategoryIndex',
+            KeyConditionExpression: 'DataCategory = :dc',
+            ExpressionAttributeValues: marshall({
+                ":dc": DataCategory
+            }),
+            ProjectionExpression: 'EphemeraId'
+        }))
+    ])
 
     await Promise.all([
+        ...(PlayerItems
+            .map(unmarshall)
+            .map(({ EphemeraId }) => (dbClient.send(new DeleteItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId,
+                    DataCategory
+                })
+            }))))
+        ),
         dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
@@ -116,24 +140,42 @@ const disconnect = async (connectionId) => {
     return { statusCode: 200 }
 }
 
-const connect = async (connectionId) => {
+//
+// TODO:  Create an authentication Lambda to attach to the $connect Route, and
+// use the validateJWT code (and passed Authorization querystring) to block
+// unauthenticated users from websocket access entirely..
+//
+const connect = async (connectionId, token) => {
 
-    await dbClient.send(new UpdateItemCommand({
-        TableName: ephemeraTable,
-        Key: marshall({
-            EphemeraId: 'Global',
-            DataCategory: 'Connections'
-        }),
-        UpdateExpression: 'ADD connections :connection',
-        ExpressionAttributeValues: {
-            ':connection': { 'SS': [connectionId] }
-        }
-    }))
-
-    return { statusCode: 200 }
+    const { userName } = await validateJWT(token)
+    if (userName) {
+        await Promise.all([
+            dbClient.send(new UpdateItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId: 'Global',
+                    DataCategory: 'Connections'
+                }),
+                UpdateExpression: 'ADD connections :connection',
+                ExpressionAttributeValues: {
+                    ':connection': { 'SS': [connectionId] }
+                }
+            })),
+            dbClient.send(new PutItemCommand({
+                TableName: ephemeraTable,
+                Item: marshall({
+                    EphemeraId: `PLAYER#${userName}`,
+                    DataCategory: `CONNECTION#${connectionId}`
+                })
+            }))
+        ])
+    
+        return { statusCode: 200 }
+    }
+    return { statusCode: 403 }
 }
 
-const registerCharacter = async ({ connectionId, CharacterId }) => {
+const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
 
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const { Item = {} } = await dbClient.send(new GetItemCommand({
@@ -193,10 +235,10 @@ const registerCharacter = async ({ connectionId, CharacterId }) => {
         }
         return {
             statusCode: 200,
-            body: JSON.stringify({ messageType: "Registered", CharacterId })
+            body: JSON.stringify({ RequestId, messageType: "Registered", CharacterId })
         }
     }
-    return { statusCode: 404 }
+    return { statusCode: 404, body: JSON.stringify({ messageType: 'Error', RequestId }) }
 
 }
 
@@ -388,7 +430,7 @@ const goHome = async ({ CharacterId } = {}) => {
 exports.disconnect = disconnect
 exports.connect = connect
 exports.registerCharacter = registerCharacter
-exports.handler = (event) => {
+exports.handler = (event, context) => {
 
     dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
 
@@ -396,7 +438,8 @@ exports.handler = (event) => {
     const request = event.body && JSON.parse(event.body) || {}
 
     if (routeKey === '$connect') {
-        return connect(connectionId)
+        const { Authorization = '' } = event.queryStringParameters || {}
+        return connect(connectionId, Authorization)
     }
     if (routeKey === '$disconnect') {
         return disconnect(connectionId)
@@ -404,11 +447,26 @@ exports.handler = (event) => {
     switch(request.message) {
         case 'registercharacter':
             if (request.CharacterId) {
-                return registerCharacter({ connectionId, CharacterId: request.CharacterId})
+                return registerCharacter({ connectionId, CharacterId: request.CharacterId, RequestId: request.RequestId })
             }
             break
         case 'fetchEphemera':
             return fetchEphemera()
+        case 'whoAmI':
+            const { userName } = request
+            if (userName) {
+                return whoAmI(dbClient, userName, request.RequestId)
+            }
+            else {
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        messageType: 'Error'
+                    })
+                }
+            }
+        case 'putPlayer':
+            return putPlayer(request.PlayerName)({ Characters: request.Characters, CodeOfConductConsent: request.CodeOfConductConsent })
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look
