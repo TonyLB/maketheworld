@@ -1,6 +1,4 @@
-import { Auth } from 'aws-amplify'
-
-import { subscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS, subscriptionSSMKeys } from './baseClasses'
+import { subscriptionSSMClassGenerator, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 import { getLifeLine } from '../../../selectors/communicationsLayer'
 import { socketDispatchPromise } from '../lifeLine'

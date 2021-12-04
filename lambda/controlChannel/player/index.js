@@ -82,7 +82,7 @@ const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductCo
         : ''
     const UpdateExpression = `SET ${[characterUpdate, conductUpdate].filter((value) => (value)).join(', ')}`
     const ExpressionAttributeValues = marshall({
-        ...(Characters !== undefined ? { ":characters": Characters } : {}),
+        ...(Characters !== undefined ? { ":characters": Characters.reduce((previous, { CharacterId, Name }) => ({ ...previous, [CharacterId]: { Name } }), {}) } : {}),
         ...(CodeOfConductConsent !== undefined ? { ":conduct": CodeOfConductConsent }: {})
     })
 
@@ -107,7 +107,7 @@ const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductCo
         body: JSON.stringify({
             messageType: 'Player',
             PlayerName,
-            Characters: Attributes.Characters || [],
+            Characters: Attributes.Characters || {},
             CodeOfConductConsent: Attributes.CodeOfConductConsent ?? false
         })
     }
@@ -129,7 +129,7 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
             body: JSON.stringify({
                 messageType: 'Player',
                 PlayerName: username,
-                Characters,
+                Characters: Object.entries(Characters || {}).reduce((previous, [CharacterId, { Name }]) => ([...previous, { CharacterId, Name }]), []),
                 CodeOfConductConsent,
                 RequestId
             })
