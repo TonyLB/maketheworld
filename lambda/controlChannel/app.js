@@ -6,9 +6,15 @@ const { v4: uuidv4 } = require('/opt/uuid')
 const AWSXRay = require('aws-xray-sdk')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
+const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
-const { putPlayer, whoAmI } = require('./player')
+const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
 const { validateJWT } = require('./validateJWT')
+
+const apiClient = new ApiGatewayManagementApiClient({
+    apiVersion: '2018-11-29',
+    endpoint: process.env.WEBSOCKET_API
+})
 
 const REGION = process.env.AWS_REGION
 const dbClientBase = new DynamoDBClient({ region: REGION })
@@ -242,11 +248,11 @@ const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
 
 }
 
-const fetchEphemera = async () => {
+const fetchEphemera = async (RequestId) => {
     const { Payload = {} } =  await lambdaClient.send(new InvokeCommand({
         FunctionName: process.env.EPHEMERA_SERVICE,
         InvocationType: 'RequestResponse',
-        Payload: new TextEncoder().encode(JSON.stringify({ action: 'fetchEphemera' }))
+        Payload: new TextEncoder().encode(JSON.stringify({ action: 'fetchEphemera', RequestId }))
     }))
     return {
         statusCode: 200,
@@ -430,7 +436,7 @@ const goHome = async ({ CharacterId } = {}) => {
 exports.disconnect = disconnect
 exports.connect = connect
 exports.registerCharacter = registerCharacter
-exports.handler = (event, context) => {
+exports.handler = async (event, context) => {
 
     dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
 
@@ -450,6 +456,75 @@ exports.handler = (event, context) => {
                 return registerCharacter({ connectionId, CharacterId: request.CharacterId, RequestId: request.RequestId })
             }
             break
+        case 'putCharacter':
+            //
+            // Long-term, the permanents table should have DBStreams enabled so that it
+            // will automatically message correctly on a simple update command.  Short-term,
+            // we coordinate updating the character and messaging the player here.
+            //
+            if (request.CharacterId) {
+                const { CharacterId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns, Player } = request
+                //
+                // TODO: Restructure permanents storage so that Player denormalizes Name information into the Characters
+                // item
+                //
+                const { Item: oldPlayerItem } = await dbClient.send(new GetItemCommand({
+                    TableName: permanentsTable,
+                    Key: marshall({
+                        PermanentId: `PLAYER#${Player}`,
+                        DataCategory: 'Details'
+                    })
+                }))
+                const oldPlayer = unmarshall(oldPlayerItem)
+                const newPlayerItem = {
+                    ...oldPlayer,
+                    Characters: [
+                        CharacterId,
+                        ...(oldPlayer.Characters.filter((oldCharacterId) => (oldCharacterId !== CharacterId)))
+                    ]
+                }
+                const notifyPromise = (Player && Name)
+                    ? getConnectionsByPlayerName(dbClient, Player)
+                        .then((connections) => {
+                            const { PermanentId, DataCategory, ...rest } = newPlayerItem
+                            const Data = JSON.stringify({
+                                messageType: 'Player',
+                                PlayerName: removeType(PermanentId),
+                                ...rest
+                            })
+                            return Promise.all(connections.map((ConnectionId) => (
+                                apiClient.send(new PostToConnectionCommand({
+                                    ConnectionId,
+                                    Data
+                                }))
+                            )))
+                        })
+                    : Promise.resolve()
+                await Promise.all([
+                    lambdaClient.send(new InvokeCommand({
+                        FunctionName: process.env.PERMANENTS_SERVICE,
+                        Payload: new TextEncoder().encode(JSON.stringify({
+                            action: "updatePermanents",
+                            Updates: [{
+                                putCharacter: {
+                                    CharacterId,
+                                    Name,
+                                    FirstImpression,
+                                    OneCoolThing,
+                                    Outfit,
+                                    Pronouns,
+                                    Player
+                                }
+                            },
+                            {
+                                putPlayer: newPlayerItem
+                            }]
+                        }))
+                    })),
+                    notifyPromise
+                ])
+            }
+            break;
         case 'fetchEphemera':
             return fetchEphemera()
         case 'whoAmI':

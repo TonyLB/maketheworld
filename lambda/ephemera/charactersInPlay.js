@@ -32,7 +32,9 @@ const getCharactersInPlay = async () => {
             IndexName: 'DataCategoryIndex'
         }))
     return Items.map(unmarshall)
-        .map(({ EphemeraId, RoomId, Connected }) => ({
+        .map(({ EphemeraId, RoomId, Connected, Name }) => ({
+            type: 'CharacterInPlay',
+            Name,
             CharacterId: removeType(EphemeraId),
             RoomId,
             Connected
@@ -112,12 +114,13 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
         await denormalizeCharacter({ CharacterId })
     }
     else {
-        queueAdd({ CharacterInPlay: {
+        queueAdd({
+            type: 'CharacterInPlay',
             Name: newRecord.Name,
             RoomId: newRecord.RoomId,
             CharacterId,
             Connected: newRecord.Connected
-        }})
+        })
     }
 }
 

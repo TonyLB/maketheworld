@@ -56,6 +56,8 @@ Resources:
           PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
           MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
           EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
+          PERMANENTS_SERVICE: !GetAtt PermanentsFunction.Arn
+          WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           COGNITO_USER_POOL_CLIENT:
             Fn::ImportValue:
               !Sub "${PermanentsStack}-UserPoolClient"
@@ -80,6 +82,7 @@ Resources:
               - !GetAtt PerceptionFunction.Arn
               - !GetAtt MessagePublishFunction.Arn
               - !GetAtt EphemeraFunction.Arn
+              - !GetAtt PermanentsFunction.Arn
         - Statement:
           - Effect: Allow
             Action: execute-api:ManageConnections

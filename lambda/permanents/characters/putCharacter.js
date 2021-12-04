@@ -13,7 +13,8 @@ exports.putCharacter = async ({
     FirstImpression,
     OneCoolThing,
     Outfit,
-    HomeId
+    HomeId,
+    Player
 }) => {
 
     const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: process.env.AWS_REGION }))
@@ -30,7 +31,8 @@ exports.putCharacter = async ({
                     FirstImpression,
                     OneCoolThing,
                     Outfit,
-                    HomeId
+                    HomeId,
+                    Player
                 }
             }
         })

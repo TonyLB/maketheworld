@@ -111,12 +111,11 @@ const denormalizeCharacterHelper = denormalizeFactory({
     reservedMapping: { Name: '#name' },
     feedbackCallback: (item) => {
         const returnValue = {
-            CharacterInPlay: {
-                Name: item.Name,
-                CharacterId: item.CharacterId,
-                Connected: item.Connected,
-                RoomId: item.RoomId
-            }
+            type: 'CharacterInPlay',
+            Name: item.Name,
+            CharacterId: item.CharacterId,
+            Connected: item.Connected,
+            RoomId: item.RoomId
         }
         queueAdd(returnValue)
         return [returnValue, item.ConnectionId]

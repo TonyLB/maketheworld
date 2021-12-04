@@ -1,4 +1,4 @@
-import { API, graphqlOperation } from 'aws-amplify'
+import { Auth, API, graphqlOperation } from 'aws-amplify'
 import { v4 as uuidv4 } from 'uuid'
 
 import { getPlayerCharacters } from '../graphql/queries'
@@ -50,7 +50,7 @@ export const putMyCharacter = ({
     outfit = '',
     oneCoolThing = '',
     homeId = ''
-}) => (dispatch, getState) => {
+}) => async (dispatch, getState) => {
     const state = getState()
     const player = getPlayer(state)
     const finalCharacterId = characterId || uuidv4()

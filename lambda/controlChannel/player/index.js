@@ -36,6 +36,30 @@ const getPlayerByConnectionId = async (dbClient, connectionId) => {
         }, '')
     return playerName
 }
+
+//
+// Returns all of the meta data about Player in the Ephemera table, as
+// well as a connections array of the currently active lifeLine connections
+//
+const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
+    const { Items = [] } = await dbClient.send(new QueryCommand({
+        TableName: ephemeraTable,
+        KeyConditionExpression: 'EphemeraId = :eid',
+        ExpressionAttributeValues: marshall({
+            ":eid": `PLAYER#${PlayerName}`
+        }),
+    }))
+    const returnVal = Items
+        .map(unmarshall)
+        .reduce((previous, { DataCategory }) => {
+            const [ itemType, itemKey ] = splitType(DataCategory)
+            if (itemType === 'CONNECTION') {
+                return [...previous, itemKey]
+            }
+            return previous
+        }, [])
+    return returnVal
+}
 //
 // TODO: Remove direct access to Characters list and instead make secured outlets for
 // adding characters and archiving them.
@@ -123,3 +147,4 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
 
 exports.putPlayer = putPlayer
 exports.whoAmI = whoAmI
+exports.getConnectionsByPlayerName = getConnectionsByPlayerName

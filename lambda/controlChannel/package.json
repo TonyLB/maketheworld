@@ -6,6 +6,7 @@
   "author": "SAM CLI",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.43.0",
     "@aws-sdk/client-dynamodb": "^3.13.0",
     "@aws-sdk/client-lambda": "^3.13.0",
     "@aws-sdk/util-dynamodb": "^3.13.0",
