@@ -8,20 +8,6 @@ export const FETCH_MY_CHARACTERS_ATTEMPT = 'FETCH_MY_CHARACTERS_ATTEMPT'
 export const RECEIVE_MY_CHARACTER_CHANGE = 'RECEIVE_MY_CHARACTER_CHANGE'
 export const RECEIVE_CHARACTER_CHANGES = 'RECEIVE_CHARACTER_CHANGES'
 
-export const receiveCharacterChanges = (characterChanges) => ({
-    type: RECEIVE_CHARACTER_CHANGES,
-    characterChanges
-})
-
-export const fetchMyCharactersAttempt = () => ({
-    type: FETCH_MY_CHARACTERS_ATTEMPT
-})
-
-export const fetchMyCharactersSuccess = (payload) => ({
-    type: FETCH_MY_CHARACTERS_SUCCESS,
-    payload
-})
-
 //
 // TODO: putMyCharacter function has not yet been QA-tested in the web-client.  When
 // a screen for updating character assets is live again, test.
@@ -48,8 +34,3 @@ export const putMyCharacter = ({
         ...(homeId ? { HomeId: homeId } : {})
     }))
 }
-
-export const receiveMyCharacterChange = (payload) => ({
-    type: RECEIVE_MY_CHARACTER_CHANGE,
-    payload
-})

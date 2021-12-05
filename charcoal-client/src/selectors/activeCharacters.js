@@ -33,6 +33,9 @@ export const getActiveCharacterState = (CharacterId) => (reduxState) => {
     return currentState
 }
 
+//
+// TODO: Rework this selector with @reduxjs/Toolkit in order to get the memoizing benefit of reselect
+//
 export const getActiveCharacterInPlayMessages = (CharacterId) => (state) => {
     const messages = getMessages(state)
     return messages

@@ -9,7 +9,7 @@
 import React, { useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { connectionRegister } from '../../actions/connection.js'
+// import { connectionRegister } from '../../actions/connection.js'
 import { getMyCharacters } from '../../selectors/player'
 import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
@@ -21,6 +21,7 @@ import AppLayout from '../AppLayout'
 import Profile from '../Profile'
 import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
+import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 import useCommunicationsLayer from '../useCommunicationsLayer'
 import InDevelopment from '../InDevelopment'
@@ -42,7 +43,7 @@ export const AppController = () => {
     const profileArgs = {
         myCharacters,
         onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
-        connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
+        // connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
         onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },
@@ -60,7 +61,7 @@ export const AppController = () => {
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
-        whoPanel={<InDevelopment />}
+        whoPanel={<WhoDrawer />}
     />
 }
 
