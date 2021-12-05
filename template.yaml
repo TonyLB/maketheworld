@@ -723,50 +723,6 @@ Resources:
           ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
           LambdaConfig:
               LambdaFunctionArn: !GetAtt EphemeraFunction.Arn
-  QueryGetRoomRecap:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getRoomRecap
-          DataSourceName: !GetAtt MessagesDataSource.Name
-          RequestMappingTemplate: >
-              $util.toJson({
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "action": "getRoomRecap",
-                    "RoomId": "$ctx.args.PermanentId"
-                  }
-              })
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  QuerySyncPermanentsResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: syncPermanents
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                    "action": "sync"
-                    #if ($ctx.args.limit)
-                    , "limit": "$ctx.args.limit"
-                    #end
-                    #if ($ctx.args.startingAt)
-                    , "startingAt": "$ctx.args.startingAt"
-                    #end
-                    #if ($ctx.args.exclusiveStartKey)
-                    , "exclusiveStartKey": $util.toJson($ctx.args.exclusiveStartKey)
-                    #end
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   PermanentsFunction:
       Type: AWS::Serverless::Function
       DependsOn:
@@ -1468,8 +1424,6 @@ Resources:
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
-                  getRoomRecap(PermanentId: String!): [Message]
-                  syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse
                   syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
               }
               type Subscription {

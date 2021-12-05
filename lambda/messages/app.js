@@ -115,8 +115,8 @@ exports.handler = (event, context) => {
             case "sync":
                 return sync(payload)
 
-            case "getRoomRecap":
-                return getRoomRecap(event.RoomId)
+            // case "getRoomRecap":
+            //     return getRoomRecap(event.RoomId)
 
             case "updateMessages":
                 return updateDispatcher(payload)

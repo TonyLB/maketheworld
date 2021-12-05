@@ -82,8 +82,8 @@ exports.handler = (event, context) => {
         // case "getPlayerCharacters":
         //     return getPlayerCharacters(payload)
 
-        case "sync":
-            return sync(payload)
+        // case "sync":
+        //     return sync(payload)
 
         case "updatePermanents":
             return updateDispatcher(payload)
