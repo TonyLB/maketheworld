@@ -499,19 +499,20 @@ exports.handler = async (event, context) => {
                 const oldPlayer = unmarshall(oldPlayerItem)
                 const newPlayerItem = {
                     ...oldPlayer,
-                    Characters: [
-                        CharacterId,
-                        ...(oldPlayer.Characters.filter((oldCharacterId) => (oldCharacterId !== CharacterId)))
-                    ]
+                    Characters: {
+                        ...oldPlayer.Characters,
+                        [CharacterId]: { Name }
+                    }
                 }
                 const notifyPromise = (Player && Name)
                     ? getConnectionsByPlayerName(dbClient, Player)
                         .then((connections) => {
-                            const { PermanentId, DataCategory, ...rest } = newPlayerItem
+                            const { PermanentId, DataCategory, Characters, ...rest } = newPlayerItem
                             const Data = JSON.stringify({
                                 messageType: 'Player',
                                 PlayerName: removeType(PermanentId),
                                 RequestId,
+                                Characters: Object.entries(Characters).map(([CharacterId, rest]) => ({ CharacterId, ...rest })),
                                 ...rest
                             })
                             return Promise.all(connections.map((ConnectionId) => (

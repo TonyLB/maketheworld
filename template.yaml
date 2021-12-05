@@ -714,15 +714,6 @@ Resources:
               - Effect: Allow
                 Action: execute-api:ManageConnections
                 Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
-  EphemeraDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: CharactersInPlayLambda
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt EphemeraFunction.Arn
   PermanentsFunction:
       Type: AWS::Serverless::Function
       DependsOn:
@@ -770,15 +761,6 @@ Resources:
                   - lambda:InvokeFunction
                 Resource:
                   - !GetAtt EphemeraFunction.Arn
-  PermanentsDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: PermanentsLambda
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt PermanentsFunction.Arn
   AssetBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -1010,26 +992,6 @@ Resources:
                   - lambda:InvokeFunction
                 Resource:
                   - !GetAtt MessagePublishFunction.Arn
-  MutationUpdatePermanents:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - PermanentsDataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: updatePermanents
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "updatePermanents",
-                      "Updates": $utils.toJson($ctx.args.Updates)
-                  }
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   MutationUpdateMessages:
       Type: AWS::AppSync::Resolver
       DependsOn:
@@ -1327,13 +1289,7 @@ Resources:
                 Exit: Exit
               }
               input PermanentInput @aws_iam @aws_cognito_user_pools {
-                putNeighborhood: NeighborhoodInput
-                putMap: MapInput
-                putSettings: SettingsInput
-                putBackup: BackupInput
-                putRoom: RoomInput
                 putCharacter: CharacterInput
-                putExit: ExitInput
                 deleteExit: ExitInput
               }
               type LastEvaluatedKey @aws_iam @aws_cognito_user_pools {
@@ -1371,10 +1327,6 @@ Resources:
                   ): String
                   @aws_iam @aws_cognito_user_pools
                   broadcastMessage(Message: MessageInput): Message
-                  @aws_iam @aws_cognito_user_pools
-                  updatePermanents(
-                      Updates: [PermanentInput]
-                  ): [ChangedPermanent]
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
