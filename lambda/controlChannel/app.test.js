@@ -1,26 +1,7 @@
-jest.mock('./utilities', () => ({
-    documentClient: {
-        get: jest.fn(),
-        query: jest.fn(),
-        update: jest.fn(),
-        put: jest.fn()
-    },
-    graphqlClient: {
-        mutate: jest.fn(async () => {})
-    },
-    gql: jest.fn((strings, ...args) => {
-        const returnVal = strings.reduce((previous, entry, index) => (previous + entry + (args[index] || '')), '')
-        return returnVal.split("\n").map((innerVal) => (innerVal.trim())).join('\n')
-    }),
-    SNS: {
-        publish: jest.fn(() => ({ promise: () => ( Promise.resolve({}) )}))
-    }
-}))
 jest.mock('/opt/uuid', () => ({
     v4: jest.fn().mockReturnValue('TestUUID')
 }))
 const { disconnect, registerCharacter } = require('./app')
-const { documentClient, graphqlClient, SNS } = require('./utilities')
 
 describe("disconnect", () => {
     beforeEach(() => {
@@ -72,19 +53,6 @@ describe("disconnect", () => {
         const data = await disconnect('123')
         expect(graphqlClient.mutate.mock.calls.length).toBe(1)
         expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: expectedGraphQL })
-        expect(SNS.publish).toHaveBeenCalledWith({
-            Message: JSON.stringify({
-                putMessage: {
-                    Characters: ['ABC', 'DEF'],
-                    DisplayProtocol: 'World',
-                    WorldMessage: {
-                        Message: 'Test has disconnected.'
-                    },
-                    MessageId: 'TestUUID',
-                    RoomId: '123'
-                }
-            }, null, 4)
-        })
         expect(data).toEqual({ statusCode: 200 })
     })
     it("should update when called against multiple connected characters", async () => {
@@ -146,32 +114,6 @@ describe("disconnect", () => {
         expect(graphqlClient.mutate.mock.calls.length).toBe(2)
         expect(graphqlClient.mutate.mock.calls[0][0]).toEqual({ mutation: expectedGraphQL[0] })
         expect(graphqlClient.mutate.mock.calls[1][0]).toEqual({ mutation: expectedGraphQL[1] })
-        expect(SNS.publish).toHaveBeenCalledWith({
-            Message: JSON.stringify({
-                putMessage: {
-                    Characters: ['ABC'],
-                    DisplayProtocol: 'World',
-                    WorldMessage: {
-                        Message: 'Test One has disconnected.'
-                    },
-                    MessageId: 'TestUUID',
-                    RoomId: '123'
-                }
-            }, null, 4)
-        })
-        expect(SNS.publish).toHaveBeenCalledWith({
-            Message: JSON.stringify({
-                putMessage: {
-                    Characters: ['DEF', 'GHI'],
-                    DisplayProtocol: 'World',
-                    WorldMessage: {
-                        Message: 'Test Two has disconnected.'
-                    },
-                    MessageId: 'TestUUID',
-                    RoomId: '456'
-                }
-            }, null, 4)
-        })
         expect(data).toEqual({ statusCode: 200 })
     })
 })

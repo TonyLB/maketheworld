@@ -1,10 +1,7 @@
-import { API, graphqlOperation } from 'aws-amplify'
-import { updateMessages } from '../graphql/mutations'
 import { syncMessages as syncMessagesGQL } from '../graphql/queries'
-import { addedMessage } from '../graphql/subscriptions'
 import { v4 as uuidv4 } from 'uuid'
+import { socketDispatch } from './communicationsLayer/lifeLine'
 
-import { getActiveCharactersInRoom } from '../selectors/charactersInPlay'
 import cacheDB from '../cacheDB'
 import { deltaFactory } from './deltaSync'
 import { addSubscription } from './subscriptions'
@@ -40,22 +37,16 @@ export const setMessageOpen = ({ MessageId, open }) => ({
 // better structures are in place for such messaging), and you should be able to remove updateMessages
 // and the message Subscription from AppSync (leaving only message Sync)
 //
-export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => (dispatch, getState) => {
+export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => async (dispatch, getState) => {
     if (Message) {
-        return API.graphql(graphqlOperation(updateMessages, { Updates: [{ putMessage: {
-            RoomId: null,
-            Characters,
-            MessageId: uuidv4(),
-            DisplayProtocol: "Direct",
-            DirectMessage: {
-                CharacterId,
-                Message,
-                Recipients
-            }
-        }}]}))
-        .catch((err) => { console.log(err)})
+        dispatch(socketDispatch('directMessage')({
+            CharacterId,
+            Targets: Characters.map((characterId) => (`CHARACTER#${characterId}`)),
+            Recipients,
+            Message
+        }))
     }
-    return Promise.resolve({})
+    return {}
 }
 
 export const fetchCachedMessages = (CharacterId) => async (dispatch) => {

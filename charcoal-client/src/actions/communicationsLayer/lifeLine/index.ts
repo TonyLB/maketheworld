@@ -185,7 +185,6 @@ export const socketDispatchPromise = (messageType: any) => (payload: any) => (di
         const RequestId = uuidv4()
         return new Promise<LifeLinePubSubData>((resolve, reject) => {
             LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
-                console.log(`Testing payload: ${JSON.stringify(payload, null, 4)}`)
                 const { RequestId: compareRequestId, ...rest } = payload
                 if (compareRequestId === RequestId) {
                     unsubscribe()

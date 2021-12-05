@@ -54,7 +54,6 @@ export const ActiveCharacter = ({ CharacterId, children }) => {
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const inPlayMessages = useSelector(getActiveCharacterInPlayMessages(CharacterId))
     const info = useSelector(getCharacters)[CharacterId]
-    console.log(`Info: ${JSON.stringify(info, null, 4)}`)
     //
     // TODO:  Rewrite commands available in ActiveCharacterContext to correspond to what
     // the SSM actually provides

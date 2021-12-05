@@ -1,11 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const updateMessages = /* GraphQL */ `
-  mutation UpdateMessages($Updates: [MessageUpdateInput]) {
-    updateMessages(Updates: $Updates)
-  }
-`;
 export const broadcastMessage = /* GraphQL */ `
   mutation BroadcastMessage($Message: MessageInput) {
     broadcastMessage(Message: $Message) {

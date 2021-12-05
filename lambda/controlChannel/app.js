@@ -554,6 +554,20 @@ exports.handler = async (event, context) => {
             return whoAmI(dbClient, connectionId, request.RequestId)
         case 'putPlayer':
             return putPlayer(request.PlayerName)({ Characters: request.Characters, CodeOfConductConsent: request.CodeOfConductConsent })
+        case 'directMessage':
+            await lambdaClient.send(new InvokeCommand({
+                FunctionName: process.env.MESSAGE_SERVICE,
+                InvocationType: 'Event',
+                Payload: new TextEncoder().encode(JSON.stringify({ Messages: [{
+                    Targets: request.Targets,
+                    DisplayProtocol: "Direct",
+                    Message: request.Message,
+                    Recipients: request.Recipients,
+                    CharacterId: request.CharacterId,
+                    MessageId: uuidv4()
+                }]}))
+            }))
+            break;
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look

@@ -792,27 +792,6 @@ Resources:
                   - lambda:InvokeFunction
                 Resource:
                   - !GetAtt MessagePublishFunction.Arn
-  MutationUpdateMessages:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - MessagesDataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: updateMessages
-          DataSourceName: !GetAtt MessagesDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "updateMessages",
-                      "Updates": $utils.toJson($ctx.args.Updates)
-                  }
-              }
-          ResponseMappingTemplate: >
-              "Updated"
   MutationBroadcastMessage:
     Type: AWS::AppSync::Resolver
     DependsOn:
@@ -969,10 +948,6 @@ Resources:
                 LastSync: Long
               }
               type Mutation {
-                  updateMessages(
-                      Updates: [MessageUpdateInput]
-                  ): String
-                  @aws_iam @aws_cognito_user_pools
                   broadcastMessage(Message: MessageInput): Message
                   @aws_iam @aws_cognito_user_pools
               }

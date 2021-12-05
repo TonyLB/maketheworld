@@ -72,7 +72,6 @@ export const reducer = (state = [], action) => {
                 }
             }, state).sort(messageSort)
         case RECEIVE_JSON_MESSAGES:
-            console.log('Payload', payload)
             return (payload || []).reduce((previous, { DisplayProtocol = '', ...rest }) => {
                 const revisedPrevious = previous.filter(({ MessageId, Target }) => (MessageId !== rest.MessageId || Target !== rest.Target))
                 const newMessage = messageFromJson({ DisplayProtocol, ...rest })
