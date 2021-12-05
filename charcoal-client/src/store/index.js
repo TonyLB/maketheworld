@@ -1,6 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
 import thunk from 'redux-thunk'
-import backups from '../reducers/backups.js'
 import messages from '../reducers/messages.js'
 import player from '../reducers/player'
 import charactersInPlay from '../reducers/charactersInPlay.js'
@@ -14,7 +13,6 @@ import navigationTabs from '../slices/navigationTabs'
 
 export const store = configureStore({
     reducer: {
-        backups,
         communicationsLayer,
         charactersInPlay,
         clientSettings,
