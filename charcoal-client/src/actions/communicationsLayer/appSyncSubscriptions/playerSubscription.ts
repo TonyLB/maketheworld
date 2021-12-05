@@ -1,25 +1,19 @@
-import { Auth, API, graphqlOperation } from 'aws-amplify'
-import { getPlayer } from '../../../graphql/queries'
-import { changedPlayer } from '../../../graphql/subscriptions'
-
-import { registerCharacterSSM } from '../../activeCharacters'
-import { subscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS, subscriptionSSMKeys } from './baseClasses'
+import { subscriptionSSMClassGenerator, subscriptionSSMKeys } from './baseClasses'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
-
-import { receiveMyCharacterChange } from '../../characters'
+import { getLifeLine } from '../../../selectors/communicationsLayer'
+import { socketDispatchPromise } from '../lifeLine'
+import { LifeLineData } from '../lifeLine/baseClass'
+import { PlayerData } from '../lifeLine/player'
 
 export const PLAYER_UPDATE = 'PLAYER_UPDATE'
 export const GRANT_UPDATE = 'GRANT_UPDATE'
 export const GRANT_REVOKE = 'GRANT_REVOKE'
 
 class PlayerSubscriptionData {
-    PlayerName: string = ''
-}
-
-class PlayerData {
-    PlayerName: string = ''
-    CodeOfConductConsent: boolean = false
-    Characters: string[] = []
+    PlayerName: string = '';
+    subscription?: {
+        unsubscribe: () => void
+    }
 }
 
 const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
@@ -27,92 +21,52 @@ const playerUpdate = (playerData: PlayerData) => (dispatch: any) => {
         type: PLAYER_UPDATE,
         data: playerData
     })
-    // const characters = playerData.Characters ?? []
-    // characters.forEach((CharacterId) => {
-    //     dispatch(registerCharacterSSM({ CharacterId, defaultIntent: 'SYNCHRONIZED' }))
-    // })
 }
-
-const fetchPlayer = (username: string) => async (dispatch: any) => {
-    const response = await (API.graphql(graphqlOperation(getPlayer, { PlayerName: username })) ?? {}) as any
-    const playerData = response.data?.getPlayer || { PlayerName: username }
-    await dispatch(playerUpdate(playerData))
-}
-
-const grantUpdate = (grantData: any) => ({
-    type: GRANT_UPDATE,
-    payload: grantData
-})
-
-const grantRevoke = (grantData: any) => ({
-    type: GRANT_REVOKE,
-    payload: grantData
-})
-
 
 //
-// TODO:  Specify the details of this interface
+// TODO: Step 4
 //
-interface IChangedPlayer {
-    Type?: string;
-    PlayerInfo?: PlayerData;
-    CharacterInfo?: any;
-    GrantInfo?: any;
-}
-
+// Remove supporting graphQL operations (putPlayer, the putGrant/revokeGrant section of
+// updatePermanent, and much of the functionality of putCharacter in updatePermanent)
+//
 const subscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
-    const { username = '' } = await Auth.currentAuthenticatedUser()
+    const lifeLine = getLifeLine(getState()) as LifeLineData
 
-    const playerSubscription = (API.graphql(graphqlOperation(changedPlayer, { PlayerName: username})) as any)
-        .subscribe({
-            next: (message: { value?: { data?: { changedPlayer?: IChangedPlayer } } } = {}) => {
-                const { Type, PlayerInfo, CharacterInfo, GrantInfo } = message.value?.data?.changedPlayer ?? { Type: '' }
-                if (PlayerInfo) {
-                    dispatch(playerUpdate(PlayerInfo))
-                }
-                if (CharacterInfo) {
-                    dispatch(receiveMyCharacterChange(CharacterInfo))
-                }
-                if (GrantInfo) {
-                    switch(Type) {
-                        case 'GRANT':
-                            dispatch(grantUpdate(GrantInfo))
-                            break;
-                        case 'REVOKE':
-                            dispatch(grantRevoke(GrantInfo))
-                            break;
-                        default:
-                    }
-                }
-            }
-        })
-
-    dispatch({
-        type: SUBSCRIPTION_SUCCESS,
-        payload: { player: playerSubscription }
+    const lifeLineSubscription = lifeLine.subscribe(({ payload }) => {
+        if (payload.messageType === 'Player') {
+            const { messageType, RequestId, ...rest } = payload
+            dispatch(playerUpdate(rest))
+        }
     })
-    return { PlayerName: username }
+
+    return { subscription: lifeLineSubscription }
 }
 
-const unsubscribeAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
-    const playerSubscription: any = getState().communicationsLayer.appSyncSubscriptions.player?.subscription
-    if (playerSubscription) {
-        await playerSubscription.unsubscribe()
+const unsubscribeAction = ({ subscription }: PlayerSubscriptionData) => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
+    if (subscription) {
+        subscription.unsubscribe()
     }
-    return Promise.resolve({})
+    return { subscription: undefined }
 }
 
-const syncAction = ({ PlayerName: username }: PlayerSubscriptionData) => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
-    dispatch(fetchPlayer(username))
+const syncAction = () => async (dispatch: any, getState: any): Promise<Partial<PlayerSubscriptionData>> => {
+    //
+    // The ControlChannel function already knows (from initialization of the WebSocket),
+    // who the player is.  We get their state details from the back-end.
+    //
+    await dispatch(socketDispatchPromise('whoAmI')({}))
     return {}
 }
 //
-// Configure subscription and synchronization for Players DB table
+// Configure subscription and synchronization for Player info
 //
 export class PlayerSubscriptionTemplate extends subscriptionSSMClassGenerator<PlayerSubscriptionData, 'PlayerSubscription'>({
     ssmType: 'PlayerSubscription',
     initialData: new PlayerSubscriptionData(),
-    condition: () => (true),
+    condition: (_, getState) => {
+        const { status } = getLifeLine(getState())
+        return status === 'CONNECTED'
+    },
     subscribeAction,
     unsubscribeAction,
     syncAction

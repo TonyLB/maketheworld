@@ -1,9 +1,4 @@
-import {
-    FETCH_CHARACTERS_IN_PLAY_ATTEMPT,
-    FETCH_CHARACTERS_IN_PLAY_SUCCESS,
-    RECEIVE_CHARACTERS_IN_PLAY_CHANGE
-} from '../actions/characters.js'
-import { RECEIVE_EPHEMERA_CHANGE } from '../actions/ephemera.js'
+import { RECEIVE_EPHEMERA_CHANGE } from '../actions/communicationsLayer/appSyncSubscriptions/ephemeraSubscription'
 
 const colorSequence = ['pink', 'purple', 'green']
     .map(color => ({
@@ -14,94 +9,31 @@ const colorSequence = ['pink', 'purple', 'green']
         direct: `direct${color}`
     }))
 
-const ephemeraMergeReducer = (state, { CharacterInPlay }) => {
-    if (CharacterInPlay) {
-        const { CharacterId, RoomId, Connected, Name } = CharacterInPlay
-        const nextColorIndex = (Object.values(state).length + 2) % 3
-        return {
-            ...state,
-            [CharacterId]: {
-                CharacterId,
-                RoomId,
-                Connected,
-                Name,
-                color: (state && state[CharacterId] && state[CharacterId].color) || colorSequence[nextColorIndex]
+const ephemeraMergeReducer = (state, { type, ...rest }) => {
+    switch(type) {
+        case 'CharacterInPlay':
+            const { CharacterId, RoomId, Connected, Name } = rest
+            const nextColorIndex = (Object.values(state).length + 2) % 3
+            return {
+                ...state,
+                [CharacterId]: {
+                    CharacterId,
+                    RoomId,
+                    Connected,
+                    Name,
+                    color: (state && state[CharacterId] && state[CharacterId].color) || colorSequence[nextColorIndex]
+                }
             }
-        }
+        default:
+            return state
     }
-    return state
 }
 
 export const reducer = (state = '', action = {}) => {
     const { type: actionType = "NOOP", payload = '' } = action
     switch (actionType) {
-        case FETCH_CHARACTERS_IN_PLAY_ATTEMPT:
-            return {
-                ...state,
-                meta: {
-                    ...(state.meta || {}),
-                    fetching: true,
-                    fetched: false
-                }
-            }
-        case FETCH_CHARACTERS_IN_PLAY_SUCCESS:
-            const alreadyColorMappedPayload = payload
-                .map(({ CharacterId, ...rest }) => ({
-                    CharacterId,
-                    ...rest,
-                    color: (state && state[CharacterId] && state[CharacterId].color)
-                }))
-            const colorStartingIndex = alreadyColorMappedPayload.filter(({ color }) => color).length % 3
-            const finalColorMappedPayload = [
-                ...alreadyColorMappedPayload.filter(({ color }) => (color)),
-                ...alreadyColorMappedPayload.filter(({ color }) => (!color))
-                    .map((item, index) => ({ ...item, color: colorSequence[(index + colorStartingIndex) % 3]}))
-            ]
-            const mappedPayload = finalColorMappedPayload
-                .reduce((previous, {
-                    CharacterId,
-                    Character,
-                    RoomId,
-                    Connected,
-                    color
-                }) => ({
-                    ...previous,
-                    [CharacterId]: {
-                        CharacterId,
-                        RoomId,
-                        Connected,
-                        ...Character,
-                        color
-                    }
-                }), {})
-            return {
-                ...state,
-                meta: {
-                    ...(state.meta || {}),
-                    fetching: false,
-                    fetched: true
-                },
-                ...mappedPayload
-            }
-        case RECEIVE_CHARACTERS_IN_PLAY_CHANGE:
-            const { CharacterId, Character, ...rest } = action.payload || {}
-            if (CharacterId) {
-                const nextColorIndex = (Object.values(state).length + 2) % 3
-                return {
-                    ...state,
-                    [CharacterId]: {
-                        CharacterId,
-                        ...Character,
-                        ...rest,
-                        color: (state && state[CharacterId] && state[CharacterId].color) || colorSequence[nextColorIndex]
-                    }
-                }
-            }
-            else {
-                return state
-            }
         case RECEIVE_EPHEMERA_CHANGE:
-            return (action.payload || []).reduce(ephemeraMergeReducer, state)
+            return (payload || []).reduce(ephemeraMergeReducer, state)
         default: return state
     }
 }

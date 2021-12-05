@@ -1,10 +1,12 @@
+import { v4 as uuidv4 } from 'uuid'
+import { Auth } from 'aws-amplify'
+
 import { WSS_ADDRESS } from '../../../config'
 import { registerSSM, assertIntent, externalStateChange } from '../../stateSeekingMachine'
 import { getLifeLine } from '../../../selectors/communicationsLayer'
 import { lifeLineSSMKeys, ILifeLineSSM, LifeLineData, ILifeLineState, LifeLineSSMKey } from './baseClass'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
-import { MessageFormat } from './messages'
-import { EphemeraFormat } from './ephemera'
+import { LifeLinePubSubData } from './lifeLine'
 
 import { PubSub } from '../../../lib/pubSub'
 import { RECEIVE_EPHEMERA_CHANGE } from '../appSyncSubscriptions/ephemeraSubscription'
@@ -15,53 +17,43 @@ export const ESTABLISH_WEB_SOCKET_SUCCESS = 'ESTABLISH_WEB_SOCKET_SUCCESS'
 export const DISCONNECT_WEB_SOCKET = 'DISCONNECT_WEB_SOCKET'
 export const RECEIVE_JSON_MESSAGES = 'RECEIVE_JSON_MESSAGES'
 
-type LifeLineRegisterMessage = {
-    messageType: 'Registered';
-    CharacterId: string;
-}
-
-type LifeLineReceiveMessage = {
-    messageType: 'Messages',
-    messages: MessageFormat[]
-}
-
-type LifeLineReceiveEphemera = {
-    messageType: 'Ephemera',
-    updates: EphemeraFormat[]
-}
-
-type LifeLinePubSubData = LifeLineRegisterMessage | LifeLineReceiveMessage | LifeLineReceiveEphemera
-
-const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
+export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
 const stateUpdate = (newState: lifeLineSSMKeys) => externalStateChange<lifeLineSSMKeys>({ key: LifeLineSSMKey, newState })
 
-export const establishWebSocket = ({ webSocket }: LifeLineData) => (dispatch: any): Promise<Partial<LifeLineData>> => {
-    return new Promise<LifeLineData>((resolve, reject) => {
-        let setupSocket = new WebSocket(WSS_ADDRESS)
-        setupSocket.onopen = () => {
-            //
-            // Make sure that any previous websocket is disconnected.
-            //
-            if (webSocket) {
-                dispatch(disconnectWebSocket)
+export const establishWebSocket = ({ webSocket, incrementalBackoff }: LifeLineData) => (dispatch: any): Promise<Partial<LifeLineData>> => {
+    //
+    // Pull a Cognito authentication token in order to connect to the webSocket
+    //
+    return Auth.currentSession()
+        .then((session) => (session.getIdToken().getJwtToken()))
+        .then((token) => (new Promise<Partial<LifeLineData>>((resolve, reject) => {
+            let setupSocket = new WebSocket(`${WSS_ADDRESS}?Authorization=${token}`)
+            setupSocket.onopen = () => {
+                //
+                // Make sure that any previous websocket is disconnected.
+                //
+                if (webSocket) {
+                    dispatch(disconnectWebSocket)
+                }
+                const pingInterval = setInterval(() => { dispatch(socketDispatch('ping')({})) }, 300000)
+                const refreshTimeout = setTimeout(() => { dispatch(stateUpdate('STALE')) }, 3600000 )
+                resolve({
+                    webSocket: setupSocket,
+                    pingInterval,
+                    refreshTimeout,
+                    incrementalBackoff: 0.5
+                })
             }
-            const pingInterval = setInterval(() => { dispatch(socketDispatch('ping')({})) }, 300000)
-            const refreshTimeout = setTimeout(() => { dispatch(stateUpdate('STALE')) }, 3600000 )
-            resolve({
-                webSocket: setupSocket,
-                pingInterval,
-                refreshTimeout
-            })
-        }
-        setupSocket.onmessage = (event) => {
-            const payload = JSON.parse(event.data || {}) as LifeLinePubSubData
-            LifeLinePubSub.publish(payload)
-        }
-        setupSocket.onerror = (event) => {
-            reject()
-        }    
-    })
+            setupSocket.onmessage = (event) => {
+                const payload = JSON.parse(event.data || {}) as LifeLinePubSubData
+                LifeLinePubSub.publish(payload)
+            }
+            setupSocket.onerror = (event) => {
+                setTimeout(() => { reject({ incrementalBackoff: Math.min(incrementalBackoff * 2, 20000) })}, 1000 * incrementalBackoff)
+            }
+        })
+    ))
 }
 
 export const disconnectWebSocket = ({ webSocket, pingInterval, refreshTimeout }: LifeLineData) => async (dispatch: any, getState: any) => {
@@ -88,7 +80,7 @@ export const disconnectWebSocket = ({ webSocket, pingInterval, refreshTimeout }:
 export class LifeLineTemplate implements ILifeLineSSM {
     ssmType: 'LifeLine' = 'LifeLine'
     initialState: lifeLineSSMKeys = 'INITIAL'
-    initialData: LifeLineData = new LifeLineData()
+    initialData: LifeLineData = new LifeLineData(LifeLinePubSub)
     states: Record<lifeLineSSMKeys, ILifeLineState> = {
         INITIAL: {
             stateType: 'CHOICE',
@@ -163,40 +155,81 @@ const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubS
     }
 }
 
-const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData }) => {
-    if (payload.messageType === 'Ephemera') {
-        dispatch({
-            type: RECEIVE_EPHEMERA_CHANGE,
-            payload: payload.updates
-        })
-    }
-}
+// const receiveEphemera = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData }) => {
+//     if (payload.messageType === 'Ephemera') {
+//         dispatch({
+//             type: RECEIVE_EPHEMERA_CHANGE,
+//             payload: payload.updates
+//         })
+//     }
+// }
 
 export const registerLifeLineSSM = (dispatch: any): void => {
     dispatch(registerSSM({ key: 'LifeLine', template: new LifeLineTemplate(), defaultIntent: 'CONNECTED' }))
     LifeLinePubSub.subscribe(receiveMessages(dispatch))
-    LifeLinePubSub.subscribe(receiveEphemera(dispatch))
+    // LifeLinePubSub.subscribe(receiveEphemera(dispatch))
 }
 
 export const fetchEphemera = (dispatch: any) => {
     dispatch(socketDispatch('fetchephemera'))()
 }
 
+//
+// socketDispatchPromise lets the back-end label which RequestId a given message responds-to/resolves.
+// This lets some message types associate an expected round-trip and return a Promise that watches
+// for that (similar to how HTTP calls are processed).
+//
+export const socketDispatchPromise = (messageType: any) => (payload: any) => (dispatch: any, getState: any) => {
+    const { status, webSocket }: any = getLifeLine(getState()) || {}
+    if (webSocket && status === 'CONNECTED') {
+        const RequestId = uuidv4()
+        return new Promise<LifeLinePubSubData>((resolve, reject) => {
+            LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
+                console.log(`Testing payload: ${JSON.stringify(payload, null, 4)}`)
+                const { RequestId: compareRequestId, ...rest } = payload
+                if (compareRequestId === RequestId) {
+                    unsubscribe()
+                    if (payload.messageType === 'Error') {
+                        reject(rest)
+                    }
+                    else {
+                        resolve(rest)
+                    }
+                }
+            })
+            webSocket.send(JSON.stringify({
+                message: messageType,
+                RequestId,
+                ...payload
+            }))
+        })
+    }
+    else {
+        //
+        // TODO: Don't immediately reject on unconnected websocket:  Cache the
+        // data in a way that will get flushed when the socket reopens
+        //
+        return Promise.reject({
+            messageType
+        })
+    }
+}
+
 export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
     //
-    // TODO:  Create error messaging that rejects the promise if it gets some sort
-    // of register failure.
+    // TODO:
     //
-    new Promise((resolve: any, reject: any) => {
-        LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
-            if (payload.messageType === 'Registered') {
-                const { CharacterId: registeredCharacterId } = payload
-                if (CharacterId === registeredCharacterId) {
-                    unsubscribe()
-                    resolve({})
-                }
-            }
+    //   * Remove debug messages
+    //   * Refactor calls to registerCharacter to directly use socketDispatchPromise,
+    //     and handle both resolve and reject outcomes (rather than assuming a
+    //     successful resolution)
+    //
+    dispatch(socketDispatchPromise('registercharacter')({ CharacterId }))
+        .then((value: any) => {
+            console.log(`Socket Dispatch return: ${JSON.stringify(value, null, 4)}`)
         })
-        dispatch(socketDispatch('registercharacter')({ CharacterId }))
-    })
+        .catch((error: any) => {
+            console.log(`Socket Error: ${JSON.stringify(error, null, 4)}`)
+        })
+
 )

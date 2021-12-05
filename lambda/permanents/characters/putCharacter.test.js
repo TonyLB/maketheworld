@@ -11,74 +11,7 @@ jest.mock('/opt/uuid', () => ({
 const { v4: uuid } = require('/opt/uuid')
 
 const { putCharacter } = require('./putCharacter')
-const { documentClient, graphqlClient } = require('../utilities')
-
-const stripMultiline = (value) => (value.split("\n").map((innerVal) => (innerVal.trim())).join('\n'))
-
-const testGQLOutput = stripMultiline(`Neighborhood {
-    PermanentId
-    Name
-    Description
-    ParentId
-    Visibility
-    Topology
-    ContextMapId
-  }
-  Room {
-    PermanentId
-    Name
-    Description
-    ParentId
-    Visibility
-    Topology
-  }
-  Map {
-    MapId
-    Name
-    Rooms {
-      PermanentId
-      X
-      Y
-      Locked
-    }
-  }
-  Settings {
-    ChatPrompt
-  }
-  Role {
-      RoleId
-      Name
-      Actions
-  }
-  Backup {
-    PermanentId
-    Name
-    Description
-    Status
-  }
-  Character {
-    PlayerName
-    Name
-    CharacterId
-    Pronouns
-    FirstImpression
-    Outfit
-    OneCoolThing
-    HomeId
-  }
-  Grant {
-    CharacterId
-    Resource
-    Actions
-    Roles
-    Revoke
-  }
-  Exit {
-    FromRoomId
-    ToRoomId
-    Name
-    Delete
-  }`)
+const { documentClient } = require('../utilities')
 
 describe("putCharacter", () => {
     const realDateNow = Date.now.bind(global.Date)

@@ -1,4 +1,4 @@
-import { registerSSM, assertIntent } from '../../stateSeekingMachine'
+import { registerSSM } from '../../stateSeekingMachine'
 import { PermanentsSubscriptionTemplate } from './permanentsSubscription'
 import { PlayerSubscriptionTemplate } from './playerSubscription'
 import { EphemeraSubscriptionTemplate } from './ephemeraSubscription'

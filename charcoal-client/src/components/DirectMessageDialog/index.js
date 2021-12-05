@@ -18,14 +18,14 @@ import { closeDirectMessageDialog } from '../../actions/UI/directMessageDialog'
 import { sendDirectMessage } from '../../actions/messages'
 import { getDirectMessageTargetUI } from '../../selectors/UI/directMessageDialog.js'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
-import { getCharacterId } from '../../selectors/connection'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 import useStyles from '../styles'
 
 export const DirectMessageDialog = () => {
     const ToCharacterId = useSelector(getDirectMessageTargetUI)
     const charactersInPlay = useSelector(getCharactersInPlay)
-    const characterId = useSelector(getCharacterId)
+    const { CharacterId: characterId } = useActiveCharacter()
     const ToCharacter = (ToCharacterId && charactersInPlay && charactersInPlay[ToCharacterId]) || {}
     const dispatch = useDispatch()
     const [value, setValue] = useState('')

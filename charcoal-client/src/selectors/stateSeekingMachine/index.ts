@@ -14,6 +14,10 @@ export const getSSMState = (key: string) => ({ stateSeekingMachines }: { stateSe
     return (stateSeekingMachines && stateSeekingMachines.machines?.[key]?.currentState) || null
 }
 
+//
+// TODO: Create a TS constraint structure such that getSSMData always gives a return value constrained to the
+// specific type of SSM that is defined by its key, then remove explicit casting wherever it is used
+//
 export const getSSMData = (key: string) => ({ stateSeekingMachines }: { stateSeekingMachines: StateSeekingMachineModule }) => {
     return (stateSeekingMachines && stateSeekingMachines.machines?.[key]?.data) || undefined
 }

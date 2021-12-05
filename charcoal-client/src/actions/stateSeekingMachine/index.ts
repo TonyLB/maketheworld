@@ -133,9 +133,9 @@ export const iterateOneSSM = ({ key, heartbeat }: { key: string; heartbeat: stri
                         const newHeartbeat = uuidv4()
                         dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: firstStep.resolve, heartbeat: newHeartbeat, data: response }))
                     })
-                    .catch(() => {
+                    .catch((error: Record<string, any>) => {
                         const newHeartbeat = uuidv4()
-                        dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: firstStep.reject, heartbeat: newHeartbeat }))
+                        dispatch(exportCollection.internalStateChange<string, Record<string, any>>({ key, newState: firstStep.reject, heartbeat: newHeartbeat, data: error }))
                     })
             }
         }

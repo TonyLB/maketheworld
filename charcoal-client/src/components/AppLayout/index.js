@@ -180,7 +180,7 @@ const NavigationTabs = () => {
     </div>
 }
 
-export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback, subscribedCharacterIds = [] }) => {
+export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const classes = useStyles()
 

@@ -9,12 +9,11 @@
 import React, { useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { connectionRegister } from '../../actions/connection.js'
-import { getMyCharacters } from '../../selectors/myCharacters'
+// import { connectionRegister } from '../../actions/connection.js'
+import { getMyCharacters } from '../../selectors/player'
 import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
-import { getSubscribedCharacterIds } from '../../selectors/activeCharacters'
 import { getFirstFeedback } from '../../selectors/UI/feedback'
 import { popFeedback } from '../../actions/UI/feedback'
 
@@ -22,6 +21,7 @@ import AppLayout from '../AppLayout'
 import Profile from '../Profile'
 import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
+import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 import useCommunicationsLayer from '../useCommunicationsLayer'
 import InDevelopment from '../InDevelopment'
@@ -31,7 +31,6 @@ export const AppController = () => {
     useCommunicationsLayer()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
-    const subscribedCharacterIds = useSelector(getSubscribedCharacterIds)
     const dispatch = useDispatch()
 
     useEffect(() => {
@@ -44,7 +43,7 @@ export const AppController = () => {
     const profileArgs = {
         myCharacters,
         onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
-        connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
+        // connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
         onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },
@@ -62,8 +61,7 @@ export const AppController = () => {
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}
-        subscribedCharacterIds={subscribedCharacterIds}
-        whoPanel={<InDevelopment />}
+        whoPanel={<WhoDrawer />}
     />
 }
 

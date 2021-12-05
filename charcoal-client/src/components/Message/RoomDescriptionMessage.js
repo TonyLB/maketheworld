@@ -16,20 +16,17 @@ import {
 import HouseIcon from '@material-ui/icons/House'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
-import CreateIcon from '@material-ui/icons/Create'
 import ExitIcon from '@material-ui/icons/ExitToApp'
 import HiddenIcon from '@material-ui/icons/VisibilityOff'
 
 import useStyles from '../styles'
 
-import { getNeighborhoodsByAncestry } from '../../selectors/permanentHeaders'
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
-import { getMyCurrentCharacter } from '../../selectors/myCharacters'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
-import { fetchAndOpenRoomDialog } from '../../actions/permanentAdmin'
 import { setMessageOpen } from '../../actions/messages'
 import RecapMessage from './RecapMessage'
 import AnnouncementMessage from './AnnouncementMessage'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
 
@@ -38,8 +35,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
     const ParentId = Ancestry.split('#').reverse()[0]
 
     const dispatch = useDispatch()
-    const neighborhoods = useSelector(getNeighborhoodsByAncestry(Ancestry)).reverse()
-    const { CharacterId: myCharacterId, Grants } = useSelector(getMyCurrentCharacter)
+    const { CharacterId: myCharacterId } = useActiveCharacter()
     const charactersInPlay = useSelector(getCharactersInPlay)
     const clickHandler = mostRecent ? ({ RoomId, ExitName }) => () => { dispatch(moveCharacter({ RoomId, ExitName })) } : () => () => {}
     return <React.Fragment>
@@ -50,29 +46,6 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
             <ListItemText>
                 <Typography variant='h5' align='left'>
                     { Name }
-                    {
-                        !inline &&
-                            neighborhoods.map(({ Name, Description }) => (
-                                <React.Fragment key={`Neighborhood-${Name}`}>
-                                    &nbsp;&nbsp;:&nbsp;&nbsp;
-                                    <Tooltip
-                                        key={`Neighborhood-${Name}`}
-                                        interactive
-                                        arrow
-                                        title={
-                                            <React.Fragment>
-                                                <Typography variant='subtitle1' align='center'>
-                                                    {Name}
-                                                </Typography>
-                                                {Description}
-                                            </React.Fragment>
-                                        }
-                                    >
-                                        <span>{Name}</span>
-                                    </Tooltip>
-                                </React.Fragment>
-                            ))
-                    }
                 </Typography>
                 <Typography variant='body1' align='left'>
                     { Description }
@@ -136,7 +109,7 @@ export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false,
                         ? open
                             ? <ExpandLessIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: false })) }} />
                             : <ExpandMoreIcon onClick={() => { dispatch(setMessageOpen({ MessageId, open: true })) }} />
-                        : (Grants && (Grants[RoomId].Edit || Grants[ParentId].Edit)) && <CreateIcon onClick={() => { dispatch(fetchAndOpenRoomDialog(RoomId)) }} />
+                        : null
                 }
             </ListItemSecondaryAction>
         </ListItem>

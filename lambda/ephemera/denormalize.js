@@ -106,35 +106,60 @@ const denormalizeCharacterHelper = denormalizeFactory({
     permanentPrefix: 'CHARACTER',
     dataCategory: 'Connection',
     requiredFields: ['Name'],
-    optionalFields: ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing'],
+    optionalFields: ['FirstImpression', 'Pronouns', 'Outfit', 'OneCoolThing', 'Player'],
     extraReturnFields: ['Connected', 'RoomId', 'ConnectionId'],
     reservedMapping: { Name: '#name' },
     feedbackCallback: (item) => {
+        console.log(`Feedback: ${JSON.stringify(item, null, 4)}`)
         const returnValue = {
-            CharacterInPlay: {
-                Name: item.Name,
-                CharacterId: item.CharacterId,
-                Connected: item.Connected,
-                RoomId: item.RoomId
-            }
+            type: 'CharacterInPlay',
+            Name: item.Name,
+            CharacterId: item.CharacterId,
+            Connected: item.Connected,
+            RoomId: item.RoomId
         }
         queueAdd(returnValue)
-        return [returnValue, item.ConnectionId]
+        return [{ ...returnValue, Player: item.Player }, item.ConnectionId]
     }
 })
 
 const denormalizeCharacter = async (...args) => {
     const tempVal = await denormalizeCharacterHelper(...args)
+    console.log(`TempVal: ${JSON.stringify(tempVal, null, 4)}`)
     const [returnValue, ConnectionId] = tempVal
-    const { CharacterInPlay: { CharacterId, Name, Connected, RoomId }} = returnValue
-    await addCharacterToRoom({
+    const { CharacterId, Name, Connected, RoomId, Player } = returnValue
+    console.log(`Player: ${Player}`)
+    await Promise.all([
+        addCharacterToRoom({
+            CharacterId,
+            Name,
+            Connected,
+            RoomId,
+            ConnectionId
+        }),
+        dbClient.send(new UpdateItemCommand({
+            TableName: permanentsTable,
+            Key: marshall({
+                PermanentId: `PLAYER#${Player}`,
+                DataCategory: 'Details'
+            }),
+            UpdateExpression: "SET Characters.#charId = :name",
+            ExpressionAttributeNames: {
+                "#charId": CharacterId,
+            },
+            ExpressionAttributeValues: marshall({
+                ":name": { Name }
+            }),
+            ReturnValues: "NONE"
+        }))
+    ])
+    return {
+        type: 'CharacterInPlay',
         CharacterId,
         Name,
         Connected,
-        RoomId,
-        ConnectionId
-    })
-    return returnValue
+        RoomId
+    }
 }
 
 const denormalizeRoom = denormalizeFactory({

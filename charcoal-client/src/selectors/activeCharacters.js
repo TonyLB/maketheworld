@@ -33,12 +33,9 @@ export const getActiveCharacterState = (CharacterId) => (reduxState) => {
     return currentState
 }
 
-export const getSubscribedCharacterIds = (state) => {
-    const myCharacters = state.player?.Characters ?? []
-    const activeCharacters = getActiveCharacters(state)
-    return myCharacters.filter((characterId) => (activeCharacters[characterId]?.isSubscribed))
-}
-
+//
+// TODO: Rework this selector with @reduxjs/Toolkit in order to get the memoizing benefit of reselect
+//
 export const getActiveCharacterInPlayMessages = (CharacterId) => (state) => {
     const messages = getMessages(state)
     return messages

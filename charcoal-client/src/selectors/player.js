@@ -10,3 +10,8 @@ export const getPlayer = ({ player }) => {
         Characters
     }
 }
+
+export const getMyCharacters = ({ player }) => {
+    const { Characters = [] } = player || {}
+    return Characters
+}

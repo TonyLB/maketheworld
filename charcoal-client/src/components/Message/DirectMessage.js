@@ -14,14 +14,14 @@ import {
 import ReplyIcon from '@material-ui/icons/Reply'
 
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
-import { getCharacterId } from '../../selectors/connection'
+import { useActiveCharacter } from '../ActiveCharacter'
 import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
 import useStyles from '../styles'
 
 export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const { Recipients, CharacterId: FromCharacterId } = message
     const ToCharacterId = Recipients && Recipients[0]
-    const myCharacterId = useSelector(getCharacterId)
+    const { CharacterId: myCharacterId } = useActiveCharacter()
     const charactersInPlay = useSelector(getCharactersInPlay)
     const targetCharacterId = (FromCharacterId === myCharacterId) ? ToCharacterId : FromCharacterId
     const targetCharacter = charactersInPlay && charactersInPlay[targetCharacterId]

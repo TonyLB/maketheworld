@@ -32,6 +32,11 @@ const queueState = () => {
     return queueStorage
 }
 
+//
+// TODO: Allow queue messages to (optionally) be directed to only a set of
+// connections.  Reduce down to a map of targetted messages by target,
+// and add that in (as you map through the global messages)
+//
 const queueFlush = async () => {
     const { Item } = await dbClient.send(new GetItemCommand({
         TableName: ephemeraTable,

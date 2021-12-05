@@ -39,12 +39,11 @@ const serialize = ({
     switch(type) {
         case 'CHARACTERINPLAY':
             return {
-                CharacterInPlay: {
-                    CharacterId: payload,
-                    Connected,
-                    RoomId,
-                    Name
-                }
+                type: 'CharacterInPlay',
+                CharacterId: payload,
+                Connected,
+                RoomId,
+                Name
             }
         //
         // TODO:  More serializers for more data types!
@@ -54,7 +53,7 @@ const serialize = ({
     }
 }
 
-const fetchEphemera = async () => {
+const fetchEphemera = async (RequestId) => {
     const { Items = [] } = await dbClient.send(new QueryCommand({
         TableName: ephemeraTable,
         KeyConditionExpression: 'DataCategory = :DataCategory and begins_with(EphemeraId, :EphemeraId)',
@@ -74,6 +73,7 @@ const fetchEphemera = async () => {
     //
     return {
         messageType: 'Ephemera',
+        RequestId,
         updates: returnItems
     }
 }

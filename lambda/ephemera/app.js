@@ -52,11 +52,9 @@ exports.handler = async (event, context) => {
 
     queueClear()
     switch(action) {
-        case 'getCharactersInPlay':
-            return getCharactersInPlay()
         
         case 'fetchEphemera':
-            return fetchEphemera()
+            return fetchEphemera(payload.RequestId)
 
         case 'updateEphemera':
             await updateDispatcher(payload)

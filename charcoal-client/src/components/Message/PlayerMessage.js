@@ -11,12 +11,12 @@ import {
 } from '@material-ui/core'
 
 import { getCharactersInPlay } from '../../selectors/charactersInPlay'
-import { getCharacterId } from '../../selectors/connection'
+import { useActiveCharacter } from '../ActiveCharacter'
 import useStyles from '../styles'
 
 export const PlayerMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const CharacterId = message.CharacterId
-    const myCharacterId = useSelector(getCharacterId)
+    const { CharacterId: myCharacterId } = useActiveCharacter()
     const charactersInPlay = useSelector(getCharactersInPlay)
     const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
     const color = (CharacterId === myCharacterId) ? { primary: 'blue', light: 'lightblue' } : (charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].color) || ''
