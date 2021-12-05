@@ -32,7 +32,7 @@ export const store = configureStore({
         grants,
         messages,
         role,
-        permanentHeaders,
+        // permanentHeaders,
         exits,
         maps,
         player,

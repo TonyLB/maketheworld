@@ -3,11 +3,6 @@ import { socketDispatch } from '../communicationsLayer/lifeLine'
 import help from './help'
 
 export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatch, getState) => {
-    //
-    // TODO: Build ControlChannel functions to parse free text entries looking for actions of
-    // looking at characters, looking at the room, and traversing exits.  Replace the front-end
-    // parsing with a round-trip call to the back-end parser.
-    //
     if (entry.match(/^\s*help\s*$/gi)) {
         dispatch(help())
         return true
