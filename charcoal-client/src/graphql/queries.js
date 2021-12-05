@@ -1,20 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const getPlayerCharacters = /* GraphQL */ `
-  query GetPlayerCharacters {
-    getPlayerCharacters {
-      PlayerName
-      Name
-      CharacterId
-      Pronouns
-      FirstImpression
-      Outfit
-      OneCoolThing
-      HomeId
-    }
-  }
-`;
 export const getRoomRecap = /* GraphQL */ `
   query GetRoomRecap($PermanentId: String!) {
     getRoomRecap(PermanentId: $PermanentId) {

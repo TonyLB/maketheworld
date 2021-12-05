@@ -79,8 +79,8 @@ exports.handler = (event, context) => {
                     })
                 }))
 
-        case "getPlayerCharacters":
-            return getPlayerCharacters(payload)
+        // case "getPlayerCharacters":
+        //     return getPlayerCharacters(payload)
 
         case "sync":
             return sync(payload)

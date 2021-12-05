@@ -675,26 +675,6 @@ Resources:
                         - !GetAtt PermanentsFunction.Arn
                         - !GetAtt EphemeraFunction.Arn
                         - !GetAtt MessagesFunction.Arn
-  PermanentsDynamoDBTableDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: Permanents
-          Type: AMAZON_DYNAMODB
-          ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
-          DynamoDBConfig:
-              AwsRegion: !Ref AWS::Region
-              TableName: !Sub ${TablePrefix}_permanents
-  MessagesDynamoDBTableDataSource:
-    Type: AWS::AppSync::DataSource
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        Name: Messages
-        Type: AMAZON_DYNAMODB
-        ServiceRoleArn: !GetAtt "AppSyncAPIExecutionRole.Arn"
-        DynamoDBConfig:
-            AwsRegion: !Ref AWS::Region
-            TableName: !Sub ${TablePrefix}_messages
   InitializeFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -712,24 +692,6 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
-  QueryPlayerCharactersResolver:
-      Type: AWS::AppSync::Resolver
-      DependsOn: Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Query
-          FieldName: getPlayerCharacters
-          DataSourceName: !GetAtt PermanentsDataSource.Name
-          RequestMappingTemplate: >
-              #set($arguments = {})
-              $util.qr($arguments.put("PlayerName", $context.identity.username))
-              $util.qr($arguments.put("action", "getPlayerCharacters"))
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": $util.toJson($arguments)
-              }
-          ResponseMappingTemplate: "$util.toJson($ctx.result)"
   EphemeraFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -1506,14 +1468,11 @@ Resources:
                   @aws_iam @aws_cognito_user_pools
               }
               type Query {
-                  getPlayerCharacters: [Character]
                   getRoomRecap(PermanentId: String!): [Message]
                   syncPermanents(limit: Int, exclusiveStartKey: ExclusiveStartKey, startingAt: Long): SyncResponse
                   syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
               }
               type Subscription {
-                  changedPermanents: [ChangedPermanent]
-                  @aws_subscribe(mutations: ["updatePermanents", "createBackup"])
                   addedMessage (Target: String!): Message
                   @aws_subscribe(mutations: ["broadcastMessage"])
               }
@@ -1561,5 +1520,5 @@ Outputs:
       Value: !GetAtt AppSyncAPI.ApiId
 
   InitializeLambda:
-      Description: The Lambda function to invoke in order to initialize the MessagesDynamoDBTableDataSource
+      Description: The Lambda function to invoke in order to initialize the basic world structure
       Value: !Ref InitializeFunction
