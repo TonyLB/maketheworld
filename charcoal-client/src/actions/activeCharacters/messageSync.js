@@ -3,11 +3,13 @@
 // message storage back-end.
 //
 import cacheDB from '../../cacheDB'
+import { socketDispatch } from '../communicationsLayer/lifeLine'
 import {
     receiveMessages
 } from '../messages'
 import { syncMessages as syncMessagesGQL } from '../../graphql/queries'
 import { deltaFactory } from '../deltaSync'
+import { socketDispatchPromise } from '../communicationsLayer/lifeLine'
 
 //
 // lastMessageSyncKey standardizes how we construct a key into the cacheDB
@@ -41,21 +43,26 @@ export const setLastMessageSync = (CharacterId) => (value) => {
 // state.
 //
 export const syncAction = ({ CharacterId, LastMessageSync }) => async (dispatch) => {
-    const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
-        dataTag: 'syncMessages',
-        lastSyncCallback: (value) => {
-            cacheDB.clientSettings.put({ key: lastMessageSyncKey(CharacterId), value })
-        },
-        processingAction: receiveMessages,
-        syncGQL: syncMessagesGQL,
-    })
+    // const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
+    //     dataTag: 'syncMessages',
+    //     lastSyncCallback: (value) => {
+    //         cacheDB.clientSettings.put({ key: lastMessageSyncKey(CharacterId), value })
+    //     },
+    //     processingAction: receiveMessages,
+    //     syncGQL: syncMessagesGQL,
+    // })
 
-    if (LastMessageSync) {
-        await dispatch(syncFromMessagesDelta({ targetId: CharacterId, startingAt: LastMessageSync - 30000 }))
-    }
-    else {
-        await dispatch(syncFromMessages({ targetId: CharacterId }))
-    }
+    // if (LastMessageSync) {
+    //     await dispatch(syncFromMessagesDelta({ targetId: CharacterId, startingAt: LastMessageSync - 30000 }))
+    // }
+    // else {
+    //     await dispatch(syncFromMessages({ targetId: CharacterId }))
+    // }
+
+    //
+    // TODO: Support websocket Sync when built
+    //
+    await socketDispatch('sync')({})
     return {}
 
 }

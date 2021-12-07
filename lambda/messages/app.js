@@ -1,22 +1,27 @@
-//
-// TODO:  Create message lambda handler to deal with all the in-game and direct messaging.
-//
-// Rewrite the handler to accept lists of messages, and break them out to individual appSync resolver calls to
-// broadcastMessage (in order to trigger subscriptions) for each character receiving.  Bundle all of the resolver
-// calls into a single huge appSync wrapper, for performance and minimal turnarounds.
-//
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
+const { DynamoDBClient, BatchWriteItemCommand, BatchGetItemCommand } = require('@aws-sdk/client-dynamodb')
+const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 
-// const { sync } = require('./sync')
-
-const { putMessage } = require('./putMessage')
-const { getRoomRecap } = require('./getRoomRecap')
-const { sync } = require('./sync')
-const { documentClient, gql, graphqlClient } = require('./utilities')
-
-const { gqlOutput } = require('./gqlOutput')
+const REGION = process.env.AWS_REGION
+const apiClient = new ApiGatewayManagementApiClient({
+    apiVersion: '2018-11-29',
+    endpoint: process.env.WEBSOCKET_API
+})
+const dbClient = new DynamoDBClient({ region: REGION })
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
 const deltaTable = `${process.env.TABLE_PREFIX}_message_delta`
+const ephemeraTable = `${process.env.TABLE_PREFIX}_ephemera`
+
+const splitType = (value) => {
+    const sections = value.split('#')
+    if (sections.length) {
+        return [sections[0], sections.slice(1).join('#')]
+    }
+    else {
+        return ['', '']
+    }
+}
 
 const batchDispatcher = ({ table, items }) => {
     const groupBatches = items.reduce((({ current, requestLists }, item) => {
@@ -35,95 +40,238 @@ const batchDispatcher = ({ table, items }) => {
         }), { current: [], requestLists: []})
     const batchPromises = [...groupBatches.requestLists, groupBatches.current]
         .filter((itemList) => (itemList.length))
-        .map((itemList) => (documentClient.batchWrite({ RequestItems: {
+        .map((itemList) => (dbClient.send(new BatchWriteItemCommand({ RequestItems: {
             [table]: itemList
-        } }).promise()))
+        } }))))
     return Promise.all(batchPromises)
 }
 
-const gqlGroup = (items) => {
-    const mutations = items.map((mutation, index) => (`broadcast${index}: ${mutation}\n`)).join('\n')
-
-    return gql`mutation BroadcastMessages { ${mutations} }`
-}
-
-const updateDispatcher = ({ Updates = [] }) => {
-
-    const epochTime = Date.now()
-
-    const outputs = Updates.map((update) => {
-            if (update.putMessage) {
-                return putMessage({
-                    ...update.putMessage,
-                    CreatedTime: update.putMessage.CreatedTime || (epochTime + (update.putMessage.TimeOffset || 0))
-                })
+const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) => {
+    const groupBatches = items
+        .reduce((({ current, requestLists }, item) => {
+            if (current.length > 39) {
+                return {
+                    requestLists: [ ...requestLists, current ],
+                    current: [item]
+                }
             }
-            return Promise.resolve({})
-        }
-    )
-
-    return Promise.all(outputs)
-        .then((finalOutputs) => finalOutputs.reduce(({
-                messageWrites: previousMessageWrites,
-                deltaWrites: previousDeltaWrites,
-                gqlWrites: previousGQLWrites
-            },
-            { messageWrites = [], deltaWrites = [], gqlWrites = [] }) => ({
-                messageWrites: [ ...previousMessageWrites, ...messageWrites ],
-                deltaWrites: [ ...previousDeltaWrites, ...deltaWrites ],
-                gqlWrites: [ ...previousGQLWrites, ...gqlWrites ]
-            }), {
-                messageWrites: [],
-                deltaWrites: [],
-                gqlWrites: []
-            }))
-        .then(({ messageWrites, deltaWrites, gqlWrites }) => {
-            const gqlGroupOutput = gqlGroup(gqlWrites)
-            return Promise.all([
-                //
-                // TODO:  Refactor this parallel dispatch into two (or perhaps three)
-                // separate services, running simultaneously by way of an SNS/SQS fanout.
-                //
-                batchDispatcher({ table: messageTable, items: messageWrites }),
-                batchDispatcher({ table: deltaTable, items: deltaWrites }),
-                ...(gqlWrites.length ? [ graphqlClient.mutate({ mutation: gqlGroupOutput }) ] : [])
-            ])
-        })
+            else {
+                return {
+                    requestLists,
+                    current: [...current, item]
+                }
+            }
+        }), { current: [], requestLists: []})
+    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
+        .filter((itemList) => (itemList.length))
+        .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
+            [table]: {
+                Keys: itemList,
+                ProjectionExpression: projectionExpression
+            }
+        } }))))
+    return Promise.all(batchPromises)
+        .then((outcomes) => (outcomes.reduce((previous, { Responses }) => {
+            if (Responses && Responses[table]) {
+                return Responses[table].map(unmarshall).reduce((accumulate, item) => ([...accumulate, item]), previous)
+            }
+            return previous
+        }, [])))
 }
 
-exports.handler = (event, context) => {
+exports.handler = async (event, context) => {
     const { action, Records, ...payload } = event
 
     //
-    // First check for Records, to see whether this is coming from the SNS topic subscription.
+    // Check whether message is being called from DBStream (in which case Events will be present)
     //
-    if (Records) {
-        return updateDispatcher({
-            Updates: Records.filter(({ Sns = {} }) => (Sns.Message))
-                .map(({ Sns }) => (Sns.Message))
-                .map((message) => (JSON.parse(message)))
-                .filter((message) => (message))
-        })
-    }
-    //
-    // Next handle direct calls.
-    //
-    else {
+    if (Records.length) {
+        //
+        // Third Iteration:  Add processing so that ROOM# Targets can also be included in the target
+        // list.  Look up the Meta::Room entry in Ephemera, and use the activeCharacters listing
+        // to get a list of Character IDs.  Then, when making targets for the record, join those lists
+        // in with the other items (deduplicating as you go).
+        //
+        const metaRecords = Records
+            .filter(({ eventName }) => (eventName === 'INSERT'))
+            .map(({ dynamodb }) => (unmarshall(dynamodb.NewImage || {})))
+            .filter(({ DataCategory, Targets }) => (DataCategory === 'Meta::Message' && Targets && Targets.length > 0))
+            .map(({ DataCategory, ...rest }) => (rest))
+        if (metaRecords.length) {
+            const allTargets = Object.keys(metaRecords
+                .reduce((previous, { Targets }) => (
+                    Targets.reduce((accumulate, target) => ({ ...accumulate, [target]: true }), previous
+                )), {}))
+            //
+            // First-pass:  Separate character targets from room targets
+            //
+            const { characterTargets, roomTargets } = allTargets.map(splitType).reduce((previous, [type, id]) => {
+                switch(type) {
+                    case 'CHARACTER':
+                        return {
+                            ...previous,
+                            characterTargets: {
+                                ...previous.characterTargets,
+                                [id]: { id }
+                            }
+                        }
+                    case 'ROOM':
+                        return {
+                            ...previous,
+                            roomTargets: {
+                                ...previous.roomTargets,
+                                [id]: { id }
+                            }
+                        }
+                    default:
+                        return previous
+                }
+            }, { characterTargets: {}, roomTargets: {} })
+            //
+            // Second-pass:  Pull active characters and connections from room ephemera
+            //
+            let resolvedTargetMap = { }
+            if (Object.keys(roomTargets).length) {
+                const roomEphemera = await batchGetDispatcher(dbClient, {
+                    table: ephemeraTable,
+                    items: Object.values(roomTargets)
+                        .map(({ id }) => (marshall({
+                            EphemeraId: `ROOM#${id}`,
+                            DataCategory: 'Meta::Room'
+                        }))),
+                    projectionExpression: 'EphemeraId, activeCharacters'
+                })
+                //
+                // Mutate resolvedTargetMap to keep a running mapping of ID and connectionId
+                //
+                roomEphemera.forEach(({ EphemeraId: RoomId, activeCharacters = {} }) => {
+                    const resolvedContents = Object.values(activeCharacters).map(
+                        ({ EphemeraId: characterInPlayId, ConnectionId }) => ({
+                            id: `CHARACTER#${splitType(characterInPlayId)[1]}`,
+                            ConnectionId
+                        }))
+                    resolvedContents.forEach(({ id, ConnectionId }) => {
+                        resolvedTargetMap[id] = [{ id, ConnectionId }]
+                    })
+                    resolvedTargetMap[RoomId] = resolvedContents
+                })
+            }
+            //
+            // Third-pass: Pull connections (if available) for any character that we haven't
+            // found the ConnectionId for in checking rooms.
+            //
+            //
+            // TODO:  It might be worth maintaining a denormalized CharacterID -> Connection map in
+            // Global x Connections record, to avoid having to BatchGet when mapping multiple
+            // targets
+            //
+            if (Object.keys(characterTargets).find((id) => (resolvedTargetMap[`CHARACTER#${id}`] === undefined))) {
+                const characterEphemera = await batchGetDispatcher(dbClient, {
+                    table: ephemeraTable,
+                    items: Object.keys(characterTargets)
+                        .map((id) => (marshall({
+                            EphemeraId: `CHARACTERINPLAY#${id}`,
+                            DataCategory: 'Connection'
+                        }))),
+                    projectionExpression: 'EphemeraId, ConnectionId'
+                })
+                characterEphemera
+                    .filter(({ EphemeraId, ConnectionId }) => (EphemeraId && ConnectionId))
+                    .forEach(({ EphemeraId, ConnectionId }) => {
+                        const id = `CHARACTER#${splitType(EphemeraId)[1]}`
+                        resolvedTargetMap[id] = [{ id, ConnectionId }]
+                    })
+            }
 
+            const epochTime = Date.now()
+            const { messageItems, deltaItems, broadcastPayloads } = metaRecords.reduce(
+                (previous, { Targets, CreatedTime, MessageId, ...rest }) => {
+                    const aggregateTargets = Targets
+                        .reduce((previous, item) => ([...previous, ...(resolvedTargetMap[item] || [{ id: item }])]), [])
+                    const deduplicatedDBTargets = [...new Set(aggregateTargets.map(({ id }) => (id)))]
+                    const { messageItems, deltaItems } = deduplicatedDBTargets.reduce(
+                        (
+                            { messageItems: prevMessage, deltaItems: prevDelta },
+                            target
+                        ) => ({
+                            messageItems: [
+                                ...prevMessage,
+                                {
+                                    PutRequest: {
+                                        Item: marshall({
+                                            MessageId,
+                                            DataCategory: target,
+                                            CreatedTime: CreatedTime || epochTime,
+                                            ...rest
+                                        }, { removeUndefinedValues: true })
+                                    }
+                                }
+                            ],
+                            //
+                            // Save sync data only for characters
+                            //
+                            deltaItems: splitType(target)[0] === 'CHARACTER'
+                                ? [
+                                    ...prevDelta,
+                                    {
+                                        PutRequest: {
+                                            Item: marshall({
+                                                Target: target,
+                                                DeltaId: `${CreatedTime || epochTime}::${MessageId}`,
+                                                RowId: MessageId,
+                                                ...rest
+                                            }, { removeUndefinedValues: true })
+                                        }
+                                    }
+                                ] : prevDelta
+                        }), previous)
+                    const broadcastPayloads = aggregateTargets
+                        .filter(({ ConnectionId }) => (ConnectionId))
+                        .reduce((prevBroadcast, { id: target, ConnectionId }) => ({
+                            ...prevBroadcast,
+                            [ConnectionId]: [
+                                ...(prevBroadcast[ConnectionId] || []),
+                                {
+                                    MessageId,
+                                    CreatedTime: CreatedTime || epochTime,
+                                    Target: splitType(target)[1],
+                                    ...rest
+                                }
+                            ]
+                        }), previous.broadcastPayloads)
+                    return { messageItems, deltaItems, broadcastPayloads }
+                }, { messageItems: [], deltaItems: [], broadcastPayloads: {} })
+            const broadcastPromise = Promise.all(
+                Object.entries(broadcastPayloads)
+                    .map(([ConnectionId, messages]) => (apiClient.send(new PostToConnectionCommand({
+                        ConnectionId,
+                        Data: JSON.stringify({
+                            messageType: 'Messages',
+                            messages
+                        })
+                    }))))
+            )
+            await Promise.all([
+                batchDispatcher({ table: messageTable, items: messageItems }),
+                batchDispatcher({ table: deltaTable, items: deltaItems }),
+                broadcastPromise
+            ])
+        }
+    }
+    else {
         switch(action) {
 
-            case "sync":
-                return sync(payload)
-
+            // case "sync":
+            //     return sync(payload)
+    
             // case "getRoomRecap":
             //     return getRoomRecap(event.RoomId)
-
-            case "updateMessages":
-                return updateDispatcher(payload)
-
+    
+            // case "updateMessages":
+            //     return updateDispatcher(payload)
+    
             default:
                 context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
         }
     }
-
 }

@@ -115,7 +115,7 @@ exports.sync = async ({ TargetId, startingAt = null, limit = null, exclusiveStar
             //
             // fetchMessagesById strips the DataCategory and Target from the data, so we manually put it back for consistency
             //
-            .then(({ Items, ...rest }) => ({ ...rest, Items: Items.map((message) => ({ ...message, Target: TargetId, DataCategory: 'Content' }))}))
+            .then(({ Items = [], ...rest }) => ({ ...rest, Items: Items.map((message) => ({ ...message, Target: TargetId, DataCategory: 'Content' }))}))
 
     return {
         Items: Items.map(deserialize).filter((value) => value),

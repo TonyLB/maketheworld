@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 const AWSXRay = require('aws-xray-sdk')
 
-const { DynamoDBClient, QueryCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
+const { DynamoDBClient, QueryCommand, PutItemCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { v4: uuid } = require("uuid")
@@ -11,6 +11,7 @@ const { compileCode } = require('./compileCode')
 const params = { region: process.env.AWS_REGION }
 const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
+const MessageTableName = `${process.env.TABLE_PREFIX}_messages`
 
 const splitType = (value) => {
     const sections = value.split('#')
@@ -139,7 +140,8 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
             const Message = {
                 CreatedTime,
                 Targets: [`CHARACTER#${CharacterId}`],
-                MessageId: uuid(),
+                MessageId: `MESSAGE#${uuid()}`,
+                DataCategory: 'Meta::Message',
                 DisplayProtocol: "RoomDescription",
                 RoomId: objectKey,
                 //
@@ -151,10 +153,14 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
             }
-            await lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.MESSAGE_SERVICE,
-                InvocationType: 'Event',
-                Payload: new TextEncoder().encode(JSON.stringify({ Messages: [Message] }))
+            // await lambdaClient.send(new InvokeCommand({
+            //     FunctionName: process.env.MESSAGE_SERVICE,
+            //     InvocationType: 'Event',
+            //     Payload: new TextEncoder().encode(JSON.stringify({ Messages: [Message] }))
+            // }))
+            await ddbClient.send(new PutItemCommand({
+                TableName: MessageTableName,
+                Item: marshall(Message)
             }))
             return
         default:
