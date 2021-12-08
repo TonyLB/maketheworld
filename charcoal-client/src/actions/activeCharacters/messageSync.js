@@ -3,13 +3,9 @@
 // message storage back-end.
 //
 import cacheDB from '../../cacheDB'
-import { socketDispatch } from '../communicationsLayer/lifeLine'
-import {
-    receiveMessages
-} from '../messages'
-import { syncMessages as syncMessagesGQL } from '../../graphql/queries'
-import { deltaFactory } from '../deltaSync'
 import { socketDispatchPromise } from '../communicationsLayer/lifeLine'
+import { pushFeedback } from '../UI/feedback'
+import delayPromise from '../../lib/delayPromise'
 
 //
 // lastMessageSyncKey standardizes how we construct a key into the cacheDB
@@ -42,27 +38,23 @@ export const setLastMessageSync = (CharacterId) => (value) => {
 // they fail, and use it to bump the FSM for activeCharacter into SUBSCRIBE_ERROR
 // state.
 //
-export const syncAction = ({ CharacterId, LastMessageSync }) => async (dispatch) => {
-    // const { syncFromDelta: syncFromMessagesDelta, syncFromBaseTable: syncFromMessages } = deltaFactory({
-    //     dataTag: 'syncMessages',
-    //     lastSyncCallback: (value) => {
-    //         cacheDB.clientSettings.put({ key: lastMessageSyncKey(CharacterId), value })
-    //     },
-    //     processingAction: receiveMessages,
-    //     syncGQL: syncMessagesGQL,
-    // })
-
-    // if (LastMessageSync) {
-    //     await dispatch(syncFromMessagesDelta({ targetId: CharacterId, startingAt: LastMessageSync - 30000 }))
-    // }
-    // else {
-    //     await dispatch(syncFromMessages({ targetId: CharacterId }))
-    // }
-
-    //
-    // TODO: Support websocket Sync when built
-    //
-    await socketDispatch('sync')({})
-    return {}
-
+export const syncAction = ({ CharacterId, LastMessageSync, incrementalBackoff }) => async (dispatch) => {
+    if (LastMessageSync) {
+        return await dispatch(socketDispatchPromise('sync')({ syncType: 'Delta', CharacterId, startingAt: LastMessageSync - 30000 }))
+            .then(() => ({ incrementalBackoff: 0.5 }))
+            .catch(async () => {
+                dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
+                await delayPromise(incrementalBackoff * 1000)
+                return { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) }
+            })
+    }
+    else {
+        return await dispatch(socketDispatchPromise('sync')({ syncType: 'Raw', CharacterId }))
+            .then(() => ({ incrementalBackoff: 0.5 }))
+            .catch(async () => {
+                dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
+                await delayPromise(incrementalBackoff * 1000)
+                return { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) }
+            })
+    }
 }

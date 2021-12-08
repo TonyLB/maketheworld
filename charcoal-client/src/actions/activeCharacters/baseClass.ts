@@ -18,6 +18,7 @@ export class CharacterSubscriptionData {
     CharacterId: string = ''
     LastMessageSync: number = 0
     subscription: any = null
+    incrementalBackoff: number = 0.5
 }
 
 export const characterSSMClassGenerator = ({

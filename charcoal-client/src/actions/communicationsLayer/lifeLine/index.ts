@@ -224,9 +224,6 @@ export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
     //     successful resolution)
     //
     dispatch(socketDispatchPromise('registercharacter')({ CharacterId }))
-        .then((value: any) => {
-            console.log(`Socket Dispatch return: ${JSON.stringify(value, null, 4)}`)
-        })
         .catch((error: any) => {
             console.log(`Socket Error: ${JSON.stringify(error, null, 4)}`)
         })

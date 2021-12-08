@@ -153,11 +153,6 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
             }
-            // await lambdaClient.send(new InvokeCommand({
-            //     FunctionName: process.env.MESSAGE_SERVICE,
-            //     InvocationType: 'Event',
-            //     Payload: new TextEncoder().encode(JSON.stringify({ Messages: [Message] }))
-            // }))
             await ddbClient.send(new PutItemCommand({
                 TableName: MessageTableName,
                 Item: marshall(Message)

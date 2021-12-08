@@ -219,6 +219,7 @@ exports.handler = async (event, context) => {
                                                 Target: target,
                                                 DeltaId: `${CreatedTime || epochTime}::${MessageId}`,
                                                 RowId: MessageId,
+                                                CreatedTime: CreatedTime || epochTime,
                                                 ...rest
                                             }, { removeUndefinedValues: true })
                                         }

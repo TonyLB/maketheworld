@@ -11,6 +11,7 @@ const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
 const { validateJWT } = require('./validateJWT')
 const { parseCommand } = require('./parse')
+const { sync } = require('./sync')
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -54,6 +55,10 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
     ])
 }
 
+//
+// Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
+// cycle you don't have the disconnect update come before the connect.
+//
 const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
     const [{ Items = [] }, { Items: PlayerItems = []}] = await Promise.all([
@@ -550,9 +555,14 @@ exports.handler = async (event, context) => {
         case 'whoAmI':
             return whoAmI(dbClient, connectionId, request.RequestId)
         case 'sync':
-            //
-            // TODO: Refactor Sync procedure for handling over WebSocket
-            //
+            await sync(dbClient, apiClient, {
+                type: request.syncType,
+                ConnectionId: connectionId,
+                RequestId: request.RequestId,
+                TargetId: request.CharacterId,
+                startingAt: request.startingAt,
+                limit: request.limit
+            })
             break;
         case 'putPlayer':
             return putPlayer(request.PlayerName)({ Characters: request.Characters, CodeOfConductConsent: request.CodeOfConductConsent })
