@@ -185,7 +185,6 @@ export const socketDispatchPromise = (messageType: any) => (payload: any) => (di
         const RequestId = uuidv4()
         return new Promise<LifeLinePubSubData>((resolve, reject) => {
             LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
-                console.log(`Testing payload: ${JSON.stringify(payload, null, 4)}`)
                 const { RequestId: compareRequestId, ...rest } = payload
                 if (compareRequestId === RequestId) {
                     unsubscribe()
@@ -225,9 +224,6 @@ export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
     //     successful resolution)
     //
     dispatch(socketDispatchPromise('registercharacter')({ CharacterId }))
-        .then((value: any) => {
-            console.log(`Socket Dispatch return: ${JSON.stringify(value, null, 4)}`)
-        })
         .catch((error: any) => {
             console.log(`Socket Error: ${JSON.stringify(error, null, 4)}`)
         })

@@ -54,7 +54,6 @@ Resources:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
           PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
-          MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
           EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
           PERMANENTS_SERVICE: !GetAtt PermanentsFunction.Arn
           WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
@@ -74,13 +73,16 @@ Resources:
             TableName: !Sub '${TablePrefix}_permanents'
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
+        - DynamoDBCrudPolicy:
+            TableName: !Sub '${TablePrefix}_messages'
+        - DynamoDBReadPolicy:
+            TableName: !Sub '${TablePrefix}_message_delta'
         - Statement:
           - Effect: Allow
             Action:
               - lambda:InvokeFunction
             Resource:
               - !GetAtt PerceptionFunction.Arn
-              - !GetAtt MessagePublishFunction.Arn
               - !GetAtt EphemeraFunction.Arn
               - !GetAtt PermanentsFunction.Arn
         - Statement:
@@ -372,6 +374,8 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ExpirationTime
         Enabled: True
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
   MessageDeltaTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -396,14 +400,6 @@ Resources:
             Projection:
               ProjectionType: KEYS_ONLY
         TableName: !Sub '${TablePrefix}_message_delta'
-  AppSyncLambdaLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-        LayerName: appsync-layer
-        Description: Lambda layer to import the appsync libraries
-        ContentUri: lambda/appSyncLayer/
-        CompatibleRuntimes:
-          - nodejs14.x
   UUIDLambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -412,69 +408,6 @@ Resources:
         ContentUri: lambda/uuidLayer/
         CompatibleRuntimes:
           - nodejs14.x
-  AppSyncAPI:
-      Type: AWS::AppSync::GraphQLApi
-      Properties:
-          Name: !Sub ${TablePrefix}AppSyncAPI
-          AuthenticationType: AMAZON_COGNITO_USER_POOLS
-          UserPoolConfig:
-              AwsRegion: !Ref AWS::Region
-              UserPoolId:
-                Fn::ImportValue:
-                  !Sub "${PermanentsStack}-UserPoolId"
-              DefaultAction: ALLOW
-          AdditionalAuthenticationProviders:
-              - AuthenticationType: AWS_IAM
-  AppSyncAPIExecutionRole:
-      Type: AWS::IAM::Role
-      Properties:
-          AssumeRolePolicyDocument:
-              Statement:
-                - Effect: Allow
-                  Principal:
-                      Service: appsync.amazonaws.com
-                  Action:
-                      - sts:AssumeRole
-          Policies:
-            - PolicyName: TablesPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:GetItem"
-                          - "dynamodb:BatchGetItem"
-                          - "dynamodb:Query"
-                          - "dynamodb:PutItem"
-                          - "dynamodb:UpdateItem"
-                          - "dynamodb:Scan"
-                      Resource:
-                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents"
-                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages"
-            - PolicyName: IndexesPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: "Allow"
-                      Action:
-                          - "dynamodb:Query"
-                      Resource:
-                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_permanents/*"
-                          - !Sub "arn:aws:dynamodb:*:*:table/${TablePrefix}_messages/*"
-            - PolicyName: AppSyncLambdasPolicy
-              PolicyDocument:
-                  Version: "2012-10-17"
-                  Statement:
-                    - Effect: Allow
-                      Action: appsync:GraphQL
-                      Resource: !Sub '${AppSyncAPI}/*'
-                    - Effect: "Allow"
-                      Action:
-                          - "lambda:InvokeFunction"
-                      Resource:
-                        - !GetAtt PermanentsFunction.Arn
-                        - !GetAtt EphemeraFunction.Arn
-                        - !GetAtt MessagesFunction.Arn
   InitializeFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -483,12 +416,9 @@ Resources:
           MemorySize: 128
           Runtime: nodejs14.x
           Timeout: 30
-          Layers:
-              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
@@ -516,8 +446,6 @@ Resources:
                 Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   PermanentsFunction:
       Type: AWS::Serverless::Function
-      DependsOn:
-          - AppSyncAPI
       Properties:
           CodeUri: lambda/permanents/
           Handler: app.handler
@@ -526,20 +454,14 @@ Resources:
           Timeout: 30
           Layers:
               - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
                   EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
                   S3_BUCKET:
                     Fn::ImportValue:
                       !Sub "${PermanentsStack}-StorageBucket"
           Policies:
-            - Statement:
-              - Effect: Allow
-                Action: appsync:GraphQL
-                Resource: !Sub '${AppSyncAPI}/*'
             - Statement:
               - Effect: Allow
                 Action:
@@ -610,76 +532,8 @@ Resources:
                       - Name: prefix
                         Value: upload/
                 Events: s3:ObjectCreated:*
-  MessageSubscriptionBroadcastFunction:
-      Type: AWS::Serverless::Function
-      DependsOn:
-          - AppSyncAPI
-      Properties:
-          CodeUri: lambda/messageTopic/messageSubscriptionBroadcast
-          Handler: app.handler
-          MemorySize: 128
-          Runtime: nodejs14.x
-          Timeout: 30
-          Environment:
-              Variables:
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
-                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBReadPolicy:
-                TableName: !Sub '${TablePrefix}_ephemera'
-            - Statement:
-              - Effect: Allow
-                Action: execute-api:ManageConnections
-                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
-            - Statement:
-              - Effect: Allow
-                Action: appsync:GraphQL
-                Resource: !Sub '${AppSyncAPI}/*'
-  MessagePersistFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/messageTopic/messagePersist
-          Handler: app.handler
-          MemorySize: 128
-          Runtime: nodejs14.x
-          Timeout: 5
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_messages'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_message_delta'
-  MessagePublishFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-        Tracing: Active
-        CodeUri: lambda/messagePublish/
-        Handler: app.handler
-        MemorySize: 128
-        Runtime: nodejs14.x
-        Timeout: 30
-        Environment:
-            Variables:
-                WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
-                TABLE_PREFIX: !Ref TablePrefix
-        Policies:
-          - DynamoDBReadPolicy:
-              TableName: !Sub '${TablePrefix}_ephemera'
-          - DynamoDBCrudPolicy:
-              TableName: !Sub '${TablePrefix}_messages'
-          - DynamoDBCrudPolicy:
-              TableName: !Sub '${TablePrefix}_message_delta'
-          - Statement:
-            - Effect: Allow
-              Action: execute-api:ManageConnections
-              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
   MessagesFunction:
       Type: AWS::Serverless::Function
-      DependsOn:
-          - AppSyncAPI
       Properties:
           CodeUri: lambda/messages/
           Handler: app.handler
@@ -688,86 +542,28 @@ Resources:
           Timeout: 5
           Layers:
               - !Ref UUIDLambdaLayer
-              - !Ref AppSyncLambdaLayer
           Environment:
               Variables:
+                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
                   TABLE_PREFIX: !Ref TablePrefix
-                  APPSYNC_ENDPOINT_URL: !GetAtt AppSyncAPI.GraphQLUrl
           Policies:
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_messages'
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_message_delta'
+            - DynamoDBReadPolicy:
+                TableName: !Sub '${TablePrefix}_ephemera'
             - Statement:
-              - Effect: Allow
-                Action: appsync:GraphQL
-                Resource: !Sub '${AppSyncAPI}/*'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_messages'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_message_delta'
-  MessagesDataSource:
-      Type: AWS::AppSync::DataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: MessagesLambda
-          Type: AWS_LAMBDA
-          ServiceRoleArn: !GetAtt AppSyncAPIExecutionRole.Arn
-          LambdaConfig:
-              LambdaFunctionArn: !GetAtt MessagesFunction.Arn
-  QuerySyncMessagesResolver:
-    Type: AWS::AppSync::Resolver
-    DependsOn: Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Query
-        FieldName: syncMessages
-        DataSourceName: !GetAtt MessagesDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "operation": "Invoke",
-                "payload": {
-                  "action": "sync"
-                  #if ($ctx.args.targetId)
-                  , "TargetId": "$ctx.args.targetId"
-                  #end
-                  #if ($ctx.args.limit)
-                  , "limit": "$ctx.args.limit"
-                  #end
-                  #if ($ctx.args.startingAt)
-                  , "startingAt": "$ctx.args.startingAt"
-                  #end
-                  #if ($ctx.args.exclusiveStartKey)
-                  , "exclusiveStartKey": $util.toJson($ctx.args.exclusiveStartKey)
-                  #end
-                }
-            }
-        ResponseMappingTemplate: "$util.toJson($ctx.result)"
-  NoneDataSource:
-      Type: AWS::AppSync::DataSource
-      DependsOn:
-          - Schema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Name: NoneSource
-          Type: NONE
-  MessageNotificationTopic:
-      Type: AWS::SNS::Topic
-      Properties:
-          Subscription:
-              - Endpoint: !GetAtt MessageSubscriptionBroadcastFunction.Arn
-                Protocol: lambda
-              - Endpoint: !GetAtt MessagePersistFunction.Arn
-                Protocol: lambda
-  MessageBroadcastPolicy:
-      Type: AWS::Lambda::Permission
-      Properties:
-          Action: lambda:InvokeFunction
-          FunctionName: !Ref MessageSubscriptionBroadcastFunction
-          Principal: sns.amazonaws.com
-  MessagePersistPolicy:
-      Type: AWS::Lambda::Permission
-      Properties:
-          Action: lambda:InvokeFunction
-          FunctionName: !Ref MessagePersistFunction
-          Principal: sns.amazonaws.com
+                - Effect: Allow
+                  Action: execute-api:ManageConnections
+                  Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+          Events:
+            Stream:
+              Type: DynamoDB
+              Properties:
+                Stream: !GetAtt MessagesTable.StreamArn
+                BatchSize: 100
+                StartingPosition: TRIM_HORIZON
   PerceptionFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -780,214 +576,13 @@ Resources:
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
-                  MESSAGE_SERVICE: !GetAtt MessagePublishFunction.Arn
           Policies:
             - DynamoDBReadPolicy:
                 TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBReadPolicy:
                 TableName: !Sub '${TablePrefix}_ephemera'
-            - Statement:
-              - Effect: "Allow"
-                Action:
-                  - lambda:InvokeFunction
-                Resource:
-                  - !GetAtt MessagePublishFunction.Arn
-  MutationUpdateMessages:
-      Type: AWS::AppSync::Resolver
-      DependsOn:
-        - Schema
-        - MessagesDataSource
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          TypeName: Mutation
-          FieldName: updateMessages
-          DataSourceName: !GetAtt MessagesDataSource.Name
-          RequestMappingTemplate: >
-              {
-                  "version": "2017-02-28",
-                  "operation": "Invoke",
-                  "payload": {
-                      "action": "updateMessages",
-                      "Updates": $utils.toJson($ctx.args.Updates)
-                  }
-              }
-          ResponseMappingTemplate: >
-              "Updated"
-  MutationBroadcastMessage:
-    Type: AWS::AppSync::Resolver
-    DependsOn:
-      - Schema
-    Properties:
-        ApiId: !GetAtt AppSyncAPI.ApiId
-        TypeName: Mutation
-        FieldName: broadcastMessage
-        DataSourceName: !GetAtt NoneDataSource.Name
-        RequestMappingTemplate: >
-            {
-                "version": "2017-02-28",
-                "payload": $util.toJson($ctx.args.Message)
-            }
-        ResponseMappingTemplate: >
-            $util.toJson($ctx.result)
-  Schema:
-      Type: AWS::AppSync::GraphQLSchema
-      Properties:
-          ApiId: !GetAtt AppSyncAPI.ApiId
-          Definition: >
-              type WorldMessage @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-              }
-              input WorldMessageInput @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-              }
-              type CharacterMessage @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-                  CharacterId: String
-              }
-              input CharacterMessageInput @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-                  CharacterId: String
-              }
-              type DirectMessage @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-                  CharacterId: String
-                  Title: String
-                  Recipients: [String]
-              }
-              input DirectMessageInput @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-                  CharacterId: String
-                  Title: String
-                  Recipients: [String]
-              }
-              type AnnounceMessage @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-                  Title: String
-              }
-              input AnnounceMessageInput @aws_iam @aws_cognito_user_pools {
-                  Message: String!
-                  Title: String
-              }
-              type RoomDescriptionExit @aws_iam @aws_cognito_user_pools {
-                  RoomId: String!
-                  Name: String!
-                  Visibility: String
-              }
-              type RoomDescriptionCharacter @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  Name: String!
-                  Pronouns: String
-                  FirstImpression: String
-                  OneCoolThing: String
-                  Outfit: String
-              }
-              type RoomDescription @aws_iam @aws_cognito_user_pools {
-                  RoomId: String!
-                  Name: String!
-                  Description: String
-                  Ancestry: String
-                  Exits: [RoomDescriptionExit]
-                  Characters: [RoomDescriptionCharacter]
-              }
-              input RoomDescriptionExitInput @aws_iam @aws_cognito_user_pools {
-                  RoomId: String!
-                  Name: String!
-                  Visibility: String
-              }
-              input RoomDescriptionCharacterInput @aws_iam @aws_cognito_user_pools {
-                  CharacterId: String!
-                  Name: String!
-                  Pronouns: String
-                  FirstImpression: String
-                  OneCoolThing: String
-                  Outfit: String
-              }
-              input RoomDescriptionInput @aws_iam @aws_cognito_user_pools {
-                  RoomId: String!
-                  Name: String!
-                  Description: String
-                  Ancestry: String
-                  Exits: [RoomDescriptionExitInput]
-                  Characters: [RoomDescriptionCharacterInput]
-              }
-              type Message @aws_iam @aws_cognito_user_pools {
-                  MessageId: String!
-                  CreatedTime: Long!
-                  ExpirationTime: Long
-                  DisplayProtocol: String
-                  Target: String!
-                  RoomId: String
-                  WorldMessage: WorldMessage
-                  CharacterMessage: CharacterMessage
-                  DirectMessage: DirectMessage
-                  AnnounceMessage: AnnounceMessage
-                  RoomDescription: RoomDescription
-              }
-              input MessageInput @aws_iam @aws_cognito_user_pools {
-                  MessageId: String!
-                  CreatedTime: Long
-                  ExpirationTime: Long
-                  DisplayProtocol: String
-                  Target: String
-                  RoomId: String
-                  WorldMessage: WorldMessageInput
-                  CharacterMessage: CharacterMessageInput
-                  DirectMessage: DirectMessageInput
-                  AnnounceMessage: AnnounceMessageInput
-                  RoomDescription: RoomDescriptionInput
-              }
-              input PutMessageInput @aws_iam @aws_cognito_user_pools {
-                  MessageId: String!
-                  CreatedTime: Long
-                  ExpirationTime: Long
-                  DisplayProtocol: String
-                  Characters: [String]
-                  RoomId: String
-                  TimeOffset: Int
-                  WorldMessage: WorldMessageInput
-                  CharacterMessage: CharacterMessageInput
-                  DirectMessage: DirectMessageInput
-                  AnnounceMessage: AnnounceMessageInput
-                  RoomDescription: RoomDescriptionInput
-              }
-              input MessageUpdateInput @aws_iam @aws_cognito_user_pools {
-                  putMessage: PutMessageInput
-              }
-              type MessageLastEvaluatedKey @aws_iam @aws_cognito_user_pools {
-                MessageId: String
-                DataCategory: String
-                CreatedTime: Long
-              }
-              input MessageExclusiveStartKey @aws_iam @aws_cognito_user_pools {
-                MessageId: String
-                DataCategory: String
-                CreatedTime: Long
-              }
-              type MessageSyncResponse @aws_iam @aws_cognito_user_pools {
-                Items: [Message]
-                LastEvaluatedKey: MessageLastEvaluatedKey
-                LastSync: Long
-              }
-              type Mutation {
-                  updateMessages(
-                      Updates: [MessageUpdateInput]
-                  ): String
-                  @aws_iam @aws_cognito_user_pools
-                  broadcastMessage(Message: MessageInput): Message
-                  @aws_iam @aws_cognito_user_pools
-              }
-              type Query {
-                  syncMessages(targetId: String, limit: Int, exclusiveStartKey: MessageExclusiveStartKey, startingAt: Long): MessageSyncResponse
-              }
-              type Subscription {
-                  addedMessage (Target: String!): Message
-                  @aws_subscribe(mutations: ["broadcastMessage"])
-              }
-              schema {
-                  mutation: Mutation
-                  query: Query
-                  subscription: Subscription
-              }
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_messages'
 
 Outputs:
   UserPoolClient:
@@ -1009,14 +604,6 @@ Outputs:
   WebSocketApiId:
       Description: "The ID of the API for realtime controll"
       Value: !Ref RealTimeWebSocket
-
-  AppSyncURL:
-      Description: The URL of the AppSync GraphQL endpoint
-      Value: !GetAtt AppSyncAPI.GraphQLUrl
-
-  AppSyncID:
-      Description: The ApiID of the AppSync GraphQL endpoint
-      Value: !GetAtt AppSyncAPI.ApiId
 
   InitializeLambda:
       Description: The Lambda function to invoke in order to initialize the basic world structure

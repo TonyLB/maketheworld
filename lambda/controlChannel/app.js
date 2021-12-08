@@ -5,12 +5,13 @@ const { v4: uuidv4 } = require('/opt/uuid')
 
 const AWSXRay = require('aws-xray-sdk')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
 const { validateJWT } = require('./validateJWT')
 const { parseCommand } = require('./parse')
+const { sync } = require('./sync')
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -25,6 +26,7 @@ const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGIO
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
+const messagesTable = `${TABLE_PREFIX}_messages`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
@@ -38,20 +40,25 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
     }))
     const { Name = '' } = CharacterItem ? unmarshall(CharacterItem) : {}
     await Promise.all([
-        lambdaClient.send(new InvokeCommand({
-            FunctionName: process.env.MESSAGE_SERVICE,
-            InvocationType: 'Event',
-            Payload: new TextEncoder().encode(JSON.stringify({ Messages: [{
+        dbClient.send(new PutItemCommand({
+            TableName: messagesTable,
+            Item: marshall({
+                MessageId: `MESSAGE#${uuidv4()}`,
+                DataCategory: 'Meta::Message',
+                CreatedTime: Date.now(),
                 Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
                 DisplayProtocol: "World",
-                Message: messageFunction(Name),
-                MessageId: uuidv4()
-            }]}))
+                Message: messageFunction(Name)
+            })
         })),
         ...promises
     ])
 }
 
+//
+// Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
+// cycle you don't have the disconnect update come before the connect.
+//
 const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
     const [{ Items = [] }, { Items: PlayerItems = []}] = await Promise.all([
@@ -195,10 +202,6 @@ const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
     const { DataCategory, RoomId, Connected } = unmarshall(Item)
     if (DataCategory) {
         const updatePromise = Promise.all([
-            //
-            // TODO:  Add Connection -> connectionId data elements to the Ephemera table that will record the
-            // authenticated player and the list of characters connected to a given connection.
-            //
             lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.EPHEMERA_SERVICE,
                 InvocationType: 'Event',
@@ -291,20 +294,17 @@ const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}
     ])
     const { RoomId, Name } = unmarshall(EphemeraItem)
     if (RoomId) {
-        const output = {
-            Messages: [{
-                MessageId: uuidv4(),
+        await dbClient.send(new PutItemCommand({
+            TableName: messagesTable,
+            Item: marshall({
+                MessageId: `MESSAGE#${uuidv4()}`,
+                DataCategory: 'Meta::Message',
                 CreatedTime: Date.now(),
                 Targets: [`ROOM#${RoomId}`],
                 DisplayProtocol: 'Player',
                 CharacterId,
                 Message: messageCallback({ Name, Message })
-            }]
-        }
-        await lambdaClient.send(new InvokeCommand({
-            FunctionName: process.env.MESSAGE_SERVICE,
-            InvocationType: 'Event',
-            Payload: new TextEncoder().encode(JSON.stringify(output))
+            })
         }))
     }
     return {
@@ -331,23 +331,37 @@ const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback }
             }))
 
         const { Name = 'Someone', RoomId: CurrentRoomId, Connected, ConnectionId } = unmarshall(Item)
-        const messages = [{
-            MessageId: uuidv4(),
-            CreatedTime,
-            TimeOffset: -1,
-            Targets: [`CHARACTER#${CharacterId}`, `ROOM#${CurrentRoomId}`],
-            DisplayProtocol: "World",
-            Message: messageCallback(Name)
-        },
-        {
-            MessageId: uuidv4(),
-            CreatedTime,
-            TimeOffset: 1,
-            RoomId,
-            Targets: [ `CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
-            DisplayProtocol: "World",
-            Message: `${Name} has arrived.`
-        }]
+        const sendMessages = dbClient.send(new BatchWriteItemCommand({
+            RequestItems: {
+                [messagesTable]: [
+                    {
+                        PutRequest: {
+                            Item: marshall({
+                                MessageId: `MESSAGE#${uuidv4()}`,
+                                DataCategory: 'Meta::Message',
+                                CreatedTime: CreatedTime - 1,
+                                Targets: [`CHARACTER#${CharacterId}`, `ROOM#${CurrentRoomId}`],
+                                DisplayProtocol: "World",
+                                Message: messageCallback(Name)                    
+                            })
+                        }
+                    },
+                    {
+                        PutRequest: {
+                            Item: marshall({
+                                MessageId: `MESSAGE#${uuidv4()}`,
+                                DataCategory: 'Meta::Message',
+                                CreatedTime: CreatedTime + 1,
+                                RoomId,
+                                Targets: [ `CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
+                                DisplayProtocol: "World",
+                                Message: `${Name} has arrived.`
+                            })
+                        }
+                    }
+                ]
+            }
+        }))
         await Promise.all([
             lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.EPHEMERA_SERVICE,
@@ -389,19 +403,7 @@ const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback }
                     PermanentId: `ROOM#${RoomId}`
                 }))
             })),
-
-        //
-        // TODO: Refactor Message Service so that perception messages can be sent as part of the payload,
-        // parsed by an invoke from MESSAGE, then folded into the list and delivered simultaneously.
-        //
-        // Alternately, maybe fold the Perception service directly into the Message service, if it is
-        // never going to be called without returning a message.
-        //
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.MESSAGE_SERVICE,
-                InvocationType: 'Event',
-                Payload: new TextEncoder().encode(JSON.stringify({ Messages: messages }))
-            })),
+            sendMessages,
             lambdaClient.send(new InvokeCommand({
                 FunctionName: process.env.PERCEPTION_SERVICE,
                 InvocationType: 'Event',
@@ -552,8 +554,33 @@ exports.handler = async (event, context) => {
             return fetchEphemera()
         case 'whoAmI':
             return whoAmI(dbClient, connectionId, request.RequestId)
+        case 'sync':
+            await sync(dbClient, apiClient, {
+                type: request.syncType,
+                ConnectionId: connectionId,
+                RequestId: request.RequestId,
+                TargetId: request.CharacterId,
+                startingAt: request.startingAt,
+                limit: request.limit
+            })
+            break;
         case 'putPlayer':
             return putPlayer(request.PlayerName)({ Characters: request.Characters, CodeOfConductConsent: request.CodeOfConductConsent })
+        case 'directMessage':
+            await dbClient.send(new PutItemCommand({
+                TableName: messagesTable,
+                Item: marshall({
+                    MessageId: `MESSAGE#${uuidv4()}`,
+                    DataCategory: 'Meta::Message',
+                    CreatedTime: Date.now(),
+                    Targets: request.Targets,
+                    DisplayProtocol: "Direct",
+                    Message: request.Message,
+                    Recipients: request.Recipients,
+                    CharacterId: request.CharacterId
+                })
+            }))
+            break;
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look
