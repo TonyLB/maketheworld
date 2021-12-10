@@ -86,12 +86,6 @@ exports.handler = async (event, context) => {
     // Check whether message is being called from DBStream (in which case Events will be present)
     //
     if (Records.length) {
-        //
-        // Third Iteration:  Add processing so that ROOM# Targets can also be included in the target
-        // list.  Look up the Meta::Room entry in Ephemera, and use the activeCharacters listing
-        // to get a list of Character IDs.  Then, when making targets for the record, join those lists
-        // in with the other items (deduplicating as you go).
-        //
         const metaRecords = Records
             .filter(({ eventName }) => (eventName === 'INSERT'))
             .map(({ dynamodb }) => (unmarshall(dynamodb.NewImage || {})))

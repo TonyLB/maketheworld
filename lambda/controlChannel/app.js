@@ -30,6 +30,16 @@ const messagesTable = `${TABLE_PREFIX}_messages`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
+const splitType = (value) => {
+    const sections = value.split('#')
+    if (sections.length) {
+        return [sections[0], sections.slice(1).join('#')]
+    }
+    else {
+        return ['', '']
+    }
+}
+
 const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
     const { Item: CharacterItem } = await dbClient.send(new GetItemCommand({
         TableName: permanentsTable,
@@ -57,7 +67,7 @@ const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFun
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
-// cycle you don't have the disconnect update come before the connect.
+// cycle you don't have the disconnect update come after the connect.
 //
 const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
@@ -69,7 +79,8 @@ const disconnect = async (connectionId) => {
                 ":EphemeraId": "CHARACTERINPLAY#",
                 ":ConnectionId": connectionId
             }),
-            IndexName: 'ConnectionIndex'
+            IndexName: 'ConnectionIndex',
+            ProjectionExpression: 'EphemeraId, DataCategory'
         })),
         dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
@@ -93,62 +104,36 @@ const disconnect = async (connectionId) => {
                 })
             }))))
         ),
+        //
+        // TODO: Implement a ConditionExpression to double-check that Global-Connections
+        // exists and has a proper map, before attempting to update.  On a caught
+        // ConditionExpression error, route to self-healing in the Ephemera function
+        //
         dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
                 EphemeraId: 'Global',
                 DataCategory: 'Connections'
             }),
-            UpdateExpression: 'DELETE connections :connection',
-            ExpressionAttributeValues: {
-                ':connection': { 'SS': [connectionId] }
+            UpdateExpression: 'REMOVE connections.#connection',
+            ExpressionAttributeNames: {
+                '#connection': connectionId
             }
         })),
         ...(Items
             .map(unmarshall)
-            .map(({ RoomId, EphemeraId = '' }) => ({ CharacterId: removeType(EphemeraId), RoomId }))
-            .map(({ CharacterId, RoomId }) => (
-                //
-                // TODO:  Refactor so that instead of sending individual Lambda commands, the
-                // handler aggregates all of the messages and sends one command with the
-                // whole set of simultaneous disconnects
-                //
-                // TODO:  Refactor so that commands are sent in the correct order (connect before messages,
-                // messages before disconnect) to avoid parallel race conditions that can cause either failure
-                // to broadcast "Player has connected" messages, or GoneException errors (for messages sent
-                // incorrectly to disconnected characters)
-                //
-                updateWithRoomMessage({
-                    RoomId,
-                    CharacterId,
-                    promises: [
-                        lambdaClient.send(new InvokeCommand({
-                            FunctionName: process.env.EPHEMERA_SERVICE,
-                            InvocationType: 'Event',
-                            Payload: new TextEncoder().encode(JSON.stringify({
-                                action: 'updateEphemera',
-                                directCall: true,
-                                Updates: [{
-                                    putCharacterInPlay: {
-                                        CharacterId,
-                                        Connected: false,
-                                        ConnectionId: null
-                                    }
-                                },
-                                {
-                                    addCharacterToRoom: {
-                                        CharacterId,
-                                        RoomId,
-                                        Connected: false,
-                                    }
-                                }]
-                            }))
-                        }))                        
-                    ],
-                    messageFunction: (Name) => (`${Name || 'Someone'} has disconnected.`)
+            .map(({ EphemeraId, DataCategory }) => (dbClient.send(new UpdateItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId,
+                    DataCategory
+                }),
+                UpdateExpression: 'SET Connected = :false REMOVE ConnectionId',
+                ExpressionAttributeValues: marshall({
+                    ':false': false
                 })
-            ))
-        )]
+            })))))
+        ]
     )
 
     return { statusCode: 200 }
@@ -170,9 +155,12 @@ const connect = async (connectionId, token) => {
                     EphemeraId: 'Global',
                     DataCategory: 'Connections'
                 }),
-                UpdateExpression: 'ADD connections :connection',
-                ExpressionAttributeValues: {
-                    ':connection': { 'SS': [connectionId] }
+                UpdateExpression: 'SET connections.#connection = :player',
+                ExpressionAttributeValues: marshall({
+                    ':player': userName
+                }),
+                ExpressionAttributeNames: {
+                    '#connection': connectionId
                 }
             })),
             dbClient.send(new PutItemCommand({
@@ -192,75 +180,68 @@ const connect = async (connectionId, token) => {
 const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
 
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const { Item = {} } = await dbClient.send(new GetItemCommand({
+    await dbClient.send(new UpdateItemCommand({
         TableName: ephemeraTable,
         Key: marshall({
             EphemeraId,
             DataCategory: 'Connection'
+        }),
+        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId',
+        ExpressionAttributeValues: marshall({
+            ':true': true,
+            ':connectionId': connectionId
         })
     }))
-    const { DataCategory, RoomId, Connected } = unmarshall(Item)
-    if (DataCategory) {
-        const updatePromise = Promise.all([
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.EPHEMERA_SERVICE,
-                InvocationType: 'Event',
-                Payload: new TextEncoder().encode(JSON.stringify({
-                    action: 'updateEphemera',
-                    directCall: true,
-                    Updates: [{
-                        putCharacterInPlay: {
-                            CharacterId,
-                            Connected: true,
-                            ConnectionId: connectionId
-                        }
-                    },
-                    {
-                        addCharacterToRoom: {
-                            CharacterId,
-                            RoomId,
-                            Connected: true,
-                            ConnectionId: connectionId
-                        }
-                    }]
-                }))
-            }))
-        ])
-        if (Connected) {
-            await updatePromise
-        }
-        else {
-            await updateWithRoomMessage({
-                RoomId,
-                CharacterId,
-                promises: [ updatePromise ],
-                //
-                // TODO:  Refactor updateWithRoomMessage to take advantage of the fact that we can
-                // now pull denormalized character information from the Ephemera table on the first
-                // GetItem up at the top of this procedure (i.e. we can pre-determine
-                // the messages to be delivered rather than pass a callback)
-                //
-                messageFunction: (Name) => (`${Name || 'Someone'} has connected.`)
-            })
-        }
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ RequestId, messageType: "Registered", CharacterId })
-        }
-    }
-    return { statusCode: 404, body: JSON.stringify({ messageType: 'Error', RequestId }) }
 
 }
 
+const serialize = ({
+    EphemeraId,
+    Connected,
+    RoomId,
+    Name
+}) => {
+    const [type, payload] = splitType(EphemeraId)
+    switch(type) {
+        case 'CHARACTERINPLAY':
+            return {
+                type: 'CharacterInPlay',
+                CharacterId: payload,
+                Connected,
+                RoomId,
+                Name
+            }
+        //
+        // TODO:  More serializers for more data types!
+        //
+        default:
+            return null
+    }
+}
+
 const fetchEphemera = async (RequestId) => {
-    const { Payload = {} } =  await lambdaClient.send(new InvokeCommand({
-        FunctionName: process.env.EPHEMERA_SERVICE,
-        InvocationType: 'RequestResponse',
-        Payload: new TextEncoder().encode(JSON.stringify({ action: 'fetchEphemera', RequestId }))
+    const { Items = [] } = await dbClient.send(new QueryCommand({
+        TableName: ephemeraTable,
+        KeyConditionExpression: 'DataCategory = :DataCategory and begins_with(EphemeraId, :EphemeraId)',
+        ExpressionAttributeValues: marshall({
+            ":EphemeraId": "CHARACTERINPLAY#",
+            ":DataCategory": "Connection"
+        }),
+        IndexName: 'DataCategoryIndex'
     }))
+    const returnItems = Items.map(unmarshall)
+        .map(serialize)
+        .filter((value) => value)
+        .filter(({ Connected }) => (Connected))
+    //
+    // TODO:  Instead of depending upon APIGateway to route the message back
+    // to its own connection, maybe manually route multiple messages, so that
+    // you can break a large scan into limited message-lengths.
+    //
     return {
-        statusCode: 200,
-        body: new TextDecoder('ascii').decode(Payload)
+        messageType: 'Ephemera',
+        RequestId,
+        updates: returnItems
     }
 }
 
@@ -313,112 +294,26 @@ const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}
     }
 }
 
-const moveCharacterWithMessage = async ({ CharacterId, RoomId, messageCallback } = {}) => {
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    if (RoomId) {
-        const CreatedTime = Date.now()
-
-        const { Item = {} } = await dbClient.send(new GetItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId,
-                    DataCategory: 'Connection',
-                }),
-                ProjectionExpression: "#name, RoomId, Connected, ConnectionId",
-                ExpressionAttributeNames: {
-                    '#name': 'Name',
-                }
-            }))
-
-        const { Name = 'Someone', RoomId: CurrentRoomId, Connected, ConnectionId } = unmarshall(Item)
-        const sendMessages = dbClient.send(new BatchWriteItemCommand({
-            RequestItems: {
-                [messagesTable]: [
-                    {
-                        PutRequest: {
-                            Item: marshall({
-                                MessageId: `MESSAGE#${uuidv4()}`,
-                                DataCategory: 'Meta::Message',
-                                CreatedTime: CreatedTime - 1,
-                                Targets: [`CHARACTER#${CharacterId}`, `ROOM#${CurrentRoomId}`],
-                                DisplayProtocol: "World",
-                                Message: messageCallback(Name)                    
-                            })
-                        }
-                    },
-                    {
-                        PutRequest: {
-                            Item: marshall({
-                                MessageId: `MESSAGE#${uuidv4()}`,
-                                DataCategory: 'Meta::Message',
-                                CreatedTime: CreatedTime + 1,
-                                RoomId,
-                                Targets: [ `CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
-                                DisplayProtocol: "World",
-                                Message: `${Name} has arrived.`
-                            })
-                        }
-                    }
-                ]
-            }
-        }))
-        await Promise.all([
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.EPHEMERA_SERVICE,
-                InvocationType: 'RequestResponse',
-                Payload: new TextEncoder().encode(JSON.stringify({
-                    action: 'updateEphemera',
-                    directCall: true,
-                    Updates: [{
-                        putCharacterInPlay: {
-                            CharacterId,
-                            RoomId
-                        },
-                    },
-                    {
-                        addCharacterToRoom: {
-                            CharacterId,
-                            RoomId,
-                            Connected,
-                            ConnectionId
-                        },
-                    },
-                    {
-                        removeCharacterFromRoom: {
-                            CharacterId,
-                            RoomId: CurrentRoomId
-                        }
-                    }]
-                }))
-            })),
-            //
-            // TODO:  Check first whether the room is already present, and only after
-            // that fails denormalize out of permanents.
-            //
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.EPHEMERA_SERVICE,
-                InvocationType: 'RequestResponse',
-                Payload: new TextEncoder().encode(JSON.stringify({
-                    action: 'denormalize',
-                    PermanentId: `ROOM#${RoomId}`
-                }))
-            })),
-            sendMessages,
-            lambdaClient.send(new InvokeCommand({
-                FunctionName: process.env.PERCEPTION_SERVICE,
-                InvocationType: 'Event',
-                Payload: new TextEncoder().encode(JSON.stringify({
-                    CreatedTime,
-                    CharacterId,
-                    PermanentId: `ROOM#${RoomId}`
-                }))
-            }))
-        ])
-    }
-}
-
 const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
-    await moveCharacterWithMessage({ CharacterId, RoomId, messageCallback: (Name) => (`${Name} left${ ExitName ? ` by ${ExitName} exit` : ''}.`)})
+    // await moveCharacterWithMessage({ CharacterId, RoomId, messageCallback: (Name) => (`${Name} left${ ExitName ? ` by ${ExitName} exit` : ''}.`)})
+    //
+    // TODO: Validate the RoomId as one that is valid for the character to move to, before
+    // pushing data to the DB.
+    //
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    await dbClient.send(new UpdateItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId,
+            DataCategory: 'Connection'
+        }),
+        UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
+        ExpressionAttributeValues: marshall({
+            ':roomId': RoomId,
+            ':leave': ` left${ ExitName ? ` by ${ExitName} exit` : ''}.`,
+            ':enter': ` arrives.`
+        })
+    }))
 }
 
 const goHome = async ({ CharacterId } = {}) => {
@@ -431,8 +326,24 @@ const goHome = async ({ CharacterId } = {}) => {
         }),
         ProjectionExpression: 'HomeId'
     }))
+    //
+    // TODO: Validate that the home RoomID is still a valid destination
+    //
     const { HomeId = 'VORTEX' } = unmarshall(Item)
-    await moveCharacterWithMessage({ CharacterId, RoomId: HomeId, messageCallback: (Name) => (`${Name} left to go home.`)})
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    await dbClient.send(new UpdateItemCommand({
+        TableName: ephemeraTable,
+        Key: marshall({
+            EphemeraId,
+            DataCategory: 'Connection'
+        }),
+        UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
+        ExpressionAttributeValues: marshall({
+            ':roomId': `ROOM#${HomeId}`,
+            ':leave': ` left to go home.`,
+            ':enter': ` arrives.`
+        })
+    }))
 
 }
 
@@ -551,7 +462,11 @@ exports.handler = async (event, context) => {
             }
             break;
         case 'fetchEphemera':
-            return fetchEphemera()
+            const ephemera = await fetchEphemera()
+            return {
+                statusCode: 200,
+                body: JSON.stringify(ephemera)
+            }
         case 'whoAmI':
             return whoAmI(dbClient, connectionId, request.RequestId)
         case 'sync':

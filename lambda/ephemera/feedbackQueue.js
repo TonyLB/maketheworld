@@ -47,11 +47,11 @@ const queueFlush = async () => {
         ProjectionExpression: 'connections'
     }))
 
-    const connections = [...(unmarshall(Item).connections || [])]
+    const connections = [...(unmarshall(Item).connections || {})]
 
     if (queueStorage.length > 0) {
         await Promise.all(
-            connections.map((ConnectionId) => (
+            Object.keys(connections).map((ConnectionId) => (
                 apiClient.send(new PostToConnectionCommand({
                     ConnectionId,
                     Data: JSON.stringify({

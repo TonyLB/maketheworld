@@ -124,5 +124,5 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
     }
 }
 
-exports.getCharactersInPlay = getCharactersInPlay
+// exports.getCharactersInPlay = getCharactersInPlay
 exports.putCharacterInPlay = putCharacterInPlay

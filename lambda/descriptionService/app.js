@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 const AWSXRay = require('aws-xray-sdk')
 
-const { DynamoDBClient, QueryCommand, PutItemCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
+const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb")
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { v4: uuid } = require("uuid")
@@ -124,7 +124,7 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
 //
 // TODO: Accept more types of objects, and parse their data accordingly
 //
-const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegment) => {
+const publishMessage = async ({ CreatedTime, CharacterId, PermanentId, additionalMessages = [] }, subsegment) => {
     //
     // TODO:  Expand what you query from DynamoDB for the record
     //
@@ -153,10 +153,12 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId }, subsegm
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
             }
-            await ddbClient.send(new PutItemCommand({
-                TableName: MessageTableName,
-                Item: marshall(Message)
-            }))
+            await ddbClient.send(new BatchWriteItemCommand({ RequestItems: {
+                [MessageTableName]: [
+                    Message,
+                    ...additionalMessages
+                ].map((item) => ({ PutRequest: { Item: marshall(item) }}))
+            }}))
             return
         default:
             return
