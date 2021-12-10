@@ -11,6 +11,8 @@
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.21.0",
     "@aws-sdk/client-dynamodb": "^3.13.1",
-    "@aws-sdk/util-dynamodb": "^3.13.1"
+    "@aws-sdk/client-lambda": "^3.43.0",
+    "@aws-sdk/util-dynamodb": "^3.13.1",
+    "uuid": "^8.3.2"
   }
 }
