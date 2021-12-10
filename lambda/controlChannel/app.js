@@ -155,9 +155,12 @@ const connect = async (connectionId, token) => {
                     EphemeraId: 'Global',
                     DataCategory: 'Connections'
                 }),
-                UpdateExpression: 'ADD connections :connection',
-                ExpressionAttributeValues: {
-                    ':connection': { 'SS': [connectionId] }
+                UpdateExpression: 'SET connections.#connection = :player',
+                ExpressionAttributeValues: marshall({
+                    ':player': userName
+                }),
+                ExpressionAttributeNames: {
+                    '#connection': connectionId
                 }
             })),
             dbClient.send(new PutItemCommand({
@@ -229,6 +232,7 @@ const fetchEphemera = async (RequestId) => {
     const returnItems = Items.map(unmarshall)
         .map(serialize)
         .filter((value) => value)
+        .filter(({ Connected }) => (Connected))
     //
     // TODO:  Instead of depending upon APIGateway to route the message back
     // to its own connection, maybe manually route multiple messages, so that
@@ -458,7 +462,11 @@ exports.handler = async (event, context) => {
             }
             break;
         case 'fetchEphemera':
-            return fetchEphemera()
+            const ephemera = await fetchEphemera()
+            return {
+                statusCode: 200,
+                body: JSON.stringify(ephemera)
+            }
         case 'whoAmI':
             return whoAmI(dbClient, connectionId, request.RequestId)
         case 'sync':

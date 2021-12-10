@@ -31,8 +31,10 @@ const healGlobalConnections = async (dbClient) => {
                 connections: connectionMap
             })
         }))
+        return connectionMap
     }
     catch(error) {}
+    return {}
     
 }
 

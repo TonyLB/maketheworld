@@ -5,6 +5,12 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb')
 const { LambdaClient } = require('@aws-sdk/client-lambda')
 const { v4: uuidv4 } = require('uuid')
+const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
+
+const apiClient = new ApiGatewayManagementApiClient({
+    apiVersion: '2018-11-29',
+    endpoint: process.env.WEBSOCKET_API
+})
 
 const REGION = process.env.AWS_REGION
 
@@ -23,6 +29,7 @@ const { fetchEphemera } = require('./fetch')
 const { healGlobalConnections } = require('./selfHealing')
 
 const { processCharacterEvent } = require('./characterHandlers')
+const { splitType } = require('./utilities')
 
 const splitPermanentId = (PermanentId) => {
     const sections = PermanentId.split('#')
@@ -63,26 +70,76 @@ const denormalizeDispatcher = ({ PermanentId, data }) => {
     }
 }
 
-// const postRecords = (Records) => {
-//     try {
-//         const { Item = {} } = await dbClient.send(new GetItemCommand({
-//             TableName: ephemeraTable,
-//             Key: marshall({
-//                 EphemeraId: 'Global',
-//                 DataCategory: 'Connections'
-//             }),
-//             ProjectionExpression: 'connections'
-//         }))
-//         const { connections } = unmarshall(Item)
-        
-//     }
-//     catch(e) {
-//         //
-//         // TODO: Create self-healing functions for denormalized data structures
-//         // like Global::Connections
-//         //
-//     }
-// }
+const postRecords = async (Records) => {
+    let connections = {}
+    try {
+        const { Item = {} } = await dbClient.send(new GetItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId: 'Global',
+                DataCategory: 'Connections'
+            }),
+            ProjectionExpression: 'connections'
+        }))
+        connections = unmarshall(Item).connections
+    }
+    catch(e) {
+        connections = await healGlobalConnections(dbClient)
+    }
+    //
+    // TODO: Filter Records to find the types of records we should report back to the users as
+    // ephemera updates, and aggregate them into a list to send in a single bolus
+    //
+    const unmarshalledRecords = Records
+        .map(({ eventName, dynamodb }) => ({
+            eventName,
+            data: {
+                oldImage: unmarshall(dynamodb.OldImage || {}),
+                newImage: unmarshall(dynamodb.NewImage || {})
+            }
+        }))
+    const characterRecords = unmarshalledRecords
+        .filter(({ data: { newImage } }) => ((newImage.EphemeraId ?? '').startsWith('CHARACTERINPLAY#') && newImage.DataCategory === 'Connection'))
+        .map(({ data: { newImage } }) => {
+            const { EphemeraId, Name, RoomId, Connected } = newImage
+            return {
+                type: 'CharacterInPlay',
+                CharacterId: splitType(EphemeraId)[1],
+                Name,
+                RoomId,
+                Connected
+            }
+        })
+    //
+    // TODO: Figure out what Room information needs to be transmitted from Ephemera changes to the
+    // client side of the fence (if any)
+    //
+
+    const updates = [
+        ...characterRecords
+    ]
+    if (updates.length) {
+        try {
+            await Promise.all(
+                Object.keys(connections).map((ConnectionId) => (
+                    apiClient.send(new PostToConnectionCommand({
+                        ConnectionId,
+                        Data: JSON.stringify({
+                            messageType: 'Ephemera',
+                            updates
+                        }, null, 4)
+                    }))
+                ))
+                //
+                // TODO: Process errors to find connections that can be pruned
+                // from the current-open listing
+                //
+            )    
+        }
+        catch (e) {}
+    }
+
+}
 
 //
 // dispatchRecords breaks incoming records into relevant categories, pre-processes
@@ -117,9 +174,10 @@ const dispatchRecords = (Records) => {
     // TODO: Create function to parse through the entirety of the set of records, and
     // figure out what records need to be forwarded as Ephemera updates to whom.
     //
-    return Promise.all(
-        characterRecords.map(processCharacterEvent({ dbClient, lambdaClient }))
-    )
+    return Promise.all([
+        ...characterRecords.map(processCharacterEvent({ dbClient, lambdaClient })),
+        postRecords(Records)
+    ])
 }
 
 exports.handler = async (event, context) => {
