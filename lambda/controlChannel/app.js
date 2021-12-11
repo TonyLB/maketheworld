@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('/opt/uuid')
 
 const AWSXRay = require('aws-xray-sdk')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
 const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
@@ -38,31 +38,6 @@ const splitType = (value) => {
     else {
         return ['', '']
     }
-}
-
-const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
-    const { Item: CharacterItem } = await dbClient.send(new GetItemCommand({
-        TableName: permanentsTable,
-        Key: marshall({
-            PermanentId: `CHARACTER#${CharacterId}`,
-            DataCategory: 'Details'
-        })
-    }))
-    const { Name = '' } = CharacterItem ? unmarshall(CharacterItem) : {}
-    await Promise.all([
-        dbClient.send(new PutItemCommand({
-            TableName: messagesTable,
-            Item: marshall({
-                MessageId: `MESSAGE#${uuidv4()}`,
-                DataCategory: 'Meta::Message',
-                CreatedTime: Date.now(),
-                Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
-                DisplayProtocol: "World",
-                Message: messageFunction(Name)
-            })
-        })),
-        ...promises
-    ])
 }
 
 //

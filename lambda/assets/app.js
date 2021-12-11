@@ -3,15 +3,68 @@ const { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = r
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb")
 const { v4: uuidv4 } = require("uuid")
 
-const { wmlGrammar, dbEntries, validatedSchema, assetRegistryEntries } = require("./wml/")
+const { wmlGrammar, validatedSchema, assetRegistryEntries } = require("./wml/")
 const { replaceItem, mergeIntoDataRange } = require('./utilities/dynamoDB')
 const { cacheAsset } = require('./cache.js')
 const { streamToString } = require('./utilities/stream')
+const { healAsset } = require("./selfHealing")
 
 const params = { region: process.env.AWS_REGION }
+const s3Client = new S3Client(params)
+const dbClient = new DynamoDBClient(params)
 
+//
+// TODO: Step 2
+//
+// Create Character schema for WML, to allow for Character S3 objects
+//
+
+//
+// TODO: Step 3
+//
+// Update selfHealing to include Character objects as well
+//
+
+//
+// TODO: Step 4
+//
+// Create DBStream event handling for asset table changes
+//
+
+//
+// TODO: Step 5
+//
+// Replace ephemera::denormalize with event-driven updates into the ephemera tables
+//
+
+//
+// TODO: Step 6
+//
+// Update ephemera selfHealing to read from the existing Assets and rebuild denormalized
+// data where necessary
+//
+
+//
+// TODO: Step 7
+//
+// Create web-client route for creating/editing characters
+//
+
+//
+// TODO: Step 8
+//
+// Create outlet in controlChannel for getting presigned upload URLs for the upload directory
+// in the assets bucket
+//
+
+//
+// TODO: Step 9
+//
+// Use the presigned URLs to upload updated characters to the asset library
+//
 exports.handler = async (event, context) => {
 
+    console.log(`Event: ${JSON.stringify(event, null, 4)}`)
     // Get the object from the event and show its content type
     if (event.Records && event.Records[0]?.s3) {
         const bucket = event.Records[0].s3.bucket.name;
@@ -23,7 +76,6 @@ exports.handler = async (event, context) => {
             const objectPrefix = objectNameItems.length > 1
                 ? `${objectNameItems.slice(0, -1).join('/')}/`
                 : ''
-            const s3Client = new S3Client(params)
             const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
                 Bucket: bucket,
                 Key: key
@@ -42,7 +94,6 @@ exports.handler = async (event, context) => {
                 }
                 else {
                     const assetRegistryItems = assetRegistryEntries(schema)
-                    const dbClient = new DynamoDBClient(params)
                     const asset = assetRegistryItems.find(({ tag }) => (tag === 'Asset'))
                     if (asset && asset.key) {
                         const fileName = `drafts/${objectPrefix}${schema.fileName}`
@@ -122,6 +173,10 @@ exports.handler = async (event, context) => {
         const fileName = await cacheAsset(assetId)
 
         return JSON.stringify({ fileName })
+    }
+    if (event.heal) {
+        const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
+        return JSON.stringify(returnVal, null, 4)
     }
     context.fail(JSON.stringify(`Error: Unknown format ${event}`))
 

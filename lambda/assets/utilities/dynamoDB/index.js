@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require("uuid")
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
+const assetsTable = `${TABLE_PREFIX}_assets`
 
 const batchWriteDispatcher = (dbClient, { table, items }) => {
     const groupBatches = items
@@ -66,28 +67,28 @@ const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) =>
 //
 const replaceItem = async (dbClient, item) => {
     const putItem = new PutItemCommand({
-        TableName: permanentsTable,
+        TableName: assetsTable,
         Item: marshall(item, { removeUndefinedValues: true })
     })
     await dbClient.send(putItem)
 }
 
 //
-// mergeIntoDataRange queries a given data search (either using the primary sort if Permanent/EphemeraId is
+// mergeIntoDataRange queries a given data search (either using the primary sort if Asset/EphemeraId is
 // specified in the search, or the DataCategory index if DataCategory is specified) and compares it
-// against incoming data.  The 'table' argument should pass only 'permanent' or 'ephemera' strings.
+// against incoming data.  The 'table' argument should pass only 'assets' or 'ephemera' strings.
 //
 // Incoming records will either already possess the unmatched key (in the case where extractKey is null),
 // or will generate that key by calling extractKey with two arguments:  first the element in question,
 // and second the entire list of current items.  (e.g.:  This is used to match scoped keys to global
 // IDs of Rooms in WML schemata)
 //
-// A given record _already_ in the database will either match (by PermanentId and DataCategory) with
+// A given record _already_ in the database will either match (by Asset/EphemeraId and DataCategory) with
 // an incoming record, or it will not.  Likewise, a given incoming record will either match a record
 // already present, or it will not.
 //
 // The merge function takes a map of two-element tuples, incoming and current, indexed by the key
-// (DataCategory, or Permanent/EphemeraId) that is *not* specified in the search.  Each of these
+// (DataCategory, or Asset/EphemeraId) that is *not* specified in the search.  Each of these
 // tuples will contain either:
 //    * A match (both incoming and current elements specified)
 //    * An unmatched incoming element
@@ -104,7 +105,7 @@ const mergeIntoDataRange = async ({
     table,
     search: {
         DataCategory,
-        PermanentId,
+        AssetId,
         EphemeraId
     },
     items,
@@ -114,26 +115,26 @@ const mergeIntoDataRange = async ({
     //
     // TODO:  Better error handling and validation throughout
     //
-    const TableName = table === 'permanent' ? permanentsTable : ephemeraTable
-    if ((DataCategory === undefined ? 0 : 1) + (PermanentId === undefined ? 0 : 1) + (EphemeraId === undefined ? 0 : 1) > 1) {
-        console.log(`ERROR: mergeIntoDataRange accepts only one of 'DataCategory', 'EphemeraId', and 'PermanentId' search terms`)
+    const TableName = table === 'assets' ? assetsTable : ephemeraTable
+    if ((DataCategory === undefined ? 0 : 1) + (AssetId === undefined ? 0 : 1) + (EphemeraId === undefined ? 0 : 1) > 1) {
+        console.log(`ERROR: mergeIntoDataRange accepts only one of 'DataCategory', 'EphemeraId', and 'AssetId' search terms`)
         return;
     }
-    const keyLabel = table === 'permanent'
-        ? PermanentId ? 'DataCategory' : 'PermanentId'
+    const keyLabel = table === 'assets'
+        ? AssetId ? 'DataCategory' : 'AssetId'
         : EphemeraId ? 'DataCategory': 'EphemeraId'
     const extractKeyDefault = (item) => (item[keyLabel])
     const KeyConditionExpression = DataCategory
         ? `DataCategory = :dc`
-        : PermanentId
-            ? `PermanentId = :pid`
+        : AssetId
+            ? `AssetId = :aid`
             : `EphemeraId = eid`
     const { Items: dbItems = [] } = await dbClient.send(new QueryCommand({
         TableName,
         KeyConditionExpression,
         ExpressionAttributeValues: marshall({
             ":dc": DataCategory,
-            ":pid": PermanentId,
+            ":aid": AssetId,
             ":eid": EphemeraId
         }, { removeUndefinedValues: true }),
         ...(DataCategory ? { IndexName: 'DataCategoryIndex' } : {})
@@ -166,7 +167,7 @@ const mergeIntoDataRange = async ({
         DeleteRequest: {
             Key: marshall({
                 DataCategory,
-                PermanentId,
+                AssetId,
                 EphemeraId,
                 [keyLabel]: key
             }, { removeUndefinedValues: true })
@@ -183,7 +184,7 @@ const mergeIntoDataRange = async ({
                     PutRequest: {
                         Item: marshall({
                             DataCategory,
-                            PermanentId,
+                            AssetId,
                             EphemeraId,
                             [keyLabel]: key,
                             ...value
