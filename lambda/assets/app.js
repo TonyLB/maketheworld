@@ -1,12 +1,8 @@
 // Import required AWS SDK clients and commands for Node.js
-const { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3")
+const { S3Client, CopyObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3")
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb")
-const { v4: uuidv4 } = require("uuid")
 
-const { wmlGrammar, validatedSchema, assetRegistryEntries } = require("./wml/")
-const { replaceItem, mergeIntoDataRange } = require('./utilities/dynamoDB')
 const { cacheAsset } = require('./cache.js')
-const { streamToString } = require('./utilities/stream')
 const { healAsset } = require("./selfHealing")
 const { getAssets } = require("./serialize/s3Assets")
 const { putTranslateFile, getTranslateFile } = require("./serialize/translateFile")
@@ -54,64 +50,75 @@ const dbClient = new DynamoDBClient(params)
 //
 // Use the presigned URLs to upload updated characters to the asset library
 //
-exports.handler = async (event, context) => {
 
-    // Get the object from the event and show its content type
-    if (event.Records && event.Records[0]?.s3) {
-        const bucket = event.Records[0].s3.bucket.name;
-        const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
-    
-        const keyPrefix = key.split('/').slice(0, 1).join('/')
-        if (keyPrefix === 'upload') {
-            const objectNameItems = key.split('/').slice(1)
-            const objectPrefix = objectNameItems.length > 1
-                ? `${objectNameItems.slice(0, -1).join('/')}/`
-                : ''
+const handleS3Event = async(event) => {
+    const bucket = event.bucket.name;
+    const key = decodeURIComponent(event.object.key.replace(/\+/g, ' '));
 
-            const assetRegistryItems = await getAssets(s3Client, key)
-            if (assetRegistryItems.length) {
-                const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
-                if (asset && asset.key) {
-                    console.log(`Asset: ${JSON.stringify(asset, null, 4)}`)
-                    const fileName = `drafts/${objectPrefix}${asset.fileName}.wml`
-                    const translateFile = `drafts/${objectPrefix}${asset.fileName}.translate.json`
-                    const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
-                    const scopeMapContents = scopeMap(assetRegistryItems, (currentScopeMap.scopeMap || {}))
+    const keyPrefix = key.split('/').slice(0, 1).join('/')
+    if (keyPrefix === 'upload') {
+        const objectNameItems = key.split('/').slice(1)
+        const objectPrefix = objectNameItems.length > 1
+            ? `${objectNameItems.slice(0, -1).join('/')}/`
+            : ''
 
-                    await Promise.all([
-                        dbRegister(dbClient, {
-                            fileName,
-                            translateFile,
-                            scopeMap: scopeMapContents,
-                            assets: assetRegistryItems
-                        }),
-                        putTranslateFile(s3Client, {
-                            name: translateFile,
-                            scopeMap: scopeMapContents,
-                            assetKey: asset.key
-                        }),
-                        s3Client.send(new CopyObjectCommand({
-                            Bucket: bucket,
-                            CopySource: `${bucket}/${key}`,
-                            Key: fileName
-                        }))
-                    ])
-                }
-        
+        const assetRegistryItems = await getAssets(s3Client, key)
+        if (assetRegistryItems.length) {
+            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+            if (asset && asset.key) {
+                const fileName = `drafts/${objectPrefix}${asset.fileName}.wml`
+                const translateFile = `drafts/${objectPrefix}${asset.fileName}.translate.json`
+                const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
+                const scopeMapContents = scopeMap(assetRegistryItems, (currentScopeMap.scopeMap || {}))
+
+                await Promise.all([
+                    dbRegister(dbClient, {
+                        fileName,
+                        translateFile,
+                        scopeMap: scopeMapContents,
+                        assets: assetRegistryItems
+                    }),
+                    putTranslateFile(s3Client, {
+                        name: translateFile,
+                        scopeMap: scopeMapContents,
+                        assetKey: asset.key
+                    }),
+                    s3Client.send(new CopyObjectCommand({
+                        Bucket: bucket,
+                        CopySource: `${bucket}/${key}`,
+                        Key: fileName
+                    }))
+                ])
             }
     
-            await s3Client.send(new DeleteObjectCommand({
-                Bucket: bucket,
-                Key: key
-            }))
-            return {}
-        }
-        else {
-            const errorMsg = JSON.stringify(`Error: Unknown format ${event}`)
-            console.log(errorMsg)
-            context.fail(errorMsg)
         }
 
+        await s3Client.send(new DeleteObjectCommand({
+            Bucket: bucket,
+            Key: key
+        }))
+        return {}
+    }
+    else {
+        const errorMsg = JSON.stringify(`Error: Unknown S3 target: ${JSON.stringify(event, null, 4) }`)
+        console.log(errorMsg)
+        //
+        // TODO: Better error handling
+        //
+    }
+
+}
+exports.handler = async (event, context) => {
+
+    // Handle S3 Events
+    if (event.Records) {
+        await Promise.all(
+            event.Records
+                .filter(({ s3 }) => (s3))
+                .map(({ s3 }) => (s3))
+                .map(handleS3Event)
+        )
+        return JSON.stringify(`Assets uploaded`)
     }
 
     //
@@ -128,6 +135,6 @@ exports.handler = async (event, context) => {
         const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
         return JSON.stringify(returnVal, null, 4)
     }
-    context.fail(JSON.stringify(`Error: Unknown format ${event}`))
+    context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
 
 }

@@ -129,7 +129,6 @@ const schema = {
             ])(node.schema())
     },
     CharacterExpression(node) {
-        console.log(`Node schema: ${JSON.stringify(node.schema(), null, 4)}`)
         const returnVal = wmlProcessUpNonRecursive([
             // desourceTag,
             validate(confirmRequiredProps(['key', 'player', 'fileName'])),
@@ -144,7 +143,6 @@ const schema = {
                 Outfit: 'Outfit'
             })
         ])(node.schema())
-        console.log(`ReturnVal: ${JSON.stringify(returnVal, null, 4)}`)
         return returnVal
     }
 }
