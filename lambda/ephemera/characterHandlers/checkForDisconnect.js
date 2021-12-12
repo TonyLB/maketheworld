@@ -1,25 +1,16 @@
 const { marshall } = require('@aws-sdk/util-dynamodb')
 const { UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
 const { v4: uuidv4 } = require('uuid')
+const { splitType } = require('../utilities')
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const messageTable = `${TABLE_PREFIX}_messages`
 
-const splitType = (value) => {
-    const sections = value.split('#')
-    if (sections.length) {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-    else {
-        return ['', '']
-    }
-}
-
 const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
-    if (!(newImage && newImage.Connected) && oldImage.Connected) {
+    if (!newImage.EphemeraId || ((!newImage.Connected) && oldImage.Connected)) {
         const disconnectMessage = async () => {
-            const { Name, RoomId, EphemeraId } = newImage
+            const { Name, RoomId, EphemeraId = '' } = oldImage
             const CharacterId = splitType(EphemeraId)[1]
             await dbClient.send(new PutItemCommand({
                 TableName: messageTable,
@@ -55,6 +46,25 @@ const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                 }
                 catch(event) {
                     console.log(`ERROR: Disconnect updateRoom`)
+                }
+            }
+            else {
+                if (oldImage.RoomId) {
+                    try {
+                        await dbClient.send(new UpdateItemCommand({
+                            TableName: ephemeraTable,
+                            Key: marshall({
+                                EphemeraId: `ROOM#${oldImage.RoomId}`,
+                                DataCategory: 'Meta::Room'
+                            }),
+                            UpdateExpression: "REMOVE activeCharacters.#characterId, inactiveCharacters.#characterId",
+                            ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
+                            ExpressionAttributeNames: { "#characterId": oldImage.EphemeraId },
+                        }))
+                    }
+                    catch(event) {
+                        console.log(`ERROR: DisconnectEphemera (Delete)`)
+                    }
                 }
             }
         }

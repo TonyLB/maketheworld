@@ -1,6 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 const { S3Client, CopyObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3")
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb")
+const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb")
+const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 
 const { cacheAsset } = require('./cache.js')
 const { healAsset } = require("./selfHealing")
@@ -8,10 +9,14 @@ const { getAssets } = require("./serialize/s3Assets")
 const { putTranslateFile, getTranslateFile } = require("./serialize/translateFile")
 const { scopeMap } = require("./serialize/scopeMap")
 const { dbRegister } = require('./serialize/dbRegister')
+const { splitType } = require('./utilities/types')
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 const dbClient = new DynamoDBClient(params)
+
+const { TABLE_PREFIX } = process.env;
+const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
 // TODO: Step 4
@@ -106,19 +111,83 @@ const handleS3Event = async(event) => {
         // TODO: Better error handling
         //
     }
-
 }
+
+const handleDynamoEvent = async (event) => {
+    const { eventName, dynamodb } = event
+    const oldImage = unmarshall(dynamodb.OldImage || {})
+    const newImage = unmarshall(dynamodb.NewImage || {})
+    if (newImage.DataCategory === 'Meta::Character') {
+        const mappedValue = (key) => {
+            if (newImage[key]) {
+                if (!oldImage || (newImage[key] !== oldImage[key])) {
+                    return { value: newImage[key] }
+                }
+            }
+            else {
+                if (oldImage[key]) {
+                    return 'remove'
+                }
+            }
+            return 'ignore'
+        }
+        const remap = ['Name', 'Pronouns', 'FirstImpression', 'Outfit', 'OneCoolThing']
+            .reduce((previous, key) => ({ ...previous, [key]: mappedValue(key) }), {})
+        const flagName = (key) => (key === 'Name' ? '#Name' : key)
+        const setItems = Object.entries(remap)
+            .filter(([key, value]) => (value instanceof Object))
+            .map(([key]) => (`${flagName(key)} = :${key}`))
+        const expressionValues = Object.entries(remap)
+            .filter(([key, value]) => (value instanceof Object))
+            .reduce((previous, [key, value]) => ({
+                ...previous,
+                [`:${key}`]: value.value
+            }), {})
+        const removeItems = Object.entries(remap)
+            .filter(([key, value]) => (value === 'remove'))
+            .map(([key]) => (flagName(key)))
+        const UpdateExpression = [
+            ...(setItems.length ? [`SET ${setItems.join(', ')}`] : []),
+            ...(removeItems.length ? [`REMOVE ${removeItems.join(', ')}`] : [])
+        ].join(' ')
+        if (UpdateExpression) {
+            const CharacterId = splitType(newImage.AssetId)[1]
+            try {
+                await dbClient.send(new UpdateItemCommand({
+                    TableName: ephemeraTable,
+                    Key: marshall({
+                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                        DataCategory: 'Connection'
+                    }),
+                    UpdateExpression,
+                    ...(expressionValues ? { ExpressionAttributeValues: marshall(expressionValues) }: {}),
+                    ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
+                }))
+            }
+            catch (error) {
+                //
+                // TODO: Error handling for common Dynamo errors
+                //
+                throw error
+            }
+        }
+    }
+}
+
 exports.handler = async (event, context) => {
 
     // Handle S3 Events
     if (event.Records) {
-        await Promise.all(
-            event.Records
+        await Promise.all([
+            ...event.Records
                 .filter(({ s3 }) => (s3))
                 .map(({ s3 }) => (s3))
-                .map(handleS3Event)
-        )
-        return JSON.stringify(`Assets uploaded`)
+                .map(handleS3Event),
+            ...event.Records
+                .filter(({ dynamodb }) => (dynamodb))
+                .map(handleDynamoEvent)
+        ])
+        return JSON.stringify(`Events Processed`)
     }
 
     //

@@ -26,7 +26,7 @@ const { addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInR
 const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
 const { queueClear, queueState, queueFlush } = require('./feedbackQueue')
 const { fetchEphemera } = require('./fetch')
-const { healGlobalConnections } = require('./selfHealing')
+const { healGlobalConnections, healCharacter } = require('./selfHealing')
 
 const { processCharacterEvent } = require('./characterHandlers')
 const { splitType } = require('./utilities')
@@ -210,7 +210,8 @@ exports.handler = async (event, context) => {
                 return denormalize
 
             case 'heal':
-                await healGlobalConnections(dbClient)
+                // await healGlobalConnections(dbClient)
+                await healCharacter(dbClient, event.CharacterId)
                 break;
 
             default:

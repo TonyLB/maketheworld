@@ -5,6 +5,10 @@ const { checkForMovement } = require('./checkForMovement')
 const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName, data }) => {
     switch(eventName) {
         case 'INSERT':
+            await Promise.all([
+                checkForConnect(dbClient, data),
+            ])
+            break
         case 'MODIFY':
             await Promise.all([
                 checkForConnect(dbClient, data),
@@ -13,9 +17,9 @@ const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName
             ])
             break
         case 'REMOVE':
-            //
-            // TODO: Handle delete actions meaningfully
-            //
+            await Promise.all([
+                checkForDisconnect(dbClient, data)
+            ])
             break
         default:
             break

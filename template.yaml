@@ -471,6 +471,8 @@ Resources:
                   TableName: !Sub '${TablePrefix}_messages'
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
+            - DynamoDBReadPolicy:
+                  TableName: !Sub '${TablePrefix}_assets'
             - Statement:
               - Effect: Allow
                 Action:
