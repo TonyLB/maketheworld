@@ -8,22 +8,14 @@ const { replaceItem, mergeIntoDataRange } = require('./utilities/dynamoDB')
 const { cacheAsset } = require('./cache.js')
 const { streamToString } = require('./utilities/stream')
 const { healAsset } = require("./selfHealing")
+const { getAssets } = require("./serialize/s3Assets")
+const { putTranslateFile, getTranslateFile } = require("./serialize/translateFile")
+const { scopeMap } = require("./serialize/scopeMap")
+const { dbRegister } = require('./serialize/dbRegister')
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 const dbClient = new DynamoDBClient(params)
-
-//
-// TODO: Step 2
-//
-// Create Character schema for WML, to allow for Character S3 objects
-//
-
-//
-// TODO: Step 3
-//
-// Update selfHealing to include Character objects as well
-//
 
 //
 // TODO: Step 4
@@ -64,7 +56,6 @@ const dbClient = new DynamoDBClient(params)
 //
 exports.handler = async (event, context) => {
 
-    console.log(`Event: ${JSON.stringify(event, null, 4)}`)
     // Get the object from the event and show its content type
     if (event.Records && event.Records[0]?.s3) {
         const bucket = event.Records[0].s3.bucket.name;
@@ -76,78 +67,35 @@ exports.handler = async (event, context) => {
             const objectPrefix = objectNameItems.length > 1
                 ? `${objectNameItems.slice(0, -1).join('/')}/`
                 : ''
-            const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
-                Bucket: bucket,
-                Key: key
-            }))
-            const contents = await streamToString(contentStream)
-            const match = wmlGrammar.match(contents)
-    
-            if (match.succeeded()) {
-    
-                const schema = validatedSchema(match)
-                if (schema.errors.length || !schema.fileName) {
-                    //
-                    // TODO: Stronger error handling
-                    //
-                    console.log(`ERROR`)
-                }
-                else {
-                    const assetRegistryItems = assetRegistryEntries(schema)
-                    const asset = assetRegistryItems.find(({ tag }) => (tag === 'Asset'))
-                    if (asset && asset.key) {
-                        const fileName = `drafts/${objectPrefix}${schema.fileName}`
-                        await Promise.all([
-                            replaceItem(dbClient, {
-                                PermanentId: `ASSET#${asset.key}`,
-                                DataCategory: 'Details',
-                                fileName,
-                                name: asset.name,
-                                description: asset.description
-                            }),
-                            mergeIntoDataRange({
-                                dbClient,
-                                table: 'permanent',
-                                search: { DataCategory: `ASSET#${asset.key}` },
-                                items: assetRegistryItems
-                                    .filter(({ tag }) => (tag === 'Room'))
-                                    .map(({ tag, ...rest }) => (rest)),
-                                mergeFunction: ({ current, incoming }) => {
-                                    if (!incoming) {
-                                        return 'delete'
-                                    }
-                                    if (!current) {
-                                        const { key, isGlobal, ...rest } = incoming
-                                        return {
-                                            scopedId: key,
-                                            ...rest
-                                        }
-                                    }
-                                    //
-                                    // TODO: When Room entries are expanded to store more than the sheer fact of their
-                                    // existence (likely as part of Map storage), extend this function to compensate
-                                    // by testing whether an update is needed
-                                    //
-                                    return 'ignore'
-                                },
-                                extractKey: (item, current) => {
-                                    if (item.isGlobal) {
-                                        return `ROOM#${item.key}`
-                                    }
-                                    const scopedToPermanent = current.find(({ scopedId }) => (scopedId === item.key))
-                                    if (scopedToPermanent) {
-                                        return scopedToPermanent.PermanentId
-                                    }
-                                    return `ROOM#${uuidv4()}`
-                                }
-                            }),
-                            s3Client.send(new CopyObjectCommand({
-                                Bucket: bucket,
-                                CopySource: `${bucket}/${key}`,
-                                Key: fileName
-                            }))
-                        ])
-                    }
+
+            const assetRegistryItems = await getAssets(s3Client, key)
+            if (assetRegistryItems.length) {
+                const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+                if (asset && asset.key) {
+                    console.log(`Asset: ${JSON.stringify(asset, null, 4)}`)
+                    const fileName = `drafts/${objectPrefix}${asset.fileName}.wml`
+                    const translateFile = `drafts/${objectPrefix}${asset.fileName}.translate.json`
+                    const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
+                    const scopeMapContents = scopeMap(assetRegistryItems, (currentScopeMap.scopeMap || {}))
+
+                    await Promise.all([
+                        dbRegister(dbClient, {
+                            fileName,
+                            translateFile,
+                            scopeMap: scopeMapContents,
+                            assets: assetRegistryItems
+                        }),
+                        putTranslateFile(s3Client, {
+                            name: translateFile,
+                            scopeMap: scopeMapContents,
+                            assetKey: asset.key
+                        }),
+                        s3Client.send(new CopyObjectCommand({
+                            Bucket: bucket,
+                            CopySource: `${bucket}/${key}`,
+                            Key: fileName
+                        }))
+                    ])
                 }
         
             }
@@ -159,7 +107,9 @@ exports.handler = async (event, context) => {
             return {}
         }
         else {
-            context.fail(JSON.stringify(`Error: Unknown format ${event}`))
+            const errorMsg = JSON.stringify(`Error: Unknown format ${event}`)
+            console.log(errorMsg)
+            context.fail(errorMsg)
         }
 
     }

@@ -148,7 +148,7 @@ const assetRegistryEntries = (schema) => {
     // global UUID (while providing a mapping back to its scoped ID inside the Asset
     // blueprint)
     //
-    const elements = flattenToElements(tagCondition(['Asset', 'Room']))(schema)
+    const elements = flattenToElements(tagCondition(['Asset', 'Room', 'Character']))(schema)
     return elements.map(({ tag, ...rest }) => {
         const { name, fileName, key, global: isGlobal } = rest
         switch(tag) {
@@ -165,6 +165,18 @@ const assetRegistryEntries = (schema) => {
                     name,
                     isGlobal,
                     key
+                }
+            case 'Character':
+                return {
+                    tag,
+                    key,
+                    fileName,
+                    player: rest.player,
+                    Name: rest.Name,
+                    Pronouns: rest.Pronouns,
+                    FirstImpression: rest.FirstImpression,
+                    OneCoolThing: rest.OneCoolThing,
+                    Outfit: rest.Outfit
                 }
             default:
                 return { tag, ...rest }

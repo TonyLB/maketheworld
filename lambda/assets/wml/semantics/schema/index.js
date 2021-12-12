@@ -15,7 +15,7 @@ const {
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
 const processTagProps = (tag, props) => ({
-    tag,
+    tag: tag.sourceString,
     props: props.children
         .map((prop) => prop.schema())
         .reduce((previous, { argument, expression, literal }) => ({
@@ -78,7 +78,7 @@ const schema = {
     },
     RoomExpression(node) {
         return wmlProcessUpNonRecursive([
-            desourceTag,
+            // desourceTag,
             validate(confirmRequiredProps(['key'])),
             validate(confirmLiteralProps(['key'])),
             validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
@@ -90,7 +90,7 @@ const schema = {
     },
     ExitExpression(node) {
         return wmlProcessUpNonRecursive([
-            desourceTag,
+            // desourceTag,
             validate(confirmLiteralProps(['key', 'to', 'from'])),
             liftLiteralProps(['key', 'to', 'from']),
             liftUntagged('name')
@@ -98,28 +98,28 @@ const schema = {
     },
     LayerExpression(node) {
         return wmlProcessUpNonRecursive([
-                desourceTag,
+                // desourceTag,
                 validate(confirmLiteralProps(['key'])),
                 liftLiteralProps(['key'])
             ])(node.schema())
     },
     ConditionExpression(node) {
         return wmlProcessUpNonRecursive([
-                desourceTag,
+                // desourceTag,
                 validate(confirmRequiredProps(['if'])),
                 validate(confirmExpressionProps(['if'])),
                 liftExpressionProps(['if'])
             ])(node.schema())
     },
-    NameExpression(node) {
-        return {
-            ...node.schema(),
-            tag: 'Name'
-        }
-    },
+    // NameExpression(node) {
+    //     return {
+    //         ...node.schema(),
+    //         tag: 'Name'
+    //     }
+    // },
     AssetExpression(node) {
         return wmlProcessUpNonRecursive([
-                desourceTag,
+                // desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
                 validate(confirmLiteralProps(['key', 'fileName'])),
                 liftLiteralProps(['key', 'fileName']),
@@ -127,6 +127,25 @@ const schema = {
                 liftLiteralTags({ Name: 'name' }),
                 liftUntagged('description')
             ])(node.schema())
+    },
+    CharacterExpression(node) {
+        console.log(`Node schema: ${JSON.stringify(node.schema(), null, 4)}`)
+        const returnVal = wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmRequiredProps(['key', 'player', 'fileName'])),
+            validate(confirmLiteralProps(['key', 'player', 'fileName'])),
+            liftLiteralProps(['key', 'player', 'fileName']),
+            validate(fileNameValidator),
+            liftLiteralTags({
+                Name: 'Name',
+                Pronouns: 'Pronouns',
+                FirstImpression: 'FirstImpression',
+                OneCoolThing: 'OneCoolThing',
+                Outfit: 'Outfit'
+            })
+        ])(node.schema())
+        console.log(`ReturnVal: ${JSON.stringify(returnVal, null, 4)}`)
+        return returnVal
     }
 }
 

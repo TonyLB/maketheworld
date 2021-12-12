@@ -50,6 +50,21 @@ const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, assets 
             })
         ])
     }
+    const character = assets.find(({ tag }) => (tag === 'Character'))
+    if (character && character.key) {
+        await Promise.all([
+            replaceItem(dbClient, {
+                AssetId: `CHARACTER#${scopeMap[character.key]}`,
+                DataCategory: 'Meta::Character',
+                fileName,
+                translateFile,
+                scopedId: character.key,
+                ...(['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player']
+                    .reduce((previous, label) => ({ ...previous, [label]: character[label] }), {}))
+            })
+        ])
+    }
+
 }
 
 exports.dbRegister = dbRegister

@@ -10,7 +10,7 @@ const scopeMap = (assets, currentScopeMap = {}) => {
     let scopeMap = {}
     if (assets) {
         assets
-            .filter(({ tag }) => (tag === 'Room'))
+            .filter(({ tag }) => (['Room', 'Character'].includes(tag)))
             .forEach(({ key, isGlobal }) => {
                 if (!scopeMap[key]) {
                     if (isGlobal) {

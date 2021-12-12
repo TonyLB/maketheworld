@@ -565,17 +565,17 @@ Resources:
                   Fn::Sub:
                       - "arn:aws:s3:::${AssetBucket}/upload/*"
                       - AssetBucket: !Sub '${TablePrefix}-assets'
-          Events:
-            BucketEvent:
-              Type: S3
-              Properties:
-                Bucket: !Ref AssetBucket
-                Filter:
-                  S3Key:
-                    Rules:
-                      - Name: prefix
-                        Value: upload/
-                Events: s3:ObjectCreated:*
+          # Events:
+          #   BucketEvent:
+          #     Type: S3
+          #     Properties:
+          #       Bucket: !Ref AssetBucket
+          #       Filter:
+          #         S3Key:
+          #           Rules:
+          #             - Name: prefix
+          #               Value: upload/
+          #       Events: s3:ObjectCreated:*
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:
