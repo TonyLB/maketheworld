@@ -3,7 +3,6 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
 
 const splitType = (value) => {
     const sections = value.split('#')

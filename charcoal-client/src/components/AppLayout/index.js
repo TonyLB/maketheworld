@@ -34,6 +34,7 @@ import { getCharacters } from '../../selectors/characters'
 import InDevelopment from '../InDevelopment'
 
 import MapHome from '../Maps'
+import CharacterEdit from '../CharacterEdit'
 
 import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
 
@@ -193,6 +194,9 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
                     <Switch>
                         <Route path="/Character/Archived">
                             <InDevelopment />
+                        </Route>
+                        <Route path="/Character/New/">
+                            <CharacterEdit />
                         </Route>
                         <Route path="/Character/:CharacterId">
                             <CharacterRouterSwitch messagePanel={messagePanel} />

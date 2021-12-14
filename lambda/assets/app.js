@@ -19,19 +19,6 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 5
-//
-// Replace ephemera::denormalize with event-driven updates into the ephemera tables
-//
-
-//
-// TODO: Step 6
-//
-// Update ephemera selfHealing to read from the existing Assets and rebuild denormalized
-// data where necessary
-//
-
-//
 // TODO: Step 7
 //
 // Create web-client route for creating/editing characters
