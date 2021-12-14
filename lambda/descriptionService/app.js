@@ -9,7 +9,6 @@ const { v4: uuid } = require("uuid")
 const { compileCode } = require('./compileCode')
 
 const params = { region: process.env.AWS_REGION }
-const PermanentTableName = `${process.env.TABLE_PREFIX}_permanents`
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
 const MessageTableName = `${process.env.TABLE_PREFIX}_messages`
 

@@ -4,7 +4,6 @@ const { v4: uuidv4 } = require("uuid")
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
 const assetsTable = `${TABLE_PREFIX}_assets`
 
 const batchWriteDispatcher = (dbClient, { table, items }) => {

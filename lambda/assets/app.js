@@ -19,12 +19,6 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 4
-//
-// Create DBStream event handling for asset table changes
-//
-
-//
 // TODO: Step 5
 //
 // Replace ephemera::denormalize with event-driven updates into the ephemera tables

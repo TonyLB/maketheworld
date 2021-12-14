@@ -9,28 +9,23 @@ const { streamToString } = require('./utilities/stream')
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
+const assetsTable = `${TABLE_PREFIX}_assets`
 
 //
-// TODO: Step 5
-//
-// Create functionality inside the descriptionService to
-// use the denormalized ephemera info in creating a
-// description
-//
-
-//
-// TODO: Step 6
+// TODO:
 //
 // Consider how to handle the various cases of change,
 // in relation to the characters possibly occupying the rooms
 //
+// What does it mean when the underlying assets of a room change, in terms
+// of notifying people in it?
+//
 
 const fetchAssetMetaData = async (dbClient, assetId) => {
     const { Item } = await dbClient.send(new GetItemCommand({
-        TableName: permanentsTable,
+        TableName: assetsTable,
         Key: marshall({
-            PermanentId: `ASSET#${assetId}`,
+            AssetId: `ASSET#${assetId}`,
             DataCategory: 'Details'
         }),
         ProjectionExpression: 'fileName'
@@ -74,28 +69,29 @@ const pushMetaData = async (dbClient, assetId) => {
 
 const globalizeDBEntries = async (dbClient, assetId, dbEntriesList) => {
     //
-    // Pull scope-to-uuid mapping from Permanents and pre-map incoming records
+    // Pull scope-to-uuid mapping from Assets
     //
     const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: permanentsTable,
+        TableName: assetsTable,
         IndexName: 'DataCategoryIndex',
         KeyConditionExpression: "DataCategory = :dc",
         ExpressionAttributeValues: marshall({
             ":dc": `ASSET#${assetId}`
         }),
-        ProjectionExpression: 'PermanentId, scopedId'
+        ProjectionExpression: 'AssetId, scopedId'
     }))
     //
     // Derive all existing scope-to-uuid mappings from stored data
     //
     const currentScopedToPermanentMapping = Items
         .map(unmarshall)
-        .reduce((previous, { scopedId, PermanentId }) => ({
+        .reduce((previous, { scopedId, AssetId }) => ({
             ...previous,
-            ...(scopedId ? { [scopedId]: PermanentId } : {})
+            ...(scopedId ? { [scopedId]: AssetId } : {})
         }), {})
     //
     // Add any incoming entries that have not yet been mapped
+    // NOTE:  There should be none.
     //
     const scopedToPermanentMapping = dbEntriesList
         .reduce((previous, { key, isGlobal }) => {
