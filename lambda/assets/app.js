@@ -1,5 +1,6 @@
 // Import required AWS SDK clients and commands for Node.js
-const { S3Client, CopyObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3")
+const { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3")
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner")
 const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb")
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 
@@ -15,15 +16,8 @@ const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 const dbClient = new DynamoDBClient(params)
 
-const { TABLE_PREFIX } = process.env;
+const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-
-//
-// TODO: Step 8
-//
-// Create outlet in controlChannel for getting presigned upload URLs for the upload directory
-// in the assets bucket
-//
 
 //
 // TODO: Step 9
@@ -178,6 +172,15 @@ exports.handler = async (event, context) => {
     if (event.heal) {
         const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
         return JSON.stringify(returnVal, null, 4)
+    }
+    if (event.upload) {
+        const { PlayerName, fileName } = event
+        const putCommand = new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: `uploads/${PlayerName}/${fileName}`,
+        })
+        const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
+        return presignedOutput
     }
     context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
 

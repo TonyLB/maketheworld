@@ -55,7 +55,7 @@ Resources:
           TABLE_PREFIX: !Ref TablePrefix
           PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
           EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
-          PERMANENTS_SERVICE: !GetAtt PermanentsFunction.Arn
+          ASSETS_SERVICE: !GetAtt AssetsFunction.Arn
           WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           COGNITO_USER_POOL_CLIENT:
             Fn::ImportValue:
@@ -70,7 +70,7 @@ Resources:
                       !Sub "${PermanentsStack}-UserPoolId"
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Sub '${TablePrefix}_permanents'
+            TableName: !Sub '${TablePrefix}_assets'
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
         - DynamoDBCrudPolicy:
@@ -84,7 +84,7 @@ Resources:
             Resource:
               - !GetAtt PerceptionFunction.Arn
               - !GetAtt EphemeraFunction.Arn
-              - !GetAtt PermanentsFunction.Arn
+              - !GetAtt AssetsFunction.Arn
         - Statement:
           - Effect: Allow
             Action: execute-api:ManageConnections

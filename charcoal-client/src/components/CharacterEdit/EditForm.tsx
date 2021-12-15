@@ -8,6 +8,7 @@ import { makeStyles } from "@material-ui/core/styles"
 
 import { characterEditById } from '../../selectors/characterEdit'
 import { setValue, CharacterEditKeys, CharacterEditRecord } from '../../slices/characterEdit'
+import { saveCharacter } from '../../actions/UI/characterEdit'
 import useStyles from '../styles'
 
 const useCharacterEditFormStyles = makeStyles((theme) => ({
@@ -43,7 +44,8 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     const classes = useStyles()
     const localClasses = useCharacterEditFormStyles()
 
-    const { value } = useSelector(characterEditById(characterId))
+    const characterEditState = useSelector(characterEditById(characterId))
+    const { value } = characterEditState
     const dispatch = useDispatch()
     const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => { dispatch(setValue({ characterId, label, value: event.target.value })) }
     return <Box className={classes.homeContents}>
@@ -91,7 +93,13 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
         <Button
             variant="contained"
             onClick={() => {
-                alert(characterWML(value))
+                //
+                // TODO: Refactor Redux so that the store has Typescript constraints
+                //
+                (dispatch as any)(saveCharacter(characterEditState))
+                    .then((url: string) => {
+                        alert(url)
+                    })
             }}
         >
                 Save

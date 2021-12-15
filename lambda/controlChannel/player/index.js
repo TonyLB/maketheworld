@@ -148,3 +148,4 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
 exports.putPlayer = putPlayer
 exports.whoAmI = whoAmI
 exports.getConnectionsByPlayerName = getConnectionsByPlayerName
+exports.getPlayerByConnectionId = getPlayerByConnectionId

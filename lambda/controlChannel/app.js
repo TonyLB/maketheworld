@@ -8,7 +8,7 @@ const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
-const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
+const { putPlayer, whoAmI, getConnectionsByPlayerName, getPlayerByConnectionId } = require('./player')
 const { validateJWT } = require('./validateJWT')
 const { parseCommand } = require('./parse')
 const { sync } = require('./sync')
@@ -342,6 +342,28 @@ const executeAction = (request) => {
     return { statusCode: 200, body: JSON.stringify({}) }
 }
 
+const upload = async (dbClient, { fileName, connectionId, requestId }) => {
+    const PlayerName = await getPlayerByConnectionId(dbClient, connectionId)
+    if (PlayerName) {
+        const { Payload } = await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.ASSETS_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({
+                upload: true,
+                PlayerName,
+                fileName
+            }))
+        }))
+        const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: "UploadURL", RequestId: requestId, url })
+        }
+    
+    }
+    return null
+}
+
 exports.disconnect = disconnect
 exports.connect = connect
 exports.registerCharacter = registerCharacter
@@ -486,6 +508,12 @@ exports.handler = async (event, context) => {
             // TODO: Build more elaborate error-handling pass-backs
             //
             break;
+        case 'upload':
+            const returnVal = await upload(dbClient, { fileName: request.fileName, connectionId, requestId: request.RequestId })
+            if (returnVal) {
+                return returnVal
+            }
+            break
         default:
             break
     }
