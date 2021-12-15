@@ -19,12 +19,6 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 7
-//
-// Create web-client route for creating/editing characters
-//
-
-//
 // TODO: Step 8
 //
 // Create outlet in controlChannel for getting presigned upload URLs for the upload directory

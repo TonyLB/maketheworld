@@ -1,12 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-export type CharacterEditKeys = 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit'
+export type CharacterEditKeys = 'assetKey' | 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit'
+
+export interface CharacterEditRecord {
+    defaultValue: Partial<Record<CharacterEditKeys, string>>,
+    value: Partial<Record<CharacterEditKeys, string>>
+}
 
 export interface CharacterEditState {
-    byId: Record<string, {
-        defaultValue: Partial<Record<CharacterEditKeys, string>>,
-        value: Partial<Record<CharacterEditKeys, string>>
-    }>
+    byId: Record<string, CharacterEditRecord>
 }
 
 const initialState: CharacterEditState = {
