@@ -179,6 +179,10 @@ exports.handler = async (event, context) => {
 
         return JSON.stringify({ fileName })
     }
+    if (event.healAsset) {
+        const returnVal = await healAsset({ s3Client, dbClient }, event.healAsset)
+        return JSON.stringify(returnVal, null, 4)
+    }
     if (event.heal) {
         // const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
         const returnVal = await healPlayers({ cognitoClient, dbClient })

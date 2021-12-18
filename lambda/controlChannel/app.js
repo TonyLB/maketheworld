@@ -27,6 +27,7 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
 const messagesTable = `${TABLE_PREFIX}_messages`
+const assetsTable = `${TABLE_PREFIX}_assets`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
@@ -122,6 +123,29 @@ const connect = async (connectionId, token) => {
 
 const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
 
+    //
+    // TODO: Create functionality to record what assets a character has access to,
+    // and check before registering the character whether you need to cache any
+    // as-yet uncached assets in order to support them.
+    //
+    const { Item } = await dbClient.send(new GetItemCommand({
+        TableName: assetsTable,
+        Key: marshall({
+            AssetId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Meta::Character'
+        }),
+        ProjectionExpression: "#name, HomeId",
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        }
+    }))
+    let fetchedName = ''
+    let fetchedHomeId = ''
+    if (Item) {
+        const { Name, HomeId } = unmarshall(Item)
+        fetchedName = Name || ''
+        fetchedHomeId = HomeId || ''
+    }
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     await dbClient.send(new UpdateItemCommand({
         TableName: ephemeraTable,
@@ -129,13 +153,19 @@ const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
             EphemeraId,
             DataCategory: 'Connection'
         }),
-        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId',
+        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        },
         ExpressionAttributeValues: marshall({
             ':true': true,
-            ':connectionId': connectionId
+            ':connectionId': connectionId,
+            ':name': fetchedName,
+            ':roomId': fetchedHomeId || 'VORTEX'
         })
     }))
 
+    return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
 }
 
 const serialize = ({
