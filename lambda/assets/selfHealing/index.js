@@ -82,13 +82,12 @@ const healPlayers = async ({ cognitoClient, dbClient }) => {
         }))
         .reduce((previous, { player, CharacterId, Name }) => ({
             ...previous,
-            [player]: [
-                ...(previous[player] || []),
-                {
-                    CharacterId,
+            [player]: {
+                ...(previous[player] || {}),
+                [CharacterId]: {
                     Name
                 }
-            ]
+            }
         }), {})
     await Promise.all(
         userNames.map((userName) => (
@@ -101,7 +100,7 @@ const healPlayers = async ({ cognitoClient, dbClient }) => {
                 UpdateExpression: "SET #code = if_not_exists(#code, :false), #characters = :characters",
                 ExpressionAttributeValues: marshall({
                     ':false': false,
-                    ':characters': charactersByPlayer[userName] || []
+                    ':characters': charactersByPlayer[userName] || {}
                 }),
                 ExpressionAttributeNames: {
                     '#code': 'CodeOfConductConsent',

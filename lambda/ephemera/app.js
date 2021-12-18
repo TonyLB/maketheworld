@@ -29,6 +29,7 @@ const { fetchEphemera } = require('./fetch')
 const { healGlobalConnections, healCharacter } = require('./selfHealing')
 
 const { processCharacterEvent } = require('./characterHandlers')
+const { processPlayerEvent } = require('./playerHandlers')
 const { splitType } = require('./utilities')
 
 const splitPermanentId = (PermanentId) => {
@@ -170,12 +171,29 @@ const dispatchRecords = (Records) => {
             const { DataCategory: newDC, ...newImage } = data.newImage
             return { eventName, data: { oldImage, newImage } }
         })
+
+    const playerRecords = Records
+        .map(({ eventName, dynamodb }) => ({
+            eventName,
+            data: {
+                oldImage: unmarshall(dynamodb.OldImage || {}),
+                newImage: unmarshall(dynamodb.NewImage || {})
+            }
+        }))
+        .filter(({ data }) => (
+            ((data.oldImage.EphemeraId || '').startsWith('PLAYER#')) ||
+            ((data.newImage.EphemeraId || '').startsWith('PLAYER#')))
+        )
+        .map(({ eventName, data }) => {
+            return { eventName, data: { oldImage: data.oldImage, newImage: data.newImage } }
+        })
     //
     // TODO: Create function to parse through the entirety of the set of records, and
     // figure out what records need to be forwarded as Ephemera updates to whom.
     //
     return Promise.all([
         ...characterRecords.map(processCharacterEvent({ dbClient, lambdaClient })),
+        ...playerRecords.map(processPlayerEvent({ dbClient })),
         postRecords(Records)
     ])
 }
@@ -209,8 +227,11 @@ exports.handler = async (event, context) => {
                 }
                 return denormalize
 
+            case 'healGlobal':
+                await healGlobalConnections(dbClient)
+                break;
+
             case 'heal':
-                // await healGlobalConnections(dbClient)
                 await healCharacter(dbClient, event.CharacterId)
                 break;
 

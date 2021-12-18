@@ -387,6 +387,15 @@ Resources:
         KeyType: "HASH"
       - AttributeName: "DataCategory"
         KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: DataCategoryIndex
+          KeySchema:
+            - AttributeName: DataCategory
+              KeyType: HASH
+            - AttributeName: MessageId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       LocalSecondaryIndexes:
         - IndexName: CreatedTimeIndex
           KeySchema:
@@ -593,17 +602,17 @@ Resources:
                       - UserPoolId:
                           Fn::ImportValue:
                               !Sub "${PermanentsStack}-UserPoolId"
-          # Events:
-          #   BucketEvent:
-          #     Type: S3
-          #     Properties:
-          #       Bucket: !Ref AssetBucket
-          #       Filter:
-          #         S3Key:
-          #           Rules:
-          #             - Name: prefix
-          #               Value: upload/
-          #       Events: s3:ObjectCreated:*
+          Events:
+            BucketEvent:
+              Type: S3
+              Properties:
+                Bucket: !Ref AssetBucket
+                Filter:
+                  S3Key:
+                    Rules:
+                      - Name: prefix
+                        Value: upload/
+                Events: s3:ObjectCreated:*
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:

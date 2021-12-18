@@ -121,7 +121,7 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
             TableName: assetsTable,
             Key: marshall({
                 AssetId: `PLAYER#${username}`,
-                DataCategory: 'Details'
+                DataCategory: 'Meta::Player'
             })
         }))
         const { Characters, CodeOfConductConsent } = unmarshall(Item)

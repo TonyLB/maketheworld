@@ -79,22 +79,6 @@ const disconnect = async (connectionId) => {
                 })
             }))))
         ),
-        //
-        // TODO: Implement a ConditionExpression to double-check that Global-Connections
-        // exists and has a proper map, before attempting to update.  On a caught
-        // ConditionExpression error, route to self-healing in the Ephemera function
-        //
-        dbClient.send(new UpdateItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections'
-            }),
-            UpdateExpression: 'REMOVE connections.#connection',
-            ExpressionAttributeNames: {
-                '#connection': connectionId
-            }
-        })),
         ...(Items
             .map(unmarshall)
             .map(({ EphemeraId, DataCategory }) => (dbClient.send(new UpdateItemCommand({
@@ -123,29 +107,13 @@ const connect = async (connectionId, token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
-        await Promise.all([
-            dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: 'Global',
-                    DataCategory: 'Connections'
-                }),
-                UpdateExpression: 'SET connections.#connection = :player',
-                ExpressionAttributeValues: marshall({
-                    ':player': userName
-                }),
-                ExpressionAttributeNames: {
-                    '#connection': connectionId
-                }
-            })),
-            dbClient.send(new PutItemCommand({
-                TableName: ephemeraTable,
-                Item: marshall({
-                    EphemeraId: `PLAYER#${userName}`,
-                    DataCategory: `CONNECTION#${connectionId}`
-                })
-            }))
-        ])
+        await dbClient.send(new PutItemCommand({
+            TableName: ephemeraTable,
+            Item: marshall({
+                EphemeraId: `PLAYER#${userName}`,
+                DataCategory: `CONNECTION#${connectionId}`
+            })
+        }))
     
         return { statusCode: 200 }
     }
