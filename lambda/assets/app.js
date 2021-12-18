@@ -3,9 +3,10 @@ const { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } = r
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner")
 const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb")
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
+const { CognitoIdentityProviderClient } = require("@aws-sdk/client-cognito-identity-provider")
 
 const { cacheAsset } = require('./cache.js')
-const { healAsset } = require("./selfHealing")
+const { healAsset, healPlayers } = require("./selfHealing")
 const { getAssets } = require("./serialize/s3Assets")
 const { putTranslateFile, getTranslateFile } = require("./serialize/translateFile")
 const { scopeMap } = require("./serialize/scopeMap")
@@ -15,6 +16,7 @@ const { splitType } = require('./utilities/types')
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 const dbClient = new DynamoDBClient(params)
+const cognitoClient = new CognitoIdentityProviderClient(params)
 
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -178,7 +180,8 @@ exports.handler = async (event, context) => {
         return JSON.stringify({ fileName })
     }
     if (event.heal) {
-        const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
+        // const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
+        const returnVal = await healPlayers({ cognitoClient, dbClient })
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.upload) {

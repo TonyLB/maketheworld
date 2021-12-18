@@ -558,6 +558,9 @@ Resources:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
+                  COGNITO_POOL_ID:
+                    Fn::ImportValue:
+                      !Sub "${PermanentsStack}-UserPoolId"
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -580,6 +583,16 @@ Resources:
                   Fn::Sub:
                       - "arn:aws:s3:::${AssetBucket}/upload/*"
                       - AssetBucket: !Sub '${TablePrefix}-assets'
+            - Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:ListUsers
+                Resource:
+                  Fn::Sub:
+                      - "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
+                      - UserPoolId:
+                          Fn::ImportValue:
+                              !Sub "${PermanentsStack}-UserPoolId"
           # Events:
           #   BucketEvent:
           #     Type: S3
