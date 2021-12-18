@@ -533,6 +533,19 @@ Resources:
       Type: AWS::S3::Bucket
       Properties:
           BucketName: !Sub '${TablePrefix}-assets'
+          CorsConfiguration:
+            CorsRules:
+              -
+                AllowedOrigins:
+                  - "*"
+                AllowedMethods:
+                  - POST
+                  - GET
+                  - PUT
+                  - DELETE
+                  - HEAD
+                AllowedHeaders:
+                  - "*"
   AssetsFunction:
       Type: AWS::Serverless::Function
       Properties:

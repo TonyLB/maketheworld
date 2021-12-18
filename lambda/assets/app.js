@@ -20,6 +20,14 @@ const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
+// TODO: Step 8.5
+//
+// Have the upload outlet generate an ASSET table record: UPLOAD#${fileName} x PLAYER#${PlayerName}
+// with data RequestId = event.UploadRequestId, to track who needs to be updated when the
+// upload is processed (or given error messages when it fails)
+//
+
+//
 // TODO: Step 9
 //
 // Use the presigned URLs to upload updated characters to the asset library
@@ -177,7 +185,8 @@ exports.handler = async (event, context) => {
         const { PlayerName, fileName } = event
         const putCommand = new PutObjectCommand({
             Bucket: S3_BUCKET,
-            Key: `uploads/${PlayerName}/${fileName}`,
+            Key: `upload/${PlayerName}/${fileName}`,
+            ContentType: 'text/plain'
         })
         const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
         return presignedOutput

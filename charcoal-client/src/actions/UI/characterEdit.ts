@@ -1,9 +1,12 @@
 import { CharacterEditRecord } from '../../slices/characterEdit'
-import { socketDispatchPromise } from '../communicationsLayer/lifeLine'
+import { socketDispatchPromise, apiDispatchPromise } from '../communicationsLayer/lifeLine'
+import { v4 as uuidv4 } from 'uuid'
 
-export const saveCharacter = ({ value }: CharacterEditRecord) => (dispatch: any, getState: any): Promise<string> => {
+export const saveCharacter = ({ value }: CharacterEditRecord, wml: string) => (dispatch: any, getState: any): Promise<string> => {
     console.log('saveCharacter')
+    const uploadRequestId = uuidv4()
     return dispatch(socketDispatchPromise('upload')({ fileName: `${value.assetKey}.wml` }))
         .then(({ url }: { url: string }) => url)
+        .then((url: string) => (apiDispatchPromise(url, uploadRequestId)(wml)))
         .catch(() => null)
 }

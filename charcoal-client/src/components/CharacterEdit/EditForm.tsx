@@ -96,7 +96,7 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
                 //
                 // TODO: Refactor Redux so that the store has Typescript constraints
                 //
-                (dispatch as any)(saveCharacter(characterEditState))
+                (dispatch as any)(saveCharacter(characterEditState, characterWML(value)))
                     .then((url: string) => {
                         alert(url)
                     })
