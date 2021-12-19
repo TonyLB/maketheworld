@@ -567,6 +567,7 @@ Resources:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
+                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
                   COGNITO_POOL_ID:
                     Fn::ImportValue:
                       !Sub "${PermanentsStack}-UserPoolId"
@@ -575,6 +576,10 @@ Resources:
                 TableName: !Sub '${TablePrefix}_assets'
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_ephemera'
+            - Statement:
+              - Effect: Allow
+                Action: execute-api:ManageConnections
+                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
             - Statement:
               - Effect: Allow
                 Action:
@@ -602,17 +607,17 @@ Resources:
                       - UserPoolId:
                           Fn::ImportValue:
                               !Sub "${PermanentsStack}-UserPoolId"
-          Events:
-            BucketEvent:
-              Type: S3
-              Properties:
-                Bucket: !Ref AssetBucket
-                Filter:
-                  S3Key:
-                    Rules:
-                      - Name: prefix
-                        Value: upload/
-                Events: s3:ObjectCreated:*
+          # Events:
+          #   BucketEvent:
+          #     Type: S3
+          #     Properties:
+          #       Bucket: !Ref AssetBucket
+          #       Filter:
+          #         S3Key:
+          #           Rules:
+          #             - Name: prefix
+          #               Value: upload/
+          #       Events: s3:ObjectCreated:*
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:

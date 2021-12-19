@@ -4,6 +4,7 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner")
 const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb")
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { CognitoIdentityProviderClient } = require("@aws-sdk/client-cognito-identity-provider")
+const { ApiGatewayManagementApiClient } = require('@aws-sdk/client-apigatewaymanagementapi')
 
 const { cacheAsset } = require('./cache.js')
 const { healAsset, healPlayers } = require("./selfHealing")
@@ -12,6 +13,13 @@ const { putTranslateFile, getTranslateFile } = require("./serialize/translateFil
 const { scopeMap } = require("./serialize/scopeMap")
 const { dbRegister } = require('./serialize/dbRegister')
 const { splitType } = require('./utilities/types')
+
+const { handleUpload, createUploadLink } = require('./upload')
+
+const apiClient = new ApiGatewayManagementApiClient({
+    apiVersion: '2018-11-29',
+    endpoint: process.env.WEBSOCKET_API
+})
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -22,66 +30,18 @@ const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 8.5
-//
-// Have the upload outlet generate an ASSET table record: UPLOAD#${fileName} x PLAYER#${PlayerName}
-// with data RequestId = event.UploadRequestId, to track who needs to be updated when the
-// upload is processed (or given error messages when it fails)
-//
-
-//
 // TODO: Step 9
 //
 // Use the presigned URLs to upload updated characters to the asset library
 //
 
-const handleS3Event = async(event) => {
+const handleS3Event = async (event) => {
     const bucket = event.bucket.name;
     const key = decodeURIComponent(event.object.key.replace(/\+/g, ' '));
 
     const keyPrefix = key.split('/').slice(0, 1).join('/')
     if (keyPrefix === 'upload') {
-        const objectNameItems = key.split('/').slice(1)
-        const objectPrefix = objectNameItems.length > 1
-            ? `${objectNameItems.slice(0, -1).join('/')}/`
-            : ''
-
-        const assetRegistryItems = await getAssets(s3Client, key)
-        if (assetRegistryItems.length) {
-            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
-            if (asset && asset.key) {
-                const fileName = `drafts/${objectPrefix}${asset.fileName}.wml`
-                const translateFile = `drafts/${objectPrefix}${asset.fileName}.translate.json`
-                const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
-                const scopeMapContents = scopeMap(assetRegistryItems, (currentScopeMap.scopeMap || {}))
-
-                await Promise.all([
-                    dbRegister(dbClient, {
-                        fileName,
-                        translateFile,
-                        scopeMap: scopeMapContents,
-                        assets: assetRegistryItems
-                    }),
-                    putTranslateFile(s3Client, {
-                        name: translateFile,
-                        scopeMap: scopeMapContents,
-                        assetKey: asset.key
-                    }),
-                    s3Client.send(new CopyObjectCommand({
-                        Bucket: bucket,
-                        CopySource: `${bucket}/${key}`,
-                        Key: fileName
-                    }))
-                ])
-            }
-    
-        }
-
-        await s3Client.send(new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key
-        }))
-        return {}
+        return await handleUpload({ s3Client, dbClient, apiClient })({ bucket, key })
     }
     else {
         const errorMsg = JSON.stringify(`Error: Unknown S3 target: ${JSON.stringify(event, null, 4) }`)
@@ -190,13 +150,7 @@ exports.handler = async (event, context) => {
     }
     if (event.upload) {
         const { PlayerName, fileName } = event
-        const putCommand = new PutObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `upload/${PlayerName}/${fileName}`,
-            ContentType: 'text/plain'
-        })
-        const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
-        return presignedOutput
+        return await createUploadLink({ s3Client, dbClient, apiClient})({ PlayerName, fileName, RequestId: event.RequestId })
     }
     context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
 
