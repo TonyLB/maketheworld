@@ -30,9 +30,24 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 9
+// TODO: Step 1
 //
-// Use the presigned URLs to upload updated characters to the asset library
+// Create a preSigned Get URL command for pulling assets from
+// a player's own storage
+//
+
+//
+// TODO: Step 2
+//
+// Use the preSigned Get URL to empower the web-client to load
+// a character's current values from Assets
+//
+
+//
+// TODO: Step 3
+//
+// Update the CharacterEdit component to accept routes other than New
+// and look up the character defaults to populate the form
 //
 
 const handleS3Event = async (event) => {
