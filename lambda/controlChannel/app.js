@@ -5,10 +5,10 @@ const { v4: uuidv4 } = require('/opt/uuid')
 
 const AWSXRay = require('aws-xray-sdk')
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
 const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
-const { putPlayer, whoAmI, getConnectionsByPlayerName } = require('./player')
+const { putPlayer, whoAmI, getConnectionsByPlayerName, getPlayerByConnectionId } = require('./player')
 const { validateJWT } = require('./validateJWT')
 const { parseCommand } = require('./parse')
 const { sync } = require('./sync')
@@ -27,6 +27,7 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
 const messagesTable = `${TABLE_PREFIX}_messages`
+const assetsTable = `${TABLE_PREFIX}_assets`
 
 const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
 
@@ -38,31 +39,6 @@ const splitType = (value) => {
     else {
         return ['', '']
     }
-}
-
-const updateWithRoomMessage = async ({ promises, CharacterId, RoomId, messageFunction = () => ('Unknown error') }) => {
-    const { Item: CharacterItem } = await dbClient.send(new GetItemCommand({
-        TableName: permanentsTable,
-        Key: marshall({
-            PermanentId: `CHARACTER#${CharacterId}`,
-            DataCategory: 'Details'
-        })
-    }))
-    const { Name = '' } = CharacterItem ? unmarshall(CharacterItem) : {}
-    await Promise.all([
-        dbClient.send(new PutItemCommand({
-            TableName: messagesTable,
-            Item: marshall({
-                MessageId: `MESSAGE#${uuidv4()}`,
-                DataCategory: 'Meta::Message',
-                CreatedTime: Date.now(),
-                Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
-                DisplayProtocol: "World",
-                Message: messageFunction(Name)
-            })
-        })),
-        ...promises
-    ])
 }
 
 //
@@ -104,22 +80,6 @@ const disconnect = async (connectionId) => {
                 })
             }))))
         ),
-        //
-        // TODO: Implement a ConditionExpression to double-check that Global-Connections
-        // exists and has a proper map, before attempting to update.  On a caught
-        // ConditionExpression error, route to self-healing in the Ephemera function
-        //
-        dbClient.send(new UpdateItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections'
-            }),
-            UpdateExpression: 'REMOVE connections.#connection',
-            ExpressionAttributeNames: {
-                '#connection': connectionId
-            }
-        })),
         ...(Items
             .map(unmarshall)
             .map(({ EphemeraId, DataCategory }) => (dbClient.send(new UpdateItemCommand({
@@ -148,29 +108,13 @@ const connect = async (connectionId, token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
-        await Promise.all([
-            dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: 'Global',
-                    DataCategory: 'Connections'
-                }),
-                UpdateExpression: 'SET connections.#connection = :player',
-                ExpressionAttributeValues: marshall({
-                    ':player': userName
-                }),
-                ExpressionAttributeNames: {
-                    '#connection': connectionId
-                }
-            })),
-            dbClient.send(new PutItemCommand({
-                TableName: ephemeraTable,
-                Item: marshall({
-                    EphemeraId: `PLAYER#${userName}`,
-                    DataCategory: `CONNECTION#${connectionId}`
-                })
-            }))
-        ])
+        await dbClient.send(new PutItemCommand({
+            TableName: ephemeraTable,
+            Item: marshall({
+                EphemeraId: `PLAYER#${userName}`,
+                DataCategory: `CONNECTION#${connectionId}`
+            })
+        }))
     
         return { statusCode: 200 }
     }
@@ -179,6 +123,29 @@ const connect = async (connectionId, token) => {
 
 const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
 
+    //
+    // TODO: Create functionality to record what assets a character has access to,
+    // and check before registering the character whether you need to cache any
+    // as-yet uncached assets in order to support them.
+    //
+    const { Item } = await dbClient.send(new GetItemCommand({
+        TableName: assetsTable,
+        Key: marshall({
+            AssetId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Meta::Character'
+        }),
+        ProjectionExpression: "#name, HomeId",
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        }
+    }))
+    let fetchedName = ''
+    let fetchedHomeId = ''
+    if (Item) {
+        const { Name, HomeId } = unmarshall(Item)
+        fetchedName = Name || ''
+        fetchedHomeId = HomeId || ''
+    }
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     await dbClient.send(new UpdateItemCommand({
         TableName: ephemeraTable,
@@ -186,13 +153,19 @@ const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
             EphemeraId,
             DataCategory: 'Connection'
         }),
-        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId',
+        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        },
         ExpressionAttributeValues: marshall({
             ':true': true,
-            ':connectionId': connectionId
+            ':connectionId': connectionId,
+            ':name': fetchedName,
+            ':roomId': fetchedHomeId || 'VORTEX'
         })
     }))
 
+    return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
 }
 
 const serialize = ({
@@ -367,6 +340,29 @@ const executeAction = (request) => {
     return { statusCode: 200, body: JSON.stringify({}) }
 }
 
+const upload = async (dbClient, { fileName, connectionId, requestId, uploadRequestId }) => {
+    const PlayerName = await getPlayerByConnectionId(dbClient, connectionId)
+    if (PlayerName) {
+        const { Payload } = await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.ASSETS_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({
+                upload: true,
+                PlayerName,
+                fileName,
+                RequestId: uploadRequestId
+            }))
+        }))
+        const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: "UploadURL", RequestId: requestId, url })
+        }
+    
+    }
+    return null
+}
+
 exports.disconnect = disconnect
 exports.connect = connect
 exports.registerCharacter = registerCharacter
@@ -511,6 +507,17 @@ exports.handler = async (event, context) => {
             // TODO: Build more elaborate error-handling pass-backs
             //
             break;
+        case 'upload':
+            const returnVal = await upload(dbClient, {
+                fileName: request.fileName,
+                connectionId,
+                requestId: request.RequestId,
+                uploadRequestId: request.uploadRequestId
+            })
+            if (returnVal) {
+                return returnVal
+            }
+            break
         default:
             break
     }

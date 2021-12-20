@@ -10,7 +10,7 @@ const deltaTable = `${TABLE_PREFIX}_message_delta`
 // syncRawHelper executes one step of the raw sync operation (either the first query or subsequent
 // steps defined by the returned ExclusiveStartKey) and returns the unmarshalled and parsed results.
 //
-const syncRawHelper = async ({ TargetId, limit = null, ExclusiveStartKey = null }) => {
+const syncRawHelper = async (dbClient, { TargetId, limit = null, ExclusiveStartKey = null }) => {
 
     const epochTime = Date.now()
 
@@ -18,6 +18,7 @@ const syncRawHelper = async ({ TargetId, limit = null, ExclusiveStartKey = null 
         TableName: messagesTable,
         ...(limit ? { Limit: limit } : {}),
         KeyConditionExpression: "DataCategory = :Target",
+        IndexName: 'DataCategoryIndex',
         ExpressionAttributeValues: marshall({
             ":Target": 'CHARACTER#' + TargetId
         }),

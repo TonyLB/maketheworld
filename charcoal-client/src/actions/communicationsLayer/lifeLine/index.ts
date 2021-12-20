@@ -214,6 +214,33 @@ export const socketDispatchPromise = (messageType: any) => (payload: any) => (di
     }
 }
 
+//
+// apiDispatchPromise passes a client-side RequestId so that a given upload can be linked with the
+// subscription set on it in the Assets table.  This lets some message types associate an expected
+// upload and receipt, treat it as a round-trip and return a Promise that watches for that (similar
+// to how HTTP calls are processed).
+//
+export const apiDispatchPromise = (url: string, RequestId: string) => (payload: any) =>  {
+    return new Promise<LifeLinePubSubData>((resolve, reject) => {
+        LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
+            const { RequestId: compareRequestId, ...rest } = payload
+            if (compareRequestId === RequestId) {
+                unsubscribe()
+                if (payload.messageType === 'Error') {
+                    reject(rest)
+                }
+                else {
+                    resolve(rest)
+                }
+            }
+        })
+        fetch(url, {
+            method: 'PUT',
+            body: payload
+        })
+    })
+}
+
 export const registerCharacter = (CharacterId: string) => (dispatch: any) => (
     //
     // TODO:

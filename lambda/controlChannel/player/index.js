@@ -4,6 +4,7 @@ const { UpdateItemCommand, GetItemCommand, QueryCommand } = require('@aws-sdk/cl
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const permanentsTable = `${TABLE_PREFIX}_permanents`
+const assetsTable = `${TABLE_PREFIX}_assets`
 
 const splitType = (value) => {
     const sections = value.split('#')
@@ -117,10 +118,10 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(dbClient, connectionId)
     if (username) {
         const { Item } = await dbClient.send(new GetItemCommand({
-            TableName: permanentsTable,
+            TableName: assetsTable,
             Key: marshall({
-                PermanentId: `PLAYER#${username}`,
-                DataCategory: 'Details'
+                AssetId: `PLAYER#${username}`,
+                DataCategory: 'Meta::Player'
             })
         }))
         const { Characters, CodeOfConductConsent } = unmarshall(Item)
@@ -148,3 +149,4 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
 exports.putPlayer = putPlayer
 exports.whoAmI = whoAmI
 exports.getConnectionsByPlayerName = getConnectionsByPlayerName
+exports.getPlayerByConnectionId = getPlayerByConnectionId

@@ -4,12 +4,22 @@ WorldMarkupLangage {
     // This section defines the tags that make up the WML language
     //
 
+    WMLFileContents = AssetExpression
+            | CharacterExpression
+
+    CharacterExpression = TagExpression<"Character", ("key" | "player" | "fileName"), none, none, CharacterLegalContents>
+    CharacterLegalContents = LiteralNameExpression
+            | LiteralValueTag<"Pronouns">
+            | LiteralValueTag<"OneCoolThing">
+            | LiteralValueTag<"Outfit">
+            | LiteralValueTag<"FirstImpression">
+
     AssetExpression = TagExpression<"Asset", ("key" | "fileName"), none, none, AssetLegalContents>
     AssetLegalContents = LayerExpression
             | ConditionExpression
             | RoomExpression
             | ExitExpression
-            | NameExpression
+            | LiteralNameExpression
             | string
 
     ConditionExpression = TagExpression<"Condition", none, "if", none, ConditionLegalContents>
@@ -32,7 +42,10 @@ WorldMarkupLangage {
             | NameExpression
             | ExitExpression
 
+    LiteralNameExpression = LiteralValueTag<"Name">
     NameExpression = ValueTag<"Name">
+
+    LiteralValueTag<label> = TagExpression<label, none, none, none, string>
 
     ValueTag<label> = TagExpression<label, none, none, none, TextContents>
     TextContents = string | EmbeddedJSExpression

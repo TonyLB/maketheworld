@@ -10,6 +10,7 @@ import clientSettings from '../reducers/clientSettings'
 import uiReducer from '../reducers/UI'
 
 import navigationTabs from '../slices/navigationTabs'
+import characterEdit from '../slices/characterEdit'
 
 export const store = configureStore({
     reducer: {
@@ -21,7 +22,8 @@ export const store = configureStore({
         settings,
         stateSeekingMachines,
         UI: uiReducer,
-        navigationTabs
+        navigationTabs,
+        characterEdit
     },
     middleware: [thunk]
 })

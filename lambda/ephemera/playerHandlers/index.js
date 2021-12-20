@@ -1,8 +1,7 @@
 const { checkForConnect } = require('./checkForConnect')
 const { checkForDisconnect } = require('./checkForDisconnect')
-const { checkForMovement } = require('./checkForMovement')
 
-const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName, data }) => {
+const processPlayerEvent = ({ dbClient }) => async ({ eventName, data }) => {
     switch(eventName) {
         case 'INSERT':
             await Promise.all([
@@ -11,9 +10,6 @@ const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName
             break
         case 'MODIFY':
             await Promise.all([
-                checkForConnect(dbClient, data),
-                checkForDisconnect(dbClient, data),
-                checkForMovement({ dbClient, lambdaClient }, data)
             ])
             break
         case 'REMOVE':
@@ -26,4 +22,4 @@ const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName
     }
 }
 
-exports.processCharacterEvent = processCharacterEvent
+exports.processPlayerEvent = processPlayerEvent
