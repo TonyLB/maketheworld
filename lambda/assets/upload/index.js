@@ -8,9 +8,9 @@ const { scopeMap } = require("../serialize/scopeMap")
 const { dbRegister } = require('../serialize/dbRegister')
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { splitType } = require('../utilities/types')
-const { DeleteItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb")
+const { DeleteItemCommand, QueryCommand, PutItemCommand } = require("@aws-sdk/client-dynamodb")
 
-const { TABLE_PREFIX } = process.env;
+const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const assetsTable = `${TABLE_PREFIX}_assets`
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
@@ -42,7 +42,7 @@ const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName, fileNa
     })
     const [presignedOutput] = await Promise.all([
         getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-        dbClient.send(new PutObjectCommand({
+        dbClient.send(new PutItemCommand({
             TableName: assetsTable,
             Item: marshall({
                 AssetId: `UPLOAD#${PlayerName}/${fileName}`,

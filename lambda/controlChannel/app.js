@@ -340,7 +340,7 @@ const executeAction = (request) => {
     return { statusCode: 200, body: JSON.stringify({}) }
 }
 
-const upload = async (dbClient, { fileName, connectionId, requestId }) => {
+const upload = async (dbClient, { fileName, connectionId, requestId, uploadRequestId }) => {
     const PlayerName = await getPlayerByConnectionId(dbClient, connectionId)
     if (PlayerName) {
         const { Payload } = await lambdaClient.send(new InvokeCommand({
@@ -349,7 +349,8 @@ const upload = async (dbClient, { fileName, connectionId, requestId }) => {
             Payload: new TextEncoder().encode(JSON.stringify({
                 upload: true,
                 PlayerName,
-                fileName
+                fileName,
+                RequestId: uploadRequestId
             }))
         }))
         const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
@@ -507,7 +508,12 @@ exports.handler = async (event, context) => {
             //
             break;
         case 'upload':
-            const returnVal = await upload(dbClient, { fileName: request.fileName, connectionId, requestId: request.RequestId })
+            const returnVal = await upload(dbClient, {
+                fileName: request.fileName,
+                connectionId,
+                requestId: request.RequestId,
+                uploadRequestId: request.uploadRequestId
+            })
             if (returnVal) {
                 return returnVal
             }

@@ -26,7 +26,7 @@ const s3Client = new S3Client(params)
 const dbClient = new DynamoDBClient(params)
 const cognitoClient = new CognitoIdentityProviderClient(params)
 
-const { TABLE_PREFIX, S3_BUCKET } = process.env;
+const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
