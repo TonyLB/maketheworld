@@ -199,7 +199,7 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
                         <Route path="/Character/Archived">
                             <InDevelopment />
                         </Route>
-                        <Route path="/Character/New/">
+                        <Route path="/Character/Edit/:CharacterKey">
                             <CharacterEdit />
                         </Route>
                         <Route path="/Character/:CharacterId">

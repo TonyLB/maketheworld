@@ -30,20 +30,6 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 1
-//
-// Create a preSigned Get URL command for pulling assets from
-// a player's own storage
-//
-
-//
-// TODO: Step 2
-//
-// Use the preSigned Get URL to empower the web-client to load
-// a character's current values from Assets
-//
-
-//
 // TODO: Step 3
 //
 // Update the CharacterEdit component to accept routes other than New
@@ -85,7 +71,7 @@ const handleDynamoEvent = async (event) => {
             }
             return 'ignore'
         }
-        const remap = ['Name', 'Pronouns', 'FirstImpression', 'Outfit', 'OneCoolThing']
+        const remap = ['Name', 'Pronouns', 'FirstImpression', 'Outfit', 'OneCoolThing', 'fileName']
             .reduce((previous, key) => ({ ...previous, [key]: mappedValue(key) }), {})
         const flagName = (key) => (key === 'Name' ? '#Name' : key)
         const setItems = Object.entries(remap)
@@ -105,6 +91,10 @@ const handleDynamoEvent = async (event) => {
             ...(removeItems.length ? [`REMOVE ${removeItems.join(', ')}`] : [])
         ].join(' ')
         if (UpdateExpression) {
+            //
+            // TODO: Add a parallel operation to update the Characters field on the relevant player
+            // for the incoming character
+            //
             const CharacterId = splitType(newImage.AssetId)[1]
             try {
                 await dbClient.send(new UpdateItemCommand({

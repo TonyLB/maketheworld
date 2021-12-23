@@ -6,13 +6,15 @@ import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/proc
 
 import wmlSchemaURL from './wml.ohm'
 
-export let wmlGrammar = null
+//
+// TODO: Typescript constraint WML functions
+//
+export let wmlGrammar = { match: (dummy) => ({ succeeded: () => false }) }
 export let wmlSemantics = null
 
 fetch(wmlSchemaURL)
     .then((response) => (response.text()))
     .then((wmlSchema) => {
-        console.log(wmlSchema)
         wmlGrammar = ohm.grammar(wmlSchema)
         wmlSemantics = wmlGrammar.createSemantics()
             .addOperation('eval', {

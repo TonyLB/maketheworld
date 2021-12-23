@@ -1,10 +1,7 @@
 import React, { FunctionComponent } from 'react'
 
 import {
-    Switch,
-    Route,
-    Link,
-    useRouteMatch,
+    useParams
 } from "react-router-dom"
 
 import useAutoPin from '../../slices/navigationTabs/useAutoPin'
@@ -12,19 +9,34 @@ import CharacterEditForm from './EditForm'
 
 type CharacterEditProps = {}
 
+//
+// TODO: Step 3
+//
+// Expand character edit to break character fileName out of route and use
+// it to look up data from redux
+//
+
+//
+// TODO: Step 4
+//
+// Create async fetch to populate store from player assets
+//
+
+//
+// TODO: Step 5
+//
+// Add spinner for pending fetch state
+//
+
 export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
 
-    const { path, url } = useRouteMatch()
-    useAutoPin({ href: `/Character/New/`, label: `New Character`})
+    const { CharacterKey } = useParams<{ CharacterKey: string }>()
+    useAutoPin({
+        href: `/Character/Edit/${CharacterKey}`,
+        label: CharacterKey === 'New' ? `New Character` : `Edit: ${CharacterKey}`
+    })
 
-    return <Switch>
-        <Route exact path={path}>
-            <CharacterEditForm characterId="New" />
-        </Route>
-        {/* <Route path={`${path}Edit/:mapId/`}>
-            <CharacterEditForm />
-        </Route> */}
-    </Switch>
+    return <CharacterEditForm characterKey={CharacterKey} />
 
 }
 

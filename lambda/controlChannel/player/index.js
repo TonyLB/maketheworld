@@ -130,7 +130,7 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
             body: JSON.stringify({
                 messageType: 'Player',
                 PlayerName: username,
-                Characters: Object.entries(Characters || {}).reduce((previous, [CharacterId, { Name }]) => ([...previous, { CharacterId, Name }]), []),
+                Characters: Object.entries(Characters || {}).reduce((previous, [CharacterId, { Name, scopedId, fileName }]) => ([...previous, { CharacterId, Name, scopedId, fileName }]), []),
                 CodeOfConductConsent,
                 RequestId
             })

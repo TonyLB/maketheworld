@@ -64,7 +64,7 @@ const healPlayers = async ({ cognitoClient, dbClient }) => {
             ExpressionAttributeValues: marshall({
                 ':metachar': 'Meta::Character'
             }),
-            ProjectionExpression: "AssetId, #name, player",
+            ProjectionExpression: "AssetId, #name, fileName, scopedId, player",
             ExpressionAttributeNames: {
                 '#name': 'Name'
             }
@@ -75,17 +75,21 @@ const healPlayers = async ({ cognitoClient, dbClient }) => {
         .filter((userName) => (userName))
     const charactersByPlayer = Items
         .map(unmarshall)
-        .map(({ player, AssetId, Name }) => ({
+        .map(({ player, AssetId, Name, fileName, scopedId }) => ({
             player,
             Name,
+            fileName,
+            scopedId,
             CharacterId: splitType(AssetId)[1]
         }))
-        .reduce((previous, { player, CharacterId, Name }) => ({
+        .reduce((previous, { player, CharacterId, Name, scopedId, fileName }) => ({
             ...previous,
             [player]: {
                 ...(previous[player] || {}),
                 [CharacterId]: {
-                    Name
+                    Name,
+                    fileName,
+                    scopedId
                 }
             }
         }), {})
