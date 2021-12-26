@@ -347,7 +347,7 @@ const upload = async (dbClient, { fileName, connectionId, requestId, uploadReque
             FunctionName: process.env.ASSETS_SERVICE,
             InvocationType: 'RequestResponse',
             Payload: new TextEncoder().encode(JSON.stringify({
-                upload: true,
+                message: 'upload',
                 PlayerName,
                 fileName,
                 RequestId: uploadRequestId
@@ -359,6 +359,27 @@ const upload = async (dbClient, { fileName, connectionId, requestId, uploadReque
             body: JSON.stringify({ messageType: "UploadURL", RequestId: requestId, url })
         }
     
+    }
+    return null
+}
+
+const fetchLink = async (dbClient, { fileName, connectionId, requestId }) => {
+    const PlayerName = await getPlayerByConnectionId(dbClient, connectionId)
+    if (PlayerName) {
+        const { Payload } = await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.ASSETS_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({
+                message: 'fetch',
+                PlayerName,
+                fileName
+            }))
+        }))
+        const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: "FetchURL", RequestId: requestId, url })
+        }
     }
     return null
 }
@@ -516,6 +537,16 @@ exports.handler = async (event, context) => {
             })
             if (returnVal) {
                 return returnVal
+            }
+            break
+        case 'fetch':
+            const fetchReturnVal = await fetchLink(dbClient, {
+                fileName: request.fileName,
+                connectionId,
+                requestId: request.RequestId
+            })
+            if (fetchReturnVal) {
+                return fetchReturnVal
             }
             break
         default:

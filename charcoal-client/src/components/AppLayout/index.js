@@ -35,6 +35,7 @@ import InDevelopment from '../InDevelopment'
 
 import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
+import WMLTestForm from '../WMLTest'
 
 import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
 
@@ -192,10 +193,13 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
             <div className={classes.content}>
                 <div style={{ width: "100%", height: "100%" }}>
                     <Switch>
+                        <Route path="/WMLTest">
+                            <WMLTestForm />
+                        </Route>
                         <Route path="/Character/Archived">
                             <InDevelopment />
                         </Route>
-                        <Route path="/Character/New/">
+                        <Route path="/Character/Edit/:CharacterKey">
                             <CharacterEdit />
                         </Route>
                         <Route path="/Character/:CharacterId">

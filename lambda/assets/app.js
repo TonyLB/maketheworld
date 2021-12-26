@@ -1,6 +1,5 @@
 // Import required AWS SDK clients and commands for Node.js
 const { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3")
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner")
 const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb")
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
 const { CognitoIdentityProviderClient } = require("@aws-sdk/client-cognito-identity-provider")
@@ -15,6 +14,7 @@ const { dbRegister } = require('./serialize/dbRegister')
 const { splitType } = require('./utilities/types')
 
 const { handleUpload, createUploadLink } = require('./upload')
+const { createFetchLink } = require('./fetch')
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -30,9 +30,10 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 //
-// TODO: Step 9
+// TODO: Step 3
 //
-// Use the presigned URLs to upload updated characters to the asset library
+// Update the CharacterEdit component to accept routes other than New
+// and look up the character defaults to populate the form
 //
 
 const handleS3Event = async (event) => {
@@ -70,7 +71,7 @@ const handleDynamoEvent = async (event) => {
             }
             return 'ignore'
         }
-        const remap = ['Name', 'Pronouns', 'FirstImpression', 'Outfit', 'OneCoolThing']
+        const remap = ['Name', 'Pronouns', 'FirstImpression', 'Outfit', 'OneCoolThing', 'fileName']
             .reduce((previous, key) => ({ ...previous, [key]: mappedValue(key) }), {})
         const flagName = (key) => (key === 'Name' ? '#Name' : key)
         const setItems = Object.entries(remap)
@@ -90,6 +91,10 @@ const handleDynamoEvent = async (event) => {
             ...(removeItems.length ? [`REMOVE ${removeItems.join(', ')}`] : [])
         ].join(' ')
         if (UpdateExpression) {
+            //
+            // TODO: Add a parallel operation to update the Characters field on the relevant player
+            // for the incoming character
+            //
             const CharacterId = splitType(newImage.AssetId)[1]
             try {
                 await dbClient.send(new UpdateItemCommand({
@@ -133,6 +138,7 @@ exports.handler = async (event, context) => {
     // In-Lambda testing outlet (to be removed once development complete)
     //
 
+    const { message = '' } = event
     if (event.Evaluate) {
         const assetId = event.assetId
         const fileName = await cacheAsset(assetId)
@@ -148,9 +154,18 @@ exports.handler = async (event, context) => {
         const returnVal = await healPlayers({ cognitoClient, dbClient })
         return JSON.stringify(returnVal, null, 4)
     }
-    if (event.upload) {
-        const { PlayerName, fileName } = event
-        return await createUploadLink({ s3Client, dbClient, apiClient})({ PlayerName, fileName, RequestId: event.RequestId })
+    switch(message) {
+        case 'upload':
+            return await createUploadLink({ s3Client, dbClient, apiClient})({
+                PlayerName: event.PlayerName,
+                fileName: event.fileName,
+                RequestId: event.RequestId
+            })
+        case 'fetch':
+            return await createFetchLink({ s3Client })({
+                PlayerName: event.PlayerName,
+                fileName: event.fileName
+            })
     }
     context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
 

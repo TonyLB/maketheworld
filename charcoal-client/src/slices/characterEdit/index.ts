@@ -3,44 +3,80 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 export type CharacterEditKeys = 'assetKey' | 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit'
 
 export interface CharacterEditRecord {
+    fetching: boolean;
+    fetched: boolean;
     defaultValue: Partial<Record<CharacterEditKeys, string>>,
     value: Partial<Record<CharacterEditKeys, string>>
 }
 
 export interface CharacterEditState {
-    byId: Record<string, CharacterEditRecord>
+    byKey: Record<string, CharacterEditRecord>
 }
 
 const initialState: CharacterEditState = {
-    byId: {}
+    byKey: {}
 }
 
 const characterEdit = createSlice({
     name: 'characterEdit',
     initialState,
     reducers: {
-        setDefaults(state, action: PayloadAction<{ characterId: string, defaultValue: Record<CharacterEditKeys, string> }>) {
-            const { characterId, defaultValue } = action.payload
-            if (state.byId[characterId]) {
-                state.byId[characterId].defaultValue = defaultValue
+        setDefaults(state, action: PayloadAction<{ characterKey: string, defaultValue: Record<CharacterEditKeys, string> }>) {
+            const { characterKey, defaultValue } = action.payload
+            if (state.byKey[characterKey]) {
+                state.byKey[characterKey].defaultValue = defaultValue
             }
             else {
-                state.byId[characterId] = {
+                state.byKey[characterKey] = {
+                    fetching: false,
+                    fetched: true,
                     value: {},
                     defaultValue
                 }
             }
         },
-        setValue(state, action: PayloadAction<{ characterId: string, label: CharacterEditKeys, value: string }>) {
-            const { characterId, label, value } = action.payload
-            if (state.byId[characterId]) {
-                state.byId[characterId].value[label] = value
+        setValue(state, action: PayloadAction<{ characterKey: string, label: CharacterEditKeys, value: string }>) {
+            const { characterKey, label, value } = action.payload
+            if (state.byKey[characterKey]) {
+                state.byKey[characterKey].value[label] = value
             }
             else {
-                state.byId[characterId] = {
+                state.byKey[characterKey] = {
                     value: {
                         [label]: value
                     },
+                    fetching: false,
+                    fetched: false,
+                    defaultValue: {}
+                }
+            }
+        },
+        setFetching(state, action: PayloadAction<{ characterKey: string }>) {
+            const { characterKey } = action.payload
+            if (state.byKey[characterKey]) {
+                state.byKey[characterKey].fetching = true
+            }
+            else {
+                state.byKey[characterKey] = {
+                    value: {},
+                    fetching: true,
+                    fetched: false,
+                    defaultValue: {}
+                }
+            }
+
+        },
+        setFetched(state, action: PayloadAction<{ characterKey: string }>) {
+            const { characterKey } = action.payload
+            if (state.byKey[characterKey]) {
+                state.byKey[characterKey].fetched = true
+                state.byKey[characterKey].fetching = false
+            }
+            else {
+                state.byKey[characterKey] = {
+                    value: {},
+                    fetching: false,
+                    fetched: true,
                     defaultValue: {}
                 }
             }
@@ -48,5 +84,5 @@ const characterEdit = createSlice({
     }
 })
 
-export const { setDefaults, setValue } = characterEdit.actions
+export const { setDefaults, setValue, setFetching, setFetched } = characterEdit.actions
 export default characterEdit.reducer

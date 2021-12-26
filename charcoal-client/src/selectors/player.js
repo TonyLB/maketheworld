@@ -15,3 +15,8 @@ export const getMyCharacters = ({ player }) => {
     const { Characters = [] } = player || {}
     return Characters
 }
+
+export const getMyCharacterByKey = (key) => (state) => {
+    const Characters = getMyCharacters(state)
+    return Characters.find(({ scopedId }) => (scopedId === key))
+}
