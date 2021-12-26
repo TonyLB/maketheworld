@@ -10,19 +10,6 @@ import CharacterEditForm from './EditForm'
 type CharacterEditProps = {}
 
 //
-// TODO: Step 3
-//
-// Expand character edit to break character fileName out of route and use
-// it to look up data from redux
-//
-
-//
-// TODO: Step 4
-//
-// Create async fetch to populate store from player assets
-//
-
-//
 // TODO: Step 5
 //
 // Add spinner for pending fetch state
