@@ -6,10 +6,9 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
-    Switch,
+    Routes,
     Route,
     Link,
-    useRouteMatch,
     useParams,
     useLocation
 } from "react-router-dom"
@@ -142,16 +141,11 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 const CharacterRouterSwitch = ({ messagePanel }) => {
     const { CharacterId } = useParams()
-    let { path } = useRouteMatch()
     return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
-        <Switch>
-            <Route path={`${path}/Play`}>
-                {messagePanel}
-            </Route>
-            <Route path={`${path}/Map`}>
-                <InDevelopment />
-            </Route>
-        </Switch>
+        <Routes>
+            <Route path={`/Play`} element={messagePanel} />
+            <Route path={`/Map`} element={<InDevelopment />} />
+        </Routes>
     </ActiveCharacter>
 }
 
@@ -188,44 +182,20 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
             <NavigationTabs />
             <div className={classes.content}>
                 <div style={{ width: "100%", height: "100%" }}>
-                    <Switch>
-                        <Route path="/Character/Archived">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Character/Edit/:CharacterKey">
-                            <CharacterEdit />
-                        </Route>
-                        <Route path="/Character/:CharacterId">
-                            <CharacterRouterSwitch messagePanel={messagePanel} />
-                        </Route>
-                        <Route path="/Forum/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Calendar/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Scenes/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Stories/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Chat/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Logs/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/CodeOfConduct/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Maps/">
-                            <MapHome />
-                        </Route>
-                        <Route path="/">
-                            {homePanel}
-                        </Route>
-                    </Switch>
+                    <Routes>
+                        <Route path="/Character/Archived" element={<InDevelopment />} />
+                        <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
+                        <Route path="/Character/:CharacterId*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+                        <Route path="/Forum/" element={<InDevelopment />} />
+                        <Route path="/Calendar/" element={<InDevelopment />} />
+                        <Route path="/Scenes/" element={<InDevelopment />} />
+                        <Route path="/Stories/" element={<InDevelopment />} />
+                        <Route path="/Chat/" element={<InDevelopment />} />
+                        <Route path="/Logs/" element={<InDevelopment />} />
+                        <Route path="/Forum/" element={<InDevelopment />} />
+                        <Route path="/Maps/*" element={<MapHome />} />
+                        <Route path="/" element={homePanel} />
+                    </Routes>
                 </div>
             </div>
 

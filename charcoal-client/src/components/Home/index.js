@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { useHistory } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import useStyles from '../styles'
 import Avatar from '@material-ui/core/Avatar'
@@ -23,7 +23,7 @@ export const Home = ({
     myCharacters = []
 }) => {
     const classes = useStyles()
-    const history = useHistory()
+    const navigate = useNavigate()
 
     return <Box className={classes.homeContents}>
         <div style={{ textAlign: "center" }}>
@@ -81,7 +81,7 @@ export const Home = ({
                 <Grid key={title} item sm={3}>
                     <Card onClick={() => {
                         if (href) {
-                            history.push(href)
+                            navigate(href)
                         }
                     }}>
                         <CardHeader
@@ -111,7 +111,7 @@ export const Home = ({
                 CharacterId && <Grid key={`${Name}:${CharacterId}`} item sm={3}>
                     <Card onClick={() => {
                         if (CharacterId) {
-                            history.push(`/Character/${CharacterId}/Play`)
+                            navigate(`/Character/${CharacterId}/Play`)
                         }
                     }}>
                         <CardHeader
@@ -152,7 +152,7 @@ export const Home = ({
                 <Grid key={title} item sm={3}>
                     <Card onClick={() => {
                         if (href) {
-                            history.push(href)
+                            navigate(href)
                         }
                     }}>
                         <CardHeader

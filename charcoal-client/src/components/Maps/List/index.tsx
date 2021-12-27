@@ -1,8 +1,7 @@
 import React, { FunctionComponent } from 'react'
 
 import {
-    useRouteMatch,
-    useHistory
+    useNavigate
 } from "react-router-dom"
 
 import Box from '@material-ui/core/Box'
@@ -34,12 +33,11 @@ const MapListRow: FunctionComponent<MapListRowProps>= ({
 }) => {
     // const classes = useStyles()
     // const localClasses = useMapListStyles()
-    const { url } = useRouteMatch()
-    const history = useHistory()
+    const navigate = useNavigate()
 
     return <TableRow
         key={mapId}
-        onClick={() => { history.push(`${url}Edit/${mapId}/`) }}
+        onClick={() => { navigate(`Edit/${mapId}/`) }}
     >
         <TableCell>{mapId}</TableCell>
     </TableRow>
