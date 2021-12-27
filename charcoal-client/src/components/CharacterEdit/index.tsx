@@ -24,7 +24,7 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
         label: CharacterKey === 'New' ? `New Character` : `Edit: ${CharacterKey}`
     })
 
-    return <CharacterEditForm characterKey={CharacterKey} />
+    return <CharacterEditForm characterKey={CharacterKey || ''} />
 
 }
 

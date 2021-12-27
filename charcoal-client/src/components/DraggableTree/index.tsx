@@ -232,7 +232,7 @@ export const DraggableTree = <T extends object>({
                     onMove({ fromKey: entry.key, toKey: newParentKey, position: newPosition })
                 }
                 setDraggingEntry(null)
-                draggingApi([{ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') }])
+                draggingApi({ opacity: 0, zIndex: -10, immediate: (val) => (val === 'zIndex') })
             }
             else {
                 if (newPosition === null) {

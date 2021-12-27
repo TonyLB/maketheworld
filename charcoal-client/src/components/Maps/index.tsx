@@ -19,8 +19,13 @@ export const MapHome: FunctionComponent<MapHomeProps> = ({}) => {
     const { path } = useRouteMatch()
     useAutoPin({ href: `/Maps/`, label: `Maps`})
 
+    //
+    // TODO: Migrate to react-router-dom@6+, in order to get rid
+    // of this typescript error and access the new more powerful
+    // router functions
+    //
     return <Switch>
-        <Route exact path={path}>
+        <Route /*exact*/ path={path}>
             <MapList />
         </Route>
         <Route path={`${path}Edit/:mapId/`}>
