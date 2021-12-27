@@ -2,8 +2,8 @@ import {
     SimulationNodeDatum,
     SimulationLinkDatum
 } from 'd3-force';
-import { Link } from 'react-router-dom';
-import { NestedTreeEntry } from '../../../DraggableTree/interfaces';
+// import { Link } from 'react-router-dom';
+// import { NestedTreeEntry } from '../../../DraggableTree/interfaces';
 import { MapTree, MapTreeEntry } from '../maps'
 
 //

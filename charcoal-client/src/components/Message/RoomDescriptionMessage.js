@@ -31,8 +31,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 export const RoomDescriptionMessage = React.forwardRef(({ message, inline=false, mostRecent=false, ...rest }, ref) => {
 
     const classes = useStyles()
-    const { MessageId, RoomId='', Name='', Exits=[], Players=[], Recap=[], Description='', Ancestry='', open=false } = message
-    const ParentId = Ancestry.split('#').reverse()[0]
+    const { MessageId, Name='', Exits=[], Players=[], Recap=[], Description='', open=false } = message
 
     const dispatch = useDispatch()
     const { CharacterId: myCharacterId } = useActiveCharacter()

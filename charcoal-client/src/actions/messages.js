@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { socketDispatch } from './communicationsLayer/lifeLine'
 
 import cacheDB from '../cacheDB'
-import { deltaFactory } from './deltaSync'
-import { addSubscription } from './subscriptions'
+// import { deltaFactory } from './deltaSync'
+// import { addSubscription } from './subscriptions'
 
 export const RECEIVE_MESSAGES = 'RECEIVE_MESSAGES'
 export const SET_MESSAGE_OPEN = 'SET_MESSAGE_OPEN'

@@ -24,7 +24,6 @@ import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 import useCommunicationsLayer from '../useCommunicationsLayer'
-import InDevelopment from '../InDevelopment'
 
 export const AppController = () => {
     useStateSeekingMachines()

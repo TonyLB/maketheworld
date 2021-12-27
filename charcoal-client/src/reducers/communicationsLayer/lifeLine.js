@@ -1,4 +1,3 @@
-import { produce } from 'immer'
 import { ESTABLISH_WEB_SOCKET_SUCCESS, DISCONNECT_WEB_SOCKET } from '../../actions/communicationsLayer/lifeLine/index.ts'
 
 export const reducer = (state = {}, action = {}) => {

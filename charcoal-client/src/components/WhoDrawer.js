@@ -2,8 +2,6 @@ import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
-    Paper,
-    IconButton,
     Table,
     TableHead,
     TableBody,
@@ -11,8 +9,6 @@ import {
     TableCell,
     Avatar
 } from '@material-ui/core'
-import OpenArrowIcon from '@material-ui/icons/ChevronLeft'
-import CloseArrowIcon from '@material-ui/icons/ChevronRight'
 
 import { getActiveCharacterList } from '../selectors/charactersInPlay'
 import { getPlayer } from '../selectors/player'

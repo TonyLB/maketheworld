@@ -2,14 +2,13 @@ import { v4 as uuidv4 } from 'uuid'
 import { Auth } from 'aws-amplify'
 
 import { WSS_ADDRESS } from '../../../config'
-import { registerSSM, assertIntent, externalStateChange } from '../../stateSeekingMachine'
+import { registerSSM, externalStateChange } from '../../stateSeekingMachine'
 import { getLifeLine } from '../../../selectors/communicationsLayer'
 import { lifeLineSSMKeys, ILifeLineSSM, LifeLineData, ILifeLineState, LifeLineSSMKey } from './baseClass'
 import { IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
 import { LifeLinePubSubData } from './lifeLine'
 
 import { PubSub } from '../../../lib/pubSub'
-import { RECEIVE_EPHEMERA_CHANGE } from '../appSyncSubscriptions/ephemeraSubscription'
 
 export const ESTABLISH_WEB_SOCKET_ATTEMPT = 'ESTABLISH_WEB_SOCKET_ATTEMPT'
 export const ESTABLISH_WEB_SOCKET_ERROR = 'ESTABLISH_WEB_SOCKET_ERROR'

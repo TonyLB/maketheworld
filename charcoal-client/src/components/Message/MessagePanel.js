@@ -46,7 +46,7 @@ export const MessagePanel = () => {
     const handleInput = useCallback((entry) => {
         dispatch(parseCommand(CharacterId)({ entry, raiseError: () => {} }))
         return true
-    }, [dispatch])
+    }, [dispatch, CharacterId])
     return <div className={localClasses.messagePanel}>
             <div className={localClasses.messagePanelContent}>
                 <VirtualMessageList messages={inPlayMessages} viewAsCharacterId={CharacterId} />

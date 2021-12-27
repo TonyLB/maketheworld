@@ -7,8 +7,6 @@ export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatc
         dispatch(help())
         return true
     }
-    const re = /^\s*(\w+)\s+(.*)$/gi
-    const state = getState()
 
     //
     // TODO: Add more graphical mode-switching to the text entry, so that you can visually differentiate whether you're

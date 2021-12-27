@@ -1,10 +1,10 @@
-import { API, graphqlOperation } from 'aws-amplify'
+// import { API, graphqlOperation } from 'aws-amplify'
 // import { syncPermanents as syncPermanentsGQL } from '../graphql/queries'
 // import { changedPermanents } from '../graphql/subscriptions'
 
 // import { addSubscription } from './subscriptions'
-import cacheDB from '../cacheDB'
-import { deltaFactory } from './deltaSync'
+// import cacheDB from '../cacheDB'
+// import { deltaFactory } from './deltaSync'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 

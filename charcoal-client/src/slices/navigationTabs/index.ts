@@ -1,5 +1,4 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { navigationTabPinnedByHref } from '../../selectors/navigationTabs'
 
 export interface NavigationTab {
     label: string;

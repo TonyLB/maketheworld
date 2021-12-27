@@ -33,10 +33,10 @@
 //   TO-DO:  That.
 //
 
-import React, { useContext, useCallback, useEffect } from 'react'
+import React, { useContext, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { deactivateCharacter, registerCharacterSSM } from '../../actions/activeCharacters'
+import { deactivateCharacter } from '../../actions/activeCharacters'
 //
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
 //

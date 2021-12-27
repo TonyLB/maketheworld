@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import Box from '@material-ui/core/Box'
 import TextField from '@material-ui/core/TextField'
 import Button from '@material-ui/core/Button'
-import { makeStyles } from "@material-ui/core/styles"
+// import { makeStyles } from "@material-ui/core/styles"
 
 import { characterEditByKey } from '../../selectors/characterEdit'
 import { getMyCharacterByKey } from '../../selectors/player'
@@ -12,18 +12,18 @@ import { setValue, setDefaults, CharacterEditKeys, CharacterEditRecord } from '.
 import { saveCharacter, fetchCharacter } from '../../actions/UI/characterEdit'
 import useStyles from '../styles'
 
-const useCharacterEditFormStyles = makeStyles((theme) => ({
-    table: {
+// const useCharacterEditFormStyles = makeStyles((theme) => ({
+//     table: {
         
-    }
-}))
+//     }
+// }))
 
 type CharacterEditFormProps = {
     characterKey: string
 }
 
 const validAssetKey = (value: string): boolean => (
-    Boolean(value.match(/^[\w\-\_\d]+$/)) && value.toLowerCase() !== 'new'
+    Boolean(value.match(/^[\w\-_\d]+$/)) && value.toLowerCase() !== 'new'
 )
 
 //
@@ -48,7 +48,7 @@ const characterWML = (value: CharacterEditRecord['value']): string => {
 export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ characterKey }) => {
     const classes = useStyles()
     const dispatch = useDispatch()
-    const localClasses = useCharacterEditFormStyles()
+    // const localClasses = useCharacterEditFormStyles()
     const characterMeta = useSelector(getMyCharacterByKey(characterKey))
 
     const characterEditState = useSelector(characterEditByKey(characterKey))

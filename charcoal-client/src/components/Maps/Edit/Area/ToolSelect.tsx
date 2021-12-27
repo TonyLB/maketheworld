@@ -1,4 +1,4 @@
-import React, { useState, ReactElement } from 'react'
+import React, { ReactElement } from 'react'
 import IconButton from '@material-ui/core/IconButton'
 import ButtonGroup from '@material-ui/core/ButtonGroup'
 import { makeStyles } from '@material-ui/core/styles'
@@ -17,7 +17,7 @@ export const localStyles = makeStyles((theme) => ({
         borderStyle: "solid",
         backgroundColor: "white"
     },
-    ['normal.selected']: {
+    'normal.selected': {
         '&:hover': {
             backgroundColor: theme.palette.primary.light
         },
@@ -73,7 +73,7 @@ export const ToolSelect = (props: ToolSelectProps) => {
                     color={ toolSelected === key ? 'primary' : 'default' }
                     classes={{
                         root: classes.normal,
-                        ['colorPrimary']: classes['normal.selected']
+                        colorPrimary: classes['normal.selected']
                     }}
                     onClick={() => {
                         onChange(key)

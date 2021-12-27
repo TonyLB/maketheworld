@@ -7,7 +7,7 @@
 // import { deltaFactory } from '../../deltaSync'
 
 import { ISSMAction, IStateSeekingMachineAbstract } from '../../stateSeekingMachine/baseClasses'
-import { cachedSubscriptionSSMKeys, cachedSubscriptionSSMClassGenerator, SUBSCRIPTION_SUCCESS } from './baseClasses'
+import { cachedSubscriptionSSMKeys, cachedSubscriptionSSMClassGenerator } from './baseClasses'
 
 export const NEIGHBORHOOD_UPDATE = 'NEIGHBORHOOD_UPDATE'
 export const SET_PERMANENTS_LAST_SYNC = 'SET_PERMANENTS_LAST_SYNC'
@@ -17,7 +17,7 @@ export const SET_PERMANENTS_LAST_SYNC = 'SET_PERMANENTS_LAST_SYNC'
 //
 // const cacheDBCast = cacheDB as any
 
-const fetchCached = async (dispatch: any) => {
+// const fetchCached = async (dispatch: any) => {
 
     // const neighborhoods = cacheDBCast.neighborhoods.toArray().then((items: { Neighborhood: any }[]) => (items.map((item) => ({ Neighborhood: item }))))
     // const settings = cacheDBCast.settings.toArray().then((items: { Setting: any }[]) => (items.map((item) => ({ Setting: item }))))
@@ -42,7 +42,7 @@ const fetchCached = async (dispatch: any) => {
     //     type: NEIGHBORHOOD_UPDATE,
     //     data: allData
     // })
-}
+// }
 
 // const { syncFromDelta: syncFromPermanentsDelta, syncFromBaseTable: syncFromPermanents } = deltaFactory({
 //     dataTag: 'syncPermanents',

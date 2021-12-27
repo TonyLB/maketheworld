@@ -11,14 +11,14 @@ class EphemeraSubscriptionData {
 //
 // TODO:  Specify the details of this interface
 //
-interface IChangedEphemera {
-    CharacterInPlay: {
-        CharacterId: string;
-        RoomId: string;
-        Connected: boolean;
-        Name: string;
-    }
-}
+// interface IChangedEphemera {
+//     CharacterInPlay: {
+//         CharacterId: string;
+//         RoomId: string;
+//         Connected: boolean;
+//         Name: string;
+//     }
+// }
 
 export const RECEIVE_EPHEMERA_CHANGE = 'RECEIVE_EPHEMERA_CHANGE'
 

@@ -1,9 +1,6 @@
 import React, { FunctionComponent } from 'react'
 
 import {
-    Switch,
-    Route,
-    Link,
     useRouteMatch,
     useHistory
 } from "react-router-dom"
@@ -20,7 +17,6 @@ import Paper from '@material-ui/core/Paper'
 import { makeStyles } from "@material-ui/core/styles"
 
 import useStyles from '../../styles'
-import useAutoPin from '../../../slices/navigationTabs/useAutoPin'
 
 const useMapListStyles = makeStyles((theme) => ({
     table: {
@@ -36,8 +32,8 @@ type MapListRowProps = {
 const MapListRow: FunctionComponent<MapListRowProps>= ({
     mapId
 }) => {
-    const classes = useStyles()
-    const localClasses = useMapListStyles()
+    // const classes = useStyles()
+    // const localClasses = useMapListStyles()
     const { url } = useRouteMatch()
     const history = useHistory()
 
@@ -49,8 +45,10 @@ const MapListRow: FunctionComponent<MapListRowProps>= ({
     </TableRow>
 }
 
+// eslint-disable-next-line no-empty-pattern
 type MapListProps = {}
 
+// eslint-disable-next-line no-empty-pattern
 export const MapList: FunctionComponent<MapListProps> = ({}) => {
     const classes = useStyles()
     const localClasses = useMapListStyles()

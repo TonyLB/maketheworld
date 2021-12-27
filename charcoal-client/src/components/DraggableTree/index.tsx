@@ -172,7 +172,7 @@ export const DraggableTree = <T extends object>({
             })
         }
         return nestedToFlat(displayTree)
-    }, [tree, calculationTree, draggingEntry, draggingTarget])
+    }, [calculationTree, draggingEntry, draggingTarget])
     const maxLevel = displayItems.reduce((previous, { level }) => ((level > previous) ? level : previous), 0)
     //
     // TODO: Refactor so that lastRootRow displays correctly when dragging to end of root level

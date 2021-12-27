@@ -15,6 +15,7 @@ type CharacterEditProps = {}
 // Add spinner for pending fetch state
 //
 
+// eslint-disable-next-line no-empty-pattern
 export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
 
     const { CharacterKey } = useParams<{ CharacterKey: string }>()

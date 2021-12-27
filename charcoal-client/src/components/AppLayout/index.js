@@ -2,7 +2,7 @@
 // The AppLayout component handles high-level styling and positioning of data components within the app
 //
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
@@ -24,18 +24,14 @@ import IconButton from '@material-ui/core/IconButton'
 import CloseIcon from '@material-ui/icons/Close'
 import { makeStyles } from '@material-ui/core/styles'
 import ForumIcon from '@material-ui/icons/Forum'
-import MailIcon from '@material-ui/icons/Mail'
-import ExploreIcon from '@material-ui/icons/Explore'
 import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
 import HomeIcon from '@material-ui/icons/Home'
 
 import ActiveCharacter from '../ActiveCharacter'
-import { getCharacters } from '../../selectors/characters'
 import InDevelopment from '../InDevelopment'
 
 import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
-import WMLTestForm from '../WMLTest'
 
 import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
 
@@ -193,9 +189,6 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
             <div className={classes.content}>
                 <div style={{ width: "100%", height: "100%" }}>
                     <Switch>
-                        <Route path="/WMLTest">
-                            <WMLTestForm />
-                        </Route>
                         <Route path="/Character/Archived">
                             <InDevelopment />
                         </Route>

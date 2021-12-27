@@ -1,5 +1,5 @@
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import Chip from '@material-ui/core/Chip'
 import ExitIcon from '@material-ui/icons/ExitToApp'
