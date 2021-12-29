@@ -46,3 +46,42 @@ export interface IStateSeekingMachineAbstract<K extends string, D extends Record
     desiredState: K;
     data: D;
 }
+
+export type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
+export class TestData {
+    valOne: string = ''
+    valTwo: string = ''
+}
+
+export type ITestState = ISSMPotentialState<testKeys, TestData>
+
+export interface ITestSSM extends ISSMTemplateAbstract<testKeys, TestData> {
+    ssmType: 'Test'
+}
+
+export class TestTemplate implements ITestSSM {
+    ssmType: 'Test' = 'Test'
+    initialState: testKeys = 'INITIAL'
+    initialData: TestData = new TestData()
+    states: Record<testKeys, ITestState> = {
+        INITIAL: {
+            stateType: 'CHOICE',
+            key: 'INITIAL',
+            choices: ['CONNECTING']
+        },
+        CONNECTING: {
+            stateType: 'ATTEMPT',
+            key: 'CONNECTING',
+            action: jest.fn(),
+            resolve: 'CONNECTED',
+            reject: 'INITIAL'
+        },
+        CONNECTED: {
+            stateType: 'CHOICE',
+            key: 'CONNECTED',
+            choices: []
+        }
+    }
+}
+
+export type TestSSM = IStateSeekingMachineAbstract<testKeys, TestData, TestTemplate>

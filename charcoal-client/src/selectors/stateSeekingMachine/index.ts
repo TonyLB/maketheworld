@@ -11,7 +11,10 @@ export const getSSMStates = ({ stateSeekingMachines} : { stateSeekingMachines: S
 }
 
 export const getSSMState = (key: string) => ({ stateSeekingMachines }: { stateSeekingMachines: StateSeekingMachineModule }) => {
-    return (stateSeekingMachines && stateSeekingMachines.machines?.[key]?.currentState) || null
+    if (stateSeekingMachines && stateSeekingMachines.machines?.[key]) {
+        return stateSeekingMachines && stateSeekingMachines.machines?.[key]?.currentState
+    }
+    return null
 }
 
 //

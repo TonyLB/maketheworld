@@ -53,15 +53,15 @@ describe('activeCharacters selectors', () => {
                 SUBSCRIBED: {
                     isConnecting: false,
                     isConnected: false,
-                    isSubscribing: false,
-                    isSubscribed: true,
+                    isSubscribing: true,
+                    isSubscribed: false,
                     state: 'SUBSCRIBED'
                 },
                 SYNCHING: {
                     isConnecting: false,
                     isConnected: false,
-                    isSubscribing: false,
-                    isSubscribed: true,
+                    isSubscribing: true,
+                    isSubscribed: false,
                     state: 'SYNCHING'
                 },
                 SYNCHRONIZED: {

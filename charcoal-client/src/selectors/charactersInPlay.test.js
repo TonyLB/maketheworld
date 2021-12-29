@@ -3,30 +3,25 @@ import {
 } from './charactersInPlay'
 
 const testState = {
-    characters: {
+    charactersInPlay: {
         TESS: {
             CharacterId: 'TESS',
             Name: 'Tess',
             Pronouns: 'She/her',
             FirstImpression: 'Frumpy Goth',
             OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.'
+            Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
+            Connected: true,
+            RoomId: 'ABC',
+            color: {
+                primary: 'pink'
+            }
         },
         MARCO: {
             CharacterId: 'MARCO',
             Name: 'Marco',
             Pronouns: 'He/him',
             FirstImpression: 'Earth princess'
-        }
-    },
-    charactersInPlay: {
-        TESS: {
-            CharacterId: 'TESS',
-            Connected: true,
-            RoomId: 'ABC',
-            color: {
-                primary: 'pink'
-            }
         },
         ASAHINA: {
             CharacterId: 'ASAHINA',
@@ -49,7 +44,6 @@ describe('charactersInPlay selectors', () => {
             FirstImpression: 'Frumpy Goth',
             OneCoolThing: 'Fuchsia eyes',
             Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
-            Grants: [],
             Connected: true,
             RoomId: 'ABC',
             color: {
@@ -64,7 +58,6 @@ describe('charactersInPlay selectors', () => {
             Name: 'Marco',
             Pronouns: 'He/him',
             FirstImpression: 'Earth princess',
-            Grants: [],
             Connected: false,
             color: {
                 primary: 'grey'
@@ -76,7 +69,6 @@ describe('charactersInPlay selectors', () => {
         expect(getCharactersInPlay(testState).ASAHINA).toEqual({
             CharacterId: 'ASAHINA',
             Name: '????',
-            Grants: [],
             Connected: false,
             RoomId: 'ABC',
             color: {
@@ -89,7 +81,6 @@ describe('charactersInPlay selectors', () => {
         expect(getCharactersInPlay(testState).SAIONJI).toEqual({
             CharacterId: 'SAIONJI',
             Name: '????',
-            Grants: [],
             Connected: false,
             color: {
                 primary: 'grey'
@@ -105,7 +96,6 @@ describe('charactersInPlay selectors', () => {
         expect(Object.values(getCharactersInPlay(testState))).toEqual([{
             CharacterId: 'ASAHINA',
             Name: '????',
-            Grants: [],
             Connected: false,
             RoomId: 'ABC',
             color: {
@@ -116,7 +106,6 @@ describe('charactersInPlay selectors', () => {
             Name: 'Marco',
             Pronouns: 'He/him',
             FirstImpression: 'Earth princess',
-            Grants: [],
             Connected: false,
             color: {
                 primary: 'grey'
@@ -128,7 +117,6 @@ describe('charactersInPlay selectors', () => {
             FirstImpression: 'Frumpy Goth',
             OneCoolThing: 'Fuchsia eyes',
             Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
-            Grants: [],
             Connected: true,
             RoomId: 'ABC',
             color: {
@@ -141,7 +129,6 @@ describe('charactersInPlay selectors', () => {
         expect(Object.entries(getCharactersInPlay(testState))).toEqual([['ASAHINA', {
             CharacterId: 'ASAHINA',
             Name: '????',
-            Grants: [],
             Connected: false,
             RoomId: 'ABC',
             color: {
@@ -152,7 +139,6 @@ describe('charactersInPlay selectors', () => {
             Name: 'Marco',
             Pronouns: 'He/him',
             FirstImpression: 'Earth princess',
-            Grants: [],
             Connected: false,
             color: {
                 primary: 'grey'
@@ -164,7 +150,6 @@ describe('charactersInPlay selectors', () => {
             FirstImpression: 'Frumpy Goth',
             OneCoolThing: 'Fuchsia eyes',
             Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
-            Grants: [],
             Connected: true,
             RoomId: 'ABC',
             color: {
