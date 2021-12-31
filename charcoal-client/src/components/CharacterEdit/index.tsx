@@ -1,4 +1,6 @@
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
+import { v4 as uuidv4 } from 'uuid'
 
 import {
     useParams
@@ -6,6 +8,8 @@ import {
 
 import useAutoPin from '../../slices/navigationTabs/useAutoPin'
 import CharacterEditForm from './EditForm'
+import { addItem } from '../../slices/characterEdit/ssmVersion'
+import { ssmHeartbeat } from '../../slices/stateSeekingMachine/index'
 
 type CharacterEditProps = {}
 
@@ -23,6 +27,13 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
         href: `/Character/Edit/${CharacterKey}`,
         label: CharacterKey === 'New' ? `New Character` : `Edit: ${CharacterKey}`
     })
+    const dispatch = useDispatch()
+    useEffect(() => {
+        if (CharacterKey && CharacterKey !== 'New') {
+            dispatch(addItem(CharacterKey))
+            dispatch(ssmHeartbeat(uuidv4()))
+        }
+    }, [dispatch, CharacterKey, ssmHeartbeat, addItem])
 
     return <CharacterEditForm characterKey={CharacterKey || ''} />
 

@@ -6,6 +6,7 @@ import helpDialog from './helpDialog'
 import directMessageDialog from './directMessageDialog'
 import mapDialog from './mapDialog'
 import editMapDialog from './editMapDialog'
+import characterEdit from '../../slices/characterEdit/ssmVersion'
 
 export const reducer = combineReducers({
     clientSettingsDialog,
@@ -14,7 +15,8 @@ export const reducer = combineReducers({
     helpDialog,
     directMessageDialog,
     mapDialog,
-    editMapDialog
+    editMapDialog,
+    characterEdit
 })
 
 export default reducer

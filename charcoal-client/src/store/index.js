@@ -10,7 +10,8 @@ import clientSettings from '../reducers/clientSettings'
 import uiReducer from '../reducers/UI'
 
 import navigationTabs from '../slices/navigationTabs'
-import characterEdit from '../slices/characterEdit'
+// import characterEdit from '../slices/characterEdit'
+import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 
 export const store = configureStore({
     reducer: {
@@ -23,7 +24,8 @@ export const store = configureStore({
         stateSeekingMachines,
         UI: uiReducer,
         navigationTabs,
-        characterEdit
+        // characterEdit,
+        ssmHeartbeat
     },
     middleware: [thunk]
 })
