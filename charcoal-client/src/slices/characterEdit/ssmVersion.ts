@@ -1,4 +1,5 @@
-import { CharacterEditNodes } from './baseClasses'
+import { PayloadAction } from '@reduxjs/toolkit'
+import { CharacterEditNodes, CharacterEditKeys } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import { lifelineCondition, getURL, fetchCharacterWML, parseCharacterWML } from './index.api'
 
@@ -11,14 +12,25 @@ export const {
     initialSSMDesired: 'PARSED',
     initialData: {
         internalData: {},
-        publicData: {}
+        publicData: {
+            defaultValue: {},
+            value: {}
+        }
     },
     sliceSelector: ({ UI }) => (UI.characterEdit),
+    publicReducers: {
+        setValue: (state, action: PayloadAction<{ label: CharacterEditKeys; value: string }>) => {
+            state.value[action.payload.label] = action.payload.value
+        }
+    },
     template: {
         initialState: 'INITIAL',
         initialData: {
             internalData: {},
-            publicData: {}
+            publicData: {
+                defaultValue: {},
+                value: {}
+            }
         },
         states: {
             INITIAL: {

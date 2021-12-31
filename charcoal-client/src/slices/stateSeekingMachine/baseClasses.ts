@@ -60,7 +60,7 @@ type InferredInternalDataTypeFromNodes<Nodes extends Record<string, any>> = {
         ? I
         : Nodes[Node] extends ISSMHoldNode<infer I, infer D>
             ? I
-            : {}
+            : never
 }
 
 type InferredPublicDataTypeFromNodes<Nodes extends Record<string, any>> = {
@@ -68,7 +68,7 @@ type InferredPublicDataTypeFromNodes<Nodes extends Record<string, any>> = {
         ? D
         : Nodes[Node] extends ISSMHoldNode<infer I, infer D>
             ? D
-            : {}
+            : never
 }
 
 //
@@ -80,7 +80,7 @@ type InferredPublicDataTypeFromNodes<Nodes extends Record<string, any>> = {
 type InferredInternalDataTypeAggregateFromNodes<Nodes extends ISSMData> =
     InferredInternalDataTypeFromNodes<Nodes>[keyof InferredInternalDataTypeFromNodes<Nodes>]
 
-type InferredPublicDataTypeAggregateFromNodes<Nodes extends ISSMData> =
+export type InferredPublicDataTypeAggregateFromNodes<Nodes extends ISSMData> =
     InferredPublicDataTypeFromNodes<Nodes>[keyof InferredPublicDataTypeFromNodes<Nodes>]
 
 export type StringKeys<Nodes> = Extract<keyof Nodes, string>

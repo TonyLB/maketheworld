@@ -3,9 +3,9 @@ import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMD
 export type CharacterEditKeys = 'assetKey' | 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit'
 
 export interface CharacterEditInternal {
-    id: string;
-    fetchURL: string;
-    characterWML: string;
+    id?: string;
+    fetchURL?: string;
+    characterWML?: string;
 }
 
 export interface CharacterEditPublic {

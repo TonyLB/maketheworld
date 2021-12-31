@@ -1,7 +1,7 @@
-import { castDraft } from 'immer'
+import { castDraft, Draft } from 'immer'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { ssmMeta, InferredDataTypeAggregateFromNodes, TemplateFromNodes } from './baseClasses'
-import { ssmHeartbeat, iterateOneSSM } from './index'
+import { ssmMeta, InferredDataTypeAggregateFromNodes, InferredPublicDataTypeAggregateFromNodes, TemplateFromNodes } from './baseClasses'
+import { iterateOneSSM } from './index'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
     meta: ssmMeta<keyof Nodes>
@@ -11,14 +11,35 @@ type multipleSSMSlice<Nodes extends Record<string, any>> = {
     byId: Record<string, multipleSSMItem<Nodes>>
 }
 
+type multipleSSMPublicReducer<Nodes extends Record<string, any>, D> = {
+    (state: Draft<InferredPublicDataTypeAggregateFromNodes<Nodes>>, action: PayloadAction<D>): void;
+}
+
+type wrappedPublicReducer<Nodes extends Record<string, any>, D> = {
+    (key: string): (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D>) => void;
+}
+
 type multipleSSMArguments<Nodes extends Record<string, any>> = {
     name: string;
     initialSSMState: keyof Nodes;
     initialSSMDesired: keyof Nodes;
     initialData: InferredDataTypeAggregateFromNodes<Nodes>;
     sliceSelector: (state: any) => multipleSSMSlice<Nodes>;
+    publicReducers?: Record<string, multipleSSMPublicReducer<Nodes, any>>;
     template: TemplateFromNodes<Nodes>;
 }
+
+const wrapPublicReducer =
+    <Nodes extends Record<string, any>, D>
+        (func: multipleSSMPublicReducer<Nodes, D>): wrappedPublicReducer<Nodes, D> => {
+        const wrapper = (key: string) => (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D>) => {
+            let focus = state.byId[key]
+            if (focus) {
+                func(focus.publicData, action)
+            }
+        }
+        return wrapper
+    }
 
 export const multipleSSM = <Nodes extends Record<string, any>>({
     name,
@@ -26,6 +47,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
     initialSSMDesired,
     initialData,
     sliceSelector,
+    publicReducers = {},
     template
 }: multipleSSMArguments<Nodes>) => {
     const slice = createSlice({
@@ -72,7 +94,14 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
                         keyRecord.publicData = { ...keyRecord.publicData, ...action.payload.data.publicData }
                     }
                 }
-            }
+            },
+            ...(Object.entries(publicReducers)
+                .reduce(
+                    (previous, [name, reducer]) => ({
+                        ...previous,
+                        [name]: wrapPublicReducer(reducer)
+                    }), {})
+            )
         }
     })
 

@@ -13,6 +13,9 @@ export const lifelineCondition: CharacterEditCondition = ({ internalData: { id }
 }
 
 export const getURL: CharacterEditAction = ({ internalData: { id } }) => async (dispatch, getState) => {
+    if (id === 'New') {
+        return {}
+    }
     const character = getMyCharacterByKey(id)(getState())
     if (!character) {
         throw new Error()
@@ -30,7 +33,10 @@ export const getURL: CharacterEditAction = ({ internalData: { id } }) => async (
     return { internalData: { fetchURL: url } }
 }
 
-export const fetchCharacterWML: CharacterEditAction = ({ internalData: { fetchURL } }) => async (dispatch, getState) => {
+export const fetchCharacterWML: CharacterEditAction = ({ internalData: { id, fetchURL } }) => async (dispatch, getState) => {
+    if (id === 'New') {
+        return {}
+    }
     if (!fetchURL) {
         throw new Error()
     }
@@ -39,6 +45,9 @@ export const fetchCharacterWML: CharacterEditAction = ({ internalData: { fetchUR
 }
 
 export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, characterWML } }) => async (dispatch, getState) => {
+    if (id === 'New') {
+        return {}
+    }
     if (!characterWML) {
         throw new Error()
     }

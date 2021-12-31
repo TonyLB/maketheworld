@@ -16,10 +16,6 @@ export const iterateOneSSM = ({
     internalStateChange: any;
     getSSMData: any;
 }) => (dispatch: any, getState: any) => {
-    //
-    // Figure out how to get focusSSM in an elegant way (not depending upon
-    // stateSeekingMachines all being in the same place in Redux)
-    //
     const focusSSM = getSSMData(getState())
     if (focusSSM && focusSSM.desiredState !== focusSSM.currentState) {
         const executionPath = dijkstra({
