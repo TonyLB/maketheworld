@@ -5,7 +5,10 @@ import { lifelineCondition, getURL, fetchCharacterWML, parseCharacterWML } from 
 
 export const {
     slice: characterEditSlice,
-    iterateAllSSMs
+    selectors,
+    publicActions,
+    iterateAllSSMs,
+    getStatus
 } = multipleSSM<CharacterEditNodes>({
     name: 'characterEdit',
     initialSSMState: 'INITIAL',
@@ -22,6 +25,9 @@ export const {
         setValue: (state, action: PayloadAction<{ label: CharacterEditKeys; value: string }>) => {
             state.value[action.payload.label] = action.payload.value
         }
+    },
+    publicSelectors: {
+        getCharacterEditByKey: (state) => state
     },
     template: {
         initialState: 'INITIAL',
@@ -85,5 +91,7 @@ export const {
 })
 
 export const { addItem } = characterEditSlice.actions
+export const { setValue } = publicActions
+export const { getCharacterEditByKey } = selectors
 
 export default characterEditSlice.reducer

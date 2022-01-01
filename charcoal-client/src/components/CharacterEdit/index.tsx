@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { v4 as uuidv4 } from 'uuid'
 
 import {
@@ -8,8 +8,9 @@ import {
 
 import useAutoPin from '../../slices/navigationTabs/useAutoPin'
 import CharacterEditForm from './EditForm'
-import { addItem } from '../../slices/characterEdit/ssmVersion'
+import { addItem, getStatus } from '../../slices/characterEdit/ssmVersion'
 import { ssmHeartbeat } from '../../slices/stateSeekingMachine/index'
+import Spinner from '../Spinner'
 
 type CharacterEditProps = {}
 
@@ -35,7 +36,11 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
         }
     }, [dispatch, CharacterKey, ssmHeartbeat, addItem])
 
-    return <CharacterEditForm characterKey={CharacterKey || ''} />
+    const currentStatus = useSelector(getStatus(CharacterKey || 'none'))
+
+    return currentStatus === 'PARSED'
+        ? <CharacterEditForm characterKey={CharacterKey || ''} />
+        : <Spinner />
 
 }
 

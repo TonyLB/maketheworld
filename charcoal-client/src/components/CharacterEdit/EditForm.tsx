@@ -6,9 +6,10 @@ import TextField from '@material-ui/core/TextField'
 import Button from '@material-ui/core/Button'
 // import { makeStyles } from "@material-ui/core/styles"
 
-import { characterEditByKey } from '../../selectors/characterEdit'
+// import { characterEditByKey } from '../../selectors/characterEdit'
+import { getCharacterEditByKey, setValue } from '../../slices/characterEdit/ssmVersion'
 import { getMyCharacterByKey } from '../../selectors/player'
-import { setValue, setDefaults, CharacterEditKeys, CharacterEditRecord } from '../../slices/characterEdit'
+import { setDefaults, CharacterEditKeys, CharacterEditRecord } from '../../slices/characterEdit'
 import { saveCharacter, fetchCharacter } from '../../actions/UI/characterEdit'
 import useStyles from '../styles'
 
@@ -49,39 +50,17 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     const classes = useStyles()
     const dispatch = useDispatch()
     // const localClasses = useCharacterEditFormStyles()
-    const characterMeta = useSelector(getMyCharacterByKey(characterKey))
 
-    const characterEditState = useSelector(characterEditByKey(characterKey))
+    const characterEditState = useSelector(getCharacterEditByKey(characterKey))
 
-    useEffect(() => {
-        if (characterKey !== 'New' && !(characterEditState.fetched || characterEditState.fetching) && (characterMeta && characterMeta.fileName)) {
-            const dispatchPromise = dispatch(fetchCharacter(characterKey)) as unknown as Promise<Record<CharacterEditKeys, string>>
-            dispatchPromise.then((value) => {
-                    if (value) {
-                        dispatch(setDefaults({ characterKey, defaultValue: value }))
-                        const keys: CharacterEditKeys[] = [
-                            'assetKey',
-                            'Name',
-                            'Pronouns',
-                            'FirstImpression',
-                            'OneCoolThing',
-                            'Outfit'
-                        ]
-                        keys.forEach((label: CharacterEditKeys) => {
-                            if (value[label]) {
-                                dispatch(setValue({ characterKey, label, value: value[label] }))
-                            }
-                        })
-                    }
-                })
-        }
-    }, [dispatch, characterKey, characterEditState, characterMeta])
-    const { value } = characterEditState
-    const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => { dispatch(setValue({ characterKey, label, value: event.target.value })) }
+    const { value, defaultValue } = characterEditState
+    const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => {
+        dispatch(setValue(characterKey)({ label, value: event.target.value }))
+    }
     return <Box className={classes.homeContents}>
         <TextField
             required
-            error={!validAssetKey(value.assetKey || '')}
+            error={!validAssetKey(value.assetKey || defaultValue.assetKey || '')}
             id="assetKey"
             label="Asset Key"
             value={value.assetKey || ''}
@@ -92,32 +71,32 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
             required
             id="name"
             label="Name"
-            value={value.Name || ''}
+            value={value.Name || defaultValue.Name || ''}
             onChange={updateLabel('Name')}
         />
         <TextField
             required
             id="pronouns"
             label="Pronouns"
-            value={value.Pronouns || ''}
+            value={value.Pronouns || defaultValue.Pronouns || ''}
             onChange={updateLabel('Pronouns')}
         />
         <TextField
             id="firstImpression"
             label="First Impression"
-            value={value.FirstImpression || ''}
+            value={value.FirstImpression || defaultValue.FirstImpression || ''}
             onChange={updateLabel('FirstImpression')}
         />
         <TextField
             id="oneCoolThing"
             label="One Cool Thing"
-            value={value.OneCoolThing || ''}
+            value={value.OneCoolThing || defaultValue.OneCoolThing || ''}
             onChange={updateLabel('OneCoolThing')}
         />
         <TextField
             id="outfit"
             label="Outfit"
-            value={value.Outfit || ''}
+            value={value.Outfit || defaultValue.Outfit || ''}
             onChange={updateLabel('Outfit')}
         />
         <Button

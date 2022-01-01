@@ -1,6 +1,12 @@
 import { castDraft, Draft } from 'immer'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { ssmMeta, InferredDataTypeAggregateFromNodes, InferredPublicDataTypeAggregateFromNodes, TemplateFromNodes } from './baseClasses'
+import {
+    ssmMeta,
+    InferredDataTypeAggregateFromNodes,
+    InferredPublicDataTypeAggregateFromNodes,
+    TemplateFromNodes,
+    StringKeys
+} from './baseClasses'
 import { iterateOneSSM } from './index'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
@@ -15,8 +21,24 @@ type multipleSSMPublicReducer<Nodes extends Record<string, any>, D> = {
     (state: Draft<InferredPublicDataTypeAggregateFromNodes<Nodes>>, action: PayloadAction<D>): void;
 }
 
+type corePublicReducer<Nodes extends Record<string, any>, D> = {
+    (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D & { key: string }>): void;
+}
+
+type corePublicAction<Nodes extends Record<string, any>, D> = {
+    (payload: D & { key: string }): void;
+}
+
 type wrappedPublicReducer<Nodes extends Record<string, any>, D> = {
-    (key: string): (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D>) => void;
+    (key: string): (payload: D) => (dispatch: any, getState: any) => void
+}
+
+type multipleSSMPublicSelector<Nodes extends Record<string, any>, D> = {
+    (state: InferredPublicDataTypeAggregateFromNodes<Nodes>): D;
+}
+
+type wrappedPublicSelector<Nodes extends Record<string, any>, D> = {
+    (key: string): (state: multipleSSMSlice<Nodes>) => D | undefined;
 }
 
 type multipleSSMArguments<Nodes extends Record<string, any>> = {
@@ -26,17 +48,44 @@ type multipleSSMArguments<Nodes extends Record<string, any>> = {
     initialData: InferredDataTypeAggregateFromNodes<Nodes>;
     sliceSelector: (state: any) => multipleSSMSlice<Nodes>;
     publicReducers?: Record<string, multipleSSMPublicReducer<Nodes, any>>;
+    publicSelectors?: Record<string, multipleSSMPublicSelector<Nodes, any>>;
     template: TemplateFromNodes<Nodes>;
 }
 
-const wrapPublicReducer =
+const corePublicReducer =
     <Nodes extends Record<string, any>, D>
-        (func: multipleSSMPublicReducer<Nodes, D>): wrappedPublicReducer<Nodes, D> => {
-        const wrapper = (key: string) => (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D>) => {
-            let focus = state.byId[key]
+        (func: multipleSSMPublicReducer<Nodes, Omit<D, "key">>): corePublicReducer<Nodes, D> => {
+        const wrapper = (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D & { key: string }>) => {
+            const { key, ...rest } = action.payload
+            let focus = state.byId[action.payload.key]
             if (focus) {
-                func(focus.publicData, action)
+                func(focus.publicData, { ...action, payload: rest })
             }
+        }
+        return wrapper
+    }
+
+const publicAction =
+    <Nodes extends Record<string, any>, D>
+        (func: corePublicAction<Nodes, D>): wrappedPublicReducer<Nodes, D> =>
+    {
+        const wrapper = (key: string) => (payload: D) => (dispatch: any, getState: any) => {
+            dispatch(func({ ...payload, key }))
+        }
+        return wrapper
+    }
+
+const wrapPublicSelector =
+    <Nodes extends Record<string, any>, D>
+        (sliceSelector: (state: any) => multipleSSMSlice<Nodes>) =>
+        (select: multipleSSMPublicSelector<Nodes, D>): wrappedPublicSelector<Nodes, D> =>
+    {
+        const wrapper = (key: string) => (state: any): D | undefined => {
+            const focus = sliceSelector(state).byId[key]
+            if (focus) {
+                return select(focus.publicData)
+            }
+            return undefined
         }
         return wrapper
     }
@@ -48,6 +97,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
     initialData,
     sliceSelector,
     publicReducers = {},
+    publicSelectors = {},
     template
 }: multipleSSMArguments<Nodes>) => {
     const slice = createSlice({
@@ -99,11 +149,16 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
                 .reduce(
                     (previous, [name, reducer]) => ({
                         ...previous,
-                        [name]: wrapPublicReducer(reducer)
+                        [`core${name}`]: corePublicReducer(reducer)
                     }), {})
             )
         }
     })
+
+    const publicActions = Object.keys(publicReducers).reduce((previous, name) => ({
+        ...previous,
+        [name]: publicAction((slice.actions as any)[`core${name}`])
+    }), {}) as Record<string, wrappedPublicReducer<Nodes, any>>
 
     const { internalStateChange } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
@@ -130,8 +185,25 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
             })
     }
 
+    const selectors: Record<string, wrappedPublicSelector<Nodes, any>> = Object.entries(publicSelectors)
+        .reduce((previous, [name, selector]) => ({
+            ...previous,
+            [name]: wrapPublicSelector(sliceSelector)(selector)
+        }), {})
+
+    const getStatus = (key: string) => (state: any): keyof Nodes | undefined  => {
+        const focus = sliceSelector(state).byId[key]
+        if (focus) {
+            return focus.meta.currentState
+        }
+        return undefined
+    }
+
     return {
         slice,
+        selectors,
+        publicActions,
+        getStatus,
         iterateAllSSMs
     }
 }
