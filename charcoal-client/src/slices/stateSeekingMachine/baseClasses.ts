@@ -23,7 +23,6 @@ export interface ISSMChoiceNode {
 }
 
 export type ISSMChoiceState<K> = ISSMChoiceNode & {
-    key: K;
     choices: Array<K>;
 }
 
@@ -33,7 +32,6 @@ export interface ISSMAttemptNode<I extends ISSMData, D extends ISSMData> {
 }
 
 export type ISSMAttemptState<K, I extends ISSMData, D extends ISSMData> = ISSMAttemptNode<I, D> & {
-    key: K;
     resolve: K;
     reject: K;
 }
@@ -48,7 +46,6 @@ export interface ISSMHoldNode<I extends ISSMData, D extends ISSMData> {
 }
 
 export type ISSMHoldState<K, I extends ISSMData, D extends ISSMData> = ISSMHoldNode<I, D> & {
-    key: K;
     next: K;
 }
 
@@ -165,19 +162,16 @@ export class TestTemplate implements ITestSSM {
     states: Record<testKeys, ITestState> = {
         INITIAL: {
             stateType: 'CHOICE',
-            key: 'INITIAL',
             choices: ['CONNECTING']
         },
         CONNECTING: {
             stateType: 'ATTEMPT',
-            key: 'CONNECTING',
             action: jest.fn(),
             resolve: 'CONNECTED',
             reject: 'INITIAL'
         },
         CONNECTED: {
             stateType: 'CHOICE',
-            key: 'CONNECTED',
             choices: []
         }
     }

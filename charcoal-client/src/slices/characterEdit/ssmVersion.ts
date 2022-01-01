@@ -55,53 +55,45 @@ export const {
         },
         states: {
             INITIAL: {
-                key: 'INITIAL',
                 stateType: 'HOLD',
                 next: 'GETURL',
                 condition: lifelineCondition
             },
             GETURL: {
-                key: 'GETURL',
                 stateType: 'ATTEMPT',
                 action: getURL,
                 resolve: 'FETCH',
                 reject: 'ERROR'
             },
             FETCH: {
-                key: 'FETCH',
                 stateType: 'ATTEMPT',
                 action: fetchCharacterWML,
                 resolve: 'PARSE',
                 reject: 'ERROR'
             },
             PARSE: {
-                key: 'PARSE',
                 stateType: 'ATTEMPT',
                 action: parseCharacterWML,
                 resolve: 'PARSED',
                 reject: 'ERROR'
             },
             PARSED: {
-                key: 'PARSED',
                 stateType: 'CHOICE',
                 choices: ['INITIAL']
             },
             INITIATESAVE: {
-                key: 'INITIATESAVE',
                 stateType: 'ATTEMPT',
                 action: getPostURL,
                 resolve: 'POSTSAVE',
                 reject: 'ERROR'
             },
             POSTSAVE: {
-                key: 'POSTSAVE',
                 stateType: 'ATTEMPT',
                 action: postCharacterWML,
                 resolve: 'GETURL',
                 reject: 'ERROR'
             },
             ERROR: {
-                key: 'ERROR',
                 stateType: 'CHOICE',
                 choices: []
             }
