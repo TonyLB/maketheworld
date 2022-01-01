@@ -75,7 +75,7 @@ describe('SSM dijkstra algorithm', () => {
         if (branchingGraph.states.SUBSCRIBED.stateType === 'CHOICE') {
             branchingGraph.states.SUBSCRIBED.choices = ['BRANCHING', 'CONNECTING']
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: branchingGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING'])
+        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: branchingGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING', 'CONNECTED'])
 
     })
     it('handles cyclic graphs', () => {
@@ -88,7 +88,7 @@ describe('SSM dijkstra algorithm', () => {
         if (cyclicGraph.states.CONNECTED.stateType === 'CHOICE') {
             cyclicGraph.states.CONNECTED.choices = ['UNSUBSCRIBING']
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: cyclicGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING'])
+        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: cyclicGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING', 'CONNECTED'])
     })
     it('handles pathless graphs', () => {
         let disconnectedGraph = {

@@ -4,8 +4,6 @@ import { v4 as uuidv4 } from 'uuid'
 import dijkstra from './dijkstra'
 import { heartbeat } from './ssmHeartbeat'
 
-export const ssmHeartbeat = createAction<string>('ssmHeartbeat')
-
 export const iterateOneSSM = ({
     internalStateChange,
     getSSMData
@@ -23,9 +21,9 @@ export const iterateOneSSM = ({
             endKey: focusSSM.desiredState,
             template: focusSSM.template
         })
+        console.log(`Execution path (${focusSSM.currentState} => ${focusSSM.desiredState}): ${JSON.stringify(executionPath, null, 4)}`)
         if (executionPath.length > 0) {
             const currentStep = focusSSM.template.states[focusSSM.currentState]
-            const firstStep = focusSSM.template.states[executionPath[0]]
             if (['HOLD', 'CHOICE'].includes(currentStep.stateType)) {
                 if (currentStep.stateType === 'HOLD') {
                     const conditionalResult = currentStep.condition({
@@ -37,25 +35,33 @@ export const iterateOneSSM = ({
                     }
                 }
                 dispatch(internalStateChange({ newState: executionPath[0] }))
+                dispatch(heartbeat)
             }
-            if (firstStep.stateType === 'ATTEMPT') {
-                return dispatch(firstStep.action({
+            if (currentStep.stateType === 'ATTEMPT') {
+                const { template, ...rest } = focusSSM
+                console.log(`FocusSSM: ${JSON.stringify(rest, null, 4)}`)
+                if (focusSSM.inProgress === focusSSM.currentState) {
+                    return Promise.resolve({})
+                }
+                dispatch(internalStateChange({
+                    newState: focusSSM.currentState,
+                    data: {
+                        internalData: { inProgress: focusSSM.inProgress }
+                    }
+                }))
+                return dispatch(currentStep.action({
                         internalData: focusSSM.internalData || {},
                         publicData: focusSSM.publicData || {}
                     }))
                     .then((response: Record<string, any>) => {
-                        dispatch(internalStateChange({ newState: firstStep.resolve, data: response }))
+                        dispatch(internalStateChange({ newState: currentStep.resolve, data: response }))
                         dispatch(heartbeat)
                     })
                     .catch((error: Record<string, any>) => {
-                        dispatch(internalStateChange({ newState: firstStep.reject, data: { internalData: { error } } }))
+                        dispatch(internalStateChange({ newState: currentStep.reject, data: { internalData: { error } } }))
                         dispatch(heartbeat)
                     })
             }
-            //
-            // TODO: Do we need a second recursive call if the next node is *not* an
-            //   attempt node, and how would that be handled?
-            //
         }
     }
     return Promise.resolve({})

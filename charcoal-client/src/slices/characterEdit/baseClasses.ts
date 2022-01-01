@@ -5,6 +5,8 @@ export type CharacterEditKeys = 'assetKey' | 'Name' | 'Pronouns' | 'FirstImpress
 export interface CharacterEditInternal {
     id?: string;
     fetchURL?: string;
+    postURL?: string;
+    uploadRequestId?: string;
     characterWML?: string;
 }
 
@@ -20,11 +22,11 @@ export type CharacterEditCondition = ISSMHoldCondition<CharacterEditInternal, Ch
 
 export interface CharacterEditNodes {
     INITIAL: ISSMHoldNode<CharacterEditInternal, CharacterEditPublic>;
-    GETTINGURL: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
-    URLGOTTEN: ISSMChoiceNode;
-    FETCHING: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
-    FETCHED: ISSMChoiceNode;
-    PARSING: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
+    GETURL: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
+    FETCH: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
+    PARSE: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
     PARSED: ISSMChoiceNode;
+    INITIATESAVE: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
+    POSTSAVE: ISSMAttemptNode<CharacterEditInternal, CharacterEditPublic>;
     ERROR: ISSMChoiceNode;
 }

@@ -1,14 +1,21 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import { CharacterEditNodes, CharacterEditKeys } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
-import { lifelineCondition, getURL, fetchCharacterWML, parseCharacterWML } from './index.api'
+import {
+    lifelineCondition,
+    getURL,
+    getPostURL,
+    fetchCharacterWML,
+    parseCharacterWML,
+    postCharacterWML
+} from './index.api'
+import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 
 export const {
     slice: characterEditSlice,
     selectors,
     publicActions,
-    iterateAllSSMs,
-    getStatus
+    iterateAllSSMs
 } = multipleSSM<CharacterEditNodes>({
     name: 'characterEdit',
     initialSSMState: 'INITIAL',
@@ -27,7 +34,15 @@ export const {
         }
     },
     publicSelectors: {
-        getCharacterEditByKey: (state) => state
+        getCharacterEditByKey: (state) => state,
+        getCharacterEditValues: ({ defaultValue, value }): Record<CharacterEditKeys, string> => ({
+            ...(['assetKey', 'Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit']
+                .reduce((previous, label) => ({ ...previous, [label]: '' }), {})
+            ) as Record<CharacterEditKeys, string>,
+            ...defaultValue,
+            ...value
+        }),
+        getCharacterEditDirty: ({ value }) => (Object.keys(value).length > 0)
     },
     template: {
         initialState: 'INITIAL',
@@ -42,35 +57,25 @@ export const {
             INITIAL: {
                 key: 'INITIAL',
                 stateType: 'HOLD',
-                next: 'GETTINGURL',
+                next: 'GETURL',
                 condition: lifelineCondition
             },
-            GETTINGURL: {
-                key: 'GETTINGURL',
+            GETURL: {
+                key: 'GETURL',
                 stateType: 'ATTEMPT',
                 action: getURL,
-                resolve: 'URLGOTTEN',
+                resolve: 'FETCH',
                 reject: 'ERROR'
             },
-            URLGOTTEN: {
-                key: 'URLGOTTEN',
-                stateType: 'CHOICE',
-                choices: ['FETCHING']
-            },
-            FETCHING: {
-                key: 'FETCHING',
+            FETCH: {
+                key: 'FETCH',
                 stateType: 'ATTEMPT',
                 action: fetchCharacterWML,
-                resolve: 'FETCHED',
+                resolve: 'PARSE',
                 reject: 'ERROR'
             },
-            FETCHED: {
-                key: 'FETCHED',
-                stateType: 'CHOICE',
-                choices: ['PARSING']
-            },
-            PARSING: {
-                key: 'PARSING',
+            PARSE: {
+                key: 'PARSE',
                 stateType: 'ATTEMPT',
                 action: parseCharacterWML,
                 resolve: 'PARSED',
@@ -80,6 +85,20 @@ export const {
                 key: 'PARSED',
                 stateType: 'CHOICE',
                 choices: ['INITIAL']
+            },
+            INITIATESAVE: {
+                key: 'INITIATESAVE',
+                stateType: 'ATTEMPT',
+                action: getPostURL,
+                resolve: 'POSTSAVE',
+                reject: 'ERROR'
+            },
+            POSTSAVE: {
+                key: 'POSTSAVE',
+                stateType: 'ATTEMPT',
+                action: postCharacterWML,
+                resolve: 'GETURL',
+                reject: 'ERROR'
             },
             ERROR: {
                 key: 'ERROR',
@@ -92,6 +111,27 @@ export const {
 
 export const { addItem } = characterEditSlice.actions
 export const { setValue } = publicActions
-export const { getCharacterEditByKey } = selectors
+export const {
+    getCharacterEditByKey,
+    getCharacterEditDirty,
+    getCharacterEditValues,
+    getStatus,
+    getIntent
+} = selectors
+
+export const saveCharacter = (key: string) => (dispatch: any, getState: any) => {
+    const state = getState()
+    const characterEdit = getCharacterEditByKey(key)(state)
+    const status = getStatus(key)(state)
+    const intent = getIntent(key)(state)
+    if (characterEdit && status === 'PARSED' && intent === 'PARSED') {
+        dispatch(characterEditSlice.actions.internalStateChange({
+            key,
+            newState: 'INITIATESAVE',
+            data: {}
+        }))
+        dispatch(heartbeat)
+    }
+}
 
 export default characterEditSlice.reducer

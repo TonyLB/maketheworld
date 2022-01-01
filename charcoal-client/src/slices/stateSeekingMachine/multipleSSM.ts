@@ -5,7 +5,7 @@ import {
     InferredDataTypeAggregateFromNodes,
     InferredPublicDataTypeAggregateFromNodes,
     TemplateFromNodes,
-    StringKeys
+    PartialDataTypeAggregateFromNodes
 } from './baseClasses'
 import { iterateOneSSM } from './index'
 
@@ -122,6 +122,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
                         meta: {
                             currentState: castDraft(initialSSMState),
                             desiredState: castDraft(initialSSMDesired),
+                            inProgress: null
                         }
                     } as unknown as multipleSSMItem<Nodes>)
                 }
@@ -131,7 +132,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
                 action: PayloadAction<{
                     key: string;
                     newState: keyof Nodes,
-                    data: InferredDataTypeAggregateFromNodes<Nodes>
+                    data: PartialDataTypeAggregateFromNodes<Nodes>
                 }>
             ) {
                 const keyRecord = state.byId[action.payload.key]
@@ -171,9 +172,9 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
             .forEach(([key]) => {
                 const getSSMData = (state: any) => {
                     const currentData = sliceSelector(state).byId[key]
-                    const { currentState, desiredState } = currentData.meta
+                    const { currentState, desiredState, inProgress } = currentData.meta
                     const { internalData, publicData } = currentData
-                    return { currentState, desiredState, internalData, publicData, template }
+                    return { currentState, desiredState, internalData, publicData, inProgress, template }
                 }
                 dispatch(iterateOneSSM({
                     getSSMData,
@@ -185,12 +186,6 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
             })
     }
 
-    const selectors: Record<string, wrappedPublicSelector<Nodes, any>> = Object.entries(publicSelectors)
-        .reduce((previous, [name, selector]) => ({
-            ...previous,
-            [name]: wrapPublicSelector(sliceSelector)(selector)
-        }), {})
-
     const getStatus = (key: string) => (state: any): keyof Nodes | undefined  => {
         const focus = sliceSelector(state).byId[key]
         if (focus) {
@@ -199,11 +194,28 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         return undefined
     }
 
+    const getIntent = (key: string) => (state: any): keyof Nodes | undefined  => {
+        const focus = sliceSelector(state).byId[key]
+        if (focus) {
+            return focus.meta.desiredState
+        }
+        return undefined
+    }
+
+    const selectors: Record<string, wrappedPublicSelector<Nodes, any>> = {
+        ...Object.entries(publicSelectors)
+        .reduce((previous, [name, selector]) => ({
+            ...previous,
+            [name]: wrapPublicSelector(sliceSelector)(selector)
+        }), {}),
+        getStatus,
+        getIntent
+    }
+
     return {
         slice,
         selectors,
         publicActions,
-        getStatus,
         iterateAllSSMs
     }
 }

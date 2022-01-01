@@ -90,6 +90,11 @@ export type InferredDataTypeAggregateFromNodes<Nodes extends ISSMData> = {
     publicData: InferredPublicDataTypeFromNodes<Nodes>[keyof InferredPublicDataTypeFromNodes<Nodes>];
 }
 
+export type PartialDataTypeAggregateFromNodes<Nodes extends ISSMData> = {
+    internalData?: Partial<InferredInternalDataTypeAggregateFromNodes<Nodes>>;
+    publicData?: Partial<InferredPublicDataTypeFromNodes<Nodes>[keyof InferredPublicDataTypeFromNodes<Nodes>]>;
+}
+
 export type GraphFromNodes<Nodes extends Record<string, any>> = {
     [Node in keyof Nodes]:
         Nodes[Node] extends ISSMAttemptNode<infer I, infer D>
@@ -183,4 +188,5 @@ export type TestSSM = IStateSeekingMachineAbstract<testKeys, TestInternal, TestD
 export type ssmMeta<K> = {
     currentState: K;
     desiredState: K;
+    inProgress: K | null;
 }

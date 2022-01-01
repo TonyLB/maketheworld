@@ -25,7 +25,8 @@ export const singleSSM = <Nodes extends Record<string, any>>({
             ...initialData,
             meta: {
                 currentState: initialSSMState,
-                desiredState: initialSSMDesired
+                desiredState: initialSSMDesired,
+                inProgress: null
             }
         } as singleSSMSlice<keyof Nodes>,
         reducers: {

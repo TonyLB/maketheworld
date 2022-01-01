@@ -80,7 +80,7 @@ export const dijkstra = <Nodes extends ISSMData>(
         return []
     }
     else {
-        let returnValue: K[] = []
+        let returnValue: K[] = [endKey]
         current = nodes[endKey]
         while(current.previous !== startKey && breakout < 10) {
             returnValue = [current.previous, ...returnValue]

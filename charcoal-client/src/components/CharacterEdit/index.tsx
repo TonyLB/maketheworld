@@ -9,7 +9,7 @@ import {
 import useAutoPin from '../../slices/navigationTabs/useAutoPin'
 import CharacterEditForm from './EditForm'
 import { addItem, getStatus } from '../../slices/characterEdit/ssmVersion'
-import { ssmHeartbeat } from '../../slices/stateSeekingMachine/index'
+import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 import Spinner from '../Spinner'
 
 type CharacterEditProps = {}
@@ -32,9 +32,9 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
     useEffect(() => {
         if (CharacterKey && CharacterKey !== 'New') {
             dispatch(addItem(CharacterKey))
-            dispatch(ssmHeartbeat(uuidv4()))
+            dispatch(heartbeat)
         }
-    }, [dispatch, CharacterKey, ssmHeartbeat, addItem])
+    }, [dispatch, CharacterKey])
 
     const currentStatus = useSelector(getStatus(CharacterKey || 'none'))
 

@@ -7,10 +7,10 @@ import Button from '@material-ui/core/Button'
 // import { makeStyles } from "@material-ui/core/styles"
 
 // import { characterEditByKey } from '../../selectors/characterEdit'
-import { getCharacterEditByKey, setValue } from '../../slices/characterEdit/ssmVersion'
+import { getCharacterEditByKey, getCharacterEditDirty, getCharacterEditValues, setValue, saveCharacter } from '../../slices/characterEdit/ssmVersion'
 import { getMyCharacterByKey } from '../../selectors/player'
-import { setDefaults, CharacterEditKeys, CharacterEditRecord } from '../../slices/characterEdit'
-import { saveCharacter, fetchCharacter } from '../../actions/UI/characterEdit'
+import { CharacterEditKeys, CharacterEditRecord } from '../../slices/characterEdit'
+// import { saveCharacter, fetchCharacter } from '../../actions/UI/characterEdit'
 import useStyles from '../styles'
 
 // const useCharacterEditFormStyles = makeStyles((theme) => ({
@@ -51,64 +51,66 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     const dispatch = useDispatch()
     // const localClasses = useCharacterEditFormStyles()
 
+    const value = useSelector(getCharacterEditValues(characterKey))
+    const dirty = useSelector(getCharacterEditDirty(characterKey))
     const characterEditState = useSelector(getCharacterEditByKey(characterKey))
 
-    const { value, defaultValue } = characterEditState
     const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => {
         dispatch(setValue(characterKey)({ label, value: event.target.value }))
     }
     return <Box className={classes.homeContents}>
         <TextField
             required
-            error={!validAssetKey(value.assetKey || defaultValue.assetKey || '')}
+            error={!validAssetKey(value.assetKey)}
             id="assetKey"
             label="Asset Key"
-            value={value.assetKey || ''}
+            value={value.assetKey}
             onChange={updateLabel('assetKey')}
-            helperText="Asset key may not be 'New' and may contain only letters, numbers, - and _"
+            helperText={ !validAssetKey(value.assetKey) ? "Asset key may not be 'New' and may contain only letters, numbers, - and _" : undefined }
         />
         <TextField
             required
             id="name"
             label="Name"
-            value={value.Name || defaultValue.Name || ''}
+            value={value.Name}
             onChange={updateLabel('Name')}
         />
         <TextField
             required
             id="pronouns"
             label="Pronouns"
-            value={value.Pronouns || defaultValue.Pronouns || ''}
+            value={value.Pronouns}
             onChange={updateLabel('Pronouns')}
         />
         <TextField
             id="firstImpression"
             label="First Impression"
-            value={value.FirstImpression || defaultValue.FirstImpression || ''}
+            value={value.FirstImpression}
             onChange={updateLabel('FirstImpression')}
         />
         <TextField
             id="oneCoolThing"
             label="One Cool Thing"
-            value={value.OneCoolThing || defaultValue.OneCoolThing || ''}
+            value={value.OneCoolThing}
             onChange={updateLabel('OneCoolThing')}
         />
         <TextField
             id="outfit"
             label="Outfit"
-            value={value.Outfit || defaultValue.Outfit || ''}
+            value={value.Outfit}
             onChange={updateLabel('Outfit')}
         />
         <Button
             variant="contained"
+            disabled={!dirty}
             onClick={() => {
                 //
                 // TODO: Refactor Redux so that the store has Typescript constraints
                 //
-                (dispatch as any)(saveCharacter(characterEditState, characterWML(value)))
-                    .then((url: string) => {
-                        alert(url)
-                    })
+                dispatch(saveCharacter(value.assetKey))
+                    // .then((url: string) => {
+                    //     alert(url)
+                    // })
             }}
         >
                 Save
