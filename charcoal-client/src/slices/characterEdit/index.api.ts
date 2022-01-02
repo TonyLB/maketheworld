@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { socketDispatchPromise, apiDispatchPromise } from '../../actions/communicationsLayer/lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
-import { getMyCharacterByKey } from '../../selectors/player'
+import { getMyCharacterByKey, getPlayer } from '../../selectors/player'
 import { wmlGrammar, validatedSchema, assetRegistryEntries } from "../../wml/"
 import { getLifeLine } from '../../selectors/communicationsLayer'
 
@@ -109,9 +109,9 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
 //
 // TODO: Get PlayerName and include it as a player tag in the generated WML
 //
-const characterWML = (value: CharacterEditPublic['value']): string => {
+const characterWML = (value: { fileName: string; player: string } & CharacterEditPublic['value']): string => {
     return [
-        `<Character key="${value.assetKey}" fileName="${value.assetKey}">`,
+        `<Character key="${value.assetKey}" fileName="${value.fileName}" player="${value.player}">`,
         `\t<Name>${value.Name}</Name>`,
         `\t<Pronouns>${value.Pronouns}</Pronouns>`,
         ...(value.FirstImpression ? [`\t<FirstImpression>${value.FirstImpression}</FirstImpression>`]: []),
@@ -123,6 +123,7 @@ const characterWML = (value: CharacterEditPublic['value']): string => {
 
 export const postCharacterWML: CharacterEditAction = ({
     internalData: {
+        id,
         postURL,
         uploadRequestId
     },
@@ -138,6 +139,20 @@ export const postCharacterWML: CharacterEditAction = ({
     if (!assetKey || !Name) {
         throw new Error()
     }
-    await apiDispatchPromise(postURL, uploadRequestId)(characterWML({ ...defaultValue, ...value }))
+    const state = getState()
+    const character = getMyCharacterByKey(id)(state)
+    const { PlayerName: player } = getPlayer(state)
+    //
+    // TODO: Figure out a better way to store/get the player-scoped filename,
+    // that doesn't require pulling it out of its string structure (presumably
+    // as part of a more comprehensive asset scoping system)
+    //
+    const fileName = character.fileName.split('/').slice(-1)[0].split('.')[0]
+    await apiDispatchPromise(postURL, uploadRequestId)(characterWML({
+        player,
+        fileName,
+        ...defaultValue,
+        ...value
+    }))
     return {}
 }

@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { v4 as uuidv4 } from 'uuid'
+import CircularProgress from '@material-ui/core/CircularProgress'
 
 import {
     useParams
@@ -40,7 +41,7 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
 
     return currentStatus === 'PARSED'
         ? <CharacterEditForm characterKey={CharacterKey || ''} />
-        : <Spinner />
+        : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
 
 }
 

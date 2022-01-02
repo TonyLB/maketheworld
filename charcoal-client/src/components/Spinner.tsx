@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { ReactChild, ReactChildren } from 'react'
 import { makeStyles } from "@material-ui/core/styles"
 
 const useLocalStyles = makeStyles(theme => ({
@@ -21,10 +21,17 @@ const useLocalStyles = makeStyles(theme => ({
     }
 }))
 
+interface SpinnerProps {
+    size: number;
+    border: number;
+    children?: ReactChild | ReactChildren;
+}
+
 export const Spinner = ({
     size = 20,
-    border = 2
-}) => {
+    border = 2,
+    children
+}: SpinnerProps) => {
     const styles = useLocalStyles()
     return <div
         className={styles.spinner}
@@ -33,7 +40,9 @@ export const Spinner = ({
             height: size,
             borderWidth: border
         }}
-    />
+    >
+        { children }
+    </div>
 }
 
 export default Spinner
