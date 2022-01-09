@@ -11,10 +11,12 @@ import uiReducer from '../reducers/UI'
 
 import navigationTabs from '../slices/navigationTabs'
 // import characterEdit from '../slices/characterEdit'
+import activeCharacters from '../slices/activeCharacters/'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 
 export const store = configureStore({
     reducer: {
+        activeCharacters,
         communicationsLayer,
         charactersInPlay,
         clientSettings,

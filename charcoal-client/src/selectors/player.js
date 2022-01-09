@@ -20,3 +20,8 @@ export const getMyCharacterByKey = (key) => (state) => {
     const Characters = getMyCharacters(state)
     return Characters.find(({ scopedId }) => (scopedId === key))
 }
+
+export const getMyCharacterById = (key) => (state) => {
+    const Characters = getMyCharacters(state)
+    return Characters.find(({ CharacterId }) => (CharacterId === key))
+}

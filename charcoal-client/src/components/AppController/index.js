@@ -18,7 +18,6 @@ import { getFirstFeedback } from '../../selectors/UI/feedback'
 import { popFeedback } from '../../actions/UI/feedback'
 
 import AppLayout from '../AppLayout'
-import Profile from '../Profile'
 import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
@@ -56,7 +55,6 @@ export const AppController = () => {
 
     return <AppLayout
         homePanel={<Home {...profileArgs} />}
-        profilePanel={<Profile {...profileArgs} />}
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}

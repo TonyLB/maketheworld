@@ -143,8 +143,8 @@ const CharacterRouterSwitch = ({ messagePanel }) => {
     const { CharacterId } = useParams()
     return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
         <Routes>
-            <Route path={`/Play`} element={messagePanel} />
-            <Route path={`/Map`} element={<InDevelopment />} />
+            <Route path={`Play`} element={messagePanel} />
+            <Route path={`Map`} element={<InDevelopment />} />
         </Routes>
     </ActiveCharacter>
 }
@@ -172,7 +172,7 @@ const NavigationTabs = () => {
     </div>
 }
 
-export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
+export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const classes = useStyles()
 
@@ -185,7 +185,7 @@ export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, map
                     <Routes>
                         <Route path="/Character/Archived" element={<InDevelopment />} />
                         <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
-                        <Route path="/Character/:CharacterId*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+                        <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
                         <Route path="/Forum/" element={<InDevelopment />} />
                         <Route path="/Calendar/" element={<InDevelopment />} />
                         <Route path="/Scenes/" element={<InDevelopment />} />

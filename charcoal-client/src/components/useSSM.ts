@@ -4,6 +4,7 @@ import { getHeartbeat, getLastEvaluation } from '../selectors/stateSeekingMachin
 import { getHeartbeat as getSliceHeartbeat } from '../slices/stateSeekingMachine/ssmHeartbeat'
 import { iterateAllSSMs } from '../actions/stateSeekingMachine/index'
 import { iterateAllSSMs as characterEditSSMs } from '../slices/characterEdit/ssmVersion'
+import { iterateAllSSMs as activeCharacterSSMs } from '../slices/activeCharacters'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -12,6 +13,7 @@ export const useStateSeekingMachines = () => {
     useEffect(() => {
         dispatch(iterateAllSSMs)
         dispatch(characterEditSSMs)
+        dispatch(activeCharacterSSMs)
     }, [dispatch, heartbeat, sliceHeartbeat])
 }
 

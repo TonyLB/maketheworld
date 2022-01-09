@@ -10,7 +10,8 @@ import LineEntry from '../LineEntry'
 import useStyles from '../styles'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useAutoPin from '../../slices/navigationTabs/useAutoPin'
-import { registerCharacterSSM } from '../../actions/activeCharacters'
+import { addItem } from '../../slices/activeCharacters'
+import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 const useMessagePanelStyles = makeStyles((theme) => ({
     messagePanel: {
@@ -41,7 +42,8 @@ export const MessagePanel = () => {
     const { CharacterId, inPlayMessages, info: { Name = '???' } = {} } = useActiveCharacter()
     useAutoPin({ href: `/Character/${CharacterId}/Play`, label: `Play: ${Name}`})
     useEffect(() => {
-        dispatch(registerCharacterSSM({ CharacterId, defaultIntent: 'REGISTERED' }))
+        dispatch(addItem(CharacterId))
+        dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const handleInput = useCallback((entry) => {
         dispatch(parseCommand(CharacterId)({ entry, raiseError: () => {} }))

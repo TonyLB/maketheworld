@@ -4,7 +4,6 @@ import { act } from 'react-dom/test-utils'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import ActiveCharacter, { useActiveCharacter } from './index'
-import { DEACTIVATE_CHARACTER, ACTIVE_CHARACTER_FSM_SUBSCRIBED } from '../../actions/activeCharacters'
 
 const mockStore = configureStore()
 const store = mockStore({
@@ -55,29 +54,6 @@ describe('ActiveCharacter wrapper component', () => {
             </Provider>
         )
         expect(container.textContent).toBe("Subscribed")
-    })
-
-    it('correctly passes a deactivate action', () => {
-        const TestDeactivateComponent = () => {
-            const { deactivate } = useActiveCharacter()
-            useEffect(() => {
-                deactivate()
-            }, [deactivate])
-            return <div />
-        }
-
-        act(() => {
-            render(
-                <Provider store={store}>
-                    <ActiveCharacter CharacterId='ABC' >
-                        <TestDeactivateComponent />
-                    </ActiveCharacter>
-                </Provider>
-            )
-        })
-
-        const actions = store.getActions()
-        expect(actions).toEqual([{ type: DEACTIVATE_CHARACTER, CharacterId: 'ABC' }])
     })
 
 })

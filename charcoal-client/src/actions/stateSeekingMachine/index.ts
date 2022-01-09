@@ -6,10 +6,9 @@ import { LifeLineSSM, LifeLineTemplate } from '../communicationsLayer/lifeLine'
 import { PermanentsSubscriptionSSM, PermanentsSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/permanentsSubscription'
 import { PlayerSubscriptionSSM, PlayerSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/playerSubscription'
 import { EphemeraSubscriptionSSM, EphemeraSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/ephemeraSubscription'
-import { CharacterSubscriptionSSM, CharacterSubscriptionTemplate } from '../activeCharacters'
 
-export type ISSMTemplate = LifeLineTemplate | PermanentsSubscriptionTemplate | PlayerSubscriptionTemplate | EphemeraSubscriptionTemplate | CharacterSubscriptionTemplate | TestTemplate
-export type IStateSeekingMachine = LifeLineSSM | PermanentsSubscriptionSSM | PlayerSubscriptionSSM | EphemeraSubscriptionSSM | CharacterSubscriptionSSM | TestSSM
+export type ISSMTemplate = LifeLineTemplate | PermanentsSubscriptionTemplate | PlayerSubscriptionTemplate | EphemeraSubscriptionTemplate | TestTemplate
+export type IStateSeekingMachine = LifeLineSSM | PermanentsSubscriptionSSM | PlayerSubscriptionSSM | EphemeraSubscriptionSSM | TestSSM
 
 export const STATE_SEEKING_MACHINE_REGISTER = 'STATE_SEEKING_MACHINE_REGISTER'
 export const STATE_SEEKING_MACHINE_HEARTBEAT = 'STATE_SEEKING_MACHINE_HEARTBEAT'

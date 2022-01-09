@@ -21,7 +21,6 @@ export const iterateOneSSM = ({
             endKey: focusSSM.desiredState,
             template: focusSSM.template
         })
-        console.log(`Execution path (${focusSSM.currentState} => ${focusSSM.desiredState}): ${JSON.stringify(executionPath, null, 4)}`)
         if (executionPath.length > 0) {
             const currentStep = focusSSM.template.states[focusSSM.currentState]
             if (['HOLD', 'CHOICE'].includes(currentStep.stateType)) {

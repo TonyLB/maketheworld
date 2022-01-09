@@ -166,6 +166,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         const sliceData = sliceSelector(getState())
         const { byId = {} } = sliceData
         const machinesCast = Object.entries(byId) as [string, multipleSSMItem<Nodes>][]
+        console.log(`Iterating over: ${JSON.stringify(machinesCast, null, 4)}`)
         machinesCast
             .filter(([key, value]) => (value))
             .filter(([key, { meta: { currentState, desiredState } }]) => (desiredState !== currentState))

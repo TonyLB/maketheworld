@@ -14,7 +14,6 @@
 // Context provided:
 //
 //   - CharacterId
-//   - deactivate:  A function to deactivate the character
 //
 // NOTES:
 //
@@ -36,7 +35,6 @@
 import React, { useContext, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { deactivateCharacter } from '../../actions/activeCharacters'
 //
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
 //
@@ -45,12 +43,10 @@ import { getCharacters } from '../../selectors/characters'
 
 const ActiveCharacterContext = React.createContext({
     CharacterId: '',
-    deactivate: () => {}
 })
 
 export const ActiveCharacter = ({ CharacterId, children }) => {
 
-    const dispatch = useDispatch()
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const inPlayMessages = useSelector(getActiveCharacterInPlayMessages(CharacterId))
     const info = useSelector(getCharacters)[CharacterId]
@@ -58,13 +54,9 @@ export const ActiveCharacter = ({ CharacterId, children }) => {
     // TODO:  Rewrite commands available in ActiveCharacterContext to correspond to what
     // the SSM actually provides
     //
-    const deactivate = useCallback(() => {
-        dispatch(deactivateCharacter(CharacterId))
-    }, [dispatch, CharacterId])
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
-            deactivate,
             inPlayMessages,
             info,
             ...characterState
