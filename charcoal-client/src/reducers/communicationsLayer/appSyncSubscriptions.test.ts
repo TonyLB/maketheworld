@@ -5,7 +5,6 @@ import appSyncSubscriptions, { AppSyncSubscriptionsModule } from './appSyncSubsc
 describe('communicationsLayer/appSyncSubscriptions reducer', () => {
     const testState: AppSyncSubscriptionsModule = {
         [immerable]: true,
-        fetchLastPermanentsSync: 0,
         permanents: {
             subscription: 'ABC'
         },
@@ -24,7 +23,6 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
     it('should return default', () => {
         expect(appSyncSubscriptions()).toEqual({
             [immerable]: true,
-            fetchLastPermanentsSync: 0,
             permanents: {
                 subscription: null
             },
@@ -43,7 +41,6 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
     it('should accept data on SUBSCRIPTION_SUCCESS', () => {
         expect(appSyncSubscriptions({
             [immerable]: true,
-            fetchLastPermanentsSync: 0,
             permanents: {
                 subscription: null
             },
@@ -61,7 +58,6 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             }
         })).toEqual({
             [immerable]: true,
-            fetchLastPermanentsSync: 0,
             permanents: {
                 subscription: 'ABC'
             },
@@ -74,17 +70,10 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
             characters: {}
         })
     })
-    it('should update sync moment on SET_PERMANENTS_LAST_SYNC', () => {
-        expect(appSyncSubscriptions(testState, { type: 'SET_PERMANENTS_LAST_SYNC', payload: 123 })).toEqual({
-            ...testState,
-            fetchLastPermanentsSync: 123
-        })
-    })
     describe('in character context', () => {
         it('should accept data on SUBSCRIPTION_SUCCESS', () => {
             expect(appSyncSubscriptions({
                 [immerable]: true,
-                fetchLastPermanentsSync: 0,
                 permanents: { subscription: 'ABC' },
                 ephemera: { subscription: 'DEF' },
                 player: { subscription: null },
@@ -96,7 +85,6 @@ describe('communicationsLayer/appSyncSubscriptions reducer', () => {
                 }
             })).toEqual({
                 [immerable]: true,
-                fetchLastPermanentsSync: 0,
                 permanents: { subscription: 'ABC' },
                 ephemera: { subscription: 'DEF' },
                 player: { subscription: null },

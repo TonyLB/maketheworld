@@ -1,6 +1,6 @@
 import { produce, immerable } from 'immer'
 
-import { SUBSCRIPTION_SUCCESS, SET_PERMANENTS_LAST_SYNC } from '../../actions/communicationsLayer/appSyncSubscriptions'
+import { SUBSCRIPTION_SUCCESS } from '../../actions/communicationsLayer/appSyncSubscriptions'
 
 class SubscriptionModule {
     subscription: any = null
@@ -9,7 +9,6 @@ class SubscriptionModule {
 type AppSyncSubscriptionModuleKey = 'permanents' | 'ephemera' | 'player'
 export class AppSyncSubscriptionsModule {
     [immerable]: boolean = true
-    fetchLastPermanentsSync: number = 0
     permanents: SubscriptionModule = new SubscriptionModule()
     ephemera: SubscriptionModule = new SubscriptionModule()
     player: SubscriptionModule = new SubscriptionModule()
@@ -32,11 +31,6 @@ export const reducer = (state: AppSyncSubscriptionsModule = new AppSyncSubscript
                     }
                 }, state)
             })
-        case SET_PERMANENTS_LAST_SYNC:
-            return {
-                ...state,
-                fetchLastPermanentsSync: payload
-            }
         default: return state
     }
 }
