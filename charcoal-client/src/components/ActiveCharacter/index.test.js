@@ -1,17 +1,23 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { render } from '@testing-library/react'
-import { act } from 'react-dom/test-utils'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import ActiveCharacter, { useActiveCharacter } from './index'
 
 const mockStore = configureStore()
 const store = mockStore({
-    stateSeekingMachines: {
-        machines: {
-            ['Subscribe::Character::TESS']: {
-                currentState: 'SYNCHRONIZED'
-            }    
+    activeCharacters: {
+        byId: {
+            TESS: {
+                meta: { currentState: 'CONNECTED' },
+                internalData: {},
+                publicData: {}
+            }
+        }
+    },
+    ephemera: {
+        publicData: {
+            charactersInPlay: {}
         }
     },
     messages: [],

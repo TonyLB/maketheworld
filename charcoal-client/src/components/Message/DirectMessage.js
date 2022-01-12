@@ -13,7 +13,7 @@ import {
 } from '@material-ui/core'
 import ReplyIcon from '@material-ui/icons/Reply'
 
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
 import useStyles from '../styles'

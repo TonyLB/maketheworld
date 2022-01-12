@@ -10,7 +10,7 @@ import {
     Avatar
 } from '@material-ui/core'
 
-import { getActiveCharacterList } from '../selectors/charactersInPlay'
+import { getActiveCharacterList } from '../slices/ephemera'
 import { getPlayer } from '../selectors/player'
 
 import { activateDirectMessageDialog } from '../actions/UI/directMessageDialog'

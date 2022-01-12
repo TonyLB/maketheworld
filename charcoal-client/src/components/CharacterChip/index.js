@@ -8,13 +8,11 @@ import { useSelector } from 'react-redux'
 import PropTypes from "prop-types"
 
 import PureCharacterChip from './PureCharacterChip'
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
-import { getCharacters } from '../../selectors/characters'
+import { getCharactersInPlay } from '../../slices/ephemera'
 
 export const CharacterChip = ({
     CharacterId
 }) => {
-    const characters = useSelector(getCharacters)
     const charactersInPlay = useSelector(getCharactersInPlay)
     const {
         Name = '??????',
@@ -24,7 +22,6 @@ export const CharacterChip = ({
         Outfit = '',
         color = { primary: "grey" }
     } = (charactersInPlay && charactersInPlay[CharacterId])
-        ?? (characters && characters[CharacterId])
         ?? {}
     return (
         <PureCharacterChip

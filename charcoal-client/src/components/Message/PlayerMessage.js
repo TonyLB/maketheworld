@@ -10,7 +10,7 @@ import {
     ListItemAvatar
 } from '@material-ui/core'
 
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useStyles from '../styles'
 

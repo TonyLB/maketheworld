@@ -1,7 +1,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharactersInPlay } from '../../slices/ephemera'
 import PureCharacterChip from '../CharacterChip/PureCharacterChip'
 
 export const RoomCharacter = ({

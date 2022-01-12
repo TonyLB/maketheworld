@@ -21,7 +21,7 @@ import HiddenIcon from '@material-ui/icons/VisibilityOff'
 
 import useStyles from '../styles'
 
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharactersInPlay } from '../../slices/ephemera'
 import { moveCharacter } from '../../actions/behaviors/moveCharacter'
 import { setMessageOpen } from '../../actions/messages'
 import RecapMessage from './RecapMessage'

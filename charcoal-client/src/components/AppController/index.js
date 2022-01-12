@@ -11,7 +11,6 @@ import { useSelector, useDispatch } from 'react-redux'
 
 // import { connectionRegister } from '../../actions/connection.js'
 import { getMyCharacters } from '../../selectors/player'
-import { putMyCharacter } from '../../actions/characters'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
 import { getFirstFeedback } from '../../selectors/UI/feedback'
@@ -40,7 +39,7 @@ export const AppController = () => {
     //
     const profileArgs = {
         myCharacters,
-        onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
+        // onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
         // connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,

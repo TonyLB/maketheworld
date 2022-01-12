@@ -13,7 +13,7 @@ type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggreg
     meta: ssmMeta<keyof Nodes>
 }
 
-type multipleSSMSlice<Nodes extends Record<string, any>> = {
+export type multipleSSMSlice<Nodes extends Record<string, any>> = {
     byId: Record<string, multipleSSMItem<Nodes>>
 }
 
@@ -21,7 +21,7 @@ type multipleSSMPublicReducer<Nodes extends Record<string, any>, D> = {
     (state: Draft<InferredPublicDataTypeAggregateFromNodes<Nodes>>, action: PayloadAction<D>): void;
 }
 
-type corePublicReducer<Nodes extends Record<string, any>, D> = {
+type corePublicReducerType<Nodes extends Record<string, any>, D> = {
     (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D & { key: string }>): void;
 }
 
@@ -54,7 +54,7 @@ type multipleSSMArguments<Nodes extends Record<string, any>> = {
 
 const corePublicReducer =
     <Nodes extends Record<string, any>, D>
-        (func: multipleSSMPublicReducer<Nodes, Omit<D, "key">>): corePublicReducer<Nodes, D> => {
+        (func: multipleSSMPublicReducer<Nodes, Omit<D, "key">>): corePublicReducerType<Nodes, D> => {
         const wrapper = (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D & { key: string }>) => {
             const { key, ...rest } = action.payload
             let focus = state.byId[action.payload.key]
@@ -132,12 +132,16 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
                 action: PayloadAction<{
                     key: string;
                     newState: keyof Nodes,
+                    inProgress?: keyof Nodes,
                     data: PartialDataTypeAggregateFromNodes<Nodes>
                 }>
             ) {
                 const keyRecord = state.byId[action.payload.key]
                 if (keyRecord) {
                     keyRecord.meta.currentState = castDraft(action.payload.newState)
+                    if (action.payload.inProgress !== undefined) {
+                        keyRecord.meta.inProgress = castDraft(action.payload.inProgress)
+                    }
                     if (action.payload.data?.internalData) {
                         keyRecord.internalData = { ...keyRecord.internalData, ...action.payload.data.internalData }
                     }
@@ -166,7 +170,6 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         const sliceData = sliceSelector(getState())
         const { byId = {} } = sliceData
         const machinesCast = Object.entries(byId) as [string, multipleSSMItem<Nodes>][]
-        console.log(`Iterating over: ${JSON.stringify(machinesCast, null, 4)}`)
         machinesCast
             .filter(([key, value]) => (value))
             .filter(([key, { meta: { currentState, desiredState } }]) => (desiredState !== currentState))
@@ -179,10 +182,12 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
                 }
                 dispatch(iterateOneSSM({
                     getSSMData,
-                    internalStateChange: ({ newState, data }: {
+                    internalStateChange: ({ newState, inProgress, data }: {
                             newState: keyof Nodes,
+                            inProgress: keyof Nodes,
                             data: InferredDataTypeAggregateFromNodes<Nodes>
-                        }) => (internalStateChange({ key, newState, data }))
+                        }) => (internalStateChange({ key, newState, inProgress, data })),
+                    actions: slice.actions
                 }))
             })
     }

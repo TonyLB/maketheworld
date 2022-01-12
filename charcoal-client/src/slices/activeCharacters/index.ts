@@ -1,5 +1,6 @@
+import { objectMap } from '../../lib/objects'
 import { ActiveCharacterNodes } from './baseClasses'
-import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
+import { multipleSSM, multipleSSMSlice } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
     fetchAction,
@@ -88,5 +89,27 @@ export const { addItem } = activeCharactersSlice.actions
 // export const { } = publicActions
 // export const {
 // } = selectors
+
+type ActiveCharacterSlice = multipleSSMSlice<ActiveCharacterNodes>
+
+export const getActiveCharacters = ({ activeCharacters }: { activeCharacters: ActiveCharacterSlice }) => {
+    return objectMap(
+        activeCharacters.byId,
+        ({ meta: { currentState }}: { meta: { currentState: keyof ActiveCharacterNodes } }) => ({
+            state: currentState,
+            isSubscribing: [
+                'FETCHFROMCACHE',
+                'REGISTER',
+            ].includes(currentState),
+            isSubscribed: [
+                'SYNCHRONIZE',
+                'SYNCHRONIZEBACKOFF',
+                'CONNECTED'
+            ].includes(currentState),
+            isConnecting: currentState === 'SYNCHRONIZE',
+            isConnected: currentState === 'CONNECTED'
+        })
+    )
+}
 
 export default activeCharactersSlice.reducer

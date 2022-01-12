@@ -4,10 +4,9 @@ import dijkstra from './dijkstra'
 import { TestSSM, TestTemplate } from './baseClasses'
 import { LifeLineSSM, LifeLineTemplate } from '../communicationsLayer/lifeLine'
 import { PlayerSubscriptionSSM, PlayerSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/playerSubscription'
-import { EphemeraSubscriptionSSM, EphemeraSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/ephemeraSubscription'
 
-export type ISSMTemplate = LifeLineTemplate | PlayerSubscriptionTemplate | EphemeraSubscriptionTemplate | TestTemplate
-export type IStateSeekingMachine = LifeLineSSM | PlayerSubscriptionSSM | EphemeraSubscriptionSSM | TestSSM
+export type ISSMTemplate = LifeLineTemplate | PlayerSubscriptionTemplate | TestTemplate
+export type IStateSeekingMachine = LifeLineSSM | PlayerSubscriptionSSM | TestSSM
 
 export const STATE_SEEKING_MACHINE_REGISTER = 'STATE_SEEKING_MACHINE_REGISTER'
 export const STATE_SEEKING_MACHINE_HEARTBEAT = 'STATE_SEEKING_MACHINE_HEARTBEAT'

@@ -1,78 +1,65 @@
 import {
     getCharactersInPlay
-} from './charactersInPlay'
+} from './selectors'
 
 const testState = {
     charactersInPlay: {
         TESS: {
             CharacterId: 'TESS',
             Name: 'Tess',
-            Pronouns: 'She/her',
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
             Connected: true,
             RoomId: 'ABC',
             color: {
-                primary: 'pink'
+                primary: 'pink',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         },
         MARCO: {
             CharacterId: 'MARCO',
             Name: 'Marco',
-            Pronouns: 'He/him',
-            FirstImpression: 'Earth princess'
+            Connected: false,
+            color: {
+                primary: 'green',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
+            }
         },
         ASAHINA: {
             CharacterId: 'ASAHINA',
+            Name: 'Asahina',
             Connected: false,
             RoomId: 'ABC',
             color: {
-                primary: 'green'
+                primary: 'green',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }
     }
 }
+Object.preventExtensions(testState)
 
 describe('charactersInPlay selectors', () => {
 
-    it('should correctly return when both character and characterInPlay data is present', () => {
+    it('should correctly return when characterInPlay data is present', () => {
         expect(getCharactersInPlay(testState).TESS).toEqual({
             CharacterId: 'TESS',
             Name: 'Tess',
-            Pronouns: 'She/her',
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
             Connected: true,
             RoomId: 'ABC',
             color: {
-                primary: 'pink'
-            }
-        })
-    })
-
-    it('should correctly return when only character data is present', () => {
-        expect(getCharactersInPlay(testState).MARCO).toEqual({
-            CharacterId: 'MARCO',
-            Name: 'Marco',
-            Pronouns: 'He/him',
-            FirstImpression: 'Earth princess',
-            Connected: false,
-            color: {
-                primary: 'grey'
-            }
-        })
-    })
-
-    it('should correctly return when only characterInPlay data is present', () => {
-        expect(getCharactersInPlay(testState).ASAHINA).toEqual({
-            CharacterId: 'ASAHINA',
-            Name: '????',
-            Connected: false,
-            RoomId: 'ABC',
-            color: {
-                primary: 'green'
+                primary: 'pink',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         })
     })
@@ -80,10 +67,14 @@ describe('charactersInPlay selectors', () => {
     it('should correctly return when no data is present', () => {
         expect(getCharactersInPlay(testState).SAIONJI).toEqual({
             CharacterId: 'SAIONJI',
-            Name: '????',
+            Name: '??????',
             Connected: false,
             color: {
-                primary: 'grey'
+                primary: 'grey',
+                light: 'grey',
+                recap: 'grey',
+                recapLight: 'grey',
+                direct: 'grey'
             }
         })
     })
@@ -95,32 +86,38 @@ describe('charactersInPlay selectors', () => {
     it('should correctly handle Object.values', () => {
         expect(Object.values(getCharactersInPlay(testState))).toEqual([{
             CharacterId: 'ASAHINA',
-            Name: '????',
+            Name: 'Asahina',
             Connected: false,
             RoomId: 'ABC',
             color: {
-                primary: 'green'
+                primary: 'green',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }, {
             CharacterId: 'MARCO',
             Name: 'Marco',
-            Pronouns: 'He/him',
-            FirstImpression: 'Earth princess',
             Connected: false,
             color: {
-                primary: 'grey'
+                primary: 'green',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }, {
             CharacterId: 'TESS',
             Name: 'Tess',
-            Pronouns: 'She/her',
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
             Connected: true,
             RoomId: 'ABC',
             color: {
-                primary: 'pink'
+                primary: 'pink',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }])
     })
@@ -128,32 +125,38 @@ describe('charactersInPlay selectors', () => {
     it('should correctly handle Object.entries', () => {
         expect(Object.entries(getCharactersInPlay(testState))).toEqual([['ASAHINA', {
             CharacterId: 'ASAHINA',
-            Name: '????',
+            Name: 'Asahina',
             Connected: false,
             RoomId: 'ABC',
             color: {
-                primary: 'green'
+                primary: 'green',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }], ['MARCO', {
             CharacterId: 'MARCO',
             Name: 'Marco',
-            Pronouns: 'He/him',
-            FirstImpression: 'Earth princess',
             Connected: false,
             color: {
-                primary: 'grey'
+                primary: 'green',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }], ['TESS', {
             CharacterId: 'TESS',
             Name: 'Tess',
-            Pronouns: 'She/her',
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
             Connected: true,
             RoomId: 'ABC',
             color: {
-                primary: 'pink'
+                primary: 'pink',
+                light: 'test',
+                recap: 'test',
+                recapLight: 'test',
+                direct: 'test'
             }
         }]])
     })

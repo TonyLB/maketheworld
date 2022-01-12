@@ -5,6 +5,12 @@ export interface ISSMDataLayout<I extends ISSMData, D extends ISSMData> {
     publicData: Partial<D>;
 }
 
+export interface ISSMDataArgument<I extends ISSMData, D extends ISSMData> {
+    internalData: Partial<I>;
+    publicData: Partial<D>;
+    actions: Record<string, any>;
+}
+
 export interface ISSMDataReturn<I extends ISSMData, D extends ISSMData> {
     internalData?: Partial<I>;
     publicData?: Partial<D>;
@@ -15,7 +21,7 @@ interface ISSMWrappedAction<I extends ISSMData, D extends ISSMData> {
 }
 
 export interface ISSMAction<I extends ISSMData, D extends ISSMData> {
-    (data: ISSMDataLayout<I, D>): ISSMWrappedAction<I, D>
+    (data: ISSMDataArgument<I, D>): ISSMWrappedAction<I, D>
 }
 
 export interface ISSMChoiceNode {

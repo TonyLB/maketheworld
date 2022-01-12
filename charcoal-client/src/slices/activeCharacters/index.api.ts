@@ -17,7 +17,6 @@ export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id
     const { status } = getLifeLine(state)
     const character = getMyCharacterById(id)(state)
 
-    console.log(`Lifeline condition: ${status} x ${JSON.stringify(character, null, 4)}`)
     return (status === 'CONNECTED') && (Boolean(character))
 }
 

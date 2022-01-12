@@ -28,7 +28,7 @@ import RoomDescriptionMessage from './RoomDescriptionMessage'
 import NeighborhoodDescriptionMessage from './NeighborhoodDescriptionMessage'
 import AnnouncementMessage from './AnnouncementMessage'
 
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharactersInPlay } from '../../slices/ephemera'
 
 import CharacterAvatar from '../CharacterAvatar'
 import MessageContent from './MessageContent'

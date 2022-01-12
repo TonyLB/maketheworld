@@ -1,18 +1,21 @@
 import { createAction } from '@reduxjs/toolkit'
 import { v4 as uuidv4 } from 'uuid'
+import { consolidateToLevel } from '../../components/DraggableTree/flatToNested'
 
 import dijkstra from './dijkstra'
 import { heartbeat } from './ssmHeartbeat'
 
 export const iterateOneSSM = ({
     internalStateChange,
-    getSSMData
+    getSSMData,
+    actions
 }: {
     //
     // TODO: Figure out how to type-constrain these function arguments
     //
     internalStateChange: any;
     getSSMData: any;
+    actions: Record<string, any>;
 }) => (dispatch: any, getState: any) => {
     const focusSSM = getSSMData(getState())
     if (focusSSM && focusSSM.desiredState !== focusSSM.currentState) {
@@ -38,26 +41,25 @@ export const iterateOneSSM = ({
             }
             if (currentStep.stateType === 'ATTEMPT') {
                 const { template, ...rest } = focusSSM
-                console.log(`FocusSSM: ${JSON.stringify(rest, null, 4)}`)
                 if (focusSSM.inProgress === focusSSM.currentState) {
                     return Promise.resolve({})
                 }
                 dispatch(internalStateChange({
                     newState: focusSSM.currentState,
-                    data: {
-                        internalData: { inProgress: focusSSM.inProgress }
-                    }
+                    inProgress: focusSSM.currentState,
+                    data: {}
                 }))
                 return dispatch(currentStep.action({
                         internalData: focusSSM.internalData || {},
-                        publicData: focusSSM.publicData || {}
+                        publicData: focusSSM.publicData || {},
+                        actions
                     }))
                     .then((response: Record<string, any>) => {
-                        dispatch(internalStateChange({ newState: currentStep.resolve, data: response }))
+                        dispatch(internalStateChange({ newState: currentStep.resolve, inProgress: null, data: response }))
                         dispatch(heartbeat)
                     })
                     .catch((error: Record<string, any>) => {
-                        dispatch(internalStateChange({ newState: currentStep.reject, data: { internalData: { error } } }))
+                        dispatch(internalStateChange({ newState: currentStep.reject, inProgress: null, data: { internalData: { error } } }))
                         dispatch(heartbeat)
                     })
             }

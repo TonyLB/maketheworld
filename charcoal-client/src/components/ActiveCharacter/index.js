@@ -32,14 +32,15 @@
 //   TO-DO:  That.
 //
 
-import React, { useContext, useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useContext } from 'react'
+import { useSelector } from 'react-redux'
 
 //
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
 //
-import { getActiveCharacters, getActiveCharacterInPlayMessages } from '../../selectors/activeCharacters'
-import { getCharacters } from '../../selectors/characters'
+import { getActiveCharacters } from '../../slices/activeCharacters'
+import { getActiveCharacterInPlayMessages } from '../../selectors/messages'
+import { getCharactersInPlay } from '../../slices/ephemera'
 
 const ActiveCharacterContext = React.createContext({
     CharacterId: '',
@@ -49,11 +50,7 @@ export const ActiveCharacter = ({ CharacterId, children }) => {
 
     const characterState = useSelector(getActiveCharacters)[CharacterId]
     const inPlayMessages = useSelector(getActiveCharacterInPlayMessages(CharacterId))
-    const info = useSelector(getCharacters)[CharacterId]
-    //
-    // TODO:  Rewrite commands available in ActiveCharacterContext to correspond to what
-    // the SSM actually provides
-    //
+    const info = useSelector(getCharactersInPlay)[CharacterId]
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
