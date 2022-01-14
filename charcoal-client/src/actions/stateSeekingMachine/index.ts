@@ -3,10 +3,9 @@ import { getHeartbeat, getSSMState } from '../../selectors/stateSeekingMachine';
 import dijkstra from './dijkstra'
 import { TestSSM, TestTemplate } from './baseClasses'
 import { LifeLineSSM, LifeLineTemplate } from '../communicationsLayer/lifeLine'
-import { PlayerSubscriptionSSM, PlayerSubscriptionTemplate } from '../communicationsLayer/appSyncSubscriptions/playerSubscription'
 
-export type ISSMTemplate = LifeLineTemplate | PlayerSubscriptionTemplate | TestTemplate
-export type IStateSeekingMachine = LifeLineSSM | PlayerSubscriptionSSM | TestSSM
+export type ISSMTemplate = LifeLineTemplate | TestTemplate
+export type IStateSeekingMachine = LifeLineSSM | TestSSM
 
 export const STATE_SEEKING_MACHINE_REGISTER = 'STATE_SEEKING_MACHINE_REGISTER'
 export const STATE_SEEKING_MACHINE_HEARTBEAT = 'STATE_SEEKING_MACHINE_HEARTBEAT'

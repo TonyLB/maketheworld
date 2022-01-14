@@ -10,7 +10,7 @@ import React, { useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 // import { connectionRegister } from '../../actions/connection.js'
-import { getMyCharacters } from '../../selectors/player'
+import { getMyCharacters } from '../../slices/player'
 import { getClientSettings } from '../../selectors/clientSettings'
 import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
 import { getFirstFeedback } from '../../selectors/UI/feedback'

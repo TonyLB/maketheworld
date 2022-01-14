@@ -8,7 +8,7 @@ import Button from '@material-ui/core/Button'
 
 // import { characterEditByKey } from '../../selectors/characterEdit'
 import { getCharacterEditByKey, getCharacterEditDirty, getCharacterEditValues, setValue, saveCharacter } from '../../slices/characterEdit/ssmVersion'
-import { getMyCharacterByKey } from '../../selectors/player'
+import { getMyCharacterByKey } from '../../slices/player'
 import { CharacterEditKeys, CharacterEditRecord } from '../../slices/characterEdit'
 // import { saveCharacter, fetchCharacter } from '../../actions/UI/characterEdit'
 import useStyles from '../styles'

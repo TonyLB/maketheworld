@@ -6,6 +6,7 @@ import { iterateAllSSMs } from '../actions/stateSeekingMachine/index'
 import { iterateAllSSMs as characterEditSSMs } from '../slices/characterEdit/ssmVersion'
 import { iterateAllSSMs as activeCharacterSSMs } from '../slices/activeCharacters'
 import { iterateAllSSMs as ephemeraSSM } from '../slices/ephemera'
+import { iterateAllSSMs as playerSSM } from '../slices/player'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -16,6 +17,7 @@ export const useStateSeekingMachines = () => {
         dispatch(characterEditSSMs)
         dispatch(activeCharacterSSMs)
         dispatch(ephemeraSSM)
+        dispatch(playerSSM)
     }, [dispatch, heartbeat, sliceHeartbeat])
 }
 

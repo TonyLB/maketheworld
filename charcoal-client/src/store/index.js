@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import thunk from 'redux-thunk'
 import messages from '../reducers/messages.js'
-import player from '../reducers/player'
+// import player from '../reducers/player'
 import communicationsLayer from '../reducers/communicationsLayer'
 import stateSeekingMachines from '../reducers/stateSeekingMachine/'
 import settings from '../reducers/settings'
@@ -12,6 +12,7 @@ import navigationTabs from '../slices/navigationTabs'
 // import characterEdit from '../slices/characterEdit'
 import activeCharacters from '../slices/activeCharacters/'
 import ephemera from '../slices/ephemera'
+import player from '../slices/player'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 
 export const store = configureStore({

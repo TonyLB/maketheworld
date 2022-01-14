@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { socketDispatchPromise, apiDispatchPromise } from '../../actions/communicationsLayer/lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
-import { getMyCharacterByKey, getPlayer } from '../../selectors/player'
+import { getMyCharacterByKey, getPlayer } from '../../slices/player'
 import { wmlGrammar, validatedSchema, assetRegistryEntries } from "../../wml/"
 import { getLifeLine } from '../../selectors/communicationsLayer'
 

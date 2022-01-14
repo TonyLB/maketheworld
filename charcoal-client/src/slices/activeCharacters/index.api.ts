@@ -1,7 +1,7 @@
 import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
 import cacheDB from '../../cacheDB'
 import { socketDispatchPromise } from '../../actions/communicationsLayer/lifeLine'
-import { getMyCharacterById } from '../../selectors/player'
+import { getMyCharacterById } from '../../slices/player'
 import { getLifeLine } from '../../selectors/communicationsLayer'
 import { RECEIVE_MESSAGES } from '../../actions/messages'
 import { pushFeedback } from '../../actions/UI/feedback'

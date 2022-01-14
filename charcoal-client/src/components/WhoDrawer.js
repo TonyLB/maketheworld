@@ -11,7 +11,7 @@ import {
 } from '@material-ui/core'
 
 import { getActiveCharacterList } from '../slices/ephemera'
-import { getPlayer } from '../selectors/player'
+import { getPlayer } from '../slices/player'
 
 import { activateDirectMessageDialog } from '../actions/UI/directMessageDialog'
 import { useStyles } from './styles'
