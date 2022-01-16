@@ -1,19 +1,19 @@
 import { PlayerCondition, PlayerAction } from './baseClasses'
-import { socketDispatchPromise } from '../../actions/communicationsLayer/lifeLine'
-import { getLifeLine } from '../../selectors/communicationsLayer'
-import { LifeLineData } from '../../actions/communicationsLayer/lifeLine/baseClass'
+import {
+    socketDispatchPromise,
+    getStatus,
+    LifeLinePubSub
+} from '../lifeLine'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
     const state = getState()
-    const { status } = getLifeLine(state)
+    const status = getStatus(getState())
 
     return (status === 'CONNECTED')
 }
 
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
-    const lifeLine = getLifeLine(getState()) as LifeLineData
-
-    const lifeLineSubscription = lifeLine.subscribe(({ payload }) => {
+    const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Player') {
             const { PlayerName, CodeOfConductConsent, Characters } = payload
             dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Characters }))

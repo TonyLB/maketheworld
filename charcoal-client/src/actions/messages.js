@@ -1,6 +1,6 @@
 // import { syncMessages as syncMessagesGQL } from '../graphql/queries'
 import { v4 as uuidv4 } from 'uuid'
-import { socketDispatch } from './communicationsLayer/lifeLine'
+import { socketDispatch } from '../slices/lifeLine'
 
 import cacheDB from '../cacheDB'
 // import { deltaFactory } from './deltaSync'

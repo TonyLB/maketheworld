@@ -21,11 +21,9 @@ import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
-import useCommunicationsLayer from '../useCommunicationsLayer'
 
 export const AppController = () => {
     useStateSeekingMachines()
-    useCommunicationsLayer()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
     const dispatch = useDispatch()

@@ -1,6 +1,6 @@
 import messages from './messages.js'
 import { RECEIVE_MESSAGES } from '../actions/messages.js'
-import { RECEIVE_JSON_MESSAGES } from '../actions/communicationsLayer/lifeLine'
+import { RECEIVE_JSON_MESSAGES } from '../slices/lifeLine'
 import {
     playerMessage,
     worldMessage,

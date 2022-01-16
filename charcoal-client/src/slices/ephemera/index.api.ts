@@ -1,19 +1,16 @@
 import { EphemeraCondition, EphemeraAction } from './baseClasses'
-import { socketDispatchPromise } from '../../actions/communicationsLayer/lifeLine'
-import { getLifeLine } from '../../selectors/communicationsLayer'
-import { LifeLineData } from '../../actions/communicationsLayer/lifeLine/baseClass'
+import { socketDispatchPromise } from '../lifeLine'
+import { LifeLinePubSub, getStatus } from '../lifeLine'
 
 export const lifelineCondition: EphemeraCondition = (_, getState) => {
-    const state = getState()
-    const { status } = getLifeLine(state)
+    const status = getStatus(getState())
 
     return (status === 'CONNECTED')
 }
 
 export const subscribeAction: EphemeraAction = ({ actions: { receiveEphemera } }) => async (dispatch, getState) => {
-    const lifeLine = getLifeLine(getState()) as LifeLineData
 
-    const lifeLineSubscription = lifeLine.subscribe(({ payload }) => {
+    const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Ephemera') {
             const { updates } = payload
             updates.forEach((update) => { dispatch(receiveEphemera(update)) })

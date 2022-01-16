@@ -1,8 +1,10 @@
 import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
 import cacheDB from '../../cacheDB'
-import { socketDispatchPromise } from '../../actions/communicationsLayer/lifeLine'
-import { getMyCharacterById } from '../../slices/player'
-import { getLifeLine } from '../../selectors/communicationsLayer'
+import {
+    socketDispatchPromise,
+    getStatus
+} from '../lifeLine'
+import { getMyCharacterById } from '../player'
 import { RECEIVE_MESSAGES } from '../../actions/messages'
 import { pushFeedback } from '../../actions/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
@@ -14,7 +16,7 @@ const cacheDBCast = cacheDB as any
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
     const state = getState()
-    const { status } = getLifeLine(state)
+    const status = getStatus(state)
     const character = getMyCharacterById(id)(state)
 
     return (status === 'CONNECTED') && (Boolean(character))

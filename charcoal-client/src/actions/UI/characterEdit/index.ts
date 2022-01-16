@@ -1,5 +1,5 @@
 import { CharacterEditRecord } from '../../../slices/characterEdit'
-import { socketDispatchPromise, apiDispatchPromise } from '../../communicationsLayer/lifeLine'
+import { socketDispatchPromise, apiDispatchPromise } from '../../../slices/lifeLine'
 import { getMyCharacterByKey } from '../../../slices/player'
 import { setDefaults, setFetching, setFetched } from '../../../slices/characterEdit'
 import { v4 as uuidv4 } from 'uuid'

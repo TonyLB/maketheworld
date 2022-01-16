@@ -1,5 +1,5 @@
 import { RECEIVE_MESSAGES, SET_MESSAGE_OPEN } from '../actions/messages.js'
-import { RECEIVE_JSON_MESSAGES } from '../actions/communicationsLayer/lifeLine'
+import { RECEIVE_JSON_MESSAGES } from '../slices/lifeLine'
 import {
     playerMessage,
     worldMessage,

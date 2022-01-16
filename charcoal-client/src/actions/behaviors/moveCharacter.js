@@ -1,4 +1,4 @@
-import { socketDispatch } from '../communicationsLayer/lifeLine'
+import { socketDispatch } from '../../slices/lifeLine'
 
 export const moveCharacter = (CharacterId) => ({ ExitName, RoomId }) => (dispatch, getState) => {
 

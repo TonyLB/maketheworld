@@ -1,5 +1,5 @@
 import { getCharactersInPlay } from '../../slices/ephemera'
-import { socketDispatch } from '../communicationsLayer/lifeLine'
+import { socketDispatch } from '../../slices/lifeLine'
 
 export const lookRoom = (CharacterId) => (props) => (dispatch, getState) => {
     const { RoomId, showNeighborhoods = false, previousAncestry = '' } = props || {}
