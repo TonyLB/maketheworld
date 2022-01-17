@@ -1,6 +1,5 @@
 import React, { FunctionComponent, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { v4 as uuidv4 } from 'uuid'
 import CircularProgress from '@material-ui/core/CircularProgress'
 
 import {
@@ -11,7 +10,7 @@ import useAutoPin from '../../slices/navigationTabs/useAutoPin'
 import CharacterEditForm from './EditForm'
 import { addItem, getStatus } from '../../slices/characterEdit/ssmVersion'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
-import Spinner from '../Spinner'
+// import Spinner from '../Spinner'
 
 type CharacterEditProps = {}
 

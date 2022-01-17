@@ -6,13 +6,12 @@ import {
 } from '../lifeLine'
 
 export const lifelineCondition: PlayerCondition = (_, getState) => {
-    const state = getState()
     const status = getStatus(getState())
 
     return (status === 'CONNECTED')
 }
 
-export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch, getState) => {
+export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch) => {
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Player') {
             const { PlayerName, CodeOfConductConsent, Characters } = payload

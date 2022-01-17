@@ -25,11 +25,11 @@ type corePublicReducerType<Nodes extends Record<string, any>, D> = {
     (state: Draft<multipleSSMSlice<Nodes>>, action: PayloadAction<D & { key: string }>): void;
 }
 
-type corePublicAction<Nodes extends Record<string, any>, D> = {
+type corePublicAction<D> = {
     (payload: D & { key: string }): void;
 }
 
-type wrappedPublicReducer<Nodes extends Record<string, any>, D> = {
+type wrappedPublicReducer<D> = {
     (key: string): (payload: D) => (dispatch: any, getState: any) => void
 }
 
@@ -65,9 +65,7 @@ const corePublicReducer =
         return wrapper
     }
 
-const publicAction =
-    <Nodes extends Record<string, any>, D>
-        (func: corePublicAction<Nodes, D>): wrappedPublicReducer<Nodes, D> =>
+const publicAction = <D>(func: corePublicAction<D>): wrappedPublicReducer<D> =>
     {
         const wrapper = (key: string) => (payload: D) => (dispatch: any, getState: any) => {
             dispatch(func({ ...payload, key }))
@@ -160,10 +158,14 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         }
     })
 
+    //
+    // TODO: See if it's possible to create a type iteration to infer the keys/types from
+    // publicReducers and convey them into publicActions
+    //
     const publicActions = Object.keys(publicReducers).reduce((previous, name) => ({
         ...previous,
         [name]: publicAction((slice.actions as any)[`core${name}`])
-    }), {}) as Record<string, wrappedPublicReducer<Nodes, any>>
+    }), {}) as Record<string, wrappedPublicReducer<any>>
 
     const { internalStateChange } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {

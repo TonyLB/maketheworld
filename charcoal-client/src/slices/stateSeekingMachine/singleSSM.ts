@@ -15,13 +15,13 @@ type corePublicReducerType<Nodes extends Record<string, any>, D> = {
     (state: Draft<singleSSMSlice<Nodes>>, action: PayloadAction<D>): void;
 }
 
-type corePublicAction<Nodes extends Record<string, any>, D> = {
-    (payload: D): void;
-}
+// type corePublicAction<Nodes extends Record<string, any>, D> = {
+//     (payload: D): void;
+// }
 
-type wrappedPublicReducer<Nodes extends Record<string, any>, D> = {
-    (payload: D): (dispatch: any, getState: any) => void
-}
+// type wrappedPublicReducer<Nodes extends Record<string, any>, D> = {
+//     (payload: D): (dispatch: any, getState: any) => void
+// }
 
 type singleSSMPublicSelector<Nodes extends Record<string, any>, D> = {
     (state: InferredPublicDataTypeAggregateFromNodes<Nodes>): D;

@@ -1,7 +1,3 @@
-import { createAction } from '@reduxjs/toolkit'
-import { v4 as uuidv4 } from 'uuid'
-import { consolidateToLevel } from '../../components/DraggableTree/flatToNested'
-
 import dijkstra from './dijkstra'
 import { heartbeat } from './ssmHeartbeat'
 
@@ -40,7 +36,6 @@ export const iterateOneSSM = ({
                 dispatch(heartbeat)
             }
             if (currentStep.stateType === 'ATTEMPT') {
-                const { template, ...rest } = focusSSM
                 if (focusSSM.inProgress === focusSSM.currentState) {
                     return Promise.resolve({})
                 }
