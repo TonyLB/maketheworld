@@ -9,6 +9,8 @@ import { PubSub } from '../../lib/pubSub'
 
 import delayPromise from '../../lib/delayPromise'
 
+import { receiveMessages as receiveMessagesCore } from '../messages'
+
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
 export const RECEIVE_JSON_MESSAGES = 'RECEIVE_JSON_MESSAGES'
@@ -51,10 +53,7 @@ const getLifeLine = (state: any) => ({
 
 const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
     if (payload.messageType === 'Messages') {
-        dispatch({
-            type: RECEIVE_JSON_MESSAGES,
-            payload: payload.messages
-        })
+        dispatch(receiveMessagesCore(payload.messages))
     }
 }
 

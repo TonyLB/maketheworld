@@ -1,6 +1,0 @@
-export { playerMessage } from './playerMessage'
-export { worldMessage } from './worldMessage'
-export { roomDescription } from './roomDescription'
-export { announcementMessage } from './announcementMessage'
-export { neighborhoodDescription } from './neighborhoodDescription'
-export { directMessage } from './directMessage'

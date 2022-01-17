@@ -39,7 +39,7 @@ import { useSelector } from 'react-redux'
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
 //
 import { getActiveCharacters } from '../../slices/activeCharacters'
-import { getActiveCharacterInPlayMessages } from '../../selectors/messages'
+import { getMessages } from '../../slices/messages'
 import { getCharactersInPlay } from '../../slices/ephemera'
 
 const ActiveCharacterContext = React.createContext({
@@ -49,7 +49,7 @@ const ActiveCharacterContext = React.createContext({
 export const ActiveCharacter = ({ CharacterId, children }) => {
 
     const characterState = useSelector(getActiveCharacters)[CharacterId]
-    const inPlayMessages = useSelector(getActiveCharacterInPlayMessages(CharacterId))
+    const inPlayMessages = useSelector(getMessages)[CharacterId]
     const info = useSelector(getCharactersInPlay)[CharacterId]
     return (
         <ActiveCharacterContext.Provider value={{

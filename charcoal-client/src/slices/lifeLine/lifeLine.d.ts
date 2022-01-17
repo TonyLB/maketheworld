@@ -1,4 +1,4 @@
-import { MessageFormat } from './messages'
+import { Message } from '../messages'
 import { EphemeraFormat } from './ephemera'
 import { PlayerData } from './player'
 
@@ -11,7 +11,7 @@ type LifeLineRegisterMessage = {
 type LifeLineReceiveMessage = {
     messageType: 'Messages',
     RequestId?: string;
-    messages: MessageFormat[]
+    messages: Message[]
 }
 
 type LifeLineReceiveEphemera = {
