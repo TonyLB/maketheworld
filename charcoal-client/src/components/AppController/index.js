@@ -13,8 +13,8 @@ import { useSelector, useDispatch } from 'react-redux'
 import { getMyCharacters } from '../../slices/player'
 import { getClientSettings } from '../../slices/settings'
 import { loadClientSettings, putClientSettings } from '../../slices/settings'
-import { getFirstFeedback } from '../../selectors/UI/feedback'
-import { popFeedback } from '../../actions/UI/feedback'
+import { getFirstFeedback } from '../../slices/UI/feedback'
+import { pop as popFeedback } from '../../slices/UI/feedback'
 
 import AppLayout from '../AppLayout'
 import Home from '../Home'
@@ -47,7 +47,7 @@ export const AppController = () => {
 
     const feedbackMessage = useSelector(getFirstFeedback)
     const closeFeedback = useCallback(() => {
-        dispatch(popFeedback)
+        dispatch(popFeedback())
     }, [dispatch])
 
     return <AppLayout

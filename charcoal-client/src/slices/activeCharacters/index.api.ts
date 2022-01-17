@@ -6,7 +6,7 @@ import {
 } from '../lifeLine'
 import { getMyCharacterById } from '../player'
 import { receiveMessages } from '../messages'
-import { pushFeedback } from '../../actions/UI/feedback'
+import { push as pushFeedback } from '../../slices/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {

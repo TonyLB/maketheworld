@@ -32,7 +32,7 @@ import InDevelopment from '../InDevelopment'
 import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
 
-import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
+import { navigationTabs, navigationTabSelected } from '../../slices/navigationTabs'
 
 const a11yProps = (index) => {
     return {
