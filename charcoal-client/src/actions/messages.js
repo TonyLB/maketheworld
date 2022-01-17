@@ -32,11 +32,6 @@ export const setMessageOpen = ({ MessageId, open }) => ({
     }
 })
 
-//
-// Refactor DirectMessages to work through the controlChannel, then remove Announce and Shout (until
-// better structures are in place for such messaging), and you should be able to remove updateMessages
-// and the message Subscription from AppSync (leaving only message Sync)
-//
 export const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => async (dispatch, getState) => {
     if (Message) {
         dispatch(socketDispatch('directMessage')({

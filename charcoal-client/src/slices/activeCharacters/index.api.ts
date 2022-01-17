@@ -26,6 +26,11 @@ export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id
 // lastMessageSyncKey standardizes how we construct a key into the cacheDB
 // indexedDB storage
 //
+
+//
+// TODO: Refactor to store in settings in a single key, but store a map from characterID to
+// sync times
+//
 const lastMessageSyncKey = (CharacterId: string) => (`LastMessageSync-${CharacterId}`)
 
 //

@@ -65,10 +65,10 @@ export const RoomDescription = ({ message, ...rest }: RoomDescriptionProps) => {
                         <Divider />
                     </div>
                     <div className={localClasses.roomDescriptionExits}>
-                        { Exits.map((exit) => (<RoomExit exit={exit} />))}
+                        { Exits.map((exit) => (<RoomExit exit={exit} key={ exit.RoomId } />))}
                     </div>
                     <div className={localClasses.roomDescriptionCharacters}>
-                        { Characters.map((character) => (<RoomCharacter character={character} />)) }
+                        { Characters.map((character) => (<RoomCharacter character={character} key={character.CharacterId} />)) }
                     </div>
                 </div>}
             />

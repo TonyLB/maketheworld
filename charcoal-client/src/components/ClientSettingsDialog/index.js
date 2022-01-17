@@ -23,8 +23,7 @@ import {
 // Local code imports
 import { closeClientSettingsDialog } from '../../actions/UI/clientSettingsDialog'
 import { getClientSettingsDialogUI } from '../../selectors/UI/clientSettingsDialog.js'
-import { getClientSettings } from '../../selectors/clientSettings'
-import { putClientSettings } from '../../actions/clientSettings'
+import { getClientSettings, receiveClientSettings } from '../../slices/settings'
 import useStyles from '../styles'
 
 export const AdminDialog = () => {
@@ -57,7 +56,7 @@ export const AdminDialog = () => {
                                                 id="textEntrySize"
                                                 value={TextEntryLines || 1}
                                                 onChange={(event) => {
-                                                    dispatch(putClientSettings({ TextEntryLines: event.target.value }))
+                                                    dispatch(receiveClientSettings({ TextEntryLines: event.target.value }))
                                                 }}
                                             >
                                                 <MenuItem value={1}>Poetry (one line)</MenuItem>
@@ -72,7 +71,7 @@ export const AdminDialog = () => {
                                                     control={
                                                         <Switch
                                                             checked={ShowNeighborhoodHeaders}
-                                                            onChange={ (event) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: event.target.checked })) } }
+                                                            onChange={ (event) => { dispatch(receiveClientSettings({ ShowNeighborhoodHeaders: event.target.checked })) } }
                                                             name="showNeighborhoodHeaders"
                                                             color="primary"
                                                         />

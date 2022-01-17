@@ -4,12 +4,11 @@ import {
     TextField
 } from '@material-ui/core'
 
-import { getSettings } from '../selectors/settings'
-import { getClientSettings } from '../selectors/clientSettings'
+import { getServerSettings, getClientSettings } from '../slices/settings'
 
 export const LineEntry = ({ callback = () => {}, ...rest }) => {
     const [value, setValue] = useState('')
-    const { ChatPrompt } = useSelector(getSettings)
+    const { ChatPrompt } = useSelector(getServerSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
 
     return (

@@ -4,7 +4,7 @@ import Amplify from 'aws-amplify'
 import { withAuthenticator } from 'aws-amplify-react'
 import { CssBaseline } from '@material-ui/core'
 
-import { store } from './store/index.js'
+import { store } from './store/index'
 import AppController from './components/AppController'
 import { AuthConfig } from './config'
 import './App.css';

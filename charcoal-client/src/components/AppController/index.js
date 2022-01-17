@@ -11,8 +11,8 @@ import { useSelector, useDispatch } from 'react-redux'
 
 // import { connectionRegister } from '../../actions/connection.js'
 import { getMyCharacters } from '../../slices/player'
-import { getClientSettings } from '../../selectors/clientSettings'
-import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
+import { getClientSettings } from '../../slices/settings'
+import { loadClientSettings, putClientSettings } from '../../slices/settings'
 import { getFirstFeedback } from '../../selectors/UI/feedback'
 import { popFeedback } from '../../actions/UI/feedback'
 
