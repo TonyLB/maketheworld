@@ -1,4 +1,4 @@
-import Dexie from 'dexie'
+import Dexie, { Transaction } from 'dexie'
 
 import { Message } from '../slices/messages/baseClasses'
 
@@ -25,7 +25,7 @@ class ClientCache extends Dexie {
     clientSettings!: Dexie.Table<ClientSettingType, string>;
 
     constructor() {
-        super("ClientCache")
+        super("maketheworlddb")
         this.version(1).stores({
             clientSettings: 'key,value'
         })
@@ -43,7 +43,21 @@ class ClientCache extends Dexie {
         this.version(3).stores({
             messages: 'MessageId,CreatedTime,Target'
         })
-        
+        this.version(4).stores({
+            neighborhoods: null,
+            maps: null,
+            settings: null,
+            backups: null,
+            rooms: null,
+            characters: null,
+            grants: null,
+            exits: null,
+            roles: null
+        }).upgrade((db: Transaction) => { db.table("messages").clear() })
+        //
+        // Remove obsolete keys in clientSettings
+        //
+        this.clientSettings.where("key").startsWith("LastMessageSync").delete()
     }
 }
 

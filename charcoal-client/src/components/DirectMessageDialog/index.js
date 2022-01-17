@@ -15,12 +15,24 @@ import {
 
 // Local code imports
 import { closeDirectMessageDialog } from '../../actions/UI/directMessageDialog'
-import { sendDirectMessage } from '../../actions/messages'
 import { getDirectMessageTargetUI } from '../../selectors/UI/directMessageDialog.js'
 import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
 
 import useStyles from '../styles'
+
+const sendDirectMessage = ({Message, CharacterId, Characters = [], Recipients = []}) => async (dispatch) => {
+    if (Message) {
+        dispatch(socketDispatch('directMessage')({
+            CharacterId,
+            Targets: Characters.map((characterId) => (`CHARACTER#${characterId}`)),
+            Recipients,
+            Message
+        }))
+    }
+    return {}
+}
+
 
 export const DirectMessageDialog = () => {
     const ToCharacterId = useSelector(getDirectMessageTargetUI)

@@ -9,11 +9,9 @@ import { PubSub } from '../../lib/pubSub'
 
 import delayPromise from '../../lib/delayPromise'
 
-import { receiveMessages as receiveMessagesCore } from '../messages'
+import { cacheMessages } from '../messages'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
-
-export const RECEIVE_JSON_MESSAGES = 'RECEIVE_JSON_MESSAGES'
 
 export const unsubscribeMessages: LifeLineAction = ({ internalData: { messageSubscription } }) => async () => {
     if (messageSubscription) {
@@ -53,7 +51,7 @@ const getLifeLine = (state: any) => ({
 
 const receiveMessages = (dispatch: any) => ({ payload }: { payload: LifeLinePubSubData}) => {
     if (payload.messageType === 'Messages') {
-        dispatch(receiveMessagesCore(payload.messages))
+        dispatch(cacheMessages(payload.messages))
     }
 }
 

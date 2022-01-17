@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
+import cacheDB from '../../cacheDB'
 import { Message } from './baseClasses'
 
 const initialState = {} as Record<string, Message[]>
@@ -42,7 +43,7 @@ const messagesSlice = createSlice({
     name: 'messages',
     initialState,
     reducers: {
-        receiveMessages(state, action: PayloadAction<Message[]>) {
+        receiveMessages(state: any, action: PayloadAction<Message[]>) {
             action.payload.forEach((message) => {
                 if (state[message.Target]) {
                     const { exactMatch, index } = binarySearch(state[message.Target], message.CreatedTime, message.MessageId)
@@ -86,4 +87,10 @@ export const getMessages = (state: any) => {
 }
 
 export const { receiveMessages } = messagesSlice.actions
+
+export const cacheMessages = (messages: Message[]) => async (dispatch: any) => {
+    await cacheDB.messages.bulkPut(messages)
+    dispatch(receiveMessages(messages))
+}
+
 export default messagesSlice.reducer

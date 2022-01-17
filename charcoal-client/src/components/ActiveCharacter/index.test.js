@@ -4,6 +4,8 @@ import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import ActiveCharacter, { useActiveCharacter } from './index'
 
+jest.mock('../../cacheDB')
+
 const mockStore = configureStore()
 const store = mockStore({
     activeCharacters: {

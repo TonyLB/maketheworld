@@ -11,8 +11,7 @@ export {
     socketDispatch,
     socketDispatchPromise,
     apiDispatchPromise,
-    LifeLinePubSub,
-    RECEIVE_JSON_MESSAGES
+    LifeLinePubSub
 } from './index.api'
 
 // import {

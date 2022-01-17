@@ -5,14 +5,9 @@ import {
     getStatus
 } from '../lifeLine'
 import { getMyCharacterById } from '../player'
-import { RECEIVE_MESSAGES } from '../../actions/messages'
+import { receiveMessages } from '../messages'
 import { pushFeedback } from '../../actions/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
-
-//
-// TODO:  Typescript Dexie using https://dexie.org/docs/Typescript
-//
-const cacheDBCast = cacheDB as any
 
 export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id } }, getState) => {
     const state = getState()
@@ -37,19 +32,16 @@ const lastMessageSyncKey = (CharacterId: string) => (`LastMessageSync-${Characte
 // getLastMessageSync pulls the last message sync value from cacheDB
 //
 export const getLastMessageSync = (CharacterId: string) => (
-    cacheDBCast.clientSettings.get(lastMessageSyncKey(CharacterId))
+    cacheDB.clientSettings.get(lastMessageSyncKey(CharacterId))
         .then((response: any) => ((response ?? {}).value))
 )
 
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
 
     const LastMessageSync = await getLastMessageSync(id || '')
-    const messages = await cacheDBCast.messages.where("Target").equals(id).toArray()
+    const messages = await cacheDB.messages.where("Target").equals(id || '').toArray()
 
-    dispatch({
-        type: RECEIVE_MESSAGES,
-        payload: messages
-    })
+    dispatch(receiveMessages(messages))
     return { internalData: { LastMessageSync } }
 }
 
