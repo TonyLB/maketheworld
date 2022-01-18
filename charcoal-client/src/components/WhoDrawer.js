@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import {
     Table,
@@ -21,7 +21,6 @@ export const WhoDrawer = () => {
     const { Characters } = useSelector(getPlayer)
     const myCharacterIds = Characters.map(({ CharacterId }) => (CharacterId))
     const classes = useStyles()
-    const dispatch = useDispatch()
 
     return (
         <Table className={classes.whoTable} aria-label="who is online">
@@ -34,7 +33,7 @@ export const WhoDrawer = () => {
             </TableHead>
             <TableBody>
                 {
-                    whoIsActive.map(({ CharacterId, Name, RoomId, color }) => {
+                    whoIsActive.map(({ CharacterId, Name, color }) => {
                         //
                         // TODO: Figure out how to present a workable room/area name using the new WML Asset
                         // system.

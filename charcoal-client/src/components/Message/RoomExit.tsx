@@ -5,7 +5,7 @@ import Chip from '@material-ui/core/Chip'
 import ExitIcon from '@material-ui/icons/ExitToApp'
 import HiddenIcon from '@material-ui/icons/VisibilityOff'
 
-import { moveCharacter } from '../../actions/behaviors/moveCharacter'
+import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 import { RoomExit as RoomExitType } from '../../slices/messages/baseClasses'
 

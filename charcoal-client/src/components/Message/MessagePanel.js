@@ -5,7 +5,7 @@ import PropTypes from "prop-types"
 import { makeStyles } from "@material-ui/core/styles"
 
 import VirtualMessageList from './VirtualMessageList'
-import { parseCommand } from '../../actions/behaviors'
+import { parseCommand } from '../../slices/lifeLine'
 import LineEntry from '../LineEntry'
 import useStyles from '../styles'
 import { useActiveCharacter } from '../ActiveCharacter'

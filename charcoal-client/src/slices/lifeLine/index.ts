@@ -11,6 +11,8 @@ export {
     socketDispatch,
     socketDispatchPromise,
     apiDispatchPromise,
+    moveCharacter,
+    parseCommand,
     LifeLinePubSub
 } from './index.api'
 

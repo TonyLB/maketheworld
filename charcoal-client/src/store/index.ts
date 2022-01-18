@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import thunk from 'redux-thunk'
-import uiReducer from '../reducers/UI'
 
+import uiReducer from '../slices/UI'
 import settings from '../slices/settings'
 import messages from '../slices/messages'
 import navigationTabs from '../slices/navigationTabs'
@@ -26,6 +26,7 @@ export const store = configureStore({
     middleware: [thunk]
 })
 
-export type RootState = ReturnType<typeof store.getState>
+export type AppGetState = typeof store.getState
+export type RootState = ReturnType<AppGetState>
 export type AppDispatch = typeof store.dispatch
 export type Selector<S> = (state: RootState) => S

@@ -1,8 +1,11 @@
 import { v4 as uuidv4 } from 'uuid'
 import { Auth } from 'aws-amplify'
+import { AnyAction } from 'redux'
+import { ThunkAction } from 'redux-thunk'
 
 import { WSS_ADDRESS } from '../../config'
 import { LifeLineAction, LifeLineReturn } from './baseClasses'
+import { AppDispatch, AppGetState, RootState } from '../../store'
 
 import { LifeLinePubSubData } from './lifeLine'
 import { PubSub } from '../../lib/pubSub'
@@ -73,7 +76,7 @@ export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
 // TODO:  Enqueue messages that come in when status is not connected, and flush the
 //   queue through the lifeline when status returns to connected.
 //
-export const socketDispatch = (messageType: any) => (payload: any) => (dispatch: any, getState: any) => {
+export const socketDispatch = (messageType: any) => (payload: any): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch: AppDispatch, getState: AppGetState): void => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
         webSocket.send(JSON.stringify({
@@ -136,11 +139,11 @@ export const backoffAction: LifeLineAction = ({ internalData: { incrementalBacko
 // This lets some message types associate an expected round-trip and return a Promise that watches
 // for that (similar to how HTTP calls are processed).
 //
-export const socketDispatchPromise = (messageType: any) => (payload: any) => (dispatch: any, getState: any) => {
+export const socketDispatchPromise = (messageType: any) => (payload: any): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> => (dispatch, getState) => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
         const RequestId = uuidv4()
-        return new Promise<LifeLinePubSubData>((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
                 const { RequestId: compareRequestId, ...rest } = payload
                 if (compareRequestId === RequestId) {
@@ -196,4 +199,37 @@ export const apiDispatchPromise = (url: string, RequestId: string) => (payload: 
             body: payload
         })
     })
+}
+
+export const moveCharacter = (CharacterId: string) => ({ ExitName, RoomId }: { ExitName: string; RoomId: string }): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch) => {
+    dispatch(socketDispatch('action')({ actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
+}
+
+export const parseCommand = (CharacterId: string) => ({ entry }: { entry: string; raiseError: any }): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
+
+    //
+    // TODO: Add more graphical mode-switching to the text entry, so that you can visually differentiate whether you're
+    // saying things, or entering commands, or posing, or spoofing.  Replace prefix codes with keyboard shortcuts that
+    // change the mode (as well as a Speed-Dial set of buttons for switching context)
+    //
+    if (entry.slice(0,1) === '"' && entry.length > 1) {
+        dispatch(socketDispatch('action')({ actionType: 'say', payload: { CharacterId, Message: entry.slice(1) } }))
+        return true
+    }
+    if (entry.slice(0,1) === '@' && entry.length > 1) {
+        dispatch(socketDispatch('action')({ actionType: 'spoof', payload: { CharacterId, Message: entry.slice(1) } }))
+        return true
+    }
+    if (entry.slice(0,1) === ':' && entry.length > 1) {
+        dispatch(socketDispatch('action')({ actionType: 'pose', payload: { CharacterId, Message: entry.slice(1) } }))
+        return true
+    }
+    if (entry) {
+        dispatch(socketDispatch('command')({ CharacterId, command: entry }))
+        //
+        // TODO: Use raiseError to handle return errors from the back-end command parser
+        //
+        return true
+    }
+    return false
 }
