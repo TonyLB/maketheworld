@@ -4,7 +4,6 @@ import thunk from 'redux-thunk'
 import uiReducer from '../slices/UI'
 import settings from '../slices/settings'
 import messages from '../slices/messages'
-import navigationTabs from '../slices/navigationTabs'
 import activeCharacters from '../slices/activeCharacters'
 import ephemera from '../slices/ephemera'
 import player from '../slices/player'
@@ -20,7 +19,6 @@ export const store = configureStore({
         player,
         settings,
         UI: uiReducer,
-        navigationTabs,
         ssmHeartbeat
     },
     middleware: [thunk]

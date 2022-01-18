@@ -5,7 +5,7 @@ import {
     Route
 } from "react-router-dom"
 
-import useAutoPin from '../../slices/navigationTabs/useAutoPin'
+import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import MapList from './List/'
 import MapEdit from './Edit/'
 

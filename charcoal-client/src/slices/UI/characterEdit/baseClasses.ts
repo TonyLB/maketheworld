@@ -1,4 +1,4 @@
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../../stateSeekingMachine/baseClasses'
 
 export type CharacterEditKeys = 'assetKey' | 'Name' | 'Pronouns' | 'FirstImpression' | 'OneCoolThing' | 'Outfit'
 

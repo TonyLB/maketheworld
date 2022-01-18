@@ -1,6 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit'
+import { ThunkAction } from 'redux-thunk'
+import { AnyAction } from 'redux'
 import { CharacterEditNodes, CharacterEditKeys } from './baseClasses'
-import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
+import { multipleSSM } from '../../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
     getURL,
@@ -9,7 +11,8 @@ import {
     parseCharacterWML,
     postCharacterWML
 } from './index.api'
-import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
+import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat'
+import { RootState } from '../../../store'
 
 export const {
     slice: characterEditSlice,
@@ -111,7 +114,7 @@ export const {
     getIntent
 } = selectors
 
-export const saveCharacter = (key: string) => (dispatch: any, getState: any) => {
+export const saveCharacter = (key: string): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch, getState) => {
     const state = getState()
     const characterEdit = getCharacterEditByKey(key)(state)
     const status = getStatus(key)(state)

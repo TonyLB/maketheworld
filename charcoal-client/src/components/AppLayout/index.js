@@ -34,7 +34,7 @@ import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
 import HelpPage from '../Help'
 
-import { navigationTabs, navigationTabSelected } from '../../slices/navigationTabs'
+import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 
 
 const a11yProps = (index) => {

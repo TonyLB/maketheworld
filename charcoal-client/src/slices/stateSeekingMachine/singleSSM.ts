@@ -15,20 +15,12 @@ type corePublicReducerType<Nodes extends Record<string, any>, D> = {
     (state: Draft<singleSSMSlice<Nodes>>, action: PayloadAction<D>): void;
 }
 
-// type corePublicAction<Nodes extends Record<string, any>, D> = {
-//     (payload: D): void;
-// }
-
-// type wrappedPublicReducer<Nodes extends Record<string, any>, D> = {
-//     (payload: D): (dispatch: any, getState: any) => void
-// }
-
 type singleSSMPublicSelector<Nodes extends Record<string, any>, D> = {
     (state: InferredPublicDataTypeAggregateFromNodes<Nodes>): D;
 }
 
-type wrappedPublicSelector<Nodes extends Record<string, any>, D> = {
-    (state: singleSSMSlice<Nodes>): D;
+type resultPublicSelector<D> = {
+    (state: any): D;
 }
 
 type singleSSMArguments<Nodes extends Record<string, any>> = {
@@ -54,7 +46,7 @@ const corePublicReducer =
 const wrapPublicSelector =
     <Nodes extends Record<string, any>, D>
         (sliceSelector: (state: any) => singleSSMSlice<Nodes>) =>
-        (select: singleSSMPublicSelector<Nodes, D>): wrappedPublicSelector<Nodes, D> =>
+        (select: singleSSMPublicSelector<Nodes, D>): resultPublicSelector<D> =>
     {
         const wrapper = (state: any): D => {
             return select(sliceSelector(state).publicData)
@@ -146,12 +138,16 @@ export const singleSSM = <Nodes extends Record<string, any>>({
         return sliceSelector(state).meta.desiredState
     }
 
-    const selectors: Record<string, wrappedPublicSelector<Nodes, any>> = {
+    //
+    // TODO: Map incoming selector types so that selectors are each
+    // type constrained to the types provided in the base functions
+    //
+    const selectors: Record<string, resultPublicSelector<any>> = {
         ...Object.entries(publicSelectors)
-        .reduce((previous, [name, selector]) => ({
-            ...previous,
-            [name]: wrapPublicSelector(sliceSelector)(selector)
-        }), {}),
+            .reduce((previous, [name, selector]) => ({
+                ...previous,
+                [name]: wrapPublicSelector(sliceSelector)(selector)
+            }), {} as Record<string, resultPublicSelector<any>>),
         getStatus,
         getIntent
     }

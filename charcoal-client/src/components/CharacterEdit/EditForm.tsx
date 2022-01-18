@@ -5,8 +5,8 @@ import Box from '@material-ui/core/Box'
 import TextField from '@material-ui/core/TextField'
 import Button from '@material-ui/core/Button'
 
-import { getCharacterEditDirty, getCharacterEditValues, setValue, saveCharacter } from '../../slices/characterEdit/ssmVersion'
-import { CharacterEditKeys } from '../../slices/characterEdit'
+import { getCharacterEditDirty, getCharacterEditValues, setValue, saveCharacter } from '../../slices/UI/characterEdit'
+import { CharacterEditKeys } from '../../slices/UI/characterEdit/baseClasses'
 import useStyles from '../styles'
 
 type CharacterEditFormProps = {

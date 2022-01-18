@@ -6,9 +6,9 @@ import {
     useParams
 } from "react-router-dom"
 
-import useAutoPin from '../../slices/navigationTabs/useAutoPin'
+import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import CharacterEditForm from './EditForm'
-import { addItem, getStatus } from '../../slices/characterEdit/ssmVersion'
+import { addItem, getStatus } from '../../slices/UI/characterEdit'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 // import Spinner from '../Spinner'
 

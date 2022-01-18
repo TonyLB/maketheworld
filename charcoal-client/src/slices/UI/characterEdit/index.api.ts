@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { socketDispatchPromise, apiDispatchPromise } from '../lifeLine'
+import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
-import { getMyCharacterByKey, getPlayer } from '../player'
-import { wmlGrammar, validatedSchema, assetRegistryEntries } from "../../wml/"
-import { getStatus } from '../lifeLine'
+import { getMyCharacterByKey, getPlayer } from '../../player'
+import { wmlGrammar, validatedSchema, assetRegistryEntries } from "../../../wml"
+import { getStatus } from '../../lifeLine'
 
 export const lifelineCondition: CharacterEditCondition = ({ internalData: { id } }, getState) => {
     const state = getState()

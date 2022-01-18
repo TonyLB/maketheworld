@@ -9,7 +9,7 @@ import { parseCommand } from '../../slices/lifeLine'
 import LineEntry from '../LineEntry'
 import useStyles from '../styles'
 import { useActiveCharacter } from '../ActiveCharacter'
-import useAutoPin from '../../slices/navigationTabs/useAutoPin'
+import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { addItem } from '../../slices/activeCharacters'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 

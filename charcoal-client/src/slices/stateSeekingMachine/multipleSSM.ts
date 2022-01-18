@@ -37,8 +37,8 @@ type multipleSSMPublicSelector<Nodes extends Record<string, any>, D> = {
     (state: InferredPublicDataTypeAggregateFromNodes<Nodes>): D;
 }
 
-type wrappedPublicSelector<Nodes extends Record<string, any>, D> = {
-    (key: string): (state: multipleSSMSlice<Nodes>) => D | undefined;
+type resultPublicSelector<D> = {
+    (key: string): (state: any) => D | undefined
 }
 
 type multipleSSMArguments<Nodes extends Record<string, any>> = {
@@ -76,7 +76,7 @@ const publicAction = <D>(func: corePublicAction<D>): wrappedPublicReducer<D> =>
 const wrapPublicSelector =
     <Nodes extends Record<string, any>, D>
         (sliceSelector: (state: any) => multipleSSMSlice<Nodes>) =>
-        (select: multipleSSMPublicSelector<Nodes, D>): wrappedPublicSelector<Nodes, D> =>
+        (select: multipleSSMPublicSelector<Nodes, D>): resultPublicSelector<D> =>
     {
         const wrapper = (key: string) => (state: any): D | undefined => {
             const focus = sliceSelector(state).byId[key]
@@ -210,12 +210,12 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         return undefined
     }
 
-    const selectors: Record<string, wrappedPublicSelector<Nodes, any>> = {
+    const selectors: Record<string, resultPublicSelector<any>> = {
         ...Object.entries(publicSelectors)
         .reduce((previous, [name, selector]) => ({
             ...previous,
             [name]: wrapPublicSelector(sliceSelector)(selector)
-        }), {}),
+        }), {} as Record<string, resultPublicSelector<any>>),
         getStatus,
         getIntent
     }

@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
 
+import { Selector } from '../../../store'
+
 export interface NavigationTab {
     label: string;
     href: string;
@@ -33,21 +35,24 @@ const navigationSlice = createSlice({
 
 export const { add, remove } = navigationSlice.actions
 
-export const navigationTabs = ({ navigationTabs = [] }: { navigationTabs: NavigationTab[] }) => (navigationTabs)
+export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs = [] } }) => (navigationTabs)
 
-export const navigationTabSelected = (pathname: string) => ({ navigationTabs = [] }: { navigationTabs: { href: string }[]}) => {
-    const matches = navigationTabs
-        .filter(({ href }) => (pathname.startsWith(href)))
-        .sort(({ href: hrefA = '' }, { href: hrefB = '' }) => (hrefA.length - hrefB.length))
-    if (matches.length) {
-        return matches[0]
+export const navigationTabSelected = (pathname: string): Selector<NavigationTab | null> => createSelector(
+    navigationTabs,
+    (navigationTabs) => {
+        const matches = navigationTabs
+            .filter(({ href }) => (pathname.startsWith(href)))
+            .sort(({ href: hrefA = '' }, { href: hrefB = '' }) => (hrefA.length - hrefB.length))
+        if (matches.length) {
+            return matches[0]
+        }
+        else {
+            return null
+        }
     }
-    else {
-        return null
-    }
-}
+)
 
-export const navigationTabPinnedByHref = (hrefMatch: string) => createSelector(
+export const navigationTabPinnedByHref = (hrefMatch: string): Selector<NavigationTab | undefined> => createSelector(
     navigationTabs,
     (tabs) => (tabs.find(({ href }) => (href === hrefMatch)))
 )
