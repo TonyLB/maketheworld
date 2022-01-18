@@ -28,11 +28,13 @@ import HomeIcon from '@material-ui/icons/Home'
 
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
+import ChoiceDialog from '../ChoiceDialog'
 
 import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
 
 import { navigationTabs, navigationTabSelected } from '../../slices/navigationTabs'
+
 
 const a11yProps = (index) => {
     return {
@@ -178,6 +180,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
 
     return <Router>
         <div className={`fullScreen ${classes.grid}`}>
+            <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
             <NavigationTabs />
             <div className={classes.content}>

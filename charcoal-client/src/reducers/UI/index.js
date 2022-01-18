@@ -1,16 +1,16 @@
 import { combineReducers } from 'redux'
-import confirmDialog from './confirmDialog'
 import helpDialog from './helpDialog'
 import directMessageDialog from './directMessageDialog'
 import characterEdit from '../../slices/characterEdit/ssmVersion'
 import feedback from '../../slices/UI/feedback'
+import choiceDialog from '../../slices/UI/choiceDialog'
 
 export const reducer = combineReducers({
     feedback,
-    confirmDialog,
     helpDialog,
     directMessageDialog,
-    characterEdit
+    characterEdit,
+    choiceDialog
 })
 
 export default reducer
