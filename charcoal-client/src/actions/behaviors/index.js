@@ -1,12 +1,6 @@
 import { socketDispatch } from '../../slices/lifeLine'
 
-import help from './help'
-
 export const parseCommand = (CharacterId) => ({ entry, raiseError }) => (dispatch, getState) => {
-    if (entry.match(/^\s*help\s*$/gi)) {
-        dispatch(help())
-        return true
-    }
 
     //
     // TODO: Add more graphical mode-switching to the text entry, so that you can visually differentiate whether you're

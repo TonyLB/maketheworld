@@ -19,6 +19,10 @@ import ChatIcon from '@material-ui/icons/Sms'
 //
 // TODO:  Choose better typography for the Home page.
 //
+
+//
+// TODO: Create a navigation path to the Help page
+//
 export const Home = ({
     myCharacters = []
 }) => {

@@ -32,6 +32,7 @@ import ChoiceDialog from '../ChoiceDialog'
 
 import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
+import HelpPage from '../Help'
 
 import { navigationTabs, navigationTabSelected } from '../../slices/navigationTabs'
 
@@ -197,6 +198,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Logs/" element={<InDevelopment />} />
                         <Route path="/Forum/" element={<InDevelopment />} />
                         <Route path="/Maps/*" element={<MapHome />} />
+                        <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/" element={homePanel} />
                     </Routes>
                 </div>
