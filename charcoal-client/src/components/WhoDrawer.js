@@ -13,7 +13,6 @@ import {
 import { getActiveCharacterList } from '../slices/ephemera'
 import { getPlayer } from '../slices/player'
 
-import { activateDirectMessageDialog } from '../actions/UI/directMessageDialog'
 import { useStyles } from './styles'
 
 export const WhoDrawer = () => {
@@ -41,8 +40,12 @@ export const WhoDrawer = () => {
                         // system.
                         //
                         const neighborhoodName = '??????'
+                        //
+                        // TODO: Create an onClick that presents reasonable options (including a short-cut
+                        // some replacement for DirectMessageDialog)
+                        //
                         return (
-                            <TableRow key={CharacterId} hover onClick={() => { dispatch(activateDirectMessageDialog(CharacterId)) }}>
+                            <TableRow key={CharacterId} hover onClick={() => { }}>
                                 <TableCell>
                                     <Avatar className={(myCharacterIds.includes(CharacterId)) ? classes.blue : (color && classes[color.primary])}>
                                         { Name[0].toUpperCase() }
