@@ -2,19 +2,19 @@ import Dexie, { Transaction } from 'dexie'
 
 import { Message } from '../slices/messages/baseClasses'
 
-type TextEntryLinesType = {
+export type TextEntryLinesType = {
     key: 'TextEntryLines';
     value: number;
 }
 
-type ShowNeighborhoodHeadersType = {
+export type ShowNeighborhoodHeadersType = {
     key: 'ShowNeighborhoodHeaders';
     value: boolean;
 }
 
-type LastSyncType = {
+export type LastSyncType = {
     key: 'LastSync';
-    value: number;
+    value: Record<string, number>;
 }
 
 export type ClientSettingType = TextEntryLinesType | ShowNeighborhoodHeadersType | LastSyncType
@@ -53,7 +53,15 @@ class ClientCache extends Dexie {
             grants: null,
             exits: null,
             roles: null
-        }).upgrade((db: Transaction) => { db.table("messages").clear() })
+        }).upgrade((db: Transaction) => {
+            //
+            // Because of the danger of previous data in a different format,
+            // we clear the messages table on update and flag it to resync from
+            // the back-end
+            //
+            db.table("messages").clear()
+            db.table("clientSettings").where("key").equals("LastSync").delete()
+        })
         //
         // Remove obsolete keys in clientSettings
         //

@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-import cacheDB from '../../cacheDB'
+import cacheDB, { LastSyncType } from '../../cacheDB'
 import { Message } from './baseClasses'
 
 const initialState = {} as Record<string, Message[]>
@@ -89,7 +89,30 @@ export const getMessages = (state: any) => {
 export const { receiveMessages } = messagesSlice.actions
 
 export const cacheMessages = (messages: Message[]) => async (dispatch: any) => {
-    await cacheDB.messages.bulkPut(messages)
+    //
+    // Update LastSync data, and push messages to cacheDB
+    //
+    const lastSyncUpdates = messages.reduce((previous, { CreatedTime, Target }) => ({
+        ...previous,
+        [Target]: Math.max(previous[Target] || 0, CreatedTime)
+    }), {} as LastSyncType["value"])
+    await Promise.all([
+        cacheDB.clientSettings.update("LastSync", (lastSync: LastSyncType) => (
+            Object.entries(lastSyncUpdates).reduce((previous, [Target, CreatedTime]) => ({
+                ...previous,
+                [Target]: Math.max(previous[Target] || 0, CreatedTime)
+            }), lastSync.value)
+        )).then((update) => {
+            if (!update) {
+                cacheDB.clientSettings.put({ key: "LastSync", value: lastSyncUpdates })
+            }
+        }),
+        cacheDB.messages.bulkPut(messages)
+    ])
+
+    //
+    // Push messages to Redux
+    //
     dispatch(receiveMessages(messages))
 }
 

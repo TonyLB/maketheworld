@@ -1,5 +1,5 @@
 import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
-import cacheDB from '../../cacheDB'
+import cacheDB, { LastSyncType } from '../../cacheDB'
 import {
     socketDispatchPromise,
     getStatus
@@ -18,22 +18,11 @@ export const lifelineCondition: ActiveCharacterCondition = ({ internalData: { id
 }
 
 //
-// lastMessageSyncKey standardizes how we construct a key into the cacheDB
-// indexedDB storage
-//
-
-//
-// TODO: Refactor to store in settings in a single key, but store a map from characterID to
-// sync times
-//
-const lastMessageSyncKey = (CharacterId: string) => (`LastMessageSync-${CharacterId}`)
-
-//
 // getLastMessageSync pulls the last message sync value from cacheDB
 //
 export const getLastMessageSync = (CharacterId: string) => (
-    cacheDB.clientSettings.get(lastMessageSyncKey(CharacterId))
-        .then((response: any) => ((response ?? {}).value))
+    (cacheDB.clientSettings.get('LastSync') as Promise<LastSyncType | undefined>)
+        .then((response) => (((response ?? {}).value || {})[CharacterId]))
 )
 
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
