@@ -14,7 +14,7 @@ export const {
     selectors,
     publicActions,
     iterateAllSSMs
-} = multipleSSM<ActiveCharacterNodes>({
+} = multipleSSM<ActiveCharacterNodes, {}>({
     name: 'activeCharacters',
     initialSSMState: 'INITIAL',
     initialSSMDesired: 'CONNECTED',
@@ -30,8 +30,7 @@ export const {
     sliceSelector: ({ activeCharacters }) => (activeCharacters),
     publicReducers: {
     },
-    publicSelectors: {
-    },
+    publicSelectors: {},
     template: {
         initialState: 'INITIAL',
         initialData: {

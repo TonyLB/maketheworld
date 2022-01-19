@@ -29,7 +29,7 @@ export const {
     selectors,
     publicActions,
     iterateAllSSMs
-} = singleSSM<LifeLineNodes>({
+} = singleSSM<LifeLineNodes, {}>({
     name: 'lifeLine',
     initialSSMState: 'INITIAL',
     initialSSMDesired: 'CONNECTED',

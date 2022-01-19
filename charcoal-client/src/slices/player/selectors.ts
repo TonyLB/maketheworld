@@ -23,3 +23,11 @@ export const getMyCharacterById = (getMyCharacters: (state: any) => PlayerPublic
     const Characters = getMyCharacters(state)
     return Characters.find(({ CharacterId }) => (CharacterId === key))
 }
+
+//
+// TODO: See if you can reduce the repetition of creating this type from the selectors
+//
+export type PlayerSelectors = {
+    getPlayer: (player: PlayerPublic) => PlayerPublic;
+    getMyCharacters: (player: PlayerPublic) => PlayerPublic['Characters'];
+}

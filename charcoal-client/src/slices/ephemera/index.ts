@@ -7,14 +7,14 @@ import {
     unsubscribeAction
 } from './index.api'
 import receiveEphemera from './receiveEphemera'
-import { getActiveCharacterList as getActiveCharacterListSelector, getCharactersInPlay as getCharactersInPlaySelector } from './selectors'
+import { publicSelectors, PublicSelectorType } from './selectors'
 
 export const {
     slice: ephemeraSlice,
     selectors,
     publicActions,
     iterateAllSSMs
-} = singleSSM<EphemeraNodes>({
+} = singleSSM<EphemeraNodes, PublicSelectorType>({
     name: 'ephemera',
     initialSSMState: 'INITIAL',
     initialSSMDesired: 'CONNECTED',
@@ -30,10 +30,7 @@ export const {
     publicReducers: {
         receiveEphemera
     },
-    publicSelectors: {
-        getActiveCharacterList: getActiveCharacterListSelector,
-        getCharactersInPlay: getCharactersInPlaySelector
-    },
+    publicSelectors,
     template: {
         initialState: 'INITIAL',
         initialData: {

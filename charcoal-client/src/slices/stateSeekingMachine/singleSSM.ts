@@ -2,6 +2,8 @@ import { castDraft, Draft } from 'immer'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { ssmMeta, InferredDataTypeAggregateFromNodes, InferredPublicDataTypeAggregateFromNodes, PartialDataTypeAggregateFromNodes, TemplateFromNodes } from './baseClasses'
 import { iterateOneSSM } from './index'
+import { Entries } from '../../lib/objects'
+import { Selector } from '../../store'
 
 type singleSSMSlice<Nodes> = InferredDataTypeAggregateFromNodes<Nodes> & {
     meta: ssmMeta<keyof Nodes>
@@ -23,14 +25,14 @@ type resultPublicSelector<D> = {
     (state: any): D;
 }
 
-type singleSSMArguments<Nodes extends Record<string, any>> = {
+type singleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType> = {
     name: string;
     initialSSMState: keyof Nodes;
     initialSSMDesired: keyof Nodes;
     initialData: InferredDataTypeAggregateFromNodes<Nodes>;
     sliceSelector: (state: any) => singleSSMSlice<Nodes>;
     publicReducers?: Record<string, singleSSMPublicReducer<Nodes, any>>;
-    publicSelectors?: Record<string, singleSSMPublicSelector<Nodes, any>>;
+    publicSelectors: PublicSelectorsType;
     template: TemplateFromNodes<Nodes>;
 }
 
@@ -54,16 +56,16 @@ const wrapPublicSelector =
         return wrapper
     }
 
-export const singleSSM = <Nodes extends Record<string, any>>({
+export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType extends Record<string, singleSSMPublicSelector<Nodes, any>>>({
     name,
     initialSSMState,
     initialSSMDesired,
     initialData,
     sliceSelector,
     publicReducers = {},
-    publicSelectors = {},
+    publicSelectors,
     template
-}: singleSSMArguments<Nodes>) => {
+}: singleSSMArguments<Nodes, PublicSelectorsType>) => {
     const slice = createSlice({
         name,
         initialState: {
@@ -138,16 +140,18 @@ export const singleSSM = <Nodes extends Record<string, any>>({
         return sliceSelector(state).meta.desiredState
     }
 
-    //
-    // TODO: Map incoming selector types so that selectors are each
-    // type constrained to the types provided in the base functions
-    //
-    const selectors: Record<string, resultPublicSelector<any>> = {
-        ...Object.entries(publicSelectors)
+    type SelectorAggregate = {
+        [T in keyof typeof publicSelectors]: Selector<ReturnType<typeof publicSelectors[T]>>
+    }
+    const selectors: SelectorAggregate & {
+        getStatus: Selector<keyof Nodes>;
+        getIntent: Selector<keyof Nodes>;
+    } = {
+        ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
             .reduce((previous, [name, selector]) => ({
                 ...previous,
                 [name]: wrapPublicSelector(sliceSelector)(selector)
-            }), {} as Record<string, resultPublicSelector<any>>),
+            }), {} as Partial<SelectorAggregate>) as SelectorAggregate,
         getStatus,
         getIntent
     }

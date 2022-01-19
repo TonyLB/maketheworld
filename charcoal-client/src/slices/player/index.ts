@@ -10,7 +10,8 @@ import {
     getPlayer as getPlayerSelector,
     getMyCharacters as getMyCharactersSelector,
     getMyCharacterById as getMyCharacterByIdSelector,
-    getMyCharacterByKey as getMyCharacterByKeySelector
+    getMyCharacterByKey as getMyCharacterByKeySelector,
+    PlayerSelectors
 } from './selectors'
 import { receivePlayer } from './receivePlayer'
 
@@ -19,7 +20,7 @@ export const {
     selectors,
     publicActions,
     iterateAllSSMs
-} = singleSSM<PlayerNodes>({
+} = singleSSM<PlayerNodes, PlayerSelectors>({
     name: 'player',
     initialSSMState: 'INITIAL',
     initialSSMDesired: 'CONNECTED',

@@ -13,13 +13,14 @@ import {
 } from './index.api'
 import { heartbeat } from '../../stateSeekingMachine/ssmHeartbeat'
 import { RootState } from '../../../store'
+import { publicSelectors, PublicSelectors } from './selectors'
 
 export const {
     slice: characterEditSlice,
     selectors,
     publicActions,
     iterateAllSSMs
-} = multipleSSM<CharacterEditNodes>({
+} = multipleSSM<CharacterEditNodes, PublicSelectors>({
     name: 'characterEdit',
     initialSSMState: 'INITIAL',
     initialSSMDesired: 'PARSED',
@@ -36,17 +37,7 @@ export const {
             state.value[action.payload.label] = action.payload.value
         }
     },
-    publicSelectors: {
-        getCharacterEditByKey: (state) => state,
-        getCharacterEditValues: ({ defaultValue, value }): Record<CharacterEditKeys, string> => ({
-            ...(['assetKey', 'Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit']
-                .reduce((previous, label) => ({ ...previous, [label]: '' }), {})
-            ) as Record<CharacterEditKeys, string>,
-            ...defaultValue,
-            ...value
-        }),
-        getCharacterEditDirty: ({ value }) => (Object.keys(value).length > 0)
-    },
+    publicSelectors,
     template: {
         initialState: 'INITIAL',
         initialData: {

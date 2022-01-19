@@ -8,6 +8,8 @@ import {
     PartialDataTypeAggregateFromNodes
 } from './baseClasses'
 import { iterateOneSSM } from './index'
+import { Entries } from '../../lib/objects'
+import { Selector } from '../../store'
 
 type multipleSSMItem<Nodes extends Record<string, any>> = InferredDataTypeAggregateFromNodes<Nodes> & {
     meta: ssmMeta<keyof Nodes>
@@ -41,14 +43,14 @@ type resultPublicSelector<D> = {
     (key: string): (state: any) => D | undefined
 }
 
-type multipleSSMArguments<Nodes extends Record<string, any>> = {
+type multipleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType> = {
     name: string;
     initialSSMState: keyof Nodes;
     initialSSMDesired: keyof Nodes;
     initialData: InferredDataTypeAggregateFromNodes<Nodes>;
     sliceSelector: (state: any) => multipleSSMSlice<Nodes>;
     publicReducers?: Record<string, multipleSSMPublicReducer<Nodes, any>>;
-    publicSelectors?: Record<string, multipleSSMPublicSelector<Nodes, any>>;
+    publicSelectors: PublicSelectorsType;
     template: TemplateFromNodes<Nodes>;
 }
 
@@ -88,16 +90,19 @@ const wrapPublicSelector =
         return wrapper
     }
 
-export const multipleSSM = <Nodes extends Record<string, any>>({
+//
+// TODO: Type-constrain selectors in the same way as was done in singleSSM
+//
+export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsType extends Record<string, multipleSSMPublicSelector<Nodes, any>>>({
     name,
     initialSSMState,
     initialSSMDesired,
     initialData,
     sliceSelector,
     publicReducers = {},
-    publicSelectors = {},
+    publicSelectors,
     template
-}: multipleSSMArguments<Nodes>) => {
+}: multipleSSMArguments<Nodes, PublicSelectorsType>) => {
     const slice = createSlice({
         name,
         initialState: {
@@ -194,7 +199,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
             })
     }
 
-    const getStatus = (key: string) => (state: any): keyof Nodes | undefined  => {
+    const getStatus = (key: string): Selector<keyof Nodes | undefined> => (state) => {
         const focus = sliceSelector(state).byId[key]
         if (focus) {
             return focus.meta.currentState
@@ -202,7 +207,7 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         return undefined
     }
 
-    const getIntent = (key: string) => (state: any): keyof Nodes | undefined  => {
+    const getIntent = (key: string): Selector<keyof Nodes | undefined> => (state) => {
         const focus = sliceSelector(state).byId[key]
         if (focus) {
             return focus.meta.desiredState
@@ -210,12 +215,18 @@ export const multipleSSM = <Nodes extends Record<string, any>>({
         return undefined
     }
 
-    const selectors: Record<string, resultPublicSelector<any>> = {
-        ...Object.entries(publicSelectors)
-        .reduce((previous, [name, selector]) => ({
-            ...previous,
-            [name]: wrapPublicSelector(sliceSelector)(selector)
-        }), {} as Record<string, resultPublicSelector<any>>),
+    type SelectorAggregate = {
+        [T in keyof typeof publicSelectors]: (key: string) => Selector<ReturnType<typeof publicSelectors[T]>>
+    }
+    const selectors: SelectorAggregate & {
+        getStatus: (key: string) => Selector<keyof Nodes | undefined>;
+        getIntent: (key: string) => Selector<keyof Nodes | undefined>;
+    } = {
+        ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
+            .reduce((previous, [name, selector]) => ({
+                ...previous,
+                [name]: wrapPublicSelector(sliceSelector)(selector)
+            }), {} as Partial<SelectorAggregate>) as SelectorAggregate,
         getStatus,
         getIntent
     }

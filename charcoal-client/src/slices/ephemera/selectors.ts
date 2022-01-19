@@ -1,6 +1,19 @@
 import { EphemeraPublic, EphemeraCharacterInPlay } from './baseClasses'
 
-export const getCharactersInPlay = (state: EphemeraPublic) => {
+type ColorType = {
+    primary: string;
+    light: string;
+    recap: string;
+    recapLight: string;
+    direct: string;
+}
+
+export type PublicSelectorType = {
+    getCharactersInPlay: (state: EphemeraPublic) => Record<string, EphemeraCharacterInPlay & { color: ColorType }>;
+    getActiveCharacterList: (state: EphemeraPublic) => EphemeraCharacterInPlay[];
+}
+
+const getCharactersInPlay = (state: EphemeraPublic) => {
     const { charactersInPlay } = state
     const defaultValues = {
         Name: '??????',
@@ -34,7 +47,10 @@ export const getCharactersInPlay = (state: EphemeraPublic) => {
 
 }
 
-export const getActiveCharacterList = (state: EphemeraPublic): EphemeraCharacterInPlay[] => {
-    const charactersInPlay = getCharactersInPlay(state)
-    return Object.values(charactersInPlay).filter(({ Connected }) => (Connected)) as EphemeraCharacterInPlay[]
+export const publicSelectors: PublicSelectorType = {
+    getCharactersInPlay,
+    getActiveCharacterList: (state: EphemeraPublic): EphemeraCharacterInPlay[] => {
+        const charactersInPlay = getCharactersInPlay(state)
+        return Object.values(charactersInPlay).filter(({ Connected }) => (Connected)) as EphemeraCharacterInPlay[]
+    }
 }

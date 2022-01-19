@@ -23,7 +23,7 @@ export const RoomCharacter = ({
 }: RoomCharacterProps) => {
     const { CharacterId: viewAsCharacterId } = useActiveCharacter()
     const charactersInPlay = useSelector(getCharactersInPlay)
-    const { color = { primary: 'blue' } } = (CharacterId !== viewAsCharacterId) && charactersInPlay[CharacterId]
+    const { color = { primary: 'blue' } } = ((CharacterId !== viewAsCharacterId) && charactersInPlay[CharacterId]) || { color: {} }
     return <PureCharacterChip
             Name={Name}
             color={color}
