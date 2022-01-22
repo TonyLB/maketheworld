@@ -1,15 +1,13 @@
 // Import required AWS SDK clients and commands for Node.js
 import AWSXRay from 'aws-xray-sdk'
 
-import { DynamoDBClient, QueryCommand, BatchWriteItemCommand } from "@aws-sdk/client-dynamodb"
+import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import { v4 as uuid } from "uuid"
 
 import compileCode from './compileCode.js'
 
 const params = { region: process.env.AWS_REGION }
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
-const MessageTableName = `${process.env.TABLE_PREFIX}_messages`
 
 const splitType = (value) => {
     const sections = value.split('#')
@@ -123,13 +121,8 @@ export const render = async ({ assets, EphemeraId }, subsegment) => {
     const [objectType, objectKey] = splitType(EphemeraId)
     switch(objectType) {
         case 'ROOM':
-            const { render: Description, name: Name, exits, characters } = await renderItem({ assets, EphemeraId: PermanentId }, subsegment)
+            const { render: Description, name: Name, exits, characters } = await renderItem({ assets, EphemeraId }, subsegment)
             const Message = {
-                CreatedTime,
-                Targets: [`CHARACTER#${CharacterId}`],
-                MessageId: `MESSAGE#${uuid()}`,
-                DataCategory: 'Meta::Message',
-                DisplayProtocol,
                 RoomId: objectKey,
                 //
                 // TODO:  Replace Ancestry with a new map system
@@ -140,76 +133,9 @@ export const render = async ({ assets, EphemeraId }, subsegment) => {
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
             }
+            return Message
         default:
             return null        
     }
 }
 
-//
-// TODO: Accept more types of objects, and parse their data accordingly
-//
-const publishMessage = async ({ CreatedTime, CharacterId, PermanentId, DisplayProtocol, additionalMessages = [] }, subsegment) => {
-    //
-    // TODO:  Expand what you query from DynamoDB for the record
-    //
-    const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
-    const [objectType, objectKey] = splitType(PermanentId)
-    switch(objectType) {
-        case 'ROOM':
-            //
-            // TODO: Create a system to look up the assets that a given character has access to
-            //
-            const { render: Description, name: Name, exits, characters } = await renderItem({ assets: ['TEST'], EphemeraId: PermanentId })
-            const Message = {
-                CreatedTime,
-                Targets: [`CHARACTER#${CharacterId}`],
-                MessageId: `MESSAGE#${uuid()}`,
-                DataCategory: 'Meta::Message',
-                DisplayProtocol,
-                RoomId: objectKey,
-                //
-                // TODO:  Replace Ancestry with a new map system
-                //
-                Ancestry: '',
-                RoomCharacters: characters.map(({ EphemeraId, ...rest }) => ({ CharacterId: stripType(EphemeraId), ...rest })),
-                Description,
-                Name,
-                Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
-            }
-            await ddbClient.send(new BatchWriteItemCommand({ RequestItems: {
-                [MessageTableName]: [
-                    Message,
-                    ...additionalMessages
-                ].map((item) => ({ PutRequest: { Item: marshall(item) }}))
-            }}))
-            return
-        default:
-            return
-    }
-}
-
-// export const handler = async (event, context) => {
-
-//     const { CreatedTime, CharacterId, PermanentId, DisplayProtocol } = event
-
-//     if (event.render) {
-//         return AWSXRay.captureAsyncFunc('render', async (subsegment) => {
-//             const returnVal = await render({
-//                 EphemeraId: event.EphemeraId,
-//                 assets: event.assets
-//             }, subsegment)
-//             subsegment.close()
-//             return returnVal
-//         })
-//     }
-//     if (CreatedTime && CharacterId && PermanentId && DisplayProtocol) {
-//         return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
-//             const returnVal = await publishMessage(event, subsegment)
-//             subsegment.close()
-//             return returnVal
-//         })
-//     }
-
-//     context.fail(JSON.stringify(`Error: Unknown format ${event}`))
-
-// }

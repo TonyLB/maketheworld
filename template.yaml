@@ -51,7 +51,6 @@ Resources:
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
-          PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
           EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
           ASSETS_SERVICE: !GetAtt AssetsFunction.Arn
           WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
@@ -82,7 +81,6 @@ Resources:
             Action:
               - lambda:InvokeFunction
             Resource:
-              - !GetAtt PerceptionFunction.Arn
               - !GetAtt EphemeraFunction.Arn
               - !GetAtt AssetsFunction.Arn
         - Statement:
