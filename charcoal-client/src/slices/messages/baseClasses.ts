@@ -38,6 +38,19 @@ export type RoomDescription = {
     RoomCharacters: RoomCharacter[];
 } & MessageAddressing
 
+export type RoomHeader = {
+    DisplayProtocol: 'RoomHeader';
+    Description: string;
+    Name: string;
+    RoomId: string;
+    Exits: RoomExit[];
+    //
+    // TODO: Refactor RoomDescription transmission protocol to send room characters
+    // in 'Characters' rather than 'RoomCharacter' ... context is already established
+    //
+    RoomCharacters: RoomCharacter[];
+} & MessageAddressing
+
 export type CharacterText = {
     DisplayProtocol: 'Player';
     CharacterId: string;
@@ -64,4 +77,4 @@ export type OutOfCharacterMessage = {
     Message: string;
 } & MessageAddressing
 
-export type Message = WorldMessage | RoomDescription | CharacterText | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+export type Message = WorldMessage | RoomDescription | RoomHeader | CharacterText | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
