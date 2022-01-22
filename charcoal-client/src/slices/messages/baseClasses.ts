@@ -78,3 +78,5 @@ export type OutOfCharacterMessage = {
 } & MessageAddressing
 
 export type Message = WorldMessage | RoomDescription | RoomHeader | CharacterText | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+
+export type MessageState = Record<string, Message[]>
