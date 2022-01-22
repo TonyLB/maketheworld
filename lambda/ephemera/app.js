@@ -3,7 +3,6 @@
 
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { DynamoDBClient, QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
-import { LambdaClient } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
@@ -27,9 +26,7 @@ const REGION = process.env.AWS_REGION
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const messageTable = `${TABLE_PREFIX}_messages`
 
-const lambdaClient = new LambdaClient({ region: REGION })
 const dbClient = new DynamoDBClient({ region: REGION })
 
 const splitPermanentId = (PermanentId) => {
@@ -192,7 +189,7 @@ const dispatchRecords = (Records) => {
     // figure out what records need to be forwarded as Ephemera updates to whom.
     //
     return Promise.all([
-        ...characterRecords.map(processCharacterEvent({ dbClient, lambdaClient })),
+        ...characterRecords.map(processCharacterEvent(dbClient)),
         ...playerRecords.map(processPlayerEvent({ dbClient })),
         postRecords(Records)
     ])

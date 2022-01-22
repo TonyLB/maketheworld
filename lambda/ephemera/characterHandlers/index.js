@@ -2,7 +2,7 @@ import { checkForConnect } from './checkForConnect.js'
 import { checkForDisconnect } from './checkForDisconnect.js'
 import { checkForMovement } from './checkForMovement.js'
 
-export const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName, data }) => {
+export const processCharacterEvent = (dbClient) => async ({ eventName, data }) => {
     switch(eventName) {
         case 'INSERT':
             await Promise.all([
@@ -13,7 +13,7 @@ export const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ ev
             await Promise.all([
                 checkForConnect(dbClient, data),
                 checkForDisconnect(dbClient, data),
-                checkForMovement({ dbClient, lambdaClient }, data)
+                checkForMovement(dbClient, data)
             ])
             break
         case 'REMOVE':

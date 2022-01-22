@@ -1,15 +1,15 @@
 import { marshall } from '@aws-sdk/util-dynamodb'
-import { UpdateItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { UpdateItemCommand, PutItemCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
-import { InvokeCommand } from '@aws-sdk/client-lambda'
 
 import { splitType } from '../utilities/index.js'
+import { render } from '/opt/perception/index.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const messageTable = `${TABLE_PREFIX}_messages`
 
-export const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage }) => {
+export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
     if (newImage.Connected === oldImage.Connected && newImage.RoomId !== oldImage.RoomId) {
         const epochTime = Date.now()
         if (newImage.Connected) {
@@ -35,22 +35,30 @@ export const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, n
                             CreatedTime: epochTime + 1,
                             Targets: [`CHARACTER#${CharacterId}`, `ROOM#${newRoomId}`],
                             DisplayProtocol: "World",
-                            Message: `${Name}${enterMessage || ' has left.'}`
+                            Message: `${Name}${enterMessage || ' has arrived.'}`
                         }]
                         : []
                 if (newRoomId) {
-                    const args = {
-                        CreatedTime: epochTime,
-                        CharacterId,
-                        PermanentId: `ROOM#${newRoomId}`,
-                        DisplayProtocol: 'RoomHeader',
-                        additionalMessages: [...departure, ...arrival]
-                    }
-                    await lambdaClient.send(new InvokeCommand({
-                        FunctionName: process.env.PERCEPTION_SERVICE,
-                        InvocationType: 'RequestResponse',
-                        Payload: new TextEncoder().encode(JSON.stringify(args))
-                    }))
+                    const roomMessage = await render({
+                        assets: ['TEST'],
+                        EphemeraId: `ROOM#${newRoomId}`,
+                    })
+                    await dbClient.send(new BatchWriteItemCommand({ RequestItems: {
+                        [messageTable]: [
+                            ...arrival,
+                            {
+                                MessageId: `MESSAGE#${uuidv4()}`,
+                                CreatedTime: epochTime,
+                                Targets: [`ROOM#${newRoomId}`, `CHARACTER#${CharacterId}`],
+                                DataCategory: 'Meta::Message',
+                                DisplayProtocol: 'RoomHeader',
+                                ...roomMessage
+                            },
+                            ...departure
+                        ].map((message) => ({
+                            PutRequest: { Item: marshall(message) }
+                        }))
+                    }}))
                 }
                 else {
                     //
