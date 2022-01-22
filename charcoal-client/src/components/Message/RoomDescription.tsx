@@ -10,13 +10,13 @@ import {
 import { makeStyles } from "@material-ui/core/styles"
 import HouseIcon from '@material-ui/icons/House'
 
-import { RoomDescription as RoomDescriptionType } from '../../slices/messages/baseClasses'
+import { RoomDescription as RoomDescriptionType, RoomHeader as RoomHeaderType } from '../../slices/messages/baseClasses'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 
 interface RoomDescriptionProps {
-    message: RoomDescriptionType;
+    message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
 }
 

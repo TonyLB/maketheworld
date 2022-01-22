@@ -22,6 +22,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'World':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':
+        case 'RoomHeader':
             return <RoomDescription message={message} {...rest} />
         default:
             return <UnknownMessage message={message} />
