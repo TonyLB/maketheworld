@@ -123,7 +123,7 @@ const renderItem = async ({ assets, EphemeraId }, subsegment) => {
 //
 // TODO: Accept more types of objects, and parse their data accordingly
 //
-const publishMessage = async ({ CreatedTime, CharacterId, PermanentId, additionalMessages = [] }, subsegment) => {
+const publishMessage = async ({ CreatedTime, CharacterId, PermanentId, DisplayProtocol, additionalMessages = [] }, subsegment) => {
     //
     // TODO:  Expand what you query from DynamoDB for the record
     //
@@ -141,7 +141,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId, additiona
                 Targets: [`CHARACTER#${CharacterId}`],
                 MessageId: `MESSAGE#${uuid()}`,
                 DataCategory: 'Meta::Message',
-                DisplayProtocol: "RoomDescription",
+                DisplayProtocol,
                 RoomId: objectKey,
                 //
                 // TODO:  Replace Ancestry with a new map system
@@ -166,7 +166,7 @@ const publishMessage = async ({ CreatedTime, CharacterId, PermanentId, additiona
 
 exports.handler = async (event, context) => {
 
-    const { CreatedTime, CharacterId, PermanentId } = event
+    const { CreatedTime, CharacterId, PermanentId, DisplayProtocol } = event
 
     if (event.render) {
         return AWSXRay.captureAsyncFunc('render', async (subsegment) => {
@@ -178,7 +178,7 @@ exports.handler = async (event, context) => {
             return returnVal
         })
     }
-    if (CreatedTime && CharacterId && PermanentId) {
+    if (CreatedTime && CharacterId && PermanentId && DisplayProtocol) {
         return AWSXRay.captureAsyncFunc('publish', async (subsegment) => {
             const returnVal = await publishMessage(event, subsegment)
             subsegment.close()

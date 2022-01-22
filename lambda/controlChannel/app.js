@@ -222,7 +222,8 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     const arguments = {
         CreatedTime: Date.now(),
         CharacterId,
-        PermanentId
+        PermanentId,
+        DisplayProtocol: 'RoomDescription'
     }
     await lambdaClient.send(new InvokeCommand({
         FunctionName: process.env.PERCEPTION_SERVICE,

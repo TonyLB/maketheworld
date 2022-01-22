@@ -43,6 +43,7 @@ const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage
                         CreatedTime: epochTime,
                         CharacterId,
                         PermanentId: `ROOM#${newRoomId}`,
+                        DisplayProtocol: 'RoomHeader',
                         additionalMessages: [...departure, ...arrival]
                     }
                     await lambdaClient.send(new InvokeCommand({
