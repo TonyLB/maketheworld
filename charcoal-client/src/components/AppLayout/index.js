@@ -113,7 +113,7 @@ const tabList = ({ large, navigationTabs = [] }) => ([
             to={href}
         />
     ))),
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} to="/Who/" />])
 ])
 
 const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
@@ -199,6 +199,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Forum/" element={<InDevelopment />} />
                         <Route path="/Maps/*" element={<MapHome />} />
                         <Route path="/Help/" element={<HelpPage />} />
+                        <Route path="/Who/" element={whoPanel} />
                         <Route path="/" element={homePanel} />
                     </Routes>
                 </div>

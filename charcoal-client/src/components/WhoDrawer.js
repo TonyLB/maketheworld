@@ -13,7 +13,7 @@ import {
 import { getActiveCharacterList } from '../slices/ephemera'
 import { getPlayer } from '../slices/player'
 
-import { useStyles } from './styles'
+import useStyles, { playerStyle } from './styles'
 
 export const WhoDrawer = () => {
 
@@ -46,9 +46,11 @@ export const WhoDrawer = () => {
                         return (
                             <TableRow key={CharacterId} hover onClick={() => { }}>
                                 <TableCell>
-                                    <Avatar className={(myCharacterIds.includes(CharacterId)) ? classes.blue : (color && classes[color.primary])}>
-                                        { Name[0].toUpperCase() }
-                                    </Avatar>
+                                    <div className={playerStyle(myCharacterIds.includes(CharacterId) ? 'blue' : color.name)}>
+                                        <Avatar className='avatarColor'>
+                                            { Name[0].toUpperCase() }
+                                        </Avatar>
+                                    </div>
                                 </TableCell>
                                 <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
                                 <TableCell>{ neighborhoodName }</TableCell>

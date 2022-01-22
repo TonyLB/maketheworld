@@ -10,49 +10,15 @@ import tinycolor from 'tinycolor2'
 
 const drawerWidth = 400;
 
+export const playerStyle = (color: string): string => (
+    color
+        ? `player${color.charAt(0).toUpperCase()}${color.slice(1)}`
+        : ''
+)
+
 export const useStyles = makeStyles(theme => ({
-    //
-    // Old style classes created multiple direct named classes for each color.
-    // This should be replaced with new style nested color classes, and the
-    // old style deprecated
-    //
     ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
-        [colorName]: {
-            color: theme.palette.getContrastText(color[500]),
-            backgroundColor: color[500]
-        },
-        [`light${colorName}`]: {
-            color: theme.palette.getContrastText(color[50]),
-            backgroundColor: color[50]
-        },
-        [`recap${colorName}`]:{
-            backgroundColor: tinycolor(color[500]).darken(10).desaturate(60).toHexString()
-        },
-        [`recapLight${colorName}`]:{
-            backgroundColor: tinycolor(color[50]).darken(10).desaturate(60).toHexString(),
-            paddingLeft: theme.spacing(8)
-        },
-        [`direct${colorName}`]: {
-            color: theme.palette.getContrastText(color[50]),
-            backgroundColor: color[50],
-            borderRadius: "10px",
-            borderColor: color[500],
-            borderWidth: "1px",
-            borderStyle: "solid"
-        },
-        [`chip-${colorName}`]: {
-            color: theme.palette.getContrastText(color[50]),
-            backgroundColor: color[50]
-        }
-    })).reduce((prev, item) => ({ ...prev, ...item }), {})),
-    //
-    // New style classes create several player<Color> classes, with nested
-    // classes within them, so that outer items can declare a player<Color> class
-    // for a particular color, and inner classes can simply use the constant nested
-    // class name
-    //
-    ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
-        [`player${colorName.charAt(0).toUpperCase()}${colorName.slice(1)}`]: {
+        [playerStyle(colorName)]: {
             '& .threadViewMessageColor': {
                 color: theme.palette.getContrastText(color[50]),
                 backgroundColor: color[50],
@@ -65,6 +31,10 @@ export const useStyles = makeStyles(theme => ({
             '& .avatarColor': {
                 color: theme.palette.getContrastText(color[50]),
                 backgroundColor: color[500],
+            },
+            '& .chipColor': {
+                color: theme.palette.getContrastText(color[50]),
+                backgroundColor: color[50]
             }
         },
     })).reduce((prev, item) => ({ ...prev, ...item }), {})),

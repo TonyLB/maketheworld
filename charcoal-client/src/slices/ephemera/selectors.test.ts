@@ -10,6 +10,7 @@ const testState = {
             Connected: true,
             RoomId: 'ABC',
             color: {
+                name: 'pink',
                 primary: 'pink',
                 light: 'test',
                 recap: 'test',
@@ -22,6 +23,7 @@ const testState = {
             Name: 'Marco',
             Connected: false,
             color: {
+                name: 'green',
                 primary: 'green',
                 light: 'test',
                 recap: 'test',
@@ -35,6 +37,7 @@ const testState = {
             Connected: false,
             RoomId: 'ABC',
             color: {
+                name: 'green',
                 primary: 'green',
                 light: 'test',
                 recap: 'test',
@@ -55,6 +58,7 @@ describe('charactersInPlay selectors', () => {
             Connected: true,
             RoomId: 'ABC',
             color: {
+                name: 'pink',
                 primary: 'pink',
                 light: 'test',
                 recap: 'test',
@@ -70,6 +74,7 @@ describe('charactersInPlay selectors', () => {
             Name: '??????',
             Connected: false,
             color: {
+                name: 'grey',
                 primary: 'grey',
                 light: 'grey',
                 recap: 'grey',
@@ -90,6 +95,7 @@ describe('charactersInPlay selectors', () => {
             Connected: false,
             RoomId: 'ABC',
             color: {
+                name: 'green',
                 primary: 'green',
                 light: 'test',
                 recap: 'test',
@@ -101,6 +107,7 @@ describe('charactersInPlay selectors', () => {
             Name: 'Marco',
             Connected: false,
             color: {
+                name: 'green',
                 primary: 'green',
                 light: 'test',
                 recap: 'test',
@@ -113,6 +120,7 @@ describe('charactersInPlay selectors', () => {
             Connected: true,
             RoomId: 'ABC',
             color: {
+                name: 'pink',
                 primary: 'pink',
                 light: 'test',
                 recap: 'test',
@@ -129,6 +137,7 @@ describe('charactersInPlay selectors', () => {
             Connected: false,
             RoomId: 'ABC',
             color: {
+                name: 'green',
                 primary: 'green',
                 light: 'test',
                 recap: 'test',
@@ -140,6 +149,7 @@ describe('charactersInPlay selectors', () => {
             Name: 'Marco',
             Connected: false,
             color: {
+                name: 'green',
                 primary: 'green',
                 light: 'test',
                 recap: 'test',
@@ -152,6 +162,7 @@ describe('charactersInPlay selectors', () => {
             Connected: true,
             RoomId: 'ABC',
             color: {
+                name: 'pink',
                 primary: 'pink',
                 light: 'test',
                 recap: 'test',

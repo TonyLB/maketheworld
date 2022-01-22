@@ -37,6 +37,10 @@ export const { add, remove } = navigationSlice.actions
 
 export const navigationTabs: Selector<NavigationTab[]> = ({ UI: { navigationTabs = [] } }) => (navigationTabs)
 
+//
+// TODO: Change navigationTab functionality so that it handles the possibility of
+// "Who is on" being one of the visible tabs (i.e., small screen)
+//
 export const navigationTabSelected = (pathname: string): Selector<NavigationTab | null> => createSelector(
     navigationTabs,
     (navigationTabs) => {

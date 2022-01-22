@@ -6,6 +6,7 @@ export interface EphemeraInternal {
 }
 
 export type EphemeraCharacterColor = {
+    name: string;
     primary: string;
     light: string;
     recap: string;

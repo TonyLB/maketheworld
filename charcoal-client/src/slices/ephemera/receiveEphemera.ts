@@ -9,6 +9,7 @@ export type EphemeraChange = CharacterInPlayChange
 
 const colorSequence: EphemeraCharacterColor[] = ['pink', 'purple', 'green']
     .map(color => ({
+        name: color,
         primary: color,
         light: `light${color}`,
         recap: `recap${color}`,

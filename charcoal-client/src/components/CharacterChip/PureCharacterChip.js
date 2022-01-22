@@ -12,7 +12,7 @@ import {
     Tooltip
 } from '@material-ui/core'
 
-import useStyles from '../styles'
+import useStyles, { playerStyle } from '../styles'
 
 export const PureCharacterChip = ({
     Name,
@@ -35,12 +35,14 @@ export const PureCharacterChip = ({
                 { Outfit && <div>Outfit: {Outfit}</div> }
             </React.Fragment>}
         >
-            <Chip
-                label={Name}
-                classes={{
-                    root: `${classes[`chip-${color.primary}`]} ${classes.characterChip}`
-                }}
-            />
+            <div className={classes[playerStyle(color.name)]}>
+                <Chip
+                    label={Name}
+                    classes={{
+                        root: `chipColor ${classes.characterChip}`
+                    }}
+                />
+            </div>
         </Tooltip>
     )
 }
