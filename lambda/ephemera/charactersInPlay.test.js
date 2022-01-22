@@ -4,14 +4,14 @@ jest.mock('@aws-sdk/client-dynamodb', () => ({
     UpdateItemCommand: () => 'Update'
 }))
 
-jest.mock('/opt/uuid', () => ({
+jest.mock('uuid', () => ({
     v4: jest.fn()
 }))
 
 const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
 const { documentClient, graphqlClient } = require('./utilities')
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { v4: uuid } = require('/opt/uuid')
+const { v4: uuid } = require('uuid')
 
 describe("getCharactersInPlay", () => {
     const dbClient = {
