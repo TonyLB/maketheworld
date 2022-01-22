@@ -67,24 +67,24 @@ const messagesSlice = createSlice({
     }
 })
 
-const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] => (obj[prop] || [])
+// const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] => (obj[prop] || [])
 
-export const getMessages = (state: any) => {
-    return new Proxy(state.messages, {
-        get: handlerLookup,
-        ownKeys: (targets = {}) => {
-            return Object.keys(targets).sort()
-        },
-        getOwnPropertyDescriptor: (obj, prop) => {
-            const value = handlerLookup(obj, prop)
-            return {
-                configurable: Object.getOwnPropertyDescriptor(obj, prop)?.configurable,
-                enumerable: Boolean(obj[prop]),
-                value
-            }
-        }
-    })
-}
+// export const getMessages = (state: any) => {
+//     return new Proxy(state.messages, {
+//         get: handlerLookup,
+//         ownKeys: (targets = {}) => {
+//             return Object.keys(targets).sort()
+//         },
+//         getOwnPropertyDescriptor: (obj, prop) => {
+//             const value = handlerLookup(obj, prop)
+//             return {
+//                 configurable: Object.getOwnPropertyDescriptor(obj, prop)?.configurable,
+//                 enumerable: Boolean(obj[prop]),
+//                 value
+//             }
+//         }
+//     })
+// }
 
 export const { receiveMessages } = messagesSlice.actions
 
@@ -115,5 +115,10 @@ export const cacheMessages = (messages: Message[]) => async (dispatch: any) => {
     //
     dispatch(receiveMessages(messages))
 }
+
+export {
+    getMessages,
+    getMessagesByRoom
+} from './selectors'
 
 export default messagesSlice.reducer

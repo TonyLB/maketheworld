@@ -1,16 +1,18 @@
-import React, { useRef, useMemo } from 'react'
+import React, { useRef, useMemo, useCallback } from 'react'
 import PropTypes from "prop-types"
 
 import {
     List
 } from '@material-ui/core'
 
-import { Virtuoso, VirtuosoHandle, ItemContent } from 'react-virtuoso'
+import { GroupedVirtuoso, VirtuosoHandle, GroupItemContent } from 'react-virtuoso'
 
+import { useActiveCharacter } from '../ActiveCharacter'
 import { Message as MessageComponent } from '.'
+import { RoomDescription } from './RoomDescription'
 import { Message as MessageType } from '../../slices/messages/baseClasses'
 
-const itemContent: ItemContent<MessageType> = (_, data) => {
+const itemContent: GroupItemContent<MessageType> = (index, groupIndex, data) => {
     //
     // TODO: Replace global clickable:true for RoomExits with clickable only on the most recent instance
     // of the current room description message
@@ -18,8 +20,13 @@ const itemContent: ItemContent<MessageType> = (_, data) => {
     return <MessageComponent message={data} />
 }
 
-export const VirtualMessageList = ({ messages = [], viewAsCharacterId = '' }) => {
+export const VirtualMessageList = () => {
+    const { messageBreakdown } = useActiveCharacter()
     const virtuoso = useRef<VirtuosoHandle>(null)
+
+    const groupCounts = useMemo(() => (
+        messageBreakdown.Groups.map(({ messageCount }) => (messageCount))
+    ), [messageBreakdown.Groups])
 
     const Components = useMemo(() => {
         return {
@@ -39,11 +46,17 @@ export const VirtualMessageList = ({ messages = [], viewAsCharacterId = '' }) =>
         }
     }, [])
 
+    const groupContent = useCallback(((index: number) => (
+            <RoomDescription message={messageBreakdown.Groups[index].header} />
+        )), [messageBreakdown.Groups])
+
     return (
-        <Virtuoso
-            data={messages}
+        <GroupedVirtuoso
+            data={messageBreakdown.Messages}
+            groupCounts={groupCounts}
+            groupContent={groupContent}
             components={Components}
-            initialTopMostItemIndex={messages.length - 1}
+            initialTopMostItemIndex={messageBreakdown.Messages.length - 1}
             overscan={{ main: 500, reverse: 500 }}
             itemContent={itemContent}
             followOutput={true}
