@@ -1,10 +1,10 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
-const { queueAdd } = require('./feedbackQueue');
-const { addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInRoom')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
+import { queueAdd } from './feedbackQueue.js'
+import { addCharacterToRoom, removeCharacterFromRoom } from './charactersInRoom.js'
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -123,7 +123,7 @@ const denormalizeCharacterHelper = denormalizeFactory({
     }
 })
 
-const denormalizeCharacter = async (...args) => {
+export const denormalizeCharacter = async (...args) => {
     const tempVal = await denormalizeCharacterHelper(...args)
     console.log(`TempVal: ${JSON.stringify(tempVal, null, 4)}`)
     const [returnValue, ConnectionId] = tempVal
@@ -162,7 +162,7 @@ const denormalizeCharacter = async (...args) => {
     }
 }
 
-const denormalizeRoom = denormalizeFactory({
+export const denormalizeRoom = denormalizeFactory({
     label: 'Room',
     ephemeraPrefix: 'ROOMINPLAY',
     permanentPrefix: 'ROOM',
@@ -171,6 +171,3 @@ const denormalizeRoom = denormalizeFactory({
     optionalFields: ['Description'],
     reservedMapping: { Name: '#name' }
 })
-
-exports.denormalizeCharacter = denormalizeCharacter
-exports.denormalizeRoom = denormalizeRoom

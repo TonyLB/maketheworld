@@ -1,8 +1,8 @@
 // Copyright 2021 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand } = require('@aws-sdk/client-dynamodb')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb'
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -53,7 +53,7 @@ const serialize = ({
     }
 }
 
-const fetchEphemera = async (RequestId) => {
+export const fetchEphemera = async (RequestId) => {
     const { Items = [] } = await dbClient.send(new QueryCommand({
         TableName: ephemeraTable,
         KeyConditionExpression: 'DataCategory = :DataCategory and begins_with(EphemeraId, :EphemeraId)',
@@ -78,4 +78,4 @@ const fetchEphemera = async (RequestId) => {
     }
 }
 
-exports.fetchEphemera = fetchEphemera
+export default fetchEphemera

@@ -1,13 +1,13 @@
-const { GetItemCommand, ScanCommand, PutItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
+import { GetItemCommand, ScanCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
-const { splitType } = require('../utilities')
+import { splitType } from '../utilities/index.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 
-const healGlobalConnections = async (dbClient) => {
+export const healGlobalConnections = async (dbClient) => {
     try {
         const { Items = [] } = await dbClient.send(new ScanCommand({
             TableName: ephemeraTable,
@@ -39,7 +39,7 @@ const healGlobalConnections = async (dbClient) => {
     
 }
 
-const healCharacter = async (dbClient, CharacterId) => {
+export const healCharacter = async (dbClient, CharacterId) => {
     try {
         const { Item } = await dbClient.send(new GetItemCommand({
             TableName: assetsTable,
@@ -81,6 +81,3 @@ const healCharacter = async (dbClient, CharacterId) => {
     return {}
 
 }
-
-exports.healGlobalConnections = healGlobalConnections
-exports.healCharacter = healCharacter

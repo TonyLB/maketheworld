@@ -1,8 +1,8 @@
-const { checkForConnect } = require('./checkForConnect')
-const { checkForDisconnect } = require('./checkForDisconnect')
-const { checkForMovement } = require('./checkForMovement')
+import { checkForConnect } from './checkForConnect.js'
+import { checkForDisconnect } from './checkForDisconnect.js'
+import { checkForMovement } from './checkForMovement.js'
 
-const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName, data }) => {
+export const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName, data }) => {
     switch(eventName) {
         case 'INSERT':
             await Promise.all([
@@ -25,5 +25,3 @@ const processCharacterEvent = ({ dbClient, lambdaClient }) => async ({ eventName
             break
     }
 }
-
-exports.processCharacterEvent = processCharacterEvent

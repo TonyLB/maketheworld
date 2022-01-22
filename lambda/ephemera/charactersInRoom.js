@@ -1,5 +1,5 @@
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, UpdateItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -7,8 +7,7 @@ const dbClient = new DynamoDBClient({ region: REGION })
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
-
-const addCharacterToRoom = async ({ CharacterId, Name: incomingName, RoomId, Connected, ConnectionId }) => {
+export const addCharacterToRoom = async ({ CharacterId, Name: incomingName, RoomId, Connected, ConnectionId }) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     let Name = incomingName
     if (!Name) {
@@ -60,7 +59,7 @@ const addCharacterToRoom = async ({ CharacterId, Name: incomingName, RoomId, Con
     }
 }
 
-const removeCharacterFromRoom = async ({ CharacterId, RoomId }) => {
+export const removeCharacterFromRoom = async ({ CharacterId, RoomId }) => {
     await dbClient.send(new UpdateItemCommand({
         TableName: ephemeraTable,
         Key: marshall({
@@ -71,6 +70,3 @@ const removeCharacterFromRoom = async ({ CharacterId, RoomId }) => {
         ExpressionAttributeNames: { "#characterId": `CHARACTERINPLAY#${CharacterId}` }
     }))
 }
-
-exports.addCharacterToRoom = addCharacterToRoom
-exports.removeCharacterFromRoom = removeCharacterFromRoom

@@ -1,5 +1,6 @@
 {
   "name": "ephemera",
+  "type": "module",
   "version": "1.0.0",
   "description": "Lambda handler for MTW ephemera data",
   "main": "app.js",

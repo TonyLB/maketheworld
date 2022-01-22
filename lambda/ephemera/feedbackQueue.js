@@ -4,9 +4,9 @@
 // for code-simplicity and legibility.
 //
 
-const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb')
-const { unmarshall, marshall } = require('@aws-sdk/util-dynamodb')
-const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb'
+import { unmarshall, marshall } from '@aws-sdk/util-dynamodb'
+import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -20,15 +20,15 @@ const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION })
 
 let queueStorage = []
 
-const queueClear = () => {
+export const queueClear = () => {
     queueStorage = []
 }
 
-const queueAdd = (item) => {
+export const queueAdd = (item) => {
     queueStorage = [...queueStorage, item]
 }
 
-const queueState = () => {
+export const queueState = () => {
     return queueStorage
 }
 
@@ -37,7 +37,7 @@ const queueState = () => {
 // connections.  Reduce down to a map of targetted messages by target,
 // and add that in (as you map through the global messages)
 //
-const queueFlush = async () => {
+export const queueFlush = async () => {
     const { Item } = await dbClient.send(new GetItemCommand({
         TableName: ephemeraTable,
         Key: marshall({
@@ -64,8 +64,3 @@ const queueFlush = async () => {
     }
     queueStorage = []
 }
-
-exports.queueClear = queueClear
-exports.queueAdd = queueAdd
-exports.queueState = queueState
-exports.queueFlush = queueFlush
