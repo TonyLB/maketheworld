@@ -32,29 +32,44 @@
 //   TO-DO:  That.
 //
 
-import React, { useContext } from 'react'
+import React, { useContext, ReactChild, ReactChildren, FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
 
 //
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
 //
 import { getActiveCharacters } from '../../slices/activeCharacters'
-import { getMessages } from '../../slices/messages'
+import { getMessagesByRoom } from '../../slices/messages'
 import { getCharactersInPlay } from '../../slices/ephemera'
+import { MessageRoomBreakdown } from '../../slices/messages/selectors'
 
-const ActiveCharacterContext = React.createContext({
+type ActiveCharacterContextType = {
+    CharacterId: string;
+    messageBreakdown: MessageRoomBreakdown;
+}
+
+const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
     CharacterId: '',
+    messageBreakdown: {
+        Messages: [],
+        Groups: []
+    }
 })
 
-export const ActiveCharacter = ({ CharacterId, children }) => {
+type ActiveCharacterProps = {
+    CharacterId: string;
+    children?: ReactChild | ReactChildren;
+}
+
+export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ CharacterId, children }) => {
 
     const characterState = useSelector(getActiveCharacters)[CharacterId]
-    const inPlayMessages = useSelector(getMessages)[CharacterId]
+    const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
     const info = useSelector(getCharactersInPlay)[CharacterId]
     return (
         <ActiveCharacterContext.Provider value={{
             CharacterId,
-            inPlayMessages,
+            messageBreakdown,
             info,
             ...characterState
         }}>

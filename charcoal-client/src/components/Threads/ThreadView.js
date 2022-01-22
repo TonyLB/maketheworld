@@ -15,7 +15,8 @@ export const ThreadView = ({
     }) => {
     const messages = useSelector(getMessages)
     const threadMessages = useMemo(() => (messages.threads.filter((message) => (message.ThreadId === ThreadId))), [messages, ThreadId])
-    return <VirtualMessageList key={ThreadId} messages={threadMessages} viewAsCharacterId={viewAsCharacterId} />
+    return null
+    // return <VirtualMessageList key={ThreadId} messages={threadMessages} viewAsCharacterId={viewAsCharacterId} />
 
 }
 
