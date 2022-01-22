@@ -4,11 +4,11 @@ jest.mock('../utilities', () => ({
         batchWrite: jest.fn()
     }
 }))
-jest.mock('/opt/uuid', () => ({
+jest.mock('uuid', () => ({
     v4: jest.fn()
 }))
 
-const { v4: uuid } = require('/opt/uuid')
+const { v4: uuid } = require('uuid')
 
 const { putCharacter } = require('./putCharacter')
 const { documentClient } = require('../utilities')

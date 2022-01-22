@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('/opt/uuid')
+const { v4: uuidv4 } = require('uuid')
 const { documentClient, } = require('../utilities')
 
 const AWSXRay = require('aws-xray-sdk')

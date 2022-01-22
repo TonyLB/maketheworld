@@ -48,8 +48,6 @@ Resources:
       MemorySize: 128
       Runtime: nodejs14.x
       Timeout: 10
-      Layers:
-        - !Ref UUIDLambdaLayer
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
@@ -437,14 +435,6 @@ Resources:
             Projection:
               ProjectionType: KEYS_ONLY
         TableName: !Sub '${TablePrefix}_message_delta'
-  UUIDLambdaLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-        LayerName: uuid-layer
-        Description: Lambda layer to import the uuid library
-        ContentUri: lambda/uuidLayer/
-        CompatibleRuntimes:
-          - nodejs14.x
   InitializeFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -507,8 +497,6 @@ Resources:
           MemorySize: 256
           Runtime: nodejs14.x
           Timeout: 30
-          Layers:
-              - !Ref UUIDLambdaLayer
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
@@ -626,8 +614,6 @@ Resources:
           MemorySize: 128
           Runtime: nodejs14.x
           Timeout: 5
-          Layers:
-              - !Ref UUIDLambdaLayer
           Environment:
               Variables:
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]

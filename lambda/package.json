@@ -13,12 +13,10 @@
   },
   "jest": {
     "modulePaths": [
-      "<rootDir>/appSyncLayer/node_modules/",
-      "<rootDir>/uuidLayer/node_modules/"
+      "<rootDir>/appSyncLayer/node_modules/"
     ],
     "moduleNameMapper": {
-      "^/opt/appsync$": "<rootDir>/appSyncLayer/appsync.js",
-      "^/opt/uuid$": "<rootDir>/uuidLayer/uuid.js"
+      "^/opt/appsync$": "<rootDir>/appSyncLayer/appsync.js"
     }
   }
 }
