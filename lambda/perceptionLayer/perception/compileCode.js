@@ -1,4 +1,4 @@
-const compileCode = (src) => {
+export const compileCode = (src) => {
     src = 'with (sandbox) {' + src + '}'
     const code = new Function('sandbox', src)
   
@@ -11,4 +11,4 @@ const compileCode = (src) => {
     }
 }
 
-exports.compileCode = compileCode
+export default compileCode

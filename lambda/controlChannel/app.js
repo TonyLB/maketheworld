@@ -13,6 +13,7 @@ import { putPlayer, whoAmI, getConnectionsByPlayerName, getPlayerByConnectionId 
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
+import { render } from '/opt/perception/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -220,16 +221,23 @@ const fetchEphemera = async (RequestId) => {
 }
 
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
-    const args = {
-        CreatedTime: Date.now(),
-        CharacterId,
-        PermanentId,
-        DisplayProtocol: 'RoomDescription'
-    }
-    await lambdaClient.send(new InvokeCommand({
-        FunctionName: process.env.PERCEPTION_SERVICE,
-        InvocationType: 'RequestResponse',
-        Payload: new TextEncoder().encode(JSON.stringify(args))
+    //
+    // TODO: Create asset management system to allow non-hard-coded asset lists
+    //
+    const roomMessage = await render({
+        assets: ['TEST'],
+        EphemeraId: PermanentId
+    })
+    await dbClient.send(new PutItemCommand({
+        TableName: messagesTable,
+        Item: marshall({
+            MessageId: `MESSAGE#${uuidv4()}`,
+            DataCategory: 'Meta::Message',
+            Targets: [`CHARACTER#${CharacterId}`],
+            CreatedTime: Date.now(),
+            DisplayProtocol: 'RoomDescription',
+            ...roomMessage
+        })
     }))
     return {
         statusCode: 200,
