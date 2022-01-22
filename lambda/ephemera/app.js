@@ -1,11 +1,22 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb')
-const { LambdaClient } = require('@aws-sdk/client-lambda')
-const { v4: uuidv4 } = require('uuid')
-const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
+import { LambdaClient } from '@aws-sdk/client-lambda'
+import { v4 as uuidv4 } from 'uuid'
+import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
+
+import { putCharacterInPlay } from './charactersInPlay.js'
+import { addCharacterToRoom, removeCharacterFromRoom } from './charactersInRoom.js'
+import { denormalizeCharacter, denormalizeRoom } from './denormalize.js'
+import { queueClear, queueState, queueFlush } from './feedbackQueue.js'
+import { fetchEphemera } from './fetch.js'
+import { healGlobalConnections, healCharacter } from './selfHealing/index.js'
+
+import { processCharacterEvent } from './characterHandlers/index.js'
+import { processPlayerEvent } from './playerHandlers/index.js'
+import { splitType } from './utilities/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -20,17 +31,6 @@ const messageTable = `${TABLE_PREFIX}_messages`
 
 const lambdaClient = new LambdaClient({ region: REGION })
 const dbClient = new DynamoDBClient({ region: REGION })
-
-const { putCharacterInPlay } = require('./charactersInPlay')
-const { addCharacterToRoom, removeCharacterFromRoom } = require('./charactersInRoom')
-const { denormalizeCharacter, denormalizeRoom } = require('./denormalize')
-const { queueClear, queueState, queueFlush } = require('./feedbackQueue')
-const { fetchEphemera } = require('./fetch')
-const { healGlobalConnections, healCharacter } = require('./selfHealing')
-
-const { processCharacterEvent } = require('./characterHandlers')
-const { processPlayerEvent } = require('./playerHandlers')
-const { splitType } = require('./utilities')
 
 const splitPermanentId = (PermanentId) => {
     const sections = PermanentId.split('#')
@@ -198,7 +198,7 @@ const dispatchRecords = (Records) => {
     ])
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
 
     const { action = 'NO-OP', directCall = false, Records, ...payload } = event
 

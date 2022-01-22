@@ -1,15 +1,15 @@
-const { marshall } = require('@aws-sdk/util-dynamodb')
-const { UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
-const { v4: uuidv4 } = require('uuid')
-const { InvokeCommand } = require('@aws-sdk/client-lambda')
+import { marshall } from '@aws-sdk/util-dynamodb'
+import { UpdateItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { v4 as uuidv4 } from 'uuid'
+import { InvokeCommand } from '@aws-sdk/client-lambda'
 
-const { splitType } = require('../utilities')
+import { splitType } from '../utilities/index.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const messageTable = `${TABLE_PREFIX}_messages`
 
-const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage }) => {
+export const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage }) => {
     if (newImage.Connected === oldImage.Connected && newImage.RoomId !== oldImage.RoomId) {
         const epochTime = Date.now()
         if (newImage.Connected) {
@@ -180,5 +180,3 @@ const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage
     }
     return {}
 }
-
-exports.checkForMovement = checkForMovement

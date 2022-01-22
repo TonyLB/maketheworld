@@ -1,7 +1,7 @@
-const { checkForConnect } = require('./checkForConnect')
-const { checkForDisconnect } = require('./checkForDisconnect')
+import { checkForConnect } from './checkForConnect.js'
+import { checkForDisconnect } from './checkForDisconnect.js'
 
-const processPlayerEvent = ({ dbClient }) => async ({ eventName, data }) => {
+export const processPlayerEvent = ({ dbClient }) => async ({ eventName, data }) => {
     switch(eventName) {
         case 'INSERT':
             await Promise.all([
@@ -21,5 +21,3 @@ const processPlayerEvent = ({ dbClient }) => async ({ eventName, data }) => {
             break
     }
 }
-
-exports.processPlayerEvent = processPlayerEvent

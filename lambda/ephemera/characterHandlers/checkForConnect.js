@@ -1,13 +1,13 @@
-const { marshall } = require('@aws-sdk/util-dynamodb')
-const { UpdateItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb')
-const { v4: uuidv4 } = require('uuid')
-const { splitType } = require('../utilities')
+import { marshall } from '@aws-sdk/util-dynamodb'
+import { UpdateItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { v4 as uuidv4 } from 'uuid'
+import { splitType } from '../utilities/index.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const messageTable = `${TABLE_PREFIX}_messages`
 
-const checkForConnect = async (dbClient, { oldImage, newImage }) => {
+export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
     if (!oldImage.EphemeraId || (!(oldImage.Connected ?? false) && newImage.Connected)) {
         if (newImage.Connected) {
             const connectMessage = async () => {
@@ -91,5 +91,3 @@ const checkForConnect = async (dbClient, { oldImage, newImage }) => {
     }
     return {}
 }
-
-exports.checkForConnect = checkForConnect

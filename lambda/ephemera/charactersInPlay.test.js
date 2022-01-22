@@ -8,10 +8,8 @@ jest.mock('uuid', () => ({
     v4: jest.fn()
 }))
 
-const { getCharactersInPlay, putCharacterInPlay } = require('./charactersInPlay')
-const { documentClient, graphqlClient } = require('./utilities')
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { v4: uuid } = require('uuid')
+import { getCharactersInPlay, putCharacterInPlay } from './charactersInPlay.js'
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 
 describe("getCharactersInPlay", () => {
     const dbClient = {

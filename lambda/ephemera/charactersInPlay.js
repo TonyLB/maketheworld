@@ -1,11 +1,11 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, QueryCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 
-const { denormalizeCharacter } = require('./denormalize.js')
-const { queueAdd } = require('./feedbackQueue.js')
+import { denormalizeCharacter } from './denormalize.js'
+import { queueAdd } from './feedbackQueue.js'
 
 const REGION = process.env.AWS_REGION
 const dbClient = new DynamoDBClient({ region: REGION })
@@ -44,7 +44,7 @@ const getCharactersInPlay = async () => {
 //
 // ConnectionId should only be passed by direct call from Lambda functions
 //
-const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...rest }) => {
+export const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...rest }) => {
 
     if (!CharacterId) {
         return []
@@ -123,6 +123,3 @@ const putCharacterInPlay = async ({ CharacterId, Connected, ConnectionId, ...res
         })
     }
 }
-
-// exports.getCharactersInPlay = getCharactersInPlay
-exports.putCharacterInPlay = putCharacterInPlay

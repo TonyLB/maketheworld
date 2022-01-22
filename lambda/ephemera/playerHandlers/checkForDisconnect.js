@@ -1,12 +1,12 @@
-const { marshall } = require('@aws-sdk/util-dynamodb')
-const { UpdateItemCommand } = require('@aws-sdk/client-dynamodb')
-const { healGlobalConnections } = require('../selfHealing')
-const { splitType } = require('../utilities')
+import { marshall } from '@aws-sdk/util-dynamodb'
+import { UpdateItemCommand } from '@aws-sdk/client-dynamodb'
+import { healGlobalConnections } from '../selfHealing/index.js'
+import { splitType } from '../utilities/index.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
-const checkForDisconnect = async (dbClient, { oldImage }) => {
+export const checkForDisconnect = async (dbClient, { oldImage }) => {
     const { DataCategory } = oldImage
     if (DataCategory.startsWith('CONNECTION#')) {
         const ConnectionId = splitType(DataCategory)[1]
@@ -32,5 +32,3 @@ const checkForDisconnect = async (dbClient, { oldImage }) => {
 
     return {}
 }
-
-exports.checkForDisconnect = checkForDisconnect
