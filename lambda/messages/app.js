@@ -1,6 +1,6 @@
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, BatchWriteItemCommand, BatchGetItemCommand } = require('@aws-sdk/client-dynamodb')
-const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, BatchWriteItemCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb'
+import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
 const REGION = process.env.AWS_REGION
 const apiClient = new ApiGatewayManagementApiClient({
@@ -79,7 +79,7 @@ const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) =>
         }, [])))
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
     const { action, Records, ...payload } = event
 
     //

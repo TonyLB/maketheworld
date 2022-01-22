@@ -1,5 +1,6 @@
 {
   "name": "messages",
+  "type": "module",
   "version": "1.0.0",
   "description": "MTW Lambda handler for messages storage and broadcast",
   "main": "app.js",
