@@ -1,5 +1,3 @@
-import { CharacterInPlayChange } from "../ephemera/receiveEphemera"
-
 export type MessageAddressing = {
     MessageId: string;
     CreatedTime: number;
@@ -46,17 +44,19 @@ export type CharacterText = {
     Message: string;
 } & MessageAddressing
 
-// export type CharacterSpeech = {
-//     DisplayProtocol: 'SayMessage';
-//     CharacterId: string;
-//     Message: string;
-// } & MessageAddressing
+export type CharacterSpeech = {
+    DisplayProtocol: 'SayMessage';
+    CharacterId: string;
+    Message: string;
+    Name: string;
+} & MessageAddressing
 
-// export type CharacterNarration = {
-//     DisplayProtocol: 'NarrateMessage';
-//     CharacterId: string;
-//     Message: string;
-// } & MessageAddressing
+export type CharacterNarration = {
+    DisplayProtocol: 'NarrateMessage';
+    CharacterId: string;
+    Message: string;
+    Name: string;
+} & MessageAddressing
 
 export type OutOfCharacterMessage = {
     DisplayProtocol: 'OutOfCharacterMessage';
@@ -64,4 +64,4 @@ export type OutOfCharacterMessage = {
     Message: string;
 } & MessageAddressing
 
-export type Message = WorldMessage | RoomDescription | CharacterText | OutOfCharacterMessage
+export type Message = WorldMessage | RoomDescription | CharacterText | CharacterNarration | CharacterSpeech | OutOfCharacterMessage

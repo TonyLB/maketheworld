@@ -1,4 +1,5 @@
 import { PlayerPublic } from './baseClasses'
+import { Selector } from '../../store'
 
 export const getPlayer = (player: PlayerPublic): PlayerPublic => {
     const { PlayerName = '', CodeOfConductConsent = false, Characters = [] } = player || {}
@@ -14,12 +15,12 @@ export const getMyCharacters = (player: PlayerPublic): PlayerPublic['Characters'
     return Characters
 }
 
-export const getMyCharacterByKey = (getMyCharacters: (state: any) => PlayerPublic['Characters']) => (key: string | undefined) => (state: PlayerPublic): any => {
+export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>) => (key: string | undefined): Selector<any> => (state) => {
     const Characters = getMyCharacters(state)
     return Characters.find(({ scopedId }) => (scopedId === key))
 }
 
-export const getMyCharacterById = (getMyCharacters: (state: any) => PlayerPublic['Characters']) => (key: string | undefined) => (state: PlayerPublic): any => {
+export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Characters']>) => (key: string | undefined): Selector<any> => (state) => {
     const Characters = getMyCharacters(state)
     return Characters.find(({ CharacterId }) => (CharacterId === key))
 }

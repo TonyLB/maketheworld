@@ -13,6 +13,7 @@ import { PubSub } from '../../lib/pubSub'
 import delayPromise from '../../lib/delayPromise'
 
 import { cacheMessages } from '../messages'
+import { getMyCharacterById  } from '../player'
 
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
@@ -205,23 +206,26 @@ export const moveCharacter = (CharacterId: string) => ({ ExitName, RoomId }: { E
     dispatch(socketDispatch('action')({ actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
 }
 
-export const parseCommand = (CharacterId: string) => ({ entry }: { entry: string; raiseError: any }): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
+export const parseCommand = (CharacterId: string) => ({ entry }: { entry: string; raiseError: any }): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch, getState) => {
 
+    const { Name } = getMyCharacterById(CharacterId)(getState())
     //
     // TODO: Add more graphical mode-switching to the text entry, so that you can visually differentiate whether you're
     // saying things, or entering commands, or posing, or spoofing.  Replace prefix codes with keyboard shortcuts that
     // change the mode (as well as a Speed-Dial set of buttons for switching context)
     //
     if (entry.slice(0,1) === '"' && entry.length > 1) {
-        dispatch(socketDispatch('action')({ actionType: 'say', payload: { CharacterId, Message: entry.slice(1) } }))
+        dispatch(socketDispatch('action')({ actionType: 'SayMessage', payload: { CharacterId, Message: entry.slice(1) } }))
         return true
     }
     if (entry.slice(0,1) === '@' && entry.length > 1) {
-        dispatch(socketDispatch('action')({ actionType: 'spoof', payload: { CharacterId, Message: entry.slice(1) } }))
+        dispatch(socketDispatch('action')({ actionType: 'NarrateMessage', payload: { CharacterId, Message: entry.slice(1) } }))
         return true
     }
     if (entry.slice(0,1) === ':' && entry.length > 1) {
-        dispatch(socketDispatch('action')({ actionType: 'pose', payload: { CharacterId, Message: entry.slice(1) } }))
+        const MessagePostfix = entry.slice(1)
+        const Message = `${Name}${MessagePostfix.match(/^[,']/) ? "" : " "}${MessagePostfix}`
+        dispatch(socketDispatch('action')({ actionType: 'NarrateMessage', payload: { CharacterId, Message } }))
         return true
     }
     if (entry) {

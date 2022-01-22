@@ -267,6 +267,39 @@ const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}
     }
 }
 
+const narrateOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
+    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    const [{ Item: EphemeraItem = {} }] = await Promise.all([
+        dbClient.send(new GetItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId,
+                DataCategory: 'Connection'
+            })
+        })),
+    ])
+    const { RoomId, Name } = unmarshall(EphemeraItem)
+    if (RoomId) {
+        await dbClient.send(new PutItemCommand({
+            TableName: messagesTable,
+            Item: marshall({
+                MessageId: `MESSAGE#${uuidv4()}`,
+                DataCategory: 'Meta::Message',
+                CreatedTime: Date.now(),
+                Targets: [`ROOM#${RoomId}`],
+                DisplayProtocol,
+                CharacterId,
+                Message,
+                Name
+            })
+        }))
+    }
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: "ActionComplete" })
+    }
+}
+
 const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
     // await moveCharacterWithMessage({ CharacterId, RoomId, messageCallback: (Name) => (`${Name} left${ ExitName ? ` by ${ExitName} exit` : ''}.`)})
     //
@@ -324,8 +357,11 @@ const executeAction = (request) => {
     switch(request.actionType) {
         case 'look':
             return lookPermanent(request.payload)
-        case 'say':
-            return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name} says "${Message}"`)})
+        case 'SayMessage':
+        case 'NarrateMessage':
+            return narrateOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
+        case 'narrate':
+            return narrateOrSpeech({ ...request.payload, DisplayProtocol: 'NarrateMessage' })
         case 'pose':
             return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
         case 'spoof':
