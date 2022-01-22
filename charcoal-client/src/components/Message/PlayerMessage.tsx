@@ -14,10 +14,10 @@ import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useStyles, { playerStyle } from '../styles'
 
-import { CharacterText } from '../../slices/messages/baseClasses'
+import { CharacterText, CharacterNarration, CharacterSpeech } from '../../slices/messages/baseClasses'
 
 interface PlayerMessageProps {
-    message: CharacterText;
+    message: CharacterText | CharacterNarration | CharacterSpeech;
     children?: ReactChild | ReactChildren;
 }
 
@@ -39,7 +39,10 @@ export const PlayerMessage = ({ message, ...rest }: PlayerMessageProps) => {
             </ListItemAvatar>
             <ListItemText>
                 <Typography variant='body1' align='left'>
-                    { message.Message }
+                    { message.DisplayProtocol === 'SayMessage'
+                        ? `${message.Name} says "${message.Message}"`
+                        : message.Message
+                    }
                 </Typography>
             </ListItemText>
         </ListItem>
