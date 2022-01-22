@@ -1,18 +1,25 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { render } from '@testing-library/react'
-import { act } from 'react-dom/test-utils'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import ActiveCharacter, { useActiveCharacter } from './index'
-import { DEACTIVATE_CHARACTER, ACTIVE_CHARACTER_FSM_SUBSCRIBED } from '../../actions/activeCharacters'
+
+jest.mock('../../cacheDB')
 
 const mockStore = configureStore()
 const store = mockStore({
-    stateSeekingMachines: {
-        machines: {
-            ['Subscribe::Character::TESS']: {
-                currentState: 'SYNCHRONIZED'
-            }    
+    activeCharacters: {
+        byId: {
+            TESS: {
+                meta: { currentState: 'CONNECTED' },
+                internalData: {},
+                publicData: {}
+            }
+        }
+    },
+    ephemera: {
+        publicData: {
+            charactersInPlay: {}
         }
     },
     messages: [],
@@ -55,29 +62,6 @@ describe('ActiveCharacter wrapper component', () => {
             </Provider>
         )
         expect(container.textContent).toBe("Subscribed")
-    })
-
-    it('correctly passes a deactivate action', () => {
-        const TestDeactivateComponent = () => {
-            const { deactivate } = useActiveCharacter()
-            useEffect(() => {
-                deactivate()
-            }, [deactivate])
-            return <div />
-        }
-
-        act(() => {
-            render(
-                <Provider store={store}>
-                    <ActiveCharacter CharacterId='ABC' >
-                        <TestDeactivateComponent />
-                    </ActiveCharacter>
-                </Provider>
-            )
-        })
-
-        const actions = store.getActions()
-        expect(actions).toEqual([{ type: DEACTIVATE_CHARACTER, CharacterId: 'ABC' }])
     })
 
 })

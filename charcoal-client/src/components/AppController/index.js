@@ -10,25 +10,20 @@ import React, { useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 // import { connectionRegister } from '../../actions/connection.js'
-import { getMyCharacters } from '../../selectors/player'
-import { putMyCharacter } from '../../actions/characters'
-import { getClientSettings } from '../../selectors/clientSettings'
-import { loadClientSettings, putClientSettings } from '../../actions/clientSettings'
-import { getFirstFeedback } from '../../selectors/UI/feedback'
-import { popFeedback } from '../../actions/UI/feedback'
+import { getMyCharacters } from '../../slices/player'
+import { getClientSettings } from '../../slices/settings'
+import { loadClientSettings, putClientSettings } from '../../slices/settings'
+import { getFirstFeedback } from '../../slices/UI/feedback'
+import { pop as popFeedback } from '../../slices/UI/feedback'
 
 import AppLayout from '../AppLayout'
-import Profile from '../Profile'
 import Home from '../Home'
 import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
-import useCommunicationsLayer from '../useCommunicationsLayer'
-import InDevelopment from '../InDevelopment'
 
 export const AppController = () => {
     useStateSeekingMachines()
-    useCommunicationsLayer()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
     const dispatch = useDispatch()
@@ -42,7 +37,7 @@ export const AppController = () => {
     //
     const profileArgs = {
         myCharacters,
-        onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
+        // onCharacterSavePromiseFactory: (characterData) => { dispatch(putMyCharacter(characterData)) },
         // connectCharacter: (characterId) => { dispatch(connectionRegister({ characterId })) },
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
@@ -52,12 +47,11 @@ export const AppController = () => {
 
     const feedbackMessage = useSelector(getFirstFeedback)
     const closeFeedback = useCallback(() => {
-        dispatch(popFeedback)
+        dispatch(popFeedback())
     }, [dispatch])
 
     return <AppLayout
         homePanel={<Home {...profileArgs} />}
-        profilePanel={<Profile {...profileArgs} />}
         messagePanel={<MessagePanel />}
         feedbackMessage={feedbackMessage}
         closeFeedback={closeFeedback}

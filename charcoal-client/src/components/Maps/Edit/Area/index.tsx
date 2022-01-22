@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useReducer, useEffect, useState } from 'react'
 
-import useMapStyles from '../useMapStyles'
+// import useMapStyles from '../useMapStyles'
 import {
     MapTree
 } from '../maps'
@@ -14,18 +14,12 @@ type MapAreaProps = {
     dispatch: MapDispatch;
 }
 
-//
-// TODO: STEP 7
-//
-// Apply addLink on dragEnd
-//
-
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
-    const localClasses = useMapStyles()
+    // const localClasses = useMapStyles()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
     const [{ rooms, exits }, mapDispatch] = useReducer(mapAreaReducer, tree, (tree: MapTree) => {

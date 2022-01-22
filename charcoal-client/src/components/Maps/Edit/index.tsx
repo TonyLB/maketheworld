@@ -1,10 +1,10 @@
 import React, { FunctionComponent, useState, useReducer } from 'react'
 
-import {
-    useRouteMatch,
-    useHistory,
-    useParams
-} from "react-router-dom"
+// import {
+//     useRouteMatch,
+//     useHistory,
+//     useParams
+// } from "react-router-dom"
 
 import useMapStyles from './useMapStyles'
 import MapArea from './Area'
@@ -19,11 +19,12 @@ import mapReducer from './reducer'
 type MapEditProps = {
 }
 
+// eslint-disable-next-line no-empty-pattern
 export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
     const localClasses = useMapStyles()
-    const { url } = useRouteMatch()
-    const history = useHistory()
-    const { mapId }: { mapId: string } = useParams()
+    // const { url } = useRouteMatch()
+    // const history = useHistory()
+    // const { mapId }: { mapId: string } = useParams()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(

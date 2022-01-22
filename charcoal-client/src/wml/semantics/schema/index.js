@@ -1,5 +1,4 @@
 const {
-    desourceTag,
     confirmRequiredProps,
     wmlProcessUpNonRecursive,
     validate,
@@ -12,7 +11,7 @@ const {
     confirmLiteralProps
 } = require('./processUp')
 
-const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
+const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
 const processTagProps = (tag, props) => ({
     tag: tag.sourceString,

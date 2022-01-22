@@ -1,28 +1,11 @@
-//
-// Profile shows information about the player, and their characters, and allows them
-// to edit that information.
-//
-
-//
-// DEPENDENCY:  Create the MultiLevelNesting component, and use it to nest a CharacterEditor
-// to the right of the character listing (with player-specific information below the character
-// listing on the left-most panel)
-//
-
-//
-// Refactor AllCharactersDialog and MyCharacterDialog in order to get the form-editing
-// functionality.
-//
-
-import React, { useState } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
-import { useHistory } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import useStyles from '../styles'
 import Avatar from '@material-ui/core/Avatar'
 import Box from '@material-ui/core/Box'
 import Card from '@material-ui/core/Card'
-import CardActions from '@material-ui/core/CardActions'
 import CardContent from '@material-ui/core/CardContent'
 import CardHeader from '@material-ui/core/CardHeader'
 import Divider from '@material-ui/core/Divider'
@@ -36,11 +19,15 @@ import ChatIcon from '@material-ui/icons/Sms'
 //
 // TODO:  Choose better typography for the Home page.
 //
+
+//
+// TODO: Create a navigation path to the Help page
+//
 export const Home = ({
     myCharacters = []
 }) => {
     const classes = useStyles()
-    const history = useHistory()
+    const navigate = useNavigate()
 
     return <Box className={classes.homeContents}>
         <div style={{ textAlign: "center" }}>
@@ -98,7 +85,7 @@ export const Home = ({
                 <Grid key={title} item sm={3}>
                     <Card onClick={() => {
                         if (href) {
-                            history.push(href)
+                            navigate(href)
                         }
                     }}>
                         <CardHeader
@@ -128,7 +115,7 @@ export const Home = ({
                 CharacterId && <Grid key={`${Name}:${CharacterId}`} item sm={3}>
                     <Card onClick={() => {
                         if (CharacterId) {
-                            history.push(`/Character/${CharacterId}/Play`)
+                            navigate(`/Character/${CharacterId}/Play`)
                         }
                     }}>
                         <CardHeader
@@ -169,7 +156,7 @@ export const Home = ({
                 <Grid key={title} item sm={3}>
                     <Card onClick={() => {
                         if (href) {
-                            history.push(href)
+                            navigate(href)
                         }
                     }}>
                         <CardHeader

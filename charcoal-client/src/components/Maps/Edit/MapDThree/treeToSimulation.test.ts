@@ -64,8 +64,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: false,
                 x: 300,
                 y: 300,
-                visible: true,
-                zLevel: 1
+                visible: true
             }],
             links: []
         },
@@ -77,8 +76,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: true,
                 x: 300,
                 y: 300,
-                visible: true,
-                zLevel: 1
+                visible: true
             },
             {
                 id: 'One-B',
@@ -86,8 +84,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: false,
                 x: 300,
                 y: 200,
-                visible: true,
-                zLevel: 0
+                visible: true
             },
             {
                 id: 'One-A',
@@ -95,8 +92,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: false,
                 x: 200,
                 y: 200,
-                visible: true,
-                zLevel: 0
+                visible: true
             }],
             links: []
         }])
@@ -205,8 +201,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: false,
                 x: 300,
                 y: 400,
-                visible: true,
-                zLevel: 1,
+                visible: true
             }],
             links: []
         },
@@ -218,8 +213,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: true,
                 x: 300,
                 y: 400,
-                visible: true,
-                zLevel: 1,
+                visible: true
             },
             {
                 id: 'One-B',
@@ -227,8 +221,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: false,
                 x: 300,
                 y: 200,
-                visible: true,
-                zLevel: 0
+                visible: true
             },
             {
                 id: 'One-A',
@@ -236,8 +229,7 @@ describe('treeToSimulation', () => {
                 cascadeNode: false,
                 x: 300,
                 y: 300,
-                visible: true,
-                zLevel: 0
+                visible: true
             }],
             links: [{
                 id: 'One-A-Two-A',

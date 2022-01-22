@@ -1,8 +1,6 @@
 import React, { FunctionComponent, useMemo } from 'react'
 
-import RoomGroupIcon from '@material-ui/icons/LocationCity'
 import RoomIcon from '@material-ui/icons/Home'
-import ExitGroupIcon from '@material-ui/icons/Shuffle'
 import ExitIcon from '@material-ui/icons/CallMade'
 import LayersIcon from '@material-ui/icons/Layers'
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff'

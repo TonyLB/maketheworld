@@ -56,7 +56,7 @@ export const mapReducer: MapReducer = (state, action) => {
                         }
                     }
                 })
-                if (draft.tree[0] && !fromLink || (action.double && !toLink)) {
+                if (draft.tree[0] && (!fromLink || (action.double && !toLink))) {
                     if (!fromLink) {
                         draft.tree[0].children.push({
                             key: uuidv4(),

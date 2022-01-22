@@ -1,9 +1,7 @@
 import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import {
-    Paper,
-    IconButton,
     Table,
     TableHead,
     TableBody,
@@ -11,14 +9,11 @@ import {
     TableCell,
     Avatar
 } from '@material-ui/core'
-import OpenArrowIcon from '@material-ui/icons/ChevronLeft'
-import CloseArrowIcon from '@material-ui/icons/ChevronRight'
 
-import { getActiveCharacterList } from '../selectors/charactersInPlay'
-import { getPlayer } from '../selectors/player'
+import { getActiveCharacterList } from '../slices/ephemera'
+import { getPlayer } from '../slices/player'
 
-import { activateDirectMessageDialog } from '../actions/UI/directMessageDialog'
-import { useStyles } from './styles'
+import useStyles, { playerStyle } from './styles'
 
 export const WhoDrawer = () => {
 
@@ -26,7 +21,6 @@ export const WhoDrawer = () => {
     const { Characters } = useSelector(getPlayer)
     const myCharacterIds = Characters.map(({ CharacterId }) => (CharacterId))
     const classes = useStyles()
-    const dispatch = useDispatch()
 
     return (
         <Table className={classes.whoTable} aria-label="who is online">
@@ -39,18 +33,24 @@ export const WhoDrawer = () => {
             </TableHead>
             <TableBody>
                 {
-                    whoIsActive.map(({ CharacterId, Name, RoomId, color }) => {
+                    whoIsActive.map(({ CharacterId, Name, color }) => {
                         //
                         // TODO: Figure out how to present a workable room/area name using the new WML Asset
                         // system.
                         //
                         const neighborhoodName = '??????'
+                        //
+                        // TODO: Create an onClick that presents reasonable options (including a short-cut
+                        // some replacement for DirectMessageDialog)
+                        //
                         return (
-                            <TableRow key={CharacterId} hover onClick={() => { dispatch(activateDirectMessageDialog(CharacterId)) }}>
+                            <TableRow key={CharacterId} hover onClick={() => { }}>
                                 <TableCell>
-                                    <Avatar className={(myCharacterIds.includes(CharacterId)) ? classes.blue : (color && classes[color.primary])}>
-                                        { Name[0].toUpperCase() }
-                                    </Avatar>
+                                    <div className={playerStyle(myCharacterIds.includes(CharacterId) ? 'blue' : color.name)}>
+                                        <Avatar className='avatarColor'>
+                                            { Name[0].toUpperCase() }
+                                        </Avatar>
+                                    </div>
                                 </TableCell>
                                 <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
                                 <TableCell>{ neighborhoodName }</TableCell>

@@ -1,9 +1,7 @@
 import {
     SimulationLinkDatum,
     Simulation,
-    forceSimulation,
-    forceX,
-    forceY
+    forceSimulation
 } from 'd3-force'
 
 import { SimNode } from './treeToSimulation'

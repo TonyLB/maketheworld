@@ -1,17 +1,22 @@
 import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { getHeartbeat, getLastEvaluation } from '../selectors/stateSeekingMachine'
-import { iterateAllSSMs } from '../actions/stateSeekingMachine/index'
+import { getHeartbeat as getSliceHeartbeat } from '../slices/stateSeekingMachine/ssmHeartbeat'
+import { iterateAllSSMs as characterEditSSMs } from '../slices/UI/characterEdit'
+import { iterateAllSSMs as activeCharacterSSMs } from '../slices/activeCharacters'
+import { iterateAllSSMs as ephemeraSSM } from '../slices/ephemera'
+import { iterateAllSSMs as playerSSM } from '../slices/player'
+import { iterateAllSSMs as lifeLineSSM } from '../slices/lifeLine'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
-    const heartbeat: string | undefined = useSelector(getHeartbeat)
-    const lastEvaluation: string | undefined = useSelector(getLastEvaluation)
+    const heartbeat = useSelector(getSliceHeartbeat)
     useEffect(() => {
-        if (heartbeat !== lastEvaluation) {
-            dispatch(iterateAllSSMs)
-        }
-    }, [dispatch, heartbeat, lastEvaluation])
+        dispatch(characterEditSSMs)
+        dispatch(activeCharacterSSMs)
+        dispatch(ephemeraSSM)
+        dispatch(playerSSM)
+        dispatch(lifeLineSSM)
+    }, [dispatch, heartbeat])
 }
 
 export default useStateSeekingMachines

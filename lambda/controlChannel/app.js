@@ -479,7 +479,7 @@ exports.handler = async (event, context) => {
             }
             break;
         case 'fetchEphemera':
-            const ephemera = await fetchEphemera()
+            const ephemera = await fetchEphemera(request.RequestId)
             return {
                 statusCode: 200,
                 body: JSON.stringify(ephemera)

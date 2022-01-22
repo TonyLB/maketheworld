@@ -2,14 +2,13 @@
 // The AppLayout component handles high-level styling and positioning of data components within the app
 //
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
-    Switch,
+    Routes,
     Route,
     Link,
-    useRouteMatch,
     useParams,
     useLocation
 } from "react-router-dom"
@@ -24,20 +23,19 @@ import IconButton from '@material-ui/core/IconButton'
 import CloseIcon from '@material-ui/icons/Close'
 import { makeStyles } from '@material-ui/core/styles'
 import ForumIcon from '@material-ui/icons/Forum'
-import MailIcon from '@material-ui/icons/Mail'
-import ExploreIcon from '@material-ui/icons/Explore'
 import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
 import HomeIcon from '@material-ui/icons/Home'
 
 import ActiveCharacter from '../ActiveCharacter'
-import { getCharacters } from '../../selectors/characters'
 import InDevelopment from '../InDevelopment'
+import ChoiceDialog from '../ChoiceDialog'
 
 import MapHome from '../Maps'
 import CharacterEdit from '../CharacterEdit'
-import WMLTestForm from '../WMLTest'
+import HelpPage from '../Help'
 
-import { navigationTabs, navigationTabSelected } from '../../selectors/navigationTabs'
+import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
+
 
 const a11yProps = (index) => {
     return {
@@ -115,7 +113,7 @@ const tabList = ({ large, navigationTabs = [] }) => ([
             to={href}
         />
     ))),
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} />])
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} to="/Who/" />])
 ])
 
 const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
@@ -146,16 +144,11 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 const CharacterRouterSwitch = ({ messagePanel }) => {
     const { CharacterId } = useParams()
-    let { path } = useRouteMatch()
     return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
-        <Switch>
-            <Route path={`${path}/Play`}>
-                {messagePanel}
-            </Route>
-            <Route path={`${path}/Map`}>
-                <InDevelopment />
-            </Route>
-        </Switch>
+        <Routes>
+            <Route path={`Play`} element={messagePanel} />
+            <Route path={`Map`} element={<InDevelopment />} />
+        </Routes>
     </ActiveCharacter>
 }
 
@@ -182,57 +175,33 @@ const NavigationTabs = () => {
     </div>
 }
 
-export const AppLayout = ({ whoPanel, homePanel, profilePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
+export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     const classes = useStyles()
 
     return <Router>
         <div className={`fullScreen ${classes.grid}`}>
+            <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
             <NavigationTabs />
             <div className={classes.content}>
                 <div style={{ width: "100%", height: "100%" }}>
-                    <Switch>
-                        <Route path="/WMLTest">
-                            <WMLTestForm />
-                        </Route>
-                        <Route path="/Character/Archived">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Character/Edit/:CharacterKey">
-                            <CharacterEdit />
-                        </Route>
-                        <Route path="/Character/:CharacterId">
-                            <CharacterRouterSwitch messagePanel={messagePanel} />
-                        </Route>
-                        <Route path="/Forum/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Calendar/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Scenes/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Stories/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Chat/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Logs/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/CodeOfConduct/">
-                            <InDevelopment />
-                        </Route>
-                        <Route path="/Maps/">
-                            <MapHome />
-                        </Route>
-                        <Route path="/">
-                            {homePanel}
-                        </Route>
-                    </Switch>
+                    <Routes>
+                        <Route path="/Character/Archived" element={<InDevelopment />} />
+                        <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
+                        <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
+                        <Route path="/Forum/" element={<InDevelopment />} />
+                        <Route path="/Calendar/" element={<InDevelopment />} />
+                        <Route path="/Scenes/" element={<InDevelopment />} />
+                        <Route path="/Stories/" element={<InDevelopment />} />
+                        <Route path="/Chat/" element={<InDevelopment />} />
+                        <Route path="/Logs/" element={<InDevelopment />} />
+                        <Route path="/Forum/" element={<InDevelopment />} />
+                        <Route path="/Maps/*" element={<MapHome />} />
+                        <Route path="/Help/" element={<HelpPage />} />
+                        <Route path="/Who/" element={whoPanel} />
+                        <Route path="/" element={homePanel} />
+                    </Routes>
                 </div>
             </div>
 

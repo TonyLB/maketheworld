@@ -13,9 +13,9 @@ import {
 } from '@material-ui/core'
 import ReplyIcon from '@material-ui/icons/Reply'
 
-import { getCharactersInPlay } from '../../selectors/charactersInPlay'
+import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
+// import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
 import useStyles from '../styles'
 
 export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
@@ -50,7 +50,7 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
             { replyCharacterId && charactersInPlay[replyCharacterId].Connected &&
                 <IconButton onClick={() => {
                     console.log(`Replying to ${replyCharacterId}`)
-                    dispatch(activateDirectMessageDialog(replyCharacterId))
+                    // dispatch(activateDirectMessageDialog(replyCharacterId))
                 } } >
                     <ReplyIcon />
                 </IconButton>

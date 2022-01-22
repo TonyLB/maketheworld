@@ -1,5 +1,5 @@
 import { makeStyles } from "@material-ui/core/styles"
-import Dash from './Dash.svg'
+// import Dash from './Dash.svg'
 
 export const useTreeStyles = makeStyles((theme) => ({
     VerticalLine: {
