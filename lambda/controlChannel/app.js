@@ -1,17 +1,18 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const { v4: uuidv4 } = require('/opt/uuid')
 
-const AWSXRay = require('aws-xray-sdk')
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
-const { ApiGatewayManagementApiClient, PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
-const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
-const { putPlayer, whoAmI, getConnectionsByPlayerName, getPlayerByConnectionId } = require('./player')
-const { validateJWT } = require('./validateJWT')
-const { parseCommand } = require('./parse')
-const { sync } = require('./sync')
+import AWSXRay from 'aws-xray-sdk'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb'
+import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
+import { v4 as uuidv4 } from 'uuid'
+
+import { putPlayer, whoAmI, getConnectionsByPlayerName, getPlayerByConnectionId } from './player/index.js'
+import { validateJWT } from './validateJWT.js'
+import { parseCommand } from './parse/index.js'
+import { sync } from './sync/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -45,7 +46,7 @@ const splitType = (value) => {
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
 // cycle you don't have the disconnect update come after the connect.
 //
-const disconnect = async (connectionId) => {
+export const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
     const [{ Items = [] }, { Items: PlayerItems = []}] = await Promise.all([
         dbClient.send(new QueryCommand({
@@ -104,7 +105,7 @@ const disconnect = async (connectionId) => {
 // use the validateJWT code (and passed Authorization querystring) to block
 // unauthenticated users from websocket access entirely..
 //
-const connect = async (connectionId, token) => {
+export const connect = async (connectionId, token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
@@ -121,7 +122,7 @@ const connect = async (connectionId, token) => {
     return { statusCode: 403 }
 }
 
-const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
+export const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
 
     //
     // TODO: Create functionality to record what assets a character has access to,
@@ -219,7 +220,7 @@ const fetchEphemera = async (RequestId) => {
 }
 
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
-    const arguments = {
+    const args = {
         CreatedTime: Date.now(),
         CharacterId,
         PermanentId,
@@ -228,7 +229,7 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     await lambdaClient.send(new InvokeCommand({
         FunctionName: process.env.PERCEPTION_SERVICE,
         InvocationType: 'RequestResponse',
-        Payload: new TextEncoder().encode(JSON.stringify(arguments))
+        Payload: new TextEncoder().encode(JSON.stringify(args))
     }))
     return {
         statusCode: 200,
@@ -421,10 +422,7 @@ const fetchLink = async (dbClient, { fileName, connectionId, requestId }) => {
     return null
 }
 
-exports.disconnect = disconnect
-exports.connect = connect
-exports.registerCharacter = registerCharacter
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
 
     dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
 

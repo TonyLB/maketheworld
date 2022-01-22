@@ -1,11 +1,9 @@
-'use strict';
-
-const fetch = require('node-fetch').default
-const jose = require('node-jose')
+import fetch from 'node-fetch'
+import jose from 'node-jose'
 
 const { COGNITO_KEYS_URL, COGNITO_USER_POOL_CLIENT } = process.env
 
-const validateJWT = async (token) => {
+export const validateJWT = async (token) => {
 
     if (!token) {
         return {}
@@ -54,5 +52,3 @@ const validateJWT = async (token) => {
         }
     }
 };
-
-exports.validateJWT = validateJWT
