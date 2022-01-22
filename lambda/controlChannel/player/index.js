@@ -1,5 +1,5 @@
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { UpdateItemCommand, GetItemCommand, QueryCommand } = require('@aws-sdk/client-dynamodb')
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { UpdateItemCommand, GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -16,7 +16,7 @@ const splitType = (value) => {
     }
 }
 
-const getPlayerByConnectionId = async (dbClient, connectionId) => {
+export const getPlayerByConnectionId = async (dbClient, connectionId) => {
     const { Items = [] } = await dbClient.send(new QueryCommand({
         TableName: ephemeraTable,
         IndexName: 'DataCategoryIndex',
@@ -42,7 +42,7 @@ const getPlayerByConnectionId = async (dbClient, connectionId) => {
 // Returns all of the meta data about Player in the Ephemera table, as
 // well as a connections array of the currently active lifeLine connections
 //
-const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
+export const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
     const { Items = [] } = await dbClient.send(new QueryCommand({
         TableName: ephemeraTable,
         KeyConditionExpression: 'EphemeraId = :eid',
@@ -65,7 +65,7 @@ const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
 // TODO: Remove direct access to Characters list and instead make secured outlets for
 // adding characters and archiving them.
 //
-const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductConsent }) => {
+export const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductConsent }) => {
     if (!PlayerName || (Characters === undefined && CodeOfConductConsent === undefined)) {
         return {
             statusCode: 403,
@@ -114,7 +114,7 @@ const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductCo
     }
 }
 
-const whoAmI = async (dbClient, connectionId, RequestId) => {
+export const whoAmI = async (dbClient, connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(dbClient, connectionId)
     if (username) {
         const { Item } = await dbClient.send(new GetItemCommand({
@@ -145,8 +145,3 @@ const whoAmI = async (dbClient, connectionId, RequestId) => {
         }
     }
 }
-
-exports.putPlayer = putPlayer
-exports.whoAmI = whoAmI
-exports.getConnectionsByPlayerName = getConnectionsByPlayerName
-exports.getPlayerByConnectionId = getPlayerByConnectionId

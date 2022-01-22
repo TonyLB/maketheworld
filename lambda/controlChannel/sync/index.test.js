@@ -1,5 +1,5 @@
-const { syncDelta } = require('./index')
-const { marshall } = require('@aws-sdk/util-dynamodb')
+import { syncDelta } from './index.js'
+import { marshall } from '@aws-sdk/util-dynamodb'
 
 describe("syncDelta", () => {
 

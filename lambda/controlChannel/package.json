@@ -1,5 +1,6 @@
 {
   "name": "controlChannel",
+  "type": "module",
   "version": "1.0.0",
   "description": "A websocket channel to provide a persistent service-client connection for MTW",
   "main": "src/app.js",
@@ -11,7 +12,8 @@
     "@aws-sdk/client-lambda": "^3.13.0",
     "@aws-sdk/util-dynamodb": "^3.13.0",
     "aws-xray-sdk": "^3.3.3",
-    "node-fetch": "^2.6.6",
-    "node-jose": "^2.0.0"
+    "node-fetch": "^3.2.0",
+    "node-jose": "^2.0.0",
+    "uuid": "^8.3.2"
   }
 }

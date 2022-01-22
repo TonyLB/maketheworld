@@ -1,6 +1,6 @@
-const { QueryCommand } = require('@aws-sdk/client-dynamodb')
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
-const { PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
+import { QueryCommand } from '@aws-sdk/client-dynamodb'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
 const { TABLE_PREFIX } = process.env;
 const messagesTable = `${TABLE_PREFIX}_messages`
@@ -66,7 +66,7 @@ const syncDeltaHelper = async (dbClient, {
 
 }
 
-const sync = async (dbClient, apiClient, {
+export const sync = async (dbClient, apiClient, {
     type, // 'Delta' or 'Raw'
     RequestId,
     ConnectionId,
@@ -111,5 +111,3 @@ const sync = async (dbClient, apiClient, {
     }
     await Promise.all(sendPromises)
 }
-
-exports.sync = sync

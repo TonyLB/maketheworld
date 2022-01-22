@@ -1,5 +1,5 @@
-const { QueryCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb')
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
+import { QueryCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -67,7 +67,7 @@ const getCurrentRoom = async (dbClient, CharacterId) => {
     }
 }
 
-const parseCommand = async ({
+export const parseCommand = async ({
     dbClient,
     CharacterId,
     command
@@ -106,4 +106,3 @@ const parseCommand = async ({
     return {}
 }
 
-exports.parseCommand = parseCommand

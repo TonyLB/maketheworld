@@ -39,7 +39,7 @@ const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage
                         }]
                         : []
                 if (newRoomId) {
-                    const arguments = {
+                    const args = {
                         CreatedTime: epochTime,
                         CharacterId,
                         PermanentId: `ROOM#${newRoomId}`,
@@ -49,7 +49,7 @@ const checkForMovement = async ({ dbClient, lambdaClient }, { oldImage, newImage
                     await lambdaClient.send(new InvokeCommand({
                         FunctionName: process.env.PERCEPTION_SERVICE,
                         InvocationType: 'RequestResponse',
-                        Payload: new TextEncoder().encode(JSON.stringify(arguments))
+                        Payload: new TextEncoder().encode(JSON.stringify(args))
                     }))
                 }
                 else {
