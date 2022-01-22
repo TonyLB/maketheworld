@@ -1,0 +1,19 @@
+{
+  "name": "perceptionlayer",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "A lambda layer for perception functions to create messages rendering world items",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.48.0",
+    "@aws-sdk/util-dynamodb": "^3.48.0",
+    "aws-xray-sdk": "^3.3.4",
+    "ohm-js": "^16.2.0",
+    "uuid": "^8.3.2"
+  }
+}

@@ -66,6 +66,8 @@ Resources:
                   CognitoUserPool:
                     Fn::ImportValue:
                       !Sub "${PermanentsStack}-UserPoolId"
+      Layers:
+        - !Ref PerceptionLambdaLayer
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_assets'
@@ -449,6 +451,14 @@ Resources:
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_permanents'
+  PerceptionLambdaLayer:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+          LayerName: perception-layer
+          Description: Lambda layer to import perception functions
+          ContentUri: lambda/perceptionLayer/
+          CompatibleRuntimes:
+            - nodejs14.x
   EphemeraFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -463,6 +473,8 @@ Resources:
                   TABLE_PREFIX: !Ref TablePrefix
                   PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
+          Layers:
+            - !Ref PerceptionLambdaLayer
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_ephemera'
