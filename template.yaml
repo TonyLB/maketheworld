@@ -469,7 +469,6 @@ Resources:
           Environment:
               Variables:
                   TABLE_PREFIX: !Ref TablePrefix
-                  PERCEPTION_SERVICE: !GetAtt PerceptionFunction.Arn
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Layers:
             - !Ref PerceptionLambdaLayer
@@ -482,12 +481,6 @@ Resources:
                   TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_assets'
-            - Statement:
-              - Effect: Allow
-                Action:
-                  - lambda:InvokeFunction
-                Resource:
-                  - !GetAtt PerceptionFunction.Arn
             - Statement:
               - Effect: Allow
                 Action: execute-api:ManageConnections
@@ -646,25 +639,6 @@ Resources:
                 Stream: !GetAtt MessagesTable.StreamArn
                 BatchSize: 100
                 StartingPosition: TRIM_HORIZON
-  PerceptionFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          Tracing: Active
-          CodeUri: lambda/descriptionService/
-          Handler: app.handler
-          MemorySize: 128
-          Runtime: nodejs14.x
-          Timeout: 20
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBReadPolicy:
-                TableName: !Sub '${TablePrefix}_permanents'
-            - DynamoDBReadPolicy:
-                TableName: !Sub '${TablePrefix}_ephemera'
-            - DynamoDBCrudPolicy:
-                TableName: !Sub '${TablePrefix}_messages'
 
 Outputs:
   UserPoolClient:
