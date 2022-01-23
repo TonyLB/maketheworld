@@ -39,7 +39,7 @@ describe('consolidateToLevel', () => {
                 children: []
             }]
         }]
-    }
+    } as any
 
     it('returns unchanged for same or higher level', () => {
         expect(consolidateToLevel<ITest>({ inProgress: testTree, newLevel: 3 })).toEqual(testTree)
@@ -56,7 +56,7 @@ describe('consolidateToLevel', () => {
                 children: []
             }],
             rootOutput: []
-        }, newLevel: 0 })).toEqual({ levelsInProgress: [{
+        } as any, newLevel: 0 })).toEqual({ levelsInProgress: [{
                 item: { name: 'A' },
                 children: [{
                     item: { name: 'B' },
@@ -80,7 +80,7 @@ describe('consolidateToLevel', () => {
             {
                 item: { name: 'C' },
                 children: []
-            }],
+            }] as any,
             rootOutput: []
         }, newLevel: 1 })
         expect(output).toEqual({ levelsInProgress: [{
@@ -189,7 +189,7 @@ describe('flatToNested', () => {
                 item: { name: 'G' },
                 level: 0
             }
-        ])
+        ] as any)
         expect(compare).toEqual([{
             item: { name: 'A' },
             children: [{
@@ -236,7 +236,7 @@ describe('flatToNested', () => {
                 item: { name: 'G' },
                 level: 0
             }
-        ])
+        ] as any)
         expect(compare).toEqual([{
             item: { name: 'A' },
             children: [{
