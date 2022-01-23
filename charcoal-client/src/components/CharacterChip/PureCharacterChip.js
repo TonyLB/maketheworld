@@ -10,7 +10,7 @@ import {
     Typography,
     Chip,
     Tooltip
-} from '@material-ui/core'
+} from '@mui/material'
 
 import useStyles, { playerStyle } from '../styles'
 

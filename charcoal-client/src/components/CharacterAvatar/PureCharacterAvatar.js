@@ -4,7 +4,7 @@ import PropTypes from "prop-types"
 import {
     Avatar,
     Tooltip
-} from '@material-ui/core'
+} from '@mui/material'
 
 import useStyles from '../styles'
 

@@ -8,7 +8,7 @@ import PropTypes from "prop-types"
 // MaterialUI imports
 import {
     List
-} from '@material-ui/core'
+} from '@mui/material'
 import ThreadListItem from './ThreadListItem'
 
 import useStyles from '../styles'

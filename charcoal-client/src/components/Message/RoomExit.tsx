@@ -1,9 +1,9 @@
 import React, { ReactChild, ReactChildren } from 'react'
 import { useDispatch } from 'react-redux'
 
-import Chip from '@material-ui/core/Chip'
-import ExitIcon from '@material-ui/icons/ExitToApp'
-import HiddenIcon from '@material-ui/icons/VisibilityOff'
+import Chip from '@mui/material/Chip'
+import ExitIcon from '@mui/icons-material/ExitToApp'
+import HiddenIcon from '@mui/icons-material/VisibilityOff'
 
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'

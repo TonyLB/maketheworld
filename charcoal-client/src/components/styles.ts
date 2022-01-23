@@ -4,9 +4,10 @@ import {
     purple,
     green,
     grey
-} from "@material-ui/core/colors"
-import { makeStyles } from "@material-ui/core/styles"
-import tinycolor from 'tinycolor2'
+} from "@mui/material/colors"
+import makeStyles from '@mui/styles/makeStyles';
+// import tinycolor from 'tinycolor2'
+import { Theme } from '@mui/material/styles';
 
 const drawerWidth = 400;
 
@@ -16,7 +17,7 @@ export const playerStyle = (color: string): string => (
         : ''
 )
 
-export const useStyles = makeStyles(theme => ({
+export const useStyles = makeStyles((theme: Theme) => ({
     ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
         [playerStyle(colorName)]: {
             '& .threadViewMessageColor': {
@@ -49,13 +50,13 @@ export const useStyles = makeStyles(theme => ({
     //
     threadViewOther: {
         '@media screen and (min-width: 1000px)': {
-            width: `calc(100% - ${theme.spacing(12)}px)`,
+            width: `calc(100% - ${theme.spacing(12)})`,
             marginRight: theme.spacing(12)
         }
     },
     threadViewSelf: {
         '@media screen and (min-width: 1000px)': {
-            width: `calc(100% - ${theme.spacing(12)}px)`,
+            width: `calc(100% - ${theme.spacing(12)})`,
             marginLeft: theme.spacing(12)
         }
     },
@@ -76,8 +77,8 @@ export const useStyles = makeStyles(theme => ({
         },
     },
     roomMessage: {
-        color: theme.palette.getContrastText(theme.palette.primary.main),
-        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.getContrastText(blue[800]),
+        backgroundColor: blue[800],
     },
     neighborhoodMessage: {
         color: theme.palette.getContrastText(theme.palette.primary.light),

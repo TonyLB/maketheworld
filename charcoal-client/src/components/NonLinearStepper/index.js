@@ -9,7 +9,7 @@ import {
     StepContent,
     StepButton,
     Button
-} from '@material-ui/core'
+} from '@mui/material'
 
 // Local code imports
 import useStyles from '../styles'

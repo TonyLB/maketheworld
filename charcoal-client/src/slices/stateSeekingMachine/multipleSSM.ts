@@ -118,7 +118,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                 if (!state.byId[action.payload]) {
                     state.byId[action.payload] = castDraft({
                         internalData: {
-                            ...initialData.internalData || {},
+                            ...(initialData.internalData || {}),
                             id: action.payload
                         },
                         publicData: initialData.publicData,

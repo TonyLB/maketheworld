@@ -15,16 +15,16 @@ import {
 
 import './index.css'
 
-import useMediaQuery from '@material-ui/core/useMediaQuery'
-import Tabs from '@material-ui/core/Tabs'
-import Tab from '@material-ui/core/Tab'
-import Snackbar from '@material-ui/core/Snackbar'
-import IconButton from '@material-ui/core/IconButton'
-import CloseIcon from '@material-ui/icons/Close'
-import { makeStyles } from '@material-ui/core/styles'
-import ForumIcon from '@material-ui/icons/Forum'
-import PeopleAltIcon from '@material-ui/icons/PeopleAlt'
-import HomeIcon from '@material-ui/icons/Home'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
+import Snackbar from '@mui/material/Snackbar'
+import IconButton from '@mui/material/IconButton'
+import CloseIcon from '@mui/icons-material/Close'
+import makeStyles from '@mui/styles/makeStyles';
+import ForumIcon from '@mui/icons-material/Forum'
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
+import HomeIcon from '@mui/icons-material/Home'
 
 import ActiveCharacter from '../ActiveCharacter'
 import InDevelopment from '../InDevelopment'
@@ -159,20 +159,22 @@ const NavigationTabs = () => {
     const portrait = useMediaQuery('(orientation: portrait)')
     const classes = useStyles()
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
-    return <div className={classes.tabs}>
-        <Tabs
-            classes={{ vertical: 'tabRootVertical' }}
-            orientation={portrait ? "horizontal" : "vertical"}
-            variant="scrollable"
-            scrollButtons="on"
-            value={selectedTab ? selectedTab.href : 'home'}
-            aria-label="Navigation"
-            indicatorColor="primary"
-            textColor="primary"
-        >
-            {tabList({ large, navigationTabs: navigationTabsData })}
-        </Tabs>
-    </div>
+    return (
+        <div className={classes.tabs}>
+            <Tabs
+                classes={{ vertical: 'tabRootVertical' }}
+                orientation={portrait ? "horizontal" : "vertical"}
+                variant="scrollable"
+                scrollButtons
+                value={selectedTab ? selectedTab.href : 'home'}
+                aria-label="Navigation"
+                indicatorColor="primary"
+                textColor="primary"
+                allowScrollButtonsMobile>
+                {tabList({ large, navigationTabs: navigationTabsData })}
+            </Tabs>
+        </div>
+    );
 }
 
 export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {

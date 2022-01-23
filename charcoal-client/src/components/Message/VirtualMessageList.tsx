@@ -3,7 +3,7 @@ import PropTypes from "prop-types"
 
 import {
     List
-} from '@material-ui/core'
+} from '@mui/material'
 
 import { GroupedVirtuoso, VirtuosoHandle } from 'react-virtuoso'
 

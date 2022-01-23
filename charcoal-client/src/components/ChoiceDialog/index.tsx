@@ -9,7 +9,7 @@ import {
     DialogContent,
     DialogActions,
     Button,
-} from '@material-ui/core'
+} from '@mui/material'
 
 // Local code imports
 import { pop, getFirstChoiceDialog } from '../../slices/UI/choiceDialog'

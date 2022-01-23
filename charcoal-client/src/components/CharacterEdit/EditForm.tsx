@@ -1,9 +1,9 @@
 import React, { FunctionComponent } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import Box from '@material-ui/core/Box'
-import TextField from '@material-ui/core/TextField'
-import Button from '@material-ui/core/Button'
+import Box from '@mui/material/Box'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
 
 import { getCharacterEditDirty, getCharacterEditValues, setValue, saveCharacter } from '../../slices/UI/characterEdit'
 import { CharacterEditKeys } from '../../slices/UI/characterEdit/baseClasses'

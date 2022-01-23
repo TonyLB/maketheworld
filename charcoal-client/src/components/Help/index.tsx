@@ -11,10 +11,10 @@ import {
     Box,
     Paper,
     Tooltip
-} from '@material-ui/core'
-import MenuIcon from '@material-ui/icons/Menu'
-import HelpIcon from '@material-ui/icons/Help'
-import SettingsIcon from '@material-ui/icons/Settings'
+} from '@mui/material'
+import MenuIcon from '@mui/icons-material/Menu'
+import HelpIcon from '@mui/icons-material/Help'
+import SettingsIcon from '@mui/icons-material/Settings'
 
 // Local code imports
 import Map from '../../static/Map.png'
