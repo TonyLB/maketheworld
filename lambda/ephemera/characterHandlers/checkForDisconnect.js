@@ -19,7 +19,7 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                     DataCategory: 'Meta::Message',
                     CreatedTime: Date.now(),
                     Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
-                    DisplayProtocol: "World",
+                    DisplayProtocol: "WorldMessage",
                     Message: `${Name || 'Someone'} has disconnected.`
                 })
             }))

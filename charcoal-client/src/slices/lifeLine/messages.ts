@@ -1,5 +1,5 @@
 type MessageFormatWorld = {
-    DisplayProtocol: 'World';
+    DisplayProtocol: 'WorldMessage';
     Target: string;
     CreatedTime: number;
     Message: string;

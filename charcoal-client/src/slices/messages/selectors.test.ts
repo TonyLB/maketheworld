@@ -9,13 +9,13 @@ import {
 const testState = {
     messages: {
         TESS: [{
-            DisplayProtocol: 'World',
+            DisplayProtocol: 'WorldMessage',
             MessageId: 'Test1',
             Message: 'Test1',
             CreatedTime: 0,
             Target: 'TESS'
         }, {
-            DisplayProtocol: 'World',
+            DisplayProtocol: 'WorldMessage',
             MessageId: 'Test2',
             Message: 'Test2',
             CreatedTime: 1,
@@ -31,13 +31,13 @@ describe('messages selectors', () => {
 
         it('should correctly return when message data is present', () => {
             expect(getMessages(testState).TESS).toEqual([{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test1',
                 Message: 'Test1',
                 CreatedTime: 0,
                 Target: 'TESS'
             }, {
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test2',
                 Message: 'Test2',
                 CreatedTime: 1,
@@ -55,13 +55,13 @@ describe('messages selectors', () => {
 
         it('should correctly handle Object.values', () => {
             expect(Object.values(getMessages(testState))).toEqual([[{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test1',
                 Message: 'Test1',
                 CreatedTime: 0,
                 Target: 'TESS'
             }, {
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test2',
                 Message: 'Test2',
                 CreatedTime: 1,
@@ -71,13 +71,13 @@ describe('messages selectors', () => {
 
         it('should correctly handle Object.entries', () => {
             expect(Object.entries(getMessages(testState))).toEqual([['TESS', [{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test1',
                 Message: 'Test1',
                 CreatedTime: 0,
                 Target: 'TESS'
             }, {
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test2',
                 Message: 'Test2',
                 CreatedTime: 1,
@@ -101,13 +101,13 @@ describe('messages selectors', () => {
                     Exits: [],
                     RoomCharacters: []
                 }, {
-                    DisplayProtocol: 'World',
+                    DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
                     Message: 'Test2',
                     CreatedTime: 2,
                     Target: 'TESS'
                 }, {
-                    DisplayProtocol: 'World',
+                    DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test3',
                     Message: 'Test3',
                     CreatedTime: 3,
@@ -123,7 +123,7 @@ describe('messages selectors', () => {
                     Exits: [],
                     RoomCharacters: []
                 }, {
-                    DisplayProtocol: 'World',
+                    DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test5',
                     Message: 'Test5',
                     CreatedTime: 5,
@@ -142,19 +142,19 @@ describe('messages selectors', () => {
         it('should return groups when all groups have headers', () => {
             expect(getMessagesByRoom('TESS')(testState)).toEqual({
                 Messages: [{
-                        DisplayProtocol: 'World',
+                        DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test2',
                         Message: 'Test2',
                         CreatedTime: 2,
                         Target: 'TESS'
                     }, {
-                        DisplayProtocol: 'World',
+                        DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test3',
                         Message: 'Test3',
                         CreatedTime: 3,
                         Target: 'TESS'
                     }, {
-                        DisplayProtocol: 'World',
+                        DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test5',
                         Message: 'Test5',
                         CreatedTime: 5,
