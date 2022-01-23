@@ -492,43 +492,6 @@ Resources:
                 Stream: !GetAtt EphemeraTable.StreamArn
                 BatchSize: 100
                 StartingPosition: TRIM_HORIZON
-  PermanentsFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/permanents/
-          Handler: app.handler
-          MemorySize: 256
-          Runtime: nodejs14.x
-          Timeout: 30
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
-                  S3_BUCKET:
-                    Fn::ImportValue:
-                      !Sub "${PermanentsStack}-StorageBucket"
-          Policies:
-            - Statement:
-              - Effect: Allow
-                Action:
-                  - s3:PutObject
-                  - s3:GetObject
-                Resource:
-                  Fn::Sub:
-                      - "arn:aws:s3:::${StorageBucket}/*"
-                      - StorageBucket:
-                          Fn::ImportValue:
-                            !Sub "${PermanentsStack}-StorageBucket"
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanent_delta'
-            - Statement:
-              - Effect: "Allow"
-                Action:
-                  - lambda:InvokeFunction
-                Resource:
-                  - !GetAtt EphemeraFunction.Arn
   AssetBucket:
       Type: AWS::S3::Bucket
       Properties:
