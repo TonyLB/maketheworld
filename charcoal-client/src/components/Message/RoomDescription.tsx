@@ -47,7 +47,7 @@ const useRoomStyles = makeStyles((theme) => ({
 
 export const RoomDescription = ({ message, ...rest }: RoomDescriptionProps) => {
     const localClasses = useRoomStyles()
-    const { Description, Name, RoomCharacters: Characters = [], Exits = [] } = message
+    const { Description, Name, Characters = [], Exits = [] } = message
     return <div style={{ padding: '5px' }}>
         <ListItem
             className={localClasses.roomMessage}

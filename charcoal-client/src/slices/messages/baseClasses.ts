@@ -25,8 +25,7 @@ export type RoomCharacter = {
     ConnectionId: string
 }
 
-export type RoomDescription = {
-    DisplayProtocol: 'RoomDescription';
+type RoomDescribeData = {
     Description: string;
     Name: string;
     RoomId: string;
@@ -35,21 +34,16 @@ export type RoomDescription = {
     // TODO: Refactor RoomDescription transmission protocol to send room characters
     // in 'Characters' rather than 'RoomCharacter' ... context is already established
     //
-    RoomCharacters: RoomCharacter[];
-} & MessageAddressing
+    Characters: RoomCharacter[];
+}
+
+export type RoomDescription = {
+    DisplayProtocol: 'RoomDescription';
+} & RoomDescribeData & MessageAddressing
 
 export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
-    Description: string;
-    Name: string;
-    RoomId: string;
-    Exits: RoomExit[];
-    //
-    // TODO: Refactor RoomDescription transmission protocol to send room characters
-    // in 'Characters' rather than 'RoomCharacter' ... context is already established
-    //
-    RoomCharacters: RoomCharacter[];
-} & MessageAddressing
+} & RoomDescribeData & MessageAddressing
 
 export type CharacterText = {
     DisplayProtocol: 'Player';

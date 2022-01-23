@@ -69,7 +69,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
                     Name: 'Unknown',
                     Description: '??????',
                     Exits: [],
-                    RoomCharacters: []
+                    Characters: []
                 },
                 messageCount: 0
             }
@@ -87,7 +87,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
                                         ...previous.currentGroup.header,
                                         Name: message.Name,
                                         Description: message.Description,
-                                        RoomCharacters: message.RoomCharacters,
+                                        Characters: message.Characters,
                                         Exits: message.Exits
                                     },
                                     messageCount: previous.currentGroup.messageCount
