@@ -183,7 +183,7 @@ describe('messages reducer', () => {
             Target: 'Test'
         })) as WorldMessage[]
 
-        const state = { messages: { TESS: testArray } }
+        const state = { messages: { TESS: testArray } } as any
 
         it('should return values when available', () => {
             expect(getMessages(state).TESS).toEqual(testArray)

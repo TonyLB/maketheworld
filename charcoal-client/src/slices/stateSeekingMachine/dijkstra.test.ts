@@ -13,13 +13,13 @@ type testSSMData = {
 }
 type testSSMNodes = {
     INITIAL: ISSMChoiceNode;
-    SUBSCRIBING: ISSMAttemptNode<testSSMData>;
+    SUBSCRIBING: ISSMAttemptNode<testSSMData, {}>;
     SUBSCRIBED: ISSMChoiceNode;
-    BRANCHING: ISSMAttemptNode<testSSMData>;
+    BRANCHING: ISSMAttemptNode<testSSMData, {}>;
     BRANCHED: ISSMChoiceNode;
-    CONNECTING: ISSMAttemptNode<testSSMData>;
+    CONNECTING: ISSMAttemptNode<testSSMData, {}>;
     CONNECTED: ISSMChoiceNode;
-    UNSUBSCRIBING: ISSMAttemptNode<testSSMData>;
+    UNSUBSCRIBING: ISSMAttemptNode<testSSMData, {}>;
 }
 
 type testSSMKeys = keyof testSSMNodes
@@ -29,19 +29,17 @@ type TestGraph = GraphFromNodes<testSSMNodes>
 type TestTemplate = TemplateFromNodes<testSSMNodes>
 
 describe('SSM dijkstra algorithm', () => {
-    const nullChoiceState = (key: testSSMKeys): ISSMChoiceState<testSSMKeys> => ({
-        key,
+    const nullChoiceState = (): ISSMChoiceState<testSSMKeys> => ({
         stateType: 'CHOICE',
         choices: []
     })
-    const nullAttemptState = (key: testSSMKeys): Partial<ISSMAttemptState<testSSMKeys, testSSMData>> => ({
-        key,
+    const nullAttemptState = (): Partial<ISSMAttemptState<testSSMKeys, testSSMData, {}>> => ({
         stateType: 'ATTEMPT',
         action: () => () => (Promise.resolve({}))
     })
     const baseGraph: TestTemplate = {
         initialState: 'INITIAL',
-        initialData: {},
+        initialData: { internalData: { value: '' }, publicData: {} },
         states: {
             ...([
                 ['INITIAL', 'SUBSCRIBING'],
@@ -49,7 +47,7 @@ describe('SSM dijkstra algorithm', () => {
                 ['BRANCHED', 'CONNECTING'],
                 ['CONNECTED', '']
             ].reduce((previous, [key, next]) => ({ ...previous, [key]: {
-                ...nullChoiceState(key as testSSMKeys),
+                ...nullChoiceState(),
                 choices: next ? [next] : [],
                 externals: []
             } }), {})),
@@ -59,7 +57,7 @@ describe('SSM dijkstra algorithm', () => {
                 ['CONNECTING', 'CONNECTED', 'SUBSCRIBED'],
                 ['UNSUBSCRIBING', 'INITIAL', 'INITIAL']
             ].reduce((previous, [key, resolve, reject]) => ({ ...previous, [key]: {
-                ...nullAttemptState(key as testSSMKeys),
+                ...nullAttemptState(),
                 resolve,
                 reject
             } }), {})) as TestGraph
@@ -70,12 +68,12 @@ describe('SSM dijkstra algorithm', () => {
             initialState: 'INITIAL' as testSSMKeys,
             states: {
                 ...baseGraph.states
-            }
+            },
         }
         if (branchingGraph.states.SUBSCRIBED.stateType === 'CHOICE') {
             branchingGraph.states.SUBSCRIBED.choices = ['BRANCHING', 'CONNECTING']
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: branchingGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING', 'CONNECTED'])
+        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: branchingGraph as any })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING', 'CONNECTED'])
 
     })
     it('handles cyclic graphs', () => {
@@ -88,7 +86,7 @@ describe('SSM dijkstra algorithm', () => {
         if (cyclicGraph.states.CONNECTED.stateType === 'CHOICE') {
             cyclicGraph.states.CONNECTED.choices = ['UNSUBSCRIBING']
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: cyclicGraph })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING', 'CONNECTED'])
+        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: cyclicGraph as any })).toEqual(['SUBSCRIBING', 'SUBSCRIBED', 'CONNECTING', 'CONNECTED'])
     })
     it('handles pathless graphs', () => {
         let disconnectedGraph = {
@@ -100,7 +98,7 @@ describe('SSM dijkstra algorithm', () => {
         if (disconnectedGraph.states.SUBSCRIBED.stateType === 'CHOICE') {
             disconnectedGraph.states.SUBSCRIBED.choices = []
         }
-        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: disconnectedGraph })).toEqual([])
+        expect(dijkstra({ startKey: 'INITIAL', endKey: 'CONNECTED', template: disconnectedGraph as any })).toEqual([])
 
     })
 })

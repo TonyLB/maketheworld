@@ -72,10 +72,6 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                     }
                 }
             }
-            //
-            // TODO:  Figure out how to package the perception function with other messages,
-            // so that they get published more or less together.
-            //
             const leaveRoomEphemera = async () => {
                 const { RoomId, EphemeraId } = oldImage
                 if (RoomId) {
@@ -106,7 +102,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                                 EphemeraId: `ROOM#${RoomId}`,
                                 DataCategory: 'Meta::Room'
                             }),
-                            UpdateExpression: "SET inactiveCharacters.#characterId = :character REMOVE activeCharacters.#characterId",
+                            UpdateExpression: "SET activeCharacters.#characterId = :character REMOVE inactiveCharacters.#characterId",
                             ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
                             ExpressionAttributeNames: { "#characterId": EphemeraId },
                             ExpressionAttributeValues: marshall({
@@ -127,10 +123,10 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
             // Movement messages and update Rooms
             //
             await Promise.all([
-                messages(),
                 leaveRoomEphemera(),
                 enterRoomEphemera()
             ])
+            await messages()
         }
         else {
             const leaveRoomEphemera = async () => {
