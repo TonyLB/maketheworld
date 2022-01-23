@@ -15,10 +15,6 @@ export type RoomExit = {
     Visibility: 'Public' | 'Private';
 }
 
-//
-// TODO: Refactor RoomCharacter transmission protocol to not send ConnectionIds
-// (too much security risk).
-//
 export type RoomCharacter = {
     Name: string;
     CharacterId: string;
@@ -29,10 +25,6 @@ type RoomDescribeData = {
     Name: string;
     RoomId: string;
     Exits: RoomExit[];
-    //
-    // TODO: Refactor RoomDescription transmission protocol to send room characters
-    // in 'Characters' rather than 'RoomCharacter' ... context is already established
-    //
     Characters: RoomCharacter[];
 }
 
