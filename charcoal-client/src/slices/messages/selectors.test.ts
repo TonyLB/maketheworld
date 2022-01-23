@@ -99,7 +99,7 @@ describe('messages selectors', () => {
                     Description: 'Test1',
                     Name: 'Test1',
                     Exits: [],
-                    RoomCharacters: []
+                    Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
@@ -121,7 +121,7 @@ describe('messages selectors', () => {
                     Description: 'Test4',
                     Name: 'Test4',
                     Exits: [],
-                    RoomCharacters: []
+                    Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test5',
@@ -138,7 +138,7 @@ describe('messages selectors', () => {
                     Description: 'Test1',
                     Name: 'Test1',
                     Exits: [],
-                    RoomCharacters: []
+                    Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
@@ -154,7 +154,7 @@ describe('messages selectors', () => {
                     Description: 'Test3',
                     Name: 'Test3',
                     Exits: [],
-                    RoomCharacters: []
+                    Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test4',
@@ -203,7 +203,7 @@ describe('messages selectors', () => {
                             Description: 'Test1',
                             Name: 'Test1',
                             Exits: [],
-                            RoomCharacters: []
+                            Characters: []
                         },
                         messageCount: 2
                     }, {
@@ -216,7 +216,7 @@ describe('messages selectors', () => {
                             Description: 'Test4',
                             Name: 'Test4',
                             Exits: [],
-                            RoomCharacters: []
+                            Characters: []
                         },
                         messageCount: 1
                 }]
@@ -248,7 +248,7 @@ describe('messages selectors', () => {
                             Description: 'Test3',
                             Name: 'Test3',
                             Exits: [],
-                            RoomCharacters: []
+                            Characters: []
                         },
                         messageCount: 2
                 }]

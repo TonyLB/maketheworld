@@ -128,7 +128,7 @@ export const render = async ({ assets, EphemeraId }, subsegment) => {
                 // TODO:  Replace Ancestry with a new map system
                 //
                 Ancestry: '',
-                RoomCharacters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: stripType(EphemeraId), ...rest })),
+                Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: stripType(EphemeraId), ...rest })),
                 Description,
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
