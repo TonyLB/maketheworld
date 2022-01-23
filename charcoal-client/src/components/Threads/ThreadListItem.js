@@ -10,7 +10,7 @@ import {
     ListItem,
     ListItemText,
     ListItemSecondaryAction
-} from '@material-ui/core'
+} from '@mui/material'
 
 import useStyles from '../styles'
 import CharacterChip from '../CharacterChip'

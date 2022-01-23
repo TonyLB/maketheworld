@@ -8,7 +8,7 @@ import {
     TableRow,
     TableCell,
     Avatar
-} from '@material-ui/core'
+} from '@mui/material'
 
 import { getActiveCharacterList } from '../slices/ephemera'
 import { getPlayer } from '../slices/player'

@@ -4,7 +4,7 @@ import {
     Typography,
     ListItem,
     ListItemText
-} from '@material-ui/core'
+} from '@mui/material'
 
 import { Message } from '../../slices/messages/baseClasses'
 

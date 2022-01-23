@@ -1,7 +1,8 @@
-import { blue } from "@material-ui/core/colors"
-import { makeStyles } from "@material-ui/core/styles"
+import { blue } from "@mui/material/colors"
+import makeStyles from '@mui/styles/makeStyles'
+import { Theme } from '@mui/material/styles'
 
-export const useMapStyles = makeStyles((theme) => ({
+export const useMapStyles = makeStyles((theme: Theme) => ({
     green: {
         fill: 'lightgreen',
         stroke: 'darkgreen',

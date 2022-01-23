@@ -7,8 +7,8 @@ import {
     CardContent,
     ListItem,
     ListItemText
-} from '@material-ui/core'
-import NewReleasesIcon from '@material-ui/icons/NewReleases'
+} from '@mui/material'
+import NewReleasesIcon from '@mui/icons-material/NewReleases'
 
 import useStyles from '../styles'
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import {
     TextField
-} from '@material-ui/core'
+} from '@mui/material'
 
 import { getServerSettings, getClientSettings } from '../slices/settings'
 

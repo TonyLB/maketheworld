@@ -1,16 +1,17 @@
 import React, { ReactElement } from 'react'
-import IconButton from '@material-ui/core/IconButton'
-import ButtonGroup from '@material-ui/core/ButtonGroup'
-import { makeStyles } from '@material-ui/core/styles'
+import IconButton from '@mui/material/IconButton'
+import ButtonGroup from '@mui/material/ButtonGroup'
+import makeStyles from '@mui/styles/makeStyles'
+import { Theme } from '@mui/material/styles'
 
-import SelectionIcon from '@material-ui/icons/NearMe'
-import OneWayExitIcon from '@material-ui/icons/TrendingFlat'
-import TwoWayExitIcon from '@material-ui/icons/SyncAlt'
-import RoomIcon from '@material-ui/icons/Home'
-import MoveIcon from '@material-ui/icons/OpenWith'
+import SelectionIcon from '@mui/icons-material/NearMe'
+import OneWayExitIcon from '@mui/icons-material/TrendingFlat'
+import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
+import RoomIcon from '@mui/icons-material/Home'
+import MoveIcon from '@mui/icons-material/OpenWith'
 import { ToolSelected } from './area'
 
-export const localStyles = makeStyles((theme) => ({
+export const localStyles = makeStyles((theme: Theme) => ({
     normal: {
         borderColor: theme.palette.primary.light,
         borderWidth: "1px",
@@ -65,26 +66,27 @@ export const ToolSelect = (props: ToolSelectProps) => {
             icon: <TwoWayExitIcon />
         }
     ]
-    return <ButtonGroup orientation="vertical" aria-label="vertical outlined primary button group">
-        {
-            tools.map(({ key, icon }) => (
-                <IconButton
-                    key={key}
-                    color={ toolSelected === key ? 'primary' : 'default' }
-                    classes={{
-                        root: classes.normal,
-                        colorPrimary: classes['normal.selected']
-                    }}
-                    onClick={() => {
-                        onChange(key)
-                    }}
-
-                >
-                    {icon}
-                </IconButton>
-            ))
-        }
-    </ButtonGroup>
+    return (
+        <ButtonGroup orientation="vertical" aria-label="vertical outlined primary button group">
+            {
+                tools.map(({ key, icon }) => (
+                    <IconButton
+                        key={key}
+                        color={ toolSelected === key ? 'primary' : 'default' }
+                        classes={{
+                            root: classes.normal,
+                            colorPrimary: classes['normal.selected']
+                        }}
+                        onClick={() => {
+                            onChange(key)
+                        }}
+                        size="large">
+                        {icon}
+                    </IconButton>
+                ))
+            }
+        </ButtonGroup>
+    );
 }
 
 export default ToolSelect

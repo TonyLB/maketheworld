@@ -8,7 +8,7 @@ import {
     ListItem,
     ListItemText,
     ListItemAvatar
-} from '@material-ui/core'
+} from '@mui/material'
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'

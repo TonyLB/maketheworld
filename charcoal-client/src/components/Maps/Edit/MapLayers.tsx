@@ -1,10 +1,10 @@
 import React, { FunctionComponent, useMemo } from 'react'
 
-import RoomIcon from '@material-ui/icons/Home'
-import ExitIcon from '@material-ui/icons/CallMade'
-import LayersIcon from '@material-ui/icons/Layers'
-import VisibilityOffIcon from '@material-ui/icons/VisibilityOff'
-import VisibilityIcon from '@material-ui/icons/Visibility'
+import RoomIcon from '@mui/icons-material/Home'
+import ExitIcon from '@mui/icons-material/CallMade'
+import LayersIcon from '@mui/icons-material/Layers'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 import produce from 'immer'
 
 import DraggableTree, { treeStateReducer, recursiveUpdate } from '../../DraggableTree'
