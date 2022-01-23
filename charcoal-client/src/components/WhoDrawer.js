@@ -9,25 +9,15 @@ import {
     TableCell,
     Avatar
 } from '@mui/material'
-import { blue, pink, purple, green, grey } from '@mui/material/colors'
 
 import { getActiveCharacterList } from '../slices/ephemera'
-import { getPlayer } from '../slices/player'
-
-
-import useStyles, { playerStyle } from './styles'
-
-const colorPalette = { blue, pink, purple, green, grey }
+import CharacterStyleWrapper from './CharacterStyleWrapper'
 
 export const WhoDrawer = () => {
-
     const whoIsActive = useSelector(getActiveCharacterList)
-    const { Characters } = useSelector(getPlayer)
-    const myCharacterIds = Characters.map(({ CharacterId }) => (CharacterId))
-    const classes = useStyles()
 
     return (
-        <Table className={classes.whoTable} aria-label="who is online">
+        <Table aria-label="who is online">
             <TableHead>
                 <TableRow>
                     <TableCell />
@@ -37,7 +27,7 @@ export const WhoDrawer = () => {
             </TableHead>
             <TableBody>
                 {
-                    whoIsActive.map(({ CharacterId, Name, color }) => {
+                    whoIsActive.map(({ CharacterId, Name }) => {
                         //
                         // TODO: Figure out how to present a workable room/area name using the new WML Asset
                         // system.
@@ -48,15 +38,17 @@ export const WhoDrawer = () => {
                         // some replacement for DirectMessageDialog)
                         //
                         return (
-                            <TableRow key={CharacterId} hover onClick={() => { }}>
-                                <TableCell>
-                                    <Avatar sx={{ bgcolor: colorPalette[myCharacterIds.includes(CharacterId) ? 'blue' : color.name][500] }}>
-                                        { Name[0].toUpperCase() }
-                                    </Avatar>
-                                </TableCell>
-                                <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
-                                <TableCell>{ neighborhoodName }</TableCell>
-                            </TableRow>
+                            <CharacterStyleWrapper key={CharacterId} CharacterId={CharacterId}>
+                                <TableRow hover onClick={() => { }}>
+                                    <TableCell>
+                                        <Avatar sx={{ bgcolor: 'primary.main' }} >
+                                            { Name[0].toUpperCase() }
+                                        </Avatar>
+                                    </TableCell>
+                                    <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
+                                    <TableCell>{ neighborhoodName }</TableCell>
+                                </TableRow>
+                            </CharacterStyleWrapper>
                         )
                     })
                 }

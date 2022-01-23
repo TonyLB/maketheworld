@@ -7,7 +7,7 @@ import {
 } from "@mui/material/colors"
 import makeStyles from '@mui/styles/makeStyles';
 // import tinycolor from 'tinycolor2'
-import { Theme } from '@mui/material/styles';
+import { Theme, createTheme } from '@mui/material/styles';
 
 const drawerWidth = 400;
 
@@ -16,6 +16,17 @@ export const playerStyle = (color: string): string => (
         ? `player${color.charAt(0).toUpperCase()}${color.slice(1)}`
         : ''
 )
+
+//
+// TODO: Typescript-constrain characterPalettes
+//
+export const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).map(([colorName, color]) => ({
+    [colorName]: createTheme({
+        palette: {
+            primary: color
+        }
+    })
+})).reduce((prev, item) => ({ ...prev, ...item }), {})
 
 export const useStyles = makeStyles((theme: Theme) => ({
     ...(Object.entries({ blue, pink, purple, green }).map(([colorName, color]) => ({
