@@ -9,11 +9,15 @@ import {
     TableCell,
     Avatar
 } from '@mui/material'
+import { blue, pink, purple, green, grey } from '@mui/material/colors'
 
 import { getActiveCharacterList } from '../slices/ephemera'
 import { getPlayer } from '../slices/player'
 
+
 import useStyles, { playerStyle } from './styles'
+
+const colorPalette = { blue, pink, purple, green, grey }
 
 export const WhoDrawer = () => {
 
@@ -46,11 +50,9 @@ export const WhoDrawer = () => {
                         return (
                             <TableRow key={CharacterId} hover onClick={() => { }}>
                                 <TableCell>
-                                    <div className={playerStyle(myCharacterIds.includes(CharacterId) ? 'blue' : color.name)}>
-                                        <Avatar className='avatarColor'>
-                                            { Name[0].toUpperCase() }
-                                        </Avatar>
-                                    </div>
+                                    <Avatar sx={{ bgcolor: colorPalette[myCharacterIds.includes(CharacterId) ? 'blue' : color.name][500] }}>
+                                        { Name[0].toUpperCase() }
+                                    </Avatar>
                                 </TableCell>
                                 <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
                                 <TableCell>{ neighborhoodName }</TableCell>

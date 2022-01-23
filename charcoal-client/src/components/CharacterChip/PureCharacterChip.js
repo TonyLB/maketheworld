@@ -24,7 +24,7 @@ export const PureCharacterChip = ({
 }) => {
     const classes = useStyles()
     return (
-        <Tooltip key={Name} interactive arrow title={
+        <Tooltip key={Name} interactive="true" arrow title={
             <React.Fragment>
                 <Typography variant='subtitle1' align='center'>
                     {Name}
