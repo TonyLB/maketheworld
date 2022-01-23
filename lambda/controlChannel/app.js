@@ -370,12 +370,12 @@ const executeAction = (request) => {
         case 'SayMessage':
         case 'NarrateMessage':
             return narrateOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
-        case 'narrate':
-            return narrateOrSpeech({ ...request.payload, DisplayProtocol: 'NarrateMessage' })
-        case 'pose':
-            return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
-        case 'spoof':
-            return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
+        // case 'narrate':
+        //     return narrateOrSpeech({ ...request.payload, DisplayProtocol: 'NarrateMessage' })
+        // case 'pose':
+        //     return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
+        // case 'spoof':
+        //     return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
         case 'move':
             return moveCharacter(request.payload)
         case 'home':

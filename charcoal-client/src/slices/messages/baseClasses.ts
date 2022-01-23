@@ -44,12 +44,6 @@ export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
 } & RoomDescribeData & MessageAddressing
 
-export type CharacterText = {
-    DisplayProtocol: 'Player';
-    CharacterId: string;
-    Message: string;
-} & MessageAddressing
-
 export type CharacterSpeech = {
     DisplayProtocol: 'SayMessage';
     CharacterId: string;
@@ -70,6 +64,6 @@ export type OutOfCharacterMessage = {
     Message: string;
 } & MessageAddressing
 
-export type Message = WorldMessage | RoomDescription | RoomHeader | CharacterText | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+export type Message = WorldMessage | RoomDescription | RoomHeader | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export type MessageState = Record<string, Message[]>

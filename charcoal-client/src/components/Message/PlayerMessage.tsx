@@ -14,10 +14,10 @@ import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useStyles, { playerStyle } from '../styles'
 
-import { CharacterText, CharacterNarration, CharacterSpeech } from '../../slices/messages/baseClasses'
+import { CharacterNarration, CharacterSpeech } from '../../slices/messages/baseClasses'
 
 interface PlayerMessageProps {
-    message: CharacterText | CharacterNarration | CharacterSpeech;
+    message: CharacterNarration | CharacterSpeech;
     children?: ReactChild | ReactChildren;
 }
 

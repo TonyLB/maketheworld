@@ -15,7 +15,6 @@ interface MessageProps {
 export const Message = ({ message, ...rest }: MessageProps) => {
     const { DisplayProtocol } = message
     switch(DisplayProtocol) {
-        case 'Player':
         case 'SayMessage':
         case 'NarrateMessage':
             return <PlayerMessage message={message} {...rest} />
