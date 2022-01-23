@@ -128,6 +128,39 @@ describe('messages selectors', () => {
                     Message: 'Test5',
                     CreatedTime: 5,
                     Target: 'TESS'
+                }],
+                MARCO: [{
+                    DisplayProtocol: 'RoomHeader',
+                    MessageId: 'Test1',
+                    CreatedTime: 1,
+                    Target: 'MARCO',
+                    RoomId: 'TEST',
+                    Description: 'Test1',
+                    Name: 'Test1',
+                    Exits: [],
+                    RoomCharacters: []
+                }, {
+                    DisplayProtocol: 'WorldMessage',
+                    MessageId: 'Test2',
+                    Message: 'Test2',
+                    CreatedTime: 2,
+                    Target: 'MARCO'
+                }, {
+                    DisplayProtocol: 'RoomHeader',
+                    MessageId: 'Test3',
+                    CreatedTime: 3,
+                    Target: 'MARCO',
+                    RoomId: 'TEST',
+                    Description: 'Test3',
+                    Name: 'Test3',
+                    Exits: [],
+                    RoomCharacters: []
+                }, {
+                    DisplayProtocol: 'WorldMessage',
+                    MessageId: 'Test4',
+                    Message: 'Test4',
+                    CreatedTime: 4,
+                    Target: 'MARCO'
                 }]
             } as MessageState
         } as unknown as RootState
@@ -186,6 +219,38 @@ describe('messages selectors', () => {
                             RoomCharacters: []
                         },
                         messageCount: 1
+                }]
+            })
+        })
+
+        it('should combine successive groups with the same room ID', () => {
+            expect(getMessagesByRoom('MARCO')(testState)).toEqual({
+                Messages: [{
+                        DisplayProtocol: 'WorldMessage',
+                        MessageId: 'Test2',
+                        Message: 'Test2',
+                        CreatedTime: 2,
+                        Target: 'MARCO'
+                    }, {
+                        DisplayProtocol: 'WorldMessage',
+                        MessageId: 'Test4',
+                        Message: 'Test4',
+                        CreatedTime: 4,
+                        Target: 'MARCO'
+                }],
+                Groups: [{
+                        header: {
+                            DisplayProtocol: 'RoomHeader',
+                            MessageId: 'Test1',
+                            CreatedTime: 1,
+                            Target: 'MARCO',
+                            RoomId: 'TEST',
+                            Description: 'Test3',
+                            Name: 'Test3',
+                            Exits: [],
+                            RoomCharacters: []
+                        },
+                        messageCount: 2
                 }]
             })
         })
