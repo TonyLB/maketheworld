@@ -22,7 +22,7 @@ describe('messages reducer', () => {
             [1000, 'Test-1000'],
             [10000, 'Test-10000']
         ].map(([value, label]) => ({
-            DisplayProtocol: 'World',
+            DisplayProtocol: 'WorldMessage',
             MessageId: label,
             Message: 'Test',
             CreatedTime: value,
@@ -79,7 +79,7 @@ describe('messages reducer', () => {
             [100, 'Test-H'],
             [10000, 'Test-10000']
         ].map(([value, label]) => ({
-            DisplayProtocol: 'World',
+            DisplayProtocol: 'WorldMessage',
             MessageId: label,
             Message: 'Test',
             CreatedTime: value,
@@ -92,14 +92,14 @@ describe('messages reducer', () => {
 
         it('should accept message in empty state', () => {
             expect(reducer({}, receiveMessages([{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
                 Message: 'Test message',
                 MessageId: 'Test',
                 Target: 'TESS'
             }]))).toEqual({
                 TESS: [{
-                    DisplayProtocol: 'World',
+                    DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
                     Message: 'Test message',
                     MessageId: 'Test',
@@ -110,14 +110,14 @@ describe('messages reducer', () => {
 
         it('should add target entry when none exists', () => {
             expect(reducer(state, receiveMessages([{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
                 Message: 'Test message',
                 MessageId: 'Test',
                 Target: 'MARCO'
             }]))).toEqual({
                 MARCO: [{
-                    DisplayProtocol: 'World',
+                    DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
                     Message: 'Test message',
                     MessageId: 'Test',
@@ -129,14 +129,14 @@ describe('messages reducer', () => {
 
         it('should insert at start of array', () => {
             expect(reducer(state, receiveMessages([{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
                 Message: 'Test message',
                 MessageId: 'Test',
                 Target: 'TESS'
             }]))).toEqual({
                 TESS: [{
-                        DisplayProtocol: 'World',
+                        DisplayProtocol: 'WorldMessage',
                         CreatedTime: 1,
                         Message: 'Test message',
                         MessageId: 'Test',
@@ -149,7 +149,7 @@ describe('messages reducer', () => {
 
         it('should insert at end of array', () => {
             expect(reducer(state, receiveMessages([{
-                DisplayProtocol: 'World',
+                DisplayProtocol: 'WorldMessage',
                 CreatedTime: 200000,
                 Message: 'Test message',
                 MessageId: 'Test',
@@ -158,7 +158,7 @@ describe('messages reducer', () => {
                 TESS: [
                     ...testArray,
                     {
-                        DisplayProtocol: 'World',
+                        DisplayProtocol: 'WorldMessage',
                         CreatedTime: 200000,
                         Message: 'Test message',
                         MessageId: 'Test',
@@ -176,7 +176,7 @@ describe('messages reducer', () => {
             [100, 'Test-H'],
             [10000, 'Test-10000']
         ].map(([value, label]) => ({
-            DisplayProtocol: 'World',
+            DisplayProtocol: 'WorldMessage',
             MessageId: label,
             Message: 'Test',
             CreatedTime: value,

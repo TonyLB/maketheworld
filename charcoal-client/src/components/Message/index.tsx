@@ -19,7 +19,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'SayMessage':
         case 'NarrateMessage':
             return <PlayerMessage message={message} {...rest} />
-        case 'World':
+        case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':
         case 'RoomHeader':

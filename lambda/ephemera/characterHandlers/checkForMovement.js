@@ -24,7 +24,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                             DataCategory: 'Meta::Message',
                             CreatedTime: epochTime - 1,
                             Targets: [`CHARACTER#${CharacterId}`, `ROOM#${oldRoomId}`],
-                            DisplayProtocol: "World",
+                            DisplayProtocol: "WorldMessage",
                             Message: `${Name}${leaveMessage || ' has left.'}`
                         }]
                         : []
@@ -34,7 +34,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                             DataCategory: 'Meta::Message',
                             CreatedTime: epochTime + 1,
                             Targets: [`CHARACTER#${CharacterId}`, `ROOM#${newRoomId}`],
-                            DisplayProtocol: "World",
+                            DisplayProtocol: "WorldMessage",
                             Message: `${Name}${enterMessage || ' has arrived.'}`
                         }]
                         : []

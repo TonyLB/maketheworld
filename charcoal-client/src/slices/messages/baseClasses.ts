@@ -5,7 +5,7 @@ export type MessageAddressing = {
 }
 
 export type WorldMessage = {
-    DisplayProtocol: 'World';
+    DisplayProtocol: 'WorldMessage';
     Message: string;
 } & MessageAddressing
 
