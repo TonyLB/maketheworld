@@ -9,6 +9,14 @@ import makeStyles from '@mui/styles/makeStyles';
 // import tinycolor from 'tinycolor2'
 import { Theme, createTheme } from '@mui/material/styles';
 
+declare module '@mui/material/styles' {
+    interface PaletteOptions {
+        extras?: {
+            pale?: string;
+        }
+    }
+}
+
 const drawerWidth = 400;
 
 export const playerStyle = (color: string): string => (
@@ -23,8 +31,11 @@ export const playerStyle = (color: string): string => (
 export const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).map(([colorName, color]) => ({
     [colorName]: createTheme({
         palette: {
-            primary: color
-        }
+            primary: color,
+            extras: {
+                pale: color[50]
+            }
+        },
     })
 })).reduce((prev, item) => ({ ...prev, ...item }), {})
 
