@@ -78,16 +78,34 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
         const { Messages, Groups, currentGroup }: MessageRoomInProgress = messages.reduce<MessageRoomInProgress>((previous, message) => {
                 switch(message.DisplayProtocol) {
                     case 'RoomHeader':
-                        return {
-                            Messages: previous.Messages,
-                            Groups: [
-                                ...previous.Groups,
-                                previous.currentGroup
-                            ],
-                            currentGroup: {
-                                header: message,
-                                messageCount: 0
+                        if (message.RoomId === previous.currentGroup.header.RoomId) {
+                            return {
+                                Messages: previous.Messages,
+                                Groups: previous.Groups,
+                                currentGroup: {
+                                    header: {
+                                        ...previous.currentGroup.header,
+                                        Name: message.Name,
+                                        Description: message.Description,
+                                        RoomCharacters: message.RoomCharacters,
+                                        Exits: message.Exits
+                                    },
+                                    messageCount: previous.currentGroup.messageCount
+                                }
                             }
+                        }
+                        else {
+                            return {
+                                Messages: previous.Messages,
+                                Groups: [
+                                    ...previous.Groups,
+                                    previous.currentGroup
+                                ],
+                                currentGroup: {
+                                    header: message,
+                                    messageCount: 0
+                                }
+                            }    
                         }
                     default:
                         return {

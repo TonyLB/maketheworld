@@ -1,4 +1,4 @@
-import { objectMap, objectFilter } from './objects.js'
+import { objectMap, objectFilter } from './objects.ts'
 
 describe('Objects utility functions', () => {
 
