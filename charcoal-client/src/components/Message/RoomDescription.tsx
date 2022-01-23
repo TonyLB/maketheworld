@@ -7,6 +7,7 @@ import {
     ListItemAvatar,
     Divider
 } from '@mui/material'
+import { blue } from '@mui/material/colors'
 import makeStyles from '@mui/styles/makeStyles';
 import HouseIcon from '@mui/icons-material/House'
 
@@ -22,8 +23,8 @@ interface RoomDescriptionProps {
 
 const useRoomStyles = makeStyles((theme) => ({
     roomMessage: {
-        color: theme.palette.getContrastText(theme.palette.primary.main),
-        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.getContrastText(blue[800]),
+        backgroundColor: blue[800],
     },
     roomDescriptionGrid: {
         display: 'grid',

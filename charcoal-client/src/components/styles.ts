@@ -77,8 +77,8 @@ export const useStyles = makeStyles((theme: Theme) => ({
         },
     },
     roomMessage: {
-        color: theme.palette.getContrastText(theme.palette.primary.main),
-        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.getContrastText(blue[800]),
+        backgroundColor: blue[800],
     },
     neighborhoodMessage: {
         color: theme.palette.getContrastText(theme.palette.primary.light),
