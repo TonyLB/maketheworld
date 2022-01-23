@@ -22,7 +22,6 @@ export type RoomExit = {
 export type RoomCharacter = {
     Name: string;
     CharacterId: string;
-    ConnectionId: string
 }
 
 type RoomDescribeData = {
