@@ -11,10 +11,10 @@ import {
 } from '@mui/material'
 
 import { getCharactersInPlay } from '../../slices/ephemera'
-import { useActiveCharacter } from '../ActiveCharacter'
-import useStyles, { playerStyle } from '../styles'
+import CharacterStyleWrapper from '../CharacterStyleWrapper'
 
 import { CharacterNarration, CharacterSpeech } from '../../slices/messages/baseClasses'
+
 
 interface PlayerMessageProps {
     message: CharacterNarration | CharacterSpeech;
@@ -23,16 +23,13 @@ interface PlayerMessageProps {
 
 export const PlayerMessage = ({ message, ...rest }: PlayerMessageProps) => {
     const CharacterId = message.CharacterId
-    const { CharacterId: myCharacterId } = useActiveCharacter()
     const charactersInPlay = useSelector(getCharactersInPlay)
     const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
-    const color = (CharacterId === myCharacterId) ? { name: 'blue', primary: 'blue', light: 'lightblue' } : (charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].color) || ''
-    const classes = useStyles()
-    return <div className={ color && classes[playerStyle(color.name) as keyof typeof classes] }> 
-            <ListItem className='messageColor' alignItems="flex-start" {...rest} >
+    return <CharacterStyleWrapper CharacterId={CharacterId}>
+        <ListItem sx={{ color: 'black', bgcolor: 'extras.pale' }} alignItems="flex-start" {...rest} >
             <ListItemAvatar>
                 <Tooltip title={Name || '?'}>
-                    <Avatar className='avatarColor'>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
                         { (Name || '?')[0].toUpperCase() }
                     </Avatar>
                 </Tooltip>
@@ -46,7 +43,7 @@ export const PlayerMessage = ({ message, ...rest }: PlayerMessageProps) => {
                 </Typography>
             </ListItemText>
         </ListItem>
-    </div>
+    </CharacterStyleWrapper>
 }
 
 export default PlayerMessage

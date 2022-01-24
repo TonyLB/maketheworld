@@ -12,13 +12,13 @@ import {
     Paper,
     Tooltip
 } from '@mui/material'
+import { blue } from '@mui/material/colors'
 import MenuIcon from '@mui/icons-material/Menu'
 import HelpIcon from '@mui/icons-material/Help'
 import SettingsIcon from '@mui/icons-material/Settings'
 
 // Local code imports
 import Map from '../../static/Map.png'
-import useStyles from '../styles'
 
 const a11yProps = (index: number) => ({
     id: `scrollable-auto-tab-${index}`,
@@ -59,7 +59,6 @@ const CommandEntry = ({ label='', argument=false, explanation='' }) => (
 // the help contents to reflect the updated state of the system.
 //
 export const HelpPage = () => {
-    const classes = useStyles()
     const [tabValue, setTabValue] = useState(0)
     const handleChange = (event: any, newValue: number) => {
         setTabValue(newValue)
@@ -97,7 +96,7 @@ export const HelpPage = () => {
                                 </React.Fragment>
                             }
                         >
-                            <Paper className={classes.roomMessage}>
+                            <Paper sx={{ color: 'white', bgcolor: blue[800] }}>
                                 <MenuIcon />
                             </Paper>
                         </Tooltip>
@@ -117,7 +116,7 @@ export const HelpPage = () => {
                                 </React.Fragment>
                             }
                         >
-                            <Paper className={classes.roomMessage}>
+                            <Paper sx={{ color: 'white', bgcolor: blue[800] }}>
                                 <Typography align="center">
                                     The room you are currently in
                                 </Typography>
@@ -140,7 +139,7 @@ export const HelpPage = () => {
                                 </React.Fragment>
                             }
                         >
-                            <Paper className={classes.roomMessage}>
+                            <Paper sx={{ color: 'white', bgcolor: blue[800] }}>
                                 <Typography align="right">
                                     <HelpIcon />
                                     <SettingsIcon />
@@ -208,7 +207,7 @@ export const HelpPage = () => {
                                     </React.Fragment>
                                 }
                             >
-                            <Paper className={classes.roomMessage}>
+                            <Paper sx={{ color: 'white', bgcolor: blue[800] }}>
                                 <Typography align="center">
                                     Enter text here
                                 </Typography>

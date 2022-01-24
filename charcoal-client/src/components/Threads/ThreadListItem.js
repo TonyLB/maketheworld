@@ -2,7 +2,9 @@
 // ThreadListItem shows one thread header in the ThreadList
 //
 
+/** @jsxImportSource @emotion/react */
 import React from 'react'
+import { css } from '@emotion/react'
 import PropTypes from "prop-types"
 
 // MaterialUI imports
@@ -11,14 +13,27 @@ import {
     ListItemText,
     ListItemSecondaryAction
 } from '@mui/material'
+import { grey, blue } from '@mui/material/colors'
 
-import useStyles from '../styles'
 import CharacterChip from '../CharacterChip'
 
 export const ThreadListItem = ({ ThreadId = '', Subject = '', onView = () => {}, characters = [], ...rest }) => {
-    const classes = useStyles()
 
-    return <ListItem className={classes.threadListItem} onClick={() => { onView(ThreadId) }} {...rest} >
+    return <ListItem
+        css={css`
+            cursor: pointer;
+            user-select: none;
+            border-radius: 10px;
+            border-width: 1px;
+            border-style: solid;
+            '&:hover': {
+                background-color: ${blue[50]},
+                color: black
+            }
+        `}
+        sx={{ bgcolor: grey[50], borderColor: grey[500] }}
+        onClick={() => { onView(ThreadId) }} {...rest}
+    >
         <ListItemText>
             { Subject }
         </ListItemText>

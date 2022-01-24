@@ -10,15 +10,12 @@ import {
 } from '@mui/material'
 import NewReleasesIcon from '@mui/icons-material/NewReleases'
 
-import useStyles from '../styles'
-
 export const AnnouncementMessage = React.forwardRef(({ Message, Title, Recap, ...rest }, ref) => {
-    const classes = useStyles()
-    return <ListItem ref={ref} alignItems="flex-start" {...rest} className={Recap ? classes.lightgrey : null}>
+    return <ListItem ref={ref} alignItems="flex-start" {...rest} sx={{ bgcolor: Recap ? 'grey' : undefined }}>
         <ListItemText inset>
             <Card>
-                <CardHeader className={Recap ? classes.darkgrey : classes.lightgrey} avatar={<NewReleasesIcon />} title={Title} />
-                <CardContent className={Recap ? classes.lightgrey : null }>
+                <CardHeader sx={{ bgcolor: Recap ? 'grey' : 'darkgrey' }} avatar={<NewReleasesIcon />} title={Title} />
+                <CardContent sx={{ bgcolor: Recap ? 'grey' : undefined }}>
                     <Typography variant='body1' align='left'>
                         { Message }
                     </Typography>

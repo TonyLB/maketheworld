@@ -41,11 +41,13 @@ import { useSelector } from 'react-redux'
 import { getActiveCharacters } from '../../slices/activeCharacters'
 import { getMessagesByRoom } from '../../slices/messages'
 import { getCharactersInPlay } from '../../slices/ephemera'
+import { EphemeraCharacterInPlay } from '../../slices/ephemera/baseClasses'
 import { MessageRoomBreakdown } from '../../slices/messages/selectors'
 
 type ActiveCharacterContextType = {
     CharacterId: string;
     messageBreakdown: MessageRoomBreakdown;
+    info?: EphemeraCharacterInPlay;
 }
 
 const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({

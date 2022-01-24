@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import {
     Typography,
@@ -16,7 +16,7 @@ import ReplyIcon from '@mui/icons-material/Reply'
 import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
 // import { activateDirectMessageDialog } from '../../actions/UI/directMessageDialog'
-import useStyles from '../styles'
+import CharacterStyleWrapper from '../CharacterStyleWrapper'
 
 export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const { Recipients, CharacterId: FromCharacterId } = message
@@ -26,40 +26,39 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const targetCharacterId = (FromCharacterId === myCharacterId) ? ToCharacterId : FromCharacterId
     const targetCharacter = charactersInPlay && charactersInPlay[targetCharacterId]
     const Name = charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].Name
-    const color = (FromCharacterId === myCharacterId) ? { primary: 'blue', light: 'lightblue', direct: 'directblue' } : (charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].color) || ''
     const replyCharacterId = (FromCharacterId === myCharacterId) ? (ToCharacterId === myCharacterId) ? null : ToCharacterId : FromCharacterId
-    const classes = useStyles()
-    const dispatch = useDispatch()
     return (
-        <ListItem ref={ref} className={ color && classes[color.direct] } alignItems="flex-start" {...rest} >
-            <ListItemAvatar>
-                <Tooltip title={Name || '?'}>
-                    <Avatar className={color && classes[color.primary]}>
-                        { (Name && Name[0].toUpperCase()) || '?' }
-                    </Avatar>
-                </Tooltip>
-            </ListItemAvatar>
-            <ListItemText>
-                <Typography variant='overline' align='left'>
-                    Direct message { FromCharacterId === myCharacterId ? 'to' : 'from'}: { (FromCharacterId === ToCharacterId) ? 'Yourself' : ((targetCharacter && targetCharacter.Name) || 'Someone') }
-                </Typography>
-                <Typography variant='body1' align='left'>
-                    { message.Message }
-                </Typography>
-            </ListItemText>
-            <ListItemSecondaryAction>
-                { replyCharacterId && charactersInPlay[replyCharacterId].Connected &&
-                    <IconButton
-                        onClick={() => {
-                            console.log(`Replying to ${replyCharacterId}`)
-                            // dispatch(activateDirectMessageDialog(replyCharacterId))
-                        } }
-                        size="large">
-                        <ReplyIcon />
-                    </IconButton>
-                }
-            </ListItemSecondaryAction>
-        </ListItem>
+        <CharacterStyleWrapper CharacterId={FromCharacterId} Name={Name}>
+            <ListItem ref={ref} sx={{ bgcolor: 'extras.pale' }} alignItems="flex-start" {...rest} >
+                <ListItemAvatar>
+                    <Tooltip title={Name || '?'}>
+                        <Avatar sx={{ bgcolor: 'palette.primary' }}>
+                            { (Name && Name[0].toUpperCase()) || '?' }
+                        </Avatar>
+                    </Tooltip>
+                </ListItemAvatar>
+                <ListItemText>
+                    <Typography variant='overline' align='left'>
+                        Direct message { FromCharacterId === myCharacterId ? 'to' : 'from'}: { (FromCharacterId === ToCharacterId) ? 'Yourself' : ((targetCharacter && targetCharacter.Name) || 'Someone') }
+                    </Typography>
+                    <Typography variant='body1' align='left'>
+                        { message.Message }
+                    </Typography>
+                </ListItemText>
+                <ListItemSecondaryAction>
+                    { replyCharacterId && charactersInPlay[replyCharacterId].Connected &&
+                        <IconButton
+                            onClick={() => {
+                                console.log(`Replying to ${replyCharacterId}`)
+                                // dispatch(activateDirectMessageDialog(replyCharacterId))
+                            } }
+                            size="large">
+                            <ReplyIcon />
+                        </IconButton>
+                    }
+                </ListItemSecondaryAction>
+            </ListItem>
+        </CharacterStyleWrapper>
     );
 })
 
