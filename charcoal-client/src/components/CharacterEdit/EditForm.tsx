@@ -7,7 +7,6 @@ import Button from '@mui/material/Button'
 
 import { getCharacterEditDirty, getCharacterEditValues, setValue, saveCharacter } from '../../slices/UI/characterEdit'
 import { CharacterEditKeys } from '../../slices/UI/characterEdit/baseClasses'
-import useStyles from '../styles'
 
 type CharacterEditFormProps = {
     characterKey: string
@@ -18,7 +17,6 @@ const validAssetKey = (value: string): boolean => (
 )
 
 export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ characterKey }) => {
-    const classes = useStyles()
     const dispatch = useDispatch()
     // const localClasses = useCharacterEditFormStyles()
 
@@ -28,7 +26,7 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => {
         dispatch(setValue(characterKey)({ label, value: event.target.value }))
     }
-    return <Box className={classes.homeContents}>
+    return <Box sx={{ flexGrow: 1, padding: 2 }}>
         <TextField
             required
             error={!validAssetKey(value.assetKey)}

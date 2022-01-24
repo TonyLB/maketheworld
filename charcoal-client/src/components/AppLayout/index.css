@@ -1,12 +1,3 @@
-.fullScreen {
-    height: 100vh;
-    /*
-        In order to override mobile-platform's delivery of vh as device size rather than viewport size,
-        we need to override (where possible) 
-    */
-    height: calc(var(--vh, 1vh) * 100);
-    width: 100vw;
-}
 .tabRootVertical {
     height: 100vh;
     /*

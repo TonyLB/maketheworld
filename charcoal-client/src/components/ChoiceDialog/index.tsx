@@ -10,16 +10,15 @@ import {
     DialogActions,
     Button,
 } from '@mui/material'
+import { blue } from '@mui/material/colors'
 
 // Local code imports
 import { pop, getFirstChoiceDialog } from '../../slices/UI/choiceDialog'
-import useStyles from '../styles'
 
 export const ConfirmDialog = () => {
     const currentDialog = useSelector(getFirstChoiceDialog)
     const dispatch = useDispatch()
 
-    const classes = useStyles()
     if (!currentDialog) {
         return <Dialog maxWidth="lg" open={false} />
     }
@@ -29,7 +28,7 @@ export const ConfirmDialog = () => {
             maxWidth="lg"
             open={Boolean(currentDialog)}
         >
-            <DialogTitle id="confirm-dialog-title" className={(classes as any).lightblue }>{ title }</DialogTitle>
+            <DialogTitle id="confirm-dialog-title" sx={{ bgcolor: blue[50] }}>{ title }</DialogTitle>
             <DialogContent>
                 { message }
             </DialogContent>

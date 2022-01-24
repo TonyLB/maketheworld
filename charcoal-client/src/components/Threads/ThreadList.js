@@ -11,11 +11,8 @@ import {
 } from '@mui/material'
 import ThreadListItem from './ThreadListItem'
 
-import useStyles from '../styles'
-
 export const ThreadList = ({ threads = [], onView = () => {} }) => {
-    const classes = useStyles()
-    return <List className={classes.threadSelectionList}>
+    return <List>
         {
             threads.map(({
                 ThreadId,

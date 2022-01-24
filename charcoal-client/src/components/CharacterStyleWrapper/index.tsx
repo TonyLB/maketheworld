@@ -1,10 +1,38 @@
 import { ReactChild, ReactChildren, FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
-import { ThemeProvider } from '@mui/material/styles'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import {
+    blue,
+    pink,
+    purple,
+    green,
+    grey
+} from "@mui/material/colors"
 
-import { characterThemes } from '../styles'
 import { getActiveCharacterList } from '../../slices/ephemera'
 import { getPlayer } from '../../slices/player'
+
+declare module '@mui/material/styles' {
+    interface PaletteOptions {
+        extras?: {
+            pale?: string;
+        }
+    }
+}
+
+//
+// TODO: Typescript-constrain characterPalettes
+//
+const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).map(([colorName, color]) => ({
+    [colorName]: createTheme({
+        palette: {
+            primary: color,
+            extras: {
+                pale: color[50]
+            }
+        },
+    })
+})).reduce((prev, item) => ({ ...prev, ...item }), {})
 
 type CharacterStyleWrapperProps = {
     CharacterId: string;

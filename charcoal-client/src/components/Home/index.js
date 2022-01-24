@@ -2,7 +2,6 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { useNavigate } from 'react-router-dom'
 
-import useStyles from '../styles'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
@@ -26,10 +25,9 @@ import ChatIcon from '@mui/icons-material/Sms'
 export const Home = ({
     myCharacters = []
 }) => {
-    const classes = useStyles()
     const navigate = useNavigate()
 
-    return <Box className={classes.homeContents}>
+    return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
             <h2>Make the World</h2>
             A text-based platform for cooperative storytelling
@@ -38,7 +36,7 @@ export const Home = ({
             <Divider />
         </div>
         <Grid
-            className={classes.homeGrid}
+            sx={{ width: "100%", padding: "10px" }}
             container
             direction="row"
             justifycontent="center"
@@ -104,7 +102,7 @@ export const Home = ({
             <Divider />
         </div>
         <Grid
-            className={classes.homeGrid}
+            sx={{ width: "100%", padding: "10px" }}
             container
             direction="row"
             justifycontent="space-evenly"
@@ -134,7 +132,7 @@ export const Home = ({
             <Divider />
         </div>
         <Grid
-            className={classes.homeGrid}
+            sx={{ width: "100%", padding: "10px" }}
             container
             direction="row"
             justifycontent="center"

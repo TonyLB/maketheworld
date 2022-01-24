@@ -13,15 +13,6 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
-import makeStyles from '@mui/styles/makeStyles';
-
-import useStyles from '../../styles'
-
-const useMapListStyles = makeStyles((theme) => ({
-    table: {
-        
-    }
-}))
 
 type MapListRowProps = {
     key?: string;
@@ -31,8 +22,6 @@ type MapListRowProps = {
 const MapListRow: FunctionComponent<MapListRowProps>= ({
     mapId
 }) => {
-    // const classes = useStyles()
-    // const localClasses = useMapListStyles()
     const navigate = useNavigate()
 
     return <TableRow
@@ -48,15 +37,13 @@ type MapListProps = {}
 
 // eslint-disable-next-line no-empty-pattern
 export const MapList: FunctionComponent<MapListProps> = ({}) => {
-    const classes = useStyles()
-    const localClasses = useMapListStyles()
 
-    return <Box className={classes.homeContents}>
-        <div style={{ textAlign: "center" }}>
+    return <Box sx={{ flexGrow: 1, padding: 2 }}>
+        <Box sx={{ textAlign: "center" }}>
             <h2>My Drafts</h2>
             <Divider />
             <TableContainer component={Paper}>
-                <Table className={localClasses.table}>
+                <Table>
                     <TableHead>
                         <TableRow>
                             <TableCell align="left">Name</TableCell>
@@ -69,7 +56,7 @@ export const MapList: FunctionComponent<MapListProps> = ({}) => {
                 </Table>
 
             </TableContainer>
-        </div>
+        </Box>
     </Box>
 }
 

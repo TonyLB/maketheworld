@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 
 // MaterialUI imports
 import {
+    Box,
     Stepper,
     Step,
     StepContent,
@@ -11,12 +12,8 @@ import {
     Button
 } from '@mui/material'
 
-// Local code imports
-import useStyles from '../styles'
-
 export const NonLinearStepper = ({ steps = [], completed = {} }) => {
 
-    const classes = useStyles()
     const [activeStep, setActiveStep] = useState(0);
   
     const totalSteps = () => {
@@ -63,12 +60,11 @@ export const NonLinearStepper = ({ steps = [], completed = {} }) => {
                         <StepButton onClick={handleStep(index)} completed={completed[index]} >{label}</StepButton>
                         <StepContent>
                             {content}
-                            <div className={classes.actionsContainer}>
-                               <div>
+                            <Box>
+                               <Box>
                                     <Button
                                         disabled={activeStep === 0}
                                         onClick={handleBack}
-                                        className={classes.button}
                                     >
                                         Back
                                     </Button>
@@ -77,12 +73,11 @@ export const NonLinearStepper = ({ steps = [], completed = {} }) => {
                                         variant="contained"
                                         color="primary"
                                         onClick={handleNext}
-                                        className={classes.button}
                                     >
                                         Next
                                     </Button>
-                                </div>
-                            </div>
+                                </Box>
+                            </Box>
                         </StepContent>
                     </Step>
                 ))}
