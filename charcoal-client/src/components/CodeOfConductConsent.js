@@ -8,15 +8,12 @@ import {
     Button
 } from '@mui/material'
 
-import useStyles from './styles'
-
 export const CodeOfConductConsentDialog = ({ onConsent = () => {}, open=false }) => {
-    const classes = useStyles()
     return <Dialog
             maxWidth="lg"
             open={open}
         >
-            <DialogTitle className={classes.lightblue} >
+            <DialogTitle sx={{ bgcolor: 'lightblue'}} >
                 <Typography align="center">Welcome to Make The World</Typography>
             </DialogTitle>
             <DialogContent>

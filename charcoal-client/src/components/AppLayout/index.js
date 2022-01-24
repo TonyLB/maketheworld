@@ -2,7 +2,9 @@
 // The AppLayout component handles high-level styling and positioning of data components within the app
 //
 
+/** @jsxImportSource @emotion/react */
 import React from 'react'
+import { css } from '@emotion/react'
 import { useSelector } from 'react-redux'
 import {
     BrowserRouter as Router,
@@ -16,12 +18,14 @@ import {
 import './index.css'
 
 import useMediaQuery from '@mui/material/useMediaQuery'
-import Tabs from '@mui/material/Tabs'
-import Tab from '@mui/material/Tab'
-import Snackbar from '@mui/material/Snackbar'
-import IconButton from '@mui/material/IconButton'
+import {
+    Box,
+    Tabs,
+    Tab,
+    Snackbar,
+    IconButton
+} from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import makeStyles from '@mui/styles/makeStyles';
 import ForumIcon from '@mui/icons-material/Forum'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
@@ -43,54 +47,6 @@ const a11yProps = (index) => {
         'aria-controls': `simple-tabpanel-${index}`,
     }
 }
-
-const useStyles = makeStyles((theme) => ({
-    grid: {
-        backgroundColor: theme.palette.background.paper,
-        display: 'grid',
-        justifyContent: "stretch",
-        '@media (orientation: landscape)': {
-            gridTemplateAreas: `
-                "tabs content"
-            `,
-            gridTemplateColumns: "auto 1fr",
-            gridTemplateRows: "1fr"
-        },
-        '@media (orientation: landscape) and (min-width: 1500px)': {
-            gridTemplateAreas: `
-                "tabs content sidebar"
-            `,
-            gridTemplateColumns: "auto 1fr 400px",
-            gridTemplateRows: "1fr"
-        },
-        '@media (orientation: portrait)': {
-            gridTemplateAreas: `
-                "tabs"
-                "content"
-            `,
-            gridTemplateRows: "auto 1fr",
-            gridTemplateColumns: "100%"
-        }
-    },
-    tabs: {
-        gridArea: "tabs",
-        overflow: "hidden"
-    },
-    tabRootHorizontal: {
-        width: "100%"
-    },
-    content: {
-        gridArea: "content",
-        width: "100%",
-        height: "100%",
-        overflowY: "hidden"
-    },
-    sidebar: {
-        gridArea: "sidebar",
-        backgroundColor: theme.palette.primary,
-        overflowY: "auto"
-    }
-}))
 
 const tabList = ({ large, navigationTabs = [] }) => ([
     <Tab
@@ -157,10 +113,14 @@ const NavigationTabs = () => {
     const selectedTab = useSelector(navigationTabSelected(pathname))
     const navigationTabsData = useSelector(navigationTabs)
     const portrait = useMediaQuery('(orientation: portrait)')
-    const classes = useStyles()
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
     return (
-        <div className={classes.tabs}>
+        <Box
+            css={css`
+                grid-area: tabs;
+                overflow: hidden;
+            `}
+        >
             <Tabs
                 classes={{ vertical: 'tabRootVertical' }}
                 orientation={portrait ? "horizontal" : "vertical"}
@@ -173,21 +133,59 @@ const NavigationTabs = () => {
                 allowScrollButtonsMobile>
                 {tabList({ large, navigationTabs: navigationTabsData })}
             </Tabs>
-        </div>
+        </Box>
     );
 }
 
 export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadPanel, feedbackMessage, closeFeedback }) => {
     const large = useMediaQuery('(orientation: landscape) and (min-width: 1500px)')
-    const classes = useStyles()
 
     return <Router>
-        <div className={`fullScreen ${classes.grid}`}>
+        <Box css={css`
+                height: 100vh;
+                /*
+                    In order to override mobile-platform's delivery of vh as device size rather than viewport size,
+                    we need to override (where possible) 
+                */
+                height: calc(var(--vh, 1vh) * 100);
+                width: 100vw;
+
+                display: grid;
+                justify-content: stretch;
+                @media (orientation: landscape) {
+                    grid-template-areas:
+                        "tabs content";
+                    grid-template-columns: auto 1fr;
+                    grid-template-rows: 1fr;
+                }
+                @media (orientation: landscape) and (min-width: 1500px) {
+                    grid-template-areas:
+                        "tabs content sidebar";
+                    grid-template-columns: auto 1fr 400px;
+                    grid-template-rows: 1fr;
+                }
+                @media (orientation: portrait) {
+                    grid-template-areas:
+                        "tabs"
+                        "content";
+                    grid-template-rows: auto 1fr;
+                    grid-template-columns: 100%;
+                }
+            `}
+            sx={{ bgcolor: 'background.paper' }}
+        >
             <ChoiceDialog />
             <FeedbackSnackbar feedbackMessage={feedbackMessage} closeFeedback={closeFeedback} />
             <NavigationTabs />
-            <div className={classes.content}>
-                <div style={{ width: "100%", height: "100%" }}>
+            <Box
+                css={css`
+                    grid-area: content;
+                    width: 100%;
+                    height: 100%;
+                    overflow-y: hidden;
+                `}
+            >
+                <Box sx={{ width: "100%", height: "100%" }}>
                     <Routes>
                         <Route path="/Character/Archived" element={<InDevelopment />} />
                         <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
@@ -204,16 +202,21 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Who/" element={whoPanel} />
                         <Route path="/" element={homePanel} />
                     </Routes>
-                </div>
-            </div>
-
+                </Box>
+            </Box>
             {large
-                ? <div className={classes.sidebar}>
+                ? <Box
+                    css={css`
+                        grid-area: sidebar;
+                        overflow-y: auto;
+                    `}
+                    sx={{ bgcolor: 'primary' }}
+                >
                     {whoPanel}
-                </div>
+                </Box>
                 : []
             }
-        </div>
+        </Box>
     </Router>
 
 }
