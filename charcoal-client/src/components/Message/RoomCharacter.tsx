@@ -8,7 +8,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 //
 // TODO: Refactor character chip to handle data as it is passed in v2Alpha
 //
-import PureCharacterChip from '../CharacterChip/PureCharacterChip'
+import CharacterChip from '../CharacterChip'
 
 interface RoomCharacterProps {
     character: RoomCharacterType;
@@ -18,16 +18,10 @@ interface RoomCharacterProps {
 export const RoomCharacter = ({
     character: {
         CharacterId,
-        Name    
+        Name
     }
 }: RoomCharacterProps) => {
-    const { CharacterId: viewAsCharacterId } = useActiveCharacter()
-    const charactersInPlay = useSelector(getCharactersInPlay)
-    const { color = { primary: 'blue' } } = ((CharacterId !== viewAsCharacterId) && charactersInPlay[CharacterId]) || { color: {} }
-    return <PureCharacterChip
-            Name={Name}
-            color={color}
-        />
+    return <CharacterChip CharacterId={CharacterId} Name={Name} />
 }
 
 export default RoomCharacter

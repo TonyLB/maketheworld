@@ -6,13 +6,14 @@ import {
 
 import { getServerSettings, getClientSettings } from '../slices/settings'
 
-export const LineEntry = ({ callback = () => {}, ...rest }) => {
+export const LineEntry = ({ callback = (entry: any) => (true) }) => {
     const [value, setValue] = useState('')
     const { ChatPrompt } = useSelector(getServerSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
 
     return (
         <TextField
+            sx={{ bgcolor: 'background.default' }}
             placeholder={ChatPrompt}
             multiline={!(TextEntryLines === 1)}
             rows={TextEntryLines || 2}
@@ -30,7 +31,6 @@ export const LineEntry = ({ callback = () => {}, ...rest }) => {
                 setValue(event.target.value)
             }}
             fullWidth
-            {...rest}
         />
     )
 }
