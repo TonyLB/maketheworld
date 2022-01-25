@@ -1,11 +1,13 @@
 import React, { ReactChild, ReactChildren, ReactFragment } from 'react'
 
 import {
+    Box,
     Typography,
     ListItem,
     ListItemText
 } from '@mui/material'
 
+import MessageComponent from './MessageComponent'
 import { WorldMessage as WorldMessageType } from '../../slices/messages/baseClasses'
 
 interface WorldMessageProps {
@@ -28,13 +30,15 @@ const intersperseBrs = (entryList: string[]): ReactFragment => (
 )
 
 export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {
-    return <ListItem alignItems="flex-start" {...rest} >
-        <ListItemText inset>
-            <Typography variant='body1' align='left'>
-                { intersperseBrs((message.Message).split('\n')) }
-            </Typography>
-        </ListItemText>
-    </ListItem>
+    return <MessageComponent
+            sx={{ paddingTop: "15px", paddingBottom: "15px" }}
+        >
+            <Box sx={{ height: "100%" }}>
+                <Typography variant='body1' align='left'>
+                    { intersperseBrs((message.Message).split('\n')) }
+                </Typography>
+            </Box>
+        </MessageComponent>
 }
 
 export default WorldMessage

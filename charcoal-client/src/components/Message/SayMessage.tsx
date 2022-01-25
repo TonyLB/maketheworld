@@ -2,48 +2,46 @@ import React, { ReactChildren, ReactChild } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
+    Box,
     Typography,
     Avatar,
-    Tooltip,
-    ListItem,
-    ListItemText,
-    ListItemAvatar
+    Tooltip
 } from '@mui/material'
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
 
-import { CharacterNarration, CharacterSpeech } from '../../slices/messages/baseClasses'
+import { CharacterSpeech } from '../../slices/messages/baseClasses'
+import MessageComponent from './MessageComponent'
 
-
-interface PlayerMessageProps {
-    message: CharacterNarration | CharacterSpeech;
+interface SayMessageProps {
+    message: CharacterSpeech;
+    // variant: 'left' | 'right';
     children?: ReactChild | ReactChildren;
 }
 
-export const PlayerMessage = ({ message, ...rest }: PlayerMessageProps) => {
+export const SayMessage = ({ message }: SayMessageProps) => {
     const CharacterId = message.CharacterId
     const charactersInPlay = useSelector(getCharactersInPlay)
     const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
     return <CharacterStyleWrapper CharacterId={CharacterId}>
-        <ListItem sx={{ color: 'black', bgcolor: 'extras.pale' }} alignItems="flex-start" {...rest} >
-            <ListItemAvatar>
-                <Tooltip title={Name || '?'}>
+        <MessageComponent
+            sx={{ bgcolor: "extras.pale", paddingTop: "15px", paddingBottom: "15px" }}
+            leftIcon={
+                <Tooltip sx={{ alignText: "center", bgcolor: "extras.pale" }} title={Name || '?'}>
                     <Avatar sx={{ bgcolor: 'primary.main' }}>
                         { (Name || '?')[0].toUpperCase() }
                     </Avatar>
                 </Tooltip>
-            </ListItemAvatar>
-            <ListItemText>
+            }
+        >
+            <Box sx={{ height: "100%" }}>
                 <Typography variant='body1' align='left'>
-                    { message.DisplayProtocol === 'SayMessage'
-                        ? `${message.Name} says "${message.Message}"`
-                        : message.Message
-                    }
+                    {message.Name} says "{message.Message}"
                 </Typography>
-            </ListItemText>
-        </ListItem>
+            </Box>
+        </MessageComponent>
     </CharacterStyleWrapper>
 }
 
-export default PlayerMessage
+export default SayMessage

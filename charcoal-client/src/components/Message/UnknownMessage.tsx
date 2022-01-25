@@ -1,11 +1,11 @@
 import React, { ReactChild, ReactChildren } from 'react'
 
 import {
+    Box,
     Typography,
-    ListItem,
-    ListItemText
 } from '@mui/material'
 
+import MessageComponent from './MessageComponent'
 import { Message } from '../../slices/messages/baseClasses'
 
 interface UnknownMessageProps {
@@ -15,13 +15,15 @@ interface UnknownMessageProps {
 
 
 export const UnknownMessage = ({ message, ...rest }: UnknownMessageProps) => {
-    return <ListItem alignItems="flex-start" {...rest} >
-        <ListItemText inset>
-            <Typography variant='body1' align='left'>
-                Unknown message type: { JSON.stringify(message, null, 4) }
-            </Typography>
-        </ListItemText>
-    </ListItem>
+    return <MessageComponent
+            sx={{ paddingTop: "15px", paddingBottom: "15px" }}
+        >
+            <Box sx={{ height: "100%" }}>
+                <Typography variant='body1' align='left'>
+                    Unknown message type: { JSON.stringify(message, null, 4) }
+                </Typography>
+            </Box>
+        </MessageComponent>
 }
 
 export default UnknownMessage
