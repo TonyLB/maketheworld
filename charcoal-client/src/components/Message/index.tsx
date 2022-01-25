@@ -1,6 +1,7 @@
 import React, { ReactChild, ReactChildren } from 'react'
 
-import PlayerMessage from './PlayerMessage'
+import SayMessage from './SayMessage'
+import NarrateMessage from './NarrateMessage'
 import WorldMessage from './WorldMessage'
 import RoomDescription from './RoomDescription'
 import UnknownMessage from './UnknownMessage'
@@ -16,8 +17,9 @@ export const Message = ({ message, ...rest }: MessageProps) => {
     const { DisplayProtocol } = message
     switch(DisplayProtocol) {
         case 'SayMessage':
+            return <SayMessage message={message} />
         case 'NarrateMessage':
-            return <PlayerMessage message={message} {...rest} />
+            return <NarrateMessage message={message} />
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':

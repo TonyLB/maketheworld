@@ -1,16 +1,16 @@
+/** @jsxImportSource @emotion/react */
 import React, { ReactChild, ReactChildren } from 'react'
+import { css } from '@emotion/react'
 
 import {
+    Box,
     Typography,
-    ListItem,
-    ListItemText,
-    ListItemAvatar,
     Divider
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
-import makeStyles from '@mui/styles/makeStyles';
 import HouseIcon from '@mui/icons-material/House'
 
+import MessageComponent from './MessageComponent'
 import { RoomDescription as RoomDescriptionType, RoomHeader as RoomHeaderType } from '../../slices/messages/baseClasses'
 
 import RoomExit from './RoomExit'
@@ -21,60 +21,48 @@ interface RoomDescriptionProps {
     children?: ReactChild | ReactChildren;
 }
 
-const useRoomStyles = makeStyles((theme) => ({
-    roomMessage: {
-        color: theme.palette.getContrastText(blue[800]),
-        backgroundColor: blue[800],
-    },
-    roomDescriptionGrid: {
-        display: 'grid',
-        gridTemplateAreas: `
-            "content content"
-            "exits characters"
-        `,
-        gridTemplateColumns: "1fr 1fr",
-        gridTemplateRows: "auto auto"
-    },
-    roomDescriptionContent: {
-        gridArea: "content"
-    },
-    roomDescriptionExits: {
-        gridArea: "exits"
-    },
-    roomDescriptionCharacters: {
-        gridArea: "characters"
-    }
-}))
-
-export const RoomDescription = ({ message, ...rest }: RoomDescriptionProps) => {
-    const localClasses = useRoomStyles()
+export const RoomDescription = ({ message }: RoomDescriptionProps) => {
     const { Description, Name, Characters = [], Exits = [] } = message
-    return <div style={{ padding: '5px' }}>
-        <ListItem
-            className={localClasses.roomMessage}
-            alignItems="flex-start"
-            style={{ marginBottom: 0, marginTop: 0 }}
+    return <MessageComponent
+            sx={{
+                paddingTop: "10px",
+                paddingBottom: "10px",
+                bgcolor: blue[800],
+                color: (theme) => (theme.palette.getContrastText(blue[800]))
+            }}
+            leftIcon={<HouseIcon />}
         >
-            <ListItemAvatar><HouseIcon /></ListItemAvatar>
-            <ListItemText
-                primary={<div className={localClasses.roomDescriptionGrid}>
-                    <div className={localClasses.roomDescriptionContent}>
-                        <Typography variant='h5' align='left'>
-                            { Name }
-                        </Typography>
-                        { Description }
-                        <Divider />
-                    </div>
-                    <div className={localClasses.roomDescriptionExits}>
-                        { Exits.map((exit) => (<RoomExit exit={exit} key={ exit.RoomId } />))}
-                    </div>
-                    <div className={localClasses.roomDescriptionCharacters}>
-                        { Characters.map((character) => (<RoomCharacter character={character} key={character.CharacterId} />)) }
-                    </div>
-                </div>}
-            />
-        </ListItem>
-    </div>
+            <Box css={css`
+                display: grid;
+                grid-template-areas:
+                    "content content"
+                    "exits characters"
+                ;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+            `}>
+                <Box css={css`
+                    grid-area: content;
+                    padding-bottom: 5px;
+                `}>
+                    <Typography variant='h5' align='left'>
+                        { Name }
+                    </Typography>
+                    { Description }
+                    <Divider />
+                </Box>
+                <Box css={css`
+                    grid-area: exits;
+                `}>
+                    { Exits.map((exit) => (<RoomExit exit={exit} key={ exit.RoomId } />))}
+                </Box>
+                <Box css={css`
+                    grid-area: characters;
+                `}>
+                    { Characters.map((character) => (<RoomCharacter character={character} key={character.CharacterId} />)) }
+                </Box>
+            </Box>
+        </MessageComponent>
 }
 
 export default RoomDescription
