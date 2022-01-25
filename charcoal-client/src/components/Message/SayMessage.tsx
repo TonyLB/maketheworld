@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
 import React, { ReactChildren, ReactChild, FunctionComponent } from 'react'
-import { css } from '@emotion/react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -34,8 +32,9 @@ const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Mes
                     bgcolor: 'extras.pale',
                     padding: '10px 15px 15px 15px',
                     borderRadius: '15px',
-                    marginTop: '10px',
                     position: 'relative',
+                    marginRight: '10px',
+                    marginLeft: '10px',
                     '&::before': {
                         content: `"${Name}"`,
                         fontWeight: 'bold',
@@ -52,17 +51,15 @@ const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Mes
                     },
                 },
                 variant === 'right' && {
-                    marginRight: '25px',
                     '&::after': {
-                        right: '-25px',
-                        borderWidth: '10px 0 10px 25px',
+                        right: '-15px',
+                        borderWidth: '10px 0 10px 15px',
                     }
                 },
                 variant === 'left' && {
-                    marginLeft: '25px',
                     '&::after': {
-                        left: '-25px',
-                        borderWidth: '10px 25px 10px 0',
+                        left: '-15px',
+                        borderWidth: '10px 15px 10px 0',
                     }
                 }
             ]}
@@ -97,7 +94,6 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
                     }
                 </Box>
             }
-
         >
             <SpeechBubble Name={message.Name} Message={message.Message} variant={variant} />
         </MessageComponent>
