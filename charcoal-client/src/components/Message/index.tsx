@@ -7,6 +7,7 @@ import RoomDescription from './RoomDescription'
 import UnknownMessage from './UnknownMessage'
 
 import { Message as MessageType } from '../../slices/messages/baseClasses'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 interface MessageProps {
     message: MessageType;
@@ -14,10 +15,11 @@ interface MessageProps {
 }
 
 export const Message = ({ message, ...rest }: MessageProps) => {
+    const { CharacterId } = useActiveCharacter()
     const { DisplayProtocol } = message
     switch(DisplayProtocol) {
         case 'SayMessage':
-            return <SayMessage message={message} />
+            return <SayMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'NarrateMessage':
             return <NarrateMessage message={message} />
         case 'WorldMessage':
