@@ -31,7 +31,7 @@ const intersperseBrs = (entryList: string[]): ReactFragment => (
 
 export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {
     return <MessageComponent
-            sx={{ paddingTop: "10px", paddingBottom: "10px", paddingRight: "15px", paddingLeft: "15px" }}
+            sx={{ paddingTop: "10px", paddingBottom: "10px", paddingRight: "25px", paddingLeft: "25px" }}
         >
             <Box sx={{ height: "100%" }}>
                 <Typography variant='body1' align='left'>

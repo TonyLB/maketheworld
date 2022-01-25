@@ -21,7 +21,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'SayMessage':
             return <SayMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'NarrateMessage':
-            return <NarrateMessage message={message} />
+            return <NarrateMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':
