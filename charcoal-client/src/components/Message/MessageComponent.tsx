@@ -35,6 +35,7 @@ export const MessageComponent = ({ children, leftIcon, rightIcon, sx }: MessageC
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        height: 100%;
                     `}>
                         { leftIcon || <React.Fragment>&nbsp;</React.Fragment> }
                     </Box>
@@ -45,7 +46,18 @@ export const MessageComponent = ({ children, leftIcon, rightIcon, sx }: MessageC
                 `}>{children}</Box>
                 <Box css={css`
                     grid-area: rightIcon;
-                `}>{ rightIcon || <React.Fragment>&nbsp;</React.Fragment> }</Box>
+                    align-items: stretch;
+                `}>
+                    <Box css={css`
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100%;
+                    `}>
+                        { rightIcon || <React.Fragment>&nbsp;</React.Fragment> }
+                    </Box>
+
+                </Box>
             </Box>
         </Box>
 }

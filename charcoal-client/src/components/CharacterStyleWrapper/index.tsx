@@ -16,6 +16,7 @@ declare module '@mui/material/styles' {
     interface PaletteOptions {
         extras?: {
             pale?: string;
+            paleTransparent?: string;
         }
     }
 }
@@ -28,7 +29,8 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
         palette: {
             primary: color,
             extras: {
-                pale: color[50]
+                pale: color[50],
+                paleTransparent: `${color[50]} transparent`
             }
         },
     })
