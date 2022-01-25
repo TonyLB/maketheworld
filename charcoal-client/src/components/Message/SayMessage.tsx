@@ -32,9 +32,14 @@ const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Mes
     return <Box
             sx={[{
                     bgcolor: 'extras.pale',
-                    padding: '15px',
+                    padding: '10px 15px 15px 15px',
                     borderRadius: '15px',
+                    marginTop: '10px',
                     position: 'relative',
+                    '&::before': {
+                        content: `"${Name}"`,
+                        fontWeight: 'bold',
+                    },
                     '&::after': {
                         content: '""',
                         position: 'absolute',
@@ -63,7 +68,7 @@ const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Mes
             ]}
         >
             <Typography variant='body1' align='left'>
-                {Name} says "{Message}"
+                {Message}
             </Typography>
         </Box>
 }
