@@ -19,7 +19,7 @@ export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ Character
     const charactersInPlay = useSelector(getCharactersInPlay)
     const { Name: defaultName } = charactersInPlay[CharacterId]
     return (
-        <CharacterStyleWrapper CharacterId={CharacterId}>
+        <CharacterStyleWrapper CharacterId={CharacterId} nested>
             <Chip
                 label={Name || defaultName}
                 sx={{

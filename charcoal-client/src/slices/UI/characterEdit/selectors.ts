@@ -8,12 +8,12 @@ export type PublicSelectors = {
 
 export const publicSelectors: PublicSelectors = {
     getCharacterEditByKey: (state) => state,
-    getCharacterEditValues: ({ defaultValue, value }) => ({
+    getCharacterEditValues: ({ defaultValue = {}, value = {} }) => ({
         ...(['assetKey', 'Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit']
             .reduce((previous, label) => ({ ...previous, [label]: '' }), {})
         ) as Record<CharacterEditKeys, string>,
         ...defaultValue,
         ...value
     }),
-    getCharacterEditDirty: ({ value }) => (Object.keys(value).length > 0)
+    getCharacterEditDirty: ({ value = {} }) => (Object.keys(value).length > 0)
 }

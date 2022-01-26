@@ -20,7 +20,7 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     const dispatch = useDispatch()
     // const localClasses = useCharacterEditFormStyles()
 
-    const value = useSelector(getCharacterEditValues(characterKey))
+    const value = useSelector(getCharacterEditValues(characterKey)) || {}
     const dirty = useSelector(getCharacterEditDirty(characterKey))
 
     const updateLabel = (label: CharacterEditKeys) => (event: { target: { value: string }}) => {
@@ -29,12 +29,12 @@ export const CharacterEditForm: FunctionComponent<CharacterEditFormProps> = ({ c
     return <Box sx={{ flexGrow: 1, padding: 2 }}>
         <TextField
             required
-            error={!validAssetKey(value.assetKey)}
+            error={!validAssetKey(value.assetKey || '')}
             id="assetKey"
             label="Asset Key"
             value={value.assetKey}
             onChange={updateLabel('assetKey')}
-            helperText={ !validAssetKey(value.assetKey) ? "Asset key may not be 'New' and may contain only letters, numbers, - and _" : undefined }
+            helperText={ !validAssetKey(value.assetKey || '') ? "Asset key may not be 'New' and may contain only letters, numbers, - and _" : undefined }
         />
         <TextField
             required

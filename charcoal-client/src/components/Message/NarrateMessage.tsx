@@ -76,7 +76,7 @@ export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
     const CharacterId = message.CharacterId
     const charactersInPlay = useSelector(getCharactersInPlay)
     const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
-    return <CharacterStyleWrapper CharacterId={CharacterId}>
+    return <CharacterStyleWrapper CharacterId={CharacterId} nested>
         <MessageComponent
             leftIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
