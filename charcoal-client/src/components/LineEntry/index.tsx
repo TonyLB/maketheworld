@@ -16,16 +16,20 @@ import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { SpeechBubble } from '../Message/SayMessage'
 import { NarrateBubble } from '../Message/NarrateMessage'
 import MessageComponent from '../Message/MessageComponent'
+import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
+
+type LineEntryMode = ParseCommandModes
 
 interface EntryFieldProps {
     value: string;
     defaultValue: string;
-    callback: (entry: string) => boolean;
+    callback: (props: Omit<ParseCommandProps, 'raiseError'>) => boolean;
     onChange: (newValue: string) => void;
+    mode: LineEntryMode;
     setMode: (newMode: LineEntryMode) => void;
 }
 
-const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue, callback, onChange, setMode }, ref) => {
+const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue, callback, onChange, mode, setMode }, ref) => {
     const { ChatPrompt } = useSelector(getServerSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
     const empty = value === '' || value === defaultValue
@@ -39,21 +43,21 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue
         onKeyPress={(event) => {
             if (event.key === 'Enter') {
                 event.preventDefault()
-                const callbackResult = callback(value || '')
+                const callbackResult = callback({ entry: (value || ''), mode })
                 if (callbackResult) {
                     onChange(defaultValue)
                 }
             }
             if (empty) {
-                if (event.key === '"' || event.key === "'") {
+                if (mode !== 'SayMessage' && (event.key === '"' || event.key === "'")) {
                     event.preventDefault()
                     setMode('SayMessage')
                 }
-                if (event.key === ':' || event.key === ";") {
+                if (mode !== 'NarrateMessage' && (event.key === ':' || event.key === ";")) {
                     event.preventDefault()
                     setMode('NarrateMessage')
                 }
-                if (event.key === '/' || event.key === '?') {
+                if (mode !== 'Command' && (event.key === '/' || event.key === '?')) {
                     event.preventDefault()
                     setMode('Command')
                 }
@@ -65,8 +69,6 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue
         fullWidth
     />
 })
-
-type LineEntryMode = 'SayMessage' | 'NarrateMessage' | 'Command'
 
 interface EntryModeSpeedDialProps {
     mode: LineEntryMode;
@@ -115,11 +117,11 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
     switch(mode) {
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
-                    <EntryField ref={ref} {...props} />
+                    <EntryField ref={ref} mode={mode} {...props} />
                 </SpeechBubble>
         case 'NarrateMessage':
             return <NarrateBubble variant="right" tailOffset="30px">
-                    <EntryField ref={ref} {...props} />
+                    <EntryField ref={ref} mode={mode} {...props} />
                 </NarrateBubble>
         case 'Command':
             return <Box sx={{
@@ -128,13 +130,13 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
                     marginLeft: '10px'
                 }}
             >
-                <EntryField ref={ref} {...props} />
+                <EntryField ref={ref} mode={mode} {...props} />
             </Box>
     }
 })
 
 interface LineEntryProps {
-    callback: (entry: string) => boolean;
+    callback: (props: Omit<ParseCommandProps, 'raiseError'>) => boolean;
 }
 
 
@@ -145,7 +147,7 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
 
     useEffect(() => {
         ref.current?.focus()
-    }, [ref.current])
+    }, [mode])
     return (
         <CharacterColorWrapper color="blue">
             <MessageComponent

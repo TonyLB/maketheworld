@@ -4,7 +4,12 @@ import { AnyAction } from 'redux'
 import { ThunkAction } from 'redux-thunk'
 
 import { WSS_ADDRESS } from '../../config'
-import { LifeLineAction, LifeLineReturn } from './baseClasses'
+import {
+    LifeLineAction,
+    LifeLineReturn,
+    ParseCommandModes,
+    ParseCommandProps
+} from './baseClasses'
 import { AppDispatch, AppGetState, RootState } from '../../store'
 
 import { LifeLinePubSubData } from './lifeLine'
@@ -206,34 +211,16 @@ export const moveCharacter = (CharacterId: string) => ({ ExitName, RoomId }: { E
     dispatch(socketDispatch('action')({ actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
 }
 
-export const parseCommand = (CharacterId: string) => ({ entry }: { entry: string; raiseError: any }): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch, getState) => {
-
-    const { Name } = getMyCharacterById(CharacterId)(getState())
-    //
-    // TODO: Add more graphical mode-switching to the text entry, so that you can visually differentiate whether you're
-    // saying things, or entering commands, or posing, or spoofing.  Replace prefix codes with keyboard shortcuts that
-    // change the mode (as well as a Speed-Dial set of buttons for switching context)
-    //
-    if (entry.slice(0,1) === '"' && entry.length > 1) {
-        dispatch(socketDispatch('action')({ actionType: 'SayMessage', payload: { CharacterId, Message: entry.slice(1) } }))
-        return true
-    }
-    if (entry.slice(0,1) === '@' && entry.length > 1) {
-        dispatch(socketDispatch('action')({ actionType: 'NarrateMessage', payload: { CharacterId, Message: entry.slice(1) } }))
-        return true
-    }
-    if (entry.slice(0,1) === ':' && entry.length > 1) {
-        const MessagePostfix = entry.slice(1)
-        const Message = `${Name}${MessagePostfix.match(/^[,']/) ? "" : " "}${MessagePostfix}`
-        dispatch(socketDispatch('action')({ actionType: 'NarrateMessage', payload: { CharacterId, Message } }))
-        return true
-    }
-    if (entry) {
+export const parseCommand = (CharacterId: string) => ({ mode, entry }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
+    if (mode === 'Command') {
         dispatch(socketDispatch('command')({ CharacterId, command: entry }))
         //
         // TODO: Use raiseError to handle return errors from the back-end command parser
         //
         return true
     }
-    return false
+    else{
+        dispatch(socketDispatch('action')({ actionType: mode, payload: { CharacterId, Message: entry } }))
+        return true
+    }
 }

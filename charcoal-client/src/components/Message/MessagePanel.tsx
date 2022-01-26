@@ -1,10 +1,10 @@
-/** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, FunctionComponent } from 'react'
-import { css } from '@emotion/react'
 import { useDispatch } from 'react-redux'
+import { Box } from '@mui/material'
 
 import VirtualMessageList from './VirtualMessageList'
 import { parseCommand } from '../../slices/lifeLine'
+import { ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 import LineEntry from '../LineEntry'
 import { useActiveCharacter } from '../ActiveCharacter'
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
@@ -19,34 +19,34 @@ export const MessagePanel: FunctionComponent<{}> = () => {
         dispatch(addItem(CharacterId))
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
-    const handleInput = useCallback((entry) => {
-        dispatch(parseCommand(CharacterId)({ entry, raiseError: () => {} }))
+    const handleInput = useCallback(({ entry, mode }) => {
+        dispatch(parseCommand(CharacterId)({ entry, mode, raiseError: () => {} }))
         return true
     }, [dispatch, CharacterId])
-    return <div css={css`
-            display: grid;
-            height: 100%;
-            position: relative;
-            grid-template-columns: 1fr;
-            grid-template-rows: 1fr auto;
-            grid-template-areas:
+    return <Box sx={{
+            display: 'grid',
+            height: '100%',
+            position: 'relative',
+            gridTemplateColumns: "1fr",
+            gridTemplateRows: "1fr auto",
+            gridTemplateAreas: `
                 "messages"
                 "input"
-        `}>
-            <div css={css`
-                grid-area: 'messages';
-                position: relative
-            `}>
+            `
+        }}>
+            <Box sx={{
+                gridArea: 'messages',
+                position: 'relative'
+            }}>
                 <VirtualMessageList />
-            </div>
-            <div css={css`
-                grid-area: 'input';
-                width: 100%;
-            `}>
+            </Box>
+            <Box sx={{
+                gridArea: 'input',
+                width: '100%'
+            }}>
                 <LineEntry callback={handleInput} />
-            </div>
-        </div>
-
+            </Box>
+        </Box>
 }
 
 export default MessagePanel
