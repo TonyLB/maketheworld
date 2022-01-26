@@ -21,18 +21,19 @@ interface NarrateMessageProps {
 }
 
 interface NarrateBubbleProps {
-    Message: string;
     variant: 'left' | 'right';
+    tailOffset?: string;
+    children?: ReactChild | ReactChild[] | ReactChildren;
 }
 
-const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, Message }) => {
+export const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, tailOffset="16px", children }) => {
     return <Box
             sx={[{
                     bgcolor: 'extras.pale',
                     // borderColor: 'primary.light',
                     // borderStyle: 'solid',
                     // borderWidth: '1px',
-                    padding: '15px',
+                    padding: '10px 15px 15px 15px',
                     position: 'relative',
                     marginRight: '10px',
                     marginLeft: '10px',
@@ -42,7 +43,7 @@ const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, Message
                         // borderStyle: 'solid',
                         // borderColor: 'primary.light',
                         // borderWidth: '1px',
-                        bottom: '16px',
+                        bottom: tailOffset,
                         bgcolor: 'extras.pale',
                         height: '16px',
                         width: '4px'
@@ -53,7 +54,7 @@ const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, Message
                         // borderStyle: 'solid',
                         // borderColor: 'primary.light',
                         // borderWidth: '1px',
-                        bottom: '20px',
+                        bottom: `calc(${tailOffset} + 4px)`,
                         bgcolor: 'extras.pale',
                         height: '8px',
                         width: '4px'
@@ -77,9 +78,7 @@ const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, Message
                 }
             ]}
         >
-            <Typography variant='body1' align='left'>
-                {Message}
-            </Typography>
+            { children }
         </Box>
 }
 export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
@@ -107,7 +106,11 @@ export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
                 </Box>
             }
         >
-            <NarrateBubble Message={message.Message} variant={variant} />
+            <NarrateBubble variant={variant}>
+                <Typography variant='body1' align='left'>
+                    {message.Message}
+                </Typography>
+            </NarrateBubble>
         </MessageComponent>
     </CharacterStyleWrapper>
 }
