@@ -15,8 +15,10 @@ import { getPlayer } from '../../slices/player'
 declare module '@mui/material/styles' {
     interface PaletteOptions {
         extras?: {
+            midPale?: string;
             pale?: string;
             paleTransparent?: string;
+            paleGradient?: string;
         }
     }
 }
@@ -29,8 +31,10 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
         palette: {
             primary: color,
             extras: {
+                midPale: color[100],
                 pale: color[50],
-                paleTransparent: `${color[50]} transparent`
+                paleTransparent: `${color[50]} transparent`,
+                paleGradient: `linear-gradient(${color[50]} 30%, ${color[100]})`
             }
         },
     })

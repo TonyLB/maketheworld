@@ -29,10 +29,7 @@ interface NarrateBubbleProps {
 export const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, tailOffset="16px", children }) => {
     return <Box
             sx={[{
-                    bgcolor: 'extras.pale',
-                    // borderColor: 'primary.light',
-                    // borderStyle: 'solid',
-                    // borderWidth: '1px',
+                    background: (theme: any) => (theme.palette.extras.paleGradient),
                     padding: '10px 15px 15px 15px',
                     position: 'relative',
                     marginRight: '10px',
@@ -40,22 +37,16 @@ export const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, 
                     '&::before': {
                         content: '""',
                         position: 'absolute',
-                        // borderStyle: 'solid',
-                        // borderColor: 'primary.light',
-                        // borderWidth: '1px',
                         bottom: tailOffset,
-                        bgcolor: 'extras.pale',
+                        bgcolor: 'extras.midPale',
                         height: '16px',
                         width: '4px'
                     },
                     '&::after': {
                         content: '""',
                         position: 'absolute',
-                        // borderStyle: 'solid',
-                        // borderColor: 'primary.light',
-                        // borderWidth: '1px',
                         bottom: `calc(${tailOffset} + 4px)`,
-                        bgcolor: 'extras.pale',
+                        bgcolor: 'extras.midPale',
                         height: '8px',
                         width: '4px'
                     },
