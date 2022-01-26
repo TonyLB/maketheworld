@@ -36,6 +36,18 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
     })
 })).reduce((prev, item) => ({ ...prev, ...item }), {})
 
+export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
+type CharacterColorWrapper = {
+    color: LegalCharacterColor;
+    children?: ReactChild | ReactChildren;
+}
+
+export const CharacterColorWrapper: FunctionComponent<CharacterColorWrapper> = ({ color, children }) => (
+    <ThemeProvider theme={characterThemes[color] || characterThemes.grey} >
+        { children }
+    </ThemeProvider>
+)
+
 type CharacterStyleWrapperProps = {
     CharacterId: string;
     children?: ReactChild | ReactChildren;
@@ -47,9 +59,9 @@ export const CharacterStyleWrapper: FunctionComponent<CharacterStyleWrapperProps
     const myCharacterIds = Characters.map(({ CharacterId }) => (CharacterId))
 
     const { color } = whoIsActive.find((character) => (character.CharacterId === CharacterId)) || { color: { name: 'grey' } }
-    return <ThemeProvider theme={characterThemes[myCharacterIds.includes(CharacterId) ? 'blue' : color.name] || characterThemes.grey} >
+    return <CharacterColorWrapper color={myCharacterIds.includes(CharacterId) ? 'blue' : color.name as LegalCharacterColor || 'grey'} >
         { children }
-    </ThemeProvider>
+    </CharacterColorWrapper>
 }
 
 export default CharacterStyleWrapper

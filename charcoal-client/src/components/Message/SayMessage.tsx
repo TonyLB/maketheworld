@@ -21,12 +21,12 @@ interface SayMessageProps {
 }
 
 interface SpeechBubbleProps {
-    Name?: string;
-    Message: string;
     variant: 'left' | 'right';
+    tailOffset?: string;
+    children?: ReactChild | ReactChild[] | ReactChildren;
 }
 
-const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Message }) => {
+export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, tailOffset = '16px', children }) => {
     return <Box
             sx={[{
                     bgcolor: 'extras.pale',
@@ -35,15 +35,11 @@ const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Mes
                     position: 'relative',
                     marginRight: '10px',
                     marginLeft: '10px',
-                    '&::before': {
-                        content: `"${Name}"`,
-                        fontWeight: 'bold',
-                    },
                     '&::after': {
                         content: '""',
                         position: 'absolute',
                         borderStyle: 'solid',
-                        bottom: '16px',
+                        bottom: tailOffset,
                         borderTopColor: 'transparent',
                         borderBottomColor: 'transparent',
                         borderRightColor: 'extras.pale',
@@ -64,9 +60,7 @@ const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, Name, Mes
                 }
             ]}
         >
-            <Typography variant='body1' align='left'>
-                {Message}
-            </Typography>
+            {children}
         </Box>
 }
 
@@ -95,7 +89,15 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
                 </Box>
             }
         >
-            <SpeechBubble Name={message.Name} Message={message.Message} variant={variant} />
+            <SpeechBubble variant={variant}>
+                <Box sx={{ fontWeight: 'bold' }}>
+                    {message.Name}
+                </Box>
+                <Typography variant='body1' align='left'>
+                    {message.Message}
+                </Typography>
+            </SpeechBubble>
+
         </MessageComponent>
     </CharacterStyleWrapper>
 }
