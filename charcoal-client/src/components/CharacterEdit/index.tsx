@@ -14,12 +14,6 @@ import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 type CharacterEditProps = {}
 
-//
-// TODO: Step 5
-//
-// Add spinner for pending fetch state
-//
-
 // eslint-disable-next-line no-empty-pattern
 export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
 
@@ -38,7 +32,7 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
 
     const currentStatus = useSelector(getStatus(CharacterKey || 'none'))
 
-    return currentStatus === 'PARSED'
+    return (currentStatus === 'PARSED' || CharacterKey === 'New')
         ? <CharacterEditForm characterKey={CharacterKey || ''} />
         : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
 

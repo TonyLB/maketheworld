@@ -11,6 +11,7 @@ import {
 
 import { getActiveCharacterList } from '../../slices/ephemera'
 import { getPlayer } from '../../slices/player'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 declare module '@mui/material/styles' {
     interface PaletteOptions {
@@ -54,10 +55,11 @@ export const CharacterColorWrapper: FunctionComponent<CharacterColorWrapper> = (
 
 type CharacterStyleWrapperProps = {
     CharacterId: string;
+    nested?: boolean;
     children?: ReactChild | ReactChildren;
 }
 
-export const CharacterStyleWrapper: FunctionComponent<CharacterStyleWrapperProps> = ({ CharacterId, children }) => {
+const OpenCharacterStyleWrapper: FunctionComponent<Omit<CharacterStyleWrapperProps, 'nested'>> = ({ CharacterId, children }) => {
     const whoIsActive = useSelector(getActiveCharacterList)
     const { Characters } = useSelector(getPlayer)
     const myCharacterIds = Characters.map(({ CharacterId }) => (CharacterId))
@@ -66,6 +68,25 @@ export const CharacterStyleWrapper: FunctionComponent<CharacterStyleWrapperProps
     return <CharacterColorWrapper color={myCharacterIds.includes(CharacterId) ? 'blue' : color.name as LegalCharacterColor || 'grey'} >
         { children }
     </CharacterColorWrapper>
+}
+
+const NestedCharacterStyleWrapper: FunctionComponent<Omit<CharacterStyleWrapperProps, 'nested'>> = ({ CharacterId, children }) => {
+    const { CharacterId: activeId } = useActiveCharacter()
+    const whoIsActive = useSelector(getActiveCharacterList)
+    const { color } = whoIsActive.find((character) => (character.CharacterId === CharacterId)) || { color: { name: 'grey' } }
+
+    return <CharacterColorWrapper color={(activeId === CharacterId) ? 'blue' : color.name as LegalCharacterColor || 'grey'} >
+        { children }
+    </CharacterColorWrapper>
+}
+
+export const CharacterStyleWrapper: FunctionComponent<CharacterStyleWrapperProps> = ({ nested=false, ...rest }) => {
+    if (nested) {
+        return <NestedCharacterStyleWrapper {...rest} />
+    }
+    else {
+        return <OpenCharacterStyleWrapper {...rest} />
+    }
 }
 
 export default CharacterStyleWrapper
