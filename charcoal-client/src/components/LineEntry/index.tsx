@@ -14,6 +14,7 @@ import CommandIcon from '@mui/icons-material/Code'
 import { getServerSettings, getClientSettings } from '../../slices/settings'
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { SpeechBubble } from '../Message/SayMessage'
+import { NarrateBubble } from '../Message/NarrateMessage'
 import MessageComponent from '../Message/MessageComponent'
 
 interface EntryFieldProps {
@@ -94,6 +95,36 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, 
     </SpeedDial>
 }
 
+type EntryDispatcherProps = EntryFieldProps & EntryModeSpeedDialProps
+
+const EntryModeDispatcher: FunctionComponent<EntryDispatcherProps> = ({
+    mode,
+    setMode,
+    ...props
+}) => {
+    switch(mode) {
+        case 'SayMessage':
+            return <SpeechBubble variant="right" tailOffset="30px">
+                    <EntryField {...props} />
+                </SpeechBubble>
+        case 'NarrateMessage':
+            return <NarrateBubble variant="right" tailOffset="30px">
+                    <EntryField {...props} />
+                </NarrateBubble>
+        case 'Command':
+            return <Box sx={{
+                    padding: '10px 15px 15px 15px',
+                    marginRight: '10px',
+                    marginLeft: '10px'
+                }}
+            >
+                <EntryField {...props} />
+            </Box>
+        default:
+            return null;
+    }
+}
+
 interface LineEntryProps {
     callback: (entry: string) => boolean;
 }
@@ -111,7 +142,9 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
                 }
             >
                 <Box sx={{ marginRight: "10px" }}>
-                    <SayEntryField
+                    <EntryModeDispatcher
+                        mode={mode}
+                        setMode={setMode}
                         value={value}
                         defaultValue=''
                         onChange={setValue}
