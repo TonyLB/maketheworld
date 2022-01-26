@@ -27,7 +27,7 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
             sx={{
                 paddingTop: "10px",
                 paddingBottom: "10px",
-                bgcolor: blue[800],
+                background: `linear-gradient(${blue[700]} 30%, ${blue[900]})`,
                 color: (theme) => (theme.palette.getContrastText(blue[800]))
             }}
             leftIcon={<HouseIcon />}

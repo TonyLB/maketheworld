@@ -24,7 +24,7 @@ export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ Character
                 label={Name || defaultName}
                 sx={{
                     color: 'black',
-                    bgcolor: 'extras.pale',
+                    bgcolor: 'extras.midPale',
                     maxWidth: "10em",
                     textOverflow: "ellipsis"
                 }}

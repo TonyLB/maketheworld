@@ -5,8 +5,11 @@ import {
     Box,
     Typography,
     Avatar,
-    Tooltip
+    Tooltip,
 } from '@mui/material'
+import {
+    Theme
+} from '@mui/material/styles'
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
@@ -29,7 +32,7 @@ interface SpeechBubbleProps {
 export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, tailOffset = '16px', children }) => {
     return <Box
             sx={[{
-                    bgcolor: 'extras.pale',
+                    background: (theme: any) => (theme.palette.extras.paleGradient),
                     padding: '10px 15px 15px 15px',
                     borderRadius: '15px',
                     position: 'relative',
@@ -42,8 +45,8 @@ export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, ta
                         bottom: tailOffset,
                         borderTopColor: 'transparent',
                         borderBottomColor: 'transparent',
-                        borderRightColor: 'extras.pale',
-                        borderLeftColor: 'extras.pale'
+                        borderRightColor: 'extras.midPale',
+                        borderLeftColor: 'extras.midPale'
                     },
                 },
                 variant === 'right' && {
