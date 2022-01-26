@@ -23,20 +23,21 @@ type LineEntryMode = ParseCommandModes
 interface EntryFieldProps {
     value: string;
     defaultValue: string;
+    placeholder?: string;
     callback: (props: Omit<ParseCommandProps, 'raiseError'>) => boolean;
     onChange: (newValue: string) => void;
     mode: LineEntryMode;
     setMode: (newMode: LineEntryMode) => void;
 }
 
-const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue, callback, onChange, mode, setMode }, ref) => {
-    const { ChatPrompt } = useSelector(getServerSettings)
+const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue, placeholder, callback, onChange, mode, setMode }, ref) => {
+    // const { ChatPrompt } = useSelector(getServerSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
     const empty = value === '' || value === defaultValue
     return <TextField
         inputRef={ref}
         sx={{ bgcolor: 'background.default' }}
-        placeholder={ChatPrompt}
+        placeholder={placeholder}
         multiline={!(TextEntryLines === 1)}
         rows={TextEntryLines || 2}
         value={value}
@@ -117,11 +118,11 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
     switch(mode) {
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
-                    <EntryField ref={ref} mode={mode} {...props} />
+                    <EntryField ref={ref} mode={mode} placeholder='What do you say?' {...props} />
                 </SpeechBubble>
         case 'NarrateMessage':
             return <NarrateBubble variant="right" tailOffset="30px">
-                    <EntryField ref={ref} mode={mode} {...props} />
+                    <EntryField ref={ref} mode={mode} placeholder='What happens next?' {...props} />
                 </NarrateBubble>
         case 'Command':
             return <Box sx={{
@@ -130,7 +131,7 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
                     marginLeft: '10px'
                 }}
             >
-                <EntryField ref={ref} mode={mode} {...props} />
+                <EntryField ref={ref} mode={mode} placeholder='What do you do?' {...props} />
             </Box>
     }
 })
