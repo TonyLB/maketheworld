@@ -19,7 +19,7 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
                     MessageId: `MESSAGE#${uuidv4()}`,
                     DataCategory: 'Meta::Message',
                     CreatedTime: epochTime + 1,
-                    Targets: [`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`],
+                    Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
                     DisplayProtocol: "WorldMessage",
                     Message: `${Name || 'Someone'} has connected.`
                 }
