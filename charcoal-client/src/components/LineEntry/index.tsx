@@ -1,4 +1,4 @@
-import React, { useState, FunctionComponent, ReactElement } from 'react'
+import React, { useState, FunctionComponent, ReactElement, useRef, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import {
     Avatar,
@@ -22,12 +22,15 @@ interface EntryFieldProps {
     defaultValue: string;
     callback: (entry: string) => boolean;
     onChange: (newValue: string) => void;
+    setMode: (newMode: LineEntryMode) => void;
 }
 
-const EntryField: FunctionComponent<EntryFieldProps> = ({ value, defaultValue, callback, onChange }) => {
+const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue, callback, onChange, setMode }, ref) => {
     const { ChatPrompt } = useSelector(getServerSettings)
     const { TextEntryLines } = useSelector(getClientSettings)
+    const empty = value === '' || value === defaultValue
     return <TextField
+        inputRef={ref}
         sx={{ bgcolor: 'background.default' }}
         placeholder={ChatPrompt}
         multiline={!(TextEntryLines === 1)}
@@ -41,19 +44,27 @@ const EntryField: FunctionComponent<EntryFieldProps> = ({ value, defaultValue, c
                     onChange(defaultValue)
                 }
             }
+            if (empty) {
+                if (event.key === '"' || event.key === "'") {
+                    event.preventDefault()
+                    setMode('SayMessage')
+                }
+                if (event.key === ':' || event.key === ";") {
+                    event.preventDefault()
+                    setMode('NarrateMessage')
+                }
+                if (event.key === '/' || event.key === '?') {
+                    event.preventDefault()
+                    setMode('Command')
+                }
+            }
         }}
         onChange={(event) => {
             onChange(event.target.value)
         }}
         fullWidth
     />
-}
-
-const SayEntryField: FunctionComponent<EntryFieldProps> = (props) => (
-    <SpeechBubble variant="right" tailOffset="30px">
-        <EntryField {...props} />
-    </SpeechBubble>
-)
+})
 
 type LineEntryMode = 'SayMessage' | 'NarrateMessage' | 'Command'
 
@@ -97,19 +108,18 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, 
 
 type EntryDispatcherProps = EntryFieldProps & EntryModeSpeedDialProps
 
-const EntryModeDispatcher: FunctionComponent<EntryDispatcherProps> = ({
+const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
     mode,
-    setMode,
     ...props
-}) => {
+}, ref) => {
     switch(mode) {
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
-                    <EntryField {...props} />
+                    <EntryField ref={ref} {...props} />
                 </SpeechBubble>
         case 'NarrateMessage':
             return <NarrateBubble variant="right" tailOffset="30px">
-                    <EntryField {...props} />
+                    <EntryField ref={ref} {...props} />
                 </NarrateBubble>
         case 'Command':
             return <Box sx={{
@@ -118,12 +128,10 @@ const EntryModeDispatcher: FunctionComponent<EntryDispatcherProps> = ({
                     marginLeft: '10px'
                 }}
             >
-                <EntryField {...props} />
+                <EntryField ref={ref} {...props} />
             </Box>
-        default:
-            return null;
     }
-}
+})
 
 interface LineEntryProps {
     callback: (entry: string) => boolean;
@@ -131,9 +139,13 @@ interface LineEntryProps {
 
 
 export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => (true) }) => {
+    const ref = useRef<HTMLInputElement>(null)
     const [mode, setMode] = useState<LineEntryMode>('SayMessage')
     const [value, setValue] = useState<string>('')
 
+    useEffect(() => {
+        ref.current?.focus()
+    }, [ref.current])
     return (
         <CharacterColorWrapper color="blue">
             <MessageComponent
@@ -143,6 +155,7 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
             >
                 <Box sx={{ marginRight: "10px" }}>
                     <EntryModeDispatcher
+                        ref={ref}
                         mode={mode}
                         setMode={setMode}
                         value={value}
