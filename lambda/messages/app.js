@@ -80,7 +80,7 @@ const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) =>
 }
 
 export const handler = async (event, context) => {
-    const { action, Records, ...payload } = event
+    const { action, Records } = event
 
     //
     // Check whether message is being called from DBStream (in which case Events will be present)
@@ -101,6 +101,8 @@ export const handler = async (event, context) => {
             //
             const { characterTargets, roomTargets } = allTargets.map(splitType).reduce((previous, [type, id]) => {
                 switch(type) {
+                    case 'NOT-CHARACTER':
+                        return previous
                     case 'CHARACTER':
                         return {
                             ...previous,
@@ -151,8 +153,8 @@ export const handler = async (event, context) => {
                 })
             }
             //
-            // Third-pass: Pull connections (if available) for any character that we haven't
-            // found the ConnectionId for in checking rooms.
+            // Third-pass: Pull connections (if available) for any character that we haven't found
+            // the ConnectionId for in checking rooms.
             //
             //
             // TODO:  It might be worth maintaining a denormalized CharacterID -> Connection map in
@@ -181,7 +183,15 @@ export const handler = async (event, context) => {
             const { messageItems, deltaItems, broadcastPayloads } = metaRecords.reduce(
                 (previous, { Targets, CreatedTime, MessageId, ...rest }) => {
                     const aggregateTargets = Targets
-                        .reduce((previous, item) => ([...previous, ...(resolvedTargetMap[item] || [{ id: item }])]), [])
+                        .reduce((previous, item) => {
+                            const [type, id] = splitType(item)
+                            switch(type) {
+                                case 'NOT-CHARACTER':
+                                    return previous.filter((checkItem) => (checkItem.id !== `CHARACTER#${id}`))
+                                default:
+                                    return [...previous, ...(resolvedTargetMap[item] || [{ id: item }])]
+                            }
+                        }, [])
                     const deduplicatedDBTargets = [...new Set(aggregateTargets.map(({ id }) => (id)))]
                     const { messageItems, deltaItems } = deduplicatedDBTargets.reduce(
                         (
@@ -254,19 +264,6 @@ export const handler = async (event, context) => {
         }
     }
     else {
-        switch(action) {
-
-            // case "sync":
-            //     return sync(payload)
-    
-            // case "getRoomRecap":
-            //     return getRoomRecap(event.RoomId)
-    
-            // case "updateMessages":
-            //     return updateDispatcher(payload)
-    
-            default:
-                context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
-        }
+        context.fail(JSON.stringify(`Error: Unknown action: ${action}`))
     }
 }
