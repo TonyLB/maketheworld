@@ -9,11 +9,11 @@ import {
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
 
-import { CharacterSpeech } from '../../slices/messages/baseClasses'
+import { OutOfCharacterMessage } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
 
 interface OOCMessageProps {
-    message: CharacterSpeech;
+    message: OutOfCharacterMessage;
     variant: 'left' | 'right';
     children?: ReactChild | ReactChildren;
 }

@@ -2,6 +2,7 @@ import React, { ReactChild, ReactChildren } from 'react'
 
 import SayMessage from './SayMessage'
 import NarrateMessage from './NarrateMessage'
+import OOCMessage from './OOCMessage'
 import WorldMessage from './WorldMessage'
 import RoomDescription from './RoomDescription'
 import UnknownMessage from './UnknownMessage'
@@ -22,6 +23,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <SayMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'NarrateMessage':
             return <NarrateMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
+        case 'OOCMessage':
+            return <OOCMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
         case 'RoomDescription':

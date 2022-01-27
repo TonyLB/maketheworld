@@ -43,8 +43,8 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
                         45deg,
                         transparent,
                         transparent 10px,
-                        ${color[50]} 10px,
-                        ${color[50]} 20px
+                        ${color[50]}80 10px,
+                        ${color[50]}80 20px
                     ),
                     linear-gradient(white 70%, ${color[50]})
                 `
