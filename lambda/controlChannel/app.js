@@ -277,7 +277,7 @@ const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}
     }
 }
 
-const narrateOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
+const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const [{ Item: EphemeraItem = {} }] = await Promise.all([
         dbClient.send(new GetItemCommand({
@@ -371,13 +371,8 @@ const executeAction = (request) => {
             return lookPermanent(request.payload)
         case 'SayMessage':
         case 'NarrateMessage':
-            return narrateOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
-        // case 'narrate':
-        //     return narrateOrSpeech({ ...request.payload, DisplayProtocol: 'NarrateMessage' })
-        // case 'pose':
-        //     return emote({ ...request.payload, messageCallback: ({ Name, Message }) => (`${Name}${Message.match(/^[,']/) ? "" : " "}${Message}`)})
-        // case 'spoof':
-        //     return emote({ ...request.payload, messageCallback: ({ Message }) => (Message)})
+        case 'OOCMessage':
+            return narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
         case 'move':
             return moveCharacter(request.payload)
         case 'home':

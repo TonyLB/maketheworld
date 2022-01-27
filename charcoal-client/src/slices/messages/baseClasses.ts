@@ -55,7 +55,7 @@ export type CharacterNarration = {
 } & MessageAddressing & MessageCharacterInfo
 
 export type OutOfCharacterMessage = {
-    DisplayProtocol: 'OutOfCharacterMessage';
+    DisplayProtocol: 'OOCMessage';
     Message: string;
 } & MessageAddressing & MessageCharacterInfo
 
