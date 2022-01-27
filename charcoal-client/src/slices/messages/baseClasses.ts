@@ -36,25 +36,26 @@ export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
 } & RoomDescribeData & MessageAddressing
 
+type MessageCharacterInfo = {
+    CharacterId: string;
+    Name: string;
+    Color: string;
+}
+
 export type CharacterSpeech = {
     DisplayProtocol: 'SayMessage';
-    CharacterId: string;
     Message: string;
-    Name: string;
-} & MessageAddressing
+} & MessageAddressing & MessageCharacterInfo
 
 export type CharacterNarration = {
     DisplayProtocol: 'NarrateMessage';
-    CharacterId: string;
     Message: string;
-    Name: string;
-} & MessageAddressing
+} & MessageAddressing & MessageCharacterInfo
 
 export type OutOfCharacterMessage = {
     DisplayProtocol: 'OutOfCharacterMessage';
-    CharacterId: string;
     Message: string;
-} & MessageAddressing
+} & MessageAddressing & MessageCharacterInfo
 
 export type Message = WorldMessage | RoomDescription | RoomHeader | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
