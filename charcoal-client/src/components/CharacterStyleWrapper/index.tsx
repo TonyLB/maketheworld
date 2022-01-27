@@ -21,6 +21,7 @@ declare module '@mui/material/styles' {
             pale?: string;
             paleTransparent?: string;
             paleGradient?: string;
+            stripedGradient?: string;
         }
     }
 }
@@ -36,7 +37,17 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
                 midPale: color[100],
                 pale: color[50],
                 paleTransparent: `${color[50]} transparent`,
-                paleGradient: `linear-gradient(${color[50]} 30%, ${color[100]})`
+                paleGradient: `linear-gradient(${color[50]} 30%, ${color[100]})`,
+                stripedGradient: `
+                    repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 10px,
+                        ${color[50]} 10px,
+                        ${color[50]} 20px
+                    ),
+                    linear-gradient(white 70%, ${color[50]})
+                `
             }
         },
     })

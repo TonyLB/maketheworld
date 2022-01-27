@@ -9,12 +9,17 @@ import {
 } from '@mui/material'
 import SayMessageIcon from '@mui/icons-material/Chat'
 import NarrateMessageIcon from '@mui/icons-material/Receipt'
+import OOCMessageIcon from '@mui/icons-material/CropFree'
 import CommandIcon from '@mui/icons-material/Code'
 
-import { getServerSettings, getClientSettings } from '../../slices/settings'
+import {
+    // getServerSettings,
+    getClientSettings
+} from '../../slices/settings'
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { SpeechBubble } from '../Message/SayMessage'
 import { NarrateBubble } from '../Message/NarrateMessage'
+import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 
@@ -58,6 +63,10 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue
                     event.preventDefault()
                     setMode('NarrateMessage')
                 }
+                if (mode !== 'OOCMessage' && (event.key === '\\' || event.key === "|")) {
+                    event.preventDefault()
+                    setMode('OOCMessage')
+                }
                 if (mode !== 'Command' && (event.key === '/' || event.key === '?')) {
                     event.preventDefault()
                     setMode('Command')
@@ -80,6 +89,7 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, 
     const icons: Record<LineEntryMode, ReactElement> = {
         SayMessage: <SayMessageIcon sx={{ width: "30px", height: "30px" }} />,
         NarrateMessage: <NarrateMessageIcon sx={{ width: "30px", height: "30px" }} />,
+        OOCMessage: <OOCMessageIcon sx={{ width: "30px", height: "30px" }} />,
         Command: <CommandIcon sx={{ width: "30px", height: "30px" }} />,
     }
     return <SpeedDial
@@ -99,6 +109,12 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, 
             icon={<NarrateMessageIcon />}
             tooltipTitle="Narrate"
             onClick={() => { setMode('NarrateMessage') }}
+        />
+        <SpeedDialAction
+            key="OOCMessage"
+            icon={<OOCMessageIcon />}
+            tooltipTitle="Out of Character"
+            onClick={() => { setMode('OOCMessage') }}
         />
         <SpeedDialAction
             key="Command"
@@ -124,6 +140,10 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
             return <NarrateBubble variant="right" tailOffset="30px">
                     <EntryField ref={ref} mode={mode} placeholder='What happens next?' {...props} />
                 </NarrateBubble>
+        case 'OOCMessage':
+            return <OOCBubble variant="right" tailOffset="30px">
+                    <EntryField ref={ref} mode={mode} placeholder='What do you say, as a player?' {...props} />
+                </OOCBubble>
         case 'Command':
             return <Box sx={{
                     padding: '10px 15px 15px 15px',
