@@ -36,6 +36,10 @@ export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
 } & RoomDescribeData & MessageAddressing
 
+export type RoomUpdate = {
+    DisplayProtocol: 'RoomUpdate';
+} & MessageAddressing & Partial<RoomDescribeData>
+
 export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
 
 type MessageCharacterInfo = {
@@ -59,6 +63,6 @@ export type OutOfCharacterMessage = {
     Message: string;
 } & MessageAddressing & MessageCharacterInfo
 
-export type Message = WorldMessage | RoomDescription | RoomHeader | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+export type Message = WorldMessage | RoomDescription | RoomHeader | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export type MessageState = Record<string, Message[]>

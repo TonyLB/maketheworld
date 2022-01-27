@@ -1,5 +1,5 @@
-import { marshall } from '@aws-sdk/util-dynamodb'
-import { UpdateItemCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { UpdateItemCommand, BatchWriteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import { splitType } from '../utilities/index.js'
 import { render } from '/opt/perception/index.js'
@@ -46,6 +46,7 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
             const updateRoomEphemera = async () => {
                 const { RoomId, EphemeraId, Name, ConnectionId } = newImage
                 if (RoomId) {
+                    const CharacterId = splitType(EphemeraId)[1]
                     try {
                         await dbClient.send(new UpdateItemCommand({
                             TableName: ephemeraTable,
@@ -61,8 +62,22 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
                                     Name,
                                     ConnectionId
                                 }
-                            }, { removeUndefinedValues: true })
-                        }))
+                            }, { removeUndefinedValues: true }),
+                            ReturnValues: 'UPDATED_NEW'
+                        })).then(({ Attributes }) => {
+                            const { activeCharacters = {} } = unmarshall(Attributes)
+                            return dbClient.send(new PutItemCommand({
+                                TableName: messageTable,
+                                Item: marshall({
+                                    MessageId: `MESSAGE#${uuidv4()}`,
+                                    CreatedTime: epochTime + 2,
+                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                                    DataCategory: 'Meta::Message',
+                                    DisplayProtocol: 'RoomUpdate',
+                                    characters: Object.values(activeCharacters)
+                                })
+                            }))
+                        })
                     }
                     catch (event) {
                         console.log('ERROR: Connect updateRoom')
@@ -80,6 +95,7 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
         else {
             const updateRoomEphemera = async () => {
                 const { RoomId, EphemeraId, Name, ConnectionId } = newImage
+                const CharacterId = splitType(EphemeraId)[1]
                 if (RoomId) {
                     try {
                         await dbClient.send(new UpdateItemCommand({
@@ -96,8 +112,22 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
                                     Name,
                                     ConnectionId
                                 }
-                            }, { removeUndefinedValues: true })
-                        }))
+                            }, { removeUndefinedValues: true }),
+                            ReturnValues: 'UPDATED_NEW'
+                        })).then(({ Attributes }) => {
+                            const { activeCharacters = {} } = unmarshall(Attributes)
+                            dbClient.send(new PutItemCommand({
+                                TableName: messageTable,
+                                Item: marshall({
+                                    MessageId: `MESSAGE#${uuidv4()}`,
+                                    CreatedTime: epochTime + 2,
+                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                                    DataCategory: 'Meta::Message',
+                                    DisplayProtocol: 'RoomUpdate',
+                                    characters: Object.values(activeCharacters)
+                                })
+                            }))
+                        })
                     }
                     catch (event) {
                         console.log('ERROR: Connect updateRoom')
