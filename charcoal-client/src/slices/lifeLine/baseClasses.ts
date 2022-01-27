@@ -31,7 +31,7 @@ export interface LifeLineNodes {
     ERROR: ISSMChoiceNode;
 }
 
-export type ParseCommandModes = 'SayMessage' | 'NarrateMessage' | 'Command'
+export type ParseCommandModes = 'SayMessage' | 'NarrateMessage' | 'OOCMessage' | 'Command'
 
 export interface ParseCommandProps {
     mode: ParseCommandModes;

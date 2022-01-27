@@ -12,24 +12,28 @@ import { useActiveCharacter } from '../ActiveCharacter'
 import { CharacterSpeech } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
 
-interface SayMessageProps {
+interface OOCMessageProps {
     message: CharacterSpeech;
     variant: 'left' | 'right';
     children?: ReactChild | ReactChildren;
 }
 
-interface SpeechBubbleProps {
+interface OOCBubbleProps {
     variant: 'left' | 'right';
     tailOffset?: string;
     children?: ReactChild | ReactChild[] | ReactChildren;
 }
 
-export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, tailOffset = '16px', children }) => {
+export const OOCBubble: FunctionComponent<OOCBubbleProps> = ({ variant, tailOffset = '16px', children }) => {
     return <Box
             sx={[{
-                    background: (theme: any) => (theme.palette.extras.paleGradient),
+                    background: (theme: any) => (theme.palette.extras.stripedGradient),
+                    backgroundBlendMode: 'multiply',
                     padding: '10px 15px 15px 15px',
                     borderRadius: '15px',
+                    borderStyle: 'solid',
+                    borderWidth: '1px',
+                    borderColor: 'extras.midPale',
                     position: 'relative',
                     marginRight: '10px',
                     marginLeft: '10px',
@@ -38,6 +42,7 @@ export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, ta
                         position: 'absolute',
                         borderStyle: 'solid',
                         bottom: tailOffset,
+                        borderWidth: '1px',
                         borderTopColor: 'transparent',
                         borderBottomColor: 'transparent',
                         borderRightColor: 'extras.midPale',
@@ -62,7 +67,7 @@ export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, ta
         </Box>
 }
 
-export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, variant }) => {
+export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, variant }) => {
     const { CharacterId: activeId } = useActiveCharacter()
     const { CharacterId, Name, Color } = message
     return <CharacterColorWrapper color={CharacterId === activeId ? 'blue' : Color}>
@@ -86,17 +91,17 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
                 </Box>
             }
         >
-            <SpeechBubble variant={variant}>
+            <OOCBubble variant={variant}>
                 <Box sx={{ fontWeight: 'bold' }}>
-                    {message.Name}
+                    {message.Name} (out of character)
                 </Box>
                 <Typography variant='body1' align='left'>
                     {message.Message}
                 </Typography>
-            </SpeechBubble>
+            </OOCBubble>
 
         </MessageComponent>
     </CharacterColorWrapper>
 }
 
-export default SayMessage
+export default OOCMessage
