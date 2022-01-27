@@ -289,6 +289,7 @@ const narrateOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) =
         })),
     ])
     const { RoomId, Name } = unmarshall(EphemeraItem)
+    const Color = ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
     if (RoomId) {
         await dbClient.send(new PutItemCommand({
             TableName: messagesTable,
@@ -300,7 +301,8 @@ const narrateOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) =
                 DisplayProtocol,
                 CharacterId,
                 Message,
-                Name
+                Name,
+                Color
             })
         }))
     }

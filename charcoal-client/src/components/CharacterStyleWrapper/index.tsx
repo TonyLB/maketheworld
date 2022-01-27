@@ -12,6 +12,7 @@ import {
 import { getActiveCharacterList } from '../../slices/ephemera'
 import { getPlayer } from '../../slices/player'
 import { useActiveCharacter } from '../ActiveCharacter'
+import { LegalCharacterColor } from '../../slices/messages/baseClasses'
 
 declare module '@mui/material/styles' {
     interface PaletteOptions {
@@ -41,7 +42,6 @@ const characterThemes = (Object.entries({ blue, pink, purple, green, grey })).ma
     })
 })).reduce((prev, item) => ({ ...prev, ...item }), {})
 
-export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
 type CharacterColorWrapper = {
     color: LegalCharacterColor;
     children?: ReactChild | ReactChildren;
