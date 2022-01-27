@@ -26,6 +26,7 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
         }
         const updateRoomEphemera = async () => {
             const { RoomId, EphemeraId, Name } = newImage
+            const CharacterId = splitType(EphemeraId)[1]
             if (RoomId) {
                 try {
                     await dbClient.send(new UpdateItemCommand({
@@ -41,8 +42,22 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                                 EphemeraId,
                                 Name
                             }
-                        }, { removeUndefinedValues: true })
-                    }))
+                        }, { removeUndefinedValues: true }),
+                        ReturnValues: 'UPDATED_NEW'
+                    })).then(({ Attributes }) => {
+                        const { activeCharacters = {} } = unmarshall(Attributes)
+                        return dbClient.send(new PutItemCommand({
+                            TableName: messageTable,
+                            Item: marshall({
+                                MessageId: `MESSAGE#${uuidv4()}`,
+                                CreatedTime: epochTime + 2,
+                                Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                                DataCategory: 'Meta::Message',
+                                DisplayProtocol: 'RoomUpdate',
+                                characters: Object.values(activeCharacters)
+                            })
+                        }))
+                    })
                 }
                 catch(event) {
                     console.log(`ERROR: Disconnect updateRoom`)
@@ -50,6 +65,7 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
             }
             else {
                 if (oldImage.RoomId) {
+                    const CharacterId = splitType(oldImage.EphemeraId)[1]
                     try {
                         await dbClient.send(new UpdateItemCommand({
                             TableName: ephemeraTable,
@@ -60,7 +76,21 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                             UpdateExpression: "REMOVE activeCharacters.#characterId, inactiveCharacters.#characterId",
                             ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
                             ExpressionAttributeNames: { "#characterId": oldImage.EphemeraId },
-                        }))
+                            ReturnValues: 'UPDATED_NEW'
+                        })).then(({ Attributes }) => {
+                            const { activeCharacters = {} } = unmarshall(Attributes)
+                            dbClient.send(new PutItemCommand({
+                                TableName: messageTable,
+                                Item: marshall({
+                                    MessageId: `MESSAGE#${uuidv4()}`,
+                                    CreatedTime: epochTime + 2,
+                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                                    DataCategory: 'Meta::Message',
+                                    DisplayProtocol: 'RoomUpdate',
+                                    characters: Object.values(activeCharacters)
+                                })
+                            }))
+                        })
                     }
                     catch(event) {
                         console.log(`ERROR: DisconnectEphemera (Delete)`)

@@ -75,6 +75,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
             const leaveRoomEphemera = async () => {
                 const { RoomId, EphemeraId } = oldImage
                 if (RoomId) {
+                    const CharacterId = splitType(EphemeraId)[1]
                     try {
                         await dbClient.send(new UpdateItemCommand({
                             TableName: ephemeraTable,
@@ -85,7 +86,21 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                             UpdateExpression: "REMOVE activeCharacters.#characterId, inactiveCharacters.#characterId",
                             ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
                             ExpressionAttributeNames: { "#characterId": EphemeraId },
-                        }))
+                            ReturnValues: 'UPDATED_NEW'
+                        })).then(({ Attributes }) => {
+                            const { activeCharacters = {} } = unmarshall(Attributes)
+                            return dbClient.send(new PutItemCommand({
+                                TableName: messageTable,
+                                Item: marshall({
+                                    MessageId: `MESSAGE#${uuidv4()}`,
+                                    CreatedTime: epochTime + 2,
+                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                                    DataCategory: 'Meta::Message',
+                                    DisplayProtocol: 'RoomUpdate',
+                                    characters: Object.values(activeCharacters)
+                                })
+                            }))
+                        })
                     }
                     catch(event) {
                         console.log(`ERROR: leaveRoomEphemera`)
@@ -95,6 +110,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
             const enterRoomEphemera = async () => {
                 const { RoomId, EphemeraId, ConnectionId } = newImage
                 if (RoomId) {
+                    const CharacterId = splitType(EphemeraId)[1]
                     try {
                         await dbClient.send(new UpdateItemCommand({
                             TableName: ephemeraTable,
@@ -111,9 +127,22 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                                     Name,
                                     ConnectionId
                                 }
-                            }, { removeUndefinedValues: true })
-                        }))    
-                    }
+                            }, { removeUndefinedValues: true }),
+                            ReturnValues: 'UPDATED_NEW'
+                        })).then(({ Attributes }) => {
+                            const { activeCharacters = {} } = unmarshall(Attributes)
+                            return dbClient.send(new PutItemCommand({
+                                TableName: messageTable,
+                                Item: marshall({
+                                    MessageId: `MESSAGE#${uuidv4()}`,
+                                    CreatedTime: epochTime + 2,
+                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                                    DataCategory: 'Meta::Message',
+                                    DisplayProtocol: 'RoomUpdate',
+                                    characters: Object.values(activeCharacters)
+                                })
+                            }))
+                        })                    }
                     catch(event) {
                         console.log(`ERROR: enterRoomEphemera`)
                     }
