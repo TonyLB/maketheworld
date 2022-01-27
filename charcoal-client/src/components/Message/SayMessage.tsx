@@ -11,8 +11,8 @@ import {
     Theme
 } from '@mui/material/styles'
 
-import { getCharactersInPlay } from '../../slices/ephemera'
-import CharacterStyleWrapper from '../CharacterStyleWrapper'
+import { CharacterColorWrapper } from '../CharacterStyleWrapper'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 import { CharacterSpeech } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
@@ -68,10 +68,9 @@ export const SpeechBubble: FunctionComponent<SpeechBubbleProps> = ({ variant, ta
 }
 
 export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, variant }) => {
-    const CharacterId = message.CharacterId
-    const charactersInPlay = useSelector(getCharactersInPlay)
-    const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
-    return <CharacterStyleWrapper CharacterId={CharacterId} nested>
+    const { CharacterId: activeId } = useActiveCharacter()
+    const { CharacterId, Name, Color } = message
+    return <CharacterColorWrapper color={CharacterId === activeId ? 'blue' : Color}>
         <MessageComponent
             leftIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
@@ -102,7 +101,7 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
             </SpeechBubble>
 
         </MessageComponent>
-    </CharacterStyleWrapper>
+    </CharacterColorWrapper>
 }
 
 export default SayMessage

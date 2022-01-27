@@ -1,15 +1,13 @@
 import React, { ReactChildren, ReactChild, FunctionComponent } from 'react'
-import { useSelector } from 'react-redux'
 
 import {
     Box,
     Typography,
-    Avatar,
-    Tooltip
+    Avatar
 } from '@mui/material'
 
-import { getCharactersInPlay } from '../../slices/ephemera'
-import CharacterStyleWrapper from '../CharacterStyleWrapper'
+import { CharacterColorWrapper } from '../CharacterStyleWrapper'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 import { CharacterNarration } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
@@ -73,10 +71,9 @@ export const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, 
         </Box>
 }
 export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
-    const CharacterId = message.CharacterId
-    const charactersInPlay = useSelector(getCharactersInPlay)
-    const Name = charactersInPlay && charactersInPlay[CharacterId] && charactersInPlay[CharacterId].Name
-    return <CharacterStyleWrapper CharacterId={CharacterId} nested>
+    const { CharacterId: activeId } = useActiveCharacter()
+    const { CharacterId, Name, Color } = message
+    return <CharacterColorWrapper color={CharacterId === activeId ? 'blue' : Color}>
         <MessageComponent
             leftIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
@@ -103,7 +100,7 @@ export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
                 </Typography>
             </NarrateBubble>
         </MessageComponent>
-    </CharacterStyleWrapper>
+    </CharacterColorWrapper>
 }
 
 export default NarrateMessage

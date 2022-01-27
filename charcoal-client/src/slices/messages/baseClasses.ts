@@ -36,10 +36,12 @@ export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
 } & RoomDescribeData & MessageAddressing
 
+export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
+
 type MessageCharacterInfo = {
     CharacterId: string;
     Name: string;
-    Color: string;
+    Color: LegalCharacterColor;
 }
 
 export type CharacterSpeech = {
