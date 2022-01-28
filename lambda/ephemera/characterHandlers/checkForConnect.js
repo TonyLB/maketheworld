@@ -4,15 +4,15 @@ import { v4 as uuidv4 } from 'uuid'
 import { splitType } from '../utilities/index.js'
 import { render } from '/opt/perception/index.js'
 import publishRoomUpdate from './publishRoomUpdate.js'
+import characterEphemeraDenormalize from './characterEphemeraDenormalize.js'
 
 const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const messageTable = `${TABLE_PREFIX}_messages`
 
 export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
+    const epochTime = Date.now()
     if (!oldImage.EphemeraId || (!(oldImage.Connected ?? false) && newImage.Connected)) {
         if (newImage.Connected) {
-            const epochTime = Date.now()
             const connectMessage = async () => {
                 const { Name, RoomId, EphemeraId } = newImage
                 const CharacterId = splitType(EphemeraId)[1]
@@ -45,27 +45,21 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
                 }}))
             }
             const updateRoomEphemera = async () => {
-                const { RoomId, EphemeraId, Name, ConnectionId } = newImage
+                const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
                 if (RoomId) {
                     const CharacterId = splitType(EphemeraId)[1]
                     try {
-                        await dbClient.send(new UpdateItemCommand({
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: `ROOM#${RoomId}`,
-                                DataCategory: 'Meta::Room'
-                            }),
-                            UpdateExpression: "SET activeCharacters.#characterId = :character REMOVE inactiveCharacters.#characterId",
-                            ExpressionAttributeNames: { "#characterId": EphemeraId },
-                            ExpressionAttributeValues: marshall({
-                                ":character": {
-                                    EphemeraId,
-                                    Name,
-                                    ConnectionId
-                                }
-                            }, { removeUndefinedValues: true }),
-                            ReturnValues: 'ALL_NEW'
-                        })).then(publishRoomUpdate({
+                        await characterEphemeraDenormalize({
+                            dbClient,
+                            RoomId,
+                            EphemeraId,
+                            Name,
+                            Color,
+                            ConnectionId,
+                            isActive: true,
+                            isInactive: false,
+                            returnValues: true
+                        }).then(publishRoomUpdate({
                             dbClient,
                             notCharacterId: CharacterId,
                             epochTime: epochTime + 2,
@@ -87,32 +81,20 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
         }
         else {
             const updateRoomEphemera = async () => {
-                const { RoomId, EphemeraId, Name, ConnectionId } = newImage
-                const CharacterId = splitType(EphemeraId)[1]
+                const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
                 if (RoomId) {
                     try {
-                        await dbClient.send(new UpdateItemCommand({
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: `ROOM#${RoomId}`,
-                                DataCategory: 'Meta::Room'
-                            }),
-                            UpdateExpression: "SET inactiveCharacters.#characterId = :character REMOVE activeCharacters.#characterId",
-                            ExpressionAttributeNames: { "#characterId": EphemeraId },
-                            ExpressionAttributeValues: marshall({
-                                ":character": {
-                                    EphemeraId,
-                                    Name,
-                                    ConnectionId
-                                }
-                            }, { removeUndefinedValues: true }),
-                            ReturnValues: 'ALL_NEW'
-                        })).then(publishRoomUpdate({
+                        await characterEphemeraDenormalize({
                             dbClient,
-                            notCharacterId: CharacterId,
-                            epochTime: epochTime + 2,
-                            RoomId
-                        }))
+                            RoomId,
+                            EphemeraId,
+                            Name,
+                            Color,
+                            ConnectionId,
+                            isActive: false,
+                            isInactive: true,
+                            returnValues: true
+                        })
                     }
                     catch (event) {
                         console.log('ERROR: Connect updateRoom')
