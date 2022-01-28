@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { splitType } from '../utilities/index.js'
 import { render } from '/opt/perception/index.js'
+import publishRoomUpdate from './publishRoomUpdate.js'
+import characterEphemeraDenormalize from './characterEphemeraDenormalize.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -49,7 +51,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                             {
                                 MessageId: `MESSAGE#${uuidv4()}`,
                                 CreatedTime: epochTime,
-                                Targets: [`ROOM#${newRoomId}`, `CHARACTER#${CharacterId}`],
+                                Targets: [`CHARACTER#${CharacterId}`],
                                 DataCategory: 'Meta::Message',
                                 DisplayProtocol: 'RoomHeader',
                                 ...roomMessage
@@ -76,76 +78,51 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                 const { RoomId, EphemeraId } = oldImage
                 if (RoomId) {
                     const CharacterId = splitType(EphemeraId)[1]
-                    try {
-                        await dbClient.send(new UpdateItemCommand({
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: `ROOM#${RoomId}`,
-                                DataCategory: 'Meta::Room'
-                            }),
-                            UpdateExpression: "REMOVE activeCharacters.#characterId, inactiveCharacters.#characterId",
-                            ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
-                            ExpressionAttributeNames: { "#characterId": EphemeraId },
-                            ReturnValues: 'UPDATED_NEW'
-                        })).then(({ Attributes }) => {
-                            const { activeCharacters = {} } = unmarshall(Attributes)
-                            return dbClient.send(new PutItemCommand({
-                                TableName: messageTable,
-                                Item: marshall({
-                                    MessageId: `MESSAGE#${uuidv4()}`,
-                                    CreatedTime: epochTime + 2,
-                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
-                                    DataCategory: 'Meta::Message',
-                                    DisplayProtocol: 'RoomUpdate',
-                                    characters: Object.values(activeCharacters)
-                                })
-                            }))
-                        })
-                    }
-                    catch(event) {
-                        console.log(`ERROR: leaveRoomEphemera`)
-                    }
+                    // try {
+                        await characterEphemeraDenormalize({
+                            dbClient,
+                            EphemeraId,
+                            RoomId,
+                            isActive: false,
+                            isInactive: false,
+                            returnValues: true
+                        }).then(publishRoomUpdate({
+                            dbClient,
+                            notCharacterId: CharacterId,
+                            epochTime: epochTime + 2,
+                            RoomId
+                        }))
+                    // }
+                    // catch(event) {
+                    //     console.log(`ERROR: leaveRoomEphemera`)
+                    // }
                 }
             }
             const enterRoomEphemera = async () => {
-                const { RoomId, EphemeraId, ConnectionId } = newImage
+                const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
                 if (RoomId) {
                     const CharacterId = splitType(EphemeraId)[1]
-                    try {
-                        await dbClient.send(new UpdateItemCommand({
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: `ROOM#${RoomId}`,
-                                DataCategory: 'Meta::Room'
-                            }),
-                            UpdateExpression: "SET activeCharacters.#characterId = :character REMOVE inactiveCharacters.#characterId",
-                            ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
-                            ExpressionAttributeNames: { "#characterId": EphemeraId },
-                            ExpressionAttributeValues: marshall({
-                                ":character": {
-                                    EphemeraId,
-                                    Name,
-                                    ConnectionId
-                                }
-                            }, { removeUndefinedValues: true }),
-                            ReturnValues: 'UPDATED_NEW'
-                        })).then(({ Attributes }) => {
-                            const { activeCharacters = {} } = unmarshall(Attributes)
-                            return dbClient.send(new PutItemCommand({
-                                TableName: messageTable,
-                                Item: marshall({
-                                    MessageId: `MESSAGE#${uuidv4()}`,
-                                    CreatedTime: epochTime + 2,
-                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
-                                    DataCategory: 'Meta::Message',
-                                    DisplayProtocol: 'RoomUpdate',
-                                    characters: Object.values(activeCharacters)
-                                })
-                            }))
-                        })                    }
-                    catch(event) {
-                        console.log(`ERROR: enterRoomEphemera`)
-                    }
+                    // try {
+                        await characterEphemeraDenormalize({
+                            dbClient,
+                            RoomId,
+                            EphemeraId,
+                            Name,
+                            Color,
+                            ConnectionId,
+                            isActive: true,
+                            isInactive: false,
+                            returnValues: true
+                        }).then(publishRoomUpdate({
+                            dbClient,
+                            notCharacterId: CharacterId,
+                            epochTime: epochTime + 2,
+                            RoomId
+                        }))
+                    // }
+                    // catch(event) {
+                    //     console.log(`ERROR: enterRoomEphemera`)
+                    // }
                 }
             }
             //
@@ -162,15 +139,13 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                 const { RoomId, EphemeraId } = oldImage
                 if (RoomId) {
                     try {
-                        await dbClient.send(new UpdateItemCommand({
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: `ROOM#${RoomId}`,
-                                DataCategory: 'Meta::Room'
-                            }),
-                            UpdateExpression: "REMOVE activeCharacters.#characterId, inactiveCharacters.#characterId",
-                            ExpressionAttributeNames: { "#characterId": EphemeraId }
-                        }))    
+                        await characterEphemeraDenormalize({
+                            dbClient,
+                            RoomId,
+                            EphemeraId,
+                            isActive: false,
+                            isInactive: false
+                        })
                     }
                     catch(event) {
                         console.log(`ERROR: disconnected leaveRoomEphemera`)
@@ -178,24 +153,19 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                 }
             }
             const enterRoomEphemera = async () => {
-                const { RoomId, EphemeraId, Name } = newImage
+                const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
                 if (RoomId) {
                     try {
-                        await dbClient.send(new UpdateItemCommand({
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: `ROOM#${RoomId}`,
-                                DataCategory: 'Meta::Room'
-                            }),
-                            UpdateExpression: "SET inactiveCharacters.#characterId = :character REMOVE activeCharacters.#characterId",
-                            ExpressionAttributeNames: { "#characterId": EphemeraId },
-                            ExpressionAttributeValues: marshall({
-                                ":character": {
-                                    EphemeraId,
-                                    Name,
-                                }
-                            }, { removeUndefinedValues: true })
-                        }))
+                        await characterEphemeraDenormalize({
+                            dbClient,
+                            RoomId,
+                            EphemeraId,
+                            Name,
+                            Color,
+                            ConnectionId,
+                            isActive: false,
+                            isInactive: true
+                        })
                     }
                     catch(event) {
                         console.log(`ERROR: disconnected enterRoomEphemera`)
