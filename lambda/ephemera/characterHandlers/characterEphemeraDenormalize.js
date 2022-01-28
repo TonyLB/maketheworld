@@ -1,6 +1,8 @@
 import { marshall } from '@aws-sdk/util-dynamodb'
 import { UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 
+import { splitType } from '../utilities/index.js'
+
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
@@ -22,6 +24,8 @@ export const characterEphemeraDenormalize = ({
     //
     // TODO: Temporarily default Color to result from slicing CharacterId.
     //
+    const CharacterId = splitType(EphemeraId)[1]
+    const temporaryColor = ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
     const setString = [
         ...(isActive ? ['activeCharacters.#characterId = :character'] : []),
         ...(isInactive ? ['inactiveCharacters.#characterId = :character'] : [])
@@ -47,7 +51,7 @@ export const characterEphemeraDenormalize = ({
         ...((isActive || isInactive)
             ? {
                 ExpressionAttributeValues: marshall({
-                    ':character': { EphemeraId, Name, Color, ConnectionId }
+                    ':character': { EphemeraId, Name, Color: temporaryColor, ConnectionId }
                 }, { removeUndefinedValues: true })
             } 
             : {}
