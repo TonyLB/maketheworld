@@ -75,7 +75,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
             }
             messages = probeMessages
         }
-        const { Messages, Groups, currentGroup }: MessageRoomInProgress = messages.reduce<MessageRoomInProgress>((previous, message) => {
+        const { Messages, Groups, currentGroup }: MessageRoomInProgress = messages.reduce((previous, message) => {
                 switch(message.DisplayProtocol) {
                     case 'RoomHeader':
                         if (message.RoomId === previous.currentGroup.header.RoomId) {
@@ -106,6 +106,23 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
                                     messageCount: 0
                                 }
                             }    
+                        }
+                    case 'RoomUpdate':
+                        return {
+                            Messages: previous.Messages,
+                            Groups: previous.Groups,
+                            currentGroup: {
+                                header: {
+                                    ...previous.currentGroup.header,
+                                    ...{
+                                        Name: message.Name || previous.currentGroup.header.Name,
+                                        Description: message.Description || previous.currentGroup.header.Description,
+                                        Characters: message.Characters || previous.currentGroup.header.Characters,
+                                        Exits: message.Exits || previous.currentGroup.header.Exits
+                                    }
+                                } as RoomHeader,
+                                messageCount: previous.currentGroup.messageCount
+                            }
                         }
                     default:
                         return {

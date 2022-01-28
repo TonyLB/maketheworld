@@ -2,6 +2,7 @@ import { marshall } from '@aws-sdk/util-dynamodb'
 import { UpdateItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import { splitType } from '../utilities/index.js'
+import publishRoomUpdate from './publishRoomUpdate.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -43,21 +44,13 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                                 Name
                             }
                         }, { removeUndefinedValues: true }),
-                        ReturnValues: 'UPDATED_NEW'
-                    })).then(({ Attributes }) => {
-                        const { activeCharacters = {} } = unmarshall(Attributes)
-                        return dbClient.send(new PutItemCommand({
-                            TableName: messageTable,
-                            Item: marshall({
-                                MessageId: `MESSAGE#${uuidv4()}`,
-                                CreatedTime: epochTime + 2,
-                                Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
-                                DataCategory: 'Meta::Message',
-                                DisplayProtocol: 'RoomUpdate',
-                                characters: Object.values(activeCharacters)
-                            })
-                        }))
-                    })
+                        ReturnValues: 'ALL_NEW'
+                    })).then(publishRoomUpdate({
+                        dbClient,
+                        notCharacterId: CharacterId,
+                        epochTime: epochTime + 2,
+                        RoomId
+                    }))
                 }
                 catch(event) {
                     console.log(`ERROR: Disconnect updateRoom`)
@@ -65,6 +58,7 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
             }
             else {
                 if (oldImage.RoomId) {
+                    const { RoomId } = oldImage
                     const CharacterId = splitType(oldImage.EphemeraId)[1]
                     try {
                         await dbClient.send(new UpdateItemCommand({
@@ -76,21 +70,13 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                             UpdateExpression: "REMOVE activeCharacters.#characterId, inactiveCharacters.#characterId",
                             ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
                             ExpressionAttributeNames: { "#characterId": oldImage.EphemeraId },
-                            ReturnValues: 'UPDATED_NEW'
-                        })).then(({ Attributes }) => {
-                            const { activeCharacters = {} } = unmarshall(Attributes)
-                            dbClient.send(new PutItemCommand({
-                                TableName: messageTable,
-                                Item: marshall({
-                                    MessageId: `MESSAGE#${uuidv4()}`,
-                                    CreatedTime: epochTime + 2,
-                                    Targets: [`ROOM#${newImage.RoomId}`, `NOT-CHARACTER#${CharacterId}`],
-                                    DataCategory: 'Meta::Message',
-                                    DisplayProtocol: 'RoomUpdate',
-                                    characters: Object.values(activeCharacters)
-                                })
-                            }))
-                        })
+                            ReturnValues: 'ALL_NEW'
+                        })).then(publishRoomUpdate({
+                            dbClient,
+                            notCharacterId: CharacterId,
+                            epochTime: epochTime + 2,
+                            RoomId
+                        }))
                     }
                     catch(event) {
                         console.log(`ERROR: DisconnectEphemera (Delete)`)

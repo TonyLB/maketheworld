@@ -206,17 +206,6 @@ export const handler = async (event, context) => {
         queueClear()
         switch(action) {
             
-            // case 'fetchEphemera':
-            //     return fetchEphemera(payload.RequestId)
-
-            // case 'updateEphemera':
-            //     await updateDispatcher(payload)
-            //     const updates = queueState()
-            //     if (directCall) {
-            //         await queueFlush()
-            //     }
-            //     return updates
-
             case 'denormalize':
                 const denormalize = await denormalizeDispatcher(payload)
                 if (queueState()) {
