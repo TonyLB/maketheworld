@@ -4,6 +4,10 @@ export type MessageAddressing = {
     Target: string;
 }
 
+export type SpacerMessage = {
+    DisplayProtocol: 'SpacerMessage';
+} & MessageAddressing
+
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
     Message: string;
@@ -63,6 +67,6 @@ export type OutOfCharacterMessage = {
     Message: string;
 } & MessageAddressing & MessageCharacterInfo
 
-export type Message = WorldMessage | RoomDescription | RoomHeader | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export type MessageState = Record<string, Message[]>

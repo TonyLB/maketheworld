@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit'
+import { v4 as uuidv4 } from 'uuid'
 
 import { Message, MessageState, RoomHeader } from './baseClasses'
 import { Selector } from '../../store'
@@ -39,6 +40,46 @@ type MessageRoomInProgress = {
     currentGroup: MessageRoomBreakdownHeader;
 }
 
+const combineCurrentHeader = ({ Messages, Groups, currentGroup }: MessageRoomInProgress, newMessage?: RoomHeader): MessageRoomInProgress => {
+    if (currentGroup.messageCount > 0) {
+        return {
+            Messages,
+            Groups: [
+                ...Groups,
+                currentGroup
+            ],
+            currentGroup: {
+                header: newMessage || currentGroup.header,
+                messageCount: 0
+            }
+        }
+    }
+    else {
+        return {
+            Messages: [
+                ...Messages,
+                {
+                    DisplayProtocol: 'SpacerMessage',
+                    MessageId: `MESSAGE#${uuidv4()}`,
+                    Target: currentGroup.header.Target,
+                    CreatedTime: currentGroup.header.CreatedTime + 1
+                }
+            ],
+            Groups: [
+                ...Groups,
+                {
+                    header: currentGroup.header,
+                    messageCount: 1
+                }
+            ],
+            currentGroup: {
+                header: newMessage || currentGroup.header,
+                messageCount: 0
+            }
+        }
+    }
+}
+
 export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBreakdown> = (CharacterId) => createSelector(
     getMessages,
     (allMessages) => {
@@ -75,7 +116,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
             }
             messages = probeMessages
         }
-        const { Messages, Groups, currentGroup }: MessageRoomInProgress = messages.reduce((previous, message) => {
+        const aggregate: MessageRoomInProgress = messages.reduce((previous, message) => {
                 switch(message.DisplayProtocol) {
                     case 'RoomHeader':
                         if (message.RoomId === previous.currentGroup.header.RoomId) {
@@ -95,17 +136,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
                             }
                         }
                         else {
-                            return {
-                                Messages: previous.Messages,
-                                Groups: [
-                                    ...previous.Groups,
-                                    previous.currentGroup
-                                ],
-                                currentGroup: {
-                                    header: message,
-                                    messageCount: 0
-                                }
-                            }    
+                            return combineCurrentHeader(previous, message)
                         }
                     case 'RoomUpdate':
                         return {
@@ -142,17 +173,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
                 Groups: [],
                 currentGroup: initialHeader
             } as MessageRoomInProgress)
-        if (currentGroup.messageCount > 0) {
-            return {
-                Messages,
-                Groups: [...Groups, currentGroup]
-            }
-        }
-        else {
-            return {
-                Messages,
-                Groups
-            }
-        }
+        const { currentGroup: discard, ...rest } = combineCurrentHeader(aggregate)
+        return rest
     }
 )
