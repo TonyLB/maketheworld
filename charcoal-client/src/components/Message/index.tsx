@@ -5,6 +5,7 @@ import NarrateMessage from './NarrateMessage'
 import OOCMessage from './OOCMessage'
 import WorldMessage from './WorldMessage'
 import RoomDescription from './RoomDescription'
+import SpacerMessage from './SpacerMessage'
 import UnknownMessage from './UnknownMessage'
 
 import { Message as MessageType } from '../../slices/messages/baseClasses'
@@ -30,6 +31,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'RoomDescription':
         case 'RoomHeader':
             return <RoomDescription message={message} {...rest} />
+        case 'SpacerMessage':
+            return <SpacerMessage message={message} />
         default:
             return <UnknownMessage message={message} />
     }
