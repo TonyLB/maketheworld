@@ -64,6 +64,7 @@
     ]
   },
   "devDependencies": {
+    "@ohm-js/cli": "^1.0.0",
     "@types/jest": "^26.0.24",
     "@types/react": "^17.0.38",
     "@types/react-router-dom": "^5.3.2",

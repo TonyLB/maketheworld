@@ -4,44 +4,38 @@ import { schema } from './semantics/schema'
 import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp'
 
-import wmlSchemaURL from './wml.ohm'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle'
 
 //
-// TODO: Typescript constraint WML functions
+// The wml code bundle is not TypeScript constrained on purpose, so that it can be easily
+// shared between both the front-end client (where TypeScript rules) and the Lambda
+// functions (where TypeScript would impose a lot of toil in the build process)
 //
-export let wmlGrammar = { match: (dummy) => ({ succeeded: () => false }) }
-export let wmlSemantics = null
-
-fetch(wmlSchemaURL)
-    .then((response) => (response.text()))
-    .then((wmlSchema) => {
-        wmlGrammar = ohm.grammar(wmlSchema)
-        wmlSemantics = wmlGrammar.createSemantics()
-            .addOperation('eval', {
-                string(node) {
-                    return this.sourceString
-                },
-                EmbeddedJSExpression(open, contents, close) {
-                    try {
-                        const evaluation = compileCode(`return (${contents.sourceString})`)({
-                            name: 'world'
-                        })
-                        return `${evaluation}`
-            
-                    }
-                    catch(e) {
-                        return '{#ERROR}'
-                    }
-                },
-                _iter(...nodes) {
-                    return nodes.map((node) => (node.eval())).join('')
-                },
-                TagExpression(open, contents, close) {
-                    return `${open.sourceString}${contents.eval()}${close.sourceString}`
-                }
-            })
-            .addOperation('schema', schema)
+export const wmlSemantics = wmlGrammar.createSemantics()
+    .addOperation('eval', {
+        string(node) {
+            return this.sourceString
+        },
+        EmbeddedJSExpression(open, contents, close) {
+            try {
+                const evaluation = compileCode(`return (${contents.sourceString})`)({
+                    name: 'world'
+                })
+                return `${evaluation}`
+    
+            }
+            catch(e) {
+                return '{#ERROR}'
+            }
+        },
+        _iter(...nodes) {
+            return nodes.map((node) => (node.eval())).join('')
+        },
+        TagExpression(open, contents, close) {
+            return `${open.sourceString}${contents.eval()}${close.sourceString}`
+        }
     })
+    .addOperation('schema', schema)
 
 const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
 
