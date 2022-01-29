@@ -1,12 +1,12 @@
-const { GetItemCommand, PutItemCommand, QueryCommand, BatchWriteItemCommand, BatchGetItemCommand } = require("@aws-sdk/client-dynamodb")
-const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
-const { v4: uuidv4 } = require("uuid")
+import { GetItemCommand, PutItemCommand, QueryCommand, BatchWriteItemCommand, BatchGetItemCommand } from "@aws-sdk/client-dynamodb"
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { v4 as uuidv4 } from "uuid"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 
-const batchWriteDispatcher = (dbClient, { table, items }) => {
+export const batchWriteDispatcher = (dbClient, { table, items }) => {
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 19) {
@@ -30,7 +30,7 @@ const batchWriteDispatcher = (dbClient, { table, items }) => {
     return Promise.all(batchPromises)
 }
 
-const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) => {
+export const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) => {
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 39) {
@@ -64,7 +64,7 @@ const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) =>
 //
 // TODO:  Error handling to respond if the DynamoDB service throws an error
 //
-const replaceItem = async (dbClient, item) => {
+export const replaceItem = async (dbClient, item) => {
     const putItem = new PutItemCommand({
         TableName: assetsTable,
         Item: marshall(item, { removeUndefinedValues: true })
@@ -99,7 +99,7 @@ const replaceItem = async (dbClient, item) => {
 //    * An object that, together with the two keys unique to that position in the map, will be
 //      made into the body of a PutItem operation
 //
-const mergeIntoDataRange = async ({
+export const mergeIntoDataRange = async ({
     dbClient,
     table,
     search: {
@@ -197,8 +197,3 @@ const mergeIntoDataRange = async ({
         items: fourthPassMerging
     })
 }
-
-exports.replaceItem = replaceItem
-exports.mergeIntoDataRange = mergeIntoDataRange
-exports.batchGetDispatcher = batchGetDispatcher
-exports.batchWriteDispatcher = batchWriteDispatcher

@@ -1,6 +1,6 @@
-const { replaceItem, mergeIntoDataRange } = require('../utilities/dynamoDB')
+import { replaceItem, mergeIntoDataRange } from '../utilities/dynamoDB/index.js'
 
-const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, assets }) => {
+export const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, assets }) => {
     const asset = assets.find(({ tag }) => (tag === 'Asset'))
     if (asset && asset.key) {
         await Promise.all([
@@ -66,5 +66,3 @@ const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, assets 
     }
 
 }
-
-exports.dbRegister = dbRegister

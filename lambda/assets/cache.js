@@ -1,10 +1,10 @@
-const { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb")
-const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
-const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3")
+import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 
-const { wmlGrammar, dbEntries, validatedSchema } = require('./wml')
-const { mergeIntoDataRange, batchGetDispatcher, batchWriteDispatcher } = require('./utilities/dynamoDB')
-const { streamToString } = require('./utilities/stream')
+import { wmlGrammar, dbEntries, validatedSchema } from './wml/index.js'
+import { mergeIntoDataRange, batchGetDispatcher, batchWriteDispatcher } from './utilities/dynamoDB/index.js'
+import { streamToString } from './utilities/stream.js'
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
@@ -230,7 +230,7 @@ const initializeRooms = async (dbClient, roomIDs) => {
     }
 }
 
-const cacheAsset = async (assetId) => {
+export const cacheAsset = async (assetId) => {
     const dbClient = new DynamoDBClient(params)
     const fileName = await fetchAssetMetaData(dbClient, assetId)
     const dbEntriesList = await parseWMLFile(fileName)
@@ -240,5 +240,3 @@ const cacheAsset = async (assetId) => {
         initializeRooms(dbClient, globalEntries.map(({ EphemeraId }) => EphemeraId))
     ])
 }
-
-exports.cacheAsset = cacheAsset

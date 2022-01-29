@@ -1,10 +1,10 @@
-const { GetObjectCommand } = require("@aws-sdk/client-s3");
-const { streamToString } = require('../utilities/stream')
-const { wmlGrammar, validatedSchema, assetRegistryEntries } = require("../wml/")
+import { GetObjectCommand } from "@aws-sdk/client-s3"
+import { streamToString } from '../utilities/stream.js'
+import { wmlGrammar, validatedSchema, assetRegistryEntries } from "../wml/index.js"
 
 const { S3_BUCKET } = process.env;
 
-const getAssets = async (s3Client, fileName) => {
+export const getAssets = async (s3Client, fileName) => {
     const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
         Bucket: S3_BUCKET,
         Key: fileName
@@ -26,5 +26,3 @@ const getAssets = async (s3Client, fileName) => {
 
     return assetRegistryEntries(schema)
 }
-
-exports.getAssets = getAssets

@@ -1,7 +1,6 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
-import { Interval } from 'ohm-js'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
 
-import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle'
+import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle.cjs'
 
 export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
     .addOperation("parse", {

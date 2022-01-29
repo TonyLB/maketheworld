@@ -1,14 +1,14 @@
-const { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3")
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner")
-const { PostToConnectionCommand } = require('@aws-sdk/client-apigatewaymanagementapi')
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
-const { getAssets } = require('../serialize/s3Assets')
-const { putTranslateFile, getTranslateFile } = require("../serialize/translateFile")
-const { scopeMap } = require("../serialize/scopeMap")
-const { dbRegister } = require('../serialize/dbRegister')
-const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
-const { splitType } = require('../utilities/types')
-const { DeleteItemCommand, QueryCommand, PutItemCommand } = require("@aws-sdk/client-dynamodb")
+import { getAssets } from '../serialize/s3Assets.js'
+import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
+import { scopeMap } from "../serialize/scopeMap.js"
+import { dbRegister } from '../serialize/dbRegister.js'
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { splitType } from '../utilities/types.js'
+import { DeleteItemCommand, QueryCommand, PutItemCommand } from "@aws-sdk/client-dynamodb"
 
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const assetsTable = `${TABLE_PREFIX}_assets`
@@ -34,7 +34,7 @@ const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
     return returnVal
 }
 
-const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName, fileName, RequestId }) => {
+export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName, fileName, RequestId }) => {
     const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET,
         Key: `upload/${PlayerName}/${fileName}`,
@@ -98,7 +98,7 @@ const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }
         }))
 }
 
-const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ bucket, key }) => {
+export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`
@@ -158,6 +158,3 @@ const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ bucket, key
     return {}
 
 }
-
-exports.handleUpload = handleUpload
-exports.createUploadLink = createUploadLink
