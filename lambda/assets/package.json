@@ -17,5 +17,8 @@
     "@aws-sdk/util-dynamodb": "^3.42.0",
     "ohm-js": "^16.0.0",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@ohm-js/cli": "^1.0.0"
   }
 }
