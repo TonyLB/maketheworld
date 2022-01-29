@@ -4,7 +4,7 @@ import { schema } from './semantics/schema'
 import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp'
 
-export { wmlGrammar } from './wmlGrammar/wml.ohm-bundle.js'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle'
 
 //
 // The wml code bundle is not TypeScript constrained on purpose, so that it can be easily

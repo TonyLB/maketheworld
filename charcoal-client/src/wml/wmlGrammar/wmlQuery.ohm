@@ -1,0 +1,18 @@
+WMLQuerySelector {
+    WMLQueryContents = TagAncestry
+
+    WMLLegalTag = "Asset" |
+        "Character" |
+        "Name" |
+        "Pronouns" |
+        "OneCoolThing" |
+        "Outfit" |
+        "FirstImpression" |
+        "Condition" |
+        "Layer" |
+        "Exit" |
+        "Room"
+
+    TagAncestry = WMLLegalTag+
+
+}

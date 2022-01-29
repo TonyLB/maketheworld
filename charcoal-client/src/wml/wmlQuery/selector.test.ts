@@ -1,5 +1,5 @@
-import { wmlGrammar } from '../index'
-import { wmlQueryFactory, wmlQuerySemantics } from './selector'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
+import { wmlQueryFactory, wmlSelectorSemantics } from './selector'
 
 describe('wmlQuery selector', () => {
 
@@ -14,7 +14,16 @@ describe('wmlQuery selector', () => {
     `)
     const wmlQuery = wmlQueryFactory(schema)
 
-    it('should return empty on empty selector', () => {
-        expect(wmlQuery('')).toEqual([])
+    it('should return empty on illegal selector', () => {
+        expect(wmlQuery('Fraggle Rock')).toEqual([])
+    })
+
+    it('should correctly select ancestor chain', () => {
+        expect(wmlQuery('Character Name')).toEqual([{
+            source: {
+                start: 76,
+                end: 93
+            }
+        }])
     })
 })
