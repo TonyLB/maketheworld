@@ -46,14 +46,29 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }
         },
         tagBooleanArgument(key, spacing) {
-            return { [key.toNode()]: true }
+            return { [key.toNode()]: {
+                value: true,
+                start: this.source.startIdx,
+                end: this.source.endIdx
+            }}
         },
         tagArgumentQuoted(key, equal, value) {
-            return { [key.toNode()]: value.sourceString.slice(0, -1) }
+            return { [key.toNode()]: {
+                value: value.sourceString.slice(0, -1),
+                start: this.source.startIdx,
+                end: this.source.endIdx,
+                valueStart: value.source.startIdx,
+                valueEnd: value.source.endIdx-1
+            }}
         },
         TagArgumentBracketed(key, equal, value, close) {
-            return { [key.toNode()]: value.sourceString }
-
+            return { [key.toNode()]: {
+                value: value.sourceString,
+                start: this.source.startIdx,
+                end: this.source.endIdx,
+                valueStart: value.source.startIdx,
+                valueEnd: value.source.endIdx
+            }}
         },
         string(node) {
             return this.sourceString
