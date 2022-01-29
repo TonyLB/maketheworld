@@ -80,4 +80,11 @@ describe('wmlQuery', () => {
         expect(wmlQuery('Name').removeProp('key').source()).toEqual(match)
     })
 
+    it('should return empty array contents on failed match', () => {
+        expect(wmlQuery('Name Outfit').contents()).toEqual([])
+    })
+    it('should correctly return contents on match', () => {
+        expect(wmlQuery('Character Name').contents()).toEqual(['Tess'])
+    })
+
 })

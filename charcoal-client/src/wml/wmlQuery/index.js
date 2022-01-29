@@ -14,7 +14,8 @@ export const wmlQueryFactory = (sourceString) => {
                 source: () => ('')
             })
         },
-        removeProp(key) {}
+        removeProp(key) {},
+        contents: () => ([])
     })
     getReturnValue = () => (search) => ({
         nodes: () => {
@@ -27,6 +28,21 @@ export const wmlQueryFactory = (sourceString) => {
             }
         },
         source: () => (matcher.getInput()),
+        contents(value) {
+            const match = matcher.match()
+            if (value !== undefined) {
+
+            }
+            else {
+                if (match.succeeded()) {
+                    const selected = wmlSelectorFactory(match)(search)
+                    if (selected.length) {
+                        return selected[0].node.contents || []
+                    }
+                }
+                return []
+            }
+        },
         prop(key, value) {
             if (value !== undefined) {
                 const match = matcher.match()
