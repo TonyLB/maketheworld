@@ -107,7 +107,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         //
     })
 
-export const wmlQueryFactory = (schema) => (searchString) => {
+export const wmlSelectorFactory = (schema) => (searchString) => {
     const match = wmlQueryGrammar.match(searchString)
     if (!match.succeeded()) {
         return []
