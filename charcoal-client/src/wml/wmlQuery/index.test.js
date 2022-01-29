@@ -26,15 +26,17 @@ describe('wmlQuery', () => {
 
     it('should correctly query nodes', () => {
         expect(wmlQuery('Character Name').nodes()).toEqual([{
-            node: {
-                tag: 'Name',
-                props: {},
-                contents: ["Tess"]
-            },
-            source: {
-                start: 120,
-                end: 137
-            }
+            type: 'tag',
+            tag: 'Name',
+            props: {},
+            contents: [{
+                type: 'string',
+                value: "Tess",
+                start: 126,
+                end: 130
+            }],
+            start: 120,
+            end: 137
         }])
     })
 
@@ -83,8 +85,30 @@ describe('wmlQuery', () => {
     it('should return empty array contents on failed match', () => {
         expect(wmlQuery('Name Outfit').contents()).toEqual([])
     })
+
     it('should correctly return contents on match', () => {
-        expect(wmlQuery('Character Name').contents()).toEqual(['Tess'])
+        expect(wmlQuery('Character Name').contents()).toEqual([{
+            type: 'string',
+            value: 'Tess',
+            start: 126,
+            end: 130
+        }])
     })
 
+    it('should no-op on failed match on contents', () => {
+        expect(wmlQuery('Name Outfit').contents('An olive-green pea-coat').source()).toEqual(match)
+    })
+
+    it('should update contents on match', () => {
+        expect(wmlQuery('Character Name').contents('Glinda').source()).toEqual(`
+        <Character key="TESS" fileName="Tess" player="TonyLB">
+            // Comments should be preserved
+            <Name>Glinda</Name>
+            <Pronouns>She/her</Pronouns>
+            <FirstImpression>Frumpy Goth</FirstImpression>
+            <OneCoolThing>Fuchsia eyes</OneCoolThing>
+            <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
+        </Character>
+    `)
+    })
 })

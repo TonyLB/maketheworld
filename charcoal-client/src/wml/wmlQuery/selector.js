@@ -3,11 +3,6 @@ import { Interval } from 'ohm-js'
 
 import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle'
 
-// interface WMLSelection {
-//     source: Interval;
-//     node: Node;
-// }
-
 export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
     .addOperation("parse", {
         TagAncestry(tags) {
@@ -29,7 +24,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         TagOpen(open, tag, props, close) {
             return {
                 tag: tag.toNode(),
-                props: Object.assign({}, ...(props.toNode() || {}))
+                props: Object.assign({}, ...(props.toNode() || {})),
             }
         },
         TagSelfClosing(open, tag, props, close) {
@@ -42,7 +37,10 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         TagExpression(open, contents, close) {
             return {
                 ...open.toNode(),
-                contents: contents.toNode()
+                type: 'tag',
+                contents: contents.toNode(),
+                start: this.source.startIdx,
+                end: this.source.endIdx
             }
         },
         tagBooleanArgument(key, spacing) {
@@ -71,7 +69,12 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }}
         },
         string(node) {
-            return this.sourceString
+            return {
+                type: 'string',
+                value: this.sourceString,
+                start: this.source.startIdx,
+                end: this.source.endIdx
+            }
         },
         _iter(...contents) {
             return contents.map((node) => (node.toNode()))
@@ -96,13 +99,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                     return contents.search({ selector, tags: remainingTags })
                 }
                 else {
-                    return [{
-                        node: this.toNode(),
-                        source: {
-                            start: this.source.startIdx,
-                            end: this.source.endIdx
-                        },
-                    }]
+                    return [this.toNode()]
                 }
             }
             else {

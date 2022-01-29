@@ -31,13 +31,25 @@ export const wmlQueryFactory = (sourceString) => {
         contents(value) {
             const match = matcher.match()
             if (value !== undefined) {
-
+                if (match.succeeded()) {
+                    const selected = wmlSelectorFactory(match)(search)
+                    selected.forEach((node) => {
+                        const { start, end } = (node.contents || []).reduce((previous, probeNode) => ({
+                            start: Math.min(probeNode.start, previous.start),
+                            end: Math.max(probeNode.end, previous.end)
+                        }), { start: node.end, end: 0 })
+                        if (end > 0) {
+                            matcher.replaceInputRange(start, end, value)
+                        }
+                    })
+                }
+                return getReturnValue()(search)
             }
             else {
                 if (match.succeeded()) {
                     const selected = wmlSelectorFactory(match)(search)
                     if (selected.length) {
-                        return selected[0].node.contents || []
+                        return selected[0].contents || []
                     }
                 }
                 return []
@@ -48,7 +60,7 @@ export const wmlQueryFactory = (sourceString) => {
                 const match = matcher.match()
                 if (match.succeeded()) {
                     const selected = wmlSelectorFactory(match)(search)
-                    selected.forEach(({ node }) => {
+                    selected.forEach((node) => {
                         if (node.props[key]) {
                             const { valueStart, valueEnd } = node.props[key]
                             if (valueEnd) {
@@ -64,7 +76,7 @@ export const wmlQueryFactory = (sourceString) => {
                 if (match.succeeded()) {
                     const selected = wmlSelectorFactory(match)(search)
                     if (selected.length) {
-                        return selected[0].node.props[key]?.value
+                        return selected[0].props[key]?.value
                     }
                 }
                 return undefined
@@ -74,7 +86,7 @@ export const wmlQueryFactory = (sourceString) => {
             const match = matcher.match()
             if (match.succeeded()) {
                 const selected = wmlSelectorFactory(match)(search)
-                selected.forEach(({ node }) => {
+                selected.forEach((node) => {
                     if (node.props[key]) {
                         const { start, end } = node.props[key]
                         if (end) {
