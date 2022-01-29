@@ -13,7 +13,12 @@ describe('wmlQuery', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `
-    const wmlQuery = wmlQueryFactory(match)
+
+    let wmlQuery = null
+
+    beforeEach(() => {
+        wmlQuery = wmlQueryFactory(match)
+    })
 
     it('should return empty on illegal selector', () => {
         expect(wmlQuery('Fraggle Rock').nodes()).toEqual([])
@@ -56,6 +61,23 @@ describe('wmlQuery', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
-
     })
+
+    it('should correctly remove existing prop', () => {
+        expect(wmlQuery('Character').removeProp('key').source()).toEqual(`
+        <Character fileName="Tess" player="TonyLB">
+            // Comments should be preserved
+            <Name>Tess</Name>
+            <Pronouns>She/her</Pronouns>
+            <FirstImpression>Frumpy Goth</FirstImpression>
+            <OneCoolThing>Fuchsia eyes</OneCoolThing>
+            <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
+        </Character>
+    `)
+    })
+
+    it('should correctly no-op when asked to remove an absent prop', () => {
+        expect(wmlQuery('Name').removeProp('key').source()).toEqual(match)
+    })
+
 })
