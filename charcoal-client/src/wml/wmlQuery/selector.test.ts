@@ -1,9 +1,9 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
-import { wmlQueryFactory, wmlSelectorSemantics } from './selector'
+import { wmlSelectorFactory, wmlSelectorSemantics } from './selector'
 
 describe('wmlQuery selector', () => {
 
-    const schema = wmlGrammar.match(`
+    const match = wmlGrammar.match(`
         <Character key="TESS" fileName="Tess" player="TonyLB">
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
@@ -12,7 +12,7 @@ describe('wmlQuery selector', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
-    const wmlQuery = wmlQueryFactory(schema)
+    const wmlQuery = wmlSelectorFactory(match)
 
     it('should return empty on illegal selector', () => {
         expect(wmlQuery('Fraggle Rock')).toEqual([])
