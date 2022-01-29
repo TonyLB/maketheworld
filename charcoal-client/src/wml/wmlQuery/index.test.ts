@@ -32,4 +32,15 @@ describe('wmlQuery', () => {
         }])
     })
 
+    it('should correctly return prop when available', () => {
+        expect(wmlQuery('Character').prop('player')).toEqual('TonyLB')
+    })
+
+    it('should correctly return undefined from prop when unavailable', () => {
+        expect(wmlQuery('Character').prop('origin')).toBe(undefined)
+    })
+
+    it('should correctly return undefined prop when search fails', () => {
+        expect(wmlQuery('Fraggle Rock').prop('rhythm')).toBe(undefined)
+    })
 })
