@@ -25,6 +25,46 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
     })
 
 const wmlQuerySemantics = wmlGrammar.createSemantics()
+    .addOperation("toNode", {
+        TagOpen(open, tag, props, close) {
+            return {
+                tag: tag.toNode(),
+                props: Object.assign({}, ...(props.toNode() || {}))
+            }
+        },
+        TagSelfClosing(open, tag, props, close) {
+            return {
+                tag: tag.toNode(),
+                props: Object.assign({}, ...(props.toNode() || {})),
+                contents: []
+            }
+        },
+        TagExpression(open, contents, close) {
+            return {
+                ...open.toNode(),
+                contents: contents.toNode()
+            }
+        },
+        tagBooleanArgument(key, spacing) {
+            return { [key.toNode()]: true }
+        },
+        tagArgumentQuoted(key, equal, value) {
+            return { [key.toNode()]: value.sourceString.slice(0, -1) }
+        },
+        TagArgumentBracketed(key, equal, value, close) {
+            return { [key.toNode()]: value.sourceString }
+
+        },
+        string(node) {
+            return this.sourceString
+        },
+        _iter(...contents) {
+            return contents.map((node) => (node.toNode()))
+        },
+        _terminal() {
+            return this.sourceString
+        }
+    })
     .addOperation("search(selector)", {
         TagOpen(open, tag, props, close) {
             const { tags } = this.args.selector
@@ -42,6 +82,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 }
                 else {
                     return [{
+                        node: this.toNode(),
                         source: {
                             start: this.source.startIdx,
                             end: this.source.endIdx
@@ -72,7 +113,6 @@ export const wmlQueryFactory = (schema) => (searchString) => {
         return []
     }
     const selector = wmlSelectorSemantics(match).parse()
-    console.log(`Selector: ${JSON.stringify(selector, null, 4)}`)
     //
     // TODO: Pass the selector to the querySemantics above, in order to parse out the
     // specific nodes/ranges being looked at
