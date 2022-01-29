@@ -1,14 +1,10 @@
-const fs = require('fs')
 const path = require('path')
 const ohm = require('ohm-js')
 const { compileCode } = require('./compileCode')
 const { schema } = require('./semantics/schema')
 const { wmlProcessDown, aggregateConditionals, assignExitContext } = require('./semantics/schema/processDown')
 const { wmlProcessUp, aggregateErrors, validate } = require('./semantics/schema/processUp')
-
-const wmlSchema = fs.readFileSync(path.join(__dirname, 'wml.ohm'))
-
-const wmlGrammar = ohm.grammar(wmlSchema)
+const wmlGrammar = require('./wmlGrammar/wml.ohm-bundle')
 
 const wmlSemantics = wmlGrammar.createSemantics()
     .addOperation('eval', {
