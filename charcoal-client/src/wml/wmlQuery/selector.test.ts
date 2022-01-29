@@ -23,9 +23,27 @@ describe('wmlQuery selector', () => {
             node: {
                 tag: 'Character',
                 props: {
-                    key: 'TESS',
-                    fileName: 'Tess',
-                    player: 'TonyLB'
+                    key: {
+                        value: 'TESS',
+                        start: 20,
+                        end: 30,
+                        valueStart: 25,
+                        valueEnd: 29
+                    },
+                    fileName: {
+                        value: 'Tess',
+                        start: 31,
+                        end: 46,
+                        valueStart: 41,
+                        valueEnd: 45
+                    },
+                    player: {
+                        value: 'TonyLB',
+                        start: 47,
+                        end: 62,
+                        valueStart: 55,
+                        valueEnd: 61
+                    }
                 },
                 contents: [{
                     tag: 'Name',

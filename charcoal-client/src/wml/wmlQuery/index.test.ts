@@ -43,4 +43,17 @@ describe('wmlQuery', () => {
     it('should correctly return undefined prop when search fails', () => {
         expect(wmlQuery('Fraggle Rock').prop('rhythm')).toBe(undefined)
     })
+
+    it('should correctly update existing prop', () => {
+        expect(wmlQuery('Character').prop('key', 'Tess').source()).toEqual(`
+        <Character key="Tess" fileName="Tess" player="TonyLB">
+            <Name>Tess</Name>
+            <Pronouns>She/her</Pronouns>
+            <FirstImpression>Frumpy Goth</FirstImpression>
+            <OneCoolThing>Fuchsia eyes</OneCoolThing>
+            <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
+        </Character>
+    `)
+    
+    })
 })

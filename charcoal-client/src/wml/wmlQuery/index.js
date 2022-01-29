@@ -10,6 +10,9 @@ export const wmlQueryFactory = (sourceString) => {
         source: () => (''),
         prop(key) {
             return undefined
+        },
+        prop(key, value) {
+            return () => ({})
         }
     })
     getReturnValue = () => (search) => ({
@@ -23,15 +26,32 @@ export const wmlQueryFactory = (sourceString) => {
             }
         },
         source: () => (matcher.getInput()),
-        prop(key) {
-            const match = matcher.match()
-            if (match.succeeded()) {
-                const selected = wmlSelectorFactory(match)(search)
-                if (selected.length) {
-                    return selected[0].node.props[key]
+        prop(key, value) {
+            if (value !== undefined) {
+                const match = matcher.match()
+                if (match.succeeded()) {
+                    const selected = wmlSelectorFactory(match)(search)
+                    selected.forEach(({ node }) => {
+                        if (node.props[key]) {
+                            const { valueStart, valueEnd } = node.props[key]
+                            if (valueEnd) {
+                                matcher.replaceInputRange(valueStart, valueEnd, value)
+                            }
+                        }
+                    })
                 }
+                return getReturnValue()(search)
             }
-            return undefined
+            else {
+                const match = matcher.match()
+                if (match.succeeded()) {
+                    const selected = wmlSelectorFactory(match)(search)
+                    if (selected.length) {
+                        return selected[0].node.props[key]?.value
+                    }
+                }
+                return undefined
+            }
         }
     })
     return getReturnValue()
