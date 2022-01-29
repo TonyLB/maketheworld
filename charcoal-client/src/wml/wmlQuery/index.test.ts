@@ -5,6 +5,7 @@ describe('wmlQuery', () => {
 
     const match = `
         <Character key="TESS" fileName="Tess" player="TonyLB">
+            // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
@@ -26,8 +27,8 @@ describe('wmlQuery', () => {
                 contents: ["Tess"]
             },
             source: {
-                start: 76,
-                end: 93
+                start: 120,
+                end: 137
             }
         }])
     })
@@ -47,6 +48,7 @@ describe('wmlQuery', () => {
     it('should correctly update existing prop', () => {
         expect(wmlQuery('Character').prop('key', 'Tess').source()).toEqual(`
         <Character key="Tess" fileName="Tess" player="TonyLB">
+            // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
@@ -54,6 +56,6 @@ describe('wmlQuery', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
-    
+
     })
 })
