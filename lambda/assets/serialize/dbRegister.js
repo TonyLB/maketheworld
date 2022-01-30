@@ -6,7 +6,7 @@ export const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, 
         await Promise.all([
             replaceItem(dbClient, {
                 AssetId: `ASSET#${asset.key}`,
-                DataCategory: 'Details',
+                DataCategory: 'Meta::Asset',
                 fileName,
                 translateFile,
                 name: asset.name,
