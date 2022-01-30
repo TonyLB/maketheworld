@@ -109,8 +109,8 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
         try {
             const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
             if (asset && asset.key) {
-                const fileName = `drafts/${objectPrefix}${asset.fileName}.wml`
-                const translateFile = `drafts/${objectPrefix}${asset.fileName}.translate.json`
+                const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
+                const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
                 const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
                 const scopeMapContents = scopeMap(assetRegistryItems, (currentScopeMap.scopeMap || {}))
     
