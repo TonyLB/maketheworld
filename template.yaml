@@ -549,7 +549,7 @@ Resources:
                   - s3:DeleteObject
                 Resource:
                   Fn::Sub:
-                      - "arn:aws:s3:::${AssetBucket}/upload/*"
+                      - "arn:aws:s3:::${AssetBucket}/*"
                       - AssetBucket: !Sub '${TablePrefix}-assets'
             - Statement:
               - Effect: Allow
