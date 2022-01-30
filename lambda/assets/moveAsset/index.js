@@ -18,38 +18,22 @@ export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName
             Key: `${fromPath}${fileName}.wml`
         }))
         const contents = await streamToString(contentStream)
-        //
-        // TODO: Error-handling in case the files have become corrupt
-        //
-        const match = wmlGrammar.match(contents)    
-        if (!match.succeeded()) {
-            console.log('ERROR: Schema failed validation')
-            return []
-        }
-        const schema = validatedSchema(match)
-    
-        const assetRegistryItems = assetRegistryEntries(schema)
-        
-        if (assetRegistryItems.length) {
-            //
-            // TODO: Use wml parser to pull relevant properties from the
-            // WML file.
-            //
 
-            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+        const wmlQuery = wmlQueryFactory(contents)
+        const asset = wmlQuery('').nodes()[0]
 
+        if (['Asset', 'Character'].includes(asset.tag)) {
             const [zone, ...rest] = toPath.split('/')
             const subFolder = rest.join('/')
-            const wmlQuery = wmlQueryFactory(contents)
-            const Body = wmlQuery(asset.tag)
+            const Body = wmlQuery('')
                 .prop('zone', zone)
                 .prop('subFolder', subFolder)
                 .source()
-            // console.log(`contents: ${contents}`)
-            // console.log(`wmlQuery: ${JSON.stringify(wmlQuery('Character').source(), null, 4)}`)
-            // console.log(`Body: ${Body}`)
-            // console.log(`Source path: ${fromPath}${fileName}`)
-            // console.log(`Destination path: ${toPath}${fileName}`)
+            console.log(`contents: ${contents}`)
+            console.log(`wmlQuery: ${JSON.stringify(wmlQuery('Character').source(), null, 4)}`)
+            console.log(`Body: ${Body}`)
+            console.log(`Source path: ${fromPath}${fileName}`)
+            console.log(`Destination path: ${toPath}${fileName}`)
 
             await s3Client.send(new CopyObjectCommand({
                 Bucket: S3_BUCKET,

@@ -90,6 +90,9 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }
         },
         TagExpression(open, contents, close) {
+            if (this.args.selector.selector === 'MatchFirst') {
+                return [this.toNode()]
+            }
             const { tagMatch } = open.search(this.args.selector)
             if (tagMatch) {
                 const { tags, selector } = this.args.selector
@@ -119,14 +122,19 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
     })
 
 export const wmlSelectorFactory = (schema) => (searchString) => {
-    const match = wmlQueryGrammar.match(searchString)
-    if (!match.succeeded()) {
-        return []
+    if (searchString !== '') {
+        const match = wmlQueryGrammar.match(searchString)
+        if (!match.succeeded()) {
+            return []
+        }
+        const selector = wmlSelectorSemantics(match).parse()
+        //
+        // TODO: Pass the selector to the querySemantics above, in order to parse out the
+        // specific nodes/ranges being looked at
+        //
+        return wmlQuerySemantics(schema).search(selector)
     }
-    const selector = wmlSelectorSemantics(match).parse()
-    //
-    // TODO: Pass the selector to the querySemantics above, in order to parse out the
-    // specific nodes/ranges being looked at
-    //
-    return wmlQuerySemantics(schema).search(selector)
+    else {
+        return wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
+    }
 }
