@@ -7,14 +7,14 @@ WorldMarkupLangage {
     WMLFileContents = AssetExpression
             | CharacterExpression
 
-    CharacterExpression = TagExpression<"Character", ("key" | "player" | "fileName"), none, none, CharacterLegalContents>
+    CharacterExpression = TagExpression<"Character", ("key" | "player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
     CharacterLegalContents = LiteralNameExpression
             | LiteralValueTag<"Pronouns">
             | LiteralValueTag<"OneCoolThing">
             | LiteralValueTag<"Outfit">
             | LiteralValueTag<"FirstImpression">
 
-    AssetExpression = TagExpression<"Asset", ("key" | "fileName"), none, none, AssetLegalContents>
+    AssetExpression = TagExpression<"Asset", ("key" | "fileName" | "zone" | "subFolder"), none, none, AssetLegalContents>
     AssetLegalContents = LayerExpression
             | ConditionExpression
             | RoomExpression

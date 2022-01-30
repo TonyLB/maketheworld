@@ -67,6 +67,11 @@ export const wmlQueryFactory = (sourceString) => {
                                 matcher.replaceInputRange(valueStart, valueEnd, value)
                             }
                         }
+                        else {
+                            const insertAfter = Object.values(node.props || {})
+                                .reduce((previous, { end }) => (Math.max(previous, end)), node.tagEnd)
+                            matcher.replaceInputRange(insertAfter, insertAfter, ` ${key}="${value}"`)
+                        }
                     })
                 }
                 return getReturnValue()(search)

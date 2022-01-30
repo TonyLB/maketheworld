@@ -1,5 +1,5 @@
 // Import required AWS SDK clients and commands for Node.js
-import { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client } from "@aws-sdk/client-s3"
 import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider"
@@ -15,6 +15,7 @@ import { splitType } from './utilities/types.js'
 
 import { handleUpload, createUploadLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'
+import { moveAsset } from './moveAsset/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -165,6 +166,12 @@ export const handler = async (event, context) => {
             return await createFetchLink({ s3Client })({
                 PlayerName: event.PlayerName,
                 fileName: event.fileName
+            })
+        case 'move':
+            return await moveAsset({ s3Client, dbClient })({
+                fromPath: event.fromPath,
+                fileName: event.fileName,
+                toPath: event.toPath
             })
     }
     context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))

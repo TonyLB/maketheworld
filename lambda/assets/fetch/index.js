@@ -6,7 +6,7 @@ const { S3_BUCKET } = process.env;
 export const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName }) => {
     const getCommand = new GetObjectCommand({
         Bucket: S3_BUCKET,
-        Key: `drafts/${PlayerName}/${fileName}`
+        Key: `Personal/${PlayerName}/${fileName}`
     })
     const presignedOutput = await getSignedUrl(s3Client, getCommand, { expiresIn: 60 })
     return presignedOutput

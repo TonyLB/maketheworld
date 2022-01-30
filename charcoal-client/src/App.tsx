@@ -1,7 +1,7 @@
 import React from 'react'
 import { Provider } from 'react-redux'
 import Amplify from 'aws-amplify'
-import { withAuthenticator } from 'aws-amplify-react'
+import { withAuthenticator } from '@aws-amplify/ui-react'
 import { CssBaseline } from '@mui/material'
 import { Theme } from '@mui/material/styles';
 import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles';

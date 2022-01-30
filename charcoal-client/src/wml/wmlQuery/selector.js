@@ -1,5 +1,4 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
-import { Interval } from 'ohm-js'
 
 import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle'
 
@@ -24,12 +23,14 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         TagOpen(open, tag, props, close) {
             return {
                 tag: tag.toNode(),
+                tagEnd: tag.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
             }
         },
         TagSelfClosing(open, tag, props, close) {
             return {
                 tag: tag.toNode(),
+                tagEnd: tag.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
                 contents: []
             }
@@ -46,8 +47,8 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         tagBooleanArgument(key, spacing) {
             return { [key.toNode()]: {
                 value: true,
-                start: this.source.startIdx,
-                end: this.source.endIdx
+                start: key.source.startIdx,
+                end: key.source.endIdx
             }}
         },
         tagArgumentQuoted(key, equal, value) {
@@ -91,6 +92,9 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }
         },
         TagExpression(open, contents, close) {
+            if (this.args.selector.selector === 'MatchFirst') {
+                return [this.toNode()]
+            }
             const { tagMatch } = open.search(this.args.selector)
             if (tagMatch) {
                 const { tags, selector } = this.args.selector
@@ -120,14 +124,19 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
     })
 
 export const wmlSelectorFactory = (schema) => (searchString) => {
-    const match = wmlQueryGrammar.match(searchString)
-    if (!match.succeeded()) {
-        return []
+    if (searchString !== '') {
+        const match = wmlQueryGrammar.match(searchString)
+        if (!match.succeeded()) {
+            return []
+        }
+        const selector = wmlSelectorSemantics(match).parse()
+        //
+        // TODO: Pass the selector to the querySemantics above, in order to parse out the
+        // specific nodes/ranges being looked at
+        //
+        return wmlQuerySemantics(schema).search(selector)
     }
-    const selector = wmlSelectorSemantics(match).parse()
-    //
-    // TODO: Pass the selector to the querySemantics above, in order to parse out the
-    // specific nodes/ranges being looked at
-    //
-    return wmlQuerySemantics(schema).search(selector)
+    else {
+        return wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
+    }
 }

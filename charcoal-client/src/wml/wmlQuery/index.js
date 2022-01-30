@@ -1,6 +1,6 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
 
-import { wmlSelectorFactory } from './selector'
+import { wmlSelectorFactory } from './selector.js'
 
 export const wmlQueryFactory = (sourceString) => {
     let matcher = wmlGrammar.matcher()
@@ -66,6 +66,11 @@ export const wmlQueryFactory = (sourceString) => {
                             if (valueEnd) {
                                 matcher.replaceInputRange(valueStart, valueEnd, value)
                             }
+                        }
+                        else {
+                            const insertAfter = Object.values(node.props || {})
+                                .reduce((previous, { end }) => (Math.max(previous, end)), node.tagEnd)
+                            matcher.replaceInputRange(insertAfter, insertAfter, ` ${key}="${value}"`)
                         }
                     })
                 }
