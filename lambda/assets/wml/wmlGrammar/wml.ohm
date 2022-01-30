@@ -22,6 +22,11 @@ WorldMarkupLangage {
             | LiteralNameExpression
             | string
 
+    ImportExpression = TagExpression<"Import", ("from"), none, none, ImportLegalContents>
+    ImportLegalContents = UseExpression
+
+    UseExpression = TagExpression<"Use", ("key" | "as"), none, none, none>
+
     ConditionExpression = TagExpression<"Condition", none, "if", none, ConditionLegalContents>
     ConditionLegalContents = RoomExpression
             | ConditionExpression

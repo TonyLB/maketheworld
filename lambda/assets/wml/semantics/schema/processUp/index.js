@@ -57,7 +57,7 @@ export const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     const unliftedItems = contents.filter(({ tag }) => (!tags.includes(tag)))
     const tagOutcomes = tagsToLift.reduce((previous, { tag, contents }) => ({
         ...previous,
-        [tagsMap[tag]]: contents.join(' ')
+        [tagsMap[tag]]: contents.filter((value) => (value)).join(' ').trim()
     }), {})
     return {
         contents: unliftedItems,
@@ -76,6 +76,34 @@ export const liftUntagged = (label) => ({ contents = [], ...rest }) => {
         [label]: aggregation(itemsToLift)
     }
     
+}
+
+export const liftUseTags = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Use'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Use'))
+    const importMap = tagsToLift.reduce((previous, { from, as }) => ({
+        ...previous,
+        [as || from]: from
+    }), {})
+    return {
+        contents: unliftedItems,
+        ...rest,
+        importMap
+    }
+}
+
+export const liftImportTags = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Import'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Import'))
+    const importMap = tagsToLift.reduce((previous, { importMap }) => ({
+        ...previous,
+        ...importMap
+    }), {})
+    return {
+        contents: unliftedItems,
+        ...rest,
+        importMap
+    }
 }
 
 //
