@@ -168,7 +168,7 @@ export const handler = async (event, context) => {
                 fileName: event.fileName
             })
         case 'move':
-            return await moveAsset({ s3Client })({
+            return await moveAsset({ s3Client, dbClient })({
                 fromPath: event.fromPath,
                 fileName: event.fileName,
                 toPath: event.toPath
