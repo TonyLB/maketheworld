@@ -34,10 +34,14 @@ const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
     return returnVal
 }
 
-export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName, fileName, RequestId }) => {
+//
+// TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
+// link and uploading an Asset
+//
+export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName, fileName, tag = 'Character', RequestId }) => {
     const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET,
-        Key: `upload/${PlayerName}/${fileName}`,
+        Key: `upload/${PlayerName}/${tag}s/${fileName}`,
         ContentType: 'text/plain'
     })
     const [presignedOutput] = await Promise.all([
@@ -45,7 +49,7 @@ export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName,
         dbClient.send(new PutItemCommand({
             TableName: assetsTable,
             Item: marshall({
-                AssetId: `UPLOAD#${PlayerName}/${fileName}`,
+                AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
                 DataCategory: `PLAYER#${PlayerName}`,
                 RequestId
             })
