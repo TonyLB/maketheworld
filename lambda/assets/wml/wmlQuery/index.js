@@ -1,6 +1,6 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
 
-import { wmlSelectorFactory } from './selector'
+import { wmlSelectorFactory } from './selector.js'
 
 export const wmlQueryFactory = (sourceString) => {
     let matcher = wmlGrammar.matcher()

@@ -1,16 +1,16 @@
-const { ListUsersCommand } = require("@aws-sdk/client-cognito-identity-provider")
-const { UpdateItemCommand, QueryCommand } = require("@aws-sdk/client-dynamodb")
-const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
-const { scopeMap } = require("../serialize/scopeMap");
-const { dbRegister } = require("../serialize/dbRegister")
-const { putTranslateFile, getTranslateFile } = require("../serialize/translateFile")
-const { getAssets } = require("../serialize/s3Assets")
-const { splitType } = require("../utilities/types")
+import { ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
+import { UpdateItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { scopeMap } from "../serialize/scopeMap.js"
+import { dbRegister } from "../serialize/dbRegister.js"
+import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
+import { getAssets } from "../serialize/s3Assets.js"
+import { splitType } from "../utilities/types.js"
 
 const { COGNITO_POOL_ID, TABLE_PREFIX } = process.env
 const assetsTable = `${TABLE_PREFIX}_assets`
 
-const healAsset = async ({ s3Client, dbClient }, fileName) => {
+export const healAsset = async ({ s3Client, dbClient }, fileName) => {
     const baseFileName = fileName.replace(/\.wml$/, '')
     const translateName = `${baseFileName}.translate.json`
     const getScopeMap = async () => {
@@ -49,7 +49,7 @@ const healAsset = async ({ s3Client, dbClient }, fileName) => {
     }
 }
 
-const healPlayers = async ({ cognitoClient, dbClient }) => {
+export const healPlayers = async ({ cognitoClient, dbClient }) => {
     //
     // TODO: Filter on only confirmed players, to prevent healing in lots of unconfirmed names
     //
@@ -115,6 +115,3 @@ const healPlayers = async ({ cognitoClient, dbClient }) => {
     )
     return {}
 }
-
-exports.healAsset = healAsset
-exports.healPlayers = healPlayers

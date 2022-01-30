@@ -1,12 +1,12 @@
-const path = require('path')
-const ohm = require('ohm-js')
-const { compileCode } = require('./compileCode')
-const { schema } = require('./semantics/schema')
-const { wmlProcessDown, aggregateConditionals, assignExitContext } = require('./semantics/schema/processDown')
-const { wmlProcessUp, aggregateErrors, validate } = require('./semantics/schema/processUp')
-const wmlGrammar = require('./wmlGrammar/wml.ohm-bundle')
+import { compileCode } from './compileCode.js'
+import { schema } from './semantics/schema/index.js'
+import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown/index.js'
+import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle.cjs'
 
-const wmlSemantics = wmlGrammar.createSemantics()
+export { wmlGrammar }
+
+export const wmlSemantics = wmlGrammar.createSemantics()
     .addOperation('eval', {
         string(node) {
             return this.sourceString
@@ -115,7 +115,7 @@ const mergeToRooms = (elements) => {
     return roomsById
 }
 
-const validatedSchema = (match) => {
+export const validatedSchema = (match) => {
     const firstPass = wmlSemantics(match).schema()
     const secondPass = wmlProcessDown([
         aggregateConditionals(tagCondition(['Room', 'Exit'])),
@@ -132,12 +132,12 @@ const validatedSchema = (match) => {
     return thirdPass
 }
 
-const dbEntries = (schema) => {
+export const dbEntries = (schema) => {
     const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(schema)
     return mergeToRooms(dbSchema)
 }
 
-const assetRegistryEntries = (schema) => {
+export const assetRegistryEntries = (schema) => {
     //
     // TODO:  Create a breakdown that returns an element for the Asset details, and then
     // elements (once) for each Room that associates it with that Asset and gives it its
@@ -179,9 +179,3 @@ const assetRegistryEntries = (schema) => {
         }
     })
 }
-
-exports.wmlGrammar = wmlGrammar
-exports.wmlSemantics = wmlSemantics
-exports.validatedSchema = validatedSchema
-exports.dbEntries = dbEntries
-exports.assetRegistryEntries = assetRegistryEntries

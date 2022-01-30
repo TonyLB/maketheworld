@@ -1,9 +1,9 @@
-const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
-const { streamToString } = require("../utilities/stream")
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { streamToString } from "../utilities/stream.js"
 
 const { S3_BUCKET } = process.env
 
-const putTranslateFile = (s3Client, { name, scopeMap, assetKey }) => {
+export const putTranslateFile = (s3Client, { name, scopeMap, assetKey }) => {
     const contents = JSON.stringify({
         asset: assetKey,
         imports: {},
@@ -16,7 +16,7 @@ const putTranslateFile = (s3Client, { name, scopeMap, assetKey }) => {
     }))
 }
 
-const getTranslateFile = async (s3Client, { name }) => {
+export const getTranslateFile = async (s3Client, { name }) => {
     try {
         const { Body: scopeStream } = await s3Client.send(new GetObjectCommand({
             Bucket: S3_BUCKET,
@@ -30,6 +30,3 @@ const getTranslateFile = async (s3Client, { name }) => {
         return {}
     }
 }
-
-exports.putTranslateFile = putTranslateFile
-exports.getTranslateFile = getTranslateFile

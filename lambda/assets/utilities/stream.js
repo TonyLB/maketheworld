@@ -1,4 +1,4 @@
-const streamToString = (stream) => (
+export const streamToString = (stream) => (
     new Promise((resolve, reject) => {
       const chunks = []
       stream.on("data", (chunk) => chunks.push(chunk))
@@ -6,5 +6,3 @@ const streamToString = (stream) => (
       stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")))
     })
 )
-
-exports.streamToString = streamToString

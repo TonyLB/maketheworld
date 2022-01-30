@@ -1,20 +1,20 @@
 // Import required AWS SDK clients and commands for Node.js
-const { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3")
-const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb")
-const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb")
-const { CognitoIdentityProviderClient } = require("@aws-sdk/client-cognito-identity-provider")
-const { ApiGatewayManagementApiClient } = require('@aws-sdk/client-apigatewaymanagementapi')
+import { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb"
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider"
+import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 
-const { cacheAsset } = require('./cache.js')
-const { healAsset, healPlayers } = require("./selfHealing")
-const { getAssets } = require("./serialize/s3Assets")
-const { putTranslateFile, getTranslateFile } = require("./serialize/translateFile")
-const { scopeMap } = require("./serialize/scopeMap")
-const { dbRegister } = require('./serialize/dbRegister')
-const { splitType } = require('./utilities/types')
+import { cacheAsset } from './cache.js'
+import { healAsset, healPlayers } from "./selfHealing/index.js"
+import { getAssets } from "./serialize/s3Assets.js"
+import { putTranslateFile, getTranslateFile } from "./serialize/translateFile.js"
+import { scopeMap } from "./serialize/scopeMap.js"
+import { dbRegister } from './serialize/dbRegister.js'
+import { splitType } from './utilities/types.js'
 
-const { handleUpload, createUploadLink } = require('./upload')
-const { createFetchLink } = require('./fetch')
+import { handleUpload, createUploadLink } from './upload/index.js'
+import { createFetchLink } from './fetch/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -118,7 +118,7 @@ const handleDynamoEvent = async (event) => {
     }
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
 
     // Handle S3 Events
     if (event.Records) {

@@ -1,4 +1,4 @@
-const {
+import {
     desourceTag,
     confirmRequiredProps,
     wmlProcessUpNonRecursive,
@@ -10,7 +10,7 @@ const {
     liftUntagged,
     confirmExpressionProps,
     confirmLiteralProps
-} = require('./processUp')
+} from './processUp/index.js'
 
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
@@ -27,7 +27,7 @@ const processTagProps = (tag, props) => ({
         }), {})
 })
 
-const schema = {
+export const schema = {
     //
     // TODO: Parse out string-internal white-space as needed
     //
@@ -146,5 +146,3 @@ const schema = {
         return returnVal
     }
 }
-
-exports.schema = schema

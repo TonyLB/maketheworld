@@ -1,5 +1,6 @@
 {
   "name": "assethandler",
+  "type": "module",
   "version": "1.0.0",
   "description": "Handler lambda for S3 events in the MakeTheWorld asset storage system",
   "main": "app.js",

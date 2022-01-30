@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require("uuid")
+import { v4 as uuidv4 } from "uuid"
 
 //
 // TODO: When scoped imports are introduced, scopeMap will become a more complicated
@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require("uuid")
 // items are imported, in order to prime the pump
 //
 
-const scopeMap = (assets, currentScopeMap = {}) => {
+export const scopeMap = (assets, currentScopeMap = {}) => {
     let scopeMap = {}
     if (assets) {
         assets
@@ -29,5 +29,3 @@ const scopeMap = (assets, currentScopeMap = {}) => {
     }
     return scopeMap
 }
-
-exports.scopeMap = scopeMap
