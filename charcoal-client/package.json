@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@aws-amplify/ui-react": "^2.2.0",
     "@emotion/react": "^11.7.1",
     "@emotion/styled": "^11.6.0",
     "@mui/icons-material": "^5.3.0",
@@ -19,8 +20,6 @@
     "@types/react-virtualized-auto-sizer": "^1.0.1",
     "@types/tinycolor2": "^1.4.3",
     "@use-gesture/react": "^10.2.4",
-    "aws-amplify": "^4.3.12",
-    "aws-amplify-react": "^5.1.9",
     "d3": "^5.16.0",
     "dexie": "^3.2.0",
     "immer": "^9.0.7",
@@ -64,7 +63,7 @@
     ]
   },
   "devDependencies": {
-    "@ohm-js/cli": "^1.0.0",
+    "@ohm-js/cli": "^1.1.0",
     "@types/jest": "^26.0.24",
     "@types/react": "^17.0.38",
     "@types/react-router-dom": "^5.3.2",

@@ -4,7 +4,7 @@ import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
 import { validatedSchema, assetRegistryEntries } from "../../../wml"
-import wmlGrammar from '../../../wml/wmlGrammar/wml.ohm-bundle.js'
+import wmlGrammar from '../../../wml/wmlGrammar/wml.ohm-bundle'
 import { getStatus } from '../../lifeLine'
 
 export const lifelineCondition: CharacterEditCondition = ({ internalData: { id } }, getState) => {
