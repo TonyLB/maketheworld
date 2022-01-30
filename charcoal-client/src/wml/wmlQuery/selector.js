@@ -1,5 +1,4 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
-import { Interval } from 'ohm-js'
 
 import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle'
 
@@ -24,12 +23,14 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         TagOpen(open, tag, props, close) {
             return {
                 tag: tag.toNode(),
+                tagEnd: tag.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
             }
         },
         TagSelfClosing(open, tag, props, close) {
             return {
                 tag: tag.toNode(),
+                tagEnd: tag.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
                 contents: []
             }
@@ -46,8 +47,8 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         tagBooleanArgument(key, spacing) {
             return { [key.toNode()]: {
                 value: true,
-                start: this.source.startIdx,
-                end: this.source.endIdx
+                start: key.source.startIdx,
+                end: key.source.endIdx
             }}
         },
         tagArgumentQuoted(key, equal, value) {

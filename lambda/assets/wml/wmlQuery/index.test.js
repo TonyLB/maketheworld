@@ -1,5 +1,5 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
-import { wmlQueryFactory  } from './index'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
+import { wmlQueryFactory  } from './index.js'
 
 describe('wmlQuery', () => {
 
@@ -28,6 +28,7 @@ describe('wmlQuery', () => {
         expect(wmlQuery('Character Name').nodes()).toEqual([{
             type: 'tag',
             tag: 'Name',
+            tagEnd: 125,
             props: {},
             contents: [{
                 type: 'string',
@@ -68,6 +69,19 @@ describe('wmlQuery', () => {
     it('should correctly remove existing prop', () => {
         expect(wmlQuery('Character').removeProp('key').source()).toEqual(`
         <Character fileName="Tess" player="TonyLB">
+            // Comments should be preserved
+            <Name>Tess</Name>
+            <Pronouns>She/her</Pronouns>
+            <FirstImpression>Frumpy Goth</FirstImpression>
+            <OneCoolThing>Fuchsia eyes</OneCoolThing>
+            <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
+        </Character>
+    `)
+    })
+
+    it('should correctly add a new prop', () => {
+        expect(wmlQuery('Character').prop('zone', 'Library').source()).toEqual(`
+        <Character key="TESS" fileName="Tess" player="TonyLB" zone="Library">
             // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
