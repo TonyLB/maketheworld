@@ -26,7 +26,7 @@ const fetchAssetMetaData = async (dbClient, assetId) => {
         TableName: assetsTable,
         Key: marshall({
             AssetId: `ASSET#${assetId}`,
-            DataCategory: 'Details'
+            DataCategory: 'Meta::Asset'
         }),
         ProjectionExpression: 'fileName'
     }))
@@ -62,7 +62,7 @@ const pushMetaData = async (dbClient, assetId) => {
         TableName: ephemeraTable,
         Item: marshall({
             EphemeraId: `ASSET#${assetId}`,
-            DataCategory: 'Details'
+            DataCategory: 'Meta::Asset'
         })
     }))
 }
