@@ -11,7 +11,7 @@ import { addCharacterToRoom, removeCharacterFromRoom } from './charactersInRoom.
 import { denormalizeCharacter, denormalizeRoom } from './denormalize.js'
 import { queueClear, queueState, queueFlush } from './feedbackQueue.js'
 import { fetchEphemera } from './fetch.js'
-import { healGlobalConnections, healCharacter } from './selfHealing/index.js'
+import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
@@ -82,7 +82,7 @@ const postRecords = async (Records) => {
         connections = unmarshall(Item).connections
     }
     catch(e) {
-        connections = await healGlobalConnections(dbClient)
+        connections = await healGlobalValues(dbClient)
     }
     //
     // TODO: Filter Records to find the types of records we should report back to the users as
@@ -214,7 +214,7 @@ export const handler = async (event, context) => {
                 return denormalize
 
             case 'healGlobal':
-                await healGlobalConnections(dbClient)
+                await healGlobalValues(dbClient)
                 break;
 
             case 'heal':

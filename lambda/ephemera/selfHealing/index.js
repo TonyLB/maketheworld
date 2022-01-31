@@ -7,32 +7,65 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 
-export const healGlobalConnections = async (dbClient) => {
+export const healGlobalValues = async (dbClient) => {
     try {
-        const { Items = [] } = await dbClient.send(new ScanCommand({
-            TableName: ephemeraTable,
-            FilterExpression: "begins_with(EphemeraId, :player) AND begins_with(DataCategory, :connection)",
-            ExpressionAttributeValues: marshall({
-                ':player': 'PLAYER#',
-                ':connection': 'CONNECTION#'
-            }),
-            ProjectionExpression: 'EphemeraId, DataCategory'
-        }))
-    
-        const connectionMap = Items
-            .map(unmarshall)
-            .map(({ EphemeraId, DataCategory }) => ({ Player: splitType(EphemeraId)[1], Connection: splitType(DataCategory)[1]}))
-            .reduce((previous, { Player, Connection }) => ({ ...previous, [Connection]: Player }), {})
-    
-        await dbClient.send(new PutItemCommand({
-            TableName: ephemeraTable,
-            Item: marshall({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections',
-                connections: connectionMap
-            })
-        }))
-        return connectionMap
+        const healConnections = async () => {
+            const { Items = [] } = await dbClient.send(new ScanCommand({
+                TableName: ephemeraTable,
+                FilterExpression: "begins_with(EphemeraId, :player) AND begins_with(DataCategory, :connection)",
+                ExpressionAttributeValues: marshall({
+                    ':player': 'PLAYER#',
+                    ':connection': 'CONNECTION#'
+                }),
+                ProjectionExpression: 'EphemeraId, DataCategory'
+            }))
+        
+            const connectionMap = Items
+                .map(unmarshall)
+                .map(({ EphemeraId, DataCategory }) => ({ Player: splitType(EphemeraId)[1], Connection: splitType(DataCategory)[1]}))
+                .reduce((previous, { Player, Connection }) => ({ ...previous, [Connection]: Player }), {})
+        
+            await dbClient.send(new PutItemCommand({
+                TableName: ephemeraTable,
+                Item: marshall({
+                    EphemeraId: 'Global',
+                    DataCategory: 'Connections',
+                    connections: connectionMap
+                })
+            }))
+        }
+
+        const healGlobalAssets = async () => {
+            const { Items = [] } = await dbClient.send(new QueryCommand({
+                TableName: assetsTable,
+                IndexName: 'DataCategoryIndex',
+                KeyConditionExpression: "DataCategory = :dc",
+                FilterExpression: "attribute_not_exists(player) or player = :null",
+                ExpressionAttributeValues: marshall({
+                    ":dc": `Meta::Asset`,
+                    ':null': null
+                }),
+                ProjectionExpression: 'AssetId'
+            }))
+            const globalAssets = Items.map(unmarshall).map(({ AssetId }) => (splitType(AssetId)[1])).filter((value) => (value))
+            await dbClient.send(new UpdateItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId: `Global`,
+                    DataCategory: 'Assets'
+                }),
+                UpdateExpression: `SET assets = :assets`,
+                ExpressionAttributeValues: marshall({
+                    ':assets': globalAssets
+                })
+            }))
+        }
+
+        const [connections] = await Promise.all([
+            healConnections(),
+            healGlobalAssets()
+        ])
+        return connections
     }
     catch(error) {}
     return {}
