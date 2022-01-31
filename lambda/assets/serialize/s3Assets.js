@@ -16,6 +16,7 @@ export const getAssets = async (s3Client, fileName) => {
     const match = wmlGrammar.match(contents)    
     if (!match.succeeded()) {
         console.log('ERROR: Schema failed validation')
+        console.log(match.message)
         return []
     }
     const schema = validatedSchema(match)

@@ -15,7 +15,8 @@ WorldMarkupLangage {
             | LiteralValueTag<"FirstImpression">
 
     AssetExpression = TagExpression<"Asset", ("key" | "fileName" | "zone" | "subFolder"), none, none, AssetLegalContents>
-    AssetLegalContents = LayerExpression
+    AssetLegalContents = ImportExpression
+            | LayerExpression
             | ConditionExpression
             | RoomExpression
             | ExitExpression
@@ -26,6 +27,7 @@ WorldMarkupLangage {
     ImportLegalContents = UseExpression
 
     UseExpression = TagExpression<"Use", ("key" | "as"), none, none, none>
+            | TagSelfClosing<"Use", ("key" | "as"), none, none>
 
     ConditionExpression = TagExpression<"Condition", none, "if", none, ConditionLegalContents>
     ConditionLegalContents = RoomExpression

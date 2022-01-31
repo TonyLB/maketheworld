@@ -1,16 +1,11 @@
-import ohm from 'ohm-js'
-import { compileCode } from './compileCode'
-import { schema } from './semantics/schema'
-import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown'
-import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp'
+import { compileCode } from './compileCode.js'
+import { schema } from './semantics/schema/index.js'
+import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown/index.js'
+import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 
-import wmlGrammar from './wmlGrammar/wml.ohm-bundle'
+export { wmlGrammar }
 
-//
-// The wml code bundle is not TypeScript constrained on purpose, so that it can be easily
-// shared between both the front-end client (where TypeScript rules) and the Lambda
-// functions (where TypeScript would impose a lot of toil in the build process)
-//
 export const wmlSemantics = wmlGrammar.createSemantics()
     .addOperation('eval', {
         string(node) {
@@ -151,14 +146,15 @@ export const assetRegistryEntries = (schema) => {
     //
     const elements = flattenToElements(tagCondition(['Asset', 'Room', 'Character']))(schema)
     return elements.map(({ tag, ...rest }) => {
-        const { name, fileName, key, global: isGlobal } = rest
+        const { name, fileName, key, global: isGlobal, importMap } = rest
         switch(tag) {
             case 'Asset':
                 return {
                     tag,
                     name,
                     fileName,
-                    key
+                    key,
+                    importMap
                 }
             case 'Room':
                 return {

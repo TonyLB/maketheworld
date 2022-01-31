@@ -4,6 +4,7 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from "../serialize/dbRegister.js"
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
+import { importedAssetIds } from '../serialize/importedAssets.js'
 import { getAssets } from "../serialize/s3Assets.js"
 import { splitType } from "../utilities/types.js"
 
@@ -14,8 +15,8 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
     const baseFileName = fileName.replace(/\.wml$/, '')
     const translateName = `${baseFileName}.translate.json`
     const getScopeMap = async () => {
-        const scopeItem = await getTranslateFile(s3Client, { name: translateName })
-        return scopeItem.scopeMap || {}
+        const translateFileItem = await getTranslateFile(s3Client, { name: translateName })
+        return translateFileItem.scopeMap || {}
     }
     try {
         const [assetRegistryItems, currentScopeMap] = await Promise.all([
@@ -24,7 +25,15 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
         ])
         const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
-        const scopeMapContents = scopeMap(assetRegistryItems, currentScopeMap)
+        const importMap = asset.importMap || {}
+        const importedIds = await importedAssetIds({ dbClient }, importMap)
+        const scopeMapContents = scopeMap(
+            assetRegistryItems,
+            {
+                ...currentScopeMap,
+                ...importedIds
+            }
+        )
         await Promise.all([
             dbRegister(dbClient, {
                 fileName,
