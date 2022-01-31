@@ -1,6 +1,6 @@
 import { marshall } from '@aws-sdk/util-dynamodb'
 import { UpdateItemCommand } from '@aws-sdk/client-dynamodb'
-import { healGlobalConnections } from '../selfHealing/index.js'
+import { healGlobalValues } from '../selfHealing/index.js'
 import { splitType } from '../utilities/index.js'
 
 const { TABLE_PREFIX } = process.env;
@@ -29,7 +29,7 @@ export const checkForConnect = async (dbClient, { newImage }) => {
             await dbClient.send(updateCommand)
         }
         catch {
-            await healGlobalConnections(dbClient)
+            await healGlobalValues(dbClient)
             await dbClient.send(updateCommand)
         }
         //
