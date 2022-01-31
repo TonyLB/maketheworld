@@ -131,8 +131,8 @@ export const schema = {
         return wmlProcessUpNonRecursive([
                 // desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
-                validate(confirmLiteralProps(['key', 'fileName'])),
-                liftLiteralProps(['key', 'fileName']),
+                validate(confirmLiteralProps(['key', 'fileName', 'zone', 'subFolder', "player"])),
+                liftLiteralProps(['key', 'fileName', 'player']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftImportTags,
