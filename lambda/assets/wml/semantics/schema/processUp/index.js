@@ -57,7 +57,7 @@ export const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     const unliftedItems = contents.filter(({ tag }) => (!tags.includes(tag)))
     const tagOutcomes = tagsToLift.reduce((previous, { tag, contents }) => ({
         ...previous,
-        [tagsMap[tag]]: contents.join(' ')
+        [tagsMap[tag]]: contents.filter((value) => (value)).join(' ').trim()
     }), {})
     return {
         contents: unliftedItems,
@@ -76,6 +76,40 @@ export const liftUntagged = (label) => ({ contents = [], ...rest }) => {
         [label]: aggregation(itemsToLift)
     }
     
+}
+
+export const liftUseTags = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Use'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Use'))
+    const importMap = tagsToLift.reduce((previous, { key, as }) => ({
+        ...previous,
+        [as || key]: key
+    }), {})
+    return {
+        contents: unliftedItems,
+        ...rest,
+        importMap
+    }
+}
+
+export const liftImportTags = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Import'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Import'))
+    const importMap = tagsToLift.reduce((previous, { from, importMap }) => ({
+        ...previous,
+        ...(Object.entries(importMap).reduce((previous, [local, scopedId]) => ({
+            ...previous,
+            [local]: {
+                asset: from,
+                scopedId
+            }
+        }), {}))
+    }), {})
+    return {
+        contents: unliftedItems,
+        ...rest,
+        importMap
+    }
 }
 
 //

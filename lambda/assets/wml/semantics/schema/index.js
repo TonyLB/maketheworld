@@ -1,5 +1,4 @@
 import {
-    desourceTag,
     confirmRequiredProps,
     wmlProcessUpNonRecursive,
     validate,
@@ -8,11 +7,13 @@ import {
     liftBooleanProps,
     liftLiteralTags,
     liftUntagged,
+    liftUseTags,
+    liftImportTags,
     confirmExpressionProps,
     confirmLiteralProps
 } from './processUp/index.js'
 
-const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-\_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
+const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
 
 const processTagProps = (tag, props) => ({
     tag: tag.sourceString,
@@ -111,12 +112,21 @@ export const schema = {
                 liftExpressionProps(['if'])
             ])(node.schema())
     },
-    // NameExpression(node) {
-    //     return {
-    //         ...node.schema(),
-    //         tag: 'Name'
-    //     }
-    // },
+    UseExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmLiteralProps(['key', 'as'])),
+            liftLiteralProps(['key', 'as'])
+        ])(node.schema())
+    },
+    ImportExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['from'])),
+            validate(confirmLiteralProps(['from'])),
+            liftLiteralProps(['from']),
+            liftUseTags
+        ])(node.schema())
+    },
     AssetExpression(node) {
         return wmlProcessUpNonRecursive([
                 // desourceTag,
@@ -125,6 +135,7 @@ export const schema = {
                 liftLiteralProps(['key', 'fileName']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
+                liftImportTags,
                 liftUntagged('description')
             ])(node.schema())
     },

@@ -1,0 +1,8 @@
+<Asset key="ImportTest" fileName="importTest" zone="Personal" subFolder="TonyLB/">
+    <Import from="TEST">
+        <Use key="345" as="welcomeRoom" />
+    </Import>
+    <Room key="welcomeRoom">
+        It's a welcome area, with bright lighting and pastel walls.
+    </Room>
+</Asset>

@@ -305,6 +305,8 @@ Resources:
             AttributeType: "S"
           - AttributeName: "DataCategory"
             AttributeType: "S"
+          - AttributeName: "scopedId"
+            AttributeType: "S"
         BillingMode: "PAY_PER_REQUEST"
         KeySchema:
           - AttributeName: "AssetId"
@@ -317,6 +319,14 @@ Resources:
               - AttributeName: DataCategory
                 KeyType: HASH
               - AttributeName: AssetId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: ScopedIdIndex
+            KeySchema:
+              - AttributeName: DataCategory
+                KeyType: HASH
+              - AttributeName: scopedId
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL

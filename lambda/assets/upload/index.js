@@ -4,6 +4,7 @@ import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
+import { importedAssetIds } from '../serialize/importedAssets.js'
 import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
@@ -110,14 +111,22 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
 
     const assetRegistryItems = await getAssets(s3Client, key)
     if (assetRegistryItems.length) {
-        try {
+        // try {
             const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
                 const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
-                const scopeMapContents = scopeMap(assetRegistryItems, (currentScopeMap.scopeMap || {}))
-    
+                const importMap = asset.importMap || {}
+                const importedIds = await importedAssetIds({ dbClient }, importMap)
+                const scopeMapContents = scopeMap(
+                    assetRegistryItems,
+                    {
+                        ...currentScopeMap,
+                        ...importedIds
+                    }
+                )
+
                 await Promise.all([
                     dbRegister(dbClient, {
                         fileName,
@@ -142,14 +151,14 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
                 messageType: 'Success',
                 operation: 'Upload'
             })
-        }
-        catch {
-            await uploadResponse({ dbClient, apiClient })({
-                uploadId: objectNameItems.join('/'),
-                messageType: 'Error',
-                operation: 'Upload'
-            })
-        }
+        // }
+        // catch {
+        //     await uploadResponse({ dbClient, apiClient })({
+        //         uploadId: objectNameItems.join('/'),
+        //         messageType: 'Error',
+        //         operation: 'Upload'
+        //     })
+        // }
     }
 
     try {
