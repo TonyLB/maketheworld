@@ -146,7 +146,7 @@ export const assetRegistryEntries = (schema) => {
     //
     const elements = flattenToElements(tagCondition(['Asset', 'Room', 'Character']))(schema)
     return elements.map(({ tag, ...rest }) => {
-        const { name, fileName, key, global: isGlobal, importMap } = rest
+        const { name, fileName, key, global: isGlobal, importMap, player } = rest
         switch(tag) {
             case 'Asset':
                 return {
@@ -154,6 +154,7 @@ export const assetRegistryEntries = (schema) => {
                     name,
                     fileName,
                     key,
+                    player,
                     importMap
                 }
             case 'Room':
@@ -168,7 +169,7 @@ export const assetRegistryEntries = (schema) => {
                     tag,
                     key,
                     fileName,
-                    player: rest.player,
+                    player,
                     Name: rest.Name,
                     Pronouns: rest.Pronouns,
                     FirstImpression: rest.FirstImpression,

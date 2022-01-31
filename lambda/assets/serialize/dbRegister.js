@@ -10,7 +10,8 @@ export const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, 
                 fileName,
                 translateFile,
                 name: asset.name,
-                description: asset.description
+                description: asset.description,
+                player: asset.player
             }),
             mergeIntoDataRange({
                 dbClient,

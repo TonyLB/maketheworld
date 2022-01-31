@@ -1,4 +1,4 @@
-import { GetItemCommand, ScanCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
+import { GetItemCommand, ScanCommand, PutItemCommand, UpdateItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 import { splitType } from '../utilities/index.js'
@@ -47,31 +47,59 @@ export const healCharacter = async (dbClient, CharacterId) => {
                 AssetId: `CHARACTER#${CharacterId}`,
                 DataCategory: 'Meta::Character'
             }),
-            ProjectionExpression: 'EphemeraId, #Name, HomeId',
+            ProjectionExpression: 'player, #Name, HomeId',
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
         }))
-
-        if (Item) {
-            const { Name, HomeId } = unmarshall(Item)
-            await dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Connection'
-                }),
-                UpdateExpression: `SET #Name = :name, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false)`,
-                ExpressionAttributeNames: {
-                    '#Name': 'Name'
-                },
-                ExpressionAttributeValues: marshall({
-                    ':name': Name,
-                    ':homeId': HomeId || 'VORTEX',
-                    ':false': false
-                })
-            }))
+        
+        const healPersonalAssetList = async () => {
+            if (Item) {
+                const { player } = unmarshall(Item)
+                if (player) {
+                    const { Items = [] } = await dbClient.send(new QueryCommand({
+                        TableName: assetsTable,
+                        IndexName: 'PlayerIndex',
+                        KeyConditionExpression: "player = :player AND DataCategory = :dc",
+                        ExpressionAttributeValues: marshall({
+                            ":dc": `Meta::Asset`,
+                            ":player": player
+                        }),
+                        ProjectionExpression: 'AssetId'
+                    }))
+                    const personalAssets = Items.map(unmarshall).map(({ AssetId }) => (splitType(AssetId)[1])).filter((value) => (value))
+                    return personalAssets
+                }    
+            }
+            return []
         }
+
+        const healCharacterItem = async () => {
+            if (Item) {
+                const { Name, HomeId } = unmarshall(Item)
+                const personalAssets = await healPersonalAssetList()
+                await dbClient.send(new UpdateItemCommand({
+                    TableName: ephemeraTable,
+                    Key: marshall({
+                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                        DataCategory: 'Connection'
+                    }),
+                    UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false)`,
+                    ExpressionAttributeNames: {
+                        '#Name': 'Name'
+                    },
+                    ExpressionAttributeValues: marshall({
+                        ':name': Name,
+                        ':homeId': HomeId || 'VORTEX',
+                        ':false': false,
+                        ':assets': personalAssets
+                    })
+                }))
+            }
+        }
+
+        await healCharacterItem()
+
     }
     catch(error) {
         //

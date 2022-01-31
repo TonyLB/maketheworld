@@ -14,7 +14,7 @@ WorldMarkupLangage {
             | LiteralValueTag<"Outfit">
             | LiteralValueTag<"FirstImpression">
 
-    AssetExpression = TagExpression<"Asset", ("key" | "fileName" | "zone" | "subFolder"), none, none, AssetLegalContents>
+    AssetExpression = TagExpression<"Asset", ("key" | "fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
     AssetLegalContents = ImportExpression
             | LayerExpression
             | ConditionExpression
