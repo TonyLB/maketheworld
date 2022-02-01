@@ -4,7 +4,7 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from "../serialize/dbRegister.js"
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-import { importedAssetIds } from '../serialize/importedAssets.js'
+import { importedAssetIds, assetIdsFromTree } from '../serialize/importedAssets.js'
 import { getAssets } from "../serialize/s3Assets.js"
 import { splitType } from "../utilities/types.js"
 
@@ -18,15 +18,14 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
         const translateFileItem = await getTranslateFile(s3Client, { name: translateName })
         return translateFileItem.scopeMap || {}
     }
-    try {
+    // try {
         const [assetRegistryItems, currentScopeMap] = await Promise.all([
             getAssets(s3Client, fileName),
             getScopeMap()
         ])
         const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
-        const importMap = asset.importMap || {}
-        const importedIds = await importedAssetIds({ dbClient }, importMap)
+        const { importTree, scopeMap: importedIds } = await importedAssetIds({ dbClient }, asset.importMap || {})
         const scopeMapContents = scopeMap(
             assetRegistryItems,
             {
@@ -38,11 +37,13 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
             dbRegister(dbClient, {
                 fileName,
                 translateFile: translateName,
+                importTree,
                 scopeMap: scopeMapContents,
                 assets: assetRegistryItems
             }),
             putTranslateFile(s3Client, {
                 name: translateName,
+                importTree,
                 scopeMap: scopeMapContents,
                 assetKey
             })
@@ -50,12 +51,12 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
         return {
             scopeMap: scopeMapContents
         }
-    }
-    catch (error) {
-        console.log('ERROR!')
-        // return { error: error.message }
-        throw error
-    }
+    // }
+    // catch (error) {
+    //     console.log('ERROR!')
+    //     // return { error: error.message }
+    //     throw error
+    // }
 }
 
 export const healPlayers = async ({ cognitoClient, dbClient }) => {

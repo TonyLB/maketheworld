@@ -3,10 +3,10 @@ import { streamToString } from "../utilities/stream.js"
 
 const { S3_BUCKET } = process.env
 
-export const putTranslateFile = (s3Client, { name, scopeMap, assetKey }) => {
+export const putTranslateFile = (s3Client, { name, importTree, scopeMap, assetKey }) => {
     const contents = JSON.stringify({
         asset: assetKey,
-        imports: {},
+        importTree,
         scopeMap
     }, null, 4)
     s3Client.send(new PutObjectCommand({

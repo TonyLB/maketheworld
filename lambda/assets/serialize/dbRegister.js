@@ -1,6 +1,6 @@
 import { replaceItem, mergeIntoDataRange } from '../utilities/dynamoDB/index.js'
 
-export const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, assets }) => {
+export const dbRegister = async (dbClient, { fileName, translateFile, importTree, scopeMap, assets }) => {
     const asset = assets.find(({ tag }) => (tag === 'Asset'))
     if (asset && asset.key) {
         await Promise.all([
@@ -9,6 +9,7 @@ export const dbRegister = async (dbClient, { fileName, translateFile, scopeMap, 
                 DataCategory: 'Meta::Asset',
                 fileName,
                 translateFile,
+                importTree,
                 name: asset.name,
                 description: asset.description,
                 player: asset.player
