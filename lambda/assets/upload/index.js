@@ -8,11 +8,11 @@ import { importedAssetIds } from '../serialize/importedAssets.js'
 import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { splitType } from '../utilities/types.js'
+import { assetRegistryEntries } from "../wml/index.js"
 
 import { ephemeraQuery, putAsset, assetQuery, deleteAsset } from "../utilities/dynamoDB/index.js"
 
-const { TABLE_PREFIX, S3_BUCKET } = process.env;
-const assetsTable = `${TABLE_PREFIX}_assets`
+const { S3_BUCKET } = process.env;
 
 const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
     const Items = await ephemeraQuery({
@@ -96,7 +96,9 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
         ? `${objectNameItems.slice(0, -1).join('/')}/`
         : ''
 
-    const assetRegistryItems = await getAssets(s3Client, key)
+    const assetWorkspace = await getAssets(s3Client, key)
+    const assetRegistryItems = (assetWorkspace && assetRegistryEntries(assetWorkspace.schema())) || []
+
     if (assetRegistryItems.length) {
         try {
             const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))

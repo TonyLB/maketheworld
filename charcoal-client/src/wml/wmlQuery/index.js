@@ -1,4 +1,4 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
 
@@ -6,6 +6,7 @@ export const wmlQueryFactory = (sourceString) => {
     let matcher = wmlGrammar.matcher()
     matcher.setInput(sourceString)
     let getReturnValue = () => (search) => ({
+        matcher: () => (matcher),
         nodes: () => ([]),
         source: () => (''),
         prop(key, value) {
@@ -18,6 +19,7 @@ export const wmlQueryFactory = (sourceString) => {
         contents: () => ([])
     })
     getReturnValue = () => (search) => ({
+        matcher: () => (matcher),
         nodes: () => {
             const match = matcher.match()
             if (match.succeeded()) {
