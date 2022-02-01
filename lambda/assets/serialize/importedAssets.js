@@ -1,28 +1,19 @@
-import { GetItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { assetScopedIdQuery, assetGetItem } from "../utilities/dynamoDB/index.js"
 
 import { splitType } from '../utilities/types.js'
-
-const { TABLE_PREFIX } = process.env;
-const assetsTable = `${TABLE_PREFIX}_assets`
 
 export const importedAssetIds = async ({ dbClient }, importMap) => {
     const getScopeMap = async () => {
         const fetchScopeMap = async ({ key, asset, scopedId }) => {
-            const { Items = [] } = await dbClient.send(new QueryCommand({
-                TableName: assetsTable,
-                IndexName: 'ScopedIdIndex',
-                KeyConditionExpression: "DataCategory = :dc AND scopedId = :scopedId",
-                ExpressionAttributeValues: marshall({
-                    ":dc": `ASSET#${asset}`,
-                    ":scopedId": scopedId
-                }),
-                ProjectionExpression: 'AssetId'
-            }))
+            const Items = await assetScopedIdQuery({
+                dbClient,
+                ScopedId: scopedId,
+                DataCategory: `ASSET#${asset}`
+            })
             if (Items.length === 0) {
                 return {}
             }
-            const { AssetId } = unmarshall(Items[0])
+            const { AssetId } = Items[0]
             const translatedAssetId = splitType(AssetId || '')[1]
             if (translatedAssetId) {
                 return {
@@ -40,21 +31,13 @@ export const importedAssetIds = async ({ dbClient }, importMap) => {
     const getImportTree = async () => {
         const assetsToFetch = [...(new Set(Object.values(importMap).map(({ asset }) => (asset))))]
         const fetchAssetImportTree = async (asset) => {
-            try {
-                const { Item } = await dbClient.send(new GetItemCommand({
-                        TableName: assetsTable,
-                        Key: marshall({
-                            AssetId: `ASSET#${asset}`,
-                            DataCategory: 'Meta::Asset'
-                        }),
-                        ProjectionExpression: 'ImportTree'
-                    }))
-                const { ImportTree = {} } = unmarshall(Item)
-                return { [asset]: ImportTree }
-            }
-            catch {
-                return {}
-            }
+            const { ImportTree = {} } = await assetGetItem({
+                dbClient,
+                AssetId: `ASSET#${asset}`,
+                DataCategory: 'Meta::Asset',
+                ProjectionFields: ['ImportTree']
+            })
+            return { [asset]: ImportTree }
         }
         const fetchPromises = assetsToFetch.
             map((asset) => (fetchAssetImportTree(asset)))
