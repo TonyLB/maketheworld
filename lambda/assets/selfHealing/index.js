@@ -7,6 +7,7 @@ import { getAssets } from "../serialize/s3Assets.js"
 import { splitType } from "../utilities/types.js"
 import { assetDataCategoryQuery, updateAsset } from "../utilities/dynamoDB/index.js"
 import { asyncSuppressExceptions } from '../utilities/errors.js'
+import { assetRegistryEntries } from "../wml/index.js"
 
 const { COGNITO_POOL_ID, TABLE_PREFIX } = process.env
 const assetsTable = `${TABLE_PREFIX}_assets`
@@ -19,10 +20,14 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
         return translateFileItem.scopeMap || {}
     }
     return asyncSuppressExceptions(async () => {
-        const [assetRegistryItems, currentScopeMap] = await Promise.all([
+        const [assetWorkspace, currentScopeMap] = await Promise.all([
             getAssets(s3Client, fileName),
             getScopeMap()
         ])
+        const assetRegistryItems = (assetWorkspace && assetRegistryEntries(assetWorkspace.schema())) || []
+        if (!assetRegistryItems.length) {
+            return
+        }
         const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
         const { importTree, scopeMap: importedIds } = await importedAssetIds({ dbClient }, asset.importMap || {})
