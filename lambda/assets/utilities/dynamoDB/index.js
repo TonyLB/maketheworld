@@ -1,6 +1,15 @@
-import { GetItemCommand, PutItemCommand, QueryCommand, BatchWriteItemCommand, BatchGetItemCommand } from "@aws-sdk/client-dynamodb"
+import {
+    GetItemCommand,
+    UpdateItemCommand,
+    PutItemCommand,
+    DeleteItemCommand,
+    QueryCommand,
+    BatchWriteItemCommand,
+    BatchGetItemCommand
+} from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import { v4 as uuidv4 } from "uuid"
+
+import { asyncSuppressExceptions } from '../errors.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -196,4 +205,186 @@ export const mergeIntoDataRange = async ({
         table: TableName,
         items: fourthPassMerging
     })
+}
+
+export const assetGetItem = async ({
+    dbClient,
+    AssetId,
+    DataCategory,
+    ProjectionFields = ['AssetId'],
+    ExpressionAttributeNames
+}) => {
+    return asyncSuppressExceptions(async () => {
+        const { Item = {} } = await dbClient.send(new GetItemCommand({
+            TableName: assetsTable,
+            Key: marshall({
+                AssetId,
+                DataCategory
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return unmarshall(Item)
+    }, {})
+}
+
+export const assetQuery = async ({
+    dbClient,
+    AssetId,
+    ProjectionFields = ['DataCategory'],
+    ExpressionAttributeNames
+}) => {
+    return asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: assetsTable,
+            KeyConditionExpression: 'AssetId = :assetId',
+            ExpressionAttributeValues: marshall({
+                ':assetId': AssetId
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, [])
+}
+
+export const assetDataCategoryQuery = async ({
+    dbClient,
+    DataCategory,
+    ProjectionFields = ['AssetId'],
+    ExpressionAttributeNames
+}) => {
+    return asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: assetsTable,
+            KeyConditionExpression: 'DataCategory = :dc',
+            IndexName: 'DataCategoryIndex',
+            ExpressionAttributeValues: marshall({
+                ':dc': DataCategory
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, [])
+}
+
+export const assetScopedIdQuery = async ({
+    dbClient,
+    ScopedId,
+    DataCategory,
+    ProjectionFields = ['AssetId'],
+    ExpressionAttributeNames
+}) => {
+    const KeyConditionExpression = DataCategory
+        ? 'scopedId = :scopedId AND DataCategory = :dc'
+        : 'scopedId = :scopedId'
+    
+    return asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: assetsTable,
+            KeyConditionExpression,
+            IndexName: 'ScopedIdIndex',
+            ExpressionAttributeValues: marshall({
+                ':scopedId': ScopedId,
+                ...(DataCategory ? { ':dc': DataCategory } : {})
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, [])
+}
+
+export const updateAsset = async ({
+    dbClient,
+    AssetId,
+    DataCategory,
+    UpdateExpression,
+    ExpressionAttributeNames,
+    ExpressionAttributeValues
+}) => {
+    return asyncSuppressExceptions(async () => {
+        await dbClient.send(new UpdateItemCommand({
+            TableName: assetsTable,
+            Key: marshall({
+                AssetId,
+                DataCategory
+            }),
+            UpdateExpression,
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ExpressionAttributeNames
+        }))
+    }, {})
+}
+
+export const putAsset = async ({
+    dbClient,
+    Item
+}) => {
+    return asyncSuppressExceptions(async () => {
+        await dbClient.send(new PutItemCommand({
+            TableName: assetsTable,
+            Item: marshall(Item)
+        }))
+    }, {})
+}
+
+export const deleteAsset = async ({
+    dbClient,
+    AssetId,
+    DataCategory
+}) => {
+    return asyncSuppressExceptions(async () => {
+        await dbClient.send(new DeleteItemCommand({
+            TableName: assetsTable,
+            Key: marshall({
+                AssetId,
+                DataCategory
+            })
+        }))
+    }, {})
+}
+
+export const ephemeraQuery = async ({
+    dbClient,
+    EphemeraId,
+    ProjectionFields = ['DataCategory'],
+    ExpressionAttributeNames
+}) => {
+    return asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: ephemeraTable,
+            KeyConditionExpression: 'EphemeraId = :ephemeraId',
+            IndexName: 'ScopedIdIndex',
+            ExpressionAttributeValues: marshall({
+                ':ephemeraId': EphemeraId
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, [])
+}
+
+export const updateEphemera = async ({
+    dbClient,
+    EphemeraId,
+    DataCategory,
+    UpdateExpression,
+    ExpressionAttributeNames,
+    ExpressionAttributeValues
+}) => {
+    return asyncSuppressExceptions(async () => {
+        await dbClient.send(new UpdateItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId,
+                DataCategory
+            }),
+            UpdateExpression,
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ExpressionAttributeNames
+        }))
+    }, {})
 }

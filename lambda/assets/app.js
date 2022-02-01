@@ -1,21 +1,18 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
-import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb"
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider"
 import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 
 import { cacheAsset } from './cache.js'
 import { healAsset, healPlayers } from "./selfHealing/index.js"
-import { getAssets } from "./serialize/s3Assets.js"
-import { putTranslateFile, getTranslateFile } from "./serialize/translateFile.js"
-import { scopeMap } from "./serialize/scopeMap.js"
-import { dbRegister } from './serialize/dbRegister.js'
 import { splitType } from './utilities/types.js'
 
 import { handleUpload, createUploadLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'
 import { moveAsset } from './moveAsset/index.js'
+import { updateEphemera } from "./utilities/dynamoDB/index.js"
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -97,24 +94,14 @@ const handleDynamoEvent = async (event) => {
             // for the incoming character
             //
             const CharacterId = splitType(newImage.AssetId)[1]
-            try {
-                await dbClient.send(new UpdateItemCommand({
-                    TableName: ephemeraTable,
-                    Key: marshall({
-                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Connection'
-                    }),
-                    UpdateExpression,
-                    ...(expressionValues ? { ExpressionAttributeValues: marshall(expressionValues) }: {}),
-                    ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
-                }))
-            }
-            catch (error) {
-                //
-                // TODO: Error handling for common Dynamo errors
-                //
-                throw error
-            }
+            await updateEphemera({
+                dbClient,
+                EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                DataCategory: 'Connection',
+                UpdateExpression,
+                ...(expressionValues ? { ExpressionAttributeValues: expressionValues }: {}),
+                ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
+            })
         }
     }
 }

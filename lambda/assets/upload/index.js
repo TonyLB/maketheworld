@@ -4,27 +4,23 @@ import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-import { importedAssetIds, assetIdsFromTree } from '../serialize/importedAssets.js'
+import { importedAssetIds } from '../serialize/importedAssets.js'
 import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from '../utilities/types.js'
-import { DeleteItemCommand, QueryCommand, PutItemCommand } from "@aws-sdk/client-dynamodb"
+
+import { ephemeraQuery, putAsset, assetQuery, deleteAsset } from "../utilities/dynamoDB/index.js"
 
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const assetsTable = `${TABLE_PREFIX}_assets`
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: ephemeraTable,
-        KeyConditionExpression: 'EphemeraId = :eid',
-        ExpressionAttributeValues: marshall({
-            ":eid": `PLAYER#${PlayerName}`
-        }),
-    }))
+    const Items = await ephemeraQuery({
+        dbClient,
+        EphemeraId: `PLAYER#${PlayerName}`
+    })
+    
     const returnVal = Items
-        .map(unmarshall)
         .reduce((previous, { DataCategory }) => {
             const [ itemType, itemKey ] = splitType(DataCategory)
             if (itemType === 'CONNECTION') {
@@ -47,14 +43,14 @@ export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName,
     })
     const [presignedOutput] = await Promise.all([
         getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-        dbClient.send(new PutItemCommand({
-            TableName: assetsTable,
-            Item: marshall({
+        putAsset({
+            dbClient,
+            Item: {
                 AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
                 DataCategory: `PLAYER#${PlayerName}`,
                 RequestId
-            })
-        }))
+            }
+        })
     ])
     return presignedOutput
 }
@@ -64,19 +60,12 @@ export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName,
 // subscribed to know when it finishes processing.
 //
 const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }) => {
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: assetsTable,
-        KeyConditionExpression: "#aid = :assetId",
-        ExpressionAttributeNames: {
-            "#aid": "AssetId"
-        },
-        ExpressionAttributeValues: marshall({
-            ':assetId': `UPLOAD#${uploadId}`
-        }),
-        ProjectionExpression: "DataCategory, RequestId"
-    }))
+    const Items = await assetQuery({
+        dbClient,
+        AssetId: `UPLOAD#${uploadId}`,
+        ProjectionFields: ['DataCategory', 'RequestId']
+    })
     const playerNames = Items
-        .map(unmarshall)
         .map(({ DataCategory, RequestId }) => ({ PlayerName: splitType(DataCategory)[1], RequestId }))
     await Promise.all(playerNames
         .map(async ({ PlayerName, RequestId }) => {
@@ -90,13 +79,11 @@ const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }
                             RequestId
                         })
                     })).then(() => (
-                        dbClient.send(new DeleteItemCommand({
-                            TableName: assetsTable,
-                            Key: marshall({
-                                AssetId: `UPLOAD#${uploadId}`,
-                                DataCategory: `PLAYER#${PlayerName}`
-                            })
-                        }))    
+                        deleteAsset({
+                            dbClient,
+                            AssetId: `UPLOAD#${uploadId}`,
+                            DataCategory: `PLAYER#${PlayerName}`
+                        })
                     ))
                 ))
             )
