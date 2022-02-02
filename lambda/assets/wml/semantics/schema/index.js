@@ -132,7 +132,7 @@ export const schema = {
                 // desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
                 validate(confirmLiteralProps(['key', 'fileName', 'zone', 'subFolder', "player"])),
-                liftLiteralProps(['key', 'fileName', 'player']),
+                liftLiteralProps(['key', 'fileName', 'player', 'zone']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftImportTags,
