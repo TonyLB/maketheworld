@@ -7,6 +7,38 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 
+const unencumberedImports = (tree, excludeList = [], depth = 0) => {
+    if (depth > 200) {
+        return []
+    }
+    const directImports = Object.entries(tree)
+        .filter(([key]) => (!excludeList.includes(key)))
+    const unencumbered = directImports
+        .map(([key, imports]) => ([key, Object.keys(imports)]))
+        .map(([key, imports]) => ([
+            key,
+            imports.filter((dependency) => (!excludeList.includes(dependency)))
+        ]))
+    const unencumberedImportsAll = [
+        ...unencumbered.filter(([key, imports]) => (imports.length === 0)).map(([key]) => key),
+        ...Object.values(tree).map((recurse) => (unencumberedImports(recurse, excludeList, depth + 1))).reduce((previous, list) => ([...previous, ...list]), [])
+    ]
+    return [...(new Set(unencumberedImportsAll))]
+}
+
+const sortImportTree = (tree, currentList = []) => {
+    const readyImports = unencumberedImports(tree, currentList)
+    if (readyImports.length > 0) {
+        return [
+            ...readyImports.sort((a, b) => (a.localeCompare(b))),
+            ...sortImportTree(tree, [...currentList, ...readyImports])
+        ]
+    }
+    else {
+        return []
+    }
+}
+
 export const healGlobalValues = async (dbClient) => {
     try {
         const healConnections = async () => {
@@ -40,14 +72,21 @@ export const healGlobalValues = async (dbClient) => {
                 TableName: assetsTable,
                 IndexName: 'DataCategoryIndex',
                 KeyConditionExpression: "DataCategory = :dc",
-                FilterExpression: "attribute_not_exists(player) or player = :null",
+                FilterExpression: "#zone = :canon",
                 ExpressionAttributeValues: marshall({
                     ":dc": `Meta::Asset`,
-                    ':null': null
+                    ':canon': 'Canon'
                 }),
-                ProjectionExpression: 'AssetId'
+                ExpressionAttributeNames: {
+                    '#zone': 'zone'
+                },
+                ProjectionExpression: 'AssetId, importTree'
             }))
-            const globalAssets = Items.map(unmarshall).map(({ AssetId }) => (splitType(AssetId)[1])).filter((value) => (value))
+            const globalAssets = Items.map(unmarshall)
+                .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
+                .filter(({ AssetId }) => (AssetId))
+                .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
+            const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
             await dbClient.send(new UpdateItemCommand({
                 TableName: ephemeraTable,
                 Key: marshall({
@@ -56,7 +95,7 @@ export const healGlobalValues = async (dbClient) => {
                 }),
                 UpdateExpression: `SET assets = :assets`,
                 ExpressionAttributeValues: marshall({
-                    ':assets': globalAssets
+                    ':assets': globalAssetsSorted
                 })
             }))
         }
@@ -98,10 +137,13 @@ export const healCharacter = async (dbClient, CharacterId) => {
                             ":dc": `Meta::Asset`,
                             ":player": player
                         }),
-                        ProjectionExpression: 'AssetId'
+                        ProjectionExpression: 'AssetId, importTree'
                     }))
-                    const personalAssets = Items.map(unmarshall).map(({ AssetId }) => (splitType(AssetId)[1])).filter((value) => (value))
-                    return personalAssets
+                    const personalAssets = Items.map(unmarshall)
+                        .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
+                        .filter(({ AssetId }) => (AssetId))
+                        .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
+                    return sortImportTree(Object.assign({}, ...personalAssets))
                 }    
             }
             return []

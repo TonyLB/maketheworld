@@ -1,10 +1,11 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { assetRegistryEntries } from "../wml/index.js"
 import { getTranslateFile } from "../serialize/translateFile.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"
 import { asyncSuppressExceptions } from "../utilities/errors.js"
+import { importedAssetIds } from "../serialize/importedAssets.js"
 
 const { S3_BUCKET } = process.env;
 
@@ -43,9 +44,12 @@ export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName
                 Body: assetWorkspace.contents()
             }))
             const assetRegistryItems = assetRegistryEntries(assetWorkspace.schema())
+            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+            const { importTree } = await importedAssetIds({ dbClient }, asset.importMap || {})
             await dbRegister(dbClient, {
                 fileName: `${toPath}${fileName}.wml`,
                 translateFile: `${toPath}${fileName}.translate.json`,
+                importTree,
                 scopeMap: scopeMap.scopeMap,
                 assets: assetRegistryItems
             })
