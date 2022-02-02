@@ -40,10 +40,10 @@ export const healGlobalValues = async (dbClient) => {
                 TableName: assetsTable,
                 IndexName: 'DataCategoryIndex',
                 KeyConditionExpression: "DataCategory = :dc",
-                FilterExpression: "attribute_not_exists(player) or player = :null",
+                FilterExpression: "zone = :canon",
                 ExpressionAttributeValues: marshall({
                     ":dc": `Meta::Asset`,
-                    ':null': null
+                    ':canon': 'Canon'
                 }),
                 ProjectionExpression: 'AssetId'
             }))
