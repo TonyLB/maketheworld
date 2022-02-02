@@ -155,7 +155,8 @@ export const assetRegistryEntries = (schema) => {
                     fileName,
                     key,
                     player,
-                    importMap
+                    importMap,
+                    zone: rest.zone
                 }
             case 'Room':
                 return {
