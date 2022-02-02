@@ -3,7 +3,7 @@ import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectComm
 import { assetRegistryEntries } from "../wml/index.js"
 import { getTranslateFile } from "../serialize/translateFile.js"
 import { dbRegister } from '../serialize/dbRegister.js'
-import { getAssets } from "../serialize/s3Assets.js"
+import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"
 import { asyncSuppressExceptions } from "../utilities/errors.js"
 
 const { S3_BUCKET } = process.env;
@@ -19,6 +19,15 @@ export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName
             assetWorkspace.wmlQuery('')
                 .prop('zone', zone)
                 .prop('subFolder', subFolder)
+
+            if (['Canon', 'Library'].includes(zone)) {
+                assetWorkspace.wmlQuery('').removeProp('player')
+            }
+            if (zone === 'Personal') {
+                if (rest[0]) {
+                    assetWorkspace.wmlQuery('').prop('player', rest[0])
+                }
+            }
 
             const [scopeMap] = await Promise.all([
                 getTranslateFile(s3Client, { name: `${fromPath}${fileName}.translate.json` }),
@@ -52,3 +61,18 @@ export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName
 
     })
 }
+
+const moveByAssetId = (toPath) => ({ s3Client, dbClient }) => async (AssetId) => {
+    const fullFileName = await fileNameFromAssetId({ dbClient })(AssetId)
+    const fromPath = `${fullFileName.split('/').slice(0, -1).join('/')}/`
+    const fileName = (fullFileName.split('/').slice(-1)[0] || '').replace(/\.wml$/, '')
+    if (fileName) {
+        await moveAsset({ s3Client, dbClient })({ fromPath, fileName, toPath })
+    }
+}
+
+export const canonize = moveByAssetId('Canon/')
+
+export const libraryCheckin = moveByAssetId('Library/')
+
+export const libraryCheckout = (player) => moveByAssetId(`Personal/${player}/`)

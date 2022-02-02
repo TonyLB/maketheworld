@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { unmarshall } from "@aws-sdk/util-dynamodb"
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider"
 import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 
@@ -11,7 +11,7 @@ import { splitType } from './utilities/types.js'
 
 import { handleUpload, createUploadLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'
-import { moveAsset } from './moveAsset/index.js'
+import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { updateEphemera } from "./utilities/dynamoDB/index.js"
 
 const apiClient = new ApiGatewayManagementApiClient({
@@ -140,6 +140,18 @@ export const handler = async (event, context) => {
     if (event.heal) {
         // const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
         const returnVal = await healPlayers({ cognitoClient, dbClient })
+        return JSON.stringify(returnVal, null, 4)
+    }
+    if (event.canonize) {
+        const returnVal = await canonize({ s3Client, dbClient })(event.canonize)
+        return JSON.stringify(returnVal, null, 4)
+    }
+    if (event.checkin) {
+        const returnVal = await libraryCheckin({ s3Client, dbClient })(event.checkin)
+        return JSON.stringify(returnVal, null, 4)
+    }
+    if (event.checkout) {
+        const returnVal = await libraryCheckout(event.PlayerName)({ s3Client, dbClient })(event.checkout)
         return JSON.stringify(returnVal, null, 4)
     }
     switch(message) {
