@@ -1,15 +1,22 @@
-import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
+import { marshall } from "@aws-sdk/util-dynamodb"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 
 import { wmlGrammar, dbEntries, validatedSchema } from './wml/index.js'
-import { mergeIntoDataRange, batchGetDispatcher, batchWriteDispatcher } from './utilities/dynamoDB/index.js'
 import { streamToString } from './utilities/stream.js'
+import {
+    putEphemera,
+    assetGetItem,
+    assetDataCategoryQuery,
+    ephemeraDataCategoryQuery,
+    mergeIntoDataRange,
+    batchGetDispatcher,
+    batchWriteDispatcher
+} from './utilities/dynamoDB/index.js'
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const assetsTable = `${TABLE_PREFIX}_assets`
 
 //
 // TODO:
@@ -22,15 +29,13 @@ const assetsTable = `${TABLE_PREFIX}_assets`
 //
 
 const fetchAssetMetaData = async (dbClient, assetId) => {
-    const { Item } = await dbClient.send(new GetItemCommand({
-        TableName: assetsTable,
-        Key: marshall({
-            AssetId: `ASSET#${assetId}`,
-            DataCategory: 'Meta::Asset'
-        }),
-        ProjectionExpression: 'fileName'
-    }))
-    return (Item && unmarshall(Item).fileName) || ''
+    const { fileName = '' } = await assetGetItem({
+        dbClient,
+        AssetId: `ASSET#${assetId}`,
+        DataCategory: 'Meta::Asset',
+        ProjectionFields: ['fileName']
+    })
+    return fileName
 }
 
 const parseWMLFile = async (fileName) => {
@@ -58,33 +63,28 @@ const compareEntries = (current, incoming) => {
 }
 
 const pushMetaData = async (dbClient, assetId) => {
-    await dbClient.send(new PutItemCommand({
-        TableName: ephemeraTable,
-        Item: marshall({
+    await putEphemera({
+        dbClient,
+        Item: {
             EphemeraId: `ASSET#${assetId}`,
             DataCategory: 'Meta::Asset'
-        })
-    }))
+        }
+    })
 }
 
 const globalizeDBEntries = async (dbClient, assetId, dbEntriesList) => {
     //
     // Pull scope-to-uuid mapping from Assets
     //
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: assetsTable,
-        IndexName: 'DataCategoryIndex',
-        KeyConditionExpression: "DataCategory = :dc",
-        ExpressionAttributeValues: marshall({
-            ":dc": `ASSET#${assetId}`
-        }),
-        ProjectionExpression: 'AssetId, scopedId'
-    }))
+    const Items = await assetDataCategoryQuery({
+        dbClient,
+        DataCategory: `ASSET#${assetId}`,
+        ProjectionFields: ['AssetId', 'scopedId']
+    })
     //
     // Derive all existing scope-to-uuid mappings from stored data
     //
     const currentScopedToPermanentMapping = Items
-        .map(unmarshall)
         .reduce((previous, { scopedId, AssetId }) => ({
             ...previous,
             ...(scopedId ? { [scopedId]: AssetId } : {})
@@ -171,19 +171,14 @@ const initializeRooms = async (dbClient, roomIDs) => {
     const currentRoomIds = currentRoomItems.map(({ EphemeraId }) => (EphemeraId))
     const missingRoomIds = roomIDs.filter((roomId) => (!currentRoomIds.includes(roomId)))
     if (missingRoomIds.length > 0) {
-        const { Items: characterItems } = await dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            IndexName: 'DataCategoryIndex',
-            KeyConditionExpression: 'DataCategory = :connect',
-            ExpressionAttributeValues: marshall({
-                ":connect": "Connection"
-            }),
+        const charactersInPlay = await ephemeraDataCategoryQuery({
+            dbClient,
+            DataCategory: 'Connection',
             ExpressionAttributeNames: {
                 "#name": "Name"
             },
-            ProjectionExpression: 'EphemeraId, RoomId, #name, Connected, ConnectionId'
-        }))
-        const charactersInPlay = characterItems.map(unmarshall)
+            ProjectionFields: ['EphemeraId', 'RoomId', '#name', 'Connected', 'ConnectionId']
+        })
         const newRoomsBase = missingRoomIds.reduce((previous, roomId) => ({
             ...previous,
             [roomId]: {

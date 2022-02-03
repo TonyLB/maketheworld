@@ -367,6 +367,39 @@ export const ephemeraQuery = async ({
     }, [])
 }
 
+export const ephemeraDataCategoryQuery = async ({
+    dbClient,
+    DataCategory,
+    ProjectionFields = ['EphemeraId'],
+    ExpressionAttributeNames
+}) => {
+    return asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: ephemeraTable,
+            KeyConditionExpression: 'DataCategory = :dc',
+            IndexName: 'DataCategoryIndex',
+            ExpressionAttributeValues: marshall({
+                ':dc': DataCategory
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, [])
+}
+
+export const putEphemera = async ({
+    dbClient,
+    Item
+}) => {
+    return asyncSuppressExceptions(async () => {
+        await dbClient.send(new PutItemCommand({
+            TableName: ephemeraTable,
+            Item: marshall(Item)
+        }))
+    }, {})
+}
+
 export const updateEphemera = async ({
     dbClient,
     EphemeraId,

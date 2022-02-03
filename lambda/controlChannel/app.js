@@ -225,6 +225,7 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     // TODO: Create asset management system to allow non-hard-coded asset lists
     //
     const roomMessage = await render({
+        CharacterId,
         assets: ['TEST'],
         EphemeraId: PermanentId
     })

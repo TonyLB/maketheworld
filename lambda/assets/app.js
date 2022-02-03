@@ -127,9 +127,8 @@ export const handler = async (event, context) => {
     //
 
     const { message = '' } = event
-    if (event.Evaluate) {
-        const assetId = event.assetId
-        const fileName = await cacheAsset(assetId)
+    if (event.cache) {
+        const fileName = await cacheAsset(event.cache)
 
         return JSON.stringify({ fileName })
     }
