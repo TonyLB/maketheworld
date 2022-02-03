@@ -25,6 +25,7 @@ export const checkForConnect = async (dbClient, { oldImage, newImage }) => {
                     Message: `${Name || 'Someone'} has connected.`
                 }
                 const roomMessage = await render({
+                    CharacterId,
                     assets: ['TEST'],
                     EphemeraId: `ROOM#${newImage.RoomId}`,
                 })

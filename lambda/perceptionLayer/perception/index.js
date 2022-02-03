@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 import AWSXRay from 'aws-xray-sdk'
 
-import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb"
+import { DynamoDBClient, GetItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import compileCode from './compileCode.js'
@@ -63,39 +63,76 @@ const evaluateConditionalList = (list = []) => {
     return true
 }
 
-export const renderItem = async ({ assets, EphemeraId }, subsegment) => {
+export const renderItem = async ({ CharacterId, assets, EphemeraId }, subsegment) => {
     const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
     const [objectType] = splitType(EphemeraId)
     clearMemoSpace()
     switch(objectType) {
         case 'ROOM':
-            const { Items: RoomItemsRaw } = await ddbClient.send(new QueryCommand({
-                TableName: EphemeraTableName,
-                KeyConditionExpression: 'EphemeraId = :ephemera',
-                ExpressionAttributeValues: marshall({
-                    ":ephemera": EphemeraId
-                })
-            }))
+            const [
+                    { Items: RoomItemsRaw },
+                    { Item: globalAssetItem},
+                    { Item: personalAssetItem},
+                ] = await Promise.all([
+                ddbClient.send(new QueryCommand({
+                    TableName: EphemeraTableName,
+                    KeyConditionExpression: 'EphemeraId = :ephemera',
+                    ExpressionAttributeValues: marshall({
+                        ":ephemera": EphemeraId
+                    })
+                })),
+                ddbClient.send(new GetItemCommand({
+                    TableName: EphemeraTableName,
+                    Key: marshall({
+                        EphemeraId: 'Global',
+                        DataCategory: 'Assets'
+                    }),
+                    ProjectionExpression: 'assets'
+                })),
+                ddbClient.send(new GetItemCommand({
+                    TableName: EphemeraTableName,
+                    Key: marshall({
+                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                        DataCategory: 'Connection'
+                    }),
+                    ProjectionExpression: 'assets'
+                }))
+            ])
             const RoomItems = RoomItemsRaw.map(unmarshall)
+            const { assets: globalAssets = [] } = unmarshall(globalAssetItem)
+            const { assets: personalAssets = [] } = unmarshall(personalAssetItem)
             const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
-            const { render, name, exits } = RoomItems
-                .filter(({ DataCategory }) => (DataCategory.slice(0, 6) === 'ASSET#' && assets.includes(DataCategory.slice(6))))
-                //
-                // TODO: Figure out a sorting sequence less naive than alphabetical
-                //
-                .sort(({ DataCategory: DCA }, { DataCategory: DCB }) => (DCA.localeCompare(DCB)))
-                .reduce((previous, { render, name, exits }) => ({
+            const RoomMetaByAsset = RoomItems
+                .reduce((previous, { DataCategory, ...rest }) => {
+                    if (DataCategory === 'Meta::Room') {
+                        return previous
+                    }
+                    return {
                         ...previous,
-                        render: render
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
-                            .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
-                        name: name
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
-                            .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
-                        exits: exits
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions)))
-                            .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: stripType(to), ...rest }))]), previous.exits),
-                }), { render: [], name: [], exits: [] })
+                        [DataCategory]: rest
+                    }
+                }, {})
+            const { render, name, exits } = [
+                    ...globalAssets,
+                    ...(personalAssets.filter((value) => (!globalAssets.includes(value))))
+                ].reduce((previous, key) => {
+                    if (RoomMetaByAsset[`ASSET#${key}`]) {
+                        const { render, name, exits } = RoomMetaByAsset[`ASSET#${key}`]
+                        return {
+                            ...previous,
+                            render: render
+                                .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                                .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
+                            name: name
+                                .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                                .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
+                            exits: exits
+                                .filter(({ conditions }) => (evaluateConditionalList(conditions)))
+                                .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: stripType(to), ...rest }))]), previous.exits),
+                        }
+                    }
+                    return previous
+                }, { render: [], name: [], exits: [] })
                 //
                 // TODO: Evaluate expressions before inserting them
                 //
@@ -117,11 +154,11 @@ export const renderItem = async ({ assets, EphemeraId }, subsegment) => {
     }
 }
 
-export const render = async ({ assets, EphemeraId }, subsegment) => {
+export const render = async ({ CharacterId, assets, EphemeraId }, subsegment) => {
     const [objectType, objectKey] = splitType(EphemeraId)
     switch(objectType) {
         case 'ROOM':
-            const { render: Description, name: Name, exits, characters } = await renderItem({ assets, EphemeraId }, subsegment)
+            const { render: Description, name: Name, exits, characters } = await renderItem({ CharacterId, assets, EphemeraId }, subsegment)
             const Message = {
                 RoomId: objectKey,
                 //

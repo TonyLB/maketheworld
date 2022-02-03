@@ -42,6 +42,7 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                         : []
                 if (newRoomId) {
                     const roomMessage = await render({
+                        CharacterId,
                         assets: ['TEST'],
                         EphemeraId: `ROOM#${newRoomId}`,
                     })
