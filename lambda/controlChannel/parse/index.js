@@ -33,7 +33,6 @@ const getCurrentRoom = async (dbClient, CharacterId) => {
             }),
             ProjectionExpression: "DataCategory, exits, activeCharacters"
         }))
-        console.log(`Items: ${JSON.stringify(Items, null, 4)}`)
         const { exits, characters } = (Items
             .map(unmarshall)
             .reduce((previous, { DataCategory, ...rest }) => {
@@ -51,7 +50,6 @@ const getCurrentRoom = async (dbClient, CharacterId) => {
                     // the conditions on each incoming exit, to make sure that
                     // they are valid before including.
                     //
-                    console.log(`Asset data: ${JSON.stringify(rest, null, 4)}`)
                     return {
                         ...previous,
                         exits: rest.exits
