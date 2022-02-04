@@ -2,15 +2,10 @@
 // SPDX-License-Identifier: MIT-0
 
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { DynamoDBClient, QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
-import { v4 as uuidv4 } from 'uuid'
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb'
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
-import { putCharacterInPlay } from './charactersInPlay.js'
-import { addCharacterToRoom, removeCharacterFromRoom } from './charactersInRoom.js'
-import { denormalizeCharacter, denormalizeRoom } from './denormalize.js'
 import { queueClear, queueState, queueFlush } from './feedbackQueue.js'
-import { fetchEphemera } from './fetch.js'
 import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 
 import { processCharacterEvent } from './characterHandlers/index.js'
@@ -28,45 +23,6 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 
 const dbClient = new DynamoDBClient({ region: REGION })
-
-const splitPermanentId = (PermanentId) => {
-    const sections = PermanentId.split('#')
-    if (!(sections.length > 1)) {
-        return [PermanentId]
-    }
-    else {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-}
-
-// const updateDispatcher = ({ Updates = [] }) => {
-//     const outputs = Updates.map((update) => {
-//         if (update.putCharacterInPlay) {
-//             return putCharacterInPlay(update.putCharacterInPlay)
-//         }
-//         if (update.addCharacterToRoom) {
-//             return addCharacterToRoom(update.addCharacterToRoom)
-//         }
-//         if (update.removeCharacterFromRoom) {
-//             return removeCharacterFromRoom(update.removeCharacterFromRoom)
-//         }
-//         return Promise.resolve([])
-//     })
-
-//     return Promise.all(outputs)
-// }
-
-const denormalizeDispatcher = ({ PermanentId, data }) => {
-    const [type, payload] = splitPermanentId(PermanentId)
-    switch(type) {
-        case 'CHARACTER':
-            return denormalizeCharacter({ CharacterId: payload, data })
-        case 'ROOM':
-            return denormalizeRoom({ RoomId: payload, data })
-        default:
-            return Promise({})
-    }
-}
 
 const postRecords = async (Records) => {
     let connections = {}
@@ -206,13 +162,6 @@ export const handler = async (event, context) => {
         queueClear()
         switch(action) {
             
-            case 'denormalize':
-                const denormalize = await denormalizeDispatcher(payload)
-                if (queueState()) {
-                    await queueFlush()
-                }
-                return denormalize
-
             case 'healGlobal':
                 await healGlobalValues(dbClient)
                 break;
