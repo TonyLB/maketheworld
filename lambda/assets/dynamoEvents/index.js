@@ -10,20 +10,20 @@ import { handleAssetEvents } from './asset.js'
 //
 
 export const handleDynamoEvent = async ({ dbClient, events }) => {
-    const characterEvents = events
+    const translatedEvents = events
         .map(({ eventName, dynamodb }) => ({
             eventName,
-            oldImage: unmarshall(dynamodb.OldImage) || {},
-            newImage: unmarshall(dynamodb.NewImage) || {}
+            oldImage: unmarshall(dynamodb.OldImage || {}),
+            newImage: unmarshall(dynamodb.NewImage || {})
         }))
     await Promise.all([
         handleCharacterEvents({
             dbClient,
-            events: characterEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Character')))
+            events: translatedEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Character')))
         }),
         handleAssetEvents({
             dbClient,
-            events: characterEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Asset')))
+            events: translatedEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Asset')))
         })
     ])
 }

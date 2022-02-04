@@ -104,14 +104,16 @@ const healPersonalAssets = async ({ dbClient, PlayerName }) => {
 
 export const handleAssetEvents = async ({ dbClient, events }) => {
     const oldImagePlayers = events
-        .filter(({ oldImage }) => ((oldImage.zone || '').slice(0, 7) === 'Player/'))
-        .map(({ oldImage }) => (oldImage.zone.slice(7).split('/')[0]))
+        .filter(({ oldImage }) => (oldImage.zone === 'Personal'))
+        .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
+        .map(({ oldImage }) => (oldImage.player))
     const newImagePlayers = events
-        .filter(({ newImage }) => ((newImage.zone || '').slice(0, 7) === 'Player/'))
-        .map(({ newImage }) => (newImage.zone.slice(7).split('/')[0]))
+        .filter(({ newImage }) => (newImage.zone === 'Personal'))
+        .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
+        .map(({ newImage }) => (newImage.player))
     const playersToUpdate = [...(new Set([...oldImagePlayers, ...newImagePlayers]))]
     await Promise.all([
-        ...(events.find(({ oldImage, newImage }) => (oldImage?.zone === 'Canon' || newImage?.zone === 'Canon'))
+        ...(events.find(({ oldImage, newImage }) => ([oldImage.zone, newImage.zone].includes('Canon')))
             ? [healGlobalValues(dbClient)]
             : []
         ),

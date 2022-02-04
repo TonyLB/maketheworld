@@ -581,6 +581,13 @@ Resources:
                       - UserPoolId:
                           Fn::ImportValue:
                               !Sub "${PermanentsStack}-UserPoolId"
+          Events:
+            Stream:
+              Type: DynamoDB
+              Properties:
+                Stream: !GetAtt AssetTable.StreamArn
+                BatchSize: 100
+                StartingPosition: TRIM_HORIZON
           # Events:
           #   BucketEvent:
           #     Type: S3
