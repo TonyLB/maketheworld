@@ -1,5 +1,5 @@
-import { splitType } from "../utilities/types.js"
-import { updateEphemera, assetDataCategoryQuery, assetPlayerQuery } from "../utilities/dynamoDB/index.js"
+import { splitType } from "/opt/utilities/types.js"
+import { updateEphemera, assetDataCategoryQuery, assetPlayerQuery } from "/opt/utilities/dynamoDB/index.js"
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -33,9 +33,8 @@ const sortImportTree = (tree, currentList = []) => {
     }
 }
 
-export const healGlobalValues = async (dbClient) => {
+export const healGlobalValues = async () => {
     const Items = await assetDataCategoryQuery({
-        dbClient,
         DataCategory: 'Meta::Asset',
         FilterExpression: "#zone = :canon",
         ExpressionAttributeNames: {
@@ -52,7 +51,6 @@ export const healGlobalValues = async (dbClient) => {
         .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
     const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
     await updateEphemera({
-        dbClient,
         EphemeraId: 'Global',
         DataCategory: 'Assets',
         UpdateExpression: `SET assets = :assets`,
@@ -63,19 +61,17 @@ export const healGlobalValues = async (dbClient) => {
     
 }
 
-const healPersonalAssets = async ({ dbClient, PlayerName }) => {
+const healPersonalAssets = async ({ PlayerName }) => {
     if (!PlayerName) {
         return
     }
     const [personalAssetQueryContents, characters] = await Promise.all([
         assetPlayerQuery({
-            dbClient,
             player: PlayerName,
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['AssetId', 'importTree']
         }),
         assetPlayerQuery({
-            dbClient,
             player: PlayerName,
             DataCategory: 'Meta::Character'
         })
@@ -89,7 +85,6 @@ const healPersonalAssets = async ({ dbClient, PlayerName }) => {
     await Promise.all(
         characters.map(({ AssetId }) => (
             updateEphemera({
-                dbClient,
                 EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
                 DataCategory: 'Connection',
                 UpdateExpression: `SET assets = :assets`,
@@ -102,7 +97,7 @@ const healPersonalAssets = async ({ dbClient, PlayerName }) => {
 
 }
 
-export const handleAssetEvents = async ({ dbClient, events }) => {
+export const handleAssetEvents = async ({ events }) => {
     const oldImagePlayers = events
         .filter(({ oldImage }) => (oldImage.zone === 'Personal'))
         .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
@@ -114,9 +109,9 @@ export const handleAssetEvents = async ({ dbClient, events }) => {
     const playersToUpdate = [...(new Set([...oldImagePlayers, ...newImagePlayers]))]
     await Promise.all([
         ...(events.find(({ oldImage, newImage }) => ([oldImage.zone, newImage.zone].includes('Canon')))
-            ? [healGlobalValues(dbClient)]
+            ? [healGlobalValues()]
             : []
         ),
-        Promise.all(playersToUpdate.map((PlayerName) => (healPersonalAssets({ dbClient, PlayerName }))))
+        Promise.all(playersToUpdate.map((PlayerName) => (healPersonalAssets({ PlayerName }))))
     ])
 }

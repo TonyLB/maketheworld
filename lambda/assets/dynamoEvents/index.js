@@ -9,7 +9,7 @@ import { handleAssetEvents } from './asset.js'
 // writes.
 //
 
-export const handleDynamoEvent = async ({ dbClient, events }) => {
+export const handleDynamoEvent = async ({ events }) => {
     const translatedEvents = events
         .map(({ eventName, dynamodb }) => ({
             eventName,
@@ -18,11 +18,9 @@ export const handleDynamoEvent = async ({ dbClient, events }) => {
         }))
     await Promise.all([
         handleCharacterEvents({
-            dbClient,
             events: translatedEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Character')))
         }),
         handleAssetEvents({
-            dbClient,
             events: translatedEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Asset')))
         })
     ])

@@ -1,7 +1,5 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import { unmarshall } from "@aws-sdk/util-dynamodb"
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider"
 import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 
@@ -20,7 +18,6 @@ const apiClient = new ApiGatewayManagementApiClient({
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
-const dbClient = new DynamoDBClient(params)
 const cognitoClient = new CognitoIdentityProviderClient(params)
 
 //
@@ -36,7 +33,7 @@ const handleS3Event = async (event) => {
 
     const keyPrefix = key.split('/').slice(0, 1).join('/')
     if (keyPrefix === 'upload') {
-        return await handleUpload({ s3Client, dbClient, apiClient })({ bucket, key })
+        return await handleUpload({ s3Client, apiClient })({ bucket, key })
     }
     else {
         const errorMsg = JSON.stringify(`Error: Unknown S3 target: ${JSON.stringify(event, null, 4) }`)
@@ -57,7 +54,6 @@ export const handler = async (event, context) => {
                 .map(({ s3 }) => (s3))
                 .map(handleS3Event),
             handleDynamoEvent({
-                dbClient,
                 events: event.Records
                     .filter(({ dynamodb }) => (dynamodb))
             })
@@ -76,29 +72,28 @@ export const handler = async (event, context) => {
         return JSON.stringify({ fileName })
     }
     if (event.healAsset) {
-        const returnVal = await healAsset({ s3Client, dbClient }, event.healAsset)
+        const returnVal = await healAsset({ s3Client }, event.healAsset)
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.heal) {
-        // const returnVal = await healAsset({ s3Client, dbClient }, event.heal)
-        const returnVal = await healPlayers({ cognitoClient, dbClient })
+        const returnVal = await healPlayers({ cognitoClient })
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.canonize) {
-        const returnVal = await canonize({ s3Client, dbClient })(event.canonize)
+        const returnVal = await canonize({ s3Client })(event.canonize)
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.checkin) {
-        const returnVal = await libraryCheckin({ s3Client, dbClient })(event.checkin)
+        const returnVal = await libraryCheckin({ s3Client })(event.checkin)
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.checkout) {
-        const returnVal = await libraryCheckout(event.PlayerName)({ s3Client, dbClient })(event.checkout)
+        const returnVal = await libraryCheckout(event.PlayerName)({ s3Client })(event.checkout)
         return JSON.stringify(returnVal, null, 4)
     }
     switch(message) {
         case 'upload':
-            return await createUploadLink({ s3Client, dbClient, apiClient})({
+            return await createUploadLink({ s3Client, apiClient})({
                 PlayerName: event.PlayerName,
                 fileName: event.fileName,
                 RequestId: event.RequestId
@@ -109,7 +104,7 @@ export const handler = async (event, context) => {
                 fileName: event.fileName
             })
         case 'move':
-            return await moveAsset({ s3Client, dbClient })({
+            return await moveAsset({ s3Client })({
                 fromPath: event.fromPath,
                 fileName: event.fileName,
                 toPath: event.toPath

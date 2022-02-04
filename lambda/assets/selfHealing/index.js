@@ -4,15 +4,15 @@ import { dbRegister } from "../serialize/dbRegister.js"
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
 import { importedAssetIds, assetIdsFromTree } from '../serialize/importedAssets.js'
 import { getAssets } from "../serialize/s3Assets.js"
-import { splitType } from "../utilities/types.js"
-import { assetDataCategoryQuery, updateAsset } from "../utilities/dynamoDB/index.js"
-import { asyncSuppressExceptions } from '../utilities/errors.js'
+import { splitType } from "/opt/utilities/types.js"
+import { assetDataCategoryQuery, updateAsset } from "/opt/utilities/dynamoDB/index.js"
+import { asyncSuppressExceptions } from '/opt/utilities/errors.js'
 import { assetRegistryEntries } from "../wml/index.js"
 
 const { COGNITO_POOL_ID, TABLE_PREFIX } = process.env
 const assetsTable = `${TABLE_PREFIX}_assets`
 
-export const healAsset = async ({ s3Client, dbClient }, fileName) => {
+export const healAsset = async ({ s3Client }, fileName) => {
     const baseFileName = fileName.replace(/\.wml$/, '')
     const translateName = `${baseFileName}.translate.json`
     const getScopeMap = async () => {
@@ -30,7 +30,7 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
         }
         const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
-        const { importTree, scopeMap: importedIds } = await importedAssetIds({ dbClient }, asset.importMap || {})
+        const { importTree, scopeMap: importedIds } = await importedAssetIds(asset.importMap || {})
         const scopeMapContents = scopeMap(
             assetRegistryItems,
             {
@@ -39,7 +39,7 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
             }
         )
         await Promise.all([
-            dbRegister(dbClient, {
+            dbRegister({
                 fileName,
                 translateFile: translateName,
                 importTree,
@@ -59,7 +59,7 @@ export const healAsset = async ({ s3Client, dbClient }, fileName) => {
     }, {})
 }
 
-export const healPlayers = async ({ cognitoClient, dbClient }) => {
+export const healPlayers = async ({ cognitoClient }) => {
     //
     // TODO: Filter on only confirmed players, to prevent healing in lots of unconfirmed names
     //
@@ -68,7 +68,6 @@ export const healPlayers = async ({ cognitoClient, dbClient }) => {
             UserPoolId: COGNITO_POOL_ID
         })),
         assetDataCategoryQuery({
-            dbClient,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['AssetId', '#name', 'fileName', 'scopedId', 'player'],
             ExpressionAttributeNames: { '#name': 'Name' }
@@ -99,7 +98,6 @@ export const healPlayers = async ({ cognitoClient, dbClient }) => {
     await Promise.all(
         userNames.map((userName) => (
             updateAsset({
-                dbClient,
                 AssetId: `PLAYER#${userName}`,
                 DataCategory: 'Meta::Player',
                 UpdateExpression: "SET #code = if_not_exists(#code, :false), #characters = :characters",

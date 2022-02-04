@@ -1,10 +1,10 @@
-import { replaceItem, mergeIntoDataRange } from '../utilities/dynamoDB/index.js'
+import { replaceItem, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 
-export const dbRegister = async (dbClient, { fileName, translateFile, importTree, scopeMap, assets }) => {
+export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap, assets }) => {
     const asset = assets.find(({ tag }) => (tag === 'Asset'))
     if (asset && asset.key) {
         await Promise.all([
-            replaceItem(dbClient, {
+            replaceItem({
                 AssetId: `ASSET#${asset.key}`,
                 DataCategory: 'Meta::Asset',
                 fileName,
@@ -16,7 +16,6 @@ export const dbRegister = async (dbClient, { fileName, translateFile, importTree
                 zone: asset.zone
             }),
             mergeIntoDataRange({
-                dbClient,
                 table: 'assets',
                 search: { DataCategory: `ASSET#${asset.key}` },
                 items: assets
@@ -56,7 +55,7 @@ export const dbRegister = async (dbClient, { fileName, translateFile, importTree
     const character = assets.find(({ tag }) => (tag === 'Character'))
     if (character && character.key) {
         await Promise.all([
-            replaceItem(dbClient, {
+            replaceItem({
                 AssetId: `CHARACTER#${scopeMap[character.key]}`,
                 DataCategory: 'Meta::Character',
                 fileName,

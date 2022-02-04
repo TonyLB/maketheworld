@@ -1,12 +1,11 @@
-import { assetScopedIdQuery, assetGetItem } from "../utilities/dynamoDB/index.js"
+import { assetScopedIdQuery, assetGetItem } from "/opt/utilities/dynamoDB/index.js"
 
-import { splitType } from '../utilities/types.js'
+import { splitType } from '/opt/utilities/types.js'
 
-export const importedAssetIds = async ({ dbClient }, importMap) => {
+export const importedAssetIds = async (importMap) => {
     const getScopeMap = async () => {
         const fetchScopeMap = async ({ key, asset, scopedId }) => {
             const Items = await assetScopedIdQuery({
-                dbClient,
                 ScopedId: scopedId,
                 DataCategory: `ASSET#${asset}`
             })
@@ -32,7 +31,6 @@ export const importedAssetIds = async ({ dbClient }, importMap) => {
         const assetsToFetch = [...(new Set(Object.values(importMap).map(({ asset }) => (asset))))]
         const fetchAssetImportTree = async (asset) => {
             const { ImportTree = {} } = await assetGetItem({
-                dbClient,
                 AssetId: `ASSET#${asset}`,
                 DataCategory: 'Meta::Asset',
                 ProjectionFields: ['ImportTree']
