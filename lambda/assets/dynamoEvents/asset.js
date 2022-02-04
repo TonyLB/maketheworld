@@ -1,5 +1,5 @@
 import { splitType } from "../utilities/types.js"
-import { updateEphemera, assetDataCategoryQuery } from "../utilities/dynamoDB/index.js"
+import { updateEphemera, assetDataCategoryQuery, assetPlayerQuery } from "../utilities/dynamoDB/index.js"
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -63,59 +63,60 @@ export const healGlobalValues = async (dbClient) => {
     
 }
 
-// const healPersonalAssets = async ({ dbClient, PlayerName }) => {
-//     if (!PlayerName) {
-//         return
-//     }
-//     try {
-//         const characters = await dbClient.send(new QueryCommand({
-//             TableName: assetsTable,
-//             IndexName: 'PlayerIndex',
-//             KeyConditionExpression: "player = :player AND DataCategory = :dc",
-//             ExpressionAttributeValues: marshall({
-//                 ":dc": `Meta::Asset`,
-//                 ":player": PlayerName
-//             }),
-//             ProjectionExpression: 'AssetId, importTree'
-//         }))
-//         const personalAssetEntries = characters
-//             .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
-//             .filter(({ AssetId }) => (AssetId))
-//             .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
-//         const personalAssets = sortImportTree(Object.assign({}, ...personalAssetEntries))
+const healPersonalAssets = async ({ dbClient, PlayerName }) => {
+    if (!PlayerName) {
+        return
+    }
+    const [personalAssetQueryContents, characters] = await Promise.all([
+        assetPlayerQuery({
+            dbClient,
+            player: PlayerName,
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['AssetId', 'importTree']
+        }),
+        assetPlayerQuery({
+            dbClient,
+            player: PlayerName,
+            DataCategory: 'Meta::Character'
+        })
+    ])
+    const personalAssetEntries = personalAssetQueryContents
+        .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
+        .filter(({ AssetId }) => (AssetId))
+        .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
+    const personalAssets = sortImportTree(Object.assign({}, ...personalAssetEntries))
 
-//         await dbClient.send(new UpdateItemCommand({
-//             TableName: ephemeraTable,
-//             Key: marshall({
-//                 EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-//                 DataCategory: 'Connection'
-//             }),
-//             UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false)`,
-//             ExpressionAttributeNames: {
-//                 '#Name': 'Name'
-//             },
-//             ExpressionAttributeValues: marshall({
-//                 ':name': Name,
-//                 ':homeId': HomeId || 'VORTEX',
-//                 ':false': false,
-//                 ':assets': personalAssets
-//             })
-//         }))
+    await Promise.all(
+        characters.map(({ AssetId }) => (
+            updateEphemera({
+                dbClient,
+                EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
+                DataCategory: 'Connection',
+                UpdateExpression: `SET assets = :assets`,
+                ExpressionAttributeValues: {
+                    ':assets': personalAssets
+                }
+            })        
+        ))
+    )
 
-//     }
-//     catch(error) {
-//         //
-//         // TODO: Handle absence of character from Assets table
-//         //
-//     }
-
-// }
+}
 
 export const handleAssetEvents = async ({ dbClient, events }) => {
+    const oldImagePlayers = events
+        .filter(({ oldImage }) => (oldImage.zone === 'Personal'))
+        .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
+        .map(({ oldImage }) => (oldImage.player))
+    const newImagePlayers = events
+        .filter(({ newImage }) => (newImage.zone === 'Personal'))
+        .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
+        .map(({ newImage }) => (newImage.player))
+    const playersToUpdate = [...(new Set([...oldImagePlayers, ...newImagePlayers]))]
     await Promise.all([
-        ...(events.find(({ oldImage, newImage }) => (oldImage?.zone === 'Canon' || newImage?.zone === 'Canon'))
+        ...(events.find(({ oldImage, newImage }) => ([oldImage.zone, newImage.zone].includes('Canon')))
             ? [healGlobalValues(dbClient)]
             : []
-        )
+        ),
+        Promise.all(playersToUpdate.map((PlayerName) => (healPersonalAssets({ dbClient, PlayerName }))))
     ])
 }

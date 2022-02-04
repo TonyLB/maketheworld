@@ -214,7 +214,7 @@ export const assetGetItem = async ({
     ProjectionFields = ['AssetId'],
     ExpressionAttributeNames
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         const { Item = {} } = await dbClient.send(new GetItemCommand({
             TableName: assetsTable,
             Key: marshall({
@@ -234,7 +234,7 @@ export const assetQuery = async ({
     ProjectionFields = ['DataCategory'],
     ExpressionAttributeNames
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: assetsTable,
             KeyConditionExpression: 'AssetId = :assetId',
@@ -260,7 +260,7 @@ export const assetDataCategoryQuery = async ({
     const KeyConditionExpression = AssetId
         ? 'DataCategory = :dc AND AssetId = :assetId'
         : 'DataCategory = :dc'
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: assetsTable,
             KeyConditionExpression,
@@ -289,7 +289,7 @@ export const assetScopedIdQuery = async ({
         ? 'scopedId = :scopedId AND DataCategory = :dc'
         : 'scopedId = :scopedId'
     
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: assetsTable,
             KeyConditionExpression,
@@ -305,6 +305,33 @@ export const assetScopedIdQuery = async ({
     }, [])
 }
 
+export const assetPlayerQuery = async ({
+    dbClient,
+    player,
+    DataCategory,
+    ProjectionFields = ['AssetId'],
+    ExpressionAttributeNames
+}) => {
+    const KeyConditionExpression = DataCategory
+        ? 'player = :player AND DataCategory = :dc'
+        : 'player = :player'
+    
+    return await asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: assetsTable,
+            KeyConditionExpression,
+            IndexName: 'PlayerIndex',
+            ExpressionAttributeValues: marshall({
+                ':player': player,
+                ':dc': DataCategory
+            }, { removeUndefinedValues: true }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, [])
+}
+
 export const updateAsset = async ({
     dbClient,
     AssetId,
@@ -313,7 +340,7 @@ export const updateAsset = async ({
     ExpressionAttributeNames,
     ExpressionAttributeValues
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         await dbClient.send(new UpdateItemCommand({
             TableName: assetsTable,
             Key: marshall({
@@ -331,7 +358,7 @@ export const putAsset = async ({
     dbClient,
     Item
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
             TableName: assetsTable,
             Item: marshall(Item)
@@ -344,7 +371,7 @@ export const deleteAsset = async ({
     AssetId,
     DataCategory
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         await dbClient.send(new DeleteItemCommand({
             TableName: assetsTable,
             Key: marshall({
@@ -361,7 +388,7 @@ export const ephemeraQuery = async ({
     ProjectionFields = ['DataCategory'],
     ExpressionAttributeNames
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
             KeyConditionExpression: 'EphemeraId = :ephemeraId',
@@ -382,7 +409,7 @@ export const ephemeraDataCategoryQuery = async ({
     ProjectionFields = ['EphemeraId'],
     ExpressionAttributeNames
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
             KeyConditionExpression: 'DataCategory = :dc',
@@ -401,7 +428,7 @@ export const putEphemera = async ({
     dbClient,
     Item
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
             TableName: ephemeraTable,
             Item: marshall(Item)
@@ -417,7 +444,7 @@ export const updateEphemera = async ({
     ExpressionAttributeNames,
     ExpressionAttributeValues
 }) => {
-    return asyncSuppressExceptions(async () => {
+    return await asyncSuppressExceptions(async () => {
         await dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
