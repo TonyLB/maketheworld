@@ -1,7 +1,7 @@
-import { splitType } from "../utilities/types.js"
-import { updateEphemera } from "../utilities/dynamoDB/index.js"
+import { splitType } from "/opt/utilities/types.js"
+import { updateEphemera } from "/opt/utilities/dynamoDB/index.js"
 
-export const handleCharacterEvents = async ({ dbClient, events }) => {
+export const handleCharacterEvents = async ({ events }) => {
     Promise.all(
         events.map(({ eventName, oldImage, newImage }) => (async () => {
             const mappedValue = (key) => {
@@ -43,7 +43,6 @@ export const handleCharacterEvents = async ({ dbClient, events }) => {
                 //
                 const CharacterId = splitType(newImage.AssetId)[1]
                 await updateEphemera({
-                    dbClient,
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Connection',
                     UpdateExpression,

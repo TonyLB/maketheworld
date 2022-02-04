@@ -1,9 +1,8 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 
 import { wmlGrammar, dbEntries, validatedSchema } from './wml/index.js'
-import { streamToString } from './utilities/stream.js'
+import { streamToString } from '/opt/utilities/stream.js'
 import {
     putEphemera,
     assetGetItem,
@@ -12,7 +11,7 @@ import {
     mergeIntoDataRange,
     batchGetDispatcher,
     batchWriteDispatcher
-} from './utilities/dynamoDB/index.js'
+} from '/opt/utilities/dynamoDB/index.js'
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
@@ -28,9 +27,8 @@ const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 // of notifying people in it?
 //
 
-const fetchAssetMetaData = async (dbClient, assetId) => {
+const fetchAssetMetaData = async (assetId) => {
     const { fileName = '' } = await assetGetItem({
-        dbClient,
         AssetId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['fileName']
@@ -62,9 +60,8 @@ const compareEntries = (current, incoming) => {
     return JSON.stringify(current) === JSON.stringify(incoming)
 }
 
-const pushMetaData = async (dbClient, assetId) => {
+const pushMetaData = async (assetId) => {
     await putEphemera({
-        dbClient,
         Item: {
             EphemeraId: `ASSET#${assetId}`,
             DataCategory: 'Meta::Asset'
@@ -72,12 +69,11 @@ const pushMetaData = async (dbClient, assetId) => {
     })
 }
 
-const globalizeDBEntries = async (dbClient, assetId, dbEntriesList) => {
+const globalizeDBEntries = async (assetId, dbEntriesList) => {
     //
     // Pull scope-to-uuid mapping from Assets
     //
     const Items = await assetDataCategoryQuery({
-        dbClient,
         DataCategory: `ASSET#${assetId}`,
         ProjectionFields: ['AssetId', 'scopedId']
     })
@@ -122,11 +118,10 @@ const globalizeDBEntries = async (dbClient, assetId, dbEntriesList) => {
     return globalizedDBEntries
 }
 
-const mergeEntries = async (dbClient, assetId, dbEntriesList) => {
+const mergeEntries = async (assetId, dbEntriesList) => {
     await Promise.all([
-        pushMetaData(dbClient, assetId),
+        pushMetaData(assetId),
         mergeIntoDataRange({
-            dbClient,
             table: 'ephemera',
             search: { DataCategory: `ASSET#${assetId}` },
             items: dbEntriesList,
@@ -156,9 +151,8 @@ const mergeEntries = async (dbClient, assetId, dbEntriesList) => {
 // no matches between a totally uncached room and any CharacterInPlay ... pays
 // to be careful!)
 //
-const initializeRooms = async (dbClient, roomIDs) => {
+const initializeRooms = async (roomIDs) => {
     const currentRoomItems = await batchGetDispatcher(
-            dbClient,
             {
                 table: ephemeraTable,
                 items: roomIDs.map((EphemeraId) => (marshall({
@@ -172,7 +166,6 @@ const initializeRooms = async (dbClient, roomIDs) => {
     const missingRoomIds = roomIDs.filter((roomId) => (!currentRoomIds.includes(roomId)))
     if (missingRoomIds.length > 0) {
         const charactersInPlay = await ephemeraDataCategoryQuery({
-            dbClient,
             DataCategory: 'Connection',
             ExpressionAttributeNames: {
                 "#name": "Name"
@@ -215,7 +208,7 @@ const initializeRooms = async (dbClient, roomIDs) => {
                 return previous
             }
         }, newRoomsBase)
-        await batchWriteDispatcher(dbClient, {
+        await batchWriteDispatcher({
             table: ephemeraTable,
             items: Object.values(newRoomsById)
                 .map((item) => ({
@@ -226,12 +219,11 @@ const initializeRooms = async (dbClient, roomIDs) => {
 }
 
 export const cacheAsset = async (assetId) => {
-    const dbClient = new DynamoDBClient(params)
-    const fileName = await fetchAssetMetaData(dbClient, assetId)
+    const fileName = await fetchAssetMetaData(assetId)
     const dbEntriesList = await parseWMLFile(fileName)
-    const globalEntries = await globalizeDBEntries(dbClient, assetId, dbEntriesList)
+    const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
     await Promise.all([
-        mergeEntries(dbClient, assetId, globalEntries),
-        initializeRooms(dbClient, globalEntries.map(({ EphemeraId }) => EphemeraId))
+        mergeEntries(assetId, globalEntries),
+        initializeRooms(globalEntries.map(({ EphemeraId }) => EphemeraId))
     ])
 }

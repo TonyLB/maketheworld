@@ -7,16 +7,15 @@ import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.j
 import { importedAssetIds } from '../serialize/importedAssets.js'
 import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
-import { splitType } from '../utilities/types.js'
+import { splitType } from '/opt/utilities/types.js'
 import { assetRegistryEntries } from "../wml/index.js"
 
-import { ephemeraQuery, putAsset, assetQuery, deleteAsset } from "../utilities/dynamoDB/index.js"
+import { ephemeraQuery, putAsset, assetQuery, deleteAsset } from "/opt/utilities/dynamoDB/index.js"
 
 const { S3_BUCKET } = process.env;
 
-const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
+const getConnectionsByPlayerName = async (PlayerName) => {
     const Items = await ephemeraQuery({
-        dbClient,
         EphemeraId: `PLAYER#${PlayerName}`
     })
     
@@ -35,7 +34,7 @@ const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
 // TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
 // link and uploading an Asset
 //
-export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName, fileName, tag = 'Character', RequestId }) => {
+export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName, tag = 'Character', RequestId }) => {
     const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET,
         Key: `upload/${PlayerName}/${tag}s/${fileName}`,
@@ -44,7 +43,6 @@ export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName,
     const [presignedOutput] = await Promise.all([
         getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
         putAsset({
-            dbClient,
             Item: {
                 AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
                 DataCategory: `PLAYER#${PlayerName}`,
@@ -59,9 +57,8 @@ export const createUploadLink = ({ s3Client, dbClient }) => async ({ PlayerName,
 // uploadResponse forwards a processing response from an Upload to the players that have
 // subscribed to know when it finishes processing.
 //
-const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }) => {
+const uploadResponse = ({ apiClient }) => async ({ uploadId, ...rest }) => {
     const Items = await assetQuery({
-        dbClient,
         AssetId: `UPLOAD#${uploadId}`,
         ProjectionFields: ['DataCategory', 'RequestId']
     })
@@ -69,7 +66,7 @@ const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }
         .map(({ DataCategory, RequestId }) => ({ PlayerName: splitType(DataCategory)[1], RequestId }))
     await Promise.all(playerNames
         .map(async ({ PlayerName, RequestId }) => {
-            const connections = await getConnectionsByPlayerName(dbClient, PlayerName)
+            const connections = await getConnectionsByPlayerName(PlayerName)
             await Promise.all((connections || [])
                 .map((ConnectionId) => (
                     apiClient.send(new PostToConnectionCommand({
@@ -80,7 +77,6 @@ const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }
                         })
                     })).then(() => (
                         deleteAsset({
-                            dbClient,
                             AssetId: `UPLOAD#${uploadId}`,
                             DataCategory: `PLAYER#${PlayerName}`
                         })
@@ -90,7 +86,7 @@ const uploadResponse = ({ dbClient, apiClient }) => async ({ uploadId, ...rest }
         }))
 }
 
-export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ bucket, key }) => {
+export const handleUpload = ({ s3Client, apiClient }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`
@@ -106,7 +102,7 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
                 const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
-                const { importTree, scopeMap: importedIds } = await importedAssetIds({ dbClient }, asset.importMap || {})
+                const { importTree, scopeMap: importedIds } = await importedAssetIds(asset.importMap || {})
                 const scopeMapContents = scopeMap(
                     assetRegistryItems,
                     {
@@ -116,7 +112,7 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
                 )
 
                 await Promise.all([
-                    dbRegister(dbClient, {
+                    dbRegister({
                         fileName,
                         translateFile,
                         importTree,
@@ -136,14 +132,14 @@ export const handleUpload = ({ s3Client, dbClient, apiClient }) => async ({ buck
                     }))
                 ])
             }
-            await uploadResponse({ dbClient, apiClient })({
+            await uploadResponse({ apiClient })({
                 uploadId: objectNameItems.join('/'),
                 messageType: 'Success',
                 operation: 'Upload'
             })
         }
         catch {
-            await uploadResponse({ dbClient, apiClient })({
+            await uploadResponse({ apiClient })({
                 uploadId: objectNameItems.join('/'),
                 messageType: 'Error',
                 operation: 'Upload'

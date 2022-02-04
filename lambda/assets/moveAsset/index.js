@@ -4,12 +4,12 @@ import { assetRegistryEntries } from "../wml/index.js"
 import { getTranslateFile } from "../serialize/translateFile.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"
-import { asyncSuppressExceptions } from "../utilities/errors.js"
+import { asyncSuppressExceptions } from "/opt/utilities/errors.js"
 import { importedAssetIds } from "../serialize/importedAssets.js"
 
 const { S3_BUCKET } = process.env;
 
-export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName, toPath }) => {
+export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }) => {
     return await asyncSuppressExceptions(async () => {
         const assetWorkspace = await getAssets(s3Client, `${fromPath}${fileName}.wml`)
         const asset = assetWorkspace.wmlQuery('').nodes()[0]
@@ -45,8 +45,8 @@ export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName
             }))
             const assetRegistryItems = assetRegistryEntries(assetWorkspace.schema())
             const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
-            const { importTree } = await importedAssetIds({ dbClient }, asset.importMap || {})
-            await dbRegister(dbClient, {
+            const { importTree } = await importedAssetIds(asset.importMap || {})
+            await dbRegister({
                 fileName: `${toPath}${fileName}.wml`,
                 translateFile: `${toPath}${fileName}.translate.json`,
                 importTree,
@@ -66,12 +66,12 @@ export const moveAsset = ({ s3Client, dbClient }) => async ({ fromPath, fileName
     })
 }
 
-const moveByAssetId = (toPath) => ({ s3Client, dbClient }) => async (AssetId) => {
-    const fullFileName = await fileNameFromAssetId({ dbClient })(AssetId)
+const moveByAssetId = (toPath) => ({ s3Client }) => async (AssetId) => {
+    const fullFileName = await fileNameFromAssetId(AssetId)
     const fromPath = `${fullFileName.split('/').slice(0, -1).join('/')}/`
     const fileName = (fullFileName.split('/').slice(-1)[0] || '').replace(/\.wml$/, '')
     if (fileName) {
-        await moveAsset({ s3Client, dbClient })({ fromPath, fileName, toPath })
+        await moveAsset({ s3Client })({ fromPath, fileName, toPath })
     }
 }
 

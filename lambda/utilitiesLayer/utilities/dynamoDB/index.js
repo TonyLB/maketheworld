@@ -1,4 +1,5 @@
 import {
+    DynamoDBClient,
     GetItemCommand,
     UpdateItemCommand,
     PutItemCommand,
@@ -15,7 +16,10 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 
-export const batchWriteDispatcher = (dbClient, { table, items }) => {
+const params = { region: process.env.AWS_REGION }
+const dbClient = new DynamoDBClient(params)
+
+export const batchWriteDispatcher = ({ table, items }) => {
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 19) {
@@ -39,7 +43,7 @@ export const batchWriteDispatcher = (dbClient, { table, items }) => {
     return Promise.all(batchPromises)
 }
 
-export const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) => {
+export const batchGetDispatcher = ({ table, items, projectionExpression }) => {
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 39) {
@@ -73,7 +77,7 @@ export const batchGetDispatcher = (dbClient, { table, items, projectionExpressio
 //
 // TODO:  Error handling to respond if the DynamoDB service throws an error
 //
-export const replaceItem = async (dbClient, item) => {
+export const replaceItem = async (item) => {
     const putItem = new PutItemCommand({
         TableName: assetsTable,
         Item: marshall(item, { removeUndefinedValues: true })
@@ -109,7 +113,6 @@ export const replaceItem = async (dbClient, item) => {
 //      made into the body of a PutItem operation
 //
 export const mergeIntoDataRange = async ({
-    dbClient,
     table,
     search: {
         DataCategory,
@@ -201,14 +204,13 @@ export const mergeIntoDataRange = async ({
                 }
             }
         })
-    await batchWriteDispatcher(dbClient, {
+    await batchWriteDispatcher({
         table: TableName,
         items: fourthPassMerging
     })
 }
 
 export const assetGetItem = async ({
-    dbClient,
     AssetId,
     DataCategory,
     ProjectionFields = ['AssetId'],
@@ -229,7 +231,6 @@ export const assetGetItem = async ({
 }
 
 export const assetQuery = async ({
-    dbClient,
     AssetId,
     ProjectionFields = ['DataCategory'],
     ExpressionAttributeNames
@@ -249,7 +250,6 @@ export const assetQuery = async ({
 }
 
 export const assetDataCategoryQuery = async ({
-    dbClient,
     DataCategory,
     AssetId,
     ProjectionFields = ['AssetId'],
@@ -279,7 +279,6 @@ export const assetDataCategoryQuery = async ({
 }
 
 export const assetScopedIdQuery = async ({
-    dbClient,
     ScopedId,
     DataCategory,
     ProjectionFields = ['AssetId'],
@@ -306,7 +305,6 @@ export const assetScopedIdQuery = async ({
 }
 
 export const assetPlayerQuery = async ({
-    dbClient,
     player,
     DataCategory,
     ProjectionFields = ['AssetId'],
@@ -333,7 +331,6 @@ export const assetPlayerQuery = async ({
 }
 
 export const updateAsset = async ({
-    dbClient,
     AssetId,
     DataCategory,
     UpdateExpression,
@@ -355,7 +352,6 @@ export const updateAsset = async ({
 }
 
 export const putAsset = async ({
-    dbClient,
     Item
 }) => {
     return await asyncSuppressExceptions(async () => {
@@ -367,7 +363,6 @@ export const putAsset = async ({
 }
 
 export const deleteAsset = async ({
-    dbClient,
     AssetId,
     DataCategory
 }) => {
@@ -383,7 +378,6 @@ export const deleteAsset = async ({
 }
 
 export const ephemeraQuery = async ({
-    dbClient,
     EphemeraId,
     ProjectionFields = ['DataCategory'],
     ExpressionAttributeNames
@@ -404,7 +398,6 @@ export const ephemeraQuery = async ({
 }
 
 export const ephemeraDataCategoryQuery = async ({
-    dbClient,
     DataCategory,
     ProjectionFields = ['EphemeraId'],
     ExpressionAttributeNames
@@ -425,7 +418,6 @@ export const ephemeraDataCategoryQuery = async ({
 }
 
 export const putEphemera = async ({
-    dbClient,
     Item
 }) => {
     return await asyncSuppressExceptions(async () => {
@@ -437,7 +429,6 @@ export const putEphemera = async ({
 }
 
 export const updateEphemera = async ({
-    dbClient,
     EphemeraId,
     DataCategory,
     UpdateExpression,

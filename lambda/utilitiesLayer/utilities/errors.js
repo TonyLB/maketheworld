@@ -1,4 +1,4 @@
-import { DEVELOPER_MODE } from '../constants.js'
+import { DEVELOPER_MODE } from './constants.js'
 
 export const asyncSuppressExceptions = async (func, defaultReturnValue = {}) => {
     if (DEVELOPER_MODE) {

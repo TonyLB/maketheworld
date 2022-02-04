@@ -477,6 +477,14 @@ Resources:
           ContentUri: lambda/perceptionLayer/
           CompatibleRuntimes:
             - nodejs14.x
+  UtilityLambdaLayer:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+          LayerName: utility-layer
+          Description: Lambda layer to import utility functions
+          ContentUri: lambda/utilitiesLayer/
+          CompatibleRuntimes:
+            - nodejs14.x
   EphemeraFunction:
       Type: AWS::Serverless::Function
       Properties:
@@ -545,6 +553,8 @@ Resources:
                   COGNITO_POOL_ID:
                     Fn::ImportValue:
                       !Sub "${PermanentsStack}-UserPoolId"
+          Layers:
+            - !Ref UtilityLambdaLayer
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -559,13 +569,6 @@ Resources:
                 Action:
                   - s3:PutObject
                   - s3:GetObject
-                Resource:
-                  Fn::Sub:
-                      - "arn:aws:s3:::${AssetBucket}/*"
-                      - AssetBucket: !Sub '${TablePrefix}-assets'
-            - Statement:
-              - Effect: Allow
-                Action:
                   - s3:DeleteObject
                 Resource:
                   Fn::Sub:

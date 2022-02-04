@@ -1,9 +1,9 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
-import { streamToString } from '../utilities/stream.js'
+import { streamToString } from '/opt/utilities/stream.js'
 import { validatedSchema } from "../wml/index.js"
 import { wmlQueryFactory } from '../wml/wmlQuery/index.js'
-import { assetGetItem } from "../utilities/dynamoDB/index.js"
-import { splitType } from "../utilities/types.js"
+import { assetGetItem } from "/opt/utilities/dynamoDB/index.js"
+import { splitType } from "/opt/utilities/types.js"
 
 const { S3_BUCKET } = process.env;
 
@@ -32,10 +32,9 @@ class AssetWorkspace {
     }
 }
 
-export const fileNameFromAssetId = ({ dbClient }) => async (AssetId) => {
+export const fileNameFromAssetId = async (AssetId) => {
     const [type] = splitType(AssetId)
     const { fileName } = await assetGetItem({
-        dbClient,
         AssetId,
         DataCategory: type === 'CHARACTER' ? 'Meta::Character' : 'Meta::Asset',
         ProjectionFields: ['fileName']
