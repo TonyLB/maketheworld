@@ -251,19 +251,28 @@ export const assetQuery = async ({
 export const assetDataCategoryQuery = async ({
     dbClient,
     DataCategory,
+    AssetId,
     ProjectionFields = ['AssetId'],
+    ExpressionAttributeValues,
+    FilterExpression,
     ExpressionAttributeNames
 }) => {
+    const KeyConditionExpression = AssetId
+        ? 'DataCategory = :dc AND AssetId = :assetId'
+        : 'DataCategory = :dc'
     return asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: assetsTable,
-            KeyConditionExpression: 'DataCategory = :dc',
+            KeyConditionExpression,
             IndexName: 'DataCategoryIndex',
             ExpressionAttributeValues: marshall({
-                ':dc': DataCategory
+                ':dc': DataCategory,
+                ...(AssetId ? { ':assetId': AssetId } : {}),
+                ...(ExpressionAttributeValues || {})
             }),
             ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
+            ...(FilterExpression ? { FilterExpression }: {})
         }))
         return Items.map(unmarshall)
     }, [])

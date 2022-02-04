@@ -1,12 +1,29 @@
 import { unmarshall } from '@aws-sdk/util-dynamodb'
 
-import { handleCharacterEvent } from './character.js'
+import { handleCharacterEvents } from './character.js'
+import { handleAssetEvents } from './asset.js'
 
-export const handleDynamoEvent = async ({ dbClient, event }) => {
-    const { eventName, dynamodb } = event
-    const oldImage = unmarshall(dynamodb.OldImage || {})
-    const newImage = unmarshall(dynamodb.NewImage || {})
-    if (newImage.DataCategory === 'Meta::Character') {
-        return await handleCharacterEvent({ dbClient, eventName, oldImage, newImage })
-    }
+//
+// TODO: Optimize Record-handling procedure for batches of multiple
+// records, so that it doesn't unnecessarily duplicate reads and
+// writes.
+//
+
+export const handleDynamoEvent = async ({ dbClient, events }) => {
+    const characterEvents = events
+        .map(({ eventName, dynamodb }) => ({
+            eventName,
+            oldImage: unmarshall(dynamodb.OldImage) || {},
+            newImage: unmarshall(dynamodb.NewImage) || {}
+        }))
+    await Promise.all([
+        handleCharacterEvents({
+            dbClient,
+            events: characterEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Character')))
+        }),
+        handleAssetEvents({
+            dbClient,
+            events: characterEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Asset')))
+        })
+    ])
 }

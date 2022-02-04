@@ -23,9 +23,6 @@ const s3Client = new S3Client(params)
 const dbClient = new DynamoDBClient(params)
 const cognitoClient = new CognitoIdentityProviderClient(params)
 
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-
 //
 // TODO: Step 3
 //
@@ -59,9 +56,11 @@ export const handler = async (event, context) => {
                 .filter(({ s3 }) => (s3))
                 .map(({ s3 }) => (s3))
                 .map(handleS3Event),
-            ...event.Records
-                .filter(({ dynamodb }) => (dynamodb))
-                .map((event) => (handleDynamoEvent({ dbClient, event })))
+            handleDynamoEvent({
+                dbClient,
+                events: event.Records
+                    .filter(({ dynamodb }) => (dynamodb))
+            })
         ])
         return JSON.stringify(`Events Processed`)
     }
