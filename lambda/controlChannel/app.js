@@ -17,8 +17,7 @@ import { splitType } from '/opt/utilities/types.js'
 import {
     publishMessage,
     ephemeraGetItem,
-    ephemeraConnectionQuery,
-    ephemeraDataCategoryQuery,
+    ephemeraQuery,
     deleteEphemera,
     putEphemera,
     updateEphemera,
@@ -40,12 +39,19 @@ const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGIO
 export const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
     const [Items, PlayerItems] = await Promise.all([
-        ephemeraConnectionQuery({
+        ephemeraQuery({
+            IndexName: 'ConnectionIndex',
             ConnectionId: connectionId,
-            EphemeraPrefix: "CHARACTERINPLAY#",
+            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+            ExpressionAttributeValues: {
+                ':EphemeraPrefix': 'CHARACTERINPLAY#'
+            },
             ProjectionFields: ['EphemeraId', 'DataCategory']
         }),
-        ephemeraDataCategoryQuery({ DataCategory })
+        ephemeraQuery({
+            IndexName: 'DataCategoryIndex',
+            DataCategory
+        })
     ])
 
     await Promise.all([
@@ -153,9 +159,17 @@ const serialize = ({
 }
 
 const fetchEphemera = async (RequestId) => {
-    const Items = await ephemeraDataCategoryQuery({
+    const Items = await ephemeraQuery({
+        IndexName: 'DataCategoryIndex',
         DataCategory: 'Connection',
-        EphemeraPrefix: 'CHARACTERINPLAY#'
+        KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+        ExpressionAttributeValues: {
+            ':EphemeraPrefix': 'CHARACTERINPLAY#'
+        },
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        },
+        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name']
     })
     const returnItems = Items
         .map(serialize)

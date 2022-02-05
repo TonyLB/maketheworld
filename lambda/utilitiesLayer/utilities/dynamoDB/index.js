@@ -299,89 +299,9 @@ export const deleteAsset = async ({
     })
 }
 
-export const ephemeraGetItem = async ({
-    EphemeraId,
-    DataCategory,
-    ProjectionFields = ['EphemeraId'],
-    ExpressionAttributeNames,
-    catchException = () => ({})
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Item = {} } = await dbClient.send(new GetItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId,
-                DataCategory
-            }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return unmarshall(Item)
-    }, catchException)
-}
+export const ephemeraGetItem = abstractGetItem(ephemeraTable)
 
-export const ephemeraQuery = async ({
-    EphemeraId,
-    ProjectionFields = ['DataCategory'],
-    ExpressionAttributeNames
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            KeyConditionExpression: 'EphemeraId = :ephemeraId',
-            ExpressionAttributeValues: marshall({
-                ':ephemeraId': EphemeraId
-            }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
-
-export const ephemeraDataCategoryQuery = async ({
-    DataCategory,
-    EphemeraPrefix,
-    ProjectionFields = ['EphemeraId'],
-    ExpressionAttributeNames
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            KeyConditionExpression: EphemeraPrefix ? 'DataCategory = :dc AND begins_with(EphemeraId, :EphemeraPrefix)' : 'DataCategory = :dc',
-            IndexName: 'DataCategoryIndex',
-            ExpressionAttributeValues: marshall({
-                ':dc': DataCategory,
-                ':EphemeraPrefix': EphemeraPrefix
-            }, { removeUndefinedValues: true }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
-
-export const ephemeraConnectionQuery = async ({
-    ConnectionId,
-    EphemeraPrefix,
-    ProjectionFields = ['EphemeraId'],
-    ExpressionAttributeNames
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraPrefix)',
-            IndexName: 'ConnectionIndex',
-            ExpressionAttributeValues: marshall({
-                ':ConnectionId': ConnectionId,
-                ':EphemeraPrefix': EphemeraPrefix
-            }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
+export const ephemeraQuery = abstractQuery(dbClient, ephemeraTable)
 
 export const putEphemera = async ({
     Item

@@ -1,8 +1,9 @@
 import { splitType } from '/opt/utilities/types.js'
-import { assetGetItem, ephemeraQuery, ephemeraDataCategoryQuery } from '/opt/utilities/dynamoDB/index.js'
+import { assetGetItem, ephemeraQuery } from '/opt/utilities/dynamoDB/index.js'
 
 export const getPlayerByConnectionId = async (connectionId) => {
-    const Items = await ephemeraDataCategoryQuery({
+    const Items = await ephemeraQuery({
+        IndexName: 'DataCategoryIndex',
         DataCategory: `CONNECTION#${connectionId}`,
     })
     const playerName = Items
@@ -22,8 +23,7 @@ export const getPlayerByConnectionId = async (connectionId) => {
 //
 export const getConnectionsByPlayerName = async (PlayerName) => {
     const Items = await ephemeraQuery({
-        EphemeraId: `PLAYER#${PlayerName}`,
-        ProjectionFields: ['DataCategory']
+        EphemeraId: `PLAYER#${PlayerName}`
     })
     const returnVal = Items
         .reduce((previous, { DataCategory }) => {

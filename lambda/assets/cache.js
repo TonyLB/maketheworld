@@ -7,7 +7,7 @@ import {
     putEphemera,
     assetGetItem,
     assetQuery,
-    ephemeraDataCategoryQuery,
+    ephemeraQuery,
     mergeIntoDataRange,
     batchGetDispatcher,
     batchWriteDispatcher
@@ -166,7 +166,8 @@ const initializeRooms = async (roomIDs) => {
     const currentRoomIds = currentRoomItems.map(({ EphemeraId }) => (EphemeraId))
     const missingRoomIds = roomIDs.filter((roomId) => (!currentRoomIds.includes(roomId)))
     if (missingRoomIds.length > 0) {
-        const charactersInPlay = await ephemeraDataCategoryQuery({
+        const charactersInPlay = await ephemeraQuery({
+            IndexName: 'DataCategoryIndex',
             DataCategory: 'Connection',
             ExpressionAttributeNames: {
                 "#name": "Name"

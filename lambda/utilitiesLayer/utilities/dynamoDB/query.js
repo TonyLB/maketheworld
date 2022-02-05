@@ -69,11 +69,14 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
         FilterExpression
     } = props
     return await asyncSuppressExceptions(async () => {
-        const ProjectionFields = passedProjectionFields || [
-            table === assetsTable && 'AssetId',
-            table === ephemeraTable && 'EphemeraId',
-            table === messageTable && 'MessageId'
-        ].filter((value) => (value))
+        const ProjectionFields = passedProjectionFields || 
+            (IndexName
+                ? [
+                    table === assetsTable && 'AssetId',
+                    table === ephemeraTable && 'EphemeraId',
+                    table === messageTable && 'MessageId'
+                ].filter((value) => (value)) 
+                : ['DataCategory'])
         const { KeyConditionExpression: baseExpression, keyId } = extractKeyInfo(
             table,
             IndexName,
