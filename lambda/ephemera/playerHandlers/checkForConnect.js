@@ -1,13 +1,13 @@
 import { healGlobalValues } from '../selfHealing/index.js'
 import { splitType } from '/opt/utilities/types.js'
-import { updateEphemera } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 export const checkForConnect = async ({ newImage }) => {
     const { EphemeraId, DataCategory } = newImage
     if (DataCategory.startsWith('CONNECTION#')) {
         const PlayerName = splitType(EphemeraId)[1]
         const ConnectionId = splitType(DataCategory)[1]
-        await updateEphemera({
+        await ephemeraDB.update({
             EphemeraId: 'Global',
             DataCategory: 'Connections',
             UpdateExpression: 'SET connections.#connection = :player',

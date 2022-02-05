@@ -4,10 +4,8 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import { wmlGrammar, dbEntries, validatedSchema } from './wml/index.js'
 import { streamToString } from '/opt/utilities/stream.js'
 import {
-    putEphemera,
-    assetGetItem,
-    assetDataCategoryQuery,
-    ephemeraDataCategoryQuery,
+    assetDB,
+    ephemeraDB,
     mergeIntoDataRange,
     batchGetDispatcher,
     batchWriteDispatcher
@@ -28,7 +26,7 @@ const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 //
 
 const fetchAssetMetaData = async (assetId) => {
-    const { fileName = '' } = await assetGetItem({
+    const { fileName = '' } = await assetDB.getItem({
         AssetId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['fileName']
@@ -61,11 +59,9 @@ const compareEntries = (current, incoming) => {
 }
 
 const pushMetaData = async (assetId) => {
-    await putEphemera({
-        Item: {
-            EphemeraId: `ASSET#${assetId}`,
-            DataCategory: 'Meta::Asset'
-        }
+    await ephemeraDB.putItem({
+        EphemeraId: `ASSET#${assetId}`,
+        DataCategory: 'Meta::Asset'
     })
 }
 
@@ -73,7 +69,8 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
     //
     // Pull scope-to-uuid mapping from Assets
     //
-    const Items = await assetDataCategoryQuery({
+    const Items = await assetDB.query({
+        IndexName: 'DataCategoryIndex',
         DataCategory: `ASSET#${assetId}`,
         ProjectionFields: ['AssetId', 'scopedId']
     })
@@ -165,7 +162,8 @@ const initializeRooms = async (roomIDs) => {
     const currentRoomIds = currentRoomItems.map(({ EphemeraId }) => (EphemeraId))
     const missingRoomIds = roomIDs.filter((roomId) => (!currentRoomIds.includes(roomId)))
     if (missingRoomIds.length > 0) {
-        const charactersInPlay = await ephemeraDataCategoryQuery({
+        const charactersInPlay = await ephemeraDB.query({
+            IndexName: 'DataCategoryIndex',
             DataCategory: 'Connection',
             ExpressionAttributeNames: {
                 "#name": "Name"

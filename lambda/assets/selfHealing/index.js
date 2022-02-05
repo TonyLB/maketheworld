@@ -5,7 +5,7 @@ import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.j
 import { importedAssetIds, assetIdsFromTree } from '../serialize/importedAssets.js'
 import { getAssets } from "../serialize/s3Assets.js"
 import { splitType } from "/opt/utilities/types.js"
-import { assetDataCategoryQuery, updateAsset } from "/opt/utilities/dynamoDB/index.js"
+import { assetDB } from "/opt/utilities/dynamoDB/index.js"
 import { asyncSuppressExceptions } from '/opt/utilities/errors.js'
 import { assetRegistryEntries } from "../wml/index.js"
 
@@ -67,7 +67,8 @@ export const healPlayers = async ({ cognitoClient }) => {
         cognitoClient.send(new ListUsersCommand({
             UserPoolId: COGNITO_POOL_ID
         })),
-        assetDataCategoryQuery({
+        assetDB.query({
+            IndexName: 'DataCategoryIndex',
             DataCategory: 'Meta::Character',
             ProjectionFields: ['AssetId', '#name', 'fileName', 'scopedId', 'player'],
             ExpressionAttributeNames: { '#name': 'Name' }
@@ -97,7 +98,7 @@ export const healPlayers = async ({ cognitoClient }) => {
         }), {})
     await Promise.all(
         userNames.map((userName) => (
-            updateAsset({
+            assetDB.update({
                 AssetId: `PLAYER#${userName}`,
                 DataCategory: 'Meta::Player',
                 UpdateExpression: "SET #code = if_not_exists(#code, :false), #characters = :characters",

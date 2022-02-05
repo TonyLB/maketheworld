@@ -1,5 +1,5 @@
 import { splitType } from '/opt/utilities/types.js'
-import { scanEphemera, putEphemera, updateEphemera, assetDataCategoryQuery, assetGetItem, assetPlayerQuery } from '/opt/utilities/dynamoDB/index.js'
+import { scanEphemera, ephemeraDB, assetDB } from '/opt/utilities/dynamoDB/index.js'
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -49,17 +49,16 @@ export const healGlobalValues = async () => {
                 .map(({ EphemeraId, DataCategory }) => ({ Player: splitType(EphemeraId)[1], Connection: splitType(DataCategory)[1]}))
                 .reduce((previous, { Player, Connection }) => ({ ...previous, [Connection]: Player }), {})
         
-            await putEphemera({
-                Item: {
-                    EphemeraId: 'Global',
-                    DataCategory: 'Connections',
-                    connections: connectionMap
-                }
+            await ephemeraDB.putItem({
+                EphemeraId: 'Global',
+                DataCategory: 'Connections',
+                connections: connectionMap
             })
         }
 
         const healGlobalAssets = async () => {
-            const Items = await assetDataCategoryQuery({
+            const Items = await assetDB.query({
+                IndexName: 'DataCategoryIndex',
                 DataCategory: 'Meta::Asset',
                 FilterExpression: "#zone = :canon",
                 ExpressionAttributeNames: {
@@ -75,7 +74,7 @@ export const healGlobalValues = async () => {
                 .filter(({ AssetId }) => (AssetId))
                 .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
             const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
-            await updateEphemera({
+            await ephemeraDB.update({
                 EphemeraId: 'Global',
                 DataCategory: 'Assets',
                 UpdateExpression: `SET assets = :assets`,
@@ -98,7 +97,7 @@ export const healGlobalValues = async () => {
 
 export const healCharacter = async (CharacterId) => {
     try {
-        const { Item } = await assetGetItem({
+        const { Item } = await assetDB.getItem({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['player', '#Name', 'HomeId'],
@@ -111,11 +110,12 @@ export const healCharacter = async (CharacterId) => {
             if (Item) {
                 const { player } = Item
                 if (player) {
-                    const Items = await assetPlayerQuery({
-                        KeyConditionExpression: "player = :player AND DataCategory = :dc",
+                    const Items = await assetDB.query({
+                        IndexName: 'PlayerIndex',
+                        player,
+                        KeyConditionExpression: "DataCategory = :dc",
                         ExpressionAttributeValues: {
-                            ":dc": `Meta::Asset`,
-                            ":player": player
+                            ":dc": `Meta::Asset`
                         },
                         ProjectionFields: ['AssetId', 'importTree']
                     })
@@ -133,7 +133,7 @@ export const healCharacter = async (CharacterId) => {
             if (Item) {
                 const { Name, HomeId } = Item
                 const personalAssets = await healPersonalAssetList()
-                await updateEphemera({
+                await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Connection',
                     UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false)`,

@@ -1,5 +1,5 @@
 import { splitType } from "/opt/utilities/types.js"
-import { updateEphemera, assetDataCategoryQuery, assetPlayerQuery } from "/opt/utilities/dynamoDB/index.js"
+import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -34,7 +34,8 @@ const sortImportTree = (tree, currentList = []) => {
 }
 
 export const healGlobalValues = async () => {
-    const Items = await assetDataCategoryQuery({
+    const Items = await assetDB.query({
+        IndexName: 'DataCategoryIndex',
         DataCategory: 'Meta::Asset',
         FilterExpression: "#zone = :canon",
         ExpressionAttributeNames: {
@@ -50,7 +51,7 @@ export const healGlobalValues = async () => {
         .filter(({ AssetId }) => (AssetId))
         .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
     const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
-    await updateEphemera({
+    await ephemeraDB.update({
         EphemeraId: 'Global',
         DataCategory: 'Assets',
         UpdateExpression: `SET assets = :assets`,
@@ -65,26 +66,26 @@ const healPersonalAssets = async ({ PlayerName }) => {
     if (!PlayerName) {
         return
     }
-    const [personalAssetQueryContents, characters] = await Promise.all([
-        assetPlayerQuery({
-            player: PlayerName,
-            DataCategory: 'Meta::Asset',
-            ProjectionFields: ['AssetId', 'importTree']
-        }),
-        assetPlayerQuery({
-            player: PlayerName,
-            DataCategory: 'Meta::Character'
-        })
-    ])
-    const personalAssetEntries = personalAssetQueryContents
+
+    const queryItems = await assetDB.query({
+        IndexName: 'PlayerIndex',
+        player: PlayerName,
+        ProjectionFields: ['DataCategory', 'AssetId', 'importTree']
+    })
+
+    const personalAssetEntries = queryItems
+        .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
         .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
         .filter(({ AssetId }) => (AssetId))
         .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
     const personalAssets = sortImportTree(Object.assign({}, ...personalAssetEntries))
 
+    const characters = queryItems
+        .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
+
     await Promise.all(
         characters.map(({ AssetId }) => (
-            updateEphemera({
+            ephemeraDB.update({
                 EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
                 DataCategory: 'Connection',
                 UpdateExpression: `SET assets = :assets`,

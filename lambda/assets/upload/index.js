@@ -10,12 +10,12 @@ import { dbRegister } from '../serialize/dbRegister.js'
 import { splitType } from '/opt/utilities/types.js'
 import { assetRegistryEntries } from "../wml/index.js"
 
-import { ephemeraQuery, putAsset, assetQuery, deleteAsset } from "/opt/utilities/dynamoDB/index.js"
+import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
 
 const { S3_BUCKET } = process.env;
 
 const getConnectionsByPlayerName = async (PlayerName) => {
-    const Items = await ephemeraQuery({
+    const Items = await ephemeraDB.query({
         EphemeraId: `PLAYER#${PlayerName}`
     })
     
@@ -42,12 +42,10 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
     })
     const [presignedOutput] = await Promise.all([
         getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-        putAsset({
-            Item: {
-                AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
-                DataCategory: `PLAYER#${PlayerName}`,
-                RequestId
-            }
+        assetDB.putItem({
+            AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
+            DataCategory: `PLAYER#${PlayerName}`,
+            RequestId
         })
     ])
     return presignedOutput
@@ -58,7 +56,7 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
 // subscribed to know when it finishes processing.
 //
 const uploadResponse = ({ apiClient }) => async ({ uploadId, ...rest }) => {
-    const Items = await assetQuery({
+    const Items = await assetDB.query({
         AssetId: `UPLOAD#${uploadId}`,
         ProjectionFields: ['DataCategory', 'RequestId']
     })
@@ -76,7 +74,7 @@ const uploadResponse = ({ apiClient }) => async ({ uploadId, ...rest }) => {
                             RequestId
                         })
                     })).then(() => (
-                        deleteAsset({
+                        assetDB.deleteItem({
                             AssetId: `UPLOAD#${uploadId}`,
                             DataCategory: `PLAYER#${PlayerName}`
                         })

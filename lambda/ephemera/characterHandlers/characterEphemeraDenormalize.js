@@ -1,5 +1,5 @@
 import { splitType } from '/opt/utilities/types.js'
-import { updateEphemera } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 //
 // Accepts character information, a room, and whether they are active, inactive, or neither
@@ -33,7 +33,7 @@ export const characterEphemeraDenormalize = async ({
         ...(removeString ? [`REMOVE ${removeString}`] : [])
     ].join(' ')
 
-    return await updateEphemera({
+    return await ephemeraDB.update({
         EphemeraId: `ROOM#${RoomId}`,
         DataCategory: 'Meta::Room',
         UpdateExpression,

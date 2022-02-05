@@ -16,13 +16,8 @@ import { render } from '/opt/perception/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import {
     publishMessage,
-    ephemeraGetItem,
-    ephemeraConnectionQuery,
-    ephemeraDataCategoryQuery,
-    deleteEphemera,
-    putEphemera,
-    updateEphemera,
-    assetGetItem
+    ephemeraDB,
+    assetDB
 } from '/opt/utilities/dynamoDB/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
@@ -40,18 +35,25 @@ const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGIO
 export const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
     const [Items, PlayerItems] = await Promise.all([
-        ephemeraConnectionQuery({
+        ephemeraDB.query({
+            IndexName: 'ConnectionIndex',
             ConnectionId: connectionId,
-            EphemeraPrefix: "CHARACTERINPLAY#",
+            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+            ExpressionAttributeValues: {
+                ':EphemeraPrefix': 'CHARACTERINPLAY#'
+            },
             ProjectionFields: ['EphemeraId', 'DataCategory']
         }),
-        ephemeraDataCategoryQuery({ DataCategory })
+        ephemeraDB.query({
+            IndexName: 'DataCategoryIndex',
+            DataCategory
+        })
     ])
 
     await Promise.all([
         ...(PlayerItems
             .map(({ EphemeraId }) => (
-                deleteEphemera({
+                ephemeraDB.deleteItem({
                     EphemeraId,
                     DataCategory
                 })
@@ -59,7 +61,7 @@ export const disconnect = async (connectionId) => {
         ),
         ...(Items
             .map(({ EphemeraId, DataCategory }) => (
-                updateEphemera({
+                ephemeraDB.update({
                     EphemeraId,
                     DataCategory,
                     UpdateExpression: 'SET Connected = :false REMOVE ConnectionId',
@@ -82,11 +84,9 @@ export const connect = async (connectionId, token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
-        await putEphemera({
-            Item: {
-                EphemeraId: `PLAYER#${userName}`,
-                DataCategory: `CONNECTION#${connectionId}`
-            }
+        await ephemeraDB.putItem({
+            EphemeraId: `PLAYER#${userName}`,
+            DataCategory: `CONNECTION#${connectionId}`
         })
     
         return { statusCode: 200 }
@@ -101,7 +101,7 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
     // and check before registering the character whether you need to cache any
     // as-yet uncached assets in order to support them.
     //
-    const { Name = '', HomeId = '' } = await assetGetItem({
+    const { Name = '', HomeId = '' } = await assetDB.getItem({
         AssetId: `CHARACTER#${CharacterId}`,
         DataCategory: 'Meta::Character',
         ProjectionFields: ['#name', 'HomeId'],
@@ -110,7 +110,7 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
         }    
     })
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await updateEphemera({
+    await ephemeraDB.update({
         EphemeraId,
         DataCategory: 'Connection',
         UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
@@ -153,9 +153,17 @@ const serialize = ({
 }
 
 const fetchEphemera = async (RequestId) => {
-    const Items = await ephemeraDataCategoryQuery({
+    const Items = await ephemeraDB.query({
+        IndexName: 'DataCategoryIndex',
         DataCategory: 'Connection',
-        EphemeraPrefix: 'CHARACTERINPLAY#'
+        KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+        ExpressionAttributeValues: {
+            ':EphemeraPrefix': 'CHARACTERINPLAY#'
+        },
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        },
+        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name']
     })
     const returnItems = Items
         .map(serialize)
@@ -197,7 +205,7 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const { RoomId, Name } = await ephemeraGetItem({
+    const { RoomId, Name } = await ephemeraDB.getItem({
         EphemeraId,
         DataCategory: 'Connection',
         ProjectionFields: ['RoomId', '#name'],
@@ -227,7 +235,7 @@ const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
     // TODO: Validate the RoomId as one that is valid for the character to move to, before
     // pushing data to the DB.
     //
-    await updateEphemera({
+    await ephemeraDB.update({
         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
         DataCategory: 'Connection',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
@@ -241,7 +249,7 @@ const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
 
 const goHome = async ({ CharacterId } = {}) => {
 
-    const { HomeId = 'VORTEX' } = await assetGetItem({
+    const { HomeId = 'VORTEX' } = await assetDB.getItem({
         AssetId: `CHARACTER#${CharacterId}`,
         DataCategory: 'Meta::Character',
         ProjectionFields: ['HomeId']
@@ -250,7 +258,7 @@ const goHome = async ({ CharacterId } = {}) => {
     // TODO: Validate that the home RoomID is still a valid destination
     //
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await updateEphemera({
+    await ephemeraDB.update({
         EphemeraId,
         DataCategory: 'Connection',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',

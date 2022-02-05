@@ -1,14 +1,14 @@
 import { splitType } from '/opt/utilities/types.js'
-import { ephemeraGetItem, ephemeraQuery } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 const getCurrentRoom = async (CharacterId) => {
-    const { RoomId } = await ephemeraGetItem({
+    const { RoomId } = await ephemeraDB.getItem({
         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
         DataCategory: 'Connection',
         ProjectionFields: ['RoomId']
     })
     if (RoomId) {
-        const Items = await ephemeraQuery({
+        const Items = await ephemeraDB.query({
             EphemeraId: `ROOM#${RoomId}`,
             ProjectionFields: ['DataCategory', 'exits', 'activeCharacters']
         })

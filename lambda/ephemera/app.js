@@ -10,7 +10,7 @@ import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
-import { ephemeraGetItem } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -18,7 +18,7 @@ const apiClient = new ApiGatewayManagementApiClient({
 })
 
 const postRecords = async (Records) => {
-    const { connections } = await ephemeraGetItem({
+    const { connections } = await ephemeraDB.getItem({
         EphemeraId: 'Global',
         DataCategory: 'Connections',
         ProjectionFields: ['connections'],
