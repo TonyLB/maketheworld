@@ -613,6 +613,8 @@ Resources:
               Variables:
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
                   TABLE_PREFIX: !Ref TablePrefix
+          Layers:
+            - !Ref UtilityLambdaLayer
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_messages'

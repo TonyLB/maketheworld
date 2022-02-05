@@ -1,83 +1,17 @@
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { DynamoDBClient, BatchWriteItemCommand, BatchGetItemCommand } from '@aws-sdk/client-dynamodb'
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
-const REGION = process.env.AWS_REGION
+import { splitType } from '/opt/utilities/types.js'
+import { batchGetDispatcher, batchWriteDispatcher } from '/opt/utilities/dynamoDB/index.js'
+
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
     endpoint: process.env.WEBSOCKET_API
 })
-const dbClient = new DynamoDBClient({ region: REGION })
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
 const deltaTable = `${process.env.TABLE_PREFIX}_message_delta`
 const ephemeraTable = `${process.env.TABLE_PREFIX}_ephemera`
-
-const splitType = (value) => {
-    const sections = value.split('#')
-    if (sections.length) {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-    else {
-        return ['', '']
-    }
-}
-
-const batchDispatcher = ({ table, items }) => {
-    const groupBatches = items.reduce((({ current, requestLists }, item) => {
-            if (current.length > 19) {
-                return {
-                    requestLists: [ ...requestLists, current ],
-                    current: [item]
-                }
-            }
-            else {
-                return {
-                    requestLists,
-                    current: [...current, item]
-                }
-            }
-        }), { current: [], requestLists: []})
-    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
-        .filter((itemList) => (itemList.length))
-        .map((itemList) => (dbClient.send(new BatchWriteItemCommand({ RequestItems: {
-            [table]: itemList
-        } }))))
-    return Promise.all(batchPromises)
-}
-
-const batchGetDispatcher = (dbClient, { table, items, projectionExpression }) => {
-    const groupBatches = items
-        .reduce((({ current, requestLists }, item) => {
-            if (current.length > 39) {
-                return {
-                    requestLists: [ ...requestLists, current ],
-                    current: [item]
-                }
-            }
-            else {
-                return {
-                    requestLists,
-                    current: [...current, item]
-                }
-            }
-        }), { current: [], requestLists: []})
-    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
-        .filter((itemList) => (itemList.length))
-        .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
-            [table]: {
-                Keys: itemList,
-                ProjectionExpression: projectionExpression
-            }
-        } }))))
-    return Promise.all(batchPromises)
-        .then((outcomes) => (outcomes.reduce((previous, { Responses }) => {
-            if (Responses && Responses[table]) {
-                return Responses[table].map(unmarshall).reduce((accumulate, item) => ([...accumulate, item]), previous)
-            }
-            return previous
-        }, [])))
-}
 
 export const handler = async (event, context) => {
     const { action, Records } = event
@@ -128,7 +62,7 @@ export const handler = async (event, context) => {
             //
             let resolvedTargetMap = { }
             if (Object.keys(roomTargets).length) {
-                const roomEphemera = await batchGetDispatcher(dbClient, {
+                const roomEphemera = await batchGetDispatcher({
                     table: ephemeraTable,
                     items: Object.values(roomTargets)
                         .map(({ id }) => (marshall({
@@ -162,7 +96,7 @@ export const handler = async (event, context) => {
             // targets
             //
             if (Object.keys(characterTargets).find((id) => (resolvedTargetMap[`CHARACTER#${id}`] === undefined))) {
-                const characterEphemera = await batchGetDispatcher(dbClient, {
+                const characterEphemera = await batchGetDispatcher({
                     table: ephemeraTable,
                     items: Object.keys(characterTargets)
                         .map((id) => (marshall({
@@ -257,8 +191,8 @@ export const handler = async (event, context) => {
                     }))))
             )
             await Promise.all([
-                batchDispatcher({ table: messageTable, items: messageItems }),
-                batchDispatcher({ table: deltaTable, items: deltaItems }),
+                batchWriteDispatcher({ table: messageTable, items: messageItems }),
+                batchWriteDispatcher({ table: deltaTable, items: deltaItems }),
                 broadcastPromise
             ])
         }
