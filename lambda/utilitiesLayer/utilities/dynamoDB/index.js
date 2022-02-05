@@ -12,6 +12,7 @@ import {
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import { asyncSuppressExceptions } from '../errors.js'
+import { abstractQuery } from './query.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -76,17 +77,6 @@ export const batchGetDispatcher = async ({ table, items, projectionExpression })
             ...previous,
             ...(Responses[table] || []).map(unmarshall)
         ]}, [])
-}
-
-//
-// TODO:  Error handling to respond if the DynamoDB service throws an error
-//
-export const replaceItem = async (item) => {
-    const putItem = new PutItemCommand({
-        TableName: assetsTable,
-        Item: marshall(item, { removeUndefinedValues: true })
-    })
-    await dbClient.send(putItem)
 }
 
 //
@@ -214,19 +204,29 @@ export const mergeIntoDataRange = async ({
     })
 }
 
-export const assetGetItem = async ({
+const abstractGetItem = (table) => async ({
     AssetId,
+    EphemeraId,
+    MessageId,
     DataCategory,
-    ProjectionFields = ['AssetId'],
+    ProjectionFields = [
+        table === assetsTable
+            ? 'AssetId'
+            : table === ephemeraTable
+                ? 'EphemeraId'
+                : 'MessageId'
+    ],
     ExpressionAttributeNames
 }) => {
     return await asyncSuppressExceptions(async () => {
         const { Item = {} } = await dbClient.send(new GetItemCommand({
-            TableName: assetsTable,
+            TableName: table,
             Key: marshall({
                 AssetId,
+                EphemeraId,
+                MessageId,
                 DataCategory
-            }),
+            }, { removeUndefinedValues: true }),
             ProjectionExpression: ProjectionFields.join(', '),
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
@@ -234,105 +234,9 @@ export const assetGetItem = async ({
     })
 }
 
-export const assetQuery = async ({
-    AssetId,
-    ProjectionFields = ['DataCategory'],
-    ExpressionAttributeNames
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: assetsTable,
-            KeyConditionExpression: 'AssetId = :assetId',
-            ExpressionAttributeValues: marshall({
-                ':assetId': AssetId
-            }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
+export const assetGetItem = abstractGetItem(assetsTable)
 
-export const assetDataCategoryQuery = async ({
-    DataCategory,
-    AssetId,
-    ProjectionFields = ['AssetId'],
-    ExpressionAttributeValues,
-    FilterExpression,
-    ExpressionAttributeNames
-}) => {
-    const KeyConditionExpression = AssetId
-        ? 'DataCategory = :dc AND AssetId = :assetId'
-        : 'DataCategory = :dc'
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: assetsTable,
-            KeyConditionExpression,
-            IndexName: 'DataCategoryIndex',
-            ExpressionAttributeValues: marshall({
-                ':dc': DataCategory,
-                ...(AssetId ? { ':assetId': AssetId } : {}),
-                ...(ExpressionAttributeValues || {})
-            }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
-            ...(FilterExpression ? { FilterExpression }: {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
-
-export const assetScopedIdQuery = async ({
-    ScopedId,
-    DataCategory,
-    ProjectionFields = ['AssetId'],
-    ExpressionAttributeNames
-}) => {
-    const KeyConditionExpression = DataCategory
-        ? 'scopedId = :scopedId AND DataCategory = :dc'
-        : 'scopedId = :scopedId'
-    
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: assetsTable,
-            KeyConditionExpression,
-            IndexName: 'ScopedIdIndex',
-            ExpressionAttributeValues: marshall({
-                ':scopedId': ScopedId,
-                ...(DataCategory ? { ':dc': DataCategory } : {})
-            }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
-
-export const assetPlayerQuery = async ({
-    player,
-    DataCategory,
-    ProjectionFields = ['AssetId'],
-    ExpressionAttributeNames
-}) => {
-    const KeyConditionExpression = DataCategory
-        ? 'player = :player AND DataCategory = :dc'
-        : 'player = :player'
-    
-    return await asyncSuppressExceptions(async () => {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: assetsTable,
-            KeyConditionExpression,
-            IndexName: 'PlayerIndex',
-            ExpressionAttributeValues: marshall({
-                ':player': player,
-                ':dc': DataCategory
-            }, { removeUndefinedValues: true }),
-            ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        }))
-        return Items.map(unmarshall)
-    }, () => ([]))
-}
+export const assetQuery = abstractQuery(dbClient, assetsTable)
 
 export const updateAsset = async ({
     AssetId,
@@ -354,6 +258,20 @@ export const updateAsset = async ({
         }))
     })
 }
+
+const abstractPutItem = (table) => async (item) => {
+    return await asyncSuppressExceptions(async () => {
+        await dbClient.send(new PutItemCommand({
+            TableName: table,
+            Item: marshall(item, { removeUndefinedValues: true })
+        }))
+    })
+}
+
+//
+// TODO:  Error handling to respond if the DynamoDB service throws an error
+//
+export const replaceItem = abstractPutItem(assetsTable)
 
 export const putAsset = async ({
     Item

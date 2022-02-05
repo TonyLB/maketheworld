@@ -6,7 +6,7 @@ import { streamToString } from '/opt/utilities/stream.js'
 import {
     putEphemera,
     assetGetItem,
-    assetDataCategoryQuery,
+    assetQuery,
     ephemeraDataCategoryQuery,
     mergeIntoDataRange,
     batchGetDispatcher,
@@ -73,7 +73,8 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
     //
     // Pull scope-to-uuid mapping from Assets
     //
-    const Items = await assetDataCategoryQuery({
+    const Items = await assetQuery({
+        IndexName: 'DataCategoryIndex',
         DataCategory: `ASSET#${assetId}`,
         ProjectionFields: ['AssetId', 'scopedId']
     })

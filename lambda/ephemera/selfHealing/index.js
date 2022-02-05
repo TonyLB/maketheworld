@@ -1,5 +1,5 @@
 import { splitType } from '/opt/utilities/types.js'
-import { scanEphemera, putEphemera, updateEphemera, assetDataCategoryQuery, assetGetItem, assetPlayerQuery } from '/opt/utilities/dynamoDB/index.js'
+import { scanEphemera, putEphemera, updateEphemera, assetGetItem, assetQuery } from '/opt/utilities/dynamoDB/index.js'
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -59,7 +59,8 @@ export const healGlobalValues = async () => {
         }
 
         const healGlobalAssets = async () => {
-            const Items = await assetDataCategoryQuery({
+            const Items = await assetQuery({
+                IndexName: 'DataCategoryIndex',
                 DataCategory: 'Meta::Asset',
                 FilterExpression: "#zone = :canon",
                 ExpressionAttributeNames: {
@@ -111,11 +112,12 @@ export const healCharacter = async (CharacterId) => {
             if (Item) {
                 const { player } = Item
                 if (player) {
-                    const Items = await assetPlayerQuery({
-                        KeyConditionExpression: "player = :player AND DataCategory = :dc",
+                    const Items = await assetQuery({
+                        IndexName: 'PlayerIndex',
+                        player,
+                        KeyConditionExpression: "DataCategory = :dc",
                         ExpressionAttributeValues: {
-                            ":dc": `Meta::Asset`,
-                            ":player": player
+                            ":dc": `Meta::Asset`
                         },
                         ProjectionFields: ['AssetId', 'importTree']
                     })
