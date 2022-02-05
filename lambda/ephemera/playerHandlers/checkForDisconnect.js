@@ -25,7 +25,7 @@ export const checkForDisconnect = async (dbClient, { oldImage }) => {
             await dbClient.send(updateCommand)
         }
         catch {
-            await healGlobalValues(dbClient)
+            await healGlobalValues()
             await dbClient.send(updateCommand)
         }
     }

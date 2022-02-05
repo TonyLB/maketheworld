@@ -38,7 +38,7 @@ const postRecords = async (Records) => {
         connections = unmarshall(Item).connections
     }
     catch(e) {
-        connections = await healGlobalValues(dbClient)
+        connections = await healGlobalValues()
     }
     //
     // TODO: Filter Records to find the types of records we should report back to the users as
@@ -163,11 +163,11 @@ export const handler = async (event, context) => {
         switch(action) {
             
             case 'healGlobal':
-                await healGlobalValues(dbClient)
+                await healGlobalValues()
                 break;
 
             case 'heal':
-                await healCharacter(dbClient, event.CharacterId)
+                await healCharacter(event.CharacterId)
                 break;
 
             default:

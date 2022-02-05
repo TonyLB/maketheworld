@@ -6,7 +6,8 @@ import {
     DeleteItemCommand,
     QueryCommand,
     BatchWriteItemCommand,
-    BatchGetItemCommand
+    BatchGetItemCommand,
+    ScanCommand
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -445,6 +446,23 @@ export const updateEphemera = async ({
             UpdateExpression,
             ExpressionAttributeValues: marshall(ExpressionAttributeValues),
             ExpressionAttributeNames
+        }))
+    }, {})
+}
+
+export const scanEphemera = async ({
+    FilterExpression,
+    ExpressionAttributeValues,
+    ExpressionAttributeNames,
+    ProjectionFields = ['EphemeraId']
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        await dbClient.send(new ScanCommand({
+            TableName: ephemeraTable,
+            FilterExpression,
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ExpressionAttributeNames,
+            ProjectionExpression: ProjectionFields.join(', '),
         }))
     }, {})
 }
