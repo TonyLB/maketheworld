@@ -145,7 +145,7 @@ const dispatchRecords = (Records) => {
     // figure out what records need to be forwarded as Ephemera updates to whom.
     //
     return Promise.all([
-        ...characterRecords.map(processCharacterEvent(dbClient)),
+        ...characterRecords.map(processCharacterEvent),
         ...playerRecords.map(processPlayerEvent({ dbClient })),
         postRecords(Records)
     ])

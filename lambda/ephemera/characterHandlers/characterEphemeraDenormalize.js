@@ -1,17 +1,11 @@
-import { marshall } from '@aws-sdk/util-dynamodb'
-import { UpdateItemCommand } from '@aws-sdk/client-dynamodb'
-
 import { splitType } from '/opt/utilities/types.js'
-
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
+import { updateEphemera } from '/opt/utilities/dynamoDB/index.js'
 
 //
 // Accepts character information, a room, and whether they are active, inactive, or neither
 // in that room.  Returns the promise to send that update to the Ephemera table.
 //
-export const characterEphemeraDenormalize = ({
-    dbClient,
+export const characterEphemeraDenormalize = async ({
     RoomId,
     EphemeraId,
     Name,
@@ -39,26 +33,22 @@ export const characterEphemeraDenormalize = ({
         ...(removeString ? [`REMOVE ${removeString}`] : [])
     ].join(' ')
 
-    const updateArguments = {
-        TableName: ephemeraTable,
-        Key: marshall({
-            EphemeraId: `ROOM#${RoomId}`,
-            DataCategory: 'Meta::Room'
-        }),
+    return await updateEphemera({
+        EphemeraId: `ROOM#${RoomId}`,
+        DataCategory: 'Meta::Room',
         UpdateExpression,
         ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
         ExpressionAttributeNames: { "#characterId": EphemeraId },
         ...((isActive || isInactive)
             ? {
-                ExpressionAttributeValues: marshall({
+                ExpressionAttributeValues: {
                     ':character': { EphemeraId, Name, Color: temporaryColor, ConnectionId }
-                }, { removeUndefinedValues: true })
+                }
             } 
             : {}
         ),
         ...(returnValues ? { ReturnValues: 'ALL_NEW' } : {})
-    }
-    return dbClient.send(new UpdateItemCommand(updateArguments))
+    })
 }
 
 export default characterEphemeraDenormalize

@@ -16,6 +16,7 @@ import { asyncSuppressExceptions } from '../errors.js'
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
+const messageTable = `${TABLE_PREFIX}_messages`
 
 const params = { region: process.env.AWS_REGION }
 const dbClient = new DynamoDBClient(params)
@@ -346,7 +347,7 @@ export const updateAsset = async ({
                 DataCategory
             }),
             UpdateExpression,
-            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }),
             ExpressionAttributeNames
         }))
     }, {})
@@ -358,7 +359,7 @@ export const putAsset = async ({
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
             TableName: assetsTable,
-            Item: marshall(Item)
+            Item: marshall(Item, { removeUndefinedValues: true })
         }))
     }, {})
 }
@@ -437,16 +438,17 @@ export const updateEphemera = async ({
     ExpressionAttributeValues
 }) => {
     return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new UpdateItemCommand({
+        const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
                 EphemeraId,
                 DataCategory
             }),
             UpdateExpression,
-            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }),
             ExpressionAttributeNames
         }))
+        return unmarshall(Attributes)
     }, {})
 }
 
@@ -454,15 +456,29 @@ export const scanEphemera = async ({
     FilterExpression,
     ExpressionAttributeValues,
     ExpressionAttributeNames,
-    ProjectionFields = ['EphemeraId']
+    ProjectionFields = ['EphemeraId'],
+    ReturnValues
 }) => {
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new ScanCommand({
             TableName: ephemeraTable,
             FilterExpression,
-            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }),
             ExpressionAttributeNames,
             ProjectionExpression: ProjectionFields.join(', '),
+            ReturnValues
+        }))
+    }, {})
+}
+
+export const publishMessage = async (Item) => {
+    return await asyncSuppressExceptions(async () => {
+        await dbClient.send(new PutItemCommand({
+            TableName: messageTable,
+            Item: marshall({
+                DataCategory: 'Meta::Message',
+                ...Item
+            })
         }))
     }, {})
 }

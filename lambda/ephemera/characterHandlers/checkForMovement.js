@@ -1,17 +1,12 @@
-import { marshall } from '@aws-sdk/util-dynamodb'
-import { UpdateItemCommand, PutItemCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 
 import { splitType } from '/opt/utilities/types.js'
 import { render } from '/opt/perception/index.js'
 import publishRoomUpdate from './publishRoomUpdate.js'
 import characterEphemeraDenormalize from './characterEphemeraDenormalize.js'
+import { publishMessage } from '/opt/utilities/dynamoDB/index.js'
 
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const messageTable = `${TABLE_PREFIX}_messages`
-
-export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
+export const checkForMovement = async ({ oldImage, newImage }) => {
     if (newImage.Connected === oldImage.Connected && newImage.RoomId !== oldImage.RoomId) {
         const epochTime = Date.now()
         if (newImage.Connected) {
@@ -21,57 +16,47 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                 const { RoomId: oldRoomId } = oldImage
                 const { leaveMessage, enterMessage, RoomId: newRoomId } = newImage
                 const departure = oldRoomId
-                        ? [{
+                    ? () => (publishMessage({
                             MessageId: `MESSAGE#${uuidv4()}`,
-                            DataCategory: 'Meta::Message',
                             CreatedTime: epochTime - 1,
                             Targets: [`CHARACTER#${CharacterId}`, `ROOM#${oldRoomId}`],
                             DisplayProtocol: "WorldMessage",
                             Message: `${Name}${leaveMessage || ' has left.'}`
-                        }]
-                        : []
+                        }))
+                    : () => (Promise.resolve({}))
                 const arrival = newRoomId
-                        ? [{
+                    ? () => (publishMessage({
                             MessageId: `MESSAGE#${uuidv4()}`,
-                            DataCategory: 'Meta::Message',
                             CreatedTime: epochTime + 1,
                             Targets: [`CHARACTER#${CharacterId}`, `ROOM#${newRoomId}`],
                             DisplayProtocol: "WorldMessage",
                             Message: `${Name}${enterMessage || ' has arrived.'}`
-                        }]
-                        : []
+                        }))
+                    : () => (Promise.resolve({}))
                 if (newRoomId) {
                     const roomMessage = await render({
                         CharacterId,
                         assets: ['TEST'],
                         EphemeraId: `ROOM#${newRoomId}`,
                     })
-                    await dbClient.send(new BatchWriteItemCommand({ RequestItems: {
-                        [messageTable]: [
-                            ...arrival,
-                            {
-                                MessageId: `MESSAGE#${uuidv4()}`,
-                                CreatedTime: epochTime,
-                                Targets: [`CHARACTER#${CharacterId}`],
-                                DataCategory: 'Meta::Message',
-                                DisplayProtocol: 'RoomHeader',
-                                ...roomMessage
-                            },
-                            ...departure
-                        ].map((message) => ({
-                            PutRequest: { Item: marshall(message) }
-                        }))
-                    }}))
+                    await Promise.all([
+                        arrival(),
+                        departure(),
+                        publishMessage({
+                            MessageId: `MESSAGE#${uuidv4()}`,
+                            CreatedTime: epochTime,
+                            Targets: [`CHARACTER#${CharacterId}`],
+                            DisplayProtocol: 'RoomHeader',
+                            ...roomMessage
+                        })
+                    ])
                 }
                 else {
                     //
                     // Somehow the character is moving to nowhere, so publish the departure message.
                     //
                     if (departureMessage.length) {
-                        await dbClient.send(new PutItemCommand({
-                            TableName: messageTable,
-                            Item: departureMessage[0]
-                        }))    
+                        await departure()
                     }
                 }
             }
@@ -81,14 +66,12 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                     const CharacterId = splitType(EphemeraId)[1]
                     // try {
                         await characterEphemeraDenormalize({
-                            dbClient,
                             EphemeraId,
                             RoomId,
                             isActive: false,
                             isInactive: false,
                             returnValues: true
                         }).then(publishRoomUpdate({
-                            dbClient,
                             notCharacterId: CharacterId,
                             epochTime: epochTime + 2,
                             RoomId
@@ -105,7 +88,6 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                     const CharacterId = splitType(EphemeraId)[1]
                     // try {
                         await characterEphemeraDenormalize({
-                            dbClient,
                             RoomId,
                             EphemeraId,
                             Name,
@@ -115,7 +97,6 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                             isInactive: false,
                             returnValues: true
                         }).then(publishRoomUpdate({
-                            dbClient,
                             notCharacterId: CharacterId,
                             epochTime: epochTime + 2,
                             RoomId
@@ -141,7 +122,6 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                 if (RoomId) {
                     try {
                         await characterEphemeraDenormalize({
-                            dbClient,
                             RoomId,
                             EphemeraId,
                             isActive: false,
@@ -158,7 +138,6 @@ export const checkForMovement = async (dbClient, { oldImage, newImage }) => {
                 if (RoomId) {
                     try {
                         await characterEphemeraDenormalize({
-                            dbClient,
                             RoomId,
                             EphemeraId,
                             Name,
