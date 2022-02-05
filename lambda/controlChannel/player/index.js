@@ -1,8 +1,8 @@
 import { splitType } from '/opt/utilities/types.js'
-import { assetGetItem, ephemeraQuery } from '/opt/utilities/dynamoDB/index.js'
+import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 export const getPlayerByConnectionId = async (connectionId) => {
-    const Items = await ephemeraQuery({
+    const Items = await ephemeraDB.query({
         IndexName: 'DataCategoryIndex',
         DataCategory: `CONNECTION#${connectionId}`,
     })
@@ -22,7 +22,7 @@ export const getPlayerByConnectionId = async (connectionId) => {
 // well as a connections array of the currently active lifeLine connections
 //
 export const getConnectionsByPlayerName = async (PlayerName) => {
-    const Items = await ephemeraQuery({
+    const Items = await ephemeraDB.query({
         EphemeraId: `PLAYER#${PlayerName}`
     })
     const returnVal = Items
@@ -39,7 +39,7 @@ export const getConnectionsByPlayerName = async (PlayerName) => {
 export const whoAmI = async (connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(connectionId)
     if (username) {
-        const { Characters, CodeOfConductConsent } = await assetGetItem({
+        const { Characters, CodeOfConductConsent } = await assetDB.getItem({
             AssetId: `PLAYER#${username}`,
             DataCategory: 'Meta::Player',
             ProjectionFields: ['Characters', 'CodeOfConductConsent']

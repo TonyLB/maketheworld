@@ -1,5 +1,5 @@
 import { splitType } from "/opt/utilities/types.js"
-import { updateEphemera, assetQuery } from "/opt/utilities/dynamoDB/index.js"
+import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -34,7 +34,7 @@ const sortImportTree = (tree, currentList = []) => {
 }
 
 export const healGlobalValues = async () => {
-    const Items = await assetQuery({
+    const Items = await assetDB.query({
         IndexName: 'DataCategoryIndex',
         DataCategory: 'Meta::Asset',
         FilterExpression: "#zone = :canon",
@@ -51,7 +51,7 @@ export const healGlobalValues = async () => {
         .filter(({ AssetId }) => (AssetId))
         .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
     const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
-    await updateEphemera({
+    await ephemeraDB.update({
         EphemeraId: 'Global',
         DataCategory: 'Assets',
         UpdateExpression: `SET assets = :assets`,
@@ -67,7 +67,7 @@ const healPersonalAssets = async ({ PlayerName }) => {
         return
     }
 
-    const queryItems = await assetQuery({
+    const queryItems = await assetDB.query({
         IndexName: 'PlayerIndex',
         player: PlayerName,
         ProjectionFields: ['DataCategory', 'AssetId', 'importTree']
@@ -85,7 +85,7 @@ const healPersonalAssets = async ({ PlayerName }) => {
 
     await Promise.all(
         characters.map(({ AssetId }) => (
-            updateEphemera({
+            ephemeraDB.update({
                 EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
                 DataCategory: 'Connection',
                 UpdateExpression: `SET assets = :assets`,

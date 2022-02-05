@@ -1,11 +1,11 @@
-import { assetQuery, assetGetItem } from "/opt/utilities/dynamoDB/index.js"
+import { assetDB } from "/opt/utilities/dynamoDB/index.js"
 
 import { splitType } from '/opt/utilities/types.js'
 
 export const importedAssetIds = async (importMap) => {
     const getScopeMap = async () => {
         const fetchScopeMap = async ({ key, asset, scopedId }) => {
-            const Items = await assetQuery({
+            const Items = await assetDB.query({
                 IndexName: 'ScopedIdIndex',
                 scopedId,
                 KeyConditionExpression: 'DataCategory = :dc',
@@ -34,7 +34,7 @@ export const importedAssetIds = async (importMap) => {
     const getImportTree = async () => {
         const assetsToFetch = [...(new Set(Object.values(importMap).map(({ asset }) => (asset))))]
         const fetchAssetImportTree = async (asset) => {
-            const { ImportTree = {} } = await assetGetItem({
+            const { ImportTree = {} } = await assetDB.getItem({
                 AssetId: `ASSET#${asset}`,
                 DataCategory: 'Meta::Asset',
                 ProjectionFields: ['ImportTree']

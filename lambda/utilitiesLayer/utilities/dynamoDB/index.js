@@ -234,29 +234,34 @@ const abstractGetItem = (table) => async ({
     })
 }
 
-export const assetGetItem = abstractGetItem(assetsTable)
-
-export const assetQuery = abstractQuery(dbClient, assetsTable)
-
-export const updateAsset = async ({
-    AssetId,
-    DataCategory,
-    UpdateExpression,
-    ExpressionAttributeNames,
-    ExpressionAttributeValues
-}) => {
+export const abstractUpdate = (table) => async (props) => {
+    const {
+        AssetId,
+        EphemeraId,
+        MessageId,
+        DataCategory,
+        UpdateExpression,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
+        ReturnValues,
+        catchException = () => ({})
+    } = props
     return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new UpdateItemCommand({
-            TableName: assetsTable,
+        const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
+            TableName: table,
             Key: marshall({
                 AssetId,
+                EphemeraId,
+                MessageId,
                 DataCategory
-            }),
+            }, { removeUndefinedValues: true }),
             UpdateExpression,
             ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
-            ExpressionAttributeNames
+            ExpressionAttributeNames,
+            ReturnValues
         }))
-    })
+        return Attributes
+    }, catchException)
 }
 
 const abstractPutItem = (table) => async (item) => {
@@ -268,89 +273,25 @@ const abstractPutItem = (table) => async (item) => {
     })
 }
 
-//
-// TODO:  Error handling to respond if the DynamoDB service throws an error
-//
-export const replaceItem = abstractPutItem(assetsTable)
-
-export const putAsset = async ({
-    Item
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new PutItemCommand({
-            TableName: assetsTable,
-            Item: marshall(Item, { removeUndefinedValues: true })
-        }))
-    })
-}
-
-export const deleteAsset = async ({
-    AssetId,
-    DataCategory
-}) => {
+const abstractDeleteItem = (table) => async (key) => {
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new DeleteItemCommand({
-            TableName: assetsTable,
-            Key: marshall({
-                AssetId,
-                DataCategory
-            })
+            TableName: table,
+            Key: marshall(key, { removeUndefinedValues: true })
         }))
     })
 }
 
-export const ephemeraGetItem = abstractGetItem(ephemeraTable)
+const dbHandlerFactory = (table) => ({
+    getItem: abstractGetItem(table),
+    query: abstractQuery(dbClient, table),
+    update: abstractUpdate(table),
+    putItem: abstractPutItem(table),
+    deleteItem: abstractDeleteItem(table)
+})
 
-export const ephemeraQuery = abstractQuery(dbClient, ephemeraTable)
-
-export const putEphemera = async ({
-    Item
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new PutItemCommand({
-            TableName: ephemeraTable,
-            Item: marshall(Item)
-        }))
-    })
-}
-
-export const deleteEphemera = async ({
-    EphemeraId,
-    DataCategory
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new DeleteItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId,
-                DataCategory
-            })
-        }))
-    })
-}
-
-export const updateEphemera = async ({
-    EphemeraId,
-    DataCategory,
-    UpdateExpression,
-    ExpressionAttributeNames,
-    ExpressionAttributeValues,
-    catchException = () => ({})
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId,
-                DataCategory
-            }),
-            UpdateExpression,
-            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
-            ExpressionAttributeNames
-        }))
-        return unmarshall(Attributes)
-    }, catchException)
-}
+export const assetDB = dbHandlerFactory(assetsTable)
+export const ephemeraDB = dbHandlerFactory(ephemeraTable)
 
 export const scanEphemera = async ({
     FilterExpression,

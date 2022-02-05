@@ -1,5 +1,5 @@
 import { splitType } from "/opt/utilities/types.js"
-import { updateEphemera } from "/opt/utilities/dynamoDB/index.js"
+import { ephemeraDB } from "/opt/utilities/dynamoDB/index.js"
 
 export const handleCharacterEvents = async ({ events }) => {
     Promise.all(
@@ -42,7 +42,7 @@ export const handleCharacterEvents = async ({ events }) => {
                 // for the incoming character
                 //
                 const CharacterId = splitType(newImage.AssetId)[1]
-                await updateEphemera({
+                await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Connection',
                     UpdateExpression,
