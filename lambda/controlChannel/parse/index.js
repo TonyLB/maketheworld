@@ -1,40 +1,18 @@
-import { QueryCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { splitType } from '/opt/utilities/types.js'
+import { ephemeraGetItem, ephemeraQuery } from '/opt/utilities/dynamoDB/index.js'
 
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-
-const splitType = (value) => {
-    const sections = value.split('#')
-    if (sections.length) {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-    else {
-        return ['', '']
-    }
-}
-
-const getCurrentRoom = async (dbClient, CharacterId) => {
-    const { Item } = await dbClient.send(new GetItemCommand({
-        TableName: ephemeraTable,
-        Key: marshall({
-            EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-            DataCategory: 'Connection'
-        }),
-        ProjectionExpression: 'RoomId'
-    }))
-    const { RoomId } = (Item && unmarshall(Item)) || {}
+const getCurrentRoom = async (CharacterId) => {
+    const { RoomId } = await ephemeraGetItem({
+        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+        DataCategory: 'Connection',
+        ProjectionFields: ['RoomId']
+    })
     if (RoomId) {
-        const { Items = [] } = await dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            KeyConditionExpression: "EphemeraId = :Room",
-            ExpressionAttributeValues: marshall({
-                ":Room": `ROOM#${RoomId}`
-            }),
-            ProjectionExpression: "DataCategory, exits, activeCharacters"
-        }))
+        const Items = await ephemeraQuery({
+            EphemeraId: `ROOM#${RoomId}`,
+            ProjectionFields: ['DataCategory', 'exits', 'activeCharacters']
+        })
         const { exits, characters } = (Items
-            .map(unmarshall)
             .reduce((previous, { DataCategory, ...rest }) => {
                 if (DataCategory === 'Meta::Room') {
                     return {
@@ -66,7 +44,6 @@ const getCurrentRoom = async (dbClient, CharacterId) => {
 }
 
 export const parseCommand = async ({
-    dbClient,
     CharacterId,
     command
 }) => {
@@ -76,7 +53,7 @@ export const parseCommand = async ({
     // parsing with a round-trip call to the back-end parser.
     //
 
-    const { roomId, exits, characters } = await getCurrentRoom(dbClient, CharacterId)
+    const { roomId, exits, characters } = await getCurrentRoom(CharacterId)
     if (command.match(/^\s*(?:look|l)\s*$/gi)) {
         return { actionType: 'look', payload: { CharacterId, PermanentId: `ROOM#${roomId}` } }
     }

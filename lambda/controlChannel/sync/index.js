@@ -1,33 +1,22 @@
-import { QueryCommand } from '@aws-sdk/client-dynamodb'
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
-const { TABLE_PREFIX } = process.env;
-const messagesTable = `${TABLE_PREFIX}_messages`
-const deltaTable = `${TABLE_PREFIX}_message_delta`
+import { messageDataCategoryQuery, messageDeltaQuery } from '/opt/utilities/dynamoDB/index.js'
 
 //
 // syncRawHelper executes one step of the raw sync operation (either the first query or subsequent
 // steps defined by the returned ExclusiveStartKey) and returns the unmarshalled and parsed results.
 //
-const syncRawHelper = async (dbClient, { TargetId, limit = null, ExclusiveStartKey = null }) => {
+const syncRawHelper = async ({ TargetId, limit = null, ExclusiveStartKey = null }) => {
 
     const epochTime = Date.now()
 
-    const { Items, LastEvaluatedKey } = await dbClient.send(new QueryCommand({
-        TableName: messagesTable,
-        ...(limit ? { Limit: limit } : {}),
-        KeyConditionExpression: "DataCategory = :Target",
-        IndexName: 'DataCategoryIndex',
-        ExpressionAttributeValues: marshall({
-            ":Target": 'CHARACTER#' + TargetId
-        }),
+    const { Items, LastEvaluatedKey } = await messageDataCategoryQuery({
+        DataCategory: `CHARACTER#${TargetId}`,
         ...(ExclusiveStartKey ? { ExclusiveStartKey } : {})
-    }))
+    })
 
     return {
         Items: Items
-            .map(unmarshall)
             .map(({ DataCategory, ...rest }) => ({ Target: TargetId, ...rest })),
         LastEvaluatedKey,
         LastSync: LastEvaluatedKey ? null : epochTime,
@@ -39,26 +28,21 @@ const syncRawHelper = async (dbClient, { TargetId, limit = null, ExclusiveStartK
 // syncDeltaHelper executes one step of the delta sync operation (either the first query or subsequent
 // steps defined by the returned ExclusiveStartKey) and returns the unmarshalled and parsed results.
 //
-const syncDeltaHelper = async (dbClient, {
+const syncDeltaHelper = async ({
     TargetId,
     startingAt = null,
     limit = null,
     ExclusiveStartKey = null
 }) => {
     const epochTime = Date.now()
-    const { Items, LastEvaluatedKey } = await dbClient.send(new QueryCommand({
-        TableName: deltaTable,
-        ...(limit ? { Limit: limit } : {}),
-        KeyConditionExpression: "Target = :Target and DeltaId >= :Start",
-        ExpressionAttributeValues: marshall({
-            ":Target": 'CHARACTER#' + TargetId,
-            ":Start": `${startingAt}`
-        }),
-        ...(ExclusiveStartKey ? { ExclusiveStartKey } : {})
-    }))
+    const { Items, LastEvaluatedKey } = await messageDeltaQuery({
+        Target: `CHARACTER#${TargetId}`,
+        StartingAt: startingAt,
+        Limit: limit,
+        ExclusiveStartKey
+    })
     return {
         Items: Items
-            .map(unmarshall)
             .map(({ Target, DeltaId, RowId, ...rest }) => ({ Target: TargetId, MessageId: RowId, ...rest })),
         LastEvaluatedKey,
         LastSync: LastEvaluatedKey ? null : epochTime
@@ -66,7 +50,7 @@ const syncDeltaHelper = async (dbClient, {
 
 }
 
-export const sync = async (dbClient, apiClient, {
+export const sync = async (apiClient, {
     type, // 'Delta' or 'Raw'
     RequestId,
     ConnectionId,
@@ -80,12 +64,12 @@ export const sync = async (dbClient, apiClient, {
     let sendPromises = []
     while (!LastSync && loopCount < 20) {
         const returnVal = (type === 'Raw')
-            ? await syncRawHelper(dbClient, {
+            ? await syncRawHelper({
                 TargetId,
                 limit,
                 ExclusiveStartKey: LastEvaluatedKey
             })
-            : await syncDeltaHelper(dbClient, {
+            : await syncDeltaHelper({
                 TargetId,
                 startingAt,
                 limit,

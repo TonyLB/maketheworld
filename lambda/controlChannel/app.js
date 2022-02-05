@@ -3,17 +3,27 @@
 
 
 import AWSXRay from 'aws-xray-sdk'
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { DynamoDBClient, QueryCommand, GetItemCommand, UpdateItemCommand, PutItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb'
-import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
+import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 
-import { putPlayer, whoAmI, getConnectionsByPlayerName, getPlayerByConnectionId } from './player/index.js'
+import { whoAmI, getPlayerByConnectionId } from './player/index.js'
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
 import { render } from '/opt/perception/index.js'
+
+import { splitType } from '/opt/utilities/types.js'
+import {
+    publishMessage,
+    ephemeraGetItem,
+    ephemeraConnectionQuery,
+    ephemeraDataCategoryQuery,
+    deleteEphemera,
+    putEphemera,
+    updateEphemera,
+    assetGetItem
+} from '/opt/utilities/dynamoDB/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -21,27 +31,7 @@ const apiClient = new ApiGatewayManagementApiClient({
 })
 
 const REGION = process.env.AWS_REGION
-const dbClientBase = new DynamoDBClient({ region: REGION })
-let dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
 const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGION }))
-
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
-const messagesTable = `${TABLE_PREFIX}_messages`
-const assetsTable = `${TABLE_PREFIX}_assets`
-
-const removeType = (stringVal) => (stringVal.split('#').slice(1).join('#'))
-
-const splitType = (value) => {
-    const sections = value.split('#')
-    if (sections.length) {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-    else {
-        return ['', '']
-    }
-}
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -49,54 +39,36 @@ const splitType = (value) => {
 //
 export const disconnect = async (connectionId) => {
     const DataCategory = `CONNECTION#${connectionId}`
-    const [{ Items = [] }, { Items: PlayerItems = []}] = await Promise.all([
-        dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraId)',
-            ExpressionAttributeValues: marshall({
-                ":EphemeraId": "CHARACTERINPLAY#",
-                ":ConnectionId": connectionId
-            }),
-            IndexName: 'ConnectionIndex',
-            ProjectionExpression: 'EphemeraId, DataCategory'
-        })),
-        dbClient.send(new QueryCommand({
-            TableName: ephemeraTable,
-            IndexName: 'DataCategoryIndex',
-            KeyConditionExpression: 'DataCategory = :dc',
-            ExpressionAttributeValues: marshall({
-                ":dc": DataCategory
-            }),
-            ProjectionExpression: 'EphemeraId'
-        }))
+    const [Items, PlayerItems] = await Promise.all([
+        ephemeraConnectionQuery({
+            ConnectionId: connectionId,
+            EphemeraPrefix: "CHARACTERINPLAY#",
+            ProjectionFields: ['EphemeraId', 'DataCategory']
+        }),
+        ephemeraDataCategoryQuery({ DataCategory })
     ])
 
     await Promise.all([
         ...(PlayerItems
-            .map(unmarshall)
-            .map(({ EphemeraId }) => (dbClient.send(new DeleteItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
+            .map(({ EphemeraId }) => (
+                deleteEphemera({
                     EphemeraId,
                     DataCategory
                 })
-            }))))
+            ))
         ),
         ...(Items
-            .map(unmarshall)
-            .map(({ EphemeraId, DataCategory }) => (dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
+            .map(({ EphemeraId, DataCategory }) => (
+                updateEphemera({
                     EphemeraId,
-                    DataCategory
-                }),
-                UpdateExpression: 'SET Connected = :false REMOVE ConnectionId',
-                ExpressionAttributeValues: marshall({
-                    ':false': false
+                    DataCategory,
+                    UpdateExpression: 'SET Connected = :false REMOVE ConnectionId',
+                    ExpressionAttributeValues: {
+                        ':false': false
+                    }
                 })
-            })))))
-        ]
-    )
+            )))
+    ])
 
     return { statusCode: 200 }
 }
@@ -110,13 +82,12 @@ export const connect = async (connectionId, token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
-        await dbClient.send(new PutItemCommand({
-            TableName: ephemeraTable,
-            Item: marshall({
+        await putEphemera({
+            Item: {
                 EphemeraId: `PLAYER#${userName}`,
                 DataCategory: `CONNECTION#${connectionId}`
-            })
-        }))
+            }
+        })
     
         return { statusCode: 200 }
     }
@@ -130,42 +101,29 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
     // and check before registering the character whether you need to cache any
     // as-yet uncached assets in order to support them.
     //
-    const { Item } = await dbClient.send(new GetItemCommand({
-        TableName: assetsTable,
-        Key: marshall({
-            AssetId: `CHARACTER#${CharacterId}`,
-            DataCategory: 'Meta::Character'
-        }),
-        ProjectionExpression: "#name, HomeId",
+    const { Name = '', HomeId = '' } = await assetGetItem({
+        AssetId: `CHARACTER#${CharacterId}`,
+        DataCategory: 'Meta::Character',
+        ProjectionFields: ['#name', 'HomeId'],
         ExpressionAttributeNames: {
             '#name': 'Name'
-        }
-    }))
-    let fetchedName = ''
-    let fetchedHomeId = ''
-    if (Item) {
-        const { Name, HomeId } = unmarshall(Item)
-        fetchedName = Name || ''
-        fetchedHomeId = HomeId || ''
-    }
+        }    
+    })
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await dbClient.send(new UpdateItemCommand({
-        TableName: ephemeraTable,
-        Key: marshall({
-            EphemeraId,
-            DataCategory: 'Connection'
-        }),
+    await updateEphemera({
+        EphemeraId,
+        DataCategory: 'Connection',
         UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
         ExpressionAttributeNames: {
             '#name': 'Name'
         },
-        ExpressionAttributeValues: marshall({
+        ExpressionAttributeValues: {
             ':true': true,
             ':connectionId': connectionId,
-            ':name': fetchedName,
-            ':roomId': fetchedHomeId || 'VORTEX'
-        })
-    }))
+            ':name': Name,
+            ':roomId': HomeId || 'VORTEX'
+        }
+    })
 
     return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
 }
@@ -195,16 +153,11 @@ const serialize = ({
 }
 
 const fetchEphemera = async (RequestId) => {
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: ephemeraTable,
-        KeyConditionExpression: 'DataCategory = :DataCategory and begins_with(EphemeraId, :EphemeraId)',
-        ExpressionAttributeValues: marshall({
-            ":EphemeraId": "CHARACTERINPLAY#",
-            ":DataCategory": "Connection"
-        }),
-        IndexName: 'DataCategoryIndex'
-    }))
-    const returnItems = Items.map(unmarshall)
+    const Items = await ephemeraDataCategoryQuery({
+        DataCategory: 'Connection',
+        EphemeraPrefix: 'CHARACTERINPLAY#'
+    })
+    const returnItems = Items
         .map(serialize)
         .filter((value) => value)
         .filter(({ Connected }) => (Connected))
@@ -229,49 +182,13 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
         assets: ['TEST'],
         EphemeraId: PermanentId
     })
-    await dbClient.send(new PutItemCommand({
-        TableName: messagesTable,
-        Item: marshall({
-            MessageId: `MESSAGE#${uuidv4()}`,
-            DataCategory: 'Meta::Message',
-            Targets: [`CHARACTER#${CharacterId}`],
-            CreatedTime: Date.now(),
-            DisplayProtocol: 'RoomDescription',
-            ...roomMessage
-        })
-    }))
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ messageType: "ActionComplete" })
-    }
-}
-
-const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}) => {
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const [{ Item: EphemeraItem = {} }] = await Promise.all([
-        dbClient.send(new GetItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId,
-                DataCategory: 'Connection'
-            })
-        })),
-    ])
-    const { RoomId, Name } = unmarshall(EphemeraItem)
-    if (RoomId) {
-        await dbClient.send(new PutItemCommand({
-            TableName: messagesTable,
-            Item: marshall({
-                MessageId: `MESSAGE#${uuidv4()}`,
-                DataCategory: 'Meta::Message',
-                CreatedTime: Date.now(),
-                Targets: [`ROOM#${RoomId}`],
-                DisplayProtocol: 'Player',
-                CharacterId,
-                Message: messageCallback({ Name, Message })
-            })
-        }))
-    }
+    await publishMessage({
+        MessageId: `MESSAGE#${uuidv4()}`,
+        Targets: [`CHARACTER#${CharacterId}`],
+        CreatedTime: Date.now(),
+        DisplayProtocol: 'RoomDescription',
+        ...roomMessage
+    })
     return {
         statusCode: 200,
         body: JSON.stringify({ messageType: "ActionComplete" })
@@ -280,32 +197,24 @@ const emote = async ({ CharacterId, Message, messageCallback = () => ('') } = {}
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const [{ Item: EphemeraItem = {} }] = await Promise.all([
-        dbClient.send(new GetItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId,
-                DataCategory: 'Connection'
-            })
-        })),
-    ])
-    const { RoomId, Name } = unmarshall(EphemeraItem)
+    const { RoomId, Name } = await ephemeraGetItem({
+        EphemeraId,
+        DataCategory: 'Connection',
+        ProjectionFields: ['RoomId', '#name'],
+        ExpressionAttributeNames: { '#name': 'Name' }
+    })
     const Color = ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
     if (RoomId) {
-        await dbClient.send(new PutItemCommand({
-            TableName: messagesTable,
-            Item: marshall({
-                MessageId: `MESSAGE#${uuidv4()}`,
-                DataCategory: 'Meta::Message',
-                CreatedTime: Date.now(),
-                Targets: [`ROOM#${RoomId}`],
-                DisplayProtocol,
-                CharacterId,
-                Message,
-                Name,
-                Color
-            })
-        }))
+        await publishMessage({
+            MessageId: `MESSAGE#${uuidv4()}`,
+            CreatedTime: Date.now(),
+            Targets: [`ROOM#${RoomId}`],
+            DisplayProtocol,
+            CharacterId,
+            Message,
+            Name,
+            Color
+        })
     }
     return {
         statusCode: 200,
@@ -314,55 +223,43 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
 }
 
 const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
-    // await moveCharacterWithMessage({ CharacterId, RoomId, messageCallback: (Name) => (`${Name} left${ ExitName ? ` by ${ExitName} exit` : ''}.`)})
     //
     // TODO: Validate the RoomId as one that is valid for the character to move to, before
     // pushing data to the DB.
     //
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await dbClient.send(new UpdateItemCommand({
-        TableName: ephemeraTable,
-        Key: marshall({
-            EphemeraId,
-            DataCategory: 'Connection'
-        }),
+    await updateEphemera({
+        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+        DataCategory: 'Connection',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
-        ExpressionAttributeValues: marshall({
+        ExpressionAttributeValues: {
             ':roomId': RoomId,
             ':leave': ` left${ ExitName ? ` by ${ExitName} exit` : ''}.`,
             ':enter': ` arrives.`
-        })
-    }))
+        }
+    })
 }
 
 const goHome = async ({ CharacterId } = {}) => {
 
-    const { Item = {} } = await dbClient.send(new GetItemCommand({
-        TableName: permanentsTable,
-        Key: marshall({
-            PermanentId: `CHARACTER#${CharacterId}`,
-            DataCategory: 'Details'
-        }),
-        ProjectionExpression: 'HomeId'
-    }))
+    const { HomeId = 'VORTEX' } = await assetGetItem({
+        AssetId: `CHARACTER#${CharacterId}`,
+        DataCategory: 'Meta::Character',
+        ProjectionFields: ['HomeId']
+    })
     //
     // TODO: Validate that the home RoomID is still a valid destination
     //
-    const { HomeId = 'VORTEX' } = unmarshall(Item)
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await dbClient.send(new UpdateItemCommand({
-        TableName: ephemeraTable,
-        Key: marshall({
-            EphemeraId,
-            DataCategory: 'Connection'
-        }),
+    await updateEphemera({
+        EphemeraId,
+        DataCategory: 'Connection',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
-        ExpressionAttributeValues: marshall({
+        ExpressionAttributeValues: {
             ':roomId': `ROOM#${HomeId}`,
             ':leave': ` left to go home.`,
             ':enter': ` arrives.`
-        })
-    }))
+        }
+    })
 
 }
 
@@ -384,8 +281,8 @@ const executeAction = (request) => {
     return { statusCode: 200, body: JSON.stringify({}) }
 }
 
-const upload = async (dbClient, { fileName, connectionId, requestId, uploadRequestId }) => {
-    const PlayerName = await getPlayerByConnectionId(dbClient, connectionId)
+const upload = async ({ fileName, connectionId, requestId, uploadRequestId }) => {
+    const PlayerName = await getPlayerByConnectionId(connectionId)
     if (PlayerName) {
         const { Payload } = await lambdaClient.send(new InvokeCommand({
             FunctionName: process.env.ASSETS_SERVICE,
@@ -407,8 +304,8 @@ const upload = async (dbClient, { fileName, connectionId, requestId, uploadReque
     return null
 }
 
-const fetchLink = async (dbClient, { fileName, connectionId, requestId }) => {
-    const PlayerName = await getPlayerByConnectionId(dbClient, connectionId)
+const fetchLink = async ({ fileName, connectionId, requestId }) => {
+    const PlayerName = await getPlayerByConnectionId(connectionId)
     if (PlayerName) {
         const { Payload } = await lambdaClient.send(new InvokeCommand({
             FunctionName: process.env.ASSETS_SERVICE,
@@ -430,8 +327,6 @@ const fetchLink = async (dbClient, { fileName, connectionId, requestId }) => {
 
 export const handler = async (event, context) => {
 
-    dbClient = AWSXRay.captureAWSv3Client(dbClientBase)
-
     const { connectionId, routeKey } = event.requestContext
     const request = event.body && JSON.parse(event.body) || {}
 
@@ -448,77 +343,6 @@ export const handler = async (event, context) => {
                 return registerCharacter({ connectionId, CharacterId: request.CharacterId, RequestId: request.RequestId })
             }
             break
-        case 'putCharacter':
-            //
-            // Long-term, the permanents table should have DBStreams enabled so that it
-            // will automatically message correctly on a simple update command.  Short-term,
-            // we coordinate updating the character and messaging the player here.
-            //
-            if (request.CharacterId) {
-                const { CharacterId, Name, FirstImpression, OneCoolThing, Outfit, Pronouns, Player, RequestId } = request
-                //
-                // TODO: Restructure permanents storage so that Player denormalizes Name information into the Characters
-                // item
-                //
-                const { Item: oldPlayerItem } = await dbClient.send(new GetItemCommand({
-                    TableName: permanentsTable,
-                    Key: marshall({
-                        PermanentId: `PLAYER#${Player}`,
-                        DataCategory: 'Details'
-                    })
-                }))
-                const oldPlayer = unmarshall(oldPlayerItem)
-                const newPlayerItem = {
-                    ...oldPlayer,
-                    Characters: {
-                        ...oldPlayer.Characters,
-                        [CharacterId]: { Name }
-                    }
-                }
-                const notifyPromise = (Player && Name)
-                    ? getConnectionsByPlayerName(dbClient, Player)
-                        .then((connections) => {
-                            const { PermanentId, DataCategory, Characters, ...rest } = newPlayerItem
-                            const Data = JSON.stringify({
-                                messageType: 'Player',
-                                PlayerName: removeType(PermanentId),
-                                RequestId,
-                                Characters: Object.entries(Characters).map(([CharacterId, rest]) => ({ CharacterId, ...rest })),
-                                ...rest
-                            })
-                            return Promise.all(connections.map((ConnectionId) => (
-                                apiClient.send(new PostToConnectionCommand({
-                                    ConnectionId,
-                                    Data
-                                }))
-                            )))
-                        })
-                    : Promise.resolve()
-                await Promise.all([
-                    lambdaClient.send(new InvokeCommand({
-                        FunctionName: process.env.PERMANENTS_SERVICE,
-                        Payload: new TextEncoder().encode(JSON.stringify({
-                            action: "updatePermanents",
-                            Updates: [{
-                                putCharacter: {
-                                    CharacterId,
-                                    Name,
-                                    FirstImpression,
-                                    OneCoolThing,
-                                    Outfit,
-                                    Pronouns,
-                                    Player
-                                }
-                            },
-                            {
-                                putPlayer: newPlayerItem
-                            }]
-                        }))
-                    })),
-                    notifyPromise
-                ])
-            }
-            break;
         case 'fetchEphemera':
             const ephemera = await fetchEphemera(request.RequestId)
             return {
@@ -526,9 +350,9 @@ export const handler = async (event, context) => {
                 body: JSON.stringify(ephemera)
             }
         case 'whoAmI':
-            return whoAmI(dbClient, connectionId, request.RequestId)
+            return whoAmI(connectionId, request.RequestId)
         case 'sync':
-            await sync(dbClient, apiClient, {
+            await sync(apiClient, {
                 type: request.syncType,
                 ConnectionId: connectionId,
                 RequestId: request.RequestId,
@@ -537,22 +361,16 @@ export const handler = async (event, context) => {
                 limit: request.limit
             })
             break;
-        case 'putPlayer':
-            return putPlayer(request.PlayerName)({ Characters: request.Characters, CodeOfConductConsent: request.CodeOfConductConsent })
         case 'directMessage':
-            await dbClient.send(new PutItemCommand({
-                TableName: messagesTable,
-                Item: marshall({
-                    MessageId: `MESSAGE#${uuidv4()}`,
-                    DataCategory: 'Meta::Message',
-                    CreatedTime: Date.now(),
-                    Targets: request.Targets,
-                    DisplayProtocol: "Direct",
-                    Message: request.Message,
-                    Recipients: request.Recipients,
-                    CharacterId: request.CharacterId
-                })
-            }))
+            await publishMessage({
+                MessageId: `MESSAGE#${uuidv4()}`,
+                CreatedTime: Date.now(),
+                Targets: request.Targets,
+                DisplayProtocol: "Direct",
+                Message: request.Message,
+                Recipients: request.Recipients,
+                CharacterId: request.CharacterId
+            })
             break;
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
@@ -561,7 +379,7 @@ export const handler = async (event, context) => {
         case 'action':
             return executeAction(request)
         case 'command':
-            const actionPayload = await parseCommand({ dbClient, CharacterId: request.CharacterId, command: request.command })
+            const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
             if (actionPayload.actionType) {
                 return executeAction(actionPayload)
             }
@@ -570,7 +388,7 @@ export const handler = async (event, context) => {
             //
             break;
         case 'upload':
-            const returnVal = await upload(dbClient, {
+            const returnVal = await upload({
                 fileName: request.fileName,
                 connectionId,
                 requestId: request.RequestId,
@@ -581,7 +399,7 @@ export const handler = async (event, context) => {
             }
             break
         case 'fetch':
-            const fetchReturnVal = await fetchLink(dbClient, {
+            const fetchReturnVal = await fetchLink({
                 fileName: request.fileName,
                 connectionId,
                 requestId: request.RequestId

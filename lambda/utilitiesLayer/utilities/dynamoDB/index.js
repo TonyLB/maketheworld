@@ -17,6 +17,7 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 const messageTable = `${TABLE_PREFIX}_messages`
+const deltaTable = `${TABLE_PREFIX}_message_delta`
 
 const params = { region: process.env.AWS_REGION }
 const dbClient = new DynamoDBClient(params)
@@ -45,7 +46,7 @@ export const batchWriteDispatcher = ({ table, items }) => {
     return Promise.all(batchPromises)
 }
 
-export const batchGetDispatcher = ({ table, items, projectionExpression }) => {
+export const batchGetDispatcher = async ({ table, items, projectionExpression }) => {
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 39) {
@@ -69,11 +70,12 @@ export const batchGetDispatcher = ({ table, items, projectionExpression }) => {
                 ProjectionExpression: projectionExpression
             }
         } }))))
-    return Promise.all(batchPromises)
-        .then((outcomes) => (outcomes.reduce((previous, { Items = [] }) => ([
+    const outcomes = await Promise.all(batchPromises)
+    return outcomes.reduce((previous, { Responses = {} }) => {
+        return [
             ...previous,
-            ...Items.map(unmarshall)
-        ]), [])))
+            ...(Responses[table] || []).map(unmarshall)
+        ]}, [])
 }
 
 //
@@ -399,6 +401,7 @@ export const ephemeraGetItem = async ({
         return unmarshall(Item)
     }, catchException)
 }
+
 export const ephemeraQuery = async ({
     EphemeraId,
     ProjectionFields = ['DataCategory'],
@@ -408,7 +411,6 @@ export const ephemeraQuery = async ({
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
             KeyConditionExpression: 'EphemeraId = :ephemeraId',
-            IndexName: 'ScopedIdIndex',
             ExpressionAttributeValues: marshall({
                 ':ephemeraId': EphemeraId
             }),
@@ -421,16 +423,40 @@ export const ephemeraQuery = async ({
 
 export const ephemeraDataCategoryQuery = async ({
     DataCategory,
+    EphemeraPrefix,
     ProjectionFields = ['EphemeraId'],
     ExpressionAttributeNames
 }) => {
     return await asyncSuppressExceptions(async () => {
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: ephemeraTable,
-            KeyConditionExpression: 'DataCategory = :dc',
+            KeyConditionExpression: EphemeraPrefix ? 'DataCategory = :dc AND begins_with(EphemeraId, :EphemeraPrefix)' : 'DataCategory = :dc',
             IndexName: 'DataCategoryIndex',
             ExpressionAttributeValues: marshall({
-                ':dc': DataCategory
+                ':dc': DataCategory,
+                ':EphemeraPrefix': EphemeraPrefix
+            }, { removeUndefinedValues: true }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return Items.map(unmarshall)
+    }, () => ([]))
+}
+
+export const ephemeraConnectionQuery = async ({
+    ConnectionId,
+    EphemeraPrefix,
+    ProjectionFields = ['EphemeraId'],
+    ExpressionAttributeNames
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        const { Items = [] } = await dbClient.send(new QueryCommand({
+            TableName: ephemeraTable,
+            KeyConditionExpression: 'ConnectionId = :ConnectionId and begins_with(EphemeraId, :EphemeraPrefix)',
+            IndexName: 'ConnectionIndex',
+            ExpressionAttributeValues: marshall({
+                ':ConnectionId': ConnectionId,
+                ':EphemeraPrefix': EphemeraPrefix
             }),
             ProjectionExpression: ProjectionFields.join(', '),
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
@@ -446,6 +472,21 @@ export const putEphemera = async ({
         await dbClient.send(new PutItemCommand({
             TableName: ephemeraTable,
             Item: marshall(Item)
+        }))
+    })
+}
+
+export const deleteEphemera = async ({
+    EphemeraId,
+    DataCategory
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        await dbClient.send(new DeleteItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId,
+                DataCategory
+            })
         }))
     })
 }
@@ -502,4 +543,53 @@ export const publishMessage = async (Item) => {
             })
         }))
     })
+}
+
+export const messageDataCategoryQuery = async ({
+    DataCategory,
+    ExpressionAttributeNames,
+    ExclusiveStartKey
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        const { Items = [], LastEvaluatedKey } = await dbClient.send(new QueryCommand({
+            TableName: messageTable,
+            KeyConditionExpression: 'DataCategory = :dc',
+            IndexName: 'DataCategoryIndex',
+            ExpressionAttributeValues: marshall({
+                ':dc': DataCategory
+            }),
+            ExpressionAttributeNames,
+            ExclusiveStartKey
+        }))
+        return {
+            Items: Items.map(unmarshall),
+            LastEvaluatedKey
+        }
+    }, () => ([]))
+}
+
+export const messageDeltaQuery = async ({
+    Target,
+    ExpressionAttributeNames,
+    ExclusiveStartKey,
+    StartingAt,
+    Limit
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        const { Items = [], LastEvaluatedKey } = await dbClient.send(new QueryCommand({
+            TableName: deltaTable,
+            KeyConditionExpression: 'Target = :Target and DeltaId >= :Start',
+            ExpressionAttributeValues: marshall({
+                ':Target': Target,
+                ':Start': `${StartingAt}`
+            }),
+            ExpressionAttributeNames,
+            ExclusiveStartKey,
+            Limit
+        }))
+        return {
+            Items: Items.map(unmarshall),
+            LastEvaluatedKey
+        }
+    }, () => ([]))
 }
