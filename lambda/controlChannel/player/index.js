@@ -1,33 +1,11 @@
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { UpdateItemCommand, GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb'
+import { splitType } from '/opt/utilities/types.js'
+import { assetGetItem, ephemeraQuery, ephemeraDataCategoryQuery } from '/opt/utilities/dynamoDB/index.js'
 
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const permanentsTable = `${TABLE_PREFIX}_permanents`
-const assetsTable = `${TABLE_PREFIX}_assets`
-
-const splitType = (value) => {
-    const sections = value.split('#')
-    if (sections.length) {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-    else {
-        return ['', '']
-    }
-}
-
-export const getPlayerByConnectionId = async (dbClient, connectionId) => {
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: ephemeraTable,
-        IndexName: 'DataCategoryIndex',
-        KeyConditionExpression: 'DataCategory = :dc',
-        ExpressionAttributeValues: marshall({
-            ":dc": `CONNECTION#${connectionId}`
-        }),
-        ProjectionExpression: 'EphemeraId'
-    }))
+export const getPlayerByConnectionId = async (connectionId) => {
+    const Items = await ephemeraDataCategoryQuery({
+        DataCategory: `CONNECTION#${connectionId}`,
+    })
     const playerName = Items
-        .map(unmarshall)
         .reduce((previous, { EphemeraId }) => {
             const [ itemType, itemKey ] = splitType(EphemeraId)
             if (itemType === 'PLAYER') {
@@ -42,16 +20,12 @@ export const getPlayerByConnectionId = async (dbClient, connectionId) => {
 // Returns all of the meta data about Player in the Ephemera table, as
 // well as a connections array of the currently active lifeLine connections
 //
-export const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
-    const { Items = [] } = await dbClient.send(new QueryCommand({
-        TableName: ephemeraTable,
-        KeyConditionExpression: 'EphemeraId = :eid',
-        ExpressionAttributeValues: marshall({
-            ":eid": `PLAYER#${PlayerName}`
-        }),
-    }))
+export const getConnectionsByPlayerName = async (PlayerName) => {
+    const Items = await ephemeraQuery({
+        EphemeraId: `PLAYER#${PlayerName}`,
+        ProjectionFields: ['DataCategory']
+    })
     const returnVal = Items
-        .map(unmarshall)
         .reduce((previous, { DataCategory }) => {
             const [ itemType, itemKey ] = splitType(DataCategory)
             if (itemType === 'CONNECTION') {
@@ -61,70 +35,15 @@ export const getConnectionsByPlayerName = async (dbClient, PlayerName) => {
         }, [])
     return returnVal
 }
-//
-// TODO: Remove direct access to Characters list and instead make secured outlets for
-// adding characters and archiving them.
-//
-export const putPlayer = (dbClient, PlayerName) => async ({ Characters, CodeOfConductConsent }) => {
-    if (!PlayerName || (Characters === undefined && CodeOfConductConsent === undefined)) {
-        return {
-            statusCode: 403,
-            body: JSON.stringify({
-                messageType: 'Error'
-            })
-        }
-    }
 
-    const characterUpdate = Characters !== undefined
-        ? `Characters = :characters`
-        : ''
-    const conductUpdate = CodeOfConductConsent !== undefined
-        ? `CodeOfConductConsent = :conduct`
-        : ''
-    const UpdateExpression = `SET ${[characterUpdate, conductUpdate].filter((value) => (value)).join(', ')}`
-    const ExpressionAttributeValues = marshall({
-        ...(Characters !== undefined ? { ":characters": Characters.reduce((previous, { CharacterId, Name }) => ({ ...previous, [CharacterId]: { Name } }), {}) } : {}),
-        ...(CodeOfConductConsent !== undefined ? { ":conduct": CodeOfConductConsent }: {})
-    })
-
-    const { Attributes } = await dbClient.send(new UpdateItemCommand({
-        TableName: permanentsTable,
-        Key: marshall({
-            PermanentId: `PLAYER#${PlayerName}`,
-            DataCategory: 'Details'
-        }),
-        UpdateExpression,
-        ExpressionAttributeValues,
-        ReturnValues: 'ALL_NEW'
-    }))
-    //
-    // TODO: Supplement direct return to the calling connection with an update to
-    // the connection the player is connected with (if any).  This will allow Admin
-    // changes to player status to be immediately reflected.  Will require tracking
-    // the connection of a player on $connect and $disconnect
-    //
-    return {
-        statusCode: 200,
-        body: JSON.stringify({
-            messageType: 'Player',
-            PlayerName,
-            Characters: Attributes.Characters || {},
-            CodeOfConductConsent: Attributes.CodeOfConductConsent ?? false
-        })
-    }
-}
-
-export const whoAmI = async (dbClient, connectionId, RequestId) => {
-    const username = await getPlayerByConnectionId(dbClient, connectionId)
+export const whoAmI = async (connectionId, RequestId) => {
+    const username = await getPlayerByConnectionId(connectionId)
     if (username) {
-        const { Item } = await dbClient.send(new GetItemCommand({
-            TableName: assetsTable,
-            Key: marshall({
-                AssetId: `PLAYER#${username}`,
-                DataCategory: 'Meta::Player'
-            })
-        }))
-        const { Characters, CodeOfConductConsent } = unmarshall(Item)
+        const { Characters, CodeOfConductConsent } = await assetGetItem({
+            AssetId: `PLAYER#${username}`,
+            DataCategory: 'Meta::Player',
+            ProjectionFields: ['Characters', 'CodeOfConductConsent']
+        })
         return {
             statusCode: 200,
             body: JSON.stringify({
