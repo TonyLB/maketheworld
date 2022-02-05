@@ -1,11 +1,11 @@
 import { checkForConnect } from './checkForConnect.js'
 import { checkForDisconnect } from './checkForDisconnect.js'
 
-export const processPlayerEvent = ({ dbClient }) => async ({ eventName, data }) => {
+export const processPlayerEvent = async ({ eventName, data }) => {
     switch(eventName) {
         case 'INSERT':
             await Promise.all([
-                checkForConnect(dbClient, data),
+                checkForConnect(data),
             ])
             break
         case 'MODIFY':
@@ -14,7 +14,7 @@ export const processPlayerEvent = ({ dbClient }) => async ({ eventName, data }) 
             break
         case 'REMOVE':
             await Promise.all([
-                checkForDisconnect(dbClient, data)
+                checkForDisconnect(data)
             ])
             break
         default:

@@ -1,89 +1,32 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { DynamoDBClient, QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb'
-import { v4 as uuidv4 } from 'uuid'
+import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
-import { putCharacterInPlay } from './charactersInPlay.js'
-import { addCharacterToRoom, removeCharacterFromRoom } from './charactersInRoom.js'
-import { denormalizeCharacter, denormalizeRoom } from './denormalize.js'
 import { queueClear, queueState, queueFlush } from './feedbackQueue.js'
-import { fetchEphemera } from './fetch.js'
 import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
-import { splitType } from './utilities/index.js'
+import { splitType } from '/opt/utilities/types.js'
+import { ephemeraGetItem } from '/opt/utilities/dynamoDB/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
     endpoint: process.env.WEBSOCKET_API
 })
 
-const REGION = process.env.AWS_REGION
-
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-
-const dbClient = new DynamoDBClient({ region: REGION })
-
-const splitPermanentId = (PermanentId) => {
-    const sections = PermanentId.split('#')
-    if (!(sections.length > 1)) {
-        return [PermanentId]
-    }
-    else {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-}
-
-// const updateDispatcher = ({ Updates = [] }) => {
-//     const outputs = Updates.map((update) => {
-//         if (update.putCharacterInPlay) {
-//             return putCharacterInPlay(update.putCharacterInPlay)
-//         }
-//         if (update.addCharacterToRoom) {
-//             return addCharacterToRoom(update.addCharacterToRoom)
-//         }
-//         if (update.removeCharacterFromRoom) {
-//             return removeCharacterFromRoom(update.removeCharacterFromRoom)
-//         }
-//         return Promise.resolve([])
-//     })
-
-//     return Promise.all(outputs)
-// }
-
-const denormalizeDispatcher = ({ PermanentId, data }) => {
-    const [type, payload] = splitPermanentId(PermanentId)
-    switch(type) {
-        case 'CHARACTER':
-            return denormalizeCharacter({ CharacterId: payload, data })
-        case 'ROOM':
-            return denormalizeRoom({ RoomId: payload, data })
-        default:
-            return Promise({})
-    }
-}
-
 const postRecords = async (Records) => {
-    let connections = {}
-    try {
-        const { Item = {} } = await dbClient.send(new GetItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections'
-            }),
-            ProjectionExpression: 'connections'
-        }))
-        connections = unmarshall(Item).connections
-    }
-    catch(e) {
-        connections = await healGlobalValues(dbClient)
-    }
+    const { connections } = await ephemeraGetItem({
+        EphemeraId: 'Global',
+        DataCategory: 'Connections',
+        ProjectionFields: ['connections'],
+        catchException: async () => {
+            const connections = await healGlobalValues()
+            return { connections }
+        }
+    })
     //
     // TODO: Filter Records to find the types of records we should report back to the users as
     // ephemera updates, and aggregate them into a list to send in a single bolus
@@ -189,8 +132,8 @@ const dispatchRecords = (Records) => {
     // figure out what records need to be forwarded as Ephemera updates to whom.
     //
     return Promise.all([
-        ...characterRecords.map(processCharacterEvent(dbClient)),
-        ...playerRecords.map(processPlayerEvent({ dbClient })),
+        ...characterRecords.map(processCharacterEvent),
+        ...playerRecords.map(processPlayerEvent),
         postRecords(Records)
     ])
 }
@@ -206,19 +149,12 @@ export const handler = async (event, context) => {
         queueClear()
         switch(action) {
             
-            case 'denormalize':
-                const denormalize = await denormalizeDispatcher(payload)
-                if (queueState()) {
-                    await queueFlush()
-                }
-                return denormalize
-
             case 'healGlobal':
-                await healGlobalValues(dbClient)
+                await healGlobalValues()
                 break;
 
             case 'heal':
-                await healCharacter(dbClient, event.CharacterId)
+                await healCharacter(event.CharacterId)
                 break;
 
             default:

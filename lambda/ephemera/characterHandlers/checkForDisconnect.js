@@ -1,30 +1,22 @@
-import { marshall } from '@aws-sdk/util-dynamodb'
-import { PutItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
-import { splitType } from '../utilities/index.js'
+import { splitType } from '/opt/utilities/types.js'
+import { publishMessage } from '/opt/utilities/dynamoDB/index.js'
 import publishRoomUpdate from './publishRoomUpdate.js'
 import characterEphemeraDenormalize from './characterEphemeraDenormalize.js'
 
-const { TABLE_PREFIX } = process.env;
-const messageTable = `${TABLE_PREFIX}_messages`
-
-export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
+export const checkForDisconnect = async ({ oldImage, newImage }) => {
     const epochTime = Date.now()
     if (!newImage.EphemeraId || ((!newImage.Connected) && oldImage.Connected)) {
         const disconnectMessage = async () => {
             const { Name, RoomId, EphemeraId = '' } = oldImage
             const CharacterId = splitType(EphemeraId)[1]
-            await dbClient.send(new PutItemCommand({
-                TableName: messageTable,
-                Item: marshall({
-                    MessageId: `MESSAGE#${uuidv4()}`,
-                    DataCategory: 'Meta::Message',
-                    CreatedTime: Date.now(),
-                    Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
-                    DisplayProtocol: "WorldMessage",
-                    Message: `${Name || 'Someone'} has disconnected.`
-                })
-            }))
+            await publishMessage({
+                MessageId: `MESSAGE#${uuidv4()}`,
+                CreatedTime: Date.now(),
+                Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                DisplayProtocol: "WorldMessage",
+                Message: `${Name || 'Someone'} has disconnected.`
+            })
         }
         const updateRoomEphemera = async () => {
             const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
@@ -32,7 +24,6 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
             if (RoomId) {
                 try {
                     await characterEphemeraDenormalize({
-                        dbClient,
                         RoomId,
                         EphemeraId,
                         Name,
@@ -42,7 +33,6 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                         isInactive: true,
                         returnValues: true
                     }).then(publishRoomUpdate({
-                        dbClient,
                         notCharacterId: CharacterId,
                         epochTime: epochTime + 2,
                         RoomId
@@ -58,14 +48,12 @@ export const checkForDisconnect = async (dbClient, { oldImage, newImage }) => {
                     const CharacterId = splitType(oldImage.EphemeraId)[1]
                     try {
                         await characterEphemeraDenormalize({
-                            dbClient,
                             RoomId,
                             EphemeraId,
                             isActive: false,
                             isInactive: false,
                             returnValues: true
                         }).then(publishRoomUpdate({
-                            dbClient,
                             notCharacterId: CharacterId,
                             epochTime: epochTime + 2,
                             RoomId

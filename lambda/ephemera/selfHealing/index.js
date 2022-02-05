@@ -1,11 +1,5 @@
-import { GetItemCommand, ScanCommand, PutItemCommand, UpdateItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb'
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-
-import { splitType } from '../utilities/index.js'
-
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-const assetsTable = `${TABLE_PREFIX}_assets`
+import { splitType } from '/opt/utilities/types.js'
+import { scanEphemera, putEphemera, updateEphemera, assetDataCategoryQuery, assetGetItem, assetPlayerQuery } from '/opt/utilities/dynamoDB/index.js'
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -39,65 +33,56 @@ const sortImportTree = (tree, currentList = []) => {
     }
 }
 
-export const healGlobalValues = async (dbClient) => {
+export const healGlobalValues = async () => {
     try {
         const healConnections = async () => {
-            const { Items = [] } = await dbClient.send(new ScanCommand({
-                TableName: ephemeraTable,
+            const Items = await scanEphemera({
                 FilterExpression: "begins_with(EphemeraId, :player) AND begins_with(DataCategory, :connection)",
-                ExpressionAttributeValues: marshall({
+                ExpressionAttributeValues: {
                     ':player': 'PLAYER#',
                     ':connection': 'CONNECTION#'
-                }),
-                ProjectionExpression: 'EphemeraId, DataCategory'
-            }))
+                },
+                ProjectionFields: ['EphemeraId', 'DataCategory']
+            })
         
             const connectionMap = Items
-                .map(unmarshall)
                 .map(({ EphemeraId, DataCategory }) => ({ Player: splitType(EphemeraId)[1], Connection: splitType(DataCategory)[1]}))
                 .reduce((previous, { Player, Connection }) => ({ ...previous, [Connection]: Player }), {})
         
-            await dbClient.send(new PutItemCommand({
-                TableName: ephemeraTable,
-                Item: marshall({
+            await putEphemera({
+                Item: {
                     EphemeraId: 'Global',
                     DataCategory: 'Connections',
                     connections: connectionMap
-                })
-            }))
+                }
+            })
         }
 
         const healGlobalAssets = async () => {
-            const { Items = [] } = await dbClient.send(new QueryCommand({
-                TableName: assetsTable,
-                IndexName: 'DataCategoryIndex',
-                KeyConditionExpression: "DataCategory = :dc",
+            const Items = await assetDataCategoryQuery({
+                DataCategory: 'Meta::Asset',
                 FilterExpression: "#zone = :canon",
-                ExpressionAttributeValues: marshall({
-                    ":dc": `Meta::Asset`,
-                    ':canon': 'Canon'
-                }),
                 ExpressionAttributeNames: {
                     '#zone': 'zone'
                 },
-                ProjectionExpression: 'AssetId, importTree'
-            }))
-            const globalAssets = Items.map(unmarshall)
+                ExpressionAttributeValues: {
+                    ':canon': 'Canon'
+                },
+                ProjectionFields: ['AssetId', 'importTree']
+            })
+            const globalAssets = Items
                 .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
                 .filter(({ AssetId }) => (AssetId))
                 .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
             const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
-            await dbClient.send(new UpdateItemCommand({
-                TableName: ephemeraTable,
-                Key: marshall({
-                    EphemeraId: `Global`,
-                    DataCategory: 'Assets'
-                }),
+            await updateEphemera({
+                EphemeraId: 'Global',
+                DataCategory: 'Assets',
                 UpdateExpression: `SET assets = :assets`,
-                ExpressionAttributeValues: marshall({
+                ExpressionAttributeValues: {
                     ':assets': globalAssetsSorted
-                })
-            }))
+                }
+            })
         }
 
         const [connections] = await Promise.all([
@@ -111,35 +96,30 @@ export const healGlobalValues = async (dbClient) => {
     
 }
 
-export const healCharacter = async (dbClient, CharacterId) => {
+export const healCharacter = async (CharacterId) => {
     try {
-        const { Item } = await dbClient.send(new GetItemCommand({
-            TableName: assetsTable,
-            Key: marshall({
-                AssetId: `CHARACTER#${CharacterId}`,
-                DataCategory: 'Meta::Character'
-            }),
-            ProjectionExpression: 'player, #Name, HomeId',
+        const { Item } = await assetGetItem({
+            AssetId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Meta::Character',
+            ProjectionFields: ['player', '#Name', 'HomeId'],
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
-        }))
+        })
         
         const healPersonalAssetList = async () => {
             if (Item) {
-                const { player } = unmarshall(Item)
+                const { player } = Item
                 if (player) {
-                    const { Items = [] } = await dbClient.send(new QueryCommand({
-                        TableName: assetsTable,
-                        IndexName: 'PlayerIndex',
+                    const Items = await assetPlayerQuery({
                         KeyConditionExpression: "player = :player AND DataCategory = :dc",
-                        ExpressionAttributeValues: marshall({
+                        ExpressionAttributeValues: {
                             ":dc": `Meta::Asset`,
                             ":player": player
-                        }),
-                        ProjectionExpression: 'AssetId, importTree'
-                    }))
-                    const personalAssets = Items.map(unmarshall)
+                        },
+                        ProjectionFields: ['AssetId', 'importTree']
+                    })
+                    const personalAssets = Items
                         .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
                         .filter(({ AssetId }) => (AssetId))
                         .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
@@ -151,25 +131,22 @@ export const healCharacter = async (dbClient, CharacterId) => {
 
         const healCharacterItem = async () => {
             if (Item) {
-                const { Name, HomeId } = unmarshall(Item)
+                const { Name, HomeId } = Item
                 const personalAssets = await healPersonalAssetList()
-                await dbClient.send(new UpdateItemCommand({
-                    TableName: ephemeraTable,
-                    Key: marshall({
-                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Connection'
-                    }),
+                await updateEphemera({
+                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                    DataCategory: 'Connection',
                     UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false)`,
                     ExpressionAttributeNames: {
                         '#Name': 'Name'
                     },
-                    ExpressionAttributeValues: marshall({
+                    ExpressionAttributeValues: {
                         ':name': Name,
                         ':homeId': HomeId || 'VORTEX',
                         ':false': false,
                         ':assets': personalAssets
-                    })
-                }))
+                    }
+                })
             }
         }
 

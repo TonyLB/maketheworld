@@ -500,26 +500,25 @@ Resources:
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Layers:
             - !Ref PerceptionLambdaLayer
+            - !Ref UtilityLambdaLayer
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_ephemera'
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_messages'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
             - DynamoDBReadPolicy:
                   TableName: !Sub '${TablePrefix}_assets'
             - Statement:
               - Effect: Allow
                 Action: execute-api:ManageConnections
                 Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
-          Events:
-            Stream:
-              Type: DynamoDB
-              Properties:
-                Stream: !GetAtt EphemeraTable.StreamArn
-                BatchSize: 100
-                StartingPosition: TRIM_HORIZON
+          # Events:
+          #   Stream:
+          #     Type: DynamoDB
+          #     Properties:
+          #       Stream: !GetAtt EphemeraTable.StreamArn
+          #       BatchSize: 100
+          #       StartingPosition: TRIM_HORIZON
   AssetBucket:
       Type: AWS::S3::Bucket
       Properties:

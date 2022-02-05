@@ -6,7 +6,8 @@ import {
     DeleteItemCommand,
     QueryCommand,
     BatchWriteItemCommand,
-    BatchGetItemCommand
+    BatchGetItemCommand,
+    ScanCommand
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -15,6 +16,7 @@ import { asyncSuppressExceptions } from '../errors.js'
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
+const messageTable = `${TABLE_PREFIX}_messages`
 
 const params = { region: process.env.AWS_REGION }
 const dbClient = new DynamoDBClient(params)
@@ -227,7 +229,7 @@ export const assetGetItem = async ({
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
         return unmarshall(Item)
-    }, {})
+    })
 }
 
 export const assetQuery = async ({
@@ -246,7 +248,7 @@ export const assetQuery = async ({
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
         return Items.map(unmarshall)
-    }, [])
+    }, () => ([]))
 }
 
 export const assetDataCategoryQuery = async ({
@@ -275,7 +277,7 @@ export const assetDataCategoryQuery = async ({
             ...(FilterExpression ? { FilterExpression }: {})
         }))
         return Items.map(unmarshall)
-    }, [])
+    }, () => ([]))
 }
 
 export const assetScopedIdQuery = async ({
@@ -301,7 +303,7 @@ export const assetScopedIdQuery = async ({
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
         return Items.map(unmarshall)
-    }, [])
+    }, () => ([]))
 }
 
 export const assetPlayerQuery = async ({
@@ -327,7 +329,7 @@ export const assetPlayerQuery = async ({
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
         return Items.map(unmarshall)
-    }, [])
+    }, () => ([]))
 }
 
 export const updateAsset = async ({
@@ -345,10 +347,10 @@ export const updateAsset = async ({
                 DataCategory
             }),
             UpdateExpression,
-            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
             ExpressionAttributeNames
         }))
-    }, {})
+    })
 }
 
 export const putAsset = async ({
@@ -357,9 +359,9 @@ export const putAsset = async ({
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
             TableName: assetsTable,
-            Item: marshall(Item)
+            Item: marshall(Item, { removeUndefinedValues: true })
         }))
-    }, {})
+    })
 }
 
 export const deleteAsset = async ({
@@ -374,9 +376,29 @@ export const deleteAsset = async ({
                 DataCategory
             })
         }))
-    }, {})
+    })
 }
 
+export const ephemeraGetItem = async ({
+    EphemeraId,
+    DataCategory,
+    ProjectionFields = ['EphemeraId'],
+    ExpressionAttributeNames,
+    catchException = () => ({})
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        const { Item = {} } = await dbClient.send(new GetItemCommand({
+            TableName: ephemeraTable,
+            Key: marshall({
+                EphemeraId,
+                DataCategory
+            }),
+            ProjectionExpression: ProjectionFields.join(', '),
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        }))
+        return unmarshall(Item)
+    }, catchException)
+}
 export const ephemeraQuery = async ({
     EphemeraId,
     ProjectionFields = ['DataCategory'],
@@ -394,7 +416,7 @@ export const ephemeraQuery = async ({
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
         return Items.map(unmarshall)
-    }, [])
+    }, () => ([]))
 }
 
 export const ephemeraDataCategoryQuery = async ({
@@ -414,7 +436,7 @@ export const ephemeraDataCategoryQuery = async ({
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
         return Items.map(unmarshall)
-    }, [])
+    }, () => ([]))
 }
 
 export const putEphemera = async ({
@@ -425,7 +447,7 @@ export const putEphemera = async ({
             TableName: ephemeraTable,
             Item: marshall(Item)
         }))
-    }, {})
+    })
 }
 
 export const updateEphemera = async ({
@@ -433,18 +455,51 @@ export const updateEphemera = async ({
     DataCategory,
     UpdateExpression,
     ExpressionAttributeNames,
-    ExpressionAttributeValues
+    ExpressionAttributeValues,
+    catchException = () => ({})
 }) => {
     return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new UpdateItemCommand({
+        const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
             TableName: ephemeraTable,
             Key: marshall({
                 EphemeraId,
                 DataCategory
             }),
             UpdateExpression,
-            ExpressionAttributeValues: marshall(ExpressionAttributeValues),
+            ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
             ExpressionAttributeNames
         }))
-    }, {})
+        return unmarshall(Attributes)
+    }, catchException)
+}
+
+export const scanEphemera = async ({
+    FilterExpression,
+    ExpressionAttributeValues,
+    ExpressionAttributeNames,
+    ProjectionFields = ['EphemeraId'],
+    ReturnValues
+}) => {
+    return await asyncSuppressExceptions(async () => {
+        await dbClient.send(new ScanCommand({
+            TableName: ephemeraTable,
+            FilterExpression,
+            ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }),
+            ExpressionAttributeNames,
+            ProjectionExpression: ProjectionFields.join(', '),
+            ReturnValues
+        }))
+    })
+}
+
+export const publishMessage = async (Item) => {
+    return await asyncSuppressExceptions(async () => {
+        await dbClient.send(new PutItemCommand({
+            TableName: messageTable,
+            Item: marshall({
+                DataCategory: 'Meta::Message',
+                ...Item
+            })
+        }))
+    })
 }

@@ -1,6 +1,6 @@
 import { DEVELOPER_MODE } from './constants.js'
 
-export const asyncSuppressExceptions = async (func, defaultReturnValue = {}) => {
+export const asyncSuppressExceptions = async (func, catchException = async () => ({})) => {
     if (DEVELOPER_MODE) {
         return await func()
     }
@@ -9,7 +9,7 @@ export const asyncSuppressExceptions = async (func, defaultReturnValue = {}) => 
             return await func()
         }
         catch {
-            return defaultReturnValue
+            return await catchException()
         }
     }
 }
