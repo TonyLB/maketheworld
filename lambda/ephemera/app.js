@@ -1,8 +1,7 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb'
+import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
 import { queueClear, queueState, queueFlush } from './feedbackQueue.js'
@@ -11,35 +10,23 @@ import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
+import { ephemeraGetItem } from '/opt/utilities/dynamoDB/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
     endpoint: process.env.WEBSOCKET_API
 })
 
-const REGION = process.env.AWS_REGION
-
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-
-const dbClient = new DynamoDBClient({ region: REGION })
-
 const postRecords = async (Records) => {
-    let connections = {}
-    try {
-        const { Item = {} } = await dbClient.send(new GetItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections'
-            }),
-            ProjectionExpression: 'connections'
-        }))
-        connections = unmarshall(Item).connections
-    }
-    catch(e) {
-        connections = await healGlobalValues()
-    }
+    const { connections } = await ephemeraGetItem({
+        EphemeraId: 'Global',
+        DataCategory: 'Connections',
+        ProjectionFields: ['connections'],
+        catchException: async () => {
+            const connections = await healGlobalValues()
+            return { connections }
+        }
+    })
     //
     // TODO: Filter Records to find the types of records we should report back to the users as
     // ephemera updates, and aggregate them into a list to send in a single bolus
@@ -146,7 +133,7 @@ const dispatchRecords = (Records) => {
     //
     return Promise.all([
         ...characterRecords.map(processCharacterEvent),
-        ...playerRecords.map(processPlayerEvent({ dbClient })),
+        ...playerRecords.map(processPlayerEvent),
         postRecords(Records)
     ])
 }

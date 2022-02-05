@@ -1,37 +1,24 @@
-import { marshall } from '@aws-sdk/util-dynamodb'
-import { UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 import { healGlobalValues } from '../selfHealing/index.js'
 import { splitType } from '/opt/utilities/types.js'
+import { updateEphemera } from '/opt/utilities/dynamoDB/index.js'
 
-const { TABLE_PREFIX } = process.env;
-const ephemeraTable = `${TABLE_PREFIX}_ephemera`
-
-export const checkForConnect = async (dbClient, { newImage }) => {
+export const checkForConnect = async ({ newImage }) => {
     const { EphemeraId, DataCategory } = newImage
     if (DataCategory.startsWith('CONNECTION#')) {
         const PlayerName = splitType(EphemeraId)[1]
         const ConnectionId = splitType(DataCategory)[1]
-        const updateCommand = new UpdateItemCommand({
-            TableName: ephemeraTable,
-            Key: marshall({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections'
-            }),
+        await updateEphemera({
+            EphemeraId: 'Global',
+            DataCategory: 'Connections',
             UpdateExpression: 'SET connections.#connection = :player',
-            ExpressionAttributeValues: marshall({
+            ExpressionAttributeValues: {
                 ':player': PlayerName
-            }),
+            },
             ExpressionAttributeNames: {
                 '#connection': ConnectionId
-            }
+            },
+            catchException: healGlobalValues
         })
-        try {
-            await dbClient.send(updateCommand)
-        }
-        catch {
-            await healGlobalValues()
-            await dbClient.send(updateCommand)
-        }
         //
         // TODO: Cascade a whoAmI return value off of connect, rather than
         // having to request it explicitly from the client.  This will let
