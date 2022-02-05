@@ -1,7 +1,7 @@
 import { marshall } from '@aws-sdk/util-dynamodb'
 import { UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 
-import { splitType } from '../utilities/index.js'
+import { splitType } from '/opt/utilities/types.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`

@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { UpdateItemCommand, BatchWriteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
-import { splitType } from '../utilities/index.js'
+import { splitType } from '/opt/utilities/types.js'
 import { render } from '/opt/perception/index.js'
 import publishRoomUpdate from './publishRoomUpdate.js'
 import characterEphemeraDenormalize from './characterEphemeraDenormalize.js'

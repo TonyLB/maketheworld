@@ -10,7 +10,7 @@ import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
-import { splitType } from './utilities/index.js'
+import { splitType } from '/opt/utilities/types.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',

@@ -500,6 +500,7 @@ Resources:
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           Layers:
             - !Ref PerceptionLambdaLayer
+            - !Ref UtilityLambdaLayer
           Policies:
             - DynamoDBCrudPolicy:
                   TableName: !Sub '${TablePrefix}_ephemera'

@@ -2,7 +2,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { PutItemCommand } from '@aws-sdk/client-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 
-import { splitType } from '../utilities/index.js'
+import { splitType } from '/opt/utilities/types.js'
 
 const { TABLE_PREFIX } = process.env;
 const messageTable = `${TABLE_PREFIX}_messages`
