@@ -621,7 +621,7 @@ Resources:
                 TableName: !Sub '${TablePrefix}_messages'
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_message_delta'
-            - DynamoDBReadPolicy:
+            - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_ephemera'
             - Statement:
                 - Effect: Allow

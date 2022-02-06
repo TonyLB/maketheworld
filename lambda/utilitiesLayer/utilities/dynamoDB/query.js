@@ -17,15 +17,11 @@ const extractKeyInfo = (table, indexName, {
     MessageId,
     DataCategory,
     player,
-    scopedId
+    scopedId,
+    ConnectionId,
 }) => {
     if (indexName) {
         switch(indexName) {
-            case 'DataCategoryIndex':
-                return {
-                    KeyConditionExpression: 'DataCategory = :keyId',
-                    keyId: DataCategory
-                }
             case 'PlayerIndex':
                 return {
                     KeyConditionExpression: 'player = :keyId',
@@ -35,6 +31,17 @@ const extractKeyInfo = (table, indexName, {
                 return {
                     KeyConditionExpression: 'scopedId = :keyId',
                     keyId: scopedId
+                }
+            case 'ConnectionIndex':
+                return {
+                    KeyConditionExpression: 'ConnectionId = :keyId',
+                    keyId: ConnectionId
+                }
+            case 'DataCategoryIndex':
+            default:
+                return {
+                    KeyConditionExpression: 'DataCategory = :keyId',
+                    keyId: DataCategory
                 }
         }    
     }

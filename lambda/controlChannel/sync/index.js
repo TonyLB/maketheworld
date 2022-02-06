@@ -1,6 +1,5 @@
-import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
-
 import { messageDataCategoryQuery, messageDeltaQuery } from '/opt/utilities/dynamoDB/index.js'
+import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
 
 //
 // syncRawHelper executes one step of the raw sync operation (either the first query or subsequent
@@ -62,6 +61,7 @@ export const sync = async (apiClient, {
     let LastEvaluatedKey = null
     let loopCount = 0
     let sendPromises = []
+    const socketQueue = socketQueueFactory()
     while (!LastSync && loopCount < 20) {
         const returnVal = (type === 'Raw')
             ? await syncRawHelper({
@@ -78,14 +78,14 @@ export const sync = async (apiClient, {
         //
         // TODO: Error handling for failed query calls
         //
-        sendPromises.push(apiClient.send(new PostToConnectionCommand({
+        socketQueue.send({
             ConnectionId,
-            Data: JSON.stringify({
+            Message: {
                 messageType: 'Messages',
                 messages: returnVal.Items,
                 ...(returnVal.LastSync ? { LastSync: returnVal.LastSync, RequestId } : {})
-            })
-        })))
+            }
+        })
         //
         // TODO: Error handling for failed websocket calls
         //
@@ -93,5 +93,5 @@ export const sync = async (apiClient, {
         LastEvaluatedKey = returnVal.LastEvaluatedKey
         loopCount++
     }
-    await Promise.all(sendPromises)
+    await socketQueue.flush()
 }

@@ -1,6 +1,5 @@
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
@@ -11,6 +10,7 @@ import { splitType } from '/opt/utilities/types.js'
 import { assetRegistryEntries } from "../wml/index.js"
 
 import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
+import { socketQueueFactory } from "/opt/utilities/apiManagement/index.js"
 
 const { S3_BUCKET } = process.env;
 
@@ -66,20 +66,21 @@ const uploadResponse = ({ apiClient }) => async ({ uploadId, ...rest }) => {
         .map(async ({ PlayerName, RequestId }) => {
             const connections = await getConnectionsByPlayerName(PlayerName)
             await Promise.all((connections || [])
-                .map((ConnectionId) => (
-                    apiClient.send(new PostToConnectionCommand({
-                        ConnectionId,
-                        Data: JSON.stringify({
+                .map(async (ConnectionId) => {
+                    const socketQueue = socketQueueFactory()
+                    socketQueue.send({
+                        ConnectionId, 
+                        Message: {
                             ...rest,
                             RequestId
-                        })
-                    })).then(() => (
-                        assetDB.deleteItem({
-                            AssetId: `UPLOAD#${uploadId}`,
-                            DataCategory: `PLAYER#${PlayerName}`
-                        })
-                    ))
-                ))
+                        }
+                    })
+                    await socketQueue.flush()
+                    await assetDB.deleteItem({
+                        AssetId: `UPLOAD#${uploadId}`,
+                        DataCategory: `PLAYER#${PlayerName}`
+                    })
+                })
             )
         }))
 }

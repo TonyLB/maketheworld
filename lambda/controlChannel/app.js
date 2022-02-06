@@ -19,6 +19,7 @@ import {
     ephemeraDB,
     assetDB
 } from '/opt/utilities/dynamoDB/index.js'
+import { forceDisconnect } from '/opt/utilities/apiManagement/forceDisconnect.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -33,44 +34,8 @@ const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGIO
 // cycle you don't have the disconnect update come after the connect.
 //
 export const disconnect = async (connectionId) => {
-    const DataCategory = `CONNECTION#${connectionId}`
-    const [Items, PlayerItems] = await Promise.all([
-        ephemeraDB.query({
-            IndexName: 'ConnectionIndex',
-            ConnectionId: connectionId,
-            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
-            ExpressionAttributeValues: {
-                ':EphemeraPrefix': 'CHARACTERINPLAY#'
-            },
-            ProjectionFields: ['EphemeraId', 'DataCategory']
-        }),
-        ephemeraDB.query({
-            IndexName: 'DataCategoryIndex',
-            DataCategory
-        })
-    ])
 
-    await Promise.all([
-        ...(PlayerItems
-            .map(({ EphemeraId }) => (
-                ephemeraDB.deleteItem({
-                    EphemeraId,
-                    DataCategory
-                })
-            ))
-        ),
-        ...(Items
-            .map(({ EphemeraId, DataCategory }) => (
-                ephemeraDB.update({
-                    EphemeraId,
-                    DataCategory,
-                    UpdateExpression: 'SET Connected = :false REMOVE ConnectionId',
-                    ExpressionAttributeValues: {
-                        ':false': false
-                    }
-                })
-            )))
-    ])
+    await forceDisconnect(connectionId)
 
     return { statusCode: 200 }
 }

@@ -1,1 +1,1 @@
-export const DEVELOPER_MODE = false
+export const DEVELOPER_MODE = true

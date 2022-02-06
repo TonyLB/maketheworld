@@ -2,35 +2,15 @@
 // SPDX-License-Identifier: MIT-0
 
 import { unmarshall } from '@aws-sdk/util-dynamodb'
-import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
-import { queueClear, queueState, queueFlush } from './feedbackQueue.js'
 import { healGlobalValues, healCharacter } from './selfHealing/index.js'
 
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-
-const apiClient = new ApiGatewayManagementApiClient({
-    apiVersion: '2018-11-29',
-    endpoint: process.env.WEBSOCKET_API
-})
+import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
 
 const postRecords = async (Records) => {
-    const { connections } = await ephemeraDB.getItem({
-        EphemeraId: 'Global',
-        DataCategory: 'Connections',
-        ProjectionFields: ['connections'],
-        catchException: async () => {
-            const connections = await healGlobalValues()
-            return { connections }
-        }
-    })
-    //
-    // TODO: Filter Records to find the types of records we should report back to the users as
-    // ephemera updates, and aggregate them into a list to send in a single bolus
-    //
     const unmarshalledRecords = Records
         .map(({ eventName, dynamodb }) => ({
             eventName,
@@ -60,24 +40,12 @@ const postRecords = async (Records) => {
         ...characterRecords
     ]
     if (updates.length) {
-        try {
-            await Promise.all(
-                Object.keys(connections).map((ConnectionId) => (
-                    apiClient.send(new PostToConnectionCommand({
-                        ConnectionId,
-                        Data: JSON.stringify({
-                            messageType: 'Ephemera',
-                            updates
-                        }, null, 4)
-                    }))
-                ))
-                //
-                // TODO: Process errors to find connections that can be pruned
-                // from the current-open listing
-                //
-            )    
-        }
-        catch (e) {}
+        const socketQueue = socketQueueFactory()
+        socketQueue.sendAll({
+            messageType: 'Ephemera',
+            updates
+        })
+        await socketQueue.flush()
     }
 
 }
@@ -146,7 +114,6 @@ export const handler = async (event, context) => {
         await dispatchRecords(Records)
     }
     else {
-        queueClear()
         switch(action) {
             
             case 'healGlobal':
