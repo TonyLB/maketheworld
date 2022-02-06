@@ -7,39 +7,69 @@ const apiClient = new ApiGatewayManagementApiClient({
     endpoint: process.env.WEBSOCKET_API
 })
 
-export const socketQueueFactory = () => {
-    let globalMessageQueue = {
-        messages: []
+const queueInitial = {
+    messages: {},
+    otherSends: []
+}
+
+const queueReducer = (state, action) => {
+    const { messages, otherSends } = state
+    switch(action.messageType) {
+        case 'Messages':
+            return {
+                messages: (action.messages || [])
+                    .reduce((previous, { MessageId, ...rest }) => ({
+                        ...previous,
+                        [MessageId]: { MessageId, ...rest }
+                    }), messages),
+                otherSends
+            }
+        default:
+            return {
+                messages,
+                otherSends: [
+                    ...otherSends,
+                    action
+                ]
+            }
     }
+}
+
+const queueSerialize = ({ messages, otherSends}) => {
+    return [
+        ...(Object.keys(messages).length
+            ? [{
+                messageType: 'Messages',
+                messages: Object.values(messages)
+                    .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
+            }]
+            : []
+        ),
+        ...otherSends
+    ]
+}
+
+const queueHasContent = ({ messages, otherSends }) => (
+    (Object.keys(messages).length) || (otherSends.length)
+)
+
+export const socketQueueFactory = () => {
+    let globalMessageQueue = queueInitial
     let messageQueueByConnection = {}
 
     return {
         clear: () => {
-            globalMessageQueue = { messages: [] }
+            globalMessageQueue = queueInitial
             messageQueueByConnection = {}
         },
         send: ({ ConnectionId, Message }) => {
-            if (messageQueueByConnection[ConnectionId]) {
-                messageQueueByConnection[ConnectionId] = {
-                    messages: [
-                        ...messageQueueByConnection[ConnectionId].messages,
-                        Message
-                    ]
-                }
-            }
-            else {
-                messageQueueByConnection[ConnectionId] = {
-                    messages: [Message]
-                }
-            }
+            messageQueueByConnection[ConnectionId] = queueReducer(
+                messageQueueByConnection[ConnectionId] || queueInitial,
+                Message
+            )
         },
         sendAll: (Message) => {
-            globalMessageQueue = {
-                messages: [
-                    ...globalMessageQueue.messages,
-                    Message
-                ]
-            }
+            globalMessageQueue = queueReducer(globalMessageQueue, Message)
         },
         flush: async () => {
             const deliver = async (ConnectionId) => {
@@ -51,8 +81,11 @@ export const socketQueueFactory = () => {
                 }
                 try {
                     await Promise.all([
-                        ...globalMessageQueue.messages,
-                        ...((messageQueueByConnection[ConnectionId] || { messages: [] }).messages || [])
+                        ...queueSerialize(globalMessageQueue),
+                        ...(messageQueueByConnection[ConnectionId]
+                            ? queueSerialize(messageQueueByConnection[ConnectionId])
+                            : []
+                        )
                     ].map(deliverMessage))
                 }
                 catch (err) {
@@ -65,7 +98,7 @@ export const socketQueueFactory = () => {
                 }
 
             }
-            if (globalMessageQueue.messages.length) {
+            if (queueHasContent(globalMessageQueue)) {
                 const { connections = {} } = await ephemeraDB.getItem({
                     EphemeraId: 'Global',
                     DataCategory: 'Connections',
@@ -76,7 +109,7 @@ export const socketQueueFactory = () => {
             else {
                 await Promise.all(Object.keys(messageQueueByConnection).map(deliver))
             }
-            globalMessageQueue = { messages: [] }
+            globalMessageQueue = queueInitial
             messageQueueByConnection = {}
 
         }
