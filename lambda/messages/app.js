@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 import { splitType } from '/opt/utilities/types.js'
-import { batchGetDispatcher, batchWriteDispatcher } from '/opt/utilities/dynamoDB/index.js'
+import { batchGetDispatcher, batchWriteDispatcher, messageDelete } from '/opt/utilities/dynamoDB/index.js'
 import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
@@ -109,7 +109,9 @@ export const handler = async (event, context) => {
             }
 
             const epochTime = Date.now()
-            const { messageItems, deltaItems, broadcastPayloads } = metaRecords.reduce(
+            const socketQueue = socketQueueFactory()
+
+            const { messageItems, deltaItems, messagesToDelete } = metaRecords.reduce(
                 (previous, { Targets, CreatedTime, MessageId, ...rest }) => {
                     const aggregateTargets = Targets
                         .reduce((previous, item) => {
@@ -121,78 +123,79 @@ export const handler = async (event, context) => {
                                     return [...previous, ...(resolvedTargetMap[item] || [{ id: item }])]
                             }
                         }, [])
-                    const deduplicatedDBTargets = [...new Set(aggregateTargets.map(({ id }) => (id)))]
-                    const { messageItems, deltaItems } = deduplicatedDBTargets.reduce(
-                        (
-                            { messageItems: prevMessage, deltaItems: prevDelta },
-                            target
-                        ) => ({
-                            messageItems: [
-                                ...prevMessage,
-                                {
-                                    PutRequest: {
-                                        Item: marshall({
-                                            MessageId,
-                                            DataCategory: target,
-                                            CreatedTime: CreatedTime || epochTime,
-                                            ...rest
-                                        }, { removeUndefinedValues: true })
-                                    }
-                                }
-                            ],
-                            //
-                            // Save sync data only for characters
-                            //
-                            deltaItems: splitType(target)[0] === 'CHARACTER'
-                                ? [
-                                    ...prevDelta,
+                    if (aggregateTargets.find(({ id }) => (splitType(id)[0] === 'CHARACTER'))) {
+                        const deduplicatedDBTargets = [...new Set(aggregateTargets.map(({ id }) => (id)))]
+                        const { messageItems, deltaItems } = deduplicatedDBTargets.reduce(
+                            (
+                                { messageItems: prevMessage, deltaItems: prevDelta },
+                                target
+                            ) => ({
+                                messageItems: [
+                                    ...prevMessage,
                                     {
                                         PutRequest: {
                                             Item: marshall({
-                                                Target: target,
-                                                DeltaId: `${CreatedTime || epochTime}::${MessageId}`,
-                                                RowId: MessageId,
+                                                MessageId,
+                                                DataCategory: target,
                                                 CreatedTime: CreatedTime || epochTime,
                                                 ...rest
                                             }, { removeUndefinedValues: true })
                                         }
                                     }
-                                ] : prevDelta
-                        }), previous)
-                    const broadcastPayloads = aggregateTargets
-                        .filter(({ ConnectionId }) => (ConnectionId))
-                        .reduce((prevBroadcast, { id: target, ConnectionId }) => ({
-                            ...prevBroadcast,
-                            [ConnectionId]: [
-                                ...(prevBroadcast[ConnectionId] || []),
-                                {
-                                    MessageId,
-                                    CreatedTime: CreatedTime || epochTime,
-                                    Target: splitType(target)[1],
-                                    ...rest
-                                }
-                            ]
-                        }), previous.broadcastPayloads)
-                    return { messageItems, deltaItems, broadcastPayloads }
-                }, { messageItems: [], deltaItems: [], broadcastPayloads: {} })
-            const broadcastPromise = async () => {
-                const socketQueue = socketQueueFactory()
-                Object.entries(broadcastPayloads)
-                    .forEach(([ConnectionId, messages]) => {
-                        socketQueue.send({
-                            ConnectionId,
-                            Message: {
-                                messageType: 'Messages',
-                                messages
-                            }
-                        })
-                    })
-                await socketQueue.flush()
-            }
+                                ],
+                                //
+                                // Save sync data only for characters
+                                //
+                                deltaItems: splitType(target)[0] === 'CHARACTER'
+                                    ? [
+                                        ...prevDelta,
+                                        {
+                                            PutRequest: {
+                                                Item: marshall({
+                                                    Target: target,
+                                                    DeltaId: `${CreatedTime || epochTime}::${MessageId}`,
+                                                    RowId: MessageId,
+                                                    CreatedTime: CreatedTime || epochTime,
+                                                    ...rest
+                                                }, { removeUndefinedValues: true })
+                                            }
+                                        }
+                                    ] : prevDelta
+                            }), previous)
+                        aggregateTargets
+                            .filter(({ ConnectionId }) => (ConnectionId))
+                            .forEach(({ id: target, ConnectionId }) => {
+                                socketQueue.send({
+                                    ConnectionId,
+                                    Message: {
+                                        messageType: 'Messages',
+                                        messages: [{
+                                            MessageId,
+                                            CreatedTime: CreatedTime || epochTime,
+                                            Target: splitType(target)[1],
+                                            ...rest
+                                        }]
+                                    }
+                                })
+                            })
+                        return { ...previous, messageItems, deltaItems }
+                    }
+                    return {
+                        ...previous,
+                        messagesToDelete: [
+                            ...previous.messagesToDelete,
+                            MessageId
+                        ]
+                    }
+                }, { messageItems: [], deltaItems: [], messagesToDelete: [] })
             await Promise.all([
                 batchWriteDispatcher({ table: messageTable, items: messageItems }),
                 batchWriteDispatcher({ table: deltaTable, items: deltaItems }),
-                broadcastPromise()
+                ...messagesToDelete.map((MessageId) => (messageDelete({
+                    MessageId,
+                    DataCategory: 'Meta::Message'
+                }))),
+                socketQueue.flush()
             ])
         }
     }

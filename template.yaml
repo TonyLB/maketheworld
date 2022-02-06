@@ -633,7 +633,7 @@ Resources:
               Properties:
                 Stream: !GetAtt MessagesTable.StreamArn
                 BatchSize: 100
-                StartingPosition: TRIM_HORIZON
+                StartingPosition: LATEST
 
 Outputs:
   UserPoolClient:
