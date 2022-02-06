@@ -63,7 +63,7 @@ const evaluateConditionalList = (list = []) => {
     return true
 }
 
-export const renderItem = async ({ CharacterId, assets, EphemeraId }, subsegment) => {
+export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
     const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
     const [objectType] = splitType(EphemeraId)
     clearMemoSpace()
@@ -154,11 +154,11 @@ export const renderItem = async ({ CharacterId, assets, EphemeraId }, subsegment
     }
 }
 
-export const render = async ({ CharacterId, assets, EphemeraId }, subsegment) => {
+export const render = async ({ CharacterId, EphemeraId }, subsegment) => {
     const [objectType, objectKey] = splitType(EphemeraId)
     switch(objectType) {
         case 'ROOM':
-            const { render: Description, name: Name, exits, characters } = await renderItem({ CharacterId, assets, EphemeraId }, subsegment)
+            const { render: Description, name: Name, exits, characters } = await renderItem({ CharacterId, EphemeraId }, subsegment)
             const Message = {
                 RoomId: objectKey,
                 //

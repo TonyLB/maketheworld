@@ -170,7 +170,6 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     //
     const roomMessage = await render({
         CharacterId,
-        assets: ['TEST'],
         EphemeraId: PermanentId
     })
     await publishMessage({
