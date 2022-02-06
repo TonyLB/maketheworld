@@ -1,9 +1,9 @@
 import { splitType } from "/opt/utilities/types.js"
-import { ephemeraDB } from "/opt/utilities/dynamoDB/index.js"
+import { assetDB, ephemeraDB } from "/opt/utilities/dynamoDB/index.js"
 
 export const handleCharacterEvents = async ({ events }) => {
-    Promise.all(
-        events.map(({ eventName, oldImage, newImage }) => (async () => {
+    await Promise.all(
+        events.map(async ({ eventName, oldImage, newImage }) => {
             const mappedValue = (key) => {
                 if (newImage[key]) {
                     if (!oldImage || (newImage[key] !== oldImage[key])) {
@@ -37,19 +37,32 @@ export const handleCharacterEvents = async ({ events }) => {
                 ...(removeItems.length ? [`REMOVE ${removeItems.join(', ')}`] : [])
             ].join(' ')
             if (UpdateExpression) {
-                //
-                // TODO: Add a parallel operation to update the Characters field on the relevant player
-                // for the incoming character
-                //
                 const CharacterId = splitType(newImage.AssetId)[1]
-                await ephemeraDB.update({
-                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Connection',
-                    UpdateExpression,
-                    ...(expressionValues ? { ExpressionAttributeValues: expressionValues }: {}),
-                    ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
-                })
+                await Promise.all([
+                    ephemeraDB.update({
+                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                        DataCategory: 'Connection',
+                        UpdateExpression,
+                        ...(expressionValues ? { ExpressionAttributeValues: expressionValues }: {}),
+                        ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
+                    }),
+                    assetDB.update({
+                        AssetId: `PLAYER#${newImage.player}`,
+                        DataCategory: 'Meta::Player',
+                        UpdateExpression: 'SET Characters.#characterId = :character',
+                        ExpressionAttributeNames: {
+                            '#characterId': CharacterId
+                        },
+                        ExpressionAttributeValues: {
+                            ':character': {
+                                Name: newImage.Name,
+                                scopedId: newImage.scopedId,
+                                fileName: newImage.fileName
+                            }
+                        }
+                    })
+                ])
             }
         })
-    ))
+    )
 }
