@@ -353,3 +353,5 @@ export const messageDeltaQuery = async ({
         }
     }, () => ([]))
 }
+
+export const messageDelete = abstractDeleteItem(messageTable)
