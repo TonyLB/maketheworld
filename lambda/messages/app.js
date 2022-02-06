@@ -1,13 +1,8 @@
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
-import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
 
 import { splitType } from '/opt/utilities/types.js'
 import { batchGetDispatcher, batchWriteDispatcher } from '/opt/utilities/dynamoDB/index.js'
-
-const apiClient = new ApiGatewayManagementApiClient({
-    apiVersion: '2018-11-29',
-    endpoint: process.env.WEBSOCKET_API
-})
+import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
 const deltaTable = `${process.env.TABLE_PREFIX}_message_delta`
@@ -180,20 +175,24 @@ export const handler = async (event, context) => {
                         }), previous.broadcastPayloads)
                     return { messageItems, deltaItems, broadcastPayloads }
                 }, { messageItems: [], deltaItems: [], broadcastPayloads: {} })
-            const broadcastPromise = Promise.all(
+            const broadcastPromise = async () => {
+                const socketQueue = socketQueueFactory()
                 Object.entries(broadcastPayloads)
-                    .map(([ConnectionId, messages]) => (apiClient.send(new PostToConnectionCommand({
-                        ConnectionId,
-                        Data: JSON.stringify({
-                            messageType: 'Messages',
-                            messages
+                    .forEach(([ConnectionId, messages]) => {
+                        socketQueue.send({
+                            ConnectionId,
+                            Message: {
+                                messageType: 'Messages',
+                                messages
+                            }
                         })
-                    }))))
-            )
+                    })
+                await socketQueue.flush()
+            }
             await Promise.all([
                 batchWriteDispatcher({ table: messageTable, items: messageItems }),
                 batchWriteDispatcher({ table: deltaTable, items: deltaItems }),
-                broadcastPromise
+                broadcastPromise()
             ])
         }
     }
