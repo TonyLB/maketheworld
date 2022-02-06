@@ -1,5 +1,5 @@
 import { splitType } from '/opt/utilities/types.js'
-import { scanEphemera, ephemeraDB, assetDB } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB, assetDB } from '/opt/utilities/dynamoDB/index.js'
 
 const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     if (depth > 200) {
@@ -36,17 +36,14 @@ const sortImportTree = (tree, currentList = []) => {
 export const healGlobalValues = async () => {
     try {
         const healConnections = async () => {
-            const Items = await scanEphemera({
-                FilterExpression: "begins_with(EphemeraId, :player) AND begins_with(DataCategory, :connection)",
-                ExpressionAttributeValues: {
-                    ':player': 'PLAYER#',
-                    ':connection': 'CONNECTION#'
-                },
-                ProjectionFields: ['EphemeraId', 'DataCategory']
+            const Items = await ephemeraDB.query({
+                IndexName: 'DataCategory',
+                DataCategory: 'Meta::Connection',
+                ProjectionFields: ['EphemeraId', 'player']
             })
         
             const connectionMap = Items
-                .map(({ EphemeraId, DataCategory }) => ({ Player: splitType(EphemeraId)[1], Connection: splitType(DataCategory)[1]}))
+                .map(({ EphemeraId, player }) => ({ Player: player, Connection: splitType(EphemeraId)[1]}))
                 .reduce((previous, { Player, Connection }) => ({ ...previous, [Connection]: Player }), {})
         
             await ephemeraDB.putItem({

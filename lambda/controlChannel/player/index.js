@@ -2,19 +2,12 @@ import { splitType } from '/opt/utilities/types.js'
 import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 export const getPlayerByConnectionId = async (connectionId) => {
-    const Items = await ephemeraDB.query({
-        IndexName: 'DataCategoryIndex',
-        DataCategory: `CONNECTION#${connectionId}`,
+    const { player } = await ephemeraDB.getItem({
+        EphemeraId: `CONNECTION#${connectionId}`,
+        DataCategory: 'Meta::Connection',
+        ProjectionFields: ['player']
     })
-    const playerName = Items
-        .reduce((previous, { EphemeraId }) => {
-            const [ itemType, itemKey ] = splitType(EphemeraId)
-            if (itemType === 'PLAYER') {
-                return itemKey
-            }
-            return previous
-        }, '')
-    return playerName
+    return player
 }
 
 //
@@ -23,11 +16,16 @@ export const getPlayerByConnectionId = async (connectionId) => {
 //
 export const getConnectionsByPlayerName = async (PlayerName) => {
     const Items = await ephemeraDB.query({
-        EphemeraId: `PLAYER#${PlayerName}`
+        IndexName: 'DataCategory',
+        DataCategory: 'Meta::Connection',
+        FilterExpression: 'player = :player',
+        ExpressionAttributeValues: {
+            ':player': PlayerName
+        },
     })
     const returnVal = Items
-        .reduce((previous, { DataCategory }) => {
-            const [ itemType, itemKey ] = splitType(DataCategory)
+        .reduce((previous, { EphemeraId }) => {
+            const [ itemType, itemKey ] = splitType(EphemeraId)
             if (itemType === 'CONNECTION') {
                 return [...previous, itemKey]
             }

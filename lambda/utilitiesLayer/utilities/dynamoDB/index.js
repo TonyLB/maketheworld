@@ -293,25 +293,6 @@ const dbHandlerFactory = (table) => ({
 export const assetDB = dbHandlerFactory(assetsTable)
 export const ephemeraDB = dbHandlerFactory(ephemeraTable)
 
-export const scanEphemera = async ({
-    FilterExpression,
-    ExpressionAttributeValues,
-    ExpressionAttributeNames,
-    ProjectionFields = ['EphemeraId'],
-    ReturnValues
-}) => {
-    return await asyncSuppressExceptions(async () => {
-        await dbClient.send(new ScanCommand({
-            TableName: ephemeraTable,
-            FilterExpression,
-            ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }),
-            ExpressionAttributeNames,
-            ProjectionExpression: ProjectionFields.join(', '),
-            ReturnValues
-        }))
-    })
-}
-
 export const publishMessage = async (Item) => {
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
