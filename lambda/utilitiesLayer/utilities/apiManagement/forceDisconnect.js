@@ -1,24 +1,21 @@
 import { ephemeraDB } from '../dynamoDB/index.js'
 
 export const forceDisconnect = async (ConnectionId) => {
-    const DataCategory = `CONNECTION#${ConnectionId}`
-    const [Items, PlayerItems] = await Promise.all([
-        ephemeraDB.query({
-            IndexName: 'ConnectionIndex',
-            ConnectionId,
-            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
-            ExpressionAttributeValues: {
-                ':EphemeraPrefix': 'CHARACTERINPLAY#'
-            },
-            ProjectionFields: ['EphemeraId', 'DataCategory']
-        }),
-        ephemeraDB.query({
-            IndexName: 'DataCategoryIndex',
-            DataCategory
-        })
-    ])
+    const Items = await ephemeraDB.query({
+        IndexName: 'ConnectionIndex',
+        ConnectionId,
+        KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+        ExpressionAttributeValues: {
+            ':EphemeraPrefix': 'CHARACTERINPLAY#'
+        },
+        ProjectionFields: ['EphemeraId', 'DataCategory']
+    })
 
     await Promise.all([
+        ephemeraDB.deleteItem({
+            EphemeraId: `CONNECTION#${ConnectionId}`,
+            DataCategory: 'Meta::Connection'
+        }),
         ephemeraDB.update({
             EphemeraId: 'Global',
             DataCategory: 'Connections',
@@ -31,14 +28,6 @@ export const forceDisconnect = async (ConnectionId) => {
             // callback here to heal global connections
             //
         }),
-        ...(PlayerItems
-            .map(({ EphemeraId }) => (
-                ephemeraDB.deleteItem({
-                    EphemeraId,
-                    DataCategory
-                })
-            ))
-        ),
         ...(Items
             .map(({ EphemeraId, DataCategory }) => (
                 ephemeraDB.update({

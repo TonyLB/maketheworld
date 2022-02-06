@@ -49,10 +49,28 @@ export const connect = async (connectionId, token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
-        await ephemeraDB.putItem({
-            EphemeraId: `PLAYER#${userName}`,
-            DataCategory: `CONNECTION#${connectionId}`
-        })
+        await Promise.all([
+            ephemeraDB.putItem({
+                EphemeraId: `CONNECTION#${connectionId}`,
+                DataCategory: 'Meta::Connection',
+                player: userName
+            }),
+            ephemeraDB.update({
+                EphemeraId: 'Global',
+                DataCategory: 'Connections',
+                UpdateExpression: 'SET connections.#connection = :player',
+                ExpressionAttributeValues: {
+                    ':player': userName
+                },
+                ExpressionAttributeNames: {
+                    '#connection': connectionId
+                },
+                //
+                // TODO: Activate when selfHeal is in the utility layer
+                //
+                // catchException: healGlobalValues
+            })
+        ])
     
         return { statusCode: 200 }
     }
