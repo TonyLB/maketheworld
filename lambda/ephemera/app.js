@@ -3,7 +3,7 @@
 
 import { unmarshall } from '@aws-sdk/util-dynamodb'
 
-import { healGlobalValues, healCharacter } from './selfHealing/index.js'
+import { healGlobalValues, healCharacter } from '/opt/utilities/selfHealing/index.js'
 
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'

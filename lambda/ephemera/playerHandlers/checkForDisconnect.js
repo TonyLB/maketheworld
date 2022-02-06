@@ -1,4 +1,4 @@
-import { healGlobalValues } from '../selfHealing/index.js'
+import { healGlobalValues } from '/opt/utilities/selfHealing/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 

@@ -1,10 +1,10 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
-import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider"
 import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 
 import { cacheAsset } from './cache.js'
-import { healAsset, healPlayers } from "./selfHealing/index.js"
+import { healAsset } from "./selfHealing/index.js"
+import { healPlayers } from "/opt/utilities/selfHealing/index.js"
 
 import { handleUpload, createUploadLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'
@@ -18,7 +18,6 @@ const apiClient = new ApiGatewayManagementApiClient({
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
-const cognitoClient = new CognitoIdentityProviderClient(params)
 
 //
 // TODO: Step 3
@@ -76,7 +75,7 @@ export const handler = async (event, context) => {
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.heal) {
-        const returnVal = await healPlayers({ cognitoClient })
+        const returnVal = await healPlayers()
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.canonize) {
