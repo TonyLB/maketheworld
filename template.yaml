@@ -519,7 +519,7 @@ Resources:
               Properties:
                 Stream: !GetAtt EphemeraTable.StreamArn
                 BatchSize: 100
-                StartingPosition: TRIM_HORIZON
+                StartingPosition: LATEST
   AssetBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -590,7 +590,7 @@ Resources:
               Properties:
                 Stream: !GetAtt AssetTable.StreamArn
                 BatchSize: 100
-                StartingPosition: TRIM_HORIZON
+                StartingPosition: LATEST
           # Events:
           #   BucketEvent:
           #     Type: S3

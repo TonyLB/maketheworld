@@ -7,10 +7,22 @@ const apiClient = new ApiGatewayManagementApiClient({
     endpoint: process.env.WEBSOCKET_API
 })
 
-export const socketQueueFactory = () => {
-    let globalMessageQueue = {
-        messages: []
+const queueInitial = {
+    messages: []
+}
+
+const queueReducer = (state, action) => {
+    const { messages } = state
+    return {
+        messages: [
+            ...messages,
+            action
+        ]
     }
+}
+
+export const socketQueueFactory = () => {
+    let globalMessageQueue = queueInitial
     let messageQueueByConnection = {}
 
     return {
@@ -19,27 +31,13 @@ export const socketQueueFactory = () => {
             messageQueueByConnection = {}
         },
         send: ({ ConnectionId, Message }) => {
-            if (messageQueueByConnection[ConnectionId]) {
-                messageQueueByConnection[ConnectionId] = {
-                    messages: [
-                        ...messageQueueByConnection[ConnectionId].messages,
-                        Message
-                    ]
-                }
-            }
-            else {
-                messageQueueByConnection[ConnectionId] = {
-                    messages: [Message]
-                }
-            }
+            messageQueueByConnection[ConnectionId] = queueReducer(
+                messageQueueByConnection[ConnectionId] || queueInitial,
+                Message
+            )
         },
         sendAll: (Message) => {
-            globalMessageQueue = {
-                messages: [
-                    ...globalMessageQueue.messages,
-                    Message
-                ]
-            }
+            globalMessageQueue = queueReducer(globalMessageQueue, Message)
         },
         flush: async () => {
             const deliver = async (ConnectionId) => {
