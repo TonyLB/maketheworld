@@ -90,10 +90,12 @@ export const handler = async (event, context) => {
             // Global x Connections record, to avoid having to BatchGet when mapping multiple
             // targets
             //
-            if (Object.keys(characterTargets).find((id) => (resolvedTargetMap[`CHARACTER#${id}`] === undefined))) {
+            const unmatchedCharacterTargets = Object.keys(characterTargets)
+                .filter((id) => (resolvedTargetMap[`CHARACTER#${id}`] === undefined))
+            if (unmatchedCharacterTargets.length) {
                 const characterEphemera = await batchGetDispatcher({
                     table: ephemeraTable,
-                    items: Object.keys(characterTargets)
+                    items: unmatchedCharacterTargets
                         .map((id) => (marshall({
                             EphemeraId: `CHARACTERINPLAY#${id}`,
                             DataCategory: 'Connection'
