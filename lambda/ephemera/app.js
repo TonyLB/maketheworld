@@ -22,11 +22,12 @@ const postRecords = async (Records) => {
     const characterRecords = unmarshalledRecords
         .filter(({ data: { newImage } }) => ((newImage.EphemeraId ?? '').startsWith('CHARACTERINPLAY#') && newImage.DataCategory === 'Connection'))
         .map(({ data: { newImage } }) => {
-            const { EphemeraId, Name, RoomId, Connected } = newImage
+            const { EphemeraId, Name, RoomId, Connected, Color } = newImage
             return {
                 type: 'CharacterInPlay',
                 CharacterId: splitType(EphemeraId)[1],
                 Name,
+                Color,
                 RoomId,
                 Connected
             }

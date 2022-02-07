@@ -20,6 +20,7 @@ import {
     assetDB
 } from '/opt/utilities/dynamoDB/index.js'
 import { forceDisconnect } from '/opt/utilities/apiManagement/forceDisconnect.js'
+import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
 
 const apiClient = new ApiGatewayManagementApiClient({
     apiVersion: '2018-11-29',
@@ -187,13 +188,12 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const { RoomId, Name } = await ephemeraDB.getItem({
+    const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await ephemeraDB.getItem({
         EphemeraId,
         DataCategory: 'Connection',
-        ProjectionFields: ['RoomId', '#name'],
+        ProjectionFields: ['RoomId', '#name', 'Color'],
         ExpressionAttributeNames: { '#name': 'Name' }
     })
-    const Color = ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
     if (RoomId) {
         await publishMessage({
             MessageId: `MESSAGE#${uuidv4()}`,
