@@ -93,7 +93,7 @@ export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
                     TableName: EphemeraTableName,
                     Key: marshall({
                         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Connection'
+                        DataCategory: 'Meta::Character'
                     }),
                     ProjectionExpression: 'assets'
                 }))

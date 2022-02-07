@@ -98,7 +98,7 @@ export const handler = async (event, context) => {
                     items: unmatchedCharacterTargets
                         .map((id) => (marshall({
                             EphemeraId: `CHARACTERINPLAY#${id}`,
-                            DataCategory: 'Connection'
+                            DataCategory: 'Meta::Character'
                         }))),
                     projectionExpression: 'EphemeraId, ConnectionId'
                 })

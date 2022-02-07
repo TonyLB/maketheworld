@@ -164,7 +164,7 @@ const initializeRooms = async (roomIDs) => {
     if (missingRoomIds.length > 0) {
         const charactersInPlay = await ephemeraDB.query({
             IndexName: 'DataCategoryIndex',
-            DataCategory: 'Connection',
+            DataCategory: 'Meta::Character',
             ExpressionAttributeNames: {
                 "#name": "Name"
             },

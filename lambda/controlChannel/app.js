@@ -96,7 +96,7 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     await ephemeraDB.update({
         EphemeraId,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
         ExpressionAttributeNames: {
             '#name': 'Name'
@@ -139,7 +139,7 @@ const serialize = ({
 const fetchEphemera = async (RequestId) => {
     const Items = await ephemeraDB.query({
         IndexName: 'DataCategoryIndex',
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
         ExpressionAttributeValues: {
             ':EphemeraPrefix': 'CHARACTERINPLAY#'
@@ -190,7 +190,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await ephemeraDB.getItem({
         EphemeraId,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         ProjectionFields: ['RoomId', '#name', 'Color'],
         ExpressionAttributeNames: { '#name': 'Name' }
     })
@@ -219,7 +219,7 @@ const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
     //
     await ephemeraDB.update({
         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
         ExpressionAttributeValues: {
             ':roomId': RoomId,
@@ -242,7 +242,7 @@ const goHome = async ({ CharacterId } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     await ephemeraDB.update({
         EphemeraId,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
         ExpressionAttributeValues: {
             ':roomId': `ROOM#${HomeId}`,

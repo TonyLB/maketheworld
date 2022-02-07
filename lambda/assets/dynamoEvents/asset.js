@@ -25,7 +25,7 @@ const healPersonalAssets = async ({ PlayerName }) => {
             .map(({ AssetId }) => (
                 ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
-                    DataCategory: 'Connection',
+                    DataCategory: 'Meta::Character',
                     UpdateExpression: `SET assets = :assets`,
                     ExpressionAttributeValues: {
                         ':assets': personalAssets
