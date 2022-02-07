@@ -32,7 +32,7 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
             ])
         }
         const updateRoomEphemera = async () => {
-            const { RoomId, EphemeraId, Name, Color } = newImage
+            const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
@@ -40,6 +40,7 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
                     RoomId,
                     Name,
                     Color,
+                    ConnectionId,
                     anchorTime: epochTime,
                     //
                     // Technically (though it's unlikely) the character record could
