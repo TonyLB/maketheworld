@@ -1,5 +1,6 @@
 import { splitType } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
 
 //
 // Accepts character information, a room, and whether they are active, inactive, or neither
@@ -19,7 +20,6 @@ export const characterEphemeraDenormalize = async ({
     // TODO: Temporarily default Color to result from slicing CharacterId.
     //
     const CharacterId = splitType(EphemeraId)[1]
-    const temporaryColor = ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
     const setString = [
         ...(isActive ? ['activeCharacters.#characterId = :character'] : []),
         ...(isInactive ? ['inactiveCharacters.#characterId = :character'] : [])
@@ -42,7 +42,12 @@ export const characterEphemeraDenormalize = async ({
         ...((isActive || isInactive)
             ? {
                 ExpressionAttributeValues: {
-                    ':character': { EphemeraId, Name, Color: temporaryColor, ConnectionId }
+                    ':character': {
+                        EphemeraId,
+                        Name,
+                        Color: Color || defaultColorFromCharacterId(CharacterId),
+                        ConnectionId
+                    }
                 }
             } 
             : {}

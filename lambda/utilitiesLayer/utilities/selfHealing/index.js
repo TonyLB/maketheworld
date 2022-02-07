@@ -219,12 +219,16 @@ export const generatePersonalAssetList = async (player) => {
     return []
 }
 
+export const defaultColorFromCharacterId = (CharacterId) => (
+    ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
+)
+
 export const healCharacter = async (CharacterId) => {
     try {
         const Item = await assetDB.getItem({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['player', '#Name', 'HomeId'],
+            ProjectionFields: ['player', '#Name', 'HomeId', 'Color'],
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
@@ -232,12 +236,12 @@ export const healCharacter = async (CharacterId) => {
 
         const healCharacterItem = async () => {
             if (Item) {
-                const { Name, HomeId, player } = Item
+                const { Name, HomeId, player, Color = defaultColorFromCharacterId(CharacterId) } = Item
                 const personalAssets = await generatePersonalAssetList(player)
                 await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Connection',
-                    UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false)`,
+                    UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color`,
                     ExpressionAttributeNames: {
                         '#Name': 'Name'
                     },
@@ -245,7 +249,8 @@ export const healCharacter = async (CharacterId) => {
                         ':name': Name,
                         ':homeId': HomeId || 'VORTEX',
                         ':false': false,
-                        ':assets': personalAssets
+                        ':assets': personalAssets,
+                        ':color': Color
                     }
                 })
             }
