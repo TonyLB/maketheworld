@@ -19,7 +19,7 @@ export const checkForDisconnect = async ({ oldImage, newImage }) => {
         }
         const updateRoomEphemera = async () => {
             const RoomId = newImage.RoomId || oldImage.RoomId
-            const { EphemeraId, Name, Color } = newImage
+            const { EphemeraId, Name, Color, ConnectionIds } = newImage
             const CharacterId = splitType(EphemeraId)[1]
             if (RoomId) {
                 await roomOccupancyEphemera({
@@ -27,6 +27,7 @@ export const checkForDisconnect = async ({ oldImage, newImage }) => {
                     RoomId,
                     Name,
                     Color,
+                    ConnectionIds,
                     anchorTime: epochTime,
                     isActive: false,
                     //

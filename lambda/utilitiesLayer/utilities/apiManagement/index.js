@@ -18,9 +18,12 @@ const queueReducer = (state, action) => {
         case 'Messages':
             return {
                 messages: (action.messages || [])
-                    .reduce((previous, { MessageId, ...rest }) => ({
+                    .reduce((previous, { MessageId, Target, ...rest }) => ({
                         ...previous,
-                        [MessageId]: { MessageId, ...rest }
+                        [MessageId]: {
+                            ...(previous[MessageId] || {}),
+                            [Target]: { MessageId, Target, ...rest }
+                        }
                     }), messages),
                 otherSends
             }
@@ -41,6 +44,7 @@ const queueSerialize = ({ messages, otherSends}) => {
             ? [{
                 messageType: 'Messages',
                 messages: Object.values(messages)
+                    .reduce((previous, targets) => ([ ...previous, ...(Object.values(targets)) ]), [])
                     .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
             }]
             : []

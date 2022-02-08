@@ -70,7 +70,7 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
             }
         }
         const enterRoomEphemera = async () => {
-            const { RoomId, EphemeraId, Name, Color } = newImage
+            const { RoomId, EphemeraId, Name, Color, ConnectionIds } = newImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
@@ -78,6 +78,7 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
                     RoomId,
                     Name,
                     Color,
+                    ConnectionIds,
                     anchorTime: epochTime,
                     isActive: newImage.Connected,
                     isInactive: !newImage.Connected,
