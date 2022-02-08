@@ -25,7 +25,7 @@ export const roomOccupancyEphemera = async ({
     RoomId,
     Name,
     Color,
-    ConnectionId,
+    ConnectionIds,
     anchorTime,
     isActive,
     isInactive,
@@ -36,7 +36,7 @@ export const roomOccupancyEphemera = async ({
         RoomId,
         Name,
         Color,
-        ConnectionId,
+        ConnectionIds,
         isActive,
         isInactive,
         returnValues: true

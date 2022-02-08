@@ -85,29 +85,48 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
     // and check before registering the character whether you need to cache any
     // as-yet uncached assets in order to support them.
     //
-    const { Name = '', HomeId = '' } = await assetDB.getItem({
-        AssetId: `CHARACTER#${CharacterId}`,
-        DataCategory: 'Meta::Character',
-        ProjectionFields: ['#name', 'HomeId'],
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        }    
-    })
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await ephemeraDB.update({
-        EphemeraId,
-        DataCategory: 'Connection',
-        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ExpressionAttributeValues: {
-            ':true': true,
-            ':connectionId': connectionId,
-            ':name': Name,
-            ':roomId': HomeId || 'VORTEX'
-        }
-    })
+    const [{ Name = '', HomeId = '' }, characterQueryItems = []] = await Promise.all([
+        assetDB.getItem({
+            AssetId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Meta::Character',
+            ProjectionFields: ['#name', 'HomeId'],
+            ExpressionAttributeNames: {
+                '#name': 'Name'
+            }
+        }),
+        ephemeraDB.query({
+            EphemeraId,
+            KeyConditionExpression: 'begins_with(DataCategory, :dc)',
+            ExpressionAttributeValues: {
+                ':dc': 'CONNECTION#'
+            }
+        })
+    ])
+    const ConnectionIds = [...(new Set([
+        ...characterQueryItems.map(({ DataCategory }) => (splitType(DataCategory)[1])),
+        connectionId
+    ]))]
+    await Promise.all([
+        ephemeraDB.update({
+            EphemeraId,
+            DataCategory: 'Meta::Character',
+            UpdateExpression: 'SET Connected = :true, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId), ConnectionIds = :connectionIds',
+            ExpressionAttributeNames: {
+                '#name': 'Name'
+            },
+            ExpressionAttributeValues: {
+                ':true': true,
+                ':name': Name,
+                ':roomId': HomeId || 'VORTEX',
+                ':connectionIds': ConnectionIds
+            }
+        }),
+        ephemeraDB.putItem({
+            EphemeraId,
+            DataCategory: `CONNECTION#${connectionId}`
+        })
+    ])
 
     return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
 }
@@ -139,7 +158,7 @@ const serialize = ({
 const fetchEphemera = async (RequestId) => {
     const Items = await ephemeraDB.query({
         IndexName: 'DataCategoryIndex',
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
         ExpressionAttributeValues: {
             ':EphemeraPrefix': 'CHARACTERINPLAY#'
@@ -190,7 +209,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await ephemeraDB.getItem({
         EphemeraId,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         ProjectionFields: ['RoomId', '#name', 'Color'],
         ExpressionAttributeNames: { '#name': 'Name' }
     })
@@ -219,7 +238,7 @@ const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
     //
     await ephemeraDB.update({
         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
         ExpressionAttributeValues: {
             ':roomId': RoomId,
@@ -242,7 +261,7 @@ const goHome = async ({ CharacterId } = {}) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     await ephemeraDB.update({
         EphemeraId,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
         ExpressionAttributeValues: {
             ':roomId': `ROOM#${HomeId}`,

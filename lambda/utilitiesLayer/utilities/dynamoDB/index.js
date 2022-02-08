@@ -260,7 +260,7 @@ export const abstractUpdate = (table) => async (props) => {
             ExpressionAttributeNames,
             ReturnValues
         }))
-        return Attributes
+        return unmarshall(Attributes)
     }, catchException)
 }
 

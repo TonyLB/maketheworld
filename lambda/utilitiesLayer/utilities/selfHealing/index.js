@@ -102,7 +102,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
     return await asyncSuppressExceptions(async () => {
         const healConnections = async () => {
             const Items = await ephemeraDB.query({
-                IndexName: 'DataCategory',
+                IndexName: 'DataCategoryIndex',
                 DataCategory: 'Meta::Connection',
                 ProjectionFields: ['EphemeraId', 'player']
             })
@@ -188,7 +188,7 @@ export const healPersonalAssets = async ({ PlayerName }) => {
         characters.map(({ AssetId }) => (
             ephemeraDB.update({
                 EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
-                DataCategory: 'Connection',
+                DataCategory: 'Meta::Character',
                 UpdateExpression: `SET assets = :assets`,
                 ExpressionAttributeValues: {
                     ':assets': personalAssets
@@ -240,7 +240,7 @@ export const healCharacter = async (CharacterId) => {
                 const personalAssets = await generatePersonalAssetList(player)
                 await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Connection',
+                    DataCategory: 'Meta::Character',
                     UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color`,
                     ExpressionAttributeNames: {
                         '#Name': 'Name'

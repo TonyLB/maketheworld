@@ -11,7 +11,7 @@ export const characterEphemeraDenormalize = async ({
     EphemeraId,
     Name,
     Color,
-    ConnectionId,
+    ConnectionIds,
     isActive,
     isInactive,
     returnValues
@@ -46,7 +46,7 @@ export const characterEphemeraDenormalize = async ({
                         EphemeraId,
                         Name,
                         Color: Color || defaultColorFromCharacterId(CharacterId),
-                        ConnectionId
+                        ConnectionIds
                     }
                 }
             } 

@@ -134,7 +134,7 @@ describe("registerCharacter", () => {
     it("should update connectionID when character is in table without connection", async () => {
         documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'Connection'
+            DataCategory: 'Meta::Character'
         }})) })
         documentClient.update.mockReturnValue({ promise: () => (Promise.resolve({})) })
         const data = await registerCharacter({ connectionId: '123', CharacterId: 'ABC' })
@@ -143,7 +143,7 @@ describe("registerCharacter", () => {
             TableName: 'undefined_ephemera',
             Key: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'Connection'
+                DataCategory: 'Meta::Character'
             },
             UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
             ExpressionAttributeValues: {
@@ -160,7 +160,7 @@ describe("registerCharacter", () => {
     it("should update connectionID when character is in table with prior connection", async () => {
         documentClient.get.mockReturnValue({ promise: () => (Promise.resolve({ Item: {
             EphemeraId: 'CHARACTERINPLAY#ABC',
-            DataCategory: 'Connection',
+            DataCategory: 'Meta::Character',
             ConnectionId: '987'
         }})) })
         documentClient.update.mockReturnValue({ promise: () => (Promise.resolve({})) })
@@ -170,7 +170,7 @@ describe("registerCharacter", () => {
             TableName: 'undefined_ephemera',
             Key: {
                 EphemeraId: 'CHARACTERINPLAY#ABC',
-                DataCategory: 'Connection'
+                DataCategory: 'Meta::Character'
             },
             UpdateExpression: "set ConnectionId = :ConnectionId, Connected = :Connected",
             ExpressionAttributeValues: {

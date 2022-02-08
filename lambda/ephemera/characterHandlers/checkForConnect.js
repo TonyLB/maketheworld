@@ -32,7 +32,7 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
             ])
         }
         const updateRoomEphemera = async () => {
-            const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
+            const { RoomId, EphemeraId, Name, Color, ConnectionIds } = newImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
@@ -40,7 +40,7 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
                     RoomId,
                     Name,
                     Color,
-                    ConnectionId,
+                    ConnectionIds,
                     anchorTime: epochTime,
                     //
                     // Technically (though it's unlikely) the character record could
@@ -54,12 +54,12 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
             }
         }
         //
-        // Connect messages, update Room, maybe describe for connecting character
+        // Update ephemera first, then deliver messages as appropriate
         //
-        await Promise.all([
-            ...(newImage.Connected ? [connectMessage()] : []),
-            updateRoomEphemera()
-        ])
+        await updateRoomEphemera()
+        if (newImage.Connected) {
+            await connectMessage()
+        }
     }
     return {}
 }

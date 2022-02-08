@@ -41,7 +41,7 @@ export const handleCharacterEvents = async ({ events }) => {
                 await Promise.all([
                     ephemeraDB.update({
                         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Connection',
+                        DataCategory: 'Meta::Character',
                         UpdateExpression,
                         ...(expressionValues ? { ExpressionAttributeValues: expressionValues }: {}),
                         ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})

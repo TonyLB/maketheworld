@@ -20,7 +20,7 @@ const postRecords = async (Records) => {
             }
         }))
     const characterRecords = unmarshalledRecords
-        .filter(({ data: { newImage } }) => ((newImage.EphemeraId ?? '').startsWith('CHARACTERINPLAY#') && newImage.DataCategory === 'Connection'))
+        .filter(({ data: { newImage } }) => ((newImage.EphemeraId ?? '').startsWith('CHARACTERINPLAY#') && newImage.DataCategory === 'Meta::Character'))
         .map(({ data: { newImage } }) => {
             const { EphemeraId, Name, RoomId, Connected, Color } = newImage
             return {
@@ -72,8 +72,8 @@ const dispatchRecords = (Records) => {
         // TODO: Once processing is localized, consider refactoring 'Connection' to 'Meta::Character'
         //
         .filter(({ data }) => (
-            (data.oldImage.DataCategory === 'Connection') ||
-            (data.newImage.DataCategory === 'Connection'))
+            (data.oldImage.DataCategory === 'Meta::Character') ||
+            (data.newImage.DataCategory === 'Meta::Character'))
         )
         .map(({ eventName, data }) => {
             const { DataCategory: oldDC, ...oldImage } = data.oldImage

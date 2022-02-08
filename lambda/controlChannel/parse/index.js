@@ -4,7 +4,7 @@ import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 const getCurrentRoom = async (CharacterId) => {
     const { RoomId } = await ephemeraDB.getItem({
         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-        DataCategory: 'Connection',
+        DataCategory: 'Meta::Character',
         ProjectionFields: ['RoomId']
     })
     if (RoomId) {

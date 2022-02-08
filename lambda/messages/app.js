@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 import { splitType } from '/opt/utilities/types.js'
-import { batchGetDispatcher, batchWriteDispatcher, messageDelete } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB, batchGetDispatcher, batchWriteDispatcher, messageDelete } from '/opt/utilities/dynamoDB/index.js'
 import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
@@ -67,46 +67,55 @@ export const handler = async (event, context) => {
                     projectionExpression: 'EphemeraId, activeCharacters'
                 })
                 //
-                // Mutate resolvedTargetMap to keep a running mapping of ID and connectionId
+                // Mutate resolvedTargetMap to keep a running mapping of ID and ConnectionIds
                 //
                 roomEphemera.forEach(({ EphemeraId: RoomId, activeCharacters = {} }) => {
                     const resolvedContents = Object.values(activeCharacters).map(
-                        ({ EphemeraId: characterInPlayId, ConnectionId }) => ({
+                        ({ EphemeraId: characterInPlayId, ConnectionIds }) => ({
                             id: `CHARACTER#${splitType(characterInPlayId)[1]}`,
-                            ConnectionId
+                            ConnectionIds
                         }))
-                    resolvedContents.forEach(({ id, ConnectionId }) => {
-                        resolvedTargetMap[id] = [{ id, ConnectionId }]
+                    resolvedContents.forEach(({ id, ConnectionIds }) => {
+                        resolvedTargetMap[id] = [{ id, ConnectionIds }]
                     })
                     resolvedTargetMap[RoomId] = resolvedContents
                 })
             }
             //
             // Third-pass: Pull connections (if available) for any character that we haven't found
-            // the ConnectionId for in checking rooms.
+            // the ConnectionIds for in checking rooms.
             //
             //
-            // TODO:  It might be worth maintaining a denormalized CharacterID -> Connection map in
-            // Global x Connections record, to avoid having to BatchGet when mapping multiple
-            // targets
+            // TODO:  It might be worth maintaining a denormalized CharacterID -> ConnectionIds map in
+            // Global x Connections record, to avoid frequent bulk query calls
             //
             const unmatchedCharacterTargets = Object.keys(characterTargets)
                 .filter((id) => (resolvedTargetMap[`CHARACTER#${id}`] === undefined))
             if (unmatchedCharacterTargets.length) {
-                const characterEphemera = await batchGetDispatcher({
-                    table: ephemeraTable,
-                    items: unmatchedCharacterTargets
-                        .map((id) => (marshall({
-                            EphemeraId: `CHARACTERINPLAY#${id}`,
-                            DataCategory: 'Connection'
-                        }))),
-                    projectionExpression: 'EphemeraId, ConnectionId'
-                })
-                characterEphemera
-                    .filter(({ EphemeraId, ConnectionId }) => (EphemeraId && ConnectionId))
-                    .forEach(({ EphemeraId, ConnectionId }) => {
-                        const id = `CHARACTER#${splitType(EphemeraId)[1]}`
-                        resolvedTargetMap[id] = [{ id, ConnectionId }]
+                const characterEphemera = await Promise.all(
+                    unmatchedCharacterTargets.map((CharacterId) => (
+                        ephemeraDB.query({
+                            EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                            KeyConditionExpression: 'begins_with(DataCategory, :dc)',
+                            ExpressionAttributeValues: {
+                                ':dc': 'CONNECTION#'
+                            },
+                            ProjectionFields: ['EphemeraId', 'DataCategory']
+                        })
+                    ))
+                )
+                const characterConnections = characterEphemera.reduce((previous, items) => (
+                    items.reduce((accumulator, { EphemeraId, DataCategory }) => ({
+                        ...accumulator,
+                        [splitType(EphemeraId)[1]]: [
+                            ...(accumulator[splitType(EphemeraId)[1]] || []),
+                            splitType(DataCategory)[1]
+                        ]
+                    }), previous)
+                ), {})
+                Object.entries(characterConnections)
+                    .forEach(([CharacterId, ConnectionIds]) => {
+                        resolvedTargetMap[`CHARACTER#${CharacterId}`] = [{ id: `CHARACTER#${CharacterId}`, ConnectionIds }]
                     })
             }
 
@@ -165,19 +174,21 @@ export const handler = async (event, context) => {
                                     ] : prevDelta
                             }), previous)
                         aggregateTargets
-                            .filter(({ ConnectionId }) => (ConnectionId))
-                            .forEach(({ id: target, ConnectionId }) => {
-                                socketQueue.send({
-                                    ConnectionId,
-                                    Message: {
-                                        messageType: 'Messages',
-                                        messages: [{
-                                            MessageId,
-                                            CreatedTime: CreatedTime || epochTime,
-                                            Target: splitType(target)[1],
-                                            ...rest
-                                        }]
-                                    }
+                            .filter(({ ConnectionIds }) => ((ConnectionIds || []).length))
+                            .forEach(({ id: target, ConnectionIds }) => {
+                                ConnectionIds.forEach((ConnectionId) => {
+                                    socketQueue.send({
+                                        ConnectionId,
+                                        Message: {
+                                            messageType: 'Messages',
+                                            messages: [{
+                                                MessageId,
+                                                CreatedTime: CreatedTime || epochTime,
+                                                Target: splitType(target)[1],
+                                                ...rest
+                                            }]
+                                        }
+                                    })
                                 })
                             })
                         return { ...previous, messageItems, deltaItems }
