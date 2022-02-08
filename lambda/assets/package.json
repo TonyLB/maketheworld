@@ -18,6 +18,6 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@ohm-js/cli": "^1.0.0"
+    "@ohm-js/cli": "^1.1.0"
   }
 }
