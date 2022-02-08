@@ -56,13 +56,12 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
             }
         }
         const leaveRoomEphemera = async () => {
-            const { RoomId, EphemeraId, ConnectionId } = oldImage
+            const { RoomId, EphemeraId } = oldImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
                     CharacterId,
                     RoomId,
-                    ConnectionId,
                     anchorTime: epochTime,
                     isActive: false,
                     isInactive: false,
@@ -71,7 +70,7 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
             }
         }
         const enterRoomEphemera = async () => {
-            const { RoomId, EphemeraId, Name, Color, ConnectionId } = newImage
+            const { RoomId, EphemeraId, Name, Color } = newImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
@@ -79,7 +78,6 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
                     RoomId,
                     Name,
                     Color,
-                    ConnectionId,
                     anchorTime: epochTime,
                     isActive: newImage.Connected,
                     isInactive: !newImage.Connected,

@@ -102,7 +102,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
     return await asyncSuppressExceptions(async () => {
         const healConnections = async () => {
             const Items = await ephemeraDB.query({
-                IndexName: 'DataCategory',
+                IndexName: 'DataCategoryIndex',
                 DataCategory: 'Meta::Connection',
                 ProjectionFields: ['EphemeraId', 'player']
             })

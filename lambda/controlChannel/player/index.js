@@ -16,7 +16,7 @@ export const getPlayerByConnectionId = async (connectionId) => {
 //
 export const getConnectionsByPlayerName = async (PlayerName) => {
     const Items = await ephemeraDB.query({
-        IndexName: 'DataCategory',
+        IndexName: 'DataCategoryIndex',
         DataCategory: 'Meta::Connection',
         FilterExpression: 'player = :player',
         ExpressionAttributeValues: {

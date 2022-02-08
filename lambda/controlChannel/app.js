@@ -94,20 +94,25 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
         }    
     })
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await ephemeraDB.update({
-        EphemeraId,
-        DataCategory: 'Meta::Character',
-        UpdateExpression: 'SET Connected = :true, ConnectionId = :connectionId, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ExpressionAttributeValues: {
-            ':true': true,
-            ':connectionId': connectionId,
-            ':name': Name,
-            ':roomId': HomeId || 'VORTEX'
-        }
-    })
+    await Promise.all([
+        ephemeraDB.update({
+            EphemeraId,
+            DataCategory: 'Meta::Character',
+            UpdateExpression: 'SET Connected = :true, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
+            ExpressionAttributeNames: {
+                '#name': 'Name'
+            },
+            ExpressionAttributeValues: {
+                ':true': true,
+                ':name': Name,
+                ':roomId': HomeId || 'VORTEX'
+            }
+        }),
+        ephemeraDB.putItem({
+            EphemeraId,
+            DataCategory: `CONNECTION#${connectionId}`
+        })
+    ])
 
     return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
 }

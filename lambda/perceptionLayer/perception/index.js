@@ -70,9 +70,9 @@ export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
     switch(objectType) {
         case 'ROOM':
             const [
-                    { Items: RoomItemsRaw },
-                    { Item: globalAssetItem},
-                    { Item: personalAssetItem},
+                    { Items: RoomItemsRaw = [] },
+                    { Item: globalAssetItem = {} },
+                    { Item: personalAssetItem = {} },
                 ] = await Promise.all([
                 ddbClient.send(new QueryCommand({
                     TableName: EphemeraTableName,

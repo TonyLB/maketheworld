@@ -11,7 +11,6 @@ export const characterEphemeraDenormalize = async ({
     EphemeraId,
     Name,
     Color,
-    ConnectionId,
     isActive,
     isInactive,
     returnValues
@@ -33,6 +32,20 @@ export const characterEphemeraDenormalize = async ({
         ...(removeString ? [`REMOVE ${removeString}`] : [])
     ].join(' ')
 
+    let ConnectionIds = []
+    if (isActive) {
+        const connectionQuery = await ephemeraDB.query({
+            EphemeraId,
+            KeyConditionExpression: 'begins_with(DataCategory, :dc)',
+            ExpressionAttributeValues: {
+                ':dc': 'CONNECTION#'
+            },
+            ProjectionFields: ['DataCategory']
+        })
+        ConnectionIds = connectionQuery
+            .filter(({ DataCategory }) => (DataCategory))
+            .map(({ DataCategory }) => (splitType(DataCategory)[1]))
+    }
     return await ephemeraDB.update({
         EphemeraId: `ROOM#${RoomId}`,
         DataCategory: 'Meta::Room',
@@ -46,7 +59,7 @@ export const characterEphemeraDenormalize = async ({
                         EphemeraId,
                         Name,
                         Color: Color || defaultColorFromCharacterId(CharacterId),
-                        ConnectionId
+                        ConnectionIds
                     }
                 }
             } 
