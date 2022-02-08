@@ -13,6 +13,7 @@ const disconnectOneCharacter = async (ConnectionId, CharacterId) => {
         ProjectionFields: ['DataCategory']
     })
     const activeConnections = activeConnectionQuery.map(({ DataCategory }) => (DataCategory))
+    const assignedConnections = activeConnections.filter((value) => (value !== DataCategory))
     await Promise.all([
         ...(activeConnections.includes(DataCategory)
             ? [ephemeraDB.deleteItem({
@@ -20,16 +21,15 @@ const disconnectOneCharacter = async (ConnectionId, CharacterId) => {
                 DataCategory
             })]
             : []),
-        ...((activeConnections.filter((value) => (value !== DataCategory)).length > 0)
-            ? []
-            : [await ephemeraDB.update({
-                EphemeraId,
-                DataCategory: 'Meta::Character',
-                UpdateExpression: 'SET Connected = :false',
-                ExpressionAttributeValues: {
-                    ':false': false
-                }
-            })]),
+        ephemeraDB.update({
+            EphemeraId,
+            DataCategory: 'Meta::Character',
+            UpdateExpression: 'SET Connected = :connected, ConnectionIds = :connectionIds',
+            ExpressionAttributeValues: {
+                ':connectionIds': assignedConnections,
+                ':connected': assignedConnections.length > 0
+            }
+        })
     ])
 }
 

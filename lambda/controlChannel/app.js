@@ -85,27 +85,41 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
     // and check before registering the character whether you need to cache any
     // as-yet uncached assets in order to support them.
     //
-    const { Name = '', HomeId = '' } = await assetDB.getItem({
-        AssetId: `CHARACTER#${CharacterId}`,
-        DataCategory: 'Meta::Character',
-        ProjectionFields: ['#name', 'HomeId'],
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        }    
-    })
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
+    const [{ Name = '', HomeId = '' }, characterQueryItems = []] = await Promise.all([
+        assetDB.getItem({
+            AssetId: `CHARACTER#${CharacterId}`,
+            DataCategory: 'Meta::Character',
+            ProjectionFields: ['#name', 'HomeId'],
+            ExpressionAttributeNames: {
+                '#name': 'Name'
+            }
+        }),
+        ephemeraDB.query({
+            EphemeraId,
+            KeyConditionExpression: 'begins_with(DataCategory, :dc)',
+            ExpressionAttributeValues: {
+                ':dc': 'CONNECTION#'
+            }
+        })
+    ])
+    const ConnectionIds = [...(new Set([
+        ...characterQueryItems.map(({ DataCategory }) => (splitType(DataCategory)[1])),
+        connectionId
+    ]))]
     await Promise.all([
         ephemeraDB.update({
             EphemeraId,
             DataCategory: 'Meta::Character',
-            UpdateExpression: 'SET Connected = :true, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId)',
+            UpdateExpression: 'SET Connected = :true, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId), ConnectionIds = :connectionIds',
             ExpressionAttributeNames: {
                 '#name': 'Name'
             },
             ExpressionAttributeValues: {
                 ':true': true,
                 ':name': Name,
-                ':roomId': HomeId || 'VORTEX'
+                ':roomId': HomeId || 'VORTEX',
+                ':connectionIds': ConnectionIds
             }
         }),
         ephemeraDB.putItem({

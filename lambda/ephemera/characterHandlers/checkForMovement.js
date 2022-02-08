@@ -89,9 +89,11 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
         //
         await Promise.all([
             leaveRoomEphemera(),
-            enterRoomEphemera(),
-            ...(newImage.Connected ? [messages()] : [])
+            enterRoomEphemera()
         ])
+        if (newImage.Connected) {
+            await messages()
+        }
     }
     return {}
 }

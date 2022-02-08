@@ -53,12 +53,12 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
             }
         }
         //
-        // Connect messages, update Room, maybe describe for connecting character
+        // Update ephemera first, then deliver messages as appropriate
         //
-        await Promise.all([
-            ...(newImage.Connected ? [connectMessage()] : []),
-            updateRoomEphemera()
-        ])
+        await updateRoomEphemera()
+        if (newImage.Connected) {
+            await connectMessage()
+        }
     }
     return {}
 }
