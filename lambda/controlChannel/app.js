@@ -3,7 +3,6 @@
 
 
 import AWSXRay from 'aws-xray-sdk'
-import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -21,11 +20,6 @@ import {
 } from '/opt/utilities/dynamoDB/index.js'
 import { forceDisconnect } from '/opt/utilities/apiManagement/forceDisconnect.js'
 import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
-
-const apiClient = new ApiGatewayManagementApiClient({
-    apiVersion: '2018-11-29',
-    endpoint: process.env.WEBSOCKET_API
-})
 
 const REGION = process.env.AWS_REGION
 const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGION }))
@@ -361,7 +355,7 @@ export const handler = async (event, context) => {
         case 'whoAmI':
             return whoAmI(connectionId, request.RequestId)
         case 'sync':
-            await sync(apiClient, {
+            await sync({
                 type: request.syncType,
                 ConnectionId: connectionId,
                 RequestId: request.RequestId,

@@ -55,7 +55,7 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
 // uploadResponse forwards a processing response from an Upload to the players that have
 // subscribed to know when it finishes processing.
 //
-const uploadResponse = ({ apiClient }) => async ({ uploadId, ...rest }) => {
+const uploadResponse = async ({ uploadId, ...rest }) => {
     const Items = await assetDB.query({
         AssetId: `UPLOAD#${uploadId}`,
         ProjectionFields: ['DataCategory', 'RequestId']
@@ -85,7 +85,7 @@ const uploadResponse = ({ apiClient }) => async ({ uploadId, ...rest }) => {
         }))
 }
 
-export const handleUpload = ({ s3Client, apiClient }) => async ({ bucket, key }) => {
+export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`
@@ -131,14 +131,14 @@ export const handleUpload = ({ s3Client, apiClient }) => async ({ bucket, key })
                     }))
                 ])
             }
-            await uploadResponse({ apiClient })({
+            await uploadResponse({
                 uploadId: objectNameItems.join('/'),
                 messageType: 'Success',
                 operation: 'Upload'
             })
         }
         catch {
-            await uploadResponse({ apiClient })({
+            await uploadResponse({
                 uploadId: objectNameItems.join('/'),
                 messageType: 'Error',
                 operation: 'Upload'
