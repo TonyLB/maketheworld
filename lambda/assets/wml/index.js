@@ -2,7 +2,7 @@ import { compileCode } from './compileCode.js'
 import { schema } from './semantics/schema/index.js'
 import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown/index.js'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
-import wmlGrammar from './wmlGrammar/wml.ohm-bundle.cjs'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 
 export { wmlGrammar }
 

@@ -1,4 +1,4 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
 

@@ -1,6 +1,6 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.cjs'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
-import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle.cjs'
+import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle.js'
 
 export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
     .addOperation("parse", {
