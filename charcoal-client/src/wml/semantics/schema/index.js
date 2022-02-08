@@ -77,6 +77,16 @@ export const schema = {
             contents: contents.children.map(item => item.schema())
         }
     },
+    VariableExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmLiteralProps(['key'])),
+            validate(confirmExpressionProps(['default'])),
+            liftExpressionProps(['default']),
+            liftLiteralProps(['key']),
+            liftExpressionProps(['default'])
+        ])(node.schema())
+    },
     RoomExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
@@ -132,7 +142,7 @@ export const schema = {
                 // desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
                 validate(confirmLiteralProps(['key', 'fileName', 'zone', 'subFolder', "player"])),
-                liftLiteralProps(['key', 'fileName', 'player']),
+                liftLiteralProps(['key', 'fileName', 'player', 'zone']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftImportTags,

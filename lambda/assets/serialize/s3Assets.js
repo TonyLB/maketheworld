@@ -52,7 +52,7 @@ export const getAssets = async (s3Client, fileName) => {
 
     if (!assetWorkspace.isMatched()) {
         console.log('ERROR: Schema failed validation')
-        console.log(match.message)
+        console.log(assetWorkspace.match().message)
         return null
     }
     //

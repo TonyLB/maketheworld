@@ -77,6 +77,16 @@ export const schema = {
             contents: contents.children.map(item => item.schema())
         }
     },
+    VariableExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmLiteralProps(['key'])),
+            validate(confirmExpressionProps(['default'])),
+            liftExpressionProps(['default']),
+            liftLiteralProps(['key']),
+            liftExpressionProps(['default'])
+        ])(node.schema())
+    },
     RoomExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
