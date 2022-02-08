@@ -10,8 +10,6 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.43.0",
-    "@aws-sdk/client-dynamodb": "^3.44.0",
     "@aws-sdk/util-dynamodb": "^3.44.0"
   }
 }

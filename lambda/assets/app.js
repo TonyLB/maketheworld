@@ -1,6 +1,5 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
-import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi'
 
 import { cacheAsset } from './cache.js'
 import { healAsset } from "./selfHealing/index.js"
@@ -10,11 +9,6 @@ import { handleUpload, createUploadLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'
 import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
-
-const apiClient = new ApiGatewayManagementApiClient({
-    apiVersion: '2018-11-29',
-    endpoint: process.env.WEBSOCKET_API
-})
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -32,7 +26,7 @@ const handleS3Event = async (event) => {
 
     const keyPrefix = key.split('/').slice(0, 1).join('/')
     if (keyPrefix === 'upload') {
-        return await handleUpload({ s3Client, apiClient })({ bucket, key })
+        return await handleUpload({ s3Client })({ bucket, key })
     }
     else {
         const errorMsg = JSON.stringify(`Error: Unknown S3 target: ${JSON.stringify(event, null, 4) }`)
@@ -92,7 +86,7 @@ export const handler = async (event, context) => {
     }
     switch(message) {
         case 'upload':
-            return await createUploadLink({ s3Client, apiClient})({
+            return await createUploadLink({ s3Client })({
                 PlayerName: event.PlayerName,
                 fileName: event.fileName,
                 RequestId: event.RequestId

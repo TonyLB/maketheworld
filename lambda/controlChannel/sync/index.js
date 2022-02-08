@@ -49,7 +49,7 @@ const syncDeltaHelper = async ({
 
 }
 
-export const sync = async (apiClient, {
+export const sync = async ({
     type, // 'Delta' or 'Raw'
     RequestId,
     ConnectionId,
