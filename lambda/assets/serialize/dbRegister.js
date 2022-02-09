@@ -19,14 +19,13 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 table: 'assets',
                 search: { DataCategory: `ASSET#${asset.key}` },
                 items: assets
-                    .filter(({ tag }) => (tag === 'Room'))
-                    .map(({ tag, ...rest }) => (rest)),
+                    .filter(({ tag }) => (['Room', 'Variable'].includes(tag))),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
                     }
                     if (!current) {
-                        const { key, isGlobal, ...rest } = incoming
+                        const { tag, key, isGlobal, ...rest } = incoming
                         return {
                             scopedId: key,
                             ...rest
@@ -39,15 +38,16 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                     //
                     return 'ignore'
                 },
-                extractKey: (item) => {
-                    if (item.isGlobal) {
-                        return `ROOM#${item.key}`
+                extractKey: ({ tag, isGlobal, key }) => {
+                    const prefix = tag === 'Variable' ? 'VARIABLE' : 'ROOM'
+                    if (isGlobal) {
+                        return `${prefix}#${key}`
                     }
-                    if (scopeMap[item.key]) {
-                        return `ROOM#${scopeMap[item.key]}`
+                    if (scopeMap[key]) {
+                        return `${prefix}#${scopeMap[key]}`
                     }
-                    console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${item.key}`)
-                    return `ROOM#${uuidv4()}`
+                    console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
+                    return `${prefix}#${uuidv4()}`
                 }
             })
         ])

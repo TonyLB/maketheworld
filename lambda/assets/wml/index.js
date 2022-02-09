@@ -144,7 +144,7 @@ export const assetRegistryEntries = (schema) => {
     // global UUID (while providing a mapping back to its scoped ID inside the Asset
     // blueprint)
     //
-    const elements = flattenToElements(tagCondition(['Asset', 'Room', 'Character']))(schema)
+    const elements = flattenToElements(tagCondition(['Asset', 'Character', 'Room', 'Variable']))(schema)
     return elements.map(({ tag, ...rest }) => {
         const { name, fileName, key, global: isGlobal, importMap, player } = rest
         switch(tag) {
@@ -163,6 +163,11 @@ export const assetRegistryEntries = (schema) => {
                     tag,
                     name,
                     isGlobal,
+                    key
+                }
+            case 'Variable':
+                return {
+                    tag,
                     key
                 }
             case 'Character':
