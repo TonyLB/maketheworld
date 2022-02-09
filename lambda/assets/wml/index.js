@@ -134,7 +134,13 @@ export const validatedSchema = (match) => {
 
 export const dbEntries = (schema) => {
     const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(schema)
-    return mergeToRooms(dbSchema)
+    const mergedRooms = mergeToRooms(dbSchema)
+    const variableElements = flattenToElements(tagCondition(['Variable']))(schema)
+        .reduce((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
+    return {
+        ...mergedRooms,
+        ...variableElements
+    }
 }
 
 export const assetRegistryEntries = (schema) => {
