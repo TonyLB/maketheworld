@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 
@@ -10,6 +11,8 @@ import {
     batchGetDispatcher,
     batchWriteDispatcher
 } from '/opt/utilities/dynamoDB/index.js'
+import { splitType } from '/opt/utilities/types.js'
+import { compileCode } from "./wml/compileCode.js"
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
@@ -87,30 +90,43 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
     // NOTE:  There should be none.
     //
     const scopedToPermanentMapping = dbEntriesList
-        .reduce((previous, { key, isGlobal }) => {
+        .reduce((previous, { tag, key, isGlobal }) => {
+            const prefix = tag === 'Variable' ? 'VARIABLE' : 'ROOM'
             const newEphemeraId = isGlobal
-                ? `ROOM#${key}`
-                : previous[key] || `ROOM#${uuidv4()}`
+                ? `${prefix}#${key}`
+                : previous[key] || `${prefix}#${uuidv4()}`
             return {
                 ...previous,
                 [key]: newEphemeraId
             }
         }, currentScopedToPermanentMapping)
     const globalizedDBEntries = dbEntriesList
-        .map(({ key, isGlobal, exits, ...rest }) => ({
-            EphemeraId: scopedToPermanentMapping[key],
-            exits: exits.map(({ exits, ...rest }) => {
-                    const remapped = exits
-                        .map(({ to, ...other }) => ({ to: scopedToPermanentMapping[to], ...other }))
-                        .filter(({ to }) => (to))
-                    return {
-                        exits: remapped,
-                        ...rest
-                    }
-                })
-                .filter(({ exits }) => (exits.length > 0)),
-            ...rest
-        }))
+        .map(({ tag, key, isGlobal, exits, ...rest }) => {
+            if (tag === 'ROOM') {
+                return {
+                    tag,
+                    EphemeraId: scopedToPermanentMapping[key],
+                    exits: exits.map(({ exits, ...rest }) => {
+                            const remapped = exits
+                                .map(({ to, ...other }) => ({ to: scopedToPermanentMapping[to], ...other }))
+                                .filter(({ to }) => (to))
+                            return {
+                                exits: remapped,
+                                ...rest
+                            }
+                        })
+                        .filter(({ exits }) => (exits.length > 0)),
+                    ...rest
+                }    
+            }
+            else {
+                return {
+                    EphemeraId: scopedToPermanentMapping[key],
+                    defaultValue: rest['default'],
+                    scopedId: key
+                }
+            }
+        })
         .filter(({ EphemeraId }) => (EphemeraId))
     return globalizedDBEntries
 }
@@ -216,12 +232,60 @@ const initializeRooms = async (roomIDs) => {
     }
 }
 
+//
+// initializeVariables (a) checks each Variable ID to see whether
+// it has already has a Meta::Variable record defined for it, and (b) if there needs
+// to be a new Meta::Variable record compiles the code for the default value
+// and populates it
+//
+const initializeVariables = async (variableIDs) => {
+    const currentVariableItems = await batchGetDispatcher(
+            {
+                table: ephemeraTable,
+                items: variableIDs.map(({ EphemeraId }) => (marshall({
+                    EphemeraId,
+                    DataCategory: 'Meta::Variable'
+                }))),
+                projectionExpression: 'EphemeraId'
+            }
+        )
+    const currentVariableIds = currentVariableItems.map(({ EphemeraId }) => (EphemeraId))
+    const missingVariableIds = variableIDs.filter(({ EphemeraId }) => (!currentVariableIds.includes(EphemeraId)))
+    if (missingVariableIds.length > 0) {
+        const newVariables = missingVariableIds.reduce((previous, { EphemeraId, defaultValue: defaultExpression }) => {
+            const defaultValue = compileCode(`return (${defaultExpression || 'null'})`)({})
+            return {
+                ...previous,
+                [EphemeraId]: {
+                    EphemeraId,
+                    DataCategory: 'Meta::Variable',
+                    value: defaultValue
+                }
+            }
+        }, {})
+        await batchWriteDispatcher({
+            table: ephemeraTable,
+            items: Object.values(newVariables)
+                .map((item) => ({
+                    PutRequest: { Item: marshall(item) }
+                }))
+        })
+    }
+}
+
 export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
     const dbEntriesList = await parseWMLFile(fileName)
     const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
     await Promise.all([
         mergeEntries(assetId, globalEntries),
-        initializeRooms(globalEntries.map(({ EphemeraId }) => EphemeraId))
+        initializeRooms(globalEntries
+            .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
+            .map(({ EphemeraId }) => EphemeraId)
+        ),
+        initializeVariables(globalEntries
+            .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
+            .map(({ EphemeraId, defaultValue }) => ({ EphemeraId, defaultValue }))
+        )
     ])
 }

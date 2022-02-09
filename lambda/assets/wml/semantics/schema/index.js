@@ -84,7 +84,6 @@ export const schema = {
             validate(confirmExpressionProps(['default'])),
             liftExpressionProps(['default']),
             liftLiteralProps(['key']),
-            liftExpressionProps(['default'])
         ])(node.schema())
     },
     RoomExpression(node) {
