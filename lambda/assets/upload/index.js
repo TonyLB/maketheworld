@@ -8,6 +8,7 @@ import { scopeMap } from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { splitType } from '/opt/utilities/types.js'
 import { assetRegistryEntries } from "../wml/index.js"
+import { cacheAsset } from "../cache.js"
 
 import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
 import { socketQueueFactory } from "/opt/utilities/apiManagement/index.js"
@@ -130,6 +131,9 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         Key: fileName
                     }))
                 ])
+                if (asset.tag === 'Asset' && ['Canon', 'Personal'].includes(asset.zone)) {
+                    await cacheAsset(asset.key)
+                }
             }
             await uploadResponse({
                 uploadId: objectNameItems.join('/'),

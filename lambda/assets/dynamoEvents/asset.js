@@ -1,6 +1,7 @@
 import { splitType } from "/opt/utilities/types.js"
 import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
 import { healGlobalValues, generatePersonalAssetList } from "/opt/utilities/selfHealing/index.js"
+import { cacheAsset } from "../cache.js"
 
 const healPersonalAssets = async ({ PlayerName }) => {
     if (!PlayerName) {
@@ -41,16 +42,29 @@ export const handleAssetEvents = async ({ events }) => {
         .filter(({ oldImage }) => (oldImage.zone === 'Personal'))
         .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
         .map(({ oldImage }) => (oldImage.player))
-    const newImagePlayers = events
+    const newImagePlayerAssets = events
         .filter(({ newImage }) => (newImage.zone === 'Personal'))
         .filter(({ oldImage, newImage }) => (!(oldImage.player === newImage.player)))
+    const newImagePlayers = newImagePlayerAssets
         .map(({ newImage }) => (newImage.player))
     const playersToUpdate = [...(new Set([...oldImagePlayers, ...newImagePlayers]))]
+    const canonAssetsToUpdate = events.filter(({ oldImage, newImage }) => ([oldImage.zone, newImage.zone].includes('Canon')))
     await Promise.all([
-        ...(events.find(({ oldImage, newImage }) => ([oldImage.zone, newImage.zone].includes('Canon')))
+        ...((canonAssetsToUpdate.length > 0)
             ? [healGlobalValues({ shouldHealConnections: false })]
             : []
         ),
         Promise.all(playersToUpdate.map((PlayerName) => (healPersonalAssets({ PlayerName }))))
     ])
+    //
+    // After all Asset tables are updated, cache assets as needed
+    //
+    const assetsToCache = [
+        ...canonAssetsToUpdate,
+        ...newImagePlayerAssets
+    ].filter(({ newImage }) => (newImage))
+        .map(({ newImage }) => (newImage))
+        .filter(({ AssetId }) => (AssetId))
+        .map(({ AssetId }) => (splitType(AssetId)[1]))
+    await Promise.all(assetsToCache.map(cacheAsset))
 }
