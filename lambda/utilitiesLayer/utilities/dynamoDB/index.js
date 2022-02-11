@@ -51,24 +51,6 @@ export const batchWriteDispatcher = ({ table, items }) => {
     return Promise.all(batchPromises)
 }
 
-export const batchGetDispatcher = async ({ table, items, projectionExpression, ExpressionAttributeNames }) => {
-    const batchPromises = paginateList(items, 40)
-        .filter((itemList) => (itemList.length))
-        .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
-            [table]: {
-                Keys: itemList,
-                ProjectionExpression: projectionExpression,
-                ExpressionAttributeNames
-            }
-        } }))))
-    const outcomes = await Promise.all(batchPromises)
-    return outcomes.reduce((previous, { Responses = {} }) => {
-        return [
-            ...previous,
-            ...(Responses[table] || []).map(unmarshall)
-        ]}, [])
-}
-
 //
 // mergeIntoDataRange queries a given data search (either using the primary sort if Asset/EphemeraId is
 // specified in the search, or the DataCategory index if DataCategory is specified) and compares it
