@@ -233,7 +233,7 @@ const abstractBatchGet = (table) => async ({
         .filter((itemList) => (itemList.length))
         .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
             [table]: {
-                Keys: itemList,
+                Keys: itemList.map(marshall),
                 ProjectionExpression: ProjectionFields.join(', '),
                 ExpressionAttributeNames
             }
