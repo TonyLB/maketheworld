@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 import { splitType } from '/opt/utilities/types.js'
-import { ephemeraDB, batchGetDispatcher, batchWriteDispatcher, messageDelete } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB, batchWriteDispatcher, messageDelete } from '/opt/utilities/dynamoDB/index.js'
 import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
@@ -57,14 +57,13 @@ export const handler = async (event, context) => {
             //
             let resolvedTargetMap = { }
             if (Object.keys(roomTargets).length) {
-                const roomEphemera = await batchGetDispatcher({
-                    table: ephemeraTable,
-                    items: Object.values(roomTargets)
-                        .map(({ id }) => (marshall({
+                const roomEphemera = await ephemeraDB.batchGetItem({
+                    Items: Object.values(roomTargets)
+                        .map(({ id }) => ({
                             EphemeraId: `ROOM#${id}`,
                             DataCategory: 'Meta::Room'
-                        }))),
-                    projectionExpression: 'EphemeraId, activeCharacters'
+                        })),
+                    ProjectionFields: ['EphemeraId', 'activeCharacters']
                 })
                 //
                 // Mutate resolvedTargetMap to keep a running mapping of ID and ConnectionIds

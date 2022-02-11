@@ -8,7 +8,6 @@ import {
     assetDB,
     ephemeraDB,
     mergeIntoDataRange,
-    batchGetDispatcher,
     batchWriteDispatcher
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType } from '/opt/utilities/types.js'
@@ -166,14 +165,13 @@ const mergeEntries = async (assetId, dbEntriesList) => {
 // to be careful!)
 //
 const initializeRooms = async (roomIDs) => {
-    const currentRoomItems = await batchGetDispatcher(
+    const currentRoomItems = await ephemeraDB.batchGetItem(
             {
-                table: ephemeraTable,
-                items: roomIDs.map((EphemeraId) => (marshall({
+                Items: roomIDs.map((EphemeraId) => ({
                     EphemeraId,
                     DataCategory: 'Meta::Room'
-                }))),
-                projectionExpression: 'EphemeraId'
+                })),
+                ProjectionFields: ['EphemeraId']
             }
         )
     const currentRoomIds = currentRoomItems.map(({ EphemeraId }) => (EphemeraId))
@@ -240,14 +238,13 @@ const initializeRooms = async (roomIDs) => {
 // and populates it
 //
 const initializeVariables = async (variableIDs) => {
-    const currentVariableItems = (await batchGetDispatcher(
+    const currentVariableItems = (await ephemeraDB.batchGetItem(
             {
-                table: ephemeraTable,
-                items: variableIDs.map(({ EphemeraId }) => (marshall({
+                Items: variableIDs.map(({ EphemeraId }) => ({
                     EphemeraId,
                     DataCategory: 'Meta::Variable'
-                }))),
-                projectionExpression: 'EphemeraId, #value',
+                })),
+                ProjectionFields: ['EphemeraId', '#value'],
                 ExpressionAttributeNames: {
                     '#value': 'value'
                 }
