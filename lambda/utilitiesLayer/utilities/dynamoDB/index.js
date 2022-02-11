@@ -23,10 +23,10 @@ const deltaTable = `${TABLE_PREFIX}_message_delta`
 const params = { region: process.env.AWS_REGION }
 const dbClient = new DynamoDBClient(params)
 
-export const batchWriteDispatcher = ({ table, items }) => {
-    const groupBatches = items
+const paginateList = (items, pageSize) => {
+    const { requestLists, current } = items
         .reduce((({ current, requestLists }, item) => {
-            if (current.length > 19) {
+            if (current.length >= pageSize) {
                 return {
                     requestLists: [ ...requestLists, current ],
                     current: [item]
@@ -39,7 +39,11 @@ export const batchWriteDispatcher = ({ table, items }) => {
                 }
             }
         }), { current: [], requestLists: []})
-    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
+    return [...requestLists, current]
+}
+
+export const batchWriteDispatcher = ({ table, items }) => {
+    const batchPromises = paginateList(items, 20)
         .filter((itemList) => (itemList.length))
         .map((itemList) => (dbClient.send(new BatchWriteItemCommand({ RequestItems: {
             [table]: itemList
@@ -48,22 +52,7 @@ export const batchWriteDispatcher = ({ table, items }) => {
 }
 
 export const batchGetDispatcher = async ({ table, items, projectionExpression, ExpressionAttributeNames }) => {
-    const groupBatches = items
-        .reduce((({ current, requestLists }, item) => {
-            if (current.length > 39) {
-                return {
-                    requestLists: [ ...requestLists, current ],
-                    current: [item]
-                }
-            }
-            else {
-                return {
-                    requestLists,
-                    current: [...current, item]
-                }
-            }
-        }), { current: [], requestLists: []})
-    const batchPromises = [...groupBatches.requestLists, groupBatches.current]
+    const batchPromises = paginateList(items, 40)
         .filter((itemList) => (itemList.length))
         .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
             [table]: {
@@ -235,6 +224,28 @@ const abstractGetItem = (table) => async ({
     })
 }
 
+const abstractBatchGet = (table) => async ({
+    Items,
+    ExpressionAttributeNames,
+    ProjectionFields
+}) => {
+    const batchPromises = paginateList(Items, 40)
+        .filter((itemList) => (itemList.length))
+        .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
+            [table]: {
+                Keys: itemList,
+                ProjectionExpression: ProjectionFields.join(', '),
+                ExpressionAttributeNames
+            }
+        } }))))
+    const outcomes = await Promise.all(batchPromises)
+    return outcomes.reduce((previous, { Responses = {} }) => {
+        return [
+            ...previous,
+            ...(Responses[table] || []).map(unmarshall)
+        ]}, [])
+}
+
 export const abstractUpdate = (table) => async (props) => {
     const {
         AssetId,
@@ -285,6 +296,7 @@ const abstractDeleteItem = (table) => async (key) => {
 
 const dbHandlerFactory = (table) => ({
     getItem: abstractGetItem(table),
+    batchGetItem: abstractBatchGet(table),
     query: abstractQuery(dbClient, table),
     update: abstractUpdate(table),
     putItem: abstractPutItem(table),
