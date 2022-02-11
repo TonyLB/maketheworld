@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { marshall } from "@aws-sdk/util-dynamodb"
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 
 import { wmlGrammar, dbEntries, validatedSchema } from './wml/index.js'
@@ -61,10 +61,11 @@ const compareEntries = (current, incoming) => {
     return JSON.stringify(current) === JSON.stringify(incoming)
 }
 
-const pushMetaData = async (assetId) => {
+const pushMetaData = async (assetId, state) => {
     await ephemeraDB.putItem({
         EphemeraId: `ASSET#${assetId}`,
-        DataCategory: 'Meta::Asset'
+        DataCategory: 'Meta::Asset',
+        State: state || {}
     })
 }
 
@@ -133,7 +134,7 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
 
 const mergeEntries = async (assetId, dbEntriesList) => {
     await Promise.all([
-        pushMetaData(assetId),
+        // pushMetaData(assetId),
         mergeIntoDataRange({
             table: 'ephemera',
             search: { DataCategory: `ASSET#${assetId}` },
@@ -234,21 +235,24 @@ const initializeRooms = async (roomIDs) => {
 
 //
 // initializeVariables (a) checks each Variable ID to see whether
-// it has already has a Meta::Variable record defined for it, and (b) if there needs
+// it has already a Meta::Variable record defined for it, and (b) if there needs
 // to be a new Meta::Variable record compiles the code for the default value
 // and populates it
 //
 const initializeVariables = async (variableIDs) => {
-    const currentVariableItems = await batchGetDispatcher(
+    const currentVariableItems = (await batchGetDispatcher(
             {
                 table: ephemeraTable,
                 items: variableIDs.map(({ EphemeraId }) => (marshall({
                     EphemeraId,
                     DataCategory: 'Meta::Variable'
                 }))),
-                projectionExpression: 'EphemeraId'
+                projectionExpression: 'EphemeraId, #value',
+                ExpressionAttributeNames: {
+                    '#value': 'value'
+                }
             }
-        )
+        ))
     const currentVariableIds = currentVariableItems.map(({ EphemeraId }) => (EphemeraId))
     const missingVariableIds = variableIDs.filter(({ EphemeraId }) => (!currentVariableIds.includes(EphemeraId)))
     if (missingVariableIds.length > 0) {
@@ -270,22 +274,38 @@ const initializeVariables = async (variableIDs) => {
                     PutRequest: { Item: marshall(item) }
                 }))
         })
+        return [...(Object.values(newVariables).map(({ Ephemera, value }) => ({ Ephemera, value }))), ...currentVariableItems]
     }
+    return currentVariableItems
 }
 
 export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
     const dbEntriesList = await parseWMLFile(fileName)
     const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
-    await Promise.all([
+    const [variableEphemera] = await Promise.all([
+        initializeVariables(globalEntries
+            .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
+            .map(({ EphemeraId, defaultValue }) => ({ EphemeraId, defaultValue }))
+        ),
         mergeEntries(assetId, globalEntries),
         initializeRooms(globalEntries
             .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
             .map(({ EphemeraId }) => EphemeraId)
-        ),
-        initializeVariables(globalEntries
-            .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
-            .map(({ EphemeraId, defaultValue }) => ({ EphemeraId, defaultValue }))
         )
     ])
+    const variableScopeIdsByEphemeraId = globalEntries
+        .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
+        .reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
+    const state = variableEphemera.reduce((previous, { EphemeraId, value }) => {
+        const scopedId = variableScopeIdsByEphemeraId[EphemeraId]
+        if (scopedId) {
+            return {
+                ...previous,
+                [scopedId]: value
+            }
+        }
+        return previous
+    }, {})
+    await pushMetaData(assetId, state)
 }

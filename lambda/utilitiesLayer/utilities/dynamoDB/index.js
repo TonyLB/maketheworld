@@ -47,7 +47,7 @@ export const batchWriteDispatcher = ({ table, items }) => {
     return Promise.all(batchPromises)
 }
 
-export const batchGetDispatcher = async ({ table, items, projectionExpression }) => {
+export const batchGetDispatcher = async ({ table, items, projectionExpression, ExpressionAttributeNames }) => {
     const groupBatches = items
         .reduce((({ current, requestLists }, item) => {
             if (current.length > 39) {
@@ -68,7 +68,8 @@ export const batchGetDispatcher = async ({ table, items, projectionExpression })
         .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
             [table]: {
                 Keys: itemList,
-                ProjectionExpression: projectionExpression
+                ProjectionExpression: projectionExpression,
+                ExpressionAttributeNames
             }
         } }))))
     const outcomes = await Promise.all(batchPromises)
