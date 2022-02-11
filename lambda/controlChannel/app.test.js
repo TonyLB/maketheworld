@@ -1,7 +1,7 @@
 jest.mock('uuid', () => ({
     v4: jest.fn().mockReturnValue('TestUUID')
 }))
-import { disconnect, registerCharacter } from './app'
+import { disconnect, registerCharacter } from './app.js'
 
 describe("disconnect", () => {
     beforeEach(() => {
