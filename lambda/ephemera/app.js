@@ -9,7 +9,7 @@ import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
-import { executeCode } from '/opt/utilities/perception/compileCode.js'
+import { executeInAsset } from '/opt/utilities/perception/compileCode.js'
 
 const postRecords = async (Records) => {
     const unmarshalledRecords = Records
@@ -127,7 +127,7 @@ export const handler = async (event, context) => {
                 break;
 
             case 'evaluate':
-                await executeCode("characters['Tess'].name = 'Tessa'")({ active: true, characters: { Tess: { name: 'Tess' }, Marco: { name: 'Marco' }} })
+                await executeInAsset(event.AssetId)(event.src)
                 break;
 
             default:

@@ -1,4 +1,5 @@
 import { produce } from 'immer'
+import { ephemeraDB } from '../dynamoDB/index.js'
 
 const sandboxedExecution = (src) => (sandboxTransform) => {
     src = 'with (sandbox) {' + src + '}'
@@ -17,7 +18,7 @@ export const evaluateCode = (src) => {
     return sandboxedExecution(src)(transform)
 }
 
-export const executeCode = (src) => async (sandbox) => {
+export const executeCode = (src) => (sandbox) => {
     let returnValue = null
     const updatedSandbox = produce(sandbox, (draftSandbox) => {
         const transform = (sandbox) => (new Proxy(sandbox, {
@@ -42,6 +43,98 @@ export const executeCode = (src) => async (sandbox) => {
         changedKeys,
         returnValue
     }
+}
+
+//
+// First-draft naive execution, which does all the fetching and rewriting for
+// each function call.  To be replaced by a system smart enough to combine
+// several function calls in a single run.
+//
+const refreshAssetState = async (EphemeraId) => {
+    const { State: currentState } = await ephemeraDB.getItem({
+        EphemeraId,
+        DataCategory: 'Meta::Asset',
+        ProjectionFields: ['#state'],
+        ExpressionAttributeNames: {
+            '#state': 'State'
+        }
+    })
+    const variablesToRefreshFrom = Object.values(currentState).map(({ EphemeraId }) => (EphemeraId))
+    const variableValues = await ephemeraDB.batchGetItem({
+        Items: variablesToRefreshFrom.map((EphemeraId) => ({ EphemeraId, DataCategory: 'Meta::Variable' })),
+        ProjectionFields: ['EphemeraId', '#value'],
+        ExpressionAttributeNames: {
+            '#value': 'value'
+        }
+    })
+    const variableNamesByEphemeraId = Object.entries(currentState).reduce((previous, [key, { EphemeraId }]) => ({ ...previous, [EphemeraId]: key }), {})
+    const newState = variableValues.reduce((previous, { EphemeraId, value }) => {
+        if (variableNamesByEphemeraId[EphemeraId]) {
+            return {
+                ...previous,
+                [variableNamesByEphemeraId[EphemeraId]]: {
+                    EphemeraId,
+                    value
+                }
+            }
+        }
+        return previous
+    }, {})
+    await ephemeraDB.update({
+        EphemeraId,
+        DataCategory: 'Meta::Asset',
+        UpdateExpression: 'SET #state = :state',
+        ExpressionAttributeNames: {
+            '#state': 'State'
+        },
+        ExpressionAttributeValues: {
+            ':state': newState
+        }
+    })
+}
+
+export const executeInAsset = (AssetId) => async (src) => {
+    const { State: state = {} } = await ephemeraDB.getItem({
+        EphemeraId: AssetId,
+        DataCategory: 'Meta::Asset',
+        ProjectionFields: ['#state'],
+        ExpressionAttributeNames: {
+            '#state': 'State'
+        }
+    })
+    const valueState = Object.entries(state).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+    const { changedKeys, newValues, returnValue } = executeCode(src)(valueState)
+    await Promise.all(changedKeys.map(async (key) => {
+        const { EphemeraId = '' } = state[key]
+        if (EphemeraId) {
+            const [assetDependencyItems] = await Promise.all([
+                ephemeraDB.query({
+                    EphemeraId,
+                    KeyConditionExpression: 'begins_with(DataCategory, :dc)',
+                    ExpressionAttributeValues: {
+                        ':dc': 'ASSET#'
+                    }
+                }),
+                ephemeraDB.update({
+                    EphemeraId,
+                    DataCategory: 'Meta::Variable',
+                    UpdateExpression: 'SET #value = :value',
+                    ExpressionAttributeNames: {
+                        '#value': 'value'
+                    },
+                    ExpressionAttributeValues: {
+                        ':value': newValues[key]
+                    }
+                })
+            ])
+            const assetsToRepopulate = [...(new Set(assetDependencyItems
+                    .map(({ DataCategory }) => (DataCategory))
+                ))]
+            await Promise.all(assetsToRepopulate.map(refreshAssetState))
+        }
+        return []
+    }))
+    return returnValue
 }
 
 export default evaluateCode
