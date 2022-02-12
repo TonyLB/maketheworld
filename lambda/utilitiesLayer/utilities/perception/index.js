@@ -1,4 +1,4 @@
-import compileCode from './compileCode.js'
+import evaluateCode from './compileCode.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
 
@@ -20,7 +20,7 @@ const memoizedEvaluate = (expression, state) => {
     // attempting to set global variables during a pure evaluation
     //
     try {
-        const outcome = compileCode(`return (${expression})`)(state)
+        const outcome = evaluateCode(`return (${expression})`)(state)
         memoSpace[expression] = outcome
         return outcome
     }
@@ -104,7 +104,10 @@ export const renderItem = async ({ CharacterId, EphemeraId }) => {
                 ))
             )
             console.log(`AssetStateItems: ${JSON.stringify(assetStateItems, null, 4)}`)
-            const assetStateById = assetStateItems.reduce((previous, { EphemeraId, State = {} }) => ({ ...previous, [EphemeraId]: State }), {})
+            const assetStateById = assetStateItems.reduce((previous, { EphemeraId, State = {} }) => ({
+                    ...previous,
+                    [EphemeraId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+                }), {})
             const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
                     const { render = [], name = [], exits = [] } = RoomMetaByAsset[AssetId]
                     const state = assetStateById[AssetId] || {}

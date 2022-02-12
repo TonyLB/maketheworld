@@ -298,7 +298,10 @@ export const cacheAsset = async (assetId) => {
         if (scopedId) {
             return {
                 ...previous,
-                [scopedId]: value
+                [scopedId]: {
+                    EphemeraId,
+                    value
+                }
             }
         }
         return previous
