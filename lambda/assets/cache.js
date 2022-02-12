@@ -102,9 +102,8 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
         }, currentScopedToPermanentMapping)
     const globalizedDBEntries = dbEntriesList
         .map(({ tag, key, isGlobal, exits, ...rest }) => {
-            if (tag === 'ROOM') {
+            if (tag === 'Room') {
                 return {
-                    tag,
                     EphemeraId: scopedToPermanentMapping[key],
                     exits: exits.map(({ exits, ...rest }) => {
                             const remapped = exits

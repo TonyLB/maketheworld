@@ -108,7 +108,10 @@ const mergeToRooms = (elements) => {
             const roomId = (element.tag === 'Room' && element.key) || (element.tag === 'Exit' && element.from)
             return {
                 ...previous,
-                [roomId]: reduceInRoomContext(previous[roomId] || { render: [], exits: [], name: [] }, element)
+                [roomId]: {
+                    tag: 'Room',
+                    ...reduceInRoomContext(previous[roomId] || { render: [], exits: [], name: [] }, element)
+                }
             }
         }, {}
     )
