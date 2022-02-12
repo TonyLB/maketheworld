@@ -9,6 +9,7 @@ import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
+import { executeCode } from '/opt/utilities/perception/compileCode.js'
 
 const postRecords = async (Records) => {
     const unmarshalledRecords = Records
@@ -123,6 +124,10 @@ export const handler = async (event, context) => {
 
             case 'heal':
                 await healCharacter(event.CharacterId)
+                break;
+
+            case 'evaluate':
+                await executeCode("characters['Tess'].name = 'Tessa'")({ active: true, characters: { Tess: { name: 'Tess' }, Marco: { name: 'Marco' }} })
                 break;
 
             default:
