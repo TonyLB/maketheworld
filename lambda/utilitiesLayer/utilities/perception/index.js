@@ -1,12 +1,6 @@
-// Import required AWS SDK clients and commands for Node.js
-import { DynamoDBClient, GetItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-
 import compileCode from './compileCode.js'
+import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
-
-const params = { region: process.env.AWS_REGION }
-const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
 
 let memoSpace = {}
 const clearMemoSpace = () => {
@@ -51,43 +45,35 @@ const evaluateConditionalList = (list = []) => {
 }
 
 export const renderItem = async ({ CharacterId, EphemeraId }) => {
-    const ddbClient = new DynamoDBClient(params)
     const [objectType] = splitType(EphemeraId)
     clearMemoSpace()
     switch(objectType) {
         case 'ROOM':
             const [
-                    { Items: RoomItemsRaw = [] },
-                    { Item: globalAssetItem = {} },
-                    { Item: personalAssetItem = {} },
-                ] = await Promise.all([
-                ddbClient.send(new QueryCommand({
-                    TableName: EphemeraTableName,
-                    KeyConditionExpression: 'EphemeraId = :ephemera',
-                    ExpressionAttributeValues: marshall({
-                        ":ephemera": EphemeraId
-                    })
-                })),
-                ddbClient.send(new GetItemCommand({
-                    TableName: EphemeraTableName,
-                    Key: marshall({
-                        EphemeraId: 'Global',
-                        DataCategory: 'Assets'
-                    }),
-                    ProjectionExpression: 'assets'
-                })),
-                ddbClient.send(new GetItemCommand({
-                    TableName: EphemeraTableName,
-                    Key: marshall({
-                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Meta::Character'
-                    }),
-                    ProjectionExpression: 'assets'
-                }))
+                    RoomItems = [],
+                    globalAssetItem = {},
+                    personalAssetItem = {},
+            ] = await Promise.all([
+                ephemeraDB.query({
+                    EphemeraId,
+                    ProjectionFields: ['DataCategory', 'render', '#name', 'exits'],
+                    ExpressionAttributeNames: {
+                        '#name': 'name'
+                    }
+                }),
+                ephemeraDB.getItem({
+                    EphemeraId: 'Global',
+                    DataCategory: 'Assets',
+                    ProjectionFields: ['assets']
+                }),
+                ephemeraDB.getItem({
+                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                    DataCategory: 'Meta::Character',
+                    ProjectionFields: ['assets']
+                })
             ])
-            const RoomItems = RoomItemsRaw.map(unmarshall)
-            const { assets: globalAssets = [] } = unmarshall(globalAssetItem)
-            const { assets: personalAssets = [] } = unmarshall(personalAssetItem)
+            const { assets: globalAssets = [] } = globalAssetItem
+            const { assets: personalAssets = [] } = personalAssetItem
             const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
             const RoomMetaByAsset = RoomItems
                 .reduce((previous, { DataCategory, ...rest }) => {
@@ -130,12 +116,6 @@ export const renderItem = async ({ CharacterId, EphemeraId }) => {
                 characters: Object.values((RoomMeta ?? {}).activeCharacters || {})
             }
 
-            //
-            // TODO: Step 10
-            //
-            // Restructure messagePublish lambda to take advantage of the room meta-data when
-            // resolving Room targets
-            //
         default:
             return null
     }
