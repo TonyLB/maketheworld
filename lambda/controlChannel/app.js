@@ -10,7 +10,7 @@ import { whoAmI, getPlayerByConnectionId } from './player/index.js'
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
-import { render } from '/opt/perception/index.js'
+import { render } from '/opt/utilities/perception/index.js'
 
 import { splitType } from '/opt/utilities/types.js'
 import {

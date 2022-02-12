@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { splitType } from '/opt/utilities/types.js'
-import { render } from '/opt/perception/index.js'
+import { render } from '/opt/utilities/perception/index.js'
 import { publishMessage } from '/opt/utilities/dynamoDB/index.js'
 import { publishRoomAndCharacterMessage, roomOccupancyEphemera } from './utilities.js'
 
