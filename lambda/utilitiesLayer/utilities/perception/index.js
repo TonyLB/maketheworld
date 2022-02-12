@@ -1,25 +1,12 @@
 // Import required AWS SDK clients and commands for Node.js
-import AWSXRay from 'aws-xray-sdk'
-
 import { DynamoDBClient, GetItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import compileCode from './compileCode.js'
+import { splitType } from '../types.js'
 
 const params = { region: process.env.AWS_REGION }
 const EphemeraTableName = `${process.env.TABLE_PREFIX}_ephemera`
-
-const splitType = (value) => {
-    const sections = value.split('#')
-    if (sections.length) {
-        return [sections[0], sections.slice(1).join('#')]
-    }
-    else {
-        return ['', '']
-    }
-}
-
-const stripType = (value) => value.split('#').slice(1).join('#')
 
 let memoSpace = {}
 const clearMemoSpace = () => {
@@ -63,8 +50,8 @@ const evaluateConditionalList = (list = []) => {
     return true
 }
 
-export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
-    const ddbClient = AWSXRay.captureAWSv3Client(new DynamoDBClient(params), subsegment)
+export const renderItem = async ({ CharacterId, EphemeraId }) => {
+    const ddbClient = new DynamoDBClient(params)
     const [objectType] = splitType(EphemeraId)
     clearMemoSpace()
     switch(objectType) {
@@ -117,7 +104,7 @@ export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
                     ...(personalAssets.filter((value) => (!globalAssets.includes(value))))
                 ].reduce((previous, key) => {
                     if (RoomMetaByAsset[`ASSET#${key}`]) {
-                        const { render, name, exits } = RoomMetaByAsset[`ASSET#${key}`]
+                        const { render = [], name = [], exits = [] } = RoomMetaByAsset[`ASSET#${key}`]
                         return {
                             ...previous,
                             render: render
@@ -128,7 +115,7 @@ export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
                                 .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
                             exits: exits
                                 .filter(({ conditions }) => (evaluateConditionalList(conditions)))
-                                .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: stripType(to), ...rest }))]), previous.exits),
+                                .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
                         }
                     }
                     return previous
@@ -154,18 +141,18 @@ export const renderItem = async ({ CharacterId, EphemeraId }, subsegment) => {
     }
 }
 
-export const render = async ({ CharacterId, EphemeraId }, subsegment) => {
+export const render = async ({ CharacterId, EphemeraId }) => {
     const [objectType, objectKey] = splitType(EphemeraId)
     switch(objectType) {
         case 'ROOM':
-            const { render: Description, name: Name, exits, characters } = await renderItem({ CharacterId, EphemeraId }, subsegment)
+            const { render: Description, name: Name, exits, characters } = await renderItem({ CharacterId, EphemeraId })
             const Message = {
                 RoomId: objectKey,
                 //
                 // TODO:  Replace Ancestry with a new map system
                 //
                 Ancestry: '',
-                Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: stripType(EphemeraId), ...rest })),
+                Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
                 Description,
                 Name,
                 Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
