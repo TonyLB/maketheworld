@@ -1,9 +1,11 @@
 <Asset key="ImportTest" fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
-    <Variable key="active" default={false} />
+    <Variable key="active" default={true} />
     <Import from="TEST">
         <Use key="345" as="welcomeRoom" />
     </Import>
-    <Room key="welcomeRoom">
-        It's a welcome area, with bright lighting and pastel walls.
-    </Room>
+    <Condition if={active}>
+        <Room key="welcomeRoom">
+            It's a welcome area, with bright lighting and pastel walls.
+        </Room>
+    </Condition>
 </Asset>
