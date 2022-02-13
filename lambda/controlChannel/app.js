@@ -11,6 +11,7 @@ import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
 import { render } from '/opt/utilities/perception/index.js'
+import { executeAction as executeActionFromDB } from '/opt/utilities/perception/compileCode.js'
 
 import { splitType } from '/opt/utilities/types.js'
 import {
@@ -381,6 +382,9 @@ export const handler = async (event, context) => {
         //
         case 'action':
             return executeAction(request)
+        case 'link':
+            await executeActionFromDB(request.ActionId)
+            return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
             if (actionPayload.actionType) {
