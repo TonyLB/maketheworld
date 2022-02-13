@@ -4,6 +4,9 @@
     <Import from="TEST">
         <Use key="345" as="welcomeRoom" />
     </Import>
+    <Room key="welcomeRoom">
+        <Link key="switch" to="toggleActive">(Flip switch)</Link>
+    </Room>
     <Condition if={active}>
         <Room key="welcomeRoom">
             It's a welcome area, with bright lighting and pastel walls.

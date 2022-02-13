@@ -52,10 +52,13 @@ WorldMarkupLangage {
     ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, string>
             | TagSelfClosing<"Exit", ("key" | "to" | "from"), none, none>
 
+    LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, string>
+
     RoomExpression = TagExpression<"Room", ("key" | "display"), none, "global", RoomContents>
     RoomContents = TextContents
             | NameExpression
             | ExitExpression
+            | LinkExpression
 
     LiteralNameExpression = LiteralValueTag<"Name">
     NameExpression = ValueTag<"Name">
