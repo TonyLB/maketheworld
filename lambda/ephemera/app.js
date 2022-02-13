@@ -9,7 +9,7 @@ import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
-import { executeAction } from '/opt/utilities/perception/compileCode.js'
+import { executeAction } from '/opt/utilities/executeCode/index.js'
 
 const postRecords = async (Records) => {
     const unmarshalledRecords = Records

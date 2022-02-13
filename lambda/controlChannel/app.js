@@ -11,7 +11,7 @@ import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
 import { render } from '/opt/utilities/perception/index.js'
-import { executeAction as executeActionFromDB } from '/opt/utilities/perception/compileCode.js'
+import { executeAction as executeActionFromDB } from '/opt/utilities/executeCode/index.js'
 
 import { splitType } from '/opt/utilities/types.js'
 import {
