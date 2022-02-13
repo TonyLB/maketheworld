@@ -323,11 +323,12 @@ const initializeActions = async (actionIDs, assetId) => {
             ephemeraDB.update({
                 EphemeraId,
                 DataCategory: 'Meta::Action',
-                UpdateExpression: 'SET scopedIdByAsset.#assetId = :scopedId',
+                UpdateExpression: 'SET scopedIdByAsset.#assetId = :scopedId, namespaceAsset = :assetId',
                 ExpressionAttributeNames: {
                     '#assetId': assetId
                 },
                 ExpressionAttributeValues: {
+                    ':assetId': assetId,
                     ':scopedId': scopedIdsByEphemeraId[EphemeraId]
                 }
             })
@@ -337,6 +338,7 @@ const initializeActions = async (actionIDs, assetId) => {
                 EphemeraId,
                 DataCategory: 'Meta::Action',
                 src,
+                namespaceAsset: assetId,
                 scopedIdByAsset: {
                     [assetId]: scopedId
                 }
