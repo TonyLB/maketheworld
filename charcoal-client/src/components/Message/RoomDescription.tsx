@@ -11,7 +11,11 @@ import { blue } from '@mui/material/colors'
 import HouseIcon from '@mui/icons-material/House'
 
 import MessageComponent from './MessageComponent'
-import { RoomDescription as RoomDescriptionType, RoomHeader as RoomHeaderType } from '../../slices/messages/baseClasses'
+import {
+    RoomDescription as RoomDescriptionType,
+    RoomHeader as RoomHeaderType,
+    RoomDescribePortion
+} from '../../slices/messages/baseClasses'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
@@ -19,6 +23,27 @@ import RoomCharacter from './RoomCharacter'
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
+}
+
+const renderRoomDescriptionItem = (item: RoomDescribePortion) => {
+    if (typeof item === 'string') {
+        return item
+    }
+    switch(item.tag) {
+        case 'Link':
+            return <Box
+                    component="span"
+                    sx={{
+                        position: 'relative',
+                        background: `linear-gradient(${blue[400]}, ${blue[600]})`,
+                        borderRadius: '5px',
+                        paddingRight: '5px',
+                        paddingLeft: '5px'
+                    }}
+                >
+                    { item.text }
+                </Box>
+    }
 }
 
 export const RoomDescription = ({ message }: RoomDescriptionProps) => {
@@ -48,7 +73,7 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
                     <Typography variant='h5' align='left'>
                         { Name }
                     </Typography>
-                    { Description }
+                    { Description.map(renderRoomDescriptionItem) }
                     <Divider />
                 </Box>
                 <Box css={css`

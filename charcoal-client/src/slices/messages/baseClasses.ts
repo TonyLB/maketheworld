@@ -24,7 +24,7 @@ export type RoomCharacter = {
     CharacterId: string;
 }
 
-type RoomDescribePortion = {
+export type RoomDescribePortion = {
     tag: 'Link',
     to: string;
     text: string;
