@@ -17,6 +17,7 @@ WorldMarkupLangage {
     AssetExpression = TagExpression<"Asset", ("key" | "fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
     AssetLegalContents = ImportExpression
             | VariableExpression
+            | ActionExpression
             | LayerExpression
             | ConditionExpression
             | RoomExpression
@@ -32,6 +33,9 @@ WorldMarkupLangage {
 
     VariableExpression = TagExpression<"Variable", "key", "default", none, none>
             | TagSelfClosing<"Variable", "key", "default", none>
+
+    ActionExpression = TagExpression<"Action", "key", "src", none, none>
+            | TagSelfClosing<"Action", "key", "src", none>
 
     ConditionExpression = TagExpression<"Condition", none, "if", none, ConditionLegalContents>
     ConditionLegalContents = RoomExpression

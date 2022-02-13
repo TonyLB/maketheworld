@@ -66,14 +66,36 @@ export const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     }
 }
 
-export const liftUntagged = (label) => ({ contents = [], ...rest }) => {
+export const liftUntagged = (label, { separator = '', allString = false } = {}) => ({ contents = [], ...rest }) => {
     const itemsToLift = contents.filter(({ tag }) => (!tag))
     const unliftedTags = contents.filter(({ tag }) => (tag))
-    const aggregation = (items) => (items.join(''))
+    const aggregationReducer = ({ listItems, currentItem }, item) => {
+        if (typeof currentItem === 'string' && typeof item === 'string') {
+            return { listItems, currentItem: [currentItem, item].join(separator) }
+        }
+        else {
+            return {
+                listItems: [
+                    ...listItems,
+                    ...(currentItem ? [currentItem] : [])
+                ],
+                currentItem: item
+            }
+        }
+    }
+    const aggregation = (items) => {
+        const { listItems, currentItem } = items.reduce(aggregationReducer, { listItems: [] })
+        return [
+            ...listItems,
+            ...(currentItem ? [currentItem] : [])
+        ]
+    }
+
+    const aggregatedValue = aggregation(itemsToLift)
     return {
         contents: unliftedTags,
         ...rest,
-        [label]: aggregation(itemsToLift)
+        [label]: allString ? aggregatedValue[0] : aggregatedValue
     }
     
 }

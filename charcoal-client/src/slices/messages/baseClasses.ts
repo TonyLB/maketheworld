@@ -24,8 +24,14 @@ export type RoomCharacter = {
     CharacterId: string;
 }
 
+type RoomDescribePortion = {
+    tag: 'Link',
+    to: string;
+    text: string;
+} | string;
+
 type RoomDescribeData = {
-    Description: string;
+    Description: RoomDescribePortion[];
     Name: string;
     RoomId: string;
     Exits: RoomExit[];

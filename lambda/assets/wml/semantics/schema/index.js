@@ -84,7 +84,7 @@ export const schema = {
             validate(confirmExpressionProps(['default'])),
             liftExpressionProps(['default']),
             liftLiteralProps(['key']),
-            liftUntagged('src')
+            liftUntagged('src', { allString: true })
         ])(node.schema())
     },
     ActionExpression(node) {
@@ -113,7 +113,15 @@ export const schema = {
             // desourceTag,
             validate(confirmLiteralProps(['key', 'to', 'from'])),
             liftLiteralProps(['key', 'to', 'from']),
-            liftUntagged('name')
+            liftUntagged('name', { allString: true })
+        ])(node.schema())
+    },
+    LinkExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmLiteralProps(['key', 'to'])),
+            liftLiteralProps(['key', 'to']),
+            liftUntagged('text', { allString: true })
         ])(node.schema())
     },
     LayerExpression(node) {
@@ -155,7 +163,7 @@ export const schema = {
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftImportTags,
-                liftUntagged('description')
+                liftUntagged('description', { allString: true })
             ])(node.schema())
     },
     CharacterExpression(node) {
