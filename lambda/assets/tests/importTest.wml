@@ -1,5 +1,6 @@
 <Asset key="ImportTest" fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
     <Variable key="active" default={true} />
+    <Action key="toggleActive" src={active = !active} />
     <Import from="TEST">
         <Use key="345" as="welcomeRoom" />
     </Import>

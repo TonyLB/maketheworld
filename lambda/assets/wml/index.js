@@ -138,11 +138,11 @@ export const validatedSchema = (match) => {
 export const dbEntries = (schema) => {
     const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(schema)
     const mergedRooms = mergeToRooms(dbSchema)
-    const variableElements = flattenToElements(tagCondition(['Variable']))(schema)
+    const programElements = flattenToElements(tagCondition(['Variable', 'Action']))(schema)
         .reduce((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
     return {
         ...mergedRooms,
-        ...variableElements
+        ...programElements
     }
 }
 
@@ -153,9 +153,9 @@ export const assetRegistryEntries = (schema) => {
     // global UUID (while providing a mapping back to its scoped ID inside the Asset
     // blueprint)
     //
-    const elements = flattenToElements(tagCondition(['Asset', 'Character', 'Room', 'Variable']))(schema)
+    const elements = flattenToElements(tagCondition(['Asset', 'Character', 'Room', 'Variable', 'Action']))(schema)
     return elements.map(({ tag, ...rest }) => {
-        const { name, fileName, key, global: isGlobal, importMap, player } = rest
+        const { name, fileName, key, global: isGlobal, importMap, player, src } = rest
         switch(tag) {
             case 'Asset':
                 return {
@@ -178,6 +178,12 @@ export const assetRegistryEntries = (schema) => {
                 return {
                     tag,
                     key
+                }
+            case 'Action':
+                return {
+                    tag,
+                    key,
+                    src
                 }
             case 'Character':
                 return {
