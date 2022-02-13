@@ -279,27 +279,7 @@ const initializeVariables = async (variableIDs, assetId) => {
             })
         )))
     ])
-    // if (missingVariableIds.length > 0) {
-    //     const newVariables = missingVariableIds.reduce((previous, { EphemeraId, defaultValue: defaultExpression }) => {
-    //         const defaultValue = compileCode(`return (${defaultExpression || 'null'})`)({})
-    //         return {
-    //             ...previous,
-    //             [EphemeraId]: {
-    //                 EphemeraId,
-    //                 DataCategory: 'Meta::Variable',
-    //                 value: defaultValue
-    //             }
-    //         }
-    //     }, {})
-    //     await batchWriteDispatcher({
-    //         table: ephemeraTable,
-    //         items: Object.values(newVariables)
-    //             .map((item) => ({
-    //                 PutRequest: { Item: marshall(item) }
-    //             }))
-    //     })
-    //     return [...(Object.values(newVariables).map(({ Ephemera, value }) => ({ Ephemera, value }))), ...currentVariableItems]
-    // }
+
     return [
         ...currentVariableItems,
         ...missingVariables.map(({ Ephemera, value }) => ({ Ephemera, value }))
