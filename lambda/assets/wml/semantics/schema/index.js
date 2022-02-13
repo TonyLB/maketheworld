@@ -84,6 +84,16 @@ export const schema = {
             validate(confirmExpressionProps(['default'])),
             liftExpressionProps(['default']),
             liftLiteralProps(['key']),
+            liftUntagged('src')
+        ])(node.schema())
+    },
+    ActionExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmLiteralProps(['key'])),
+            validate(confirmExpressionProps(['src'])),
+            liftExpressionProps(['src']),
+            liftLiteralProps(['key']),
         ])(node.schema())
     },
     RoomExpression(node) {

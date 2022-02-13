@@ -66,10 +66,10 @@ export const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     }
 }
 
-export const liftUntagged = (label) => ({ contents = [], ...rest }) => {
+export const liftUntagged = (label, separator = '') => ({ contents = [], ...rest }) => {
     const itemsToLift = contents.filter(({ tag }) => (!tag))
     const unliftedTags = contents.filter(({ tag }) => (tag))
-    const aggregation = (items) => (items.join(''))
+    const aggregation = (items) => (items.join(separator))
     return {
         contents: unliftedTags,
         ...rest,

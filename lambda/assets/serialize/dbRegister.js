@@ -19,7 +19,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 table: 'assets',
                 search: { DataCategory: `ASSET#${asset.key}` },
                 items: assets
-                    .filter(({ tag }) => (['Room', 'Variable'].includes(tag))),
+                    .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag))),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
@@ -39,7 +39,17 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                     return 'ignore'
                 },
                 extractKey: ({ tag, isGlobal, key }) => {
-                    const prefix = tag === 'Variable' ? 'VARIABLE' : 'ROOM'
+                    let prefix = ''
+                    switch(tag) {
+                        case 'Variable':
+                            prefix = 'VARIABLE'
+                            break
+                        case 'Action':
+                            prefix = 'ACTION'
+                            break
+                        default:
+                            prefix = 'ROOM'
+                    }
                     if (isGlobal) {
                         return `${prefix}#${key}`
                     }
