@@ -24,11 +24,13 @@ export type RoomCharacter = {
     CharacterId: string;
 }
 
-export type RoomDescribePortion = {
+export type RoomDescribeLink = {
     tag: 'Link',
     to: string;
     text: string;
-} | string;
+}
+
+export type RoomDescribePortion = RoomDescribeLink | string;
 
 type RoomDescribeData = {
     Description: RoomDescribePortion[];
