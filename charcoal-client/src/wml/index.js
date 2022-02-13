@@ -108,7 +108,10 @@ const mergeToRooms = (elements) => {
             const roomId = (element.tag === 'Room' && element.key) || (element.tag === 'Exit' && element.from)
             return {
                 ...previous,
-                [roomId]: reduceInRoomContext(previous[roomId] || { render: [], exits: [], name: [] }, element)
+                [roomId]: {
+                    tag: 'Room',
+                    ...reduceInRoomContext(previous[roomId] || { render: [], exits: [], name: [] }, element)
+                }
             }
         }, {}
     )
@@ -134,7 +137,13 @@ export const validatedSchema = (match) => {
 
 export const dbEntries = (schema) => {
     const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(schema)
-    return mergeToRooms(dbSchema)
+    const mergedRooms = mergeToRooms(dbSchema)
+    const programElements = flattenToElements(tagCondition(['Variable', 'Action']))(schema)
+        .reduce((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
+    return {
+        ...mergedRooms,
+        ...programElements
+    }
 }
 
 export const assetRegistryEntries = (schema) => {
@@ -144,9 +153,9 @@ export const assetRegistryEntries = (schema) => {
     // global UUID (while providing a mapping back to its scoped ID inside the Asset
     // blueprint)
     //
-    const elements = flattenToElements(tagCondition(['Asset', 'Character', 'Room', 'Variable']))(schema)
+    const elements = flattenToElements(tagCondition(['Asset', 'Character', 'Room', 'Variable', 'Action']))(schema)
     return elements.map(({ tag, ...rest }) => {
-        const { name, fileName, key, global: isGlobal, importMap, player } = rest
+        const { name, fileName, key, global: isGlobal, importMap, player, src } = rest
         switch(tag) {
             case 'Asset':
                 return {
@@ -169,6 +178,12 @@ export const assetRegistryEntries = (schema) => {
                 return {
                     tag,
                     key
+                }
+            case 'Action':
+                return {
+                    tag,
+                    key,
+                    src
                 }
             case 'Character':
                 return {

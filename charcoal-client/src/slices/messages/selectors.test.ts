@@ -96,7 +96,7 @@ describe('messages selectors', () => {
                     CreatedTime: 1,
                     Target: 'TESS',
                     RoomId: 'TEST',
-                    Description: 'Test1',
+                    Description: ['Test1'],
                     Name: 'Test1',
                     Exits: [],
                     Characters: []
@@ -118,7 +118,7 @@ describe('messages selectors', () => {
                     CreatedTime: 4,
                     Target: 'TESS',
                     RoomId: 'TEST4',
-                    Description: 'Test4',
+                    Description: ['Test4'],
                     Name: 'Test4',
                     Exits: [],
                     Characters: []
@@ -151,7 +151,7 @@ describe('messages selectors', () => {
                     CreatedTime: 3,
                     Target: 'MARCO',
                     RoomId: 'TEST',
-                    Description: 'Test3',
+                    Description: ['Test3'],
                     Name: 'Test3',
                     Exits: [],
                     Characters: []
@@ -200,7 +200,7 @@ describe('messages selectors', () => {
                             CreatedTime: 1,
                             Target: 'TESS',
                             RoomId: 'TEST',
-                            Description: 'Test1',
+                            Description: ['Test1'],
                             Name: 'Test1',
                             Exits: [],
                             Characters: []
@@ -213,7 +213,7 @@ describe('messages selectors', () => {
                             CreatedTime: 4,
                             Target: 'TESS',
                             RoomId: 'TEST4',
-                            Description: 'Test4',
+                            Description: ['Test4'],
                             Name: 'Test4',
                             Exits: [],
                             Characters: []
@@ -245,7 +245,7 @@ describe('messages selectors', () => {
                             CreatedTime: 1,
                             Target: 'MARCO',
                             RoomId: 'TEST',
-                            Description: 'Test3',
+                            Description: ['Test3'],
                             Name: 'Test3',
                             Exits: [],
                             Characters: []

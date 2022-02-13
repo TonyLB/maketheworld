@@ -108,7 +108,7 @@ export const getMessagesByRoom: (CharacterId: string) => Selector<MessageRoomBre
                     RoomId: 'NONE',
                     CreatedTime: probeMessages[0].CreatedTime,
                     Name: 'Unknown',
-                    Description: '??????',
+                    Description: ['??????'],
                     Exits: [],
                     Characters: []
                 },

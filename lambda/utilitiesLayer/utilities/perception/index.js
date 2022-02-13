@@ -103,7 +103,6 @@ export const renderItem = async ({ CharacterId, EphemeraId }) => {
                     })
                 ))
             )
-            console.log(`AssetStateItems: ${JSON.stringify(assetStateItems, null, 4)}`)
             const assetStateById = assetStateItems.reduce((previous, { EphemeraId, State = {} }) => ({
                     ...previous,
                     [EphemeraId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
@@ -129,7 +128,7 @@ export const renderItem = async ({ CharacterId, EphemeraId }) => {
                 // TODO: Evaluate expressions before inserting them
                 //
             return {
-                render: render.join(''),
+                render,
                 name: name.join(''),
                 exits,
                 characters: Object.values((RoomMeta ?? {}).activeCharacters || {})
