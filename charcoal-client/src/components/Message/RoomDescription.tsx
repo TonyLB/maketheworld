@@ -1,9 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import React, { ReactChild, ReactChildren } from 'react'
+import { useDispatch } from 'react-redux'
 import { css } from '@emotion/react'
 
 import {
     Box,
+    Chip,
     Typography,
     Divider
 } from '@mui/material'
@@ -13,36 +15,46 @@ import HouseIcon from '@mui/icons-material/House'
 import MessageComponent from './MessageComponent'
 import {
     RoomDescription as RoomDescriptionType,
+    RoomDescribeLink,
     RoomHeader as RoomHeaderType,
     RoomDescribePortion
 } from '../../slices/messages/baseClasses'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
+import { socketDispatchPromise } from '../../slices/lifeLine'
+
+interface LinkDescriptionProps {
+    link: RoomDescribeLink
+}
+
+const LinkDescription = ({ link }: LinkDescriptionProps) => {
+    const dispatch = useDispatch()
+    return <Chip
+            sx={{
+                background: `linear-gradient(${blue[400]}, ${blue[600]})`,
+                color: 'white'
+            }}
+            size="small"
+            onClick={() => {
+                dispatch(socketDispatchPromise('link')({ ActionId: link.to }))
+            }}
+            label={link.text}
+        />
+}
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
 }
 
-const renderRoomDescriptionItem = (item: RoomDescribePortion) => {
+const renderRoomDescriptionItem = (item: RoomDescribePortion, index: number) => {
     if (typeof item === 'string') {
         return item
     }
     switch(item.tag) {
         case 'Link':
-            return <Box
-                    component="span"
-                    sx={{
-                        position: 'relative',
-                        background: `linear-gradient(${blue[400]}, ${blue[600]})`,
-                        borderRadius: '5px',
-                        paddingRight: '5px',
-                        paddingLeft: '5px'
-                    }}
-                >
-                    { item.text }
-                </Box>
+            return <LinkDescription link={item} key={index} />
     }
 }
 

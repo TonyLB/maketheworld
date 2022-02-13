@@ -112,7 +112,7 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
             }
         }, currentScopedToPermanentMapping)
     const globalizedDBEntries = dbEntriesList
-        .map(({ tag, key, isGlobal, exits, ...rest }) => {
+        .map(({ tag, key, isGlobal, exits, render, ...rest }) => {
             switch(tag) {
                 case 'Room':
                     return {
@@ -127,6 +127,25 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
                                 }
                             })
                             .filter(({ exits }) => (exits.length > 0)),
+                        render: render.map(({ render: renderList, ...rest }) => {
+                                return {
+                                    render: renderList.map((item) => {
+                                        if (typeof item === 'string') {
+                                            return item
+                                        }
+                                        switch(item.tag) {
+                                            case 'Link':
+                                                return {
+                                                        ...item,
+                                                        to: scopedToPermanentMapping[item.to]
+                                                    }
+                                            default:
+                                                return item
+                                        }        
+                                    }),
+                                    ...rest
+                                }
+                            }),
                         ...rest
                     }    
                 case 'Variable':
