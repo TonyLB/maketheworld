@@ -236,7 +236,8 @@ const initializeRooms = async (roomIDs) => {
 // to be a new Meta::Variable record compiles the code for the default value
 // and populates it
 //
-const initializeVariables = async (variableIDs) => {
+const initializeVariables = async (variableIDs, assetId) => {
+    const scopedIdsByEphemeraId = variableIDs.reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
     const currentVariableItems = (await ephemeraDB.batchGetItem(
             {
                 Items: variableIDs.map(({ EphemeraId }) => ({
@@ -250,29 +251,59 @@ const initializeVariables = async (variableIDs) => {
             }
         ))
     const currentVariableIds = currentVariableItems.map(({ EphemeraId }) => (EphemeraId))
-    const missingVariableIds = variableIDs.filter(({ EphemeraId }) => (!currentVariableIds.includes(EphemeraId)))
-    if (missingVariableIds.length > 0) {
-        const newVariables = missingVariableIds.reduce((previous, { EphemeraId, defaultValue: defaultExpression }) => {
-            const defaultValue = compileCode(`return (${defaultExpression || 'null'})`)({})
-            return {
-                ...previous,
-                [EphemeraId]: {
-                    EphemeraId,
-                    DataCategory: 'Meta::Variable',
-                    value: defaultValue
+    const missingVariables = variableIDs
+        .filter(({ EphemeraId }) => (!currentVariableIds.includes(EphemeraId)))
+        .map(({ defaultValue = 'null', ...rest }) => ({ value: compileCode(`return (${defaultValue})`)({}), ...rest }))
+    await Promise.all([
+        ...(currentVariableIds.map((EphemeraId) => (
+            ephemeraDB.update({
+                EphemeraId,
+                DataCategory: 'Meta::Variable',
+                UpdateExpression: 'SET scopedIdByAsset.#assetId = :scopedId',
+                ExpressionAttributeNames: {
+                    '#assetId': assetId
+                },
+                ExpressionAttributeValues: {
+                    ':scopedId': scopedIdsByEphemeraId[EphemeraId]
                 }
-            }
-        }, {})
-        await batchWriteDispatcher({
-            table: ephemeraTable,
-            items: Object.values(newVariables)
-                .map((item) => ({
-                    PutRequest: { Item: marshall(item) }
-                }))
-        })
-        return [...(Object.values(newVariables).map(({ Ephemera, value }) => ({ Ephemera, value }))), ...currentVariableItems]
-    }
-    return currentVariableItems
+            })
+        ))),
+        ...(missingVariables.map(({ EphemeraId, scopedId, value }) => (
+            ephemeraDB.putItem({
+                EphemeraId,
+                DataCategory: 'Meta::Variable',
+                value,
+                scopedIdByAsset: {
+                    [assetId]: scopedId
+                }
+            })
+        )))
+    ])
+    // if (missingVariableIds.length > 0) {
+    //     const newVariables = missingVariableIds.reduce((previous, { EphemeraId, defaultValue: defaultExpression }) => {
+    //         const defaultValue = compileCode(`return (${defaultExpression || 'null'})`)({})
+    //         return {
+    //             ...previous,
+    //             [EphemeraId]: {
+    //                 EphemeraId,
+    //                 DataCategory: 'Meta::Variable',
+    //                 value: defaultValue
+    //             }
+    //         }
+    //     }, {})
+    //     await batchWriteDispatcher({
+    //         table: ephemeraTable,
+    //         items: Object.values(newVariables)
+    //             .map((item) => ({
+    //                 PutRequest: { Item: marshall(item) }
+    //             }))
+    //     })
+    //     return [...(Object.values(newVariables).map(({ Ephemera, value }) => ({ Ephemera, value }))), ...currentVariableItems]
+    // }
+    return [
+        ...currentVariableItems,
+        ...missingVariables.map(({ Ephemera, value }) => ({ Ephemera, value }))
+    ]
 }
 
 export const cacheAsset = async (assetId) => {
@@ -280,11 +311,16 @@ export const cacheAsset = async (assetId) => {
     const dbEntriesList = await parseWMLFile(fileName)
     const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
     const [variableEphemera] = await Promise.all([
-        initializeVariables(globalEntries
-            .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
-            .map(({ EphemeraId, defaultValue }) => ({ EphemeraId, defaultValue }))
+        initializeVariables(
+            globalEntries
+                .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
+                .map(({ EphemeraId, defaultValue, scopedId }) => ({ EphemeraId, defaultValue, scopedId })),
+            assetId
         ),
-        mergeEntries(assetId, globalEntries),
+        mergeEntries(
+            assetId,
+            globalEntries.filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
+        ),
         initializeRooms(globalEntries
             .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
             .map(({ EphemeraId }) => EphemeraId)
