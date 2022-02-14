@@ -145,25 +145,33 @@ export const renderItems = async (renderList) => {
     })
 }
 
-export const render = async ({ CharacterId, EphemeraId }) => {
-    const [objectType, objectKey] = splitType(EphemeraId)
-    switch(objectType) {
-        case 'ROOM':
-            const [{ render: Description, name: Name, exits, characters }] = await renderItems([{ CharacterId, EphemeraId }])
-            const Message = {
-                RoomId: objectKey,
-                //
-                // TODO:  Replace Ancestry with a new map system
-                //
-                Ancestry: '',
-                Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
-                Description,
-                Name,
-                Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
-            }
-            return Message
-        default:
-            return null        
-    }
+export const render = async (renderList) => {
+    const renderedOutput = await renderItems(renderList)
+    return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
+        const [objectType, objectKey] = splitType(EphemeraId)
+        switch(objectType) {
+            case 'ROOM':
+                const { render: Description, name: Name, exits, characters } = rest
+                const Message = {
+                    EphemeraId,
+                    CharacterId,
+                    RoomId: objectKey,
+                    //
+                    // TODO:  Replace Ancestry with a new map system
+                    //
+                    Ancestry: '',
+                    Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
+                    Description,
+                    Name,
+                    Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
+                }
+                return Message
+            default:
+                return {
+                    EphemeraId,
+                    CharacterId,
+                }
+        }
+    })
 }
 

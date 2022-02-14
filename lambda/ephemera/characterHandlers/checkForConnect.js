@@ -10,10 +10,10 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
         const connectMessage = async () => {
             const { Name, RoomId, EphemeraId } = newImage
             const CharacterId = splitType(EphemeraId)[1]
-            const roomMessage = await render({
+            const [{ EphemeraId: removeOne, CharacterId: removeTwo, ...roomMessage }] = await render([{
                 CharacterId,
                 EphemeraId: `ROOM#${newImage.RoomId}`,
-            })
+            }])
             await Promise.all([
                 publishMessage({
                     MessageId: `MESSAGE#${uuidv4()}`,

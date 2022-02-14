@@ -26,14 +26,14 @@ export const updateRoomsByAsset = async (AssetId) => {
         .reduce((previous, { EphemeraId, activeCharacters }) => {
             return Object.keys(activeCharacters).reduce((accumulator, CharacterId) => ([ ...accumulator, { EphemeraId, CharacterId: splitType(CharacterId)[1] }]), previous)
         }, [])
-    await Promise.all(rendersToUpdate.map(async ({ EphemeraId, CharacterId }) => {
-        const renderOutput = await render({ EphemeraId, CharacterId })
-        await publishMessage({
+    const renderOutput = await render(rendersToUpdate)
+    await Promise.all(renderOutput.map(({ EphemeraId, CharacterId, ...roomMessage }) => (
+        publishMessage({
             MessageId: `MESSAGE#${uuidv4()}`,
             Targets: [`CHARACTER#${CharacterId}`],
             CreatedTime: Date.now(),
             DisplayProtocol: 'RoomUpdate',
-            ...renderOutput
+            ...roomMessage
         })
-    }))
+    )))
 }

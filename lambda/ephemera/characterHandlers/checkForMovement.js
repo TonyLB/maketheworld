@@ -30,10 +30,10 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
                 }))
                 : () => (Promise.resolve({}))
             if (newRoomId) {
-                const roomMessage = await render({
+                const [{ EphemeraId: removeOne, CharacterId: removeTwo, ...roomMessage }] = await render([{
                     CharacterId,
                     EphemeraId: `ROOM#${newRoomId}`,
-                })
+                }])
                 await Promise.all([
                     arrival(),
                     departure(),
