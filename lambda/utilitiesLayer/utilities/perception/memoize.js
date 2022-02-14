@@ -2,24 +2,31 @@ import evaluateCode from '../computation/sandbox.js'
 
 let memoSpace = {}
 
-export const clearMemoSpace = () => {
-    memoSpace = {}
+export const clearMemoSpace = (asset) => {
+    if (asset) {
+        memoSpace[asset] = {}
+    }
+    else {
+        memoSpace = {}
+    }
 }
 
-export const memoizedEvaluate = (expression, state) => {
-    if (memoSpace[expression]) {
-        return expression
+export const memoizedEvaluate = (asset, expression, state) => {
+    if (memoSpace[asset] && memoSpace[asset][expression]) {
+        return memoSpace[asset][expression]
     }
 
+    let outcome = '{#ERROR}'
     try {
-        const outcome = evaluateCode(`return (${expression})`)(state)
-        memoSpace[expression] = outcome
-        return outcome
+        outcome = evaluateCode(`return (${expression})`)(state)
     }
     catch(e) {
-        const outcome = '{#ERROR}'
-        memoSpace[expression] = outcome
-        return outcome
+        outcome = '{#ERROR}'
     }
+    memoSpace[asset] = {
+        ...(memoSpace[asset] || {}),
+        [expression]: outcome
+    }
+    return outcome
 }
 

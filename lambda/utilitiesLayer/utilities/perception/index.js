@@ -2,10 +2,10 @@ import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
 
-const evaluateConditionalList = (list = [], state) => {
+const evaluateConditionalList = (asset, list = [], state) => {
     if (list.length > 0) {
         const [first, ...rest] = list
-        const evaluation = memoizedEvaluate(first, state)
+        const evaluation = memoizedEvaluate(asset, first, state)
 
         if (Boolean(evaluation) && evaluation !== '{#ERROR}') {
             return evaluateConditionalList(rest)
@@ -78,20 +78,20 @@ export const renderItem = async ({ CharacterId, EphemeraId }) => {
                     ...previous,
                     [EphemeraId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
                 }), {})
+            clearMemoSpace()
             const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
                     const { render = [], name = [], exits = [] } = RoomMetaByAsset[AssetId]
                     const state = assetStateById[AssetId] || {}
-                    clearMemoSpace()
                     return {
                         ...previous,
                         render: render
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions, state)))
+                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
                         name: name
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions, state)))
+                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
                         exits: exits
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions, state)))
+                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
                     }
                 }, { render: [], name: [], exits: [] })
