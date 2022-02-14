@@ -34,7 +34,7 @@ const getRoomMeta = async (rooms) => {
 
 const getCharacterAssets = async (characters) => {
     const getSingleCharacterAssets = async (characterId) => {
-        const { assets } = ephemeraDB.getItem({
+        const { assets = [] } = await ephemeraDB.getItem({
             EphemeraId: `CHARACTERINPLAY#${characterId}`,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['assets']
@@ -46,35 +46,29 @@ const getCharacterAssets = async (characters) => {
 }
 
 export const renderItems = async (renderList) => {
+    const roomsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
+    const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
+
+    const [
+        { assets: globalAssets = [] } = {},
+        roomMetaData = {},
+        characterAssets = {}
+    ] = await Promise.all([
+        ephemeraDB.getItem({
+            EphemeraId: 'Global',
+            DataCategory: 'Assets',
+            ProjectionFields: ['assets']
+        }),
+        getRoomMeta(roomsToRender),
+        getCharacterAssets(charactersToRenderFor)
+    ])
+
     return await Promise.all(renderList.map(async ({ EphemeraId, CharacterId }) => {
         const [objectType] = splitType(EphemeraId)
         switch(objectType) {
             case 'ROOM':
-                const [
-                        RoomItems = [],
-                        globalAssetItem = {},
-                        personalAssetItem = {},
-                ] = await Promise.all([
-                    ephemeraDB.query({
-                        EphemeraId,
-                        ProjectionFields: ['DataCategory', 'render', '#name', 'exits'],
-                        ExpressionAttributeNames: {
-                            '#name': 'name'
-                        }
-                    }),
-                    ephemeraDB.getItem({
-                        EphemeraId: 'Global',
-                        DataCategory: 'Assets',
-                        ProjectionFields: ['assets']
-                    }),
-                    ephemeraDB.getItem({
-                        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                        DataCategory: 'Meta::Character',
-                        ProjectionFields: ['assets']
-                    })
-                ])
-                const { assets: globalAssets = [] } = globalAssetItem
-                const { assets: personalAssets = [] } = personalAssetItem
+                const personalAssets = characterAssets[CharacterId] || []
+                const RoomItems = roomMetaData[EphemeraId] || []
                 const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
                 const RoomMetaByAsset = RoomItems
                     .reduce((previous, { DataCategory, ...rest }) => {
