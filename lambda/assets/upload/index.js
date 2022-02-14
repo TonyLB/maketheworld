@@ -101,7 +101,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
-                const currentScopeMap = await getTranslateFile(s3Client, { name: translateFile })
+                const { scopeMap: currentScopeMap } = await getTranslateFile(s3Client, { name: translateFile })
                 const { importTree, scopeMap: importedIds } = await importedAssetIds(asset.importMap || {})
                 const scopeMapContents = scopeMap(
                     assetRegistryItems,
