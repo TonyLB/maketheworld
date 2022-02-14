@@ -1,35 +1,6 @@
-import evaluateCode from './compileCode.js'
+import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
-
-let memoSpace = {}
-const clearMemoSpace = () => {
-    memoSpace = {}
-}
-const memoizedEvaluate = (expression, state) => {
-    if (memoSpace[expression]) {
-        return expression
-    }
-    //
-    // TODO: Create sandbox serialization in Ephemera, and use it to populate
-    // the sandbox for evaluating code
-    //
-
-    //
-    // TODO: Create set operators for the sandbox that throw an error when
-    // attempting to set global variables during a pure evaluation
-    //
-    try {
-        const outcome = evaluateCode(`return (${expression})`)(state)
-        memoSpace[expression] = outcome
-        return outcome
-    }
-    catch(e) {
-        const outcome = '{#ERROR}'
-        memoSpace[expression] = outcome
-        return outcome
-    }
-}
 
 const evaluateConditionalList = (list = [], state) => {
     if (list.length > 0) {

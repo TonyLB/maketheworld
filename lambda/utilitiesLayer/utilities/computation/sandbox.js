@@ -9,6 +9,10 @@ const sandboxedExecution = (src) => (sandboxTransform) => {
     }
 }
 
+//
+// TODO: Create set operators for the sandbox that throw an error when
+// attempting to set global variables during a pure evaluation
+//
 export const evaluateCode = (src) => {
     const transform = (sandbox) => (new Proxy(sandbox, {
         has: () => true,
