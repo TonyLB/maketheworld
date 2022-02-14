@@ -183,10 +183,10 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     //
     // TODO: Create asset management system to allow non-hard-coded asset lists
     //
-    const roomMessage = await render({
+    const [{ EphemeraId: removeOne, CharacterId: removeTwo, ...roomMessage }] = await render([{
         CharacterId,
         EphemeraId: PermanentId
-    })
+    }])
     await publishMessage({
         MessageId: `MESSAGE#${uuidv4()}`,
         Targets: [`CHARACTER#${CharacterId}`],

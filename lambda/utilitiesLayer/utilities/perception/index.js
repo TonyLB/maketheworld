@@ -1,40 +1,11 @@
-import evaluateCode from './compileCode.js'
+import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
 
-let memoSpace = {}
-const clearMemoSpace = () => {
-    memoSpace = {}
-}
-const memoizedEvaluate = (expression, state) => {
-    if (memoSpace[expression]) {
-        return expression
-    }
-    //
-    // TODO: Create sandbox serialization in Ephemera, and use it to populate
-    // the sandbox for evaluating code
-    //
-
-    //
-    // TODO: Create set operators for the sandbox that throw an error when
-    // attempting to set global variables during a pure evaluation
-    //
-    try {
-        const outcome = evaluateCode(`return (${expression})`)(state)
-        memoSpace[expression] = outcome
-        return outcome
-    }
-    catch(e) {
-        const outcome = '{#ERROR}'
-        memoSpace[expression] = outcome
-        return outcome
-    }
-}
-
-const evaluateConditionalList = (list = [], state) => {
+const evaluateConditionalList = (asset, list = [], state) => {
     if (list.length > 0) {
         const [first, ...rest] = list
-        const evaluation = memoizedEvaluate(first, state)
+        const evaluation = memoizedEvaluate(asset, first, state)
 
         if (Boolean(evaluation) && evaluation !== '{#ERROR}') {
             return evaluateConditionalList(rest)
@@ -46,118 +17,161 @@ const evaluateConditionalList = (list = [], state) => {
     return true
 }
 
-export const renderItem = async ({ CharacterId, EphemeraId }) => {
-    const [objectType] = splitType(EphemeraId)
-    switch(objectType) {
-        case 'ROOM':
-            const [
-                    RoomItems = [],
-                    globalAssetItem = {},
-                    personalAssetItem = {},
-            ] = await Promise.all([
-                ephemeraDB.query({
-                    EphemeraId,
-                    ProjectionFields: ['DataCategory', 'render', '#name', 'exits'],
-                    ExpressionAttributeNames: {
-                        '#name': 'name'
-                    }
-                }),
-                ephemeraDB.getItem({
-                    EphemeraId: 'Global',
-                    DataCategory: 'Assets',
-                    ProjectionFields: ['assets']
-                }),
-                ephemeraDB.getItem({
-                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Meta::Character',
-                    ProjectionFields: ['assets']
-                })
-            ])
-            const { assets: globalAssets = [] } = globalAssetItem
-            const { assets: personalAssets = [] } = personalAssetItem
-            const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
-            const RoomMetaByAsset = RoomItems
-                .reduce((previous, { DataCategory, ...rest }) => {
-                    if (DataCategory === 'Meta::Room') {
-                        return previous
-                    }
-                    return {
-                        ...previous,
-                        [DataCategory]: rest
-                    }
-                }, {})
-            const assetsToRender = [
-                    ...globalAssets,
-                    ...(personalAssets.filter((value) => (!globalAssets.includes(value))))
-                ].map((key) => (`ASSET#${key}`))
-                .filter((AssetId) => (RoomMetaByAsset[AssetId]))
-            const assetStateItems = await Promise.all(
-                assetsToRender.map((AssetId) => (
-                    ephemeraDB.getItem({
-                        EphemeraId: AssetId,
-                        DataCategory: 'Meta::Asset',
-                        ProjectionFields: ['EphemeraId', '#state'],
-                        ExpressionAttributeNames: {
-                            '#state': 'State'
-                        }
-                    })
-                ))
-            )
-            const assetStateById = assetStateItems.reduce((previous, { EphemeraId, State = {} }) => ({
-                    ...previous,
-                    [EphemeraId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
-                }), {})
-            const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
-                    const { render = [], name = [], exits = [] } = RoomMetaByAsset[AssetId]
-                    const state = assetStateById[AssetId] || {}
-                    clearMemoSpace()
-                    return {
-                        ...previous,
-                        render: render
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions, state)))
-                            .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
-                        name: name
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions, state)))
-                            .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
-                        exits: exits
-                            .filter(({ conditions }) => (evaluateConditionalList(conditions, state)))
-                            .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
-                    }
-                }, { render: [], name: [], exits: [] })
-                //
-                // TODO: Evaluate expressions before inserting them
-                //
-            return {
-                render,
-                name: name.join(''),
-                exits,
-                characters: Object.values((RoomMeta ?? {}).activeCharacters || {})
+const getRoomMeta = async (rooms) => {
+    const getSingleRoomMeta = async (EphemeraId) => {
+        const roomItems = await ephemeraDB.query({
+            EphemeraId,
+            ProjectionFields: ['DataCategory', 'render', '#name', 'exits'],
+            ExpressionAttributeNames: {
+                '#name': 'name'
             }
-
-        default:
-            return null
+        })
+        return { [EphemeraId]: roomItems }
     }
+    const allRooms = await Promise.all(rooms.map(getSingleRoomMeta))
+    return Object.assign({}, ...allRooms)
 }
 
-export const render = async ({ CharacterId, EphemeraId }) => {
-    const [objectType, objectKey] = splitType(EphemeraId)
-    switch(objectType) {
-        case 'ROOM':
-            const { render: Description, name: Name, exits, characters } = await renderItem({ CharacterId, EphemeraId })
-            const Message = {
-                RoomId: objectKey,
-                //
-                // TODO:  Replace Ancestry with a new map system
-                //
-                Ancestry: '',
-                Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
-                Description,
-                Name,
-                Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
-            }
-            return Message
-        default:
-            return null        
+const getCharacterAssets = async (characters) => {
+    const getSingleCharacterAssets = async (characterId) => {
+        const { assets = [] } = await ephemeraDB.getItem({
+            EphemeraId: `CHARACTERINPLAY#${characterId}`,
+            DataCategory: 'Meta::Character',
+            ProjectionFields: ['assets']
+        })
+        return { [characterId]: assets }
     }
+    const allCharacters = await Promise.all(characters.map(getSingleCharacterAssets))
+    return Object.assign({}, ...allCharacters)
+}
+
+const getStateByAsset = async (assets) => {
+    const getSingleState = async (assetId) => {
+        const { State = {} } = await ephemeraDB.getItem({
+            EphemeraId: `ASSET#${assetId}`,
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        })
+        return { [assetId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) }
+    }
+    const allStates = await Promise.all(assets.map(getSingleState))
+    return Object.assign({}, ...allStates)
+}
+
+export const renderItems = async (renderList) => {
+    const roomsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
+    const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
+
+    const [
+        { assets: globalAssets = [] } = {},
+        roomMetaData = {},
+        characterAssets = {}
+    ] = await Promise.all([
+        ephemeraDB.getItem({
+            EphemeraId: 'Global',
+            DataCategory: 'Assets',
+            ProjectionFields: ['assets']
+        }),
+        getRoomMeta(roomsToRender),
+        getCharacterAssets(charactersToRenderFor)
+    ])
+    const allAssets = [...(new Set([
+        ...globalAssets,
+        ...(Object.values(characterAssets).reduce((previous, list) => ([ ...previous, ...list ]), []))
+    ]))]
+    const assetStateById = await getStateByAsset(allAssets)
+
+    clearMemoSpace()
+
+    return renderList.map(({ EphemeraId, CharacterId }) => {
+        const [objectType] = splitType(EphemeraId)
+        switch(objectType) {
+            case 'ROOM':
+                const personalAssets = characterAssets[CharacterId] || []
+                const RoomItems = roomMetaData[EphemeraId] || []
+                const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
+                const RoomMetaByAsset = RoomItems
+                    .reduce((previous, { DataCategory, ...rest }) => {
+                        if (DataCategory === 'Meta::Room') {
+                            return previous
+                        }
+                        return {
+                            ...previous,
+                            [DataCategory]: rest
+                        }
+                    }, {})
+                const assetsToRender = [
+                        ...globalAssets,
+                        ...(personalAssets.filter((value) => (!globalAssets.includes(value))))
+                    ].map((key) => (`ASSET#${key}`))
+                    .filter((AssetId) => (RoomMetaByAsset[AssetId]))
+                const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
+                        const { render = [], name = [], exits = [] } = RoomMetaByAsset[AssetId]
+                        const state = assetStateById[splitType(AssetId)[1]] || {}
+                        return {
+                            ...previous,
+                            render: render
+                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                                .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
+                            name: name
+                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                                .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
+                            exits: exits
+                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                                .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
+                        }
+                    }, { render: [], name: [], exits: [] })
+                    //
+                    // TODO: Evaluate expressions before inserting them
+                    //
+                return {
+                    EphemeraId,
+                    CharacterId,
+                    render,
+                    name: name.join(''),
+                    exits,
+                    characters: Object.values((RoomMeta ?? {}).activeCharacters || {})
+                }
+
+            default:
+                return {
+                    EphemeraId,
+                    CharacterId
+                }
+        }
+    })
+}
+
+export const render = async (renderList) => {
+    const renderedOutput = await renderItems(renderList)
+    return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
+        const [objectType, objectKey] = splitType(EphemeraId)
+        switch(objectType) {
+            case 'ROOM':
+                const { render: Description, name: Name, exits, characters } = rest
+                const Message = {
+                    EphemeraId,
+                    CharacterId,
+                    RoomId: objectKey,
+                    //
+                    // TODO:  Replace Ancestry with a new map system
+                    //
+                    Ancestry: '',
+                    Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
+                    Description,
+                    Name,
+                    Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
+                }
+                return Message
+            default:
+                return {
+                    EphemeraId,
+                    CharacterId,
+                }
+        }
+    })
 }
 

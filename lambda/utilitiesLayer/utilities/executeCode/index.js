@@ -1,4 +1,4 @@
-import { executeCode } from '../perception/compileCode.js'
+import { executeCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { updateRoomsByAsset } from './updateRooms.js'
 
