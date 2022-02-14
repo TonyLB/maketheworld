@@ -45,6 +45,22 @@ const getCharacterAssets = async (characters) => {
     return Object.assign({}, ...allCharacters)
 }
 
+const getStateByAsset = async (assets) => {
+    const getSingleState = async (assetId) => {
+        const { State = {} } = await ephemeraDB.getItem({
+            EphemeraId: `ASSET#${assetId}`,
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        })
+        return { [assetId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) }
+    }
+    const allStates = await Promise.all(assets.map(getSingleState))
+    return Object.assign({}, ...allStates)
+}
+
 export const renderItems = async (renderList) => {
     const roomsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
     const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
@@ -62,8 +78,15 @@ export const renderItems = async (renderList) => {
         getRoomMeta(roomsToRender),
         getCharacterAssets(charactersToRenderFor)
     ])
+    const allAssets = [...(new Set([
+        ...globalAssets,
+        ...(Object.values(characterAssets).reduce((previous, list) => ([ ...previous, ...list ]), []))
+    ]))]
+    const assetStateById = await getStateByAsset(allAssets)
 
-    return await Promise.all(renderList.map(async ({ EphemeraId, CharacterId }) => {
+    clearMemoSpace()
+
+    return renderList.map(({ EphemeraId, CharacterId }) => {
         const [objectType] = splitType(EphemeraId)
         switch(objectType) {
             case 'ROOM':
@@ -85,26 +108,9 @@ export const renderItems = async (renderList) => {
                         ...(personalAssets.filter((value) => (!globalAssets.includes(value))))
                     ].map((key) => (`ASSET#${key}`))
                     .filter((AssetId) => (RoomMetaByAsset[AssetId]))
-                const assetStateItems = await Promise.all(
-                    assetsToRender.map((AssetId) => (
-                        ephemeraDB.getItem({
-                            EphemeraId: AssetId,
-                            DataCategory: 'Meta::Asset',
-                            ProjectionFields: ['EphemeraId', '#state'],
-                            ExpressionAttributeNames: {
-                                '#state': 'State'
-                            }
-                        })
-                    ))
-                )
-                const assetStateById = assetStateItems.reduce((previous, { EphemeraId, State = {} }) => ({
-                        ...previous,
-                        [EphemeraId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
-                    }), {})
-                clearMemoSpace()
                 const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
                         const { render = [], name = [], exits = [] } = RoomMetaByAsset[AssetId]
-                        const state = assetStateById[AssetId] || {}
+                        const state = assetStateById[splitType(AssetId)[1]] || {}
                         return {
                             ...previous,
                             render: render
@@ -136,7 +142,7 @@ export const renderItems = async (renderList) => {
                     CharacterId
                 }
         }
-    }))
+    })
 }
 
 export const render = async ({ CharacterId, EphemeraId }) => {
