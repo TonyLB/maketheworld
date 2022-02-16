@@ -1,4 +1,4 @@
-<Asset key=(TEST) fileName="wmlTest">
+<Asset key=(TEST) fileName="wmlTest" zone="Canon">
     <Layer key=(123)>
         <Room key=(345)>
             Hello, world!
