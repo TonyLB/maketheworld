@@ -16,7 +16,7 @@ const topDownMap = (ancestorList) => (
     }), {})
 )
 
-const assignContextTagIds = (tagsMap, assignTest = () => true) => (node, ancestry) => {
+export const assignContextTagIds = (tagsMap, assignTest = () => true) => (node, ancestry) => {
     if (assignTest(node)) {
         const ancestryMap = topDownMap(ancestry)
         const tagsToAssign = Object.entries(tagsMap).filter(([tag]) => ancestryMap[tag])
@@ -28,7 +28,7 @@ const assignContextTagIds = (tagsMap, assignTest = () => true) => (node, ancestr
     return node
 }
 
-const assignExitContext = (node, ancestry) => {
+export const assignExitContext = (node, ancestry) => {
     if (node.tag === 'Exit') {
         const { to, from } = node
         const ancestryMap = topDownMap(ancestry)
@@ -62,7 +62,7 @@ const assignExitContext = (node, ancestry) => {
     return node
 }
 
-const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
+export const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
     if (assignTest(node)) {
         const conditions = ancestry
             .filter(({ tag }) => (tag === 'Condition'))
@@ -75,7 +75,7 @@ const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
     return node
 }
 
-const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
+export const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
     const { contents = [], ...rest } = node
     const newNode = processFunctions.reduce((previous, process) => (process(previous, ancestry)), rest)
     return {
@@ -83,8 +83,3 @@ const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
         contents: contents.map(wmlProcessDown(processFunctions, [...ancestry, newNode]))
     }
 }
-
-exports.assignContextTagIds = assignContextTagIds
-exports.assignExitContext = assignExitContext
-exports.aggregateConditionals = aggregateConditionals
-exports.wmlProcessDown = wmlProcessDown

@@ -1,5 +1,5 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle'
-import { wmlSelectorFactory, wmlSelectorSemantics } from './selector'
+import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
+import { wmlSelectorFactory, wmlSelectorSemantics } from './selector.js'
 
 describe('wmlQuery selector', () => {
 

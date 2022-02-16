@@ -7,6 +7,7 @@ import {
     liftBooleanProps,
     liftLiteralTags,
     liftUntagged,
+    liftContents,
     liftUseTags,
     liftImportTags,
     confirmExpressionProps,
@@ -105,7 +106,7 @@ export const schema = {
             liftLiteralProps(['key', 'display']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
-            liftUntagged('render'),
+            liftContents('render'),
         ])(node.schema())
     },
     ExitExpression(node) {

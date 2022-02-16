@@ -100,6 +100,38 @@ export const liftUntagged = (label, { separator = '', allString = false } = {}) 
     
 }
 
+export const liftContents = (label, { separator = '', allString = false } = {}) => ({ contents = [], ...rest }) => {
+    const aggregationReducer = ({ listItems, currentItem }, item) => {
+        if (typeof currentItem === 'string' && typeof item === 'string') {
+            return { listItems, currentItem: [currentItem, item].join(separator) }
+        }
+        else {
+            return {
+                listItems: [
+                    ...listItems,
+                    ...(currentItem ? [currentItem] : [])
+                ],
+                currentItem: item
+            }
+        }
+    }
+    const aggregation = (items) => {
+        const { listItems, currentItem } = items.reduce(aggregationReducer, { listItems: [] })
+        return [
+            ...listItems,
+            ...(currentItem ? [currentItem] : [])
+        ]
+    }
+
+    const aggregatedValue = aggregation(contents)
+    return {
+        contents: [],
+        ...rest,
+        [label]: allString ? aggregatedValue[0] : aggregatedValue
+    }
+    
+}
+
 export const liftUseTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Use'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Use'))
