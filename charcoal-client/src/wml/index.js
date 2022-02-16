@@ -56,9 +56,9 @@ const mergeToRooms = (elements) => {
     const reduceInRoomContext = ({ render: previousRender = [], exits: previousExits = [], name: previousName = [] }, element) => {
         const mergeRender = (previous = { render: [] }, { display, render }) => {
             //
-            // TODO: Handle modes of display other than replace
+            // TODO: Handle modes of display other than after
             //
-            return { display, render }
+            return { display, render: [...previous.render, ...render] }
         }
         const mergeName = (previous = { render: [] }, { display, name }) => {
             //

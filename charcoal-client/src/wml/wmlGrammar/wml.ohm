@@ -7,14 +7,14 @@ WorldMarkupLangage {
     WMLFileContents = AssetExpression
             | CharacterExpression
 
-    CharacterExpression = TagExpression<"Character", ("key" | "player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
+    CharacterExpression = TagExpression<"Character", none, ("key" | "player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
     CharacterLegalContents = LiteralNameExpression
             | LiteralValueTag<"Pronouns">
             | LiteralValueTag<"OneCoolThing">
             | LiteralValueTag<"Outfit">
             | LiteralValueTag<"FirstImpression">
 
-    AssetExpression = TagExpression<"Asset", ("key" | "fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
+    AssetExpression = TagExpression<"Asset", none, ("key" | "fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
     AssetLegalContents = ImportExpression
             | VariableExpression
             | ActionExpression
@@ -25,36 +25,36 @@ WorldMarkupLangage {
             | LiteralNameExpression
             | string
 
-    ImportExpression = TagExpression<"Import", ("from"), none, none, ImportLegalContents>
+    ImportExpression = TagExpression<"Import", none, "from", none, none, ImportLegalContents>
     ImportLegalContents = UseExpression
 
-    UseExpression = TagExpression<"Use", ("key" | "as"), none, none, none>
-            | TagSelfClosing<"Use", ("key" | "as"), none, none>
+    UseExpression = TagExpression<"Use", none, ("key" | "as"), none, none, none>
+            | TagSelfClosing<"Use", none, ("key" | "as"), none, none>
 
-    VariableExpression = TagExpression<"Variable", "key", "default", none, none>
-            | TagSelfClosing<"Variable", "key", "default", none>
+    VariableExpression = TagExpression<"Variable", none, "key", "default", none, none>
+            | TagSelfClosing<"Variable", none, "key", "default", none>
 
-    ActionExpression = TagExpression<"Action", "key", "src", none, none>
-            | TagSelfClosing<"Action", "key", "src", none>
+    ActionExpression = TagExpression<"Action", none, "key", "src", none, none>
+            | TagSelfClosing<"Action", none, "key", "src", none>
 
-    ConditionExpression = TagExpression<"Condition", none, "if", none, ConditionLegalContents>
+    ConditionExpression = TagExpression<"Condition", none, none, "if", none, ConditionLegalContents>
     ConditionLegalContents = RoomExpression
             | ConditionExpression
             | TextContents
             | LayerExpression
             | ExitExpression
 
-    LayerExpression = TagExpression<"Layer", "key", none, none, LayerLegalContents>
+    LayerExpression = TagExpression<"Layer", none, "key", none, none, LayerLegalContents>
     LayerLegalContents = RoomExpression
             | ConditionExpression
             | ExitExpression
 
-    ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, string>
-            | TagSelfClosing<"Exit", ("key" | "to" | "from"), none, none>
+    ExitExpression = TagExpression<"Exit", none, ("key" | "to" | "from"), none, none, string>
+            | TagSelfClosing<"Exit", none, ("key" | "to" | "from"), none, none>
 
-    LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, string>
+    LinkExpression = TagExpression<"Link", none, ("key" | "to"), none, none, string>
 
-    RoomExpression = TagExpression<"Room", ("key" | "display"), none, "global", RoomContents>
+    RoomExpression = TagExpression<"Room", none, ("key" | "display"), none, "global", RoomContents>
     RoomContents = TextContents
             | NameExpression
             | ExitExpression
@@ -63,26 +63,28 @@ WorldMarkupLangage {
     LiteralNameExpression = LiteralValueTag<"Name">
     NameExpression = ValueTag<"Name">
 
-    LiteralValueTag<label> = TagExpression<label, none, none, none, string>
+    LiteralValueTag<label> = TagExpression<label, none, none, none, none, string>
 
-    ValueTag<label> = TagExpression<label, none, none, none, TextContents>
+    ValueTag<label> = TagExpression<label, none, none, none, none, TextContents>
     TextContents = string | EmbeddedJSExpression
 
     //
     // The following define the ways in which tags can be structured
     //
 
-    TagExpression<tag, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, LegalContents> = TagOpen<tag, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> LegalContents* TagClose<tag>
+    TagExpression<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, LegalContents> = TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> LegalContents* TagClose<tag>
     string = (stringText | spaceCompressor)+
     stringText = (~("<" | "{" | space) any | "\\<" | "\\{")+
+    legalKey = (letter | digit | "-" | "_")*
     spaceCompressor = (space)+
-    TagSelfClosing<tag, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* "/>"
-    TagOpen<tag, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* ">"
-    TagArgument<tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = TagLiteralArgument<tagLiteralArgs> | TagProgramArgument<tagProgramArgs> | tagBooleanArgument<tagBooleanArgs>
+    TagSelfClosing<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* "/>"
+    TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* ">"
+    TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = TagArgumentKey<tagKeyArgs> | TagLiteralArgument<tagLiteralArgs> | TagProgramArgument<tagProgramArgs> | tagBooleanArgument<tagBooleanArgs>
     TagLiteralArgument<tagLiteralArgs> = tagArgumentQuoted<tagLiteralArgs>
     TagProgramArgument<tagProgramArgs> = tagArgumentQuoted<tagProgramArgs> | TagArgumentBracketed<tagProgramArgs>
     tagBooleanArgument<tagBooleanArgs> = tagBooleanArgs &(space | ">" | "/>")
     tagArgumentQuoted<tagLegalArgs> = tagLegalArgs "=\"" tagArgValueQuoted
+    TagArgumentKey<tagLegalArgs> = tagLegalArgs "=(" legalKey ")"
     TagArgumentBracketed<tagLegalArgs> = #(tagLegalArgs "={") JSExpression* "}"
     tagArgValueQuoted = ("\\\"" | ~"\"" any)* "\""
     TagClose<tag> = "</" tag ">"

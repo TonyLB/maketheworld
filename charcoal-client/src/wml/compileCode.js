@@ -1,6 +1,5 @@
-const compileCode = (src) => {
+export const compileCode = (src) => {
     src = 'with (sandbox) {' + src + '}'
-    // eslint-disable-next-line no-new-func
     const code = new Function('sandbox', src)
   
     return function (sandbox) {
@@ -11,5 +10,3 @@ const compileCode = (src) => {
         return code(sandboxProxy)
     }
 }
-
-exports.compileCode = compileCode

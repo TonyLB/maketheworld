@@ -38,6 +38,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   TagExpression?: (this: NonterminalNode, arg0: NonterminalNode, arg1: IterationNode, arg2: NonterminalNode) => T;
   string?: (this: NonterminalNode, arg0: IterationNode) => T;
   stringText?: (this: NonterminalNode, arg0: IterationNode) => T;
+  legalKey?: (this: NonterminalNode, arg0: IterationNode) => T;
   spaceCompressor?: (this: NonterminalNode, arg0: IterationNode) => T;
   TagSelfClosing?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode) => T;
   TagOpen?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode) => T;
@@ -46,6 +47,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   TagProgramArgument?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   tagBooleanArgument?: (this: NonterminalNode, arg0: Node, arg1: NonterminalNode | TerminalNode) => T;
   tagArgumentQuoted?: (this: NonterminalNode, arg0: Node, arg1: TerminalNode, arg2: NonterminalNode) => T;
+  TagArgumentKey?: (this: NonterminalNode, arg0: Node, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode) => T;
   TagArgumentBracketed?: (this: NonterminalNode, arg0: Node, arg1: TerminalNode, arg2: IterationNode, arg3: TerminalNode) => T;
   tagArgValueQuoted?: (this: NonterminalNode, arg0: IterationNode, arg1: TerminalNode) => T;
   TagClose?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: TerminalNode) => T;
