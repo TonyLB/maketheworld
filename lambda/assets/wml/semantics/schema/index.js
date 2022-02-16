@@ -2,6 +2,7 @@ import {
     confirmRequiredProps,
     wmlProcessUpNonRecursive,
     validate,
+    liftKeyProps,
     liftLiteralProps,
     liftExpressionProps,
     liftBooleanProps,
@@ -10,6 +11,7 @@ import {
     liftContents,
     liftUseTags,
     liftImportTags,
+    confirmKeyProps,
     confirmExpressionProps,
     confirmLiteralProps
 } from './processUp/index.js'
@@ -20,9 +22,10 @@ const processTagProps = (tag, props) => ({
     tag: tag.sourceString,
     props: props.children
         .map((prop) => prop.schema())
-        .reduce((previous, { argument, expression, literal }) => ({
+        .reduce((previous, { argument, key, expression, literal }) => ({
             ...previous,
             [argument]: {
+                key,
                 expression,
                 literal
             }
@@ -39,6 +42,9 @@ export const schema = {
     stringText(node) {
         return this.sourceString
     },
+    legalKey(node) {
+        return this.sourceString
+    },
     spaceCompressor(node) {
         return ' '
     },
@@ -47,6 +53,12 @@ export const schema = {
     },
     tagArgValueQuoted(value, _) {
         return value.sourceString
+    },
+    TagArgumentKey(argument, openBracket, key, closeBracket) {
+        return {
+            argument: argument.sourceString,
+            key: key.schema()
+        }
     },
     TagArgumentBracketed(argument, openBracket, expression, closeBracket) {
         return {
@@ -81,29 +93,30 @@ export const schema = {
     VariableExpression(node) {
         return wmlProcessUpNonRecursive([
             validate(confirmRequiredProps(['key'])),
-            validate(confirmLiteralProps(['key'])),
+            validate(confirmKeyProps(['key'])),
             validate(confirmExpressionProps(['default'])),
             liftExpressionProps(['default']),
-            liftLiteralProps(['key']),
+            liftKeyProps(['key']),
             liftUntagged('src', { allString: true })
         ])(node.schema())
     },
     ActionExpression(node) {
         return wmlProcessUpNonRecursive([
             validate(confirmRequiredProps(['key'])),
-            validate(confirmLiteralProps(['key'])),
+            validate(confirmKeyProps(['key'])),
             validate(confirmExpressionProps(['src'])),
             liftExpressionProps(['src']),
-            liftLiteralProps(['key']),
+            liftKeyProps(['key']),
         ])(node.schema())
     },
     RoomExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
             validate(confirmRequiredProps(['key'])),
-            validate(confirmLiteralProps(['key'])),
+            validate(confirmKeyProps(['key'])),
             validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
-            liftLiteralProps(['key', 'display']),
+            liftKeyProps(['key']),
+            liftLiteralProps(['display']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
             liftContents('render'),
@@ -112,24 +125,24 @@ export const schema = {
     ExitExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
-            validate(confirmLiteralProps(['key', 'to', 'from'])),
-            liftLiteralProps(['key', 'to', 'from']),
+            validate(confirmKeyProps(['key', 'to', 'from'])),
+            liftKeyProps(['key', 'to', 'from']),
             liftUntagged('name', { allString: true })
         ])(node.schema())
     },
     LinkExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
-            validate(confirmLiteralProps(['key', 'to'])),
-            liftLiteralProps(['key', 'to']),
+            validate(confirmKeyProps(['key', 'to'])),
+            liftKeyProps(['key', 'to']),
             liftUntagged('text', { allString: true })
         ])(node.schema())
     },
     LayerExpression(node) {
         return wmlProcessUpNonRecursive([
                 // desourceTag,
-                validate(confirmLiteralProps(['key'])),
-                liftLiteralProps(['key'])
+                validate(confirmKeyProps(['key'])),
+                liftKeyProps(['key'])
             ])(node.schema())
     },
     ConditionExpression(node) {
@@ -143,15 +156,15 @@ export const schema = {
     UseExpression(node) {
         return wmlProcessUpNonRecursive([
             validate(confirmRequiredProps(['key'])),
-            validate(confirmLiteralProps(['key', 'as'])),
-            liftLiteralProps(['key', 'as'])
+            validate(confirmKeyProps(['key', 'as'])),
+            liftKeyProps(['key', 'as'])
         ])(node.schema())
     },
     ImportExpression(node) {
         return wmlProcessUpNonRecursive([
             validate(confirmRequiredProps(['from'])),
-            validate(confirmLiteralProps(['from'])),
-            liftLiteralProps(['from']),
+            validate(confirmKeyProps(['from'])),
+            liftKeyProps(['from']),
             liftUseTags
         ])(node.schema())
     },
@@ -159,8 +172,10 @@ export const schema = {
         return wmlProcessUpNonRecursive([
                 // desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
-                validate(confirmLiteralProps(['key', 'fileName', 'zone', 'subFolder', "player"])),
-                liftLiteralProps(['key', 'fileName', 'player', 'zone']),
+                validate(confirmKeyProps(['key'])),
+                validate(confirmLiteralProps(['fileName', 'zone', 'subFolder', "player"])),
+                liftKeyProps(['key']),
+                liftLiteralProps(['fileName', 'player', 'zone']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftImportTags,
@@ -171,8 +186,10 @@ export const schema = {
         const returnVal = wmlProcessUpNonRecursive([
             // desourceTag,
             validate(confirmRequiredProps(['key', 'player', 'fileName'])),
-            validate(confirmLiteralProps(['key', 'player', 'fileName'])),
-            liftLiteralProps(['key', 'player', 'fileName']),
+            validate(confirmKeyProps(['key'])),
+            validate(confirmLiteralProps(['player', 'fileName'])),
+            liftKeyProps(['key']),
+            liftLiteralProps(['player', 'fileName']),
             validate(fileNameValidator),
             liftLiteralTags({
                 Name: 'Name',

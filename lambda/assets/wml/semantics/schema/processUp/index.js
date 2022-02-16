@@ -6,6 +6,21 @@ export const aggregateErrors = ({ contents = [], errors = [], ...rest }) => ({
 
 export const desourceTag = ({ tag, ...rest }) => ({ tag: tag.sourceString, ...rest })
 
+export const liftKeyProps = (liftKeyProps = []) => ({ props, ...rest }) => {
+    return {
+        ...rest,
+        //
+        // Lift the specified key props out of their structure to this level
+        //
+        ...(liftKeyProps.reduce((previous, key) => ({ ...previous, [key]: props?.[key]?.key }), {})),
+        //
+        // Pass on the props that aren't lifted in their more complex structure
+        //
+        props: Object.entries(props).filter(([key]) => (!liftKeyProps.includes(key))).reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
+    }
+
+}
+
 export const liftLiteralProps = (liftLiteralProps = []) => ({ props, ...rest }) => {
     return {
         ...rest,
@@ -187,20 +202,26 @@ export const validate = (validationFunction) => (node) => {
 
 export const confirmRequiredProps = (requiredProperties) => ({ tag, props }) => {
     return requiredProperties
-        .filter((prop) => (props[prop] === undefined || !(props[prop]?.literal || props[prop]?.expression)))
-        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} is a required property for ${tag.sourceString} tags.`))
+        .filter((prop) => (props[prop] === undefined || !(props[prop]?.key || props[prop]?.literal || props[prop]?.expression)))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} is a required property for ${tag} tags.`))
+}
+
+export const confirmKeyProps = (keyOnlyProperties) => ({ tag, props }) => {
+    return keyOnlyProperties
+        .filter((prop) => (props[prop] & !props[prop]?.key))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass a key value for ${tag} tags.`))
 }
 
 export const confirmLiteralProps = (literalOnlyProperties) => ({ tag, props }) => {
     return literalOnlyProperties
         .filter((prop) => (props[prop] & !props[prop]?.literal))
-        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass a literal (not expression) value for ${tag.sourceString} tags.`))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass a literal (not expression) value for ${tag} tags.`))
 }
 
 export const confirmExpressionProps = (expressionOnlyProperties) => ({ tag, props }) => {
     return expressionOnlyProperties
         .filter((prop) => (props[prop] & !props[prop]?.expression))
-        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass an expression (not literal) value for ${tag.sourceString} tags.`))
+        .map((prop) => (`${prop[0].toUpperCase()}${prop.slice(1)} must pass an expression (not literal) value for ${tag} tags.`))
 }
 
 export const wmlProcessUpNonRecursive = (processFunctions = []) => (node) => (
