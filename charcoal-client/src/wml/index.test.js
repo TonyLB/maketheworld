@@ -1,4 +1,61 @@
-import { dbEntries } from './index.js'
+import { dbEntries, assetRegistryEntries } from './index.js'
+
+const testSchema = {
+    tag: 'Asset',
+    key: 'Test',
+    contents: [{
+        tag: 'Room',
+        key: '123',
+        name: 'Vortex',
+        render: ['Hello, world!'],
+        contents: [{
+            tag: 'Exit',
+            to: '456',
+            from: '123',
+            contents: [],
+            conditions: []
+        },
+        {
+            tag: 'Exit',
+            to: '123',
+            from: '456',
+            name: 'vortex',
+            contents: [],
+            conditions: []
+        }],
+        conditions: []
+    },
+    {
+        tag: 'Condition',
+        if: 'true',
+        contents: [{
+            tag: 'Room',
+            key: '123',
+            render: ['Vortex!'],
+            contents: [],
+            conditions: ['true']
+        }]
+    },
+    {
+        tag: 'Room',
+        key: '456',
+        name: 'Welcome',
+        contents: [],
+        conditions: []
+    },
+    {
+        tag: 'Variable',
+        key: 'active',
+        default: 'true',
+        contents: []
+    },
+    {
+        tag: 'Action',
+        key: 'toggleActive',
+        src: 'active = !active',
+        contents: []
+    }]
+}
 
 describe('WML dbEntries', () => {
     it('should return empty record when passed empty asset', () => {
@@ -9,62 +66,7 @@ describe('WML dbEntries', () => {
     })
 
     it('should serialize Rooms, Exits, Variables and Actions', () => {
-        expect(dbEntries({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-                render: ['Hello, world!'],
-                contents: [{
-                    tag: 'Exit',
-                    to: '456',
-                    from: '123',
-                    contents: [],
-                    conditions: []
-                },
-                {
-                    tag: 'Exit',
-                    to: '123',
-                    from: '456',
-                    name: 'vortex',
-                    contents: [],
-                    conditions: []
-                }],
-                conditions: []
-            },
-            {
-                tag: 'Condition',
-                if: 'true',
-                contents: [{
-                    tag: 'Room',
-                    key: '123',
-                    render: ['Vortex!'],
-                    contents: [],
-                    conditions: ['true']
-                }]
-            },
-            {
-                tag: 'Room',
-                key: '456',
-                name: 'Welcome',
-                contents: [],
-                conditions: []
-            },
-            {
-                tag: 'Variable',
-                key: 'active',
-                default: 'true',
-                contents: []
-            },
-            {
-                tag: 'Action',
-                key: 'toggleActive',
-                src: 'active = !active',
-                contents: []
-            }]
-        })).toEqual({
+        expect(dbEntries(testSchema)).toEqual({
             '123': {
                 tag: 'Room',
                 exits: [{
@@ -112,5 +114,47 @@ describe('WML dbEntries', () => {
                 contents: []
             }
         })
+    })
+})
+
+describe('WML assetRegistryEntries', () => {
+    it('should return empty record when passed empty asset', () => {
+        expect(assetRegistryEntries({
+            tag: 'Asset',
+            key: 'Test',
+            contents: []
+        })).toEqual([{ tag: 'Asset', key: 'Test' }])
+    })
+
+    it('should serialize Rooms, Exits, Variables and Actions', () => {
+        expect(assetRegistryEntries(testSchema)).toEqual([
+            {
+                tag: 'Asset',
+                key: 'Test'
+            },
+            {
+                tag: 'Room',
+                key: '123',
+                name: 'Vortex',
+            },
+            {
+                tag: 'Room',
+                key: '123'
+            },
+            {
+                tag: 'Room',
+                key: '456',
+                name: 'Welcome'
+            },
+            {
+                tag: 'Variable',
+                key: 'active'
+            },
+            {
+                tag: 'Action',
+                key: 'toggleActive',
+                src: 'active = !active'
+            }
+        ])
     })
 })
