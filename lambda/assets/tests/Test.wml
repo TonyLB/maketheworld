@@ -1,12 +1,12 @@
-<Asset key="TEST" fileName="wmlTest">
-    <Layer key="123">
-        <Room key="345">
+<Asset key=(TEST) fileName="wmlTest">
+    <Layer key=(123)>
+        <Room key=(345)>
             Hello, world!
             <Name>Welcome Area</Name>
-            <Exit to="VORTEX">vortex</Exit>
-            <Exit from="VORTEX">welcome</Exit>
+            <Exit to=(VORTEX)>vortex</Exit>
+            <Exit from=(VORTEX)>welcome</Exit>
         </Room>
-        <Room global key="VORTEX">
+        <Room global key=(VORTEX)>
             <Name>Vortex</Name>
             A swirling pool of flickering energy, thick enough to stand on,
             but not exactly comfortingly solid. There's a murmuring sound
@@ -15,7 +15,7 @@
         </Room>
     </Layer>
     <Condition if={true}>
-        <Room global key="VORTEX">
+        <Room global key=(VORTEX)>
             Alternate
         </Room>
     </Condition>
