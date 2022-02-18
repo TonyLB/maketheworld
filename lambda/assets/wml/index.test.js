@@ -3,6 +3,10 @@ import { dbEntries, assetRegistryEntries } from './index.js'
 const testSchema = {
     tag: 'Asset',
     key: 'Test',
+    name: 'Test',
+    fileName: 'test.wml',
+    importMap: {},
+    zone: 'Canon',
     contents: [{
         tag: 'Room',
         key: '123',
@@ -50,6 +54,13 @@ const testSchema = {
         src: 'active = !active',
         contents: []
     }]
+}
+
+const assetProps = {
+    name: 'Test',
+    fileName: 'test.wml',
+    importMap: {},
+    zone: 'Canon',
 }
 
 describe('WML dbEntries', () => {
@@ -172,22 +183,17 @@ describe('WML assetRegistryEntries', () => {
     it('should serialize Rooms, Exits, Variables and Actions', () => {
         expect(assetRegistryEntries(testSchema)).toEqual([
             {
-                tag: 'Asset',
-                key: 'Test'
-            },
-            {
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-            },
-            {
                 tag: 'Room',
                 key: '123'
             },
             {
                 tag: 'Room',
                 key: '456',
-                name: 'Welcome'
+            },
+            {
+                tag: 'Asset',
+                key: 'Test',
+                ...assetProps
             },
             {
                 tag: 'Variable',
