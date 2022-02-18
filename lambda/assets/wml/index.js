@@ -135,8 +135,8 @@ export const validatedSchema = (match) => {
         //
         validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
         validate(({ to, from }) => ([
-            ...(normalized[to] ? [] : [`To: '${to}' is not a key in this asset.`]),
-            ...(normalized[from] ? [] : [`To: '${from}' is not a key in this asset.`])
+            ...((normalized[to] || !to) ? [] : [`To: '${to}' is not a key in this asset.`]),
+            ...((normalized[from] || !from) ? [] : [`From: '${from}' is not a key in this asset.`])
         ])),
         aggregateErrors
     ])(secondPass)

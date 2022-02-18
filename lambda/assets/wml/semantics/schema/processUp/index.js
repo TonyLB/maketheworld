@@ -115,32 +115,40 @@ export const liftUntagged = (label, { separator = '', allString = false } = {}) 
     
 }
 
-export const liftContents = (label, { separator = '', allString = false } = {}) => ({ contents = [], ...rest }) => {
-    const aggregationReducer = ({ listItems, currentItem }, item) => {
+export const liftContents = (label, { separator = '', allString = false, exclude = [] } = {}) => ({ contents = [], ...rest }) => {
+    const aggregationReducer = ({ listItems, currentItem, contents }, item) => {
         if (typeof currentItem === 'string' && typeof item === 'string') {
-            return { listItems, currentItem: [currentItem, item].join(separator) }
+            return { listItems, contents, currentItem: [currentItem, item].join(separator) }
         }
         else {
+            if (exclude.includes(item.tag)) {
+                return {
+                    listItems,
+                    currentItem,
+                    contents: [
+                        ...(contents || []),
+                        item
+                    ]
+                }
+            }
             return {
                 listItems: [
                     ...listItems,
                     ...(currentItem ? [currentItem] : [])
                 ],
-                currentItem: item
+                currentItem: item,
+                contents
             }
         }
     }
-    const aggregation = (items) => {
-        const { listItems, currentItem } = items.reduce(aggregationReducer, { listItems: [] })
-        return [
-            ...listItems,
-            ...(currentItem ? [currentItem] : [])
-        ]
-    }
 
-    const aggregatedValue = aggregation(contents)
+    const { listItems, currentItem, contents: newContents } = contents.reduce(aggregationReducer, { listItems: [], contents: [] })
+    const aggregatedValue = [
+        ...listItems,
+        ...(currentItem ? [currentItem] : [])
+    ]
     return {
-        contents: [],
+        contents: newContents,
         ...rest,
         [label]: allString ? aggregatedValue[0] : aggregatedValue
     }

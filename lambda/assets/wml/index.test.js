@@ -1,4 +1,10 @@
-import { dbEntries, assetRegistryEntries } from './index.js'
+import {
+    dbEntries,
+    assetRegistryEntries,
+    validatedSchema
+} from './index.js'
+import { NormalizeTagMismatchError } from './normalize.js'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 
 const testSchema = {
     tag: 'Asset',
@@ -206,4 +212,51 @@ describe('WML assetRegistryEntries', () => {
             }
         ])
     })
+})
+
+describe('WML validateSchema', () => {
+    it('should pass a valid schema', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    Vortex
+                    <Exit from=(DEF)>vortex</Exit>
+                </Room>
+                <Room key=(DEF)>
+                    <Name>Welcome</Name>
+                </Room>
+            </Asset>
+        `)
+        const schema = validatedSchema(match)
+        expect(schema.errors.length).toBe(0)
+    })
+
+    it('should reject mismatched tags', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    Vortex
+                </Room>
+                <Variable key=(ABC) default={"Vortex"} />
+            </Asset>
+        `)
+        expect(() => (validatedSchema(match))).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+    })
+
+    it('should reject mismatched keys', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    Vortex
+                    <Exit to=(DEF)>welcome</Exit>
+                </Room>
+            </Asset>
+        `)
+        const schema = validatedSchema(match)
+        const { errors } = schema
+        expect(errors.length).toBe(1)
+        expect(errors).toEqual([`To: 'DEF' is not a key in this asset.`])
+    })
+
 })
