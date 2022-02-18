@@ -127,12 +127,17 @@ export const validatedSchema = (match) => {
         aggregateConditionals(tagCondition(['Room', 'Exit'])),
         assignExitContext
     ])(firstPass)
+    const normalized = normalize(secondPass)
     const thirdPass = wmlProcessUp([
         //
         // TODO: Refactor exit validation to assign roomId context as in processDown, then do the calculation (and better error message) knowing all three of
         // to, from and roomId.
         //
         validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
+        validate(({ to, from }) => ([
+            ...(normalized[to] ? [] : [`To: '${to}' is not a key in this asset.`]),
+            ...(normalized[from] ? [] : [`To: '${from}' is not a key in this asset.`])
+        ])),
         aggregateErrors
     ])(secondPass)
     return thirdPass

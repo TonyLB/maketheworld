@@ -87,7 +87,7 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
     }
     const schema = validatedSchema(match)
 
-    const evaluated = assetRegistryEntries(schema).find(({ tag }: { tag: string }) => (tag === 'Character'))
+    const evaluated = assetRegistryEntries(schema).find(({ tag }: { tag?: string } = {}) => (tag === 'Character'))
 
     if (evaluated) {
         const defaultValue = {
