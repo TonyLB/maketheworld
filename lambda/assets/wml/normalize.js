@@ -72,7 +72,7 @@ const pullProperties = (node) => {
         ]
         switch(node.tag) {
             case 'Exit':
-                pullTags = [...pullTags, 'to', 'from']
+                pullTags = [...pullTags, 'to', 'from', 'name']
                 break
             case 'Variable':
                 pullTags.push('default')
@@ -110,7 +110,13 @@ export const transformNode = (contextStack, node) => {
         const roomIndex = contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
         if (roomIndex === -1) {
             return {
-                contextStack,
+                contextStack: [
+                    ...contextStack,
+                    {
+                        key: node.from,
+                        tag: 'Room'
+                    }
+                ],
                 node: {
                     key: `${node.from}#${node.to}`,
                     ...node

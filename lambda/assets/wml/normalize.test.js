@@ -50,7 +50,7 @@ describe('WML normalize', () => {
             })
         })
 
-        it('should pass a global exit at same level, with synthetic key', () => {
+        it('should pass a global exit in a room wrapper, with synthetic key', () => {
             expect(transformNode(
                 [{ key: 'Test', tag: 'Asset', index: 0 }],
                 {
@@ -60,7 +60,7 @@ describe('WML normalize', () => {
                     contents: []
                 }
             )).toEqual({
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'DEF', tag: 'Room' }],
                 node: {
                     key: 'DEF#ABC',
                     tag: 'Exit',
@@ -429,6 +429,11 @@ describe('WML normalize', () => {
                 }]
             },
             {
+                tag: 'Exit',
+                from: '456',
+                to: '123'
+            },
+            {
                 tag: 'Room',
                 key: '456',
                 name: 'Welcome',
@@ -478,6 +483,18 @@ describe('WML normalize', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     name: 'Welcome',
+                    contents: [
+                        { key: '456#123', tag: 'Exit', index: 0 }
+                    ]
+                }]
+            },
+            '456#123': {
+                key: '456#123',
+                tag:'Exit',
+                to: '123',
+                from: '456',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0}, { key: '456', tag: 'Room', index: 0 }],
                     contents: []
                 }]
             }
