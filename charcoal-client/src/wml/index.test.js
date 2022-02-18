@@ -57,7 +57,7 @@ const testSchema = {
     }]
 }
 
-describe('WML dbEntries', () => {
+xdescribe('WML dbEntries', () => {
     it('should return empty record when passed empty asset', () => {
         expect(dbEntries({
             tag: 'Asset',

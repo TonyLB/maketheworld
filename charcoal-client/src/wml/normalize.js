@@ -1,13 +1,30 @@
 import { produce } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
 
-export class NormalizeTagMismatchError extends Error {
+export class WMLNormalizeError extends Error {
     constructor(message) {
-        super(message)
-        this.name = 'NormalizeTagMismatchError'
+        super(`WMLNormalize: ${message}`)
+        this.name = 'WMLNormalizeError'
     }
 }
 
+export class NormalizeTagMismatchError extends WMLNormalizeError {
+    constructor(message) {
+        super(message)
+        this.name = 'TagMismatchError'
+    }
+}
+
+export class NormalizeKeyMismatchError extends WMLNormalizeError {
+    constructor(message) {
+        super(message)
+        this.name = 'KeyTagMismatchError'
+    }
+}
+
+//
+// TODO: Generalize and abstract the pattern of pulling values out of whatever (singular) appearance they are defined in
+//
 const mergeNormalizeMaps = (existingMap, newMap) => {
     const mergedMap = Object.entries(newMap).reduce((previous, [key, { tag, appearances = [] }]) => {
         return produce(previous, (draft) => {
@@ -16,16 +33,42 @@ const mergeNormalizeMaps = (existingMap, newMap) => {
                     throw new NormalizeTagMismatchError(`Key '${key}' is used to define elements of different tags ('${draft[key].tag}' and '${tag}')`)
                 }
                 const deduplicateSet = draft[key].appearances.map(({ deduplicate }) => (deduplicate))
-                draft[key].appearances = [
-                    ...draft[key].appearances,
-                    ...(appearances.filter(({ deduplicate }) => (!deduplicateSet.includes(deduplicate))))
-                ]
+                const deduplicatedAppearances = appearances.filter(({ deduplicate }) => (!deduplicateSet.includes(deduplicate)))
+                switch(tag) {
+                    case 'Exit':
+                        draft[key] = {
+                            key,
+                            tag,
+                            ...(deduplicatedAppearances.reduce((previous, { to, from }) => ({ ...previous, to, from }), { to: draft[key].to, from: draft[key].from })),
+                            appearances: [
+                                ...draft[key].appearances,
+                                ...deduplicatedAppearances.map(({ to, from, ...rest }) => (rest))
+                            ]
+                        }
+                        break
+                    default:
+                        draft[key].appearances = [
+                            ...draft[key].appearances,
+                            ...deduplicatedAppearances
+                        ]    
+                }
             }
             else {
-                draft[key] = {
-                    key,
-                    tag,
-                    appearances
+                switch(tag) {
+                    case 'Exit':
+                        draft[key] = {
+                            key,
+                            tag,
+                            ...(appearances.reduce((previous, { to, from }) => ({ ...previous, to, from }), {})),
+                            appearances: appearances.map(({ to, from, ...rest }) => (rest))
+                        }
+                        break
+                    default:
+                        draft[key] = {
+                            key,
+                            tag,
+                            appearances
+                        }    
                 }
             }
         })
@@ -35,13 +78,17 @@ const mergeNormalizeMaps = (existingMap, newMap) => {
 
 let generatedKeys = {}
 
+export const clearGeneratedKeys = () => {
+    generatedKeys = {}
+}
+
 const nextGeneratedKey = (tag) => {
     const currentValues = Object.keys(generatedKeys)
         .filter((key) => (key.startsWith(`${tag}-`)))
         .map((key) => (key.slice(`${tag}-`.length)))
     const maxValue = currentValues.reduce((previous, value) => {
         const numericValue = parseInt(value) || 0
-        return (value > previous) ? value : previous
+        return (numericValue > previous) ? numericValue : previous
     }, 0)
     return `${tag}-${maxValue}`
 }
@@ -60,98 +107,273 @@ const keyForValue = (tag, value) => {
     return syntheticKey
 }
 
-const transformNode = (node, map = {}, contextStack = []) => {
-    if (node.tag === 'Exit') {
-        const roomKey = contextStack.slice(-1)[0].key
-        const { to, from, ...rest } = node
+const getCurrentAppearance = (existingMap = {}, key) => {
+    if ((existingMap[key]?.appearances || []).length > 0) {
         return {
+            appearance: existingMap[key].appearances[-1],
+            index: existingMap[key].appearances.length - 1,
+            valid: true
+        }
+    }
+    return { valid: false }
+}
+
+const pullProperties = (node) => {
+    return Object.entries(node).reduce((previous, [key, value]) => {
+        const pullTags = [
+            'tag',
+            'key',
+            ...((node.tag === 'Exit') ? ['to', 'from'] : [])
+        ]
+        if (pullTags.includes(key)) {
+            return {
+                ...previous,
+                topLevel: {
+                    ...previous.topLevel,
+                    [key]: value
+                }
+            }
+        }
+        else {
+            return {
+                ...previous,
+                appearance: {
+                    ...previous.appearance,
+                    [key]: value
+                }
+            }
+        }
+    }, { topLevel: {}, appearance: {} })
+}
+
+export const transformNode = (contextStack, node) => {
+    if (node.tag === 'Exit') {
+        const roomIndex = contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
+        if (roomIndex === -1) {
+            return {
+                contextStack,
+                node: {
+                    key: `${node.from}#${node.to}`,
+                    ...node
+                }
+            }
+        }
+        const roomKey = contextStack[roomIndex].key
+        const { to, from, ...rest } = node
+        const returnValue = {
             key: `${from || roomKey}#${to || roomKey}`,
             to: to || roomKey,
             from: from || roomKey,
             ...rest
         }
+        if (from && from !== roomKey) {
+            const contextStackBeforeRoom = contextStack.slice(0, roomIndex)
+            const contextStackAfterRoom = contextStack.slice(roomIndex + 1)
+            //
+            // NOTE: Context stacks within the sibling room element created do not have
+            // an index item.  addElement will need to infer the correct index (either
+            // the current for a matching element, or a created next wrapper)
+            //
+            return {
+                contextStack: [
+                    ...contextStackBeforeRoom,
+                    {
+                        key: from,
+                        tag: 'Room'
+                    },
+                    ...(contextStackAfterRoom.map(({ key, tag }) => ({ key, tag })))
+                ],
+                node: returnValue
+            }
+        }
+        else {   
+            return {
+                contextStack,
+                node: returnValue
+            }
+        }
     }
     if (node.tag === 'Condition') {
         const key = keyForValue('Condition', node.src)
         return {
-            key,
-            ...node
+            node: {
+                key,
+                ...node    
+            },
+            contextStack
         }
     }
-    return node
+    return { node, contextStack }
+}
+
+//
+// mergeElements tracks how to add an element into the normalized structure, given the contextStack in
+// which it is encountered.
+//
+const mergeElements = (previous, contextStack, node) => {
+    const deepEqual = (listA, listB) => {
+        return JSON.stringify(listA) === JSON.stringify(listB)
+    }
+
+    const [currentAppearance] = previous.appearances.slice(-1)
+    const { topLevel, appearance: incomingAppearance } = pullProperties(node)
+    //
+    // Integrate the topLevel data, making sure there are no conflicts
+    //
+    if (topLevel.key !== previous.key) {
+        throw new NormalizeKeyMismatchError('Keys somehow mismatched in normalize')
+    }
+    if (topLevel.tag !== previous.tag) {
+        throw new NormalizeTagMismatchError(`Key '${topLevel.key}' is used to define elements of different tags ('${previous.tag}' and '${topLevel.tag}')`)
+    }
+
+    //
+    // If it is a sibling to a similarly keyed item, in the same context,
+    // with no similarly-keyed items in other contexts (e.g. a conditional
+    // redefining some properties after the first sibling) then its data
+    // can be folded in ... sequential siblings get merged.
+    //
+    if (deepEqual(currentAppearance.contextStack, contextStack)) {
+        const priorAppearances = previous.appearances.slice(0, -1)
+        return {
+            ...previous,
+            ...topLevel,
+            appearances: [
+                ...priorAppearances,
+                {
+                    ...currentAppearance,
+                    ...incomingAppearance,
+                    contents: [
+                        ...(currentAppearance.contents || []),
+                        ...(incomingAppearance.contents || [])
+                    ]
+                }
+            ]
+        }
+    }
+    //
+    // Otherwise, create a new appearance for the item
+    //
+    else {
+        return {
+            ...previous,
+            ...topLevel,
+            appearances: [
+                ...previous.appearances,
+                {
+                    contextStack,
+                    ...incomingAppearance
+                }
+            ]
+        }
+    }
+}
+
+export const addElement = (existingMap = {}, { contextStack = [], node }) => {
+    const { key } = node
+    const { contextFilledMap, filledContext } = contextStack.reduce((previous, { key, tag, index }) => {
+        if (index !== undefined) {
+            return {
+                ...previous,
+                filledContext: [...previous.filledContext, { key, tag, index }]
+            }
+        }
+        else {
+            const newMap = addElement(
+                previous.contextFilledMap,
+                {
+                    contextStack: previous.filledContext,
+                    node: {
+                        key,
+                        tag
+                    }
+                }
+            )
+            return {
+                contextFilledMap: newMap,
+                filledContext: [
+                    ...previous.filledContext,
+                    {
+                        key,
+                        tag,
+                        index: newMap[key].appearances.length - 1
+                    }
+                ]
+            }
+        }
+    }, { contextFilledMap: existingMap, filledContext: [] })
+    return produce(contextFilledMap, (draftMap) => {
+        let merged = false
+        if (draftMap[key]) {
+            //
+            // If the item has already appeared, check whether to merge
+            // with a same-level sibling, or add a new appearance
+            //
+            const priorAppearances = draftMap[key].appearances.length
+            draftMap[key] = mergeElements(draftMap[key], filledContext, node)
+            if (draftMap[key].appearances.length === priorAppearances) {
+                merged = true
+            }
+        }
+        else {
+            //
+            // If this is the first appearance of the item, add it to the
+            // map fresh.
+            //
+            const { topLevel, appearance } = pullProperties(node)
+            draftMap[key] = {
+                ...topLevel,
+                appearances: [{
+                    contextStack: filledContext,
+                    ...appearance
+                }]
+            }
+        }
+        //
+        // If a new element is added in a context, the parent item needs to have its
+        // contents updated to reflect that.
+        //
+        if (filledContext.length > 0 && !merged) {
+            const { key, index } = filledContext.slice(-1)[0]
+            const { index: nodeIndex } = getCurrentAppearance(draftMap, node.key)
+            draftMap[key].appearances[index].contents = [
+                ...(draftMap[key].appearances[index].contents || []),
+                {
+                    key: node.key,
+                    tag: node.tag,
+                    index: nodeIndex
+                }
+            ]
+        }
+    })
 }
 
 export const normalize = (node, existingMap = {}, contextStack = []) => {
-    const { key, tag, contents = [], ...rest } = transformNode(node, existingMap, contextStack)
+    const { contextStack: transformedContext, node: transformedNode } = transformNode(contextStack, node)
+    const { topLevel: { key, tag, ...topLevelRest }, appearance: { contents } } = pullProperties(transformedNode)
     if (!key || !tag) {
         return existingMap
     }
-    const contextIndex = (existingMap[key]?.appearances || []).length
+    const firstPassMap = addElement(
+        existingMap,
+        {
+            contextStack: transformedContext,
+            node: {
+                ...transformedNode,
+                contents: []
+            }
+        })
     const updatedContextStack = [
-        ...contextStack,
+        ...transformedContext,
         {
             key,
-            index: contextIndex
+            tag,
+            ...topLevelRest,
+            index: (firstPassMap[key]?.appearances || []).length - 1
         }
     ]
-    //
-    // Before we can fill in the contents of the updated normalize map by adding
-    // this current appearance of the node, we need to map the keys of the contents
-    // using transformNode.  That means we need a map with a _placeholder_ for
-    // the current node (with all its properties but an empty contents) in order
-    // to pass for context to the nodes to be transformed.
-    //
-    const placeholderMap = mergeNormalizeMaps(existingMap, {
-        key,
-        tag,
-        appearances: [{
-            deduplicate: uuidv4(),
-            contextStack,
-            contents: [],
-            ...rest
-        }]
-    })
-    const updatedMap = mergeNormalizeMaps(existingMap, {
-        [key]: {
-            key,
-            tag,
-            appearances: [{
-                deduplicate: uuidv4(),
-                contextStack,
-                contents: contents.map((item) => {
-                    const itemKey = transformNode(item, placeholderMap, updatedContextStack).key
-                    return {
-                        key: itemKey,
-                        index: (existingMap[itemKey]?.appearances || []).length
-                    }
-                }),
-                ...rest
-            }]
-        }
-    })
-    const returnValue = (node.contents || []).reduce((previous, contentNode) => {
-        return mergeNormalizeMaps(
-            previous,
-            normalize(
-                contentNode,
-                previous,
-                updatedContextStack
-            )
-        )
-    }, updatedMap)
-
-    if (Object.keys(existingMap).length === 0) {
-        return Object.entries(returnValue).reduce((previous, [key, { appearances, ...rest }]) => {
-            return {
-                ...previous,
-                [key]: {
-                    appearances: appearances.map(({ deduplicate, ...remainder }) => (remainder)),
-                    ...rest
-                }
-            }
-        }, {})
-    }
-    return returnValue
+    const secondPassMap = (contents || []).reduce((previous, node) => (normalize(node, previous, updatedContextStack)), firstPassMap)
+    return secondPassMap
 }
 
 export default normalize
