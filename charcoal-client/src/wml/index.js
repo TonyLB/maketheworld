@@ -200,12 +200,9 @@ export const dbEntries = (schema) => {
             draftState.push({ conditions, ...mergeFunction(undefined, rest) })
         }
     }))
-    console.log(`Normal Form: ${JSON.stringify(normalForm, null, 4)}`)
-    console.log(`Exits: ${JSON.stringify(exitsByRoom, null, 4)}`)
     return Object.values(normalForm)
         .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
         .map(({ tag, key, appearances, conditions, contents, ...rest }) => {
-            console.log(`Item: ${JSON.stringify({ tag, key, appearances, ...rest }, null, 4)}`)
             switch(tag) {
                 case 'Room':
                     const returnVal = {
@@ -225,8 +222,19 @@ export const dbEntries = (schema) => {
                             .map(mapContextStackToConditions)
                             .reduce(mergeConditions(mergeExit), [])
                     }
-                    console.log(`returnVal: ${JSON.stringify(returnVal, null, 4)}`)
                     return returnVal
+                case 'Variable':
+                    return {
+                        tag,
+                        key,
+                        default: rest.default
+                    }
+                case 'Action':
+                    return {
+                        tag,
+                        key,
+                        src: rest.src
+                    }
             }
         })
         .filter(({ key } = {}) => (key))
