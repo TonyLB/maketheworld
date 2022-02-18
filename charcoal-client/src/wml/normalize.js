@@ -66,13 +66,24 @@ const getCurrentAppearance = (existingMap = {}, key) => {
 
 const pullProperties = (node) => {
     return Object.entries(node).reduce((previous, [key, value]) => {
-        const pullTags = [
+        let pullTags = [
             'tag',
             'key',
-            ...((node.tag === 'Exit') ? ['to', 'from'] : []),
-            ...((node.tag === 'Variable') ? ['default'] : []),
-            ...((node.tag === 'Action') ? ['src'] : []),
         ]
+        switch(node.tag) {
+            case 'Exit':
+                pullTags = [...pullTags, 'to', 'from']
+                break
+            case 'Variable':
+                pullTags.push('default')
+                break
+            case 'Action':
+                pullTags.push('src')
+                break
+            case 'Asset':
+                pullTags = [...pullTags, 'name', 'fileName', 'player', 'importMap', 'zone']
+                break
+        }
         if (pullTags.includes(key)) {
             return {
                 ...previous,

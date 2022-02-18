@@ -242,14 +242,8 @@ export const dbEntries = (schema) => {
 }
 
 export const assetRegistryEntries = (schema) => {
-    //
-    // TODO:  Create a breakdown that returns an element for the Asset details, and then
-    // elements (once) for each Room that associates it with that Asset and gives it its
-    // global UUID (while providing a mapping back to its scoped ID inside the Asset
-    // blueprint)
-    //
-    const elements = flattenToElements(tagCondition(['Asset', 'Character', 'Room', 'Variable', 'Action']))(schema)
-    return elements.map(({ tag, ...rest }) => {
+    const normalForm = normalize(schema)
+    return Object.values(normalForm).map(({ tag, ...rest }) => {
         const { name, fileName, key, global: isGlobal, importMap, player, src } = rest
         switch(tag) {
             case 'Asset':
@@ -292,8 +286,6 @@ export const assetRegistryEntries = (schema) => {
                     OneCoolThing: rest.OneCoolThing,
                     Outfit: rest.Outfit
                 }
-            default:
-                return { tag, ...rest }
         }
-    })
+    }).filter((value) => (value))
 }
