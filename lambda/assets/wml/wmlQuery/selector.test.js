@@ -4,7 +4,7 @@ import { wmlSelectorFactory, wmlSelectorSemantics } from './selector.js'
 describe('wmlQuery selector', () => {
 
     const match = wmlGrammar.match(`
-        <Character key="TESS" fileName="Tess" player="TonyLB">
+        <Character key=(TESS) fileName="Tess" player="TonyLB">
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
