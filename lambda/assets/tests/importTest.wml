@@ -8,6 +8,7 @@
         <Link key=(switch) to=(toggleActive)>(Flip switch)</Link>
     </Room>
     <Condition if={active}>
+        <Depend on=(active) />
         <Room key=(welcomeRoom)>
             It's a welcome area, with bright lighting and pastel walls.
         </Room>
