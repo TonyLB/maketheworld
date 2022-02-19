@@ -5,7 +5,7 @@ import { splitType } from '../types.js'
 const evaluateConditionalList = (asset, list = [], state) => {
     if (list.length > 0) {
         const [first, ...rest] = list
-        const evaluation = memoizedEvaluate(asset, first, state)
+        const evaluation = memoizedEvaluate(asset, first.if, state)
 
         if (Boolean(evaluation) && evaluation !== '{#ERROR}') {
             return evaluateConditionalList(rest)
