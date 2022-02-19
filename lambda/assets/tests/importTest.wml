@@ -1,16 +1,16 @@
 <Asset key=(ImportTest) fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
-    <Variable key=(switch) default={true} />
+    <Variable key=(switchUp) default={true} />
     <Variable key=(power) default={true} />
-    <Computed key=(active) src={switch && power}>
-        <Depend on=(switch) />
+    <Computed key=(active) src={switchUp && power}>
+        <Depend on=(switchUp) />
         <Depend on=(power) />
     </Computed>
-    <Action key=(toggleActive) src={active = !active} />
+    <Action key=(toggleSwitch) src={switchUp = !switchUp} />
     <Import from=(TEST)>
         <Use key=(345) as=(welcomeRoom) />
     </Import>
     <Room key=(welcomeRoom)>
-        <Link key=(switch) to=(toggleActive)>(Flip switch)</Link>
+        <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
     </Room>
     <Condition if={active}>
         <Depend on=(active) />
