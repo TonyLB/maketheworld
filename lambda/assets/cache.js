@@ -11,6 +11,7 @@ import {
     batchWriteDispatcher
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType } from '/opt/utilities/types.js'
+import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
 import { compileCode } from "./wml/compileCode.js"
 
 const params = { region: process.env.AWS_REGION }
@@ -406,6 +407,21 @@ export const cacheAsset = async (assetId) => {
     const programScopeIdsByEphemeraId = globalEntries
         .filter(({ EphemeraId }) => (['VARIABLE', 'ACTION'].includes(splitType(EphemeraId)[0])))
         .reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
+
+    const computeDependencies = dbEntriesList
+        .filter(({ tag }) => (tag === 'Computed'))
+        .reduce((previous, { key, dependencies }) => (
+            dependencies.reduce((accumulator, dependency) => ({
+                ...accumulator,
+                [dependency]: {
+                    computed: [
+                        ...(accumulator[dependency]?.computed || []),
+                        key
+                    ]
+                }
+            }), previous)
+        ), {})
+
     const dependencies = globalEntries
         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
         .reduce((previous, { EphemeraId, appearances = [] }) => (
@@ -423,9 +439,9 @@ export const cacheAsset = async (assetId) => {
                     }), innerAccumulator)
                 ), accumulator)
             ), previous)
-        ), {})
+        ), computeDependencies)
 
-    const state = variableEphemera.reduce((previous, { EphemeraId, value }) => {
+    const variableState = variableEphemera.reduce((previous, { EphemeraId, value }) => {
         const scopedId = programScopeIdsByEphemeraId[EphemeraId]
         if (scopedId) {
             return {
@@ -438,6 +454,24 @@ export const cacheAsset = async (assetId) => {
         }
         return previous
     }, {})
+
+    const uncomputedState = dbEntriesList
+        .filter(({ tag }) => (tag === 'Computed'))
+        .reduce((previous, { key, src }) => ({
+            ...previous,
+            [key]: {
+                key,
+                computed: true,
+                src
+            }
+        }), variableState)
+
+    const { state } = recalculateComputes(
+        uncomputedState,
+        dependencies,
+        Object.keys(variableState)
+    )
+
     const actions = actionEphemera.reduce((previous, { EphemeraId, src }) => {
         const scopedId = programScopeIdsByEphemeraId[EphemeraId]
         if (scopedId) {

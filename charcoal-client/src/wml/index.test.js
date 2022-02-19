@@ -55,6 +55,13 @@ const testSchema = {
         contents: []
     },
     {
+        tag: 'Computed',
+        key: 'inactive',
+        src: '!active',
+        dependencies: ['active'],
+        contents: []
+    },
+    {
         tag: 'Action',
         key: 'toggleActive',
         src: 'active = !active',
@@ -77,7 +84,7 @@ describe('WML dbEntries', () => {
         })).toEqual({})
     })
 
-    it('should serialize Rooms, Exits, Variables and Actions', () => {
+    it('should serialize Rooms, Exits, Variables, Computes, and Actions', () => {
         expect(dbEntries(testSchema)).toEqual({
             '123': {
                 tag: 'Room',
@@ -108,6 +115,11 @@ describe('WML dbEntries', () => {
             active: {
                 tag: 'Variable',
                 default: 'true'
+            },
+            inactive: {
+                tag: 'Computed',
+                src: '!active',
+                dependencies: ['active']
             },
             toggleActive: {
                 tag: 'Action',

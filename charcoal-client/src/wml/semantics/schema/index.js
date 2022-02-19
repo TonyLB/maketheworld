@@ -14,7 +14,8 @@ import {
     liftImportTags,
     confirmKeyProps,
     confirmExpressionProps,
-    confirmLiteralProps
+    confirmLiteralProps,
+    discardContents
 } from './processUp/index.js'
 
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
@@ -98,7 +99,18 @@ export const schema = {
             validate(confirmExpressionProps(['default'])),
             liftExpressionProps(['default']),
             liftKeyProps(['key']),
-            liftUntagged('src', { allString: true })
+            discardContents,
+        ])(node.schema())
+    },
+    ComputedExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmKeyProps(['key'])),
+            validate(confirmExpressionProps(['src'])),
+            liftExpressionProps(['src']),
+            liftKeyProps(['key']),
+            liftDependencyTags,
+            discardContents,
         ])(node.schema())
     },
     ActionExpression(node) {
@@ -108,6 +120,7 @@ export const schema = {
             validate(confirmExpressionProps(['src'])),
             liftExpressionProps(['src']),
             liftKeyProps(['key']),
+            discardContents,
         ])(node.schema())
     },
     RoomExpression(node) {

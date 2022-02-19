@@ -22,6 +22,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   UseExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   DependencyExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   VariableExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  ComputedExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ActionExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ConditionExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ConditionLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;

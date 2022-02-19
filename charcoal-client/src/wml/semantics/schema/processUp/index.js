@@ -203,6 +203,8 @@ export const liftImportTags = ({ contents = [], ...rest}) => {
     }
 }
 
+export const discardContents = ({ contents = [], ...rest }) => ({ ...rest })
+
 //
 // validate is a wrapper that turns a function of the sort (node) => string[] returning error strings into
 // a processFunction reducer suitable for wmlProcess
