@@ -77,6 +77,9 @@ const pullProperties = (node) => {
             case 'Variable':
                 pullTags.push('default')
                 break
+            case 'Computed':
+                pullTags = [...pullTags, 'src', 'dependencies']
+                break
             case 'Action':
                 pullTags.push('src')
                 break

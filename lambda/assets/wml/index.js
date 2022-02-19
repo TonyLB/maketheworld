@@ -86,7 +86,7 @@ export const dbEntries = (schema) => {
     })
 
     return Object.values(normalForm)
-        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
+        .filter(({ tag }) => (['Room', 'Variable', 'Action', 'Computed'].includes(tag)))
         .map(({ tag, key, appearances, ...rest }) => {
             switch(tag) {
                 case 'Room':
@@ -117,6 +117,13 @@ export const dbEntries = (schema) => {
                         tag,
                         key,
                         default: rest.default
+                    }
+                case 'Computed':
+                    return {
+                        tag,
+                        key,
+                        dependencies: rest.dependencies,
+                        src: rest.src
                     }
                 case 'Action':
                     return {

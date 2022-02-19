@@ -406,6 +406,21 @@ export const cacheAsset = async (assetId) => {
     const programScopeIdsByEphemeraId = globalEntries
         .filter(({ EphemeraId }) => (['VARIABLE', 'ACTION'].includes(splitType(EphemeraId)[0])))
         .reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
+    console.log(`Compute entries: ${JSON.stringify(dbEntriesList.filter(({ tag }) => (tag === 'Computed')), null, 4)}`)
+    const computeDependencies = dbEntriesList
+        .filter(({ tag }) => (tag === 'Computed'))
+        .reduce((previous, { key, dependencies }) => (
+            dependencies.reduce((accumulator, dependency) => ({
+                ...accumulator,
+                [dependency]: {
+                    computed: [
+                        ...(accumulator[dependency]?.computed || []),
+                        key
+                    ]
+                }
+            }), previous)
+        ), {})
+    console.log(`Compute Dependencies: ${JSON.stringify(computeDependencies, null, 4)}`)
     const dependencies = globalEntries
         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
         .reduce((previous, { EphemeraId, appearances = [] }) => (
@@ -423,7 +438,7 @@ export const cacheAsset = async (assetId) => {
                     }), innerAccumulator)
                 ), accumulator)
             ), previous)
-        ), {})
+        ), computeDependencies)
 
     const state = variableEphemera.reduce((previous, { EphemeraId, value }) => {
         const scopedId = programScopeIdsByEphemeraId[EphemeraId]

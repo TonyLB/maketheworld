@@ -354,6 +354,126 @@ describe('WML normalize', () => {
         expect(normalize({})).toEqual({})
     })
 
+    it('should normalize every needed tag', () => {
+        expect(normalize({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: '123',
+                name: 'Vortex',
+                contents: [{
+                    tag: 'Exit',
+                    from: '456'
+                }]
+            },
+            {
+                tag: 'Variable',
+                key: 'active',
+                default: 'true'
+            },
+            {
+                tag: 'Computed',
+                key: 'inactive',
+                src: '!active',
+                dependencies: ['active']
+            },
+            {
+                tag: 'Action',
+                key: 'toggleActive',
+                src: 'active = !active'
+            }]
+        })).toEqual({
+            Test: {
+                key: 'Test',
+                tag: 'Asset',
+                appearances: [{
+                    contextStack: [],
+                    contents: [{
+                        key: '123',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: '456',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'active',
+                        tag: 'Variable',
+                        index: 0
+                    },
+                    {
+                        key: 'inactive',
+                        tag: 'Computed',
+                        index: 0
+                    },
+                    {
+                        key: 'toggleActive',
+                        tag: 'Action',
+                        index: 0
+                    }]
+                }]
+            },
+            '123': {
+                key: '123',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    name: 'Vortex',
+                    contents: []
+                }]
+            },
+            '456#123': {
+                key: '456#123',
+                tag: 'Exit',
+                to: '123',
+                from: '456',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '456', tag: 'Room', index: 0 }],
+                    contents: []
+                }]
+            },
+            '456': {
+                key: '456',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: [{ key: '456#123', tag: 'Exit', index: 0 }]
+                }]
+            },
+            active: {
+                key: 'active',
+                tag: 'Variable',
+                default: 'true',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: []
+                }]
+            },
+            inactive: {
+                key: 'inactive',
+                tag: 'Computed',
+                src: '!active',
+                dependencies: ['active'],
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: []
+                }]
+            },
+            toggleActive: {
+                key: 'toggleActive',
+                tag: 'Action',
+                src: 'active = !active',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: []
+                }]
+            },
+        })
+    })
+    
     it('should create wrapping elements for exits where needed', () => {
         expect(normalize({
             tag: 'Asset',

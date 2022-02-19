@@ -1,5 +1,10 @@
 <Asset key=(ImportTest) fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
-    <Variable key=(active) default={true} />
+    <Variable key=(switch) default={true} />
+    <Variable key=(power) default={true} />
+    <Computed key=(active) src={switch && power}>
+        <Depend on=(switch) />
+        <Depend on=(power) />
+    </Computed>
     <Action key=(toggleActive) src={active = !active} />
     <Import from=(TEST)>
         <Use key=(345) as=(welcomeRoom) />
