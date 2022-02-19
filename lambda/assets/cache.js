@@ -60,11 +60,15 @@ const compareEntries = (current, incoming) => {
     return JSON.stringify(current) === JSON.stringify(incoming)
 }
 
-const pushMetaData = async (assetId, state, actions) => {
+const pushMetaData = async (assetId, state, dependencies, actions) => {
     await ephemeraDB.putItem({
         EphemeraId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
         State: state || {},
+        Dependencies: dependencies || {
+            room: [],
+            computed: []
+        },
         Actions: actions || {}
     })
 }
@@ -402,6 +406,25 @@ export const cacheAsset = async (assetId) => {
     const programScopeIdsByEphemeraId = globalEntries
         .filter(({ EphemeraId }) => (['VARIABLE', 'ACTION'].includes(splitType(EphemeraId)[0])))
         .reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
+    const dependencies = globalEntries
+        .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
+        .reduce((previous, { EphemeraId, appearances = [] }) => (
+            appearances.reduce((accumulator, { conditions = [] }) => (
+                conditions.reduce((innerAccumulator, { dependencies = [] }) => (
+                    dependencies.reduce((innermostAccumulator, dependency) => ({
+                        ...innermostAccumulator,
+                        [dependency]: {
+                            ...(innermostAccumulator[dependency] || {}),
+                            room: [...(new Set([
+                                ...(innermostAccumulator[dependency]?.room || []),
+                                splitType(EphemeraId)[1]
+                            ]))]
+                        }
+                    }), innerAccumulator)
+                ), accumulator)
+            ), previous)
+        ), {})
+
     const state = variableEphemera.reduce((previous, { EphemeraId, value }) => {
         const scopedId = programScopeIdsByEphemeraId[EphemeraId]
         if (scopedId) {
@@ -428,5 +451,10 @@ export const cacheAsset = async (assetId) => {
         }
         return previous
     }, {})
-    await pushMetaData(assetId, state, actions)
+    await pushMetaData(
+        assetId,
+        state,
+        dependencies,
+        actions
+    )
 }
