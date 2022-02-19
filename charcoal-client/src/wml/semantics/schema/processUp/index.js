@@ -169,6 +169,20 @@ export const liftUseTags = ({ contents = [], ...rest}) => {
     }
 }
 
+export const liftDependencyTags = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Depend'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Depend'))
+    const dependencies = tagsToLift.reduce((previous, { on }) => ([
+        ...previous,
+        on
+    ]), [])
+    return {
+        contents: unliftedItems,
+        ...rest,
+        dependencies
+    }
+}
+
 export const liftImportTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Import'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Import'))
