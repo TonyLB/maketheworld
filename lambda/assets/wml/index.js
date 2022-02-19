@@ -2,7 +2,7 @@ import { produce } from 'immer'
 
 import { compileCode } from './compileCode.js'
 import { schema } from './semantics/schema/index.js'
-import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown/index.js'
+import { wmlProcessDown, assignExitContext } from './semantics/schema/processDown/index.js'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { normalize } from './normalize.js'
@@ -48,7 +48,6 @@ const flattenToElements = (includeFunction) => (node) => {
 export const validatedSchema = (match) => {
     const firstPass = wmlSemantics(match).schema()
     const secondPass = wmlProcessDown([
-        aggregateConditionals(tagCondition(['Room', 'Exit'])),
         assignExitContext
     ])(firstPass)
     const normalized = normalize(secondPass)

@@ -214,7 +214,7 @@ describe('WML normalize', () => {
             'Condition-0': {
                 key: 'Condition-0',
                 tag: 'Condition',
-                src: 'true',
+                if: 'true',
                 appearances: [{
                     contextStack: [{
                         key: 'Test',
@@ -286,7 +286,7 @@ describe('WML normalize', () => {
                 'Condition-0': {
                     key: 'Condition-0',
                     tag: 'Condition',
-                    src: 'true',
+                    if: 'true',
                     appearances: [{
                         contextStack: [{
                             key: 'Test',
@@ -336,7 +336,7 @@ describe('WML normalize', () => {
                 'Condition-0': {
                     key: 'Condition-0',
                     tag: 'Condition',
-                    src: 'true',
+                    if: 'true',
                     appearances: [{
                         contextStack: [{
                             key: 'Test',

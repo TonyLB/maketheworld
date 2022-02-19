@@ -62,19 +62,6 @@ export const assignExitContext = (node, ancestry) => {
     return node
 }
 
-export const aggregateConditionals = (assignTest = () => true) => (node, ancestry) => {
-    if (assignTest(node)) {
-        const conditions = ancestry
-            .filter(({ tag }) => (tag === 'Condition'))
-            .map((node) => (node["if"]))
-        return {
-            ...node,
-            conditions
-        }
-    }
-    return node
-}
-
 export const wmlProcessDown = (processFunctions = [], ancestry = []) => (node) => {
     const { contents = [], ...rest } = node
     const newNode = processFunctions.reduce((previous, process) => (process(previous, ancestry)), rest)
