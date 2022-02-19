@@ -2,7 +2,7 @@ import { produce } from 'immer'
 
 import { compileCode } from './compileCode.js'
 import { schema } from './semantics/schema/index.js'
-import { wmlProcessDown, aggregateConditionals, assignExitContext } from './semantics/schema/processDown/index.js'
+import { wmlProcessDown, assignExitContext } from './semantics/schema/processDown/index.js'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { normalize } from './normalize.js'
@@ -48,7 +48,6 @@ const flattenToElements = (includeFunction) => (node) => {
 export const validatedSchema = (match) => {
     const firstPass = wmlSemantics(match).schema()
     const secondPass = wmlProcessDown([
-        aggregateConditionals(tagCondition(['Room', 'Exit'])),
         assignExitContext
     ])(firstPass)
     const normalized = normalize(secondPass)
@@ -69,18 +68,20 @@ export const validatedSchema = (match) => {
 
 export const dbEntries = (schema) => {
     const normalForm = normalize(schema)
-    const exitsByRoom = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Exit'))
-        .reduce((previous, { from, ...rest }) => ({ ...previous, [from]: [...(previous[from] || []), { from, ...rest }]}), {})
     const mapContextStackToConditions = ({ contextStack, ...rest }) => ({
-        conditions: contextStack.map(({ key, tag, index }) => {
+        conditions: contextStack.reduce((previous, { key, tag }) => {
             if (tag !== 'Condition') {
-                return ''
+                return previous
             }
-            const appearances = normalForm[key]?.appearances || []
-            const linkedAppearance = appearances.length > index ? appearances[index] : {}
-            return linkedAppearance.if || ''
-        }).filter((value) => (value)),
+            const { if: condition = '', dependencies = [] } = normalForm[key]
+            return [
+                ...previous,
+                {
+                    if: condition,
+                    dependencies
+                }
+            ]
+        }, []),
         ...rest
     })
 

@@ -10,6 +10,7 @@ import {
     liftUntagged,
     liftContents,
     liftUseTags,
+    liftDependencyTags,
     liftImportTags,
     confirmKeyProps,
     confirmExpressionProps,
@@ -150,7 +151,8 @@ export const schema = {
                 // desourceTag,
                 validate(confirmRequiredProps(['if'])),
                 validate(confirmExpressionProps(['if'])),
-                liftExpressionProps(['if'])
+                liftExpressionProps(['if']),
+                liftDependencyTags
             ])(node.schema())
     },
     UseExpression(node) {
@@ -166,6 +168,13 @@ export const schema = {
             validate(confirmKeyProps(['from'])),
             liftKeyProps(['from']),
             liftUseTags
+        ])(node.schema())
+    },
+    DependencyExpression(node) {
+        return wmlProcessUpNonRecursive([
+            validate(confirmRequiredProps(['on'])),
+            validate(confirmKeyProps(['on'])),
+            liftKeyProps(['on'])
         ])(node.schema())
     },
     AssetExpression(node) {

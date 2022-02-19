@@ -48,8 +48,8 @@ const parseWMLFile = async (fileName) => {
     //
     const match = wmlGrammar.match(contents)
     const schema = validatedSchema(match)
-    return Object.entries(dbEntries(schema)).map(([key, rest]) => ({ key, ...rest }))
-
+    const dbEntryItems = dbEntries(schema)
+    return Object.entries(dbEntryItems).map(([key, rest]) => ({ key, ...rest }))
 }
 
 //

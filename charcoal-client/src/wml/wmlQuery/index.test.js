@@ -4,7 +4,7 @@ import { wmlQueryFactory  } from './index.js'
 describe('wmlQuery', () => {
 
     const match = `
-        <Character key="TESS" fileName="Tess" player="TonyLB">
+        <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
@@ -55,7 +55,7 @@ describe('wmlQuery', () => {
 
     it('should correctly update existing prop', () => {
         expect(wmlQuery('Character').prop('key', 'Tess').source()).toEqual(`
-        <Character key="Tess" fileName="Tess" player="TonyLB">
+        <Character key=(Tess) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
@@ -81,7 +81,7 @@ describe('wmlQuery', () => {
 
     it('should correctly add a new prop', () => {
         expect(wmlQuery('Character').prop('zone', 'Library').source()).toEqual(`
-        <Character key="TESS" fileName="Tess" player="TonyLB" zone="Library">
+        <Character key=(TESS) fileName="Tess" player="TonyLB" zone="Library">
             // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns>She/her</Pronouns>
@@ -115,7 +115,7 @@ describe('wmlQuery', () => {
 
     it('should update contents on match', () => {
         expect(wmlQuery('Character Name').contents('Glinda').source()).toEqual(`
-        <Character key="TESS" fileName="Tess" player="TonyLB">
+        <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Glinda</Name>
             <Pronouns>She/her</Pronouns>

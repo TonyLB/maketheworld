@@ -60,6 +60,15 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 valueEnd: value.source.endIdx-1
             }}
         },
+        TagArgumentKey(key, equal, value, close) {
+            return { [key.toNode()]: {
+                value: value.sourceString,
+                start: this.source.startIdx,
+                end: this.source.endIdx,
+                valueStart: value.source.startIdx,
+                valueEnd: value.source.endIdx
+            }}
+        },
         TagArgumentBracketed(key, equal, value, close) {
             return { [key.toNode()]: {
                 value: value.sourceString,

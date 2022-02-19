@@ -80,11 +80,25 @@ const pullProperties = (node) => {
             case 'Action':
                 pullTags.push('src')
                 break
+            case 'Condition':
+                pullTags = [...pullTags, 'if', 'dependencies']
             case 'Asset':
                 pullTags = [...pullTags, 'name', 'fileName', 'player', 'importMap', 'zone']
                 break
         }
         if (pullTags.includes(key)) {
+            if (Array.isArray(value)) {
+                return {
+                    ...previous,
+                    topLevel: {
+                        ...previous.topLevel,
+                        [key]: [
+                            ...(previous.topLevel[key] ?? []),
+                            ...value
+                        ]
+                    }
+                }
+            }
             return {
                 ...previous,
                 topLevel: {
