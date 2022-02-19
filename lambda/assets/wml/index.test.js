@@ -1,4 +1,10 @@
-import { dbEntries, assetRegistryEntries } from './index.js'
+import {
+    dbEntries,
+    assetRegistryEntries,
+    validatedSchema
+} from './index.js'
+import { NormalizeTagMismatchError } from './normalize.js'
+import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 
 const testSchema = {
     tag: 'Asset',
@@ -75,39 +81,29 @@ describe('WML dbEntries', () => {
         expect(dbEntries(testSchema)).toEqual({
             '123': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
                     conditions: [],
+                    name: 'Vortex',
+                    render: ["Hello, world!"],
                     exits: [{
                         to: "456"
                     }]
-                }],
-                name: [{
-                    conditions: [],
-                    name: 'Vortex',
-                }],
-                render: [{
-                    conditions: [],
-                    render: ["Hello, world!"]
                 },
                 {
                     conditions: ['true'],
-                    render: ['Vortex!']
+                    render: ['Vortex!'],
                 }]
             },
             '456': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
                     conditions: [],
+                    name: 'Welcome',
                     exits: [{
                         name: 'vortex',
                         to: '123',
                     }]
-                }],
-                name: [{
-                    conditions: [],
-                    name: 'Welcome'
-                }],
-                render: []
+                }]
             },
             active: {
                 tag: 'Variable',
@@ -121,7 +117,7 @@ describe('WML dbEntries', () => {
     })
 
     it('should correctly place exits into rooms', () => {
-        expect(dbEntries({
+        const testOutput = dbEntries({
             tag: 'Asset',
             key: 'Test',
             contents: [{
@@ -144,28 +140,73 @@ describe('WML dbEntries', () => {
                     contents: []
                 }]
             }]
-        })).toEqual({
+        })
+        expect(testOutput).toEqual({
             '123': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
+                    conditions: []
+                },
+                {
                     conditions: ['true'],
                     exits: [{
                         to: "456"
                     }]
-                }],
-                name: [],
-                render: []
+                }]
             },
             '456': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
                     conditions: [],
                     exits: [{
                         to: '123',
                     }]
+                }]
+            }
+        })
+        const testOutputTwo = dbEntries({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: '123',
+                contents: [{
+                    tag: 'Exit',
+                    to: '123',
+                    from: '456',
+                    name: 'vortex',
+                    contents: [],
+                },
+                {
+                    tag: 'Exit',
+                    from: '123',
+                    to: '456',
+                    name: 'welcome',
+                    contents: []
                 }],
-                name: [],
-                render: []
+                conditions: []
+            }]
+        })
+        expect(testOutputTwo).toEqual({
+            '123': {
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        to: "456",
+                        name: 'welcome',
+                    }]
+                }]
+            },
+            '456': {
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        to: '123',
+                        name: 'vortex',
+                    }]
+                }]
             }
         })
     })
@@ -206,4 +247,51 @@ describe('WML assetRegistryEntries', () => {
             }
         ])
     })
+})
+
+describe('WML validateSchema', () => {
+    it('should pass a valid schema', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    Vortex
+                    <Exit from=(DEF)>vortex</Exit>
+                </Room>
+                <Room key=(DEF)>
+                    <Name>Welcome</Name>
+                </Room>
+            </Asset>
+        `)
+        const schema = validatedSchema(match)
+        expect(schema.errors.length).toBe(0)
+    })
+
+    it('should reject mismatched tags', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    Vortex
+                </Room>
+                <Variable key=(ABC) default={"Vortex"} />
+            </Asset>
+        `)
+        expect(() => (validatedSchema(match))).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+    })
+
+    it('should reject mismatched keys', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    Vortex
+                    <Exit to=(DEF)>welcome</Exit>
+                </Room>
+            </Asset>
+        `)
+        const schema = validatedSchema(match)
+        const { errors } = schema
+        expect(errors.length).toBe(1)
+        expect(errors).toEqual([`To: 'DEF' is not a key in this asset.`])
+    })
+
 })

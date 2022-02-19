@@ -81,39 +81,29 @@ describe('WML dbEntries', () => {
         expect(dbEntries(testSchema)).toEqual({
             '123': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
                     conditions: [],
+                    name: 'Vortex',
+                    render: ["Hello, world!"],
                     exits: [{
                         to: "456"
                     }]
-                }],
-                name: [{
-                    conditions: [],
-                    name: 'Vortex',
-                }],
-                render: [{
-                    conditions: [],
-                    render: ["Hello, world!"]
                 },
                 {
                     conditions: ['true'],
-                    render: ['Vortex!']
+                    render: ['Vortex!'],
                 }]
             },
             '456': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
                     conditions: [],
+                    name: 'Welcome',
                     exits: [{
                         name: 'vortex',
                         to: '123',
                     }]
-                }],
-                name: [{
-                    conditions: [],
-                    name: 'Welcome'
-                }],
-                render: []
+                }]
             },
             active: {
                 tag: 'Variable',
@@ -127,7 +117,7 @@ describe('WML dbEntries', () => {
     })
 
     it('should correctly place exits into rooms', () => {
-        expect(dbEntries({
+        const testOutput = dbEntries({
             tag: 'Asset',
             key: 'Test',
             contents: [{
@@ -150,28 +140,73 @@ describe('WML dbEntries', () => {
                     contents: []
                 }]
             }]
-        })).toEqual({
+        })
+        expect(testOutput).toEqual({
             '123': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
+                    conditions: []
+                },
+                {
                     conditions: ['true'],
                     exits: [{
                         to: "456"
                     }]
-                }],
-                name: [],
-                render: []
+                }]
             },
             '456': {
                 tag: 'Room',
-                exits: [{
+                appearances: [{
                     conditions: [],
                     exits: [{
                         to: '123',
                     }]
+                }]
+            }
+        })
+        const testOutputTwo = dbEntries({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: '123',
+                contents: [{
+                    tag: 'Exit',
+                    to: '123',
+                    from: '456',
+                    name: 'vortex',
+                    contents: [],
+                },
+                {
+                    tag: 'Exit',
+                    from: '123',
+                    to: '456',
+                    name: 'welcome',
+                    contents: []
                 }],
-                name: [],
-                render: []
+                conditions: []
+            }]
+        })
+        expect(testOutputTwo).toEqual({
+            '123': {
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        to: "456",
+                        name: 'welcome',
+                    }]
+                }]
+            },
+            '456': {
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        to: '123',
+                        name: 'vortex',
+                    }]
+                }]
             }
         })
     })

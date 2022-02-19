@@ -45,82 +45,6 @@ const flattenToElements = (includeFunction) => (node) => {
     )
 }
 
-const mergeToRooms = (elements) => {
-    const shallowEqual = (listA, listB) => {
-        if (listA.length !== listB.length) {
-            return false
-        }
-        return !listA.find((condition, index) => (listB[index] !== condition))
-    }
-    //
-    // TODO: Consider replacing render and name lists with DRY elements that manage the
-    // complications of conditional lists internally
-    //
-    const reduceInRoomContext = ({ render: previousRender = [], exits: previousExits = [], name: previousName = [] }, element) => {
-        const mergeRender = (previous = { render: [] }, { display, render }) => {
-            //
-            // TODO: Handle modes of display other than after
-            //
-            return { display, render: [...previous.render, ...render] }
-        }
-        const mergeName = (previous = { render: [] }, { display, name }) => {
-            //
-            // TODO: Handle modes of display other than replace
-            //
-            return { display, name }
-        }
-        const mergeExit = (previous = {}, exit) => ({ exits: [
-            ...(previous?.exits || []).filter((exitProbe) => (exitProbe.to !== exit.to)),
-            {
-                to: exit.to,
-                name: exit.name ? exit.name.trim() : undefined
-            }
-        ]})
-        const mergeSameConditions = (mergeFunction) => (previous, { conditions, ...rest }) => {
-            const mergeCandidate = previous.slice(-1)[0]
-            if (mergeCandidate && shallowEqual(mergeCandidate.conditions, conditions)) {
-                return [
-                    ...previous.slice(0, previous.length - 1),
-                    { conditions, ...(mergeFunction(mergeCandidate, rest)) }
-                ]
-            }
-            else {
-                return [...previous, { conditions, ...(mergeFunction(undefined, rest)) }]
-            }
-        }
-        const { render = "", name = "" } = element
-        switch(element.tag) {
-            case 'Room':
-                return {
-                    render: render ? mergeSameConditions(mergeRender)(previousRender, element) : previousRender,
-                    name: name ? mergeSameConditions(mergeName)(previousName, element) : previousName,
-                    exits: previousExits
-                }
-            case 'Exit':
-                return {
-                    render: previousRender,
-                    name: previousName,
-                    exits: mergeSameConditions(mergeExit)(previousExits, element)
-                }
-            default:
-                return { render: previousRender, exits: previousExits, name: previousName }
-        }
-    }
-    const roomsById = elements.reduce(
-        (previous, element) => {
-            const roomId = (element.tag === 'Room' && element.key) || (element.tag === 'Exit' && element.from)
-            return {
-                ...previous,
-                [roomId]: {
-                    tag: 'Room',
-                    ...reduceInRoomContext(previous[roomId] || { render: [], exits: [], name: [] }, element)
-                }
-            }
-        }, {}
-    )
-    return roomsById
-}
-
 export const validatedSchema = (match) => {
     const firstPass = wmlSemantics(match).schema()
     const secondPass = wmlProcessDown([
@@ -143,17 +67,6 @@ export const validatedSchema = (match) => {
     return thirdPass
 }
 
-// export const dbEntries = (schema) => {
-//     const dbSchema = flattenToElements(tagCondition(['Room', 'Exit']))(schema)
-//     const mergedRooms = mergeToRooms(dbSchema)
-//     const programElements = flattenToElements(tagCondition(['Variable', 'Action']))(schema)
-//         .reduce((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
-//     return {
-//         ...mergedRooms,
-//         ...programElements
-//     }
-// }
-
 export const dbEntries = (schema) => {
     const normalForm = normalize(schema)
     const exitsByRoom = Object.values(normalForm)
@@ -170,62 +83,32 @@ export const dbEntries = (schema) => {
         }).filter((value) => (value)),
         ...rest
     })
-    const shallowEqual = (listA, listB) => {
-        if (listA.length !== listB.length) {
-            return false
-        }
-        return !listA.find((condition, index) => (listB[index] !== condition))
-    }
-    const mergeRender = (previous = { render: [] }, { display, render }) => {
-        //
-        // TODO: Handle modes of display other than after
-        //
-        return { render: [...previous.render, ...render] }
-    }
-    const mergeName = (previous = { name: '' }, { display, name }) => {
-        //
-        // TODO: Handle modes of display other than replace
-        //
-        return { name }
-    }
-    const mergeExit = (previous = { exits: [] }, exit) => ({ exits: [
-        ...(previous?.exits || []).filter((exitProbe) => (exitProbe.to !== exit.to)),
-        {
-            to: exit.to,
-            name: exit.name ? exit.name.trim() : undefined
-        }
-    ]})
-    const mergeConditions = (mergeFunction) => (previous, { conditions, ...rest }) => (produce(previous, (draftState) => {
-        const sameItemIndex = draftState.findIndex(({ conditions: checkConditions }) => (shallowEqual(conditions, checkConditions)))
-        if (sameItemIndex > -1) {
-            const { conditions, ...previousRest } = draftState[sameItemIndex]
-            draftState[sameItemIndex] = { conditions, ...(mergeFunction(previousRest, rest)) }
-        }
-        else {
-            draftState.push({ conditions, ...mergeFunction(undefined, rest) })
-        }
-    }))
+
     return Object.values(normalForm)
         .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
-        .map(({ tag, key, appearances, conditions, contents, ...rest }) => {
+        .map(({ tag, key, appearances, ...rest }) => {
             switch(tag) {
                 case 'Room':
                     const returnVal = {
                         tag,
                         key,
                         ...rest,
-                        name: appearances
-                            .filter(({ name }) => (name))
+                        appearances: appearances
                             .map(mapContextStackToConditions)
-                            .reduce(mergeConditions(mergeName), []),
-                        render: appearances
-                            .filter(({ render }) => (render))
-                            .map(mapContextStackToConditions)
-                            .reduce(mergeConditions(mergeRender), []),
-                        exits: (exitsByRoom[key] ?? [])
-                            .reduce((previous, { appearances, to }) => ([...previous, ...appearances.map((item) => ({ ...item, to })) ]), [])
-                            .map(mapContextStackToConditions)
-                            .reduce(mergeConditions(mergeExit), [])
+                            .map(({ contents, ...remainder }) => {
+                                const exitContents = contents
+                                    .filter(({ tag }) => (tag === 'Exit'))
+                                return {
+                                    ...remainder,
+                                    exits: (exitContents.length > 0)
+                                        ? exitContents
+                                            .map(({ key }) => {
+                                                const { name, to } = normalForm[key]
+                                                return { name, to }
+                                            })
+                                        : undefined
+                                }
+                            })
                     }
                     return returnVal
                 case 'Variable':

@@ -21,10 +21,7 @@ const getRoomMeta = async (rooms) => {
     const getSingleRoomMeta = async (EphemeraId) => {
         const roomItems = await ephemeraDB.query({
             EphemeraId,
-            ProjectionFields: ['DataCategory', 'render', '#name', 'exits'],
-            ExpressionAttributeNames: {
-                '#name': 'name'
-            }
+            ProjectionFields: ['DataCategory', 'appearances'],
         })
         return { [EphemeraId]: roomItems }
     }
@@ -109,20 +106,27 @@ export const renderItems = async (renderList) => {
                     ].map((key) => (`ASSET#${key}`))
                     .filter((AssetId) => (RoomMetaByAsset[AssetId]))
                 const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
-                        const { render = [], name = [], exits = [] } = RoomMetaByAsset[AssetId]
+                        const { appearances = [] } = RoomMetaByAsset[AssetId]
                         const state = assetStateById[splitType(AssetId)[1]] || {}
-                        return {
-                            ...previous,
-                            render: render
-                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                                .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
-                            name: name
-                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                                .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
-                            exits: exits
-                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                                .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
-                        }
+                        return appearances
+                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                            .reduce(({ render: previousRender, name: previousName, exits: previousExits }, { render, name, exits }) => ({
+                                render: [ ...previousRender, ...(render || []) ],
+                                name: [ ...previousName, ...(name || []) ],
+                                exits: [ ...previousExits, ...(exits || []) ],
+                            }), previous)
+                        // return {
+                        //     ...previous,
+                        //     render: render
+                        //         .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                        //         .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
+                        //     name: name
+                        //         .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                        //         .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
+                        //     exits: exits
+                        //         .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                        //         .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
+                        // }
                     }, { render: [], name: [], exits: [] })
                     //
                     // TODO: Evaluate expressions before inserting them
