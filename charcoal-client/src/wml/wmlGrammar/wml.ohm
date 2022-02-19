@@ -46,6 +46,7 @@ WorldMarkupLangage {
             | TextContents
             | LayerExpression
             | ExitExpression
+            | DependencyExpression
 
     LayerExpression = TagExpression<"Layer", "key", none, none, none, LayerLegalContents>
     LayerLegalContents = RoomExpression
