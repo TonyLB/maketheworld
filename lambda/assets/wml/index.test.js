@@ -90,7 +90,7 @@ describe('WML dbEntries', () => {
                     }]
                 },
                 {
-                    conditions: ['true'],
+                    conditions: [{ if: 'true', dependencies: [] }],
                     render: ['Vortex!'],
                 }]
             },
@@ -148,7 +148,7 @@ describe('WML dbEntries', () => {
                     conditions: []
                 },
                 {
-                    conditions: ['true'],
+                    conditions: [{ if: 'true', dependencies: [] }],
                     exits: [{
                         to: "456"
                     }]
