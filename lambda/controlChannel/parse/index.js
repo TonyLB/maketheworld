@@ -10,7 +10,7 @@ const getCurrentRoom = async (CharacterId) => {
     if (RoomId) {
         const Items = await ephemeraDB.query({
             EphemeraId: `ROOM#${RoomId}`,
-            ProjectionFields: ['DataCategory', 'exits', 'activeCharacters']
+            ProjectionFields: ['DataCategory', 'appearances', 'activeCharacters']
         })
         const { exits, characters } = (Items
             .reduce((previous, { DataCategory, ...rest }) => {
@@ -30,8 +30,8 @@ const getCurrentRoom = async (CharacterId) => {
                     //
                     return {
                         ...previous,
-                        exits: rest.exits
-                            .map(({ exits }) => (exits))
+                        exits: rest.appearances
+                            .map(({ exits = [] }) => (exits))
                             .reduce((accumulate, exits) => ([...accumulate, ...exits]), previous.exits)
                     }
                 }

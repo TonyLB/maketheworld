@@ -126,10 +126,10 @@ export const transformNode = (contextStack, node) => {
         const roomKey = contextStack[roomIndex].key
         const { to, from, ...rest } = node
         const returnValue = {
+            ...rest,
             key: `${from || roomKey}#${to || roomKey}`,
             to: to || roomKey,
-            from: from || roomKey,
-            ...rest
+            from: from || roomKey
         }
         if (from && from !== roomKey) {
             const contextStackBeforeRoom = contextStack.slice(0, roomIndex)

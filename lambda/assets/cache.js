@@ -112,40 +112,39 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
             }
         }, currentScopedToPermanentMapping)
     const globalizedDBEntries = dbEntriesList
-        .map(({ tag, key, isGlobal, exits, render, ...rest }) => {
+        .map(({ tag, key, isGlobal, appearances, ...rest }) => {
             switch(tag) {
                 case 'Room':
                     return {
                         EphemeraId: scopedToPermanentMapping[key],
-                        exits: exits.map(({ exits, ...rest }) => {
-                                const remapped = exits
-                                    .map(({ to, ...other }) => ({ to: scopedToPermanentMapping[to], ...other }))
+                        appearances: appearances.map(({ exits, render, ...rest }) => {
+                            const remappedExits = (exits && exits.length > 0)
+                                ? exits
+                                    .map(({ to, ...other }) => ({ to: splitType(scopedToPermanentMapping[to])[1], ...other }))
                                     .filter(({ to }) => (to))
-                                return {
-                                    exits: remapped,
-                                    ...rest
-                                }
-                            })
-                            .filter(({ exits }) => (exits.length > 0)),
-                        render: render.map(({ render: renderList, ...rest }) => {
-                                return {
-                                    render: renderList.map((item) => {
-                                        if (typeof item === 'string') {
+                                : undefined
+                            const remappedRender = (render && render.length > 0)
+                                ? render.map((item) => {
+                                    if (typeof item === 'string') {
+                                        return item
+                                    }
+                                    switch(item.tag) {
+                                        case 'Link':
+                                            return {
+                                                    ...item,
+                                                    to: scopedToPermanentMapping[item.to]
+                                                }
+                                        default:
                                             return item
-                                        }
-                                        switch(item.tag) {
-                                            case 'Link':
-                                                return {
-                                                        ...item,
-                                                        to: scopedToPermanentMapping[item.to]
-                                                    }
-                                            default:
-                                                return item
-                                        }        
-                                    }),
-                                    ...rest
-                                }
-                            }),
+                                    }        
+                                })
+                                : undefined
+                            return {
+                                exits: remappedExits,
+                                render: remappedRender,
+                                ...rest
+                            }
+                        }).map(({ conditions, render, exits, name }) => ({ conditions, render, exits, name })),
                         ...rest
                     }    
                 case 'Variable':

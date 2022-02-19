@@ -164,6 +164,51 @@ describe('WML dbEntries', () => {
                 }]
             }
         })
+        const testOutputTwo = dbEntries({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: '123',
+                contents: [{
+                    tag: 'Exit',
+                    to: '123',
+                    from: '456',
+                    name: 'vortex',
+                    contents: [],
+                },
+                {
+                    tag: 'Exit',
+                    from: '123',
+                    to: '456',
+                    name: 'welcome',
+                    contents: []
+                }],
+                conditions: []
+            }]
+        })
+        expect(testOutputTwo).toEqual({
+            '123': {
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        to: "456",
+                        name: 'welcome',
+                    }]
+                }]
+            },
+            '456': {
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [{
+                        to: '123',
+                        name: 'vortex',
+                    }]
+                }]
+            }
+        })
     })
 })
 

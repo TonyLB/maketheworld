@@ -83,67 +83,6 @@ export const dbEntries = (schema) => {
         }).filter((value) => (value)),
         ...rest
     })
-    const shallowEqual = (listA, listB) => {
-        if (listA.length !== listB.length) {
-            return false
-        }
-        return !listA.find((condition, index) => (listB[index] !== condition))
-    }
-    const mergeAppearance = (
-        previous = { render: [], name: '', exits: [] },
-        {
-            display,
-            render,
-            exits,
-            name
-        }) => {
-            //
-            // TODO: Handle modes of display
-            //
-            return {
-                render: [
-                    ...previous.render,
-                    ...(render || [])
-                ],
-                name: name || previous.name,
-                exits: [
-                    ...(previous?.exits || []).filter((exitProbe) => (exitProbe.to !== exit.to)),
-                    ...((exits || []).map((exit) => ({
-                        to: exit.to,
-                        name: exit.name ? exit.name.trim() : undefined
-                    })))
-                ]
-            }
-        }
-    const mergeRender = (previous = { render: [] }, { display, render }) => {
-        //
-        // TODO: Handle modes of display other than after
-        //
-        return { render: [...previous.render, ...render] }
-    }
-    const mergeName = (previous = { name: '' }, { display, name }) => {
-        //
-        // TODO: Handle modes of display other than replace
-        //
-        return { name }
-    }
-    const mergeExit = (previous = { exits: [] }, exit) => ({ exits: [
-        ...(previous?.exits || []).filter((exitProbe) => (exitProbe.to !== exit.to)),
-        {
-            to: exit.to,
-            name: exit.name ? exit.name.trim() : undefined
-        }
-    ]})
-    const mergeConditions = (previous, { conditions, ...rest }) => (produce(previous, (draftState) => {
-        const sameItemIndex = draftState.findIndex(({ conditions: checkConditions }) => (shallowEqual(conditions, checkConditions)))
-        if (sameItemIndex > -1) {
-            const { conditions, ...previousRest } = draftState[sameItemIndex]
-            draftState[sameItemIndex] = { conditions, ...(mergeFunction(previousRest, rest)) }
-        }
-        else {
-            draftState.push({ conditions, ...mergeFunction(undefined, rest) })
-        }
-    }))
 
     return Object.values(normalForm)
         .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
@@ -170,24 +109,6 @@ export const dbEntries = (schema) => {
                                         : undefined
                                 }
                             })
-                            // .map((item) => ({
-                            //     ...item,
-                            //     exits: (exitsByRoom[key] ?? [])
-                            //         .reduce((previous, { appearances, to }) => ([...previous, ...appearances.map((item) => ({ ...item, to })) ]), [])
-                            // }))
-                            // .reduce(mergeAppearance, undefined)
-                        // name: appearances
-                        //     .filter(({ name }) => (name))
-                        //     .map(mapContextStackToConditions)
-                        //     .reduce(mergeConditions(mergeName), []),
-                        // render: appearances
-                        //     .filter(({ render }) => (render))
-                        //     .map(mapContextStackToConditions)
-                        //     .reduce(mergeConditions(mergeRender), []),
-                        // exits: (exitsByRoom[key] ?? [])
-                        //     .reduce((previous, { appearances, to }) => ([...previous, ...appearances.map((item) => ({ ...item, to })) ]), [])
-                        //     .map(mapContextStackToConditions)
-                        //     .reduce(mergeConditions(mergeExit), [])
                     }
                     return returnVal
                 case 'Variable':

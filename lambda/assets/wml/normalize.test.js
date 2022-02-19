@@ -425,7 +425,8 @@ describe('WML normalize', () => {
                 name: 'Vortex',
                 contents: [{
                     tag: 'Exit',
-                    to: '456'
+                    to: '456',
+                    from: '123'
                 }]
             },
             {
