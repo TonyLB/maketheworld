@@ -69,18 +69,20 @@ export const validatedSchema = (match) => {
 
 export const dbEntries = (schema) => {
     const normalForm = normalize(schema)
-    const exitsByRoom = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Exit'))
-        .reduce((previous, { from, ...rest }) => ({ ...previous, [from]: [...(previous[from] || []), { from, ...rest }]}), {})
     const mapContextStackToConditions = ({ contextStack, ...rest }) => ({
-        conditions: contextStack.map(({ key, tag, index }) => {
+        conditions: contextStack.reduce((previous, { key, tag }) => {
             if (tag !== 'Condition') {
-                return ''
+                return previous
             }
-            const appearances = normalForm[key]?.appearances || []
-            const linkedAppearance = appearances.length > index ? appearances[index] : {}
-            return linkedAppearance.if || ''
-        }).filter((value) => (value)),
+            const { if: condition = '', dependencies = [] } = normalForm[key]
+            return [
+                ...previous,
+                {
+                    if: condition,
+                    dependencies
+                }
+            ]
+        }, []),
         ...rest
     })
 
