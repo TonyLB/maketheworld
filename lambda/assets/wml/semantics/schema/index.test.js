@@ -21,6 +21,9 @@ describe('WML semantic schema', () => {
                 </Room>
                 <Variable key=(open) default={false} />
                 <Action key=(toggleOpen) src={open = !open} />
+                <Computed key=(closed) src={!open}>
+                    <Depend on=(open) />
+                </Computed>
             </Asset>
         `)
         const schema = wmlSemantics(match).schema()
@@ -78,13 +81,19 @@ describe('WML semantic schema', () => {
                 key: 'open',
                 tag: 'Variable',
                 default: 'false',
-                props: {},
-                contents: []
+                props: {}
             },
             {
                 key: 'toggleOpen',
                 tag: 'Action',
                 src: 'open = !open',
+                props: {}
+            },
+            {
+                key: 'closed',
+                tag: 'Computed',
+                dependencies: ['open'],
+                src: '!open',
                 props: {}
             }]
         })
