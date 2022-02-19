@@ -519,6 +519,7 @@ describe('WML normalize', () => {
             {
                 tag: 'Condition',
                 if: 'true',
+                dependencies: [],
                 contents: [{
                     tag: 'Room',
                     key: '123',
@@ -561,14 +562,104 @@ describe('WML normalize', () => {
             'Condition-0': {
                 key: 'Condition-0',
                 tag: 'Condition',
+                if: 'true',
+                dependencies: [],
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    if: 'true',
                     contents: [{
                         key: '123',
                         tag: 'Room',
                         index: 1
                     }]
+                }]
+            }
+        })
+    })
+
+    it('should denormalize condition dependencies into contextStack', () => {
+        expect(normalize({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: '123',
+                name: 'Vortex',
+                render: ['Hello, world!']
+            },
+            {
+                tag: 'Condition',
+                if: 'strong',
+                dependencies: ['strong'],
+                contents: [{
+                    tag: 'Room',
+                    key: '123',
+                    render: ['Vortex!']
+                }]
+            },
+            {
+                tag: 'Variable',
+                key: 'strong',
+                default: 'false'
+            }]
+        })).toEqual({
+            Test: {
+                key: 'Test',
+                tag: 'Asset',
+                appearances: [{
+                    contextStack: [],
+                    contents: [{
+                        key: '123',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'Condition-0',
+                        tag: 'Condition',
+                        index: 0
+                    },
+                    {
+                        key: 'strong',
+                        tag: 'Variable',
+                        index: 0
+                    }]
+                }]
+            },
+            '123': {
+                key: '123',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    name: 'Vortex',
+                    render: ['Hello, world!'],
+                    contents: []
+                },
+                {
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                    render: ['Vortex!'],
+                    contents: []
+                }]
+            },
+            'Condition-0': {
+                key: 'Condition-0',
+                tag: 'Condition',
+                if: 'strong',
+                dependencies: ['strong'],
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: [{
+                        key: '123',
+                        tag: 'Room',
+                        index: 1
+                    }]
+                }]
+            },
+            strong: {
+                key: 'strong',
+                tag: 'Variable',
+                default: 'false',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: []
                 }]
             }
         })
