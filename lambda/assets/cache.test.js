@@ -1,6 +1,8 @@
-import { jest } from '@jest/globals'
+import { jest, expect } from '@jest/globals'
 
-jest.mock('/opt/utilities/dynamoDB/index.js')
+// jest.mock('/opt/utilities/stream.js')
+// jest.mock('/opt/utilities/dynamoDB/index.js')
+jest.mock('./clients.js')
 
 import {
     assetDB,
@@ -8,19 +10,28 @@ import {
     // mergeIntoDataRange,
     // batchWriteDispatcher
 } from '/opt/utilities/dynamoDB/index.js'
+import { streamToString } from '/opt/utilities/stream.js'
 
 import {
-    fetchAssetMetaData
+    parseWMLFile
 } from './cache.js'
+import { s3Client, GetObjectCommand } from './clients.js'
 
-describe('fetchAssetMetaData', () => {
+describe('parseWMLFile', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
-    it('should return mocked fileName', async () => {
-        assetDB.getItem.mockResolvedValue({ fileName: 'Test.wml' })
-        const fetchData = await fetchAssetMetaData('Test')
-        expect(fetchData).toEqual('Test.wml')
+    it('should return parsed output', async () => {
+        s3Client.send.mockResolvedValue({})
+        streamToString.mockResolvedValue(`
+            <Asset key=(test) fileName="test">
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                </Room>
+            </Asset>
+        `)
+        const parseOutput = await parseWMLFile('test')
+        expect(parseOutput).toEqual({})
     })
 })

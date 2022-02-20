@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 
 import { wmlGrammar, dbEntries, validatedSchema } from './wml/index.js'
 import { streamToString } from '/opt/utilities/stream.js'
@@ -13,6 +12,7 @@ import {
 import { splitType } from '/opt/utilities/types.js'
 import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
+import { s3Client, GetObjectCommand } from './clients.js'
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
@@ -37,18 +37,19 @@ export const fetchAssetMetaData = async (assetId) => {
     return fileName
 }
 
-const parseWMLFile = async (fileName) => {
-    const s3Client = new S3Client(params)
+export const parseWMLFile = async (fileName) => {
     const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
         Bucket: S3_BUCKET,
         Key: fileName
     }))
     const contents = await streamToString(contentStream)
+    console.log(contents)
     //
     // TODO: Error-handling in case the files have become corrupt
     //
     const match = wmlGrammar.match(contents)
     const schema = validatedSchema(match)
+    console.log(`Schema: ${JSON.stringify(schema, null, 4)}`)
     const dbEntryItems = dbEntries(schema)
     return Object.entries(dbEntryItems).map(([key, rest]) => ({ key, ...rest }))
 }
