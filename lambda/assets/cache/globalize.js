@@ -5,7 +5,7 @@ import {
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType } from '/opt/utilities/types.js'
 
-export const globalizeDBEntries = async (assetId, dbEntriesList) => {
+export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
     //
     // Pull scope-to-uuid mapping from Assets
     //
@@ -26,7 +26,8 @@ export const globalizeDBEntries = async (assetId, dbEntriesList) => {
     // Add any incoming entries that have not yet been mapped
     // NOTE:  There should be none.
     //
-    const scopedToPermanentMapping = dbEntriesList
+    const scopedToPermanentMapping = Object.values(normalizedDBEntries)
+        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
         .reduce((previous, { tag, key, isGlobal }) => {
             let prefix = ''
             switch(tag) {
@@ -47,13 +48,33 @@ export const globalizeDBEntries = async (assetId, dbEntriesList) => {
                 [key]: newEphemeraId
             }
         }, currentScopedToPermanentMapping)
-    const globalizedDBEntries = dbEntriesList
+
+    const mapContextStackToConditions = (normalForm, { contextStack, ...rest }) => ({
+        conditions: contextStack.reduce((previous, { key, tag }) => {
+            if (tag !== 'Condition') {
+                return previous
+            }
+            const { if: condition = '', dependencies = [] } = normalForm[key]
+            return [
+                ...previous,
+                {
+                    if: condition,
+                    dependencies
+                }
+            ]
+        }, []),
+        ...rest
+    })
+    
+    const globalizedDBEntries = Object.values(normalizedDBEntries)
+        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
         .map(({ tag, key, isGlobal, appearances, ...rest }) => {
             switch(tag) {
                 case 'Room':
                     return {
                         EphemeraId: scopedToPermanentMapping[key],
                         appearances: appearances.map(({ exits, render, ...rest }) => {
+                            const { conditions } = mapContextStackToConditions(normalizedDBEntries, rest)
                             const remappedExits = (exits && exits.length > 0)
                                 ? exits
                                     .map(({ to, ...other }) => ({ to: splitType(scopedToPermanentMapping[to])[1], ...other }))
@@ -78,6 +99,7 @@ export const globalizeDBEntries = async (assetId, dbEntriesList) => {
                                 })
                                 : undefined
                             return {
+                                conditions,
                                 exits: remappedExits,
                                 render: remappedRender,
                                 ...rest

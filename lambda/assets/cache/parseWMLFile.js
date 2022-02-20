@@ -1,4 +1,5 @@
-import { wmlGrammar, dbEntries, validatedSchema } from '../wml/index.js'
+import { wmlGrammar, validatedSchema } from '../wml/index.js'
+import { normalize } from '../wml/normalize.js'
 import { streamToString } from '/opt/utilities/stream.js'
 import { s3Client, GetObjectCommand } from '../clients.js'
 
@@ -15,8 +16,8 @@ export const parseWMLFile = async (fileName) => {
     //
     const match = wmlGrammar.match(contents)
     const schema = validatedSchema(match)
-    const dbEntryItems = dbEntries(schema)
-    return Object.entries(dbEntryItems).map(([key, rest]) => ({ key, ...rest }))
+    const normalized = normalize(schema)
+    return normalized
 }
 
 export default parseWMLFile
