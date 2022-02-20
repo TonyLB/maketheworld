@@ -5,7 +5,10 @@
   "description": "Handler lambda for S3 events in the MakeTheWorld asset storage system",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "jest": {
+    "transform": {}
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
@@ -19,6 +22,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@ohm-js/cli": "^1.1.0"
+    "@ohm-js/cli": "^1.1.0",
+    "jest": "^27.5.1"
   }
 }
