@@ -11,3 +11,4 @@ export const assetDB = dbMock()
 export const ephemeraDB = dbMock()
 
 export const batchWriteDispatcher = jest.fn()
+export const mergeIntoDataRange = jest.fn()
