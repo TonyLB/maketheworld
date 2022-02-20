@@ -4,19 +4,11 @@ import { ephemeraDB, publishMessage } from '../dynamoDB/index.js'
 import { render } from '../perception/index.js'
 import { splitType } from '../types.js'
 
-export const updateRoomsByAsset = async (AssetId) => {
-    const roomsToCheck = await ephemeraDB.query({
-        IndexName: 'DataCategoryIndex',
-        DataCategory: `ASSET#${AssetId}`,
-        KeyConditionExpression: 'begins_with(EphemeraId, :room)',
-        ExpressionAttributeValues: {
-            ':room': 'ROOM#'
-        },
-        ProjectionFields: ['EphemeraId']
-    })
+export const updateRooms = async (roomsToCheck) => {
+    console.log(`RoomsToCheck: ${JSON.stringify(roomsToCheck, null, 4)}`)
     const roomsMeta = await Promise.all(
-        roomsToCheck.map(({ EphemeraId }) => (ephemeraDB.getItem({
-            EphemeraId,
+        roomsToCheck.map((roomId) => (ephemeraDB.getItem({
+            EphemeraId: `ROOM#${roomId}`,
             DataCategory: 'Meta::Room',
             ProjectionFields: ['EphemeraId', 'activeCharacters']
         })))

@@ -12,6 +12,7 @@ import {
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
+import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 import { compileCode } from "./wml/compileCode.js"
 
 const params = { region: process.env.AWS_REGION }
@@ -379,13 +380,21 @@ export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
     const dbEntriesList = await parseWMLFile(fileName)
     const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
-    const [variableEphemera, actionEphemera] = await Promise.all([
-        initializeVariables(
-            globalEntries
-                .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
-                .map(({ EphemeraId, defaultValue, scopedId }) => ({ EphemeraId, defaultValue, scopedId })),
-            assetId
-        ),
+    const [{ State: currentState = {} } = {}, actionEphemera] = await Promise.all([
+        ephemeraDB.getItem({
+            EphemeraId: `ASSET#${assetId}`,
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        }),
+        // initializeVariables(
+        //     globalEntries
+        //         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
+        //         .map(({ EphemeraId, defaultValue, scopedId }) => ({ EphemeraId, defaultValue, scopedId })),
+        //     assetId
+        // ),
         initializeActions(
             globalEntries
                 .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ACTION'))
@@ -441,19 +450,20 @@ export const cacheAsset = async (assetId) => {
             ), previous)
         ), computeDependencies)
 
-    const variableState = variableEphemera.reduce((previous, { EphemeraId, value }) => {
-        const scopedId = programScopeIdsByEphemeraId[EphemeraId]
-        if (scopedId) {
+    const variableState = dbEntriesList
+        .filter(({ tag }) => (tag === 'Variable'))
+        .reduce((previous, { key, default: defaultValue }) => {
+            if (previous[key]?.value !== undefined) {
+                return previous
+            }
+            const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})
             return {
                 ...previous,
-                [scopedId]: {
-                    EphemeraId,
-                    value
+                [key]: {
+                    value: defaultEvaluation
                 }
             }
-        }
-        return previous
-    }, {})
+        }, currentState)
 
     const uncomputedState = dbEntriesList
         .filter(({ tag }) => (tag === 'Computed'))
@@ -469,7 +479,9 @@ export const cacheAsset = async (assetId) => {
     const { state } = recalculateComputes(
         uncomputedState,
         dependencies,
-        Object.keys(variableState)
+        Object.entries(variableState)
+            .filter(([_, { computed }]) => (!computed))
+            .map(([key]) => (key))
     )
 
     const actions = actionEphemera.reduce((previous, { EphemeraId, src }) => {
