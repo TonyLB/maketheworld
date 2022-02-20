@@ -5,10 +5,13 @@
   "description": "Handler lambda for S3 events in the MakeTheWorld asset storage system",
   "main": "app.js",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "jest"
   },
   "jest": {
-    "transform": {}
+    "moduleNameMapper": {
+      "^/opt/utilities/(.*).jsx?$": "<rootDir>/__mocks__/opt/utilities/$1",
+      "^(\\.{1,2}/.*)\\.jsx?$": "$1"
+    }
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
@@ -22,7 +25,12 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
     "@ohm-js/cli": "^1.1.0",
+    "babel-jest": "^27.5.1",
+    "babel-plugin-transform-import-meta": "^2.1.1",
     "jest": "^27.5.1"
   }
 }
