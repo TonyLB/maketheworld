@@ -5,7 +5,7 @@ import {
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType } from '/opt/utilities/types.js'
 
-export const globalizeDBEntries = async (assetId, dbEntriesList) => {
+export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
     //
     // Pull scope-to-uuid mapping from Assets
     //
@@ -26,16 +26,11 @@ export const globalizeDBEntries = async (assetId, dbEntriesList) => {
     // Add any incoming entries that have not yet been mapped
     // NOTE:  There should be none.
     //
-    const scopedToPermanentMapping = dbEntriesList
+    const scopedToPermanentMapping = Object.values(normalizedDBEntries)
+        .filter(({ tag }) => (['Room'].includes(tag)))
         .reduce((previous, { tag, key, isGlobal }) => {
             let prefix = ''
             switch(tag) {
-                case 'Variable':
-                    prefix = 'VARIABLE'
-                    break
-                case 'Action':
-                    prefix = 'ACTION'
-                    break
                 default:
                     prefix = 'ROOM'
             }
@@ -47,62 +42,17 @@ export const globalizeDBEntries = async (assetId, dbEntriesList) => {
                 [key]: newEphemeraId
             }
         }, currentScopedToPermanentMapping)
-    const globalizedDBEntries = dbEntriesList
-        .map(({ tag, key, isGlobal, appearances, ...rest }) => {
-            switch(tag) {
-                case 'Room':
-                    return {
-                        EphemeraId: scopedToPermanentMapping[key],
-                        appearances: appearances.map(({ exits, render, ...rest }) => {
-                            const remappedExits = (exits && exits.length > 0)
-                                ? exits
-                                    .map(({ to, ...other }) => ({ to: splitType(scopedToPermanentMapping[to])[1], ...other }))
-                                    .filter(({ to }) => (to))
-                                : undefined
-                            const remappedRender = (render && render.length > 0)
-                                ? render.map((item) => {
-                                    if (typeof item === 'string') {
-                                        return item
-                                    }
-                                    switch(item.tag) {
-                                        case 'Link':
-                                            const { to, ...rest } = item
-                                            return {
-                                                    ...rest,
-                                                    toAction: to,
-                                                    toAssetId: assetId
-                                                }
-                                        default:
-                                            return item
-                                    }        
-                                })
-                                : undefined
-                            return {
-                                exits: remappedExits,
-                                render: remappedRender,
-                                ...rest
-                            }
-                        }).map(({ conditions, render, exits, name }) => ({ conditions, render, exits, name })),
-                        ...rest
-                    }    
-                case 'Variable':
-                    return {
-                        EphemeraId: scopedToPermanentMapping[key],
-                        defaultValue: rest['default'],
-                        scopedId: key
-                    }
-                case 'Action':
-                    return {
-                        EphemeraId: scopedToPermanentMapping[key],
-                        src: rest.src,
-                        scopedId: key
-                    }
-                default:
-                    return {}
+
+    return Object.values(normalizedDBEntries)
+        .filter(({ tag }) => (['Room'].includes(tag)))
+        .reduce((previous, { key }) => ({
+            ...previous,
+            [key]: {
+                ...(previous[key] || {}),
+                EphemeraId: scopedToPermanentMapping[key]
             }
-        })
-        .filter(({ EphemeraId }) => (EphemeraId))
-    return globalizedDBEntries
+        }),
+        normalizedDBEntries)
 }
 
 export default globalizeDBEntries

@@ -14,83 +14,124 @@ describe('globalizeDBEntries', () => {
         jest.resetAllMocks()
     })
     it('should return globalized output', async () => {
-        const testEntries = [{
-            key: 'ABC',
-            tag: 'Room',
-            appearances: [{
-                conditions: [],
-                errors: [],
-                global: false,
-                name: 'Vortex',
-                props: {},
-                render: []
+        const topLevelAppearance = {
+            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
+            contents: [],
+            errors: [],
+            props: {}
+        }
+        const testEntries = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                importMap: {},
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'Condition-0',
+                        tag: 'Condition',
+                        index: 0
+                    },
+                    {
+                        key: 'powered',
+                        tag: 'Variable',
+                        index: 0
+                    },
+                    {
+                        key: 'switchedOn',
+                        tag: 'Variable',
+                        index: 0
+                    },
+                    {
+                        key: 'active',
+                        tag: 'Computed',
+                        index: 0
+                    },
+                    {
+                        key: 'toggleSwitch',
+                        tag: 'Action',
+                        index: 0
+                    }]
+                }]
             },
-            {
-                conditions: [{
-                    dependencies: ['active'],
-                    if: 'active'
-                }],
-                global: false,
-                errors: [],
-                props: {},
-                render: ['The lights are on ']
-            }]
-        },
-        {
-            key: 'powered',
-            tag: 'Variable',
-            default: 'false'
-        },
-        {
-            key: 'switchedOn',
-            tag: 'Variable',
-            default: 'true'
-        },
-        {
-            key: 'active',
-            tag: 'Computed',
-            dependencies: ['switchedOn', 'powered'],
-            src: 'powered && switchedOn'
-        },
-        {
-            key: 'toggleSwitch',
-            tag: 'Action',
-            src: 'switchedOn = !switchedOn'
-        }]
+            ABC: {
+                key: 'ABC',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    global: false,
+                    name: 'Vortex',
+                    render: []
+                },
+                {
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                    errors: [],
+                    global: false,
+                    props: {},
+                    render: ['The lights are on '],
+                    contents: []
+                }]
+            },
+            powered: {
+                key: 'powered',
+                tag: 'Variable',
+                default: 'false',
+                appearances: [topLevelAppearance]
+            },
+            switchedOn: {
+                key: 'switchedOn',
+                tag: 'Variable',
+                default: 'true',
+                appearances: [topLevelAppearance]
+            },
+            active: {
+                key: 'active',
+                tag: 'Computed',
+                src: 'powered && switchedOn',
+                dependencies: ['switchedOn', 'powered'],
+                appearances: [topLevelAppearance]
+            },
+            toggleSwitch: {
+                key: 'toggleSwitch',
+                tag: 'Action',
+                src: 'switchedOn = !switchedOn',
+                appearances: [topLevelAppearance]
+            },
+            ['Condition-0']: {
+                key: 'Condition-0',
+                tag: 'Condition',
+                if: 'active',
+                dependencies: ['active'],
+                appearances: [{
+                    ...topLevelAppearance,
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Room',
+                        index: 1
+                    }]
+                }]
+            }
+        }
         assetDB.query.mockResolvedValue([{
             AssetId: 'ROOM#DEF',
             scopedId: 'ABC'
         }])
         uuidv4.mockReturnValue('UUID')
         const globalizeOutput = await globalizeDBEntries('test', testEntries)
-        expect(globalizeOutput).toEqual([{
-            EphemeraId: 'ROOM#DEF',
-            appearances: [{
-                conditions: [],
-                name: 'Vortex'
-            },
-            {
-                conditions: [{
-                    dependencies: ['active'],
-                    if: 'active'
-                }],
-                render: ['The lights are on ']
-            }]
-        },
-        {
-            EphemeraId: 'VARIABLE#UUID',
-            defaultValue: 'false',
-            scopedId: 'powered',
-        },
-        {
-            EphemeraId: 'VARIABLE#UUID',
-            defaultValue: 'true',
-            scopedId: 'switchedOn',
-        },
-        {
-            EphemeraId: 'ACTION#UUID',
-            scopedId: 'toggleSwitch',
-            src: 'switchedOn = !switchedOn'
-        }])
+        expect(globalizeOutput).toEqual({
+            ...testEntries,
+            ABC: {
+                ...testEntries.ABC,
+                EphemeraId: 'ROOM#DEF'
+            }
+        })
     })
 })

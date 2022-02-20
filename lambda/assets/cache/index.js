@@ -51,12 +51,39 @@ const pushMetaData = async (assetId, state, dependencies, actions) => {
     })
 }
 
-const mergeEntries = async (assetId, dbEntriesList) => {
+const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
+    conditions: contextStack.reduce((previous, { key, tag }) => {
+        if (tag !== 'Condition') {
+            return previous
+        }
+        const { if: condition = '', dependencies = [] } = normalForm[key]
+        return [
+            ...previous,
+            {
+                if: condition,
+                dependencies
+            }
+        ]
+    }, []),
+    ...rest
+})
+
+const mergeEntries = async (assetId, normalForm) => {
+    const mergeEntries = Object.values(normalForm)
+        .filter(({ tag }) => (['Room'].includes(tag)))
+        .map(({ appearances, ...rest }) => ({
+            ...rest,
+            appearances: appearances
+                .map(mapContextStackToConditions(normalForm))
+                .map(({ conditions }) => ({
+                    conditions,
+                }))
+        }))
     await Promise.all([
         mergeIntoDataRange({
             table: 'ephemera',
             search: { DataCategory: `ASSET#${assetId}` },
-            items: dbEntriesList,
+            items: mergeEntries,
             mergeFunction: ({ current, incoming }) => {
                 if (!incoming) {
                     return 'delete'
@@ -77,8 +104,8 @@ const mergeEntries = async (assetId, dbEntriesList) => {
 
 export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
-    const dbEntriesList = await parseWMLFile(fileName)
-    const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
+    const firstPassNormal = await parseWMLFile(fileName)
+    const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
     const [{ State: currentState = {} } = {}] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: `ASSET#${assetId}`,
@@ -88,23 +115,17 @@ export const cacheAsset = async (assetId) => {
                 '#state': 'State'
             }
         }),
-        mergeEntries(
-            assetId,
-            globalEntries.filter(({ EphemeraId }) => (['ROOM'].includes(splitType(EphemeraId)[0])))
-        ),
+        mergeEntries(assetId, secondPassNormal),
         //
         // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
         //
-        initializeRooms(globalEntries
-            .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
+        initializeRooms(Object.values(secondPassNormal)
+            .filter(({ tag }) => (['Room'].includes(tag)))
             .map(({ EphemeraId }) => EphemeraId)
         )
     ])
-    const programScopeIdsByEphemeraId = globalEntries
-        .filter(({ EphemeraId }) => (['VARIABLE', 'ACTION'].includes(splitType(EphemeraId)[0])))
-        .reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
 
-    const computeDependencies = dbEntriesList
+    const computeDependencies = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Computed'))
         .reduce((previous, { key, dependencies }) => (
             dependencies.reduce((accumulator, dependency) => ({
@@ -118,26 +139,31 @@ export const cacheAsset = async (assetId) => {
             }), previous)
         ), {})
 
-    const dependencies = globalEntries
-        .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ROOM'))
+    const dependencies = Object.values(secondPassNormal)
+        .filter(({ tag }) => (['Room'].includes(tag)))
         .reduce((previous, { EphemeraId, appearances = [] }) => (
-            appearances.reduce((accumulator, { conditions = [] }) => (
-                conditions.reduce((innerAccumulator, { dependencies = [] }) => (
-                    dependencies.reduce((innermostAccumulator, dependency) => ({
-                        ...innermostAccumulator,
-                        [dependency]: {
-                            ...(innermostAccumulator[dependency] || {}),
-                            room: [...(new Set([
-                                ...(innermostAccumulator[dependency]?.room || []),
-                                splitType(EphemeraId)[1]
-                            ]))]
-                        }
-                    }), innerAccumulator)
-                ), accumulator)
-            ), previous)
+            appearances
+                .map(mapContextStackToConditions(secondPassNormal))
+                .reduce((accumulator, { conditions = [] }) => (
+                    conditions.reduce((innerAccumulator, { dependencies = [] }) => (
+                        dependencies.reduce((innermostAccumulator, dependency) => ({
+                            ...innermostAccumulator,
+                            [dependency]: {
+                                ...(innermostAccumulator[dependency] || {}),
+                                room: [...(new Set([
+                                    ...(innermostAccumulator[dependency]?.room || []),
+                                    //
+                                    // Extract the globalized RoomId
+                                    //
+                                    splitType(EphemeraId)[1]
+                                ]))]
+                            }
+                        }), innerAccumulator)
+                    ), accumulator)
+                ), previous)
         ), computeDependencies)
 
-    const variableState = dbEntriesList
+    const variableState = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Variable'))
         .reduce((previous, { key, default: defaultValue }) => {
             if (previous[key]?.value !== undefined) {
@@ -152,7 +178,7 @@ export const cacheAsset = async (assetId) => {
             }
         }, currentState)
 
-    const uncomputedState = dbEntriesList
+    const uncomputedState = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Computed'))
         .reduce((previous, { key, src }) => ({
             ...previous,
@@ -171,7 +197,7 @@ export const cacheAsset = async (assetId) => {
             .map(([key]) => (key))
     )
 
-    const actions = dbEntriesList
+    const actions = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Action'))
         .reduce((previous, { key, src }) => ({
             ...previous,
