@@ -1,5 +1,5 @@
 <Asset key=(ImportTest) fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
-    <Variable key=(switchUp) default={true} />
+    <Variable key=(switchUp) default={false} />
     <Variable key=(power) default={true} />
     <Computed key=(active) src={switchUp && power}>
         <Depend on=(switchUp) />

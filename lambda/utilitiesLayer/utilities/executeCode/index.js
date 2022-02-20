@@ -1,6 +1,6 @@
 import { executeCode, evaluateCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { updateRoomsByAsset } from './updateRooms.js'
+import { updateRooms } from './updateRooms.js'
 
 const dependencyCascadeHelper = (dependencies, recalculatedLayerMap, depth = 0) => {
     const layerItems = Object.entries(recalculatedLayerMap)
@@ -95,86 +95,35 @@ export const executeInAsset = (AssetId) => async (src) => {
     })
     const valueState = Object.entries(state).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
     const { changedKeys, newValues, returnValue } = executeCode(src)(valueState)
-    const newValuesByEphemeraId = Object.entries(state).reduce((previous, [scopedId, { EphemeraId }]) => ({ ...previous, [EphemeraId]: newValues[scopedId] }), {})
-    const updatingVariables = await ephemeraDB.batchGetItem({
-        Items: changedKeys.map((key) => ({
-            EphemeraId: state[key].EphemeraId,
-            DataCategory: 'Meta::Variable'
-        })),
-        ProjectionFields: ['EphemeraId', 'scopedIdByAsset'],
-    })
-
-    //
-    // TODO: Rewrite the below to use room dependencies to limit its recalculations
-    //
-
-    //
-    // TODO: Deprecate Meta::Variable, and store values directly (and exclusively) on Asset state items.
-    // This will be a big honkin' deal for instantiating separate namespaces for stories.
-    //
-
-    //
-    // Calculate, for each Asset that will be effected by these variable changes, which variables
-    // get updated, to what values, with which EphemeraIds
-    //
-    const updatesByAsset = updatingVariables.reduce((previous, { EphemeraId, scopedIdByAsset }) => {
-        if (!EphemeraId) {
-            return previous
+    const updatedState = Object.entries(newValues).reduce((previous, [key, value]) => ({
+        ...previous,
+        [key]: {
+            ...(previous[key] || {}),
+            value
         }
-        const stateUpdateProp = {
-            EphemeraId,
-            value: newValuesByEphemeraId[EphemeraId]
-        }
-        return Object.entries(scopedIdByAsset).reduce((accumulator, [scopingAssetId, scopedId]) => ({
-            ...accumulator,
-            [scopingAssetId]: {
-                ...(accumulator[scopingAssetId] || {}),
-                [scopedId]: stateUpdateProp
-            }
-        }), previous)
-    }, {})
-
-    //
-    // Now apply all of those updates in parallel, along with the updates to the actual Meta::Variable
-    // values
-    //
+    }), state)
+    const { state: newState, recalculated } = recalculateComputes(updatedState, dependencies, changedKeys)
 
     await Promise.all([
-        ...(Object.entries(updatesByAsset)
-            .map(async ([updateAssetId, stateUpdates]) => {
-                const updateSubExpression = Object.entries(stateUpdates)
-                    .map((_, index) => (`#state.#arg${index} = :arg${index}`))
-                const ExpressionAttributeNames = Object.entries(stateUpdates)
-                    .reduce((previous, [key], index) => ({ ...previous, [`#arg${index}`]: key }), { '#state': 'State' })
-                const ExpressionAttributeValues = Object.entries(stateUpdates)
-                    .reduce((previous, [_, props], index) => ({ ...previous, [`:arg${index}`]: props }), {})
-                
-                await ephemeraDB.update({
-                    EphemeraId: `ASSET#${updateAssetId}`,
-                    DataCategory: 'Meta::Asset',
-                    UpdateExpression: `SET ${updateSubExpression.join(', ')}`,
-                    ExpressionAttributeNames,
-                    ExpressionAttributeValues
-                })
-            })
-        ),
-        ...(changedKeys
-            .map((key) => (
-                ephemeraDB.update({
-                    EphemeraId: state[key].EphemeraId,
-                    DataCategory: 'Meta::Variable',
-                    UpdateExpression: 'SET #value = :value',
-                    ExpressionAttributeNames: {
-                        '#value': 'value'
-                    },
-                    ExpressionAttributeValues: {
-                        ':value': newValues[key]
-                    }
-                })
-            ))
-        ),
+        ephemeraDB.update({
+            EphemeraId: AssetId,
+            DataCategory: 'Meta::Asset',
+            UpdateExpression: 'SET #state = :state',
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            },
+            ExpressionAttributeValues: {
+                ':state': newState
+            }
+        })
     ])
-    await Promise.all(Object.keys(updatesByAsset).map((updateAssetId) => (updateRoomsByAsset(updateAssetId))))
+    const roomsToCheck = [...(new Set(recalculated.reduce((previous, key) => ([
+        ...previous,
+        ...(dependencies[key]?.room || [])
+    ]), [])))]
+    await Promise.all([
+        updateRooms(roomsToCheck)
+    ])
 
     return returnValue
 }
