@@ -128,11 +128,14 @@ export const executeInAsset = (AssetId) => async (src) => {
     return returnValue
 }
 
-export const executeAction = async (EphemeraId) => {
-    const { namespaceAsset, src } = await ephemeraDB.getItem({
-        EphemeraId,
-        DataCategory: 'Meta::Action',
-        ProjectionFields: ['src', 'namespaceAsset']
+export const executeAction = async ({ action, assetId }) => {
+    const { Actions: actions = {} } = await ephemeraDB.getItem({
+        EphemeraId: `ASSET#${assetId}`,
+        DataCategory: 'Meta::Asset',
+        ProjectionFields: ['Actions']
     })
-    await executeInAsset(`ASSET#${namespaceAsset}`)(src)
+    const { src = '' } = actions[action] || {}
+    if (src) {
+        await executeInAsset(`ASSET#${assetId}`)(src)
+    }
 }

@@ -13,7 +13,6 @@ import {
 import { splitType } from '/opt/utilities/types.js'
 import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
-import { compileCode } from "./wml/compileCode.js"
 
 const params = { region: process.env.AWS_REGION }
 const { TABLE_PREFIX, S3_BUCKET } = process.env;
@@ -136,9 +135,11 @@ const globalizeDBEntries = async (assetId, dbEntriesList) => {
                                     }
                                     switch(item.tag) {
                                         case 'Link':
+                                            const { to, ...rest } = item
                                             return {
-                                                    ...item,
-                                                    to: scopedToPermanentMapping[item.to]
+                                                    ...rest,
+                                                    toAction: to,
+                                                    toAssetId: assetId
                                                 }
                                         default:
                                             return item
@@ -272,115 +273,11 @@ const initializeRooms = async (roomIDs) => {
     }
 }
 
-//
-// initializeVariables (a) checks each Variable ID to see whether
-// it has already a Meta::Variable record defined for it, and (b) if there needs
-// to be a new Meta::Variable record compiles the code for the default value
-// and populates it
-//
-const initializeVariables = async (variableIDs, assetId) => {
-    const scopedIdsByEphemeraId = variableIDs.reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
-    const currentVariableItems = (await ephemeraDB.batchGetItem(
-            {
-                Items: variableIDs.map(({ EphemeraId }) => ({
-                    EphemeraId,
-                    DataCategory: 'Meta::Variable'
-                })),
-                ProjectionFields: ['EphemeraId', '#value'],
-                ExpressionAttributeNames: {
-                    '#value': 'value'
-                }
-            }
-        ))
-    const currentVariableIds = currentVariableItems.map(({ EphemeraId }) => (EphemeraId))
-    const missingVariables = variableIDs
-        .filter(({ EphemeraId }) => (!currentVariableIds.includes(EphemeraId)))
-        .map(({ defaultValue = 'null', ...rest }) => ({ value: compileCode(`return (${defaultValue})`)({}), ...rest }))
-    await Promise.all([
-        ...(currentVariableIds.map((EphemeraId) => (
-            ephemeraDB.update({
-                EphemeraId,
-                DataCategory: 'Meta::Variable',
-                UpdateExpression: 'SET scopedIdByAsset.#assetId = :scopedId',
-                ExpressionAttributeNames: {
-                    '#assetId': assetId
-                },
-                ExpressionAttributeValues: {
-                    ':scopedId': scopedIdsByEphemeraId[EphemeraId]
-                }
-            })
-        ))),
-        ...(missingVariables.map(({ EphemeraId, scopedId, value }) => (
-            ephemeraDB.putItem({
-                EphemeraId,
-                DataCategory: 'Meta::Variable',
-                value,
-                scopedIdByAsset: {
-                    [assetId]: scopedId
-                }
-            })
-        )))
-    ])
-
-    return [
-        ...currentVariableItems,
-        ...missingVariables.map(({ Ephemera, value }) => ({ Ephemera, value }))
-    ]
-}
-
-const initializeActions = async (actionIDs, assetId) => {
-    const scopedIdsByEphemeraId = actionIDs.reduce((previous, { EphemeraId, scopedId }) => ({ ...previous, [EphemeraId]: scopedId }), {})
-    const currentActionItems = (await ephemeraDB.batchGetItem(
-            {
-                Items: actionIDs.map(({ EphemeraId }) => ({
-                    EphemeraId,
-                    DataCategory: 'Meta::Action'
-                })),
-                ProjectionFields: ['EphemeraId', 'src']
-            }
-        ))
-    const currentActionIds = currentActionItems.map(({ EphemeraId }) => (EphemeraId))
-    const missingActions = actionIDs
-        .filter(({ EphemeraId }) => (!currentActionIds.includes(EphemeraId)))
-    await Promise.all([
-        ...(currentActionIds.map((EphemeraId) => (
-            ephemeraDB.update({
-                EphemeraId,
-                DataCategory: 'Meta::Action',
-                UpdateExpression: 'SET scopedIdByAsset.#assetId = :scopedId, namespaceAsset = :assetId',
-                ExpressionAttributeNames: {
-                    '#assetId': assetId
-                },
-                ExpressionAttributeValues: {
-                    ':assetId': assetId,
-                    ':scopedId': scopedIdsByEphemeraId[EphemeraId]
-                }
-            })
-        ))),
-        ...(missingActions.map(({ EphemeraId, scopedId, src }) => (
-            ephemeraDB.putItem({
-                EphemeraId,
-                DataCategory: 'Meta::Action',
-                src,
-                namespaceAsset: assetId,
-                scopedIdByAsset: {
-                    [assetId]: scopedId
-                }
-            })
-        )))
-    ])
-
-    return [
-        ...currentActionItems,
-        ...missingActions.map(({ Ephemera, src }) => ({ Ephemera, src }))
-    ]
-}
-
 export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
     const dbEntriesList = await parseWMLFile(fileName)
     const globalEntries = await globalizeDBEntries(assetId, dbEntriesList)
-    const [{ State: currentState = {} } = {}, actionEphemera] = await Promise.all([
+    const [{ State: currentState = {} } = {}] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: `ASSET#${assetId}`,
             DataCategory: 'Meta::Asset',
@@ -389,18 +286,6 @@ export const cacheAsset = async (assetId) => {
                 '#state': 'State'
             }
         }),
-        // initializeVariables(
-        //     globalEntries
-        //         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'VARIABLE'))
-        //         .map(({ EphemeraId, defaultValue, scopedId }) => ({ EphemeraId, defaultValue, scopedId })),
-        //     assetId
-        // ),
-        initializeActions(
-            globalEntries
-                .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'ACTION'))
-                .map(({ EphemeraId, src, scopedId }) => ({ EphemeraId, src, scopedId })),
-            assetId
-        ),
         mergeEntries(
             assetId,
             globalEntries.filter(({ EphemeraId }) => (['ROOM'].includes(splitType(EphemeraId)[0])))
@@ -484,19 +369,15 @@ export const cacheAsset = async (assetId) => {
             .map(([key]) => (key))
     )
 
-    const actions = actionEphemera.reduce((previous, { EphemeraId, src }) => {
-        const scopedId = programScopeIdsByEphemeraId[EphemeraId]
-        if (scopedId) {
-            return {
-                ...previous,
-                [scopedId]: {
-                    EphemeraId,
-                    src
-                }
+    const actions = dbEntriesList
+        .filter(({ tag }) => (tag === 'Action'))
+        .reduce((previous, { key, src }) => ({
+            ...previous,
+            [key]: {
+                ...(previous[key] || {}),
+                src
             }
-        }
-        return previous
-    }, {})
+        }), {})
     await pushMetaData(
         assetId,
         state,

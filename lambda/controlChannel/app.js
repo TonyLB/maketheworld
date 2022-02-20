@@ -383,7 +383,7 @@ export const handler = async (event, context) => {
         case 'action':
             return executeAction(request)
         case 'link':
-            await executeActionFromDB(request.ActionId)
+            await executeActionFromDB({ action: request.Action, assetId: request.AssetId })
             return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
