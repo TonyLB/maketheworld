@@ -1,7 +1,7 @@
 import { splitType } from "/opt/utilities/types.js"
 import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
 import { healGlobalValues, generatePersonalAssetList } from "/opt/utilities/selfHealing/index.js"
-import { cacheAsset } from "../cache.js"
+import { cacheAsset } from "../cache/index.js"
 
 const healPersonalAssets = async ({ PlayerName }) => {
     if (!PlayerName) {

@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
 
-import { cacheAsset } from './cache.js'
+import { cacheAsset } from './cache/index.js'
 import { healAsset } from "./selfHealing/index.js"
 import { healPlayers } from "/opt/utilities/selfHealing/index.js"
 
