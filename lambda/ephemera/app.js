@@ -127,7 +127,7 @@ export const handler = async (event, context) => {
                 break;
 
             case 'evaluate':
-                await executeAction(event.ActionId)
+                await executeAction({ action: event.Action, assetId: event.AssetId })
                 break;
 
             default:

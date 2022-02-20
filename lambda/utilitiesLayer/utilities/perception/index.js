@@ -115,18 +115,6 @@ export const renderItems = async (renderList) => {
                                 name: [ ...previousName, ...(name || []) ],
                                 exits: [ ...previousExits, ...(exits || []) ],
                             }), previous)
-                        // return {
-                        //     ...previous,
-                        //     render: render
-                        //         .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                        //         .reduce((accumulate, { render }) => ([...accumulate, ...render]), previous.render),
-                        //     name: name
-                        //         .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                        //         .reduce((accumulate, { name }) => ([...accumulate, ...name]), previous.name),
-                        //     exits: exits
-                        //         .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                        //         .reduce((accumulate, { exits }) => ([...accumulate, ...exits.map(({ to, ...rest }) => ({ to: splitType(to)[1], ...rest }))]), previous.exits),
-                        // }
                     }, { render: [], name: [], exits: [] })
                     //
                     // TODO: Evaluate expressions before inserting them
