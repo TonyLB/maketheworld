@@ -8,7 +8,11 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "jest": {
-    "transform": {}
+    "transform": {},
+    "moduleNameMapper": {
+      "/opt/utilities/dynamoDB/index.js": "<rootDir>/../utilitiesLayer/utilities/dynamoDB/__mocks__/index.js",
+      "/opt/utilities/(.*)": "<rootDir>/../utilitiesLayer/utilities/$1"
+    }
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",

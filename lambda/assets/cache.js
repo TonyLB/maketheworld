@@ -28,7 +28,7 @@ const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 // of notifying people in it?
 //
 
-const fetchAssetMetaData = async (assetId) => {
+export const fetchAssetMetaData = async (assetId) => {
     const { fileName = '' } = await assetDB.getItem({
         AssetId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
