@@ -27,7 +27,35 @@ describe('cacheAsset', () => {
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
-        globalizeDBEntries.mockResolvedValue([{ EphemeraId: 'ROOM#DEF' }])
+        globalizeDBEntries.mockResolvedValue([{
+            EphemeraId: 'ROOM#DEF',
+            appearances: [{
+                conditions: [],
+                name: 'Vortex'
+            },
+            {
+                conditions: [{
+                    dependencies: ['active'],
+                    if: 'active'
+                }],
+                render: ['The lights are on ']
+            }]
+        },
+        {
+            EphemeraId: 'VARIABLE#UUID',
+            defaultValue: 'false',
+            scopedId: 'powered',
+        },
+        {
+            EphemeraId: 'VARIABLE#UUID',
+            defaultValue: 'true',
+            scopedId: 'switchedOn',
+        },
+        {
+            EphemeraId: 'ACTION#UUID',
+            scopedId: 'toggleSwitch',
+            src: 'switchedOn = !switchedOn'
+        }])
         recalculateComputes.mockReturnValue({ state: {} })
 
         await cacheAsset('ABC')
@@ -35,7 +63,25 @@ describe('cacheAsset', () => {
         expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#DEF'])
         expect(mergeEntries).toHaveBeenCalled
-        expect(recalculateComputes).toHaveBeenCalled
-        expect(ephemeraDB.putItem).toHaveBeenCalled
+        expect(recalculateComputes).toHaveBeenCalledWith(
+            {},
+            {
+                active: {
+                    room: ['DEF']
+                }
+            },
+            []
+        )
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#ABC",
+            DataCategory: "Meta::Asset",
+            Actions: {},
+            State: {},
+            Dependencies: {
+                active: {
+                    room: ['DEF']
+                }
+            }
+        })
     })
 })
