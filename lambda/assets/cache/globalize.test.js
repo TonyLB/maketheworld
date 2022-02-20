@@ -126,34 +126,12 @@ describe('globalizeDBEntries', () => {
         }])
         uuidv4.mockReturnValue('UUID')
         const globalizeOutput = await globalizeDBEntries('test', testEntries)
-        expect(globalizeOutput).toEqual([{
-            EphemeraId: 'ROOM#DEF',
-            appearances: [{
-                conditions: [],
-                name: 'Vortex'
-            },
-            {
-                conditions: [{
-                    dependencies: ['active'],
-                    if: 'active'
-                }],
-                render: ['The lights are on ']
-            }]
-        },
-        {
-            EphemeraId: 'VARIABLE#UUID',
-            defaultValue: 'false',
-            scopedId: 'powered',
-        },
-        {
-            EphemeraId: 'VARIABLE#UUID',
-            defaultValue: 'true',
-            scopedId: 'switchedOn',
-        },
-        {
-            EphemeraId: 'ACTION#UUID',
-            scopedId: 'toggleSwitch',
-            src: 'switchedOn = !switchedOn'
-        }])
+        expect(globalizeOutput).toEqual({
+            ...testEntries,
+            ABC: {
+                ...testEntries.ABC,
+                EphemeraId: 'ROOM#DEF'
+            }
+        })
     })
 })

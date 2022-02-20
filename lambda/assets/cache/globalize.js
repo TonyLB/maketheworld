@@ -27,16 +27,10 @@ export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
     // NOTE:  There should be none.
     //
     const scopedToPermanentMapping = Object.values(normalizedDBEntries)
-        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
+        .filter(({ tag }) => (['Room'].includes(tag)))
         .reduce((previous, { tag, key, isGlobal }) => {
             let prefix = ''
             switch(tag) {
-                case 'Variable':
-                    prefix = 'VARIABLE'
-                    break
-                case 'Action':
-                    prefix = 'ACTION'
-                    break
                 default:
                     prefix = 'ROOM'
             }
@@ -49,82 +43,16 @@ export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
             }
         }, currentScopedToPermanentMapping)
 
-    const mapContextStackToConditions = (normalForm, { contextStack, ...rest }) => ({
-        conditions: contextStack.reduce((previous, { key, tag }) => {
-            if (tag !== 'Condition') {
-                return previous
+    return Object.values(normalizedDBEntries)
+        .filter(({ tag }) => (['Room'].includes(tag)))
+        .reduce((previous, { key }) => ({
+            ...previous,
+            [key]: {
+                ...(previous[key] || {}),
+                EphemeraId: scopedToPermanentMapping[key]
             }
-            const { if: condition = '', dependencies = [] } = normalForm[key]
-            return [
-                ...previous,
-                {
-                    if: condition,
-                    dependencies
-                }
-            ]
-        }, []),
-        ...rest
-    })
-    
-    const globalizedDBEntries = Object.values(normalizedDBEntries)
-        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag)))
-        .map(({ tag, key, isGlobal, appearances, ...rest }) => {
-            switch(tag) {
-                case 'Room':
-                    return {
-                        EphemeraId: scopedToPermanentMapping[key],
-                        appearances: appearances.map(({ exits, render, ...rest }) => {
-                            const { conditions } = mapContextStackToConditions(normalizedDBEntries, rest)
-                            const remappedExits = (exits && exits.length > 0)
-                                ? exits
-                                    .map(({ to, ...other }) => ({ to: splitType(scopedToPermanentMapping[to])[1], ...other }))
-                                    .filter(({ to }) => (to))
-                                : undefined
-                            const remappedRender = (render && render.length > 0)
-                                ? render.map((item) => {
-                                    if (typeof item === 'string') {
-                                        return item
-                                    }
-                                    switch(item.tag) {
-                                        case 'Link':
-                                            const { to, ...rest } = item
-                                            return {
-                                                    ...rest,
-                                                    toAction: to,
-                                                    toAssetId: assetId
-                                                }
-                                        default:
-                                            return item
-                                    }        
-                                })
-                                : undefined
-                            return {
-                                conditions,
-                                exits: remappedExits,
-                                render: remappedRender,
-                                ...rest
-                            }
-                        }).map(({ conditions, render, exits, name }) => ({ conditions, render, exits, name })),
-                        ...rest
-                    }    
-                case 'Variable':
-                    return {
-                        EphemeraId: scopedToPermanentMapping[key],
-                        defaultValue: rest['default'],
-                        scopedId: key
-                    }
-                case 'Action':
-                    return {
-                        EphemeraId: scopedToPermanentMapping[key],
-                        src: rest.src,
-                        scopedId: key
-                    }
-                default:
-                    return {}
-            }
-        })
-        .filter(({ EphemeraId }) => (EphemeraId))
-    return globalizedDBEntries
+        }),
+        normalizedDBEntries)
 }
 
 export default globalizeDBEntries
