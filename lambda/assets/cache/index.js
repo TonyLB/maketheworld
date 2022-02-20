@@ -75,8 +75,11 @@ const mergeEntries = async (assetId, normalForm) => {
             ...rest,
             appearances: appearances
                 .map(mapContextStackToConditions(normalForm))
-                .map(({ conditions }) => ({
+                .map(({ conditions, name, render, exits }) => ({
                     conditions,
+                    name,
+                    render,
+                    exits
                 }))
         }))
     await Promise.all([

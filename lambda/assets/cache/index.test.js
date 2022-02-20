@@ -165,13 +165,16 @@ describe('cacheAsset', () => {
                 key: 'ABC',
                 tag: 'Room',
                 appearances: [{
-                    conditions: []
+                    conditions: [],
+                    name: 'Vortex',
+                    render: []
                 },
                 {
                     conditions: [{
                         dependencies: ['active'],
                         if: 'active'
-                    }]
+                    }],
+                    render: ['The lights are on ']
                 }
                 ]
             }],
