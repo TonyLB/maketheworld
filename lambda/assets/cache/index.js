@@ -68,6 +68,22 @@ const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) 
     ...rest
 })
 
+const mapContentsToExits = (normalForm) => ({ contents, ...rest }) => ({
+    ...rest,
+    exits: contents.reduce((previous, { tag, key }) => {
+        if (tag === 'Exit') {
+            return [
+                ...previous,
+                {
+                    to: normalForm[key].toEphemeraId,
+                    name: normalForm[key].name
+                }
+            ]
+        }
+        return previous
+    }, [])
+})
+
 const mergeEntries = async (assetId, normalForm) => {
     const mergeEntries = Object.values(normalForm)
         .filter(({ tag }) => (['Room'].includes(tag)))
@@ -75,6 +91,7 @@ const mergeEntries = async (assetId, normalForm) => {
             ...rest,
             appearances: appearances
                 .map(mapContextStackToConditions(normalForm))
+                .map(mapContentsToExits(normalForm))
                 .map(({ conditions, name, render, exits }) => ({
                     conditions,
                     name,

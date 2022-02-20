@@ -167,14 +167,16 @@ describe('cacheAsset', () => {
                 appearances: [{
                     conditions: [],
                     name: 'Vortex',
-                    render: []
+                    render: [],
+                    exits: []
                 },
                 {
                     conditions: [{
                         dependencies: ['active'],
                         if: 'active'
                     }],
-                    render: ['The lights are on ']
+                    render: ['The lights are on '],
+                    exits: []
                 }
                 ]
             }],
@@ -239,6 +241,136 @@ describe('cacheAsset', () => {
                     computed: ['active']
                 }
             }
+        })
+    })
+
+    it('should attach exits to correct room appearances', async () => {
+        const topLevelAppearance = {
+            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
+            contents: [],
+            errors: [],
+            props: {}
+        }
+
+        const mockEvaluate = jest.fn().mockReturnValue(true)
+        evaluateCode.mockReturnValue(mockEvaluate)
+
+        assetDB.getItem
+            .mockResolvedValueOnce({ fileName: 'test' })
+        ephemeraDB.getItem
+            .mockResolvedValueOnce({ State: {} })
+        parseWMLFile.mockResolvedValue(['Test'])
+        globalizeDBEntries.mockResolvedValue({
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                importMap: {},
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'DEF',
+                        tag: 'Room',
+                        index: 0
+                    }]
+                }]
+            },
+            ABC: {
+                key: 'ABC',
+                EphemeraId: 'ROOM#XABC',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    global: false,
+                    name: 'Vortex',
+                    render: [],
+                    contents: [{
+                        key: 'ABC#DEF',
+                        tag: 'Exit',
+                        index: 0
+                    }]
+                }]
+            },
+            DEF: {
+                key: 'DEF',
+                EphemeraId: 'ROOM#XDEF',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    global: false,
+                    name: 'Welcome',
+                    render: [],
+                    contents: [{
+                        key: 'DEF#ABC',
+                        tag: 'Exit',
+                        index: 0
+                    }]
+                }]
+            },
+            ['ABC#DEF']: {
+                key: 'ABC#DEF',
+                tag: 'Exit',
+                from: 'ABC',
+                to: 'DEF',
+                toEphemeraId: 'XDEF',
+                name: 'welcome',
+                appearances: [topLevelAppearance, { key: 'ABC', tag: 'Room', index: 0 }]
+            },
+            ['DEF#ABC']: {
+                key: 'DEF#ABC',
+                tag: 'Exit',
+                from: 'DEF',
+                to: 'ABC',
+                toEphemeraId: 'XABC',
+                name: 'vortex',
+                appearances: [topLevelAppearance, { key: 'DEF', tag: 'Room', index: 0 }]
+            }
+        })
+        recalculateComputes.mockReturnValue({ state: {} })
+
+        await cacheAsset('ABC')
+        expect(parseWMLFile).toHaveBeenCalledWith('test')
+        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(initializeRooms).toHaveBeenCalledWith(['ROOM#XABC', 'ROOM#XDEF'])
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#ABC' },
+            items: [{
+                EphemeraId: 'ROOM#XABC',
+                key: 'ABC',
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    name: 'Vortex',
+                    render: [],
+                    exits: [{
+                        name: 'welcome',
+                        to: 'XDEF',
+                    }]
+                }]
+            },
+            {
+                EphemeraId: 'ROOM#XDEF',
+                key: 'DEF',
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    name: 'Welcome',
+                    render: [],
+                    exits: [{
+                        name: 'vortex',
+                        to: 'XABC',
+                    }]
+                }]
+            }],
+            mergeFunction: expect.any(Function)
         })
     })
 })
