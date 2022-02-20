@@ -44,14 +44,28 @@ export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
         }, currentScopedToPermanentMapping)
 
     return Object.values(normalizedDBEntries)
-        .filter(({ tag }) => (['Room'].includes(tag)))
-        .reduce((previous, { key }) => ({
-            ...previous,
-            [key]: {
-                ...(previous[key] || {}),
-                EphemeraId: scopedToPermanentMapping[key]
+        .filter(({ tag }) => (['Room', 'Exit'].includes(tag)))
+        .reduce((previous, { tag, key, to }) => {
+            if (tag === 'Room') {
+                return {
+                    ...previous,
+                    [key]: {
+                        ...(previous[key] || {}),
+                        EphemeraId: scopedToPermanentMapping[key]
+                    }
+                }
             }
-        }),
+            if (tag === 'Exit') {
+                return {
+                    ...previous,
+                    [key]: {
+                        ...(previous[key] || {}),
+                        toEphemeraId: splitType(scopedToPermanentMapping[to])[1]
+                    }
+                }
+            }
+            return previous
+        },
         normalizedDBEntries)
 }
 
