@@ -12,7 +12,7 @@ import globalizeDBEntries from './globalize.js'
 jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
 import { mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
-import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
+import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 
 import { cacheAsset } from './index.js'

@@ -6,7 +6,7 @@ import {
     mergeIntoDataRange
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType } from '/opt/utilities/types.js'
-import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
+import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 import parseWMLFile from './parseWMLFile.js'
 import globalizeDBEntries from "./globalize.js"

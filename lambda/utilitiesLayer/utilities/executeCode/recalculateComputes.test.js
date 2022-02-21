@@ -1,6 +1,6 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { recalculateComputes } from "./index.js"
+import recalculateComputes from "./recalculateComputes.js"
 
 describe('recalculateComputes', () => {
 
