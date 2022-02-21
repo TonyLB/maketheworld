@@ -1,6 +1,7 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from '/opt/utilities/stream.js'
 import { validatedSchema } from "../wml/index.js"
+import { normalize } from '../wml/normalize.js'
 import { wmlQueryFactory } from '../wml/wmlQuery/index.js'
 import { assetDB } from "/opt/utilities/dynamoDB/index.js"
 import { splitType } from "/opt/utilities/types.js"
@@ -29,6 +30,12 @@ class AssetWorkspace {
             this.cachedSchema = validatedSchema(this.match())
         }
         return this.cachedSchema
+    }
+    normalize() {
+        if (!this.isMatched) {
+            return {}
+        }
+        return normalize(this.schema())
     }
 }
 

@@ -126,6 +126,7 @@ export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
+
     const [{ State: currentState = {} } = {}] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: `ASSET#${assetId}`,
@@ -198,6 +199,54 @@ export const cacheAsset = async (assetId) => {
             }
         }, currentState)
 
+    
+    //
+    // TODO: Import states from all dependency assets, and use that to discern
+    // which imports are variables (as opposed to, for instance, rooms)
+    //
+    const importAssetsToFetch = [...new Set(Object.values(secondPassNormal)
+        .filter(({ tag }) => (tag === 'Import'))
+        .map(({ from }) => (from)))]
+    const importAssetStates = await ephemeraDB.batchGetItem({
+        Items: importAssetsToFetch
+            .map((AssetId) => ({
+                EphemeraId: `ASSET#${AssetId}`,
+                DataCategory: 'Meta::Asset'
+            })),
+        ProjectionFields: ['#state', 'EphemeraId'],
+        ExpressionAttributeNames: {
+            '#state': 'State'
+        }
+    })
+
+    const importStateByAsset = (importAssetStates || [])
+        .reduce((previous, { State: state, EphemeraId }) => {
+            const assetId = splitType(EphemeraId)[1]
+            if (assetId) {
+                return {
+                    ...previous,
+                    [assetId]: state
+                }
+            }
+            return previous
+        }, {})
+
+    const importState = Object.values(secondPassNormal)
+        .filter(({ tag }) => (tag === 'Import'))
+        .reduce((previous, { from, mapping }) => {
+            return Object.entries(mapping)
+                .filter(([_, awayKey]) => (awayKey in importStateByAsset[from]))
+                .reduce((accumulator, [localKey, awayKey]) => ({
+                    ...accumulator,
+                    [localKey]: {
+                        imported: true,
+                        asset: from,
+                        key: awayKey,
+                        value: importStateByAsset[from]?.[awayKey]?.value
+                    }
+                }), previous)
+        }, variableState)
+
     const uncomputedState = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Computed'))
         .reduce((previous, { key, src }) => ({
@@ -207,12 +256,12 @@ export const cacheAsset = async (assetId) => {
                 computed: true,
                 src
             }
-        }), variableState)
+        }), importState)
 
     const { state } = recalculateComputes(
         uncomputedState,
         dependencies,
-        Object.entries(variableState)
+        Object.entries(importState)
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
     )

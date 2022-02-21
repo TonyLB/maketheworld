@@ -11,7 +11,6 @@ import {
     liftContents,
     liftUseTags,
     liftDependencyTags,
-    liftImportTags,
     confirmKeyProps,
     confirmExpressionProps,
     confirmLiteralProps,
@@ -200,7 +199,6 @@ export const schema = {
                 liftLiteralProps(['fileName', 'player', 'zone']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
-                liftImportTags,
                 liftUntagged('description', { allString: true })
             ])(node.schema())
     },

@@ -47,7 +47,6 @@ describe('parseWMLFile', () => {
                 key: 'test',
                 tag: 'Asset',
                 fileName: 'test',
-                importMap: {},
                 appearances: [{
                     contextStack: [],
                     errors: [],

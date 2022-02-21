@@ -158,14 +158,14 @@ export const liftContents = (label, { separator = '', allString = false, exclude
 export const liftUseTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Use'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Use'))
-    const importMap = tagsToLift.reduce((previous, { key, as }) => ({
+    const mapping = tagsToLift.reduce((previous, { key, as }) => ({
         ...previous,
         [as || key]: key
     }), {})
     return {
         contents: unliftedItems,
         ...rest,
-        importMap
+        mapping
     }
 }
 
@@ -180,26 +180,6 @@ export const liftDependencyTags = ({ contents = [], ...rest}) => {
         contents: unliftedItems,
         ...rest,
         dependencies
-    }
-}
-
-export const liftImportTags = ({ contents = [], ...rest}) => {
-    const tagsToLift = contents.filter(({ tag }) => (tag === 'Import'))
-    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Import'))
-    const importMap = tagsToLift.reduce((previous, { from, importMap }) => ({
-        ...previous,
-        ...(Object.entries(importMap).reduce((previous, [local, scopedId]) => ({
-            ...previous,
-            [local]: {
-                asset: from,
-                scopedId
-            }
-        }), {}))
-    }), {})
-    return {
-        contents: unliftedItems,
-        ...rest,
-        importMap
     }
 }
 
