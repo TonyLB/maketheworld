@@ -34,7 +34,10 @@ describe('cacheAsset', () => {
         evaluateCode.mockReturnValue(mockEvaluate)
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test' })
+            .mockResolvedValueOnce({
+                fileName: 'test',
+                importTree: { BASE: {} }
+            })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
@@ -239,6 +242,9 @@ describe('cacheAsset', () => {
                 switchedOn: {
                     computed: ['active']
                 }
+            },
+            importTree: {
+                BASE: {}
             }
         })
     })
@@ -255,7 +261,7 @@ describe('cacheAsset', () => {
         evaluateCode.mockReturnValue(mockEvaluate)
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test' })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
@@ -384,7 +390,7 @@ describe('cacheAsset', () => {
         evaluateCode.mockReturnValue(mockEvaluate)
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test' })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         ephemeraDB.batchGetItem
@@ -473,7 +479,8 @@ describe('cacheAsset', () => {
                     value: 'On'
                 }
             },
-            Dependencies: {}
+            Dependencies: {},
+            importTree: {}
         })
         expect(ephemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',

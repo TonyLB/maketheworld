@@ -23,12 +23,12 @@ import initializeRooms from './initializeRooms.js'
 //
 
 export const fetchAssetMetaData = async (assetId) => {
-    const { fileName = '' } = await assetDB.getItem({
+    const { fileName = '', importTree = {} } = await assetDB.getItem({
         AssetId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
-        ProjectionFields: ['fileName']
+        ProjectionFields: ['fileName', 'importTree']
     })
-    return fileName
+    return { fileName, importTree }
 }
 
 //
@@ -39,7 +39,7 @@ const compareEntries = (current, incoming) => {
     return JSON.stringify(current) === JSON.stringify(incoming)
 }
 
-const pushMetaData = async (assetId, state, dependencies, actions) => {
+const pushMetaData = async ({ assetId, state, dependencies, actions, importTree }) => {
     await ephemeraDB.putItem({
         EphemeraId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
@@ -48,7 +48,8 @@ const pushMetaData = async (assetId, state, dependencies, actions) => {
             room: [],
             computed: []
         },
-        Actions: actions || {}
+        Actions: actions || {},
+        importTree: importTree || {}
     })
 }
 
@@ -124,7 +125,7 @@ const mergeEntries = async (assetId, normalForm) => {
 }
 
 export const cacheAsset = async (assetId) => {
-    const fileName = await fetchAssetMetaData(assetId)
+    const { fileName, importTree } = await fetchAssetMetaData(assetId)
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
 
@@ -304,12 +305,13 @@ export const cacheAsset = async (assetId) => {
             }
         }), {})
     await Promise.all([
-        pushMetaData(
+        pushMetaData({
             assetId,
             state,
             dependencies,
-            actions
-        ),
+            actions,
+            importTree
+        }),
         ...(Object.entries(updateAssetDependencies)
             .map(([AssetId, { dependencies }]) => (
                 ephemeraDB.update({
