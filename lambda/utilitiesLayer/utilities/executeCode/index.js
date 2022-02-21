@@ -50,7 +50,7 @@ export const recalculateComputes = (state, dependencies, recalculated) => {
         //
         const checkMemo = previous.recalculated
             .find((key) => ((dependencies[key]?.computed || []).includes(dependencyCheck)))
-        if (!checkMemo && (updatedState[key]?.value !== undefined)) {
+        if (!checkMemo) {
             return previous
         }
         //
