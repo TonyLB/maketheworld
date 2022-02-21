@@ -45,7 +45,24 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
             }))
             const assetRegistryItems = assetRegistryEntries(assetWorkspace.schema())
             const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
-            const { importTree } = await importedAssetIds(asset.importMap || {})
+            const normalized = assetWorkspace.normalize()
+            const importMap = Object.values(normalized)
+                .filter(({ tag }) => (tag === 'Import'))
+                .reduce((previous, { mapping = {}, from }) => {
+                    return {
+                        ...previous,
+                        ...(Object.entries(mapping)
+                            .reduce((previous, [key, scopedId]) => ({
+                                ...previous,
+                                [key]: {
+                                    scopedId,
+                                    asset: from
+                                }
+                            }), {})
+                        )
+                    }
+                }, {})
+            const { importTree } = await importedAssetIds(importMap || {})
             await dbRegister({
                 fileName: `${toPath}${fileName}.wml`,
                 translateFile: `${toPath}${fileName}.translate.json`,

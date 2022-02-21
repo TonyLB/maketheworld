@@ -43,7 +43,6 @@ describe('cacheAsset', () => {
                 key: 'test',
                 tag: 'Asset',
                 fileName: 'test',
-                importMap: {},
                 appearances: [{
                     contextStack: [],
                     errors: [],
@@ -265,7 +264,6 @@ describe('cacheAsset', () => {
                 key: 'test',
                 tag: 'Asset',
                 fileName: 'test',
-                importMap: {},
                 appearances: [{
                     contextStack: [],
                     errors: [],

@@ -102,7 +102,24 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
                 const { scopeMap: currentScopeMap } = await getTranslateFile(s3Client, { name: translateFile })
-                const { importTree, scopeMap: importedIds } = await importedAssetIds(asset.importMap || {})
+                const normalized = assetWorkspace.normalize()
+                const importMap = Object.values(normalized)
+                    .filter(({ tag }) => (tag === 'Import'))
+                    .reduce((previous, { mapping = {}, from }) => {
+                        return {
+                            ...previous,
+                            ...(Object.entries(mapping)
+                                .reduce((previous, [key, scopedId]) => ({
+                                    ...previous,
+                                    [key]: {
+                                        scopedId,
+                                        asset: from
+                                    }
+                                }), {})
+                            )
+                        }
+                    }, {})
+                const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
                 const scopeMapContents = scopeMap(
                     assetRegistryItems,
                     {

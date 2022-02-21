@@ -126,6 +126,7 @@ export const cacheAsset = async (assetId) => {
     const fileName = await fetchAssetMetaData(assetId)
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
+
     const [{ State: currentState = {} } = {}] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: `ASSET#${assetId}`,

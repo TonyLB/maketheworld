@@ -11,7 +11,6 @@ const testSchema = {
     key: 'Test',
     name: 'Test',
     fileName: 'test.wml',
-    importMap: {},
     zone: 'Canon',
     contents: [{
         tag: 'Room',
@@ -72,7 +71,6 @@ const testSchema = {
 const assetProps = {
     name: 'Test',
     fileName: 'test.wml',
-    importMap: {},
     zone: 'Canon',
 }
 
@@ -247,15 +245,6 @@ describe('WML assetRegistryEntries', () => {
                 tag: 'Asset',
                 key: 'Test',
                 ...assetProps
-            },
-            {
-                tag: 'Variable',
-                key: 'active'
-            },
-            {
-                tag: 'Action',
-                key: 'toggleActive',
-                src: 'active = !active'
             }
         ])
     })

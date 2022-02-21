@@ -85,8 +85,12 @@ const pullProperties = (node) => {
                 break
             case 'Condition':
                 pullTags = [...pullTags, 'if', 'dependencies']
+                break
+            case 'Import':
+                pullTags = [...pullTags, 'mapping', 'from']
+                break
             case 'Asset':
-                pullTags = [...pullTags, 'name', 'fileName', 'player', 'importMap', 'zone']
+                pullTags = [...pullTags, 'name', 'fileName', 'player', 'zone']
                 break
         }
         if (pullTags.includes(key)) {
@@ -99,6 +103,18 @@ const pullProperties = (node) => {
                             ...(previous.topLevel[key] ?? []),
                             ...value
                         ]
+                    }
+                }
+            }
+            if (value !== null && typeof value === 'object') {
+                return {
+                    ...previous,
+                    topLevel: {
+                        ...previous.topLevel,
+                        [key]: {
+                            ...previous.topLevel[key] ?? {},
+                            ...value
+                        }
                     }
                 }
             }
@@ -181,6 +197,16 @@ export const transformNode = (contextStack, node) => {
             node: {
                 key,
                 ...node    
+            },
+            contextStack
+        }
+    }
+    if (node.tag === 'Import') {
+        const key = keyForValue('Import', node.from)
+        return {
+            node: {
+                key,
+                ...node
             },
             contextStack
         }

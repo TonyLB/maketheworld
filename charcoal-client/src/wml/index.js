@@ -140,7 +140,7 @@ export const dbEntries = (schema) => {
 export const assetRegistryEntries = (schema) => {
     const normalForm = normalize(schema)
     return Object.values(normalForm).map(({ tag, ...rest }) => {
-        const { name, fileName, key, global: isGlobal, importMap, player, src } = rest
+        const { name, fileName, key, global: isGlobal, player, src } = rest
         switch(tag) {
             case 'Asset':
                 return {
@@ -149,7 +149,6 @@ export const assetRegistryEntries = (schema) => {
                     fileName,
                     key,
                     player,
-                    importMap,
                     zone: rest.zone
                 }
             case 'Room':
@@ -158,17 +157,6 @@ export const assetRegistryEntries = (schema) => {
                     name,
                     isGlobal,
                     key
-                }
-            case 'Variable':
-                return {
-                    tag,
-                    key
-                }
-            case 'Action':
-                return {
-                    tag,
-                    key,
-                    src
                 }
             case 'Character':
                 return {

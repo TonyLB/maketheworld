@@ -24,7 +24,24 @@ export const healAsset = async ({ s3Client }, fileName) => {
         }
         const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
-        const { importTree, scopeMap: importedIds } = await importedAssetIds(asset.importMap || {})
+        const normalized = assetWorkspace.normalize()
+        const importMap = Object.values(normalized)
+            .filter(({ tag }) => (tag === 'Import'))
+            .reduce((previous, { mapping = {}, from }) => {
+                return {
+                    ...previous,
+                    ...(Object.entries(mapping)
+                        .reduce((previous, [key, scopedId]) => ({
+                            ...previous,
+                            [key]: {
+                                scopedId,
+                                asset: from
+                            }
+                        }), {})
+                    )
+                }
+            }, {})
+        const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
         const scopeMapContents = scopeMap(
             assetRegistryItems,
             {

@@ -359,6 +359,15 @@ describe('WML normalize', () => {
             tag: 'Asset',
             key: 'Test',
             contents: [{
+                tag: 'Import',
+                from: 'BASE',
+                mapping: {
+                    power: 'basePower'
+                },
+                contents: [],
+                props: {}
+            },
+            {
                 tag: 'Room',
                 key: '123',
                 name: 'Vortex',
@@ -390,6 +399,11 @@ describe('WML normalize', () => {
                 appearances: [{
                     contextStack: [],
                     contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    },
+                    {
                         key: '123',
                         tag: 'Room',
                         index: 0
@@ -414,6 +428,19 @@ describe('WML normalize', () => {
                         tag: 'Action',
                         index: 0
                     }]
+                }]
+            },
+            'Import-0': {
+                key: 'Import-0',
+                tag: 'Import',
+                from: 'BASE',
+                mapping: {
+                    power: 'basePower'
+                },
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: [],
+                    props: {}
                 }]
             },
             '123': {

@@ -25,7 +25,6 @@ describe('globalizeDBEntries', () => {
                 key: 'test',
                 tag: 'Asset',
                 fileName: 'test',
-                importMap: {},
                 appearances: [{
                     contextStack: [],
                     errors: [],
