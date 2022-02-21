@@ -394,7 +394,8 @@ describe('cacheAsset', () => {
                     powered: {
                         value: 'On'
                     }
-                }
+                },
+                Dependencies: {}
             }])
         parseWMLFile.mockResolvedValue(['Test'])
         globalizeDBEntries.mockResolvedValue({
@@ -473,6 +474,19 @@ describe('cacheAsset', () => {
                 }
             },
             Dependencies: {}
+        })
+        expect(ephemeraDB.update).toHaveBeenCalledWith({
+            EphemeraId: 'ASSET#BASE',
+            DataCategory: 'Meta::Asset',
+            UpdateExpression: 'SET Dependencies = :dependencies',
+            ExpressionAttributeValues: {
+                ':dependencies': {
+                    powered: [{
+                        asset: 'ABC',
+                        key: 'power'
+                    }]
+                }
+            }
         })
     })
 })
