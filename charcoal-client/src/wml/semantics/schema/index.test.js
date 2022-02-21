@@ -6,7 +6,8 @@ describe('WML semantic schema', () => {
         const match = wmlGrammar.match(`
             <Asset key=(Test) fileName="test">
                 <Import from=(BASE)>
-                    <Use key=(Import) />
+                    <Use key=(basePower) as=(power) />
+                    <Use key=(overview) />
                 </Import>
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
@@ -39,7 +40,8 @@ describe('WML semantic schema', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    Import: 'Import'
+                    power: 'basePower',
+                    overview: 'overview'
                 },
                 contents: [],
                 props: {}

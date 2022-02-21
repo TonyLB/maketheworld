@@ -371,4 +371,108 @@ describe('cacheAsset', () => {
             mergeFunction: expect.any(Function)
         })
     })
+
+    it('should fetch imported variables', async () => {
+        const topLevelAppearance = {
+            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
+            contents: [],
+            errors: [],
+            props: {}
+        }
+
+        const mockEvaluate = jest.fn().mockReturnValue(true)
+        evaluateCode.mockReturnValue(mockEvaluate)
+
+        assetDB.getItem
+            .mockResolvedValueOnce({ fileName: 'test' })
+        ephemeraDB.getItem
+            .mockResolvedValueOnce({ State: {} })
+        ephemeraDB.batchGetItem
+            .mockResolvedValueOnce([{
+                EphemeraId: 'ASSET#BASE',
+                State: {
+                    powered: {
+                        value: 'On'
+                    }
+                }
+            }])
+        parseWMLFile.mockResolvedValue(['Test'])
+        globalizeDBEntries.mockResolvedValue({
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    }]
+                }]
+            },
+            ['Import-0']: {
+                key: 'Import-0',
+                tag: 'Import',
+                from: 'BASE',
+                tag: 'Import',
+                mapping: {
+                    welcome: 'ABC',
+                    power: 'powered'
+                },
+                appearances: [topLevelAppearance]
+            }
+        })
+        recalculateComputes.mockReturnValue({ state: {
+            power: {
+                imported: true,
+                asset: 'BASE',
+                key: 'powered',
+                value: 'On'
+            }
+        } })
+
+        await cacheAsset('ABC')
+        expect(parseWMLFile).toHaveBeenCalledWith('test')
+        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(initializeRooms).toHaveBeenCalledWith([])
+        //
+        // TODO:  Figure out whether there's something important to store when a room
+        // is imported but not altered ... can the import just be a straight include?
+        //
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#ABC' },
+            items: [],
+            mergeFunction: expect.any(Function)
+        })
+        expect(recalculateComputes).toHaveBeenCalledWith(
+            {
+                power: {
+                    imported: true,
+                    asset: 'BASE',
+                    key: 'powered',
+                    value: 'On'
+                }
+            },
+            {},
+            ['power']
+        )
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#ABC",
+            DataCategory: "Meta::Asset",
+            Actions: {},
+            State: {
+                power: {
+                    imported: true,
+                    asset: 'BASE',
+                    key: 'powered',
+                    value: 'On'
+                }
+            },
+            Dependencies: {}
+        })
+    })
 })

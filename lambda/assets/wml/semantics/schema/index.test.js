@@ -7,6 +7,7 @@ describe('WML semantic schema', () => {
             <Asset key=(Test) fileName="test">
                 <Import from=(BASE)>
                     <Use key=(basePower) as=(power) />
+                    <Use key=(overview) />
                 </Import>
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
@@ -39,7 +40,8 @@ describe('WML semantic schema', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    power: 'basePower'
+                    power: 'basePower',
+                    overview: 'overview'
                 },
                 contents: [],
                 props: {}

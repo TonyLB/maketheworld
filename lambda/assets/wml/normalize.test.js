@@ -362,7 +362,8 @@ describe('WML normalize', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    power: 'basePower'
+                    power: 'basePower',
+                    overview: "overview"
                 },
                 contents: [],
                 props: {}
@@ -435,7 +436,8 @@ describe('WML normalize', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    power: 'basePower'
+                    power: 'basePower',
+                    overview: 'overview'
                 },
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
