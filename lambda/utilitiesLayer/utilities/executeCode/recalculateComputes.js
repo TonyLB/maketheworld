@@ -38,7 +38,9 @@ const dependencyCascade = (dependencies, recalculated) => {
 
 export const recalculateComputes = (state, dependencies, recalculated) => {
     const dependencyOrder = dependencyCascade(dependencies, recalculated)
-    const updatedState = dependencyOrder.reduce((previous, dependencyCheck) => {
+    const updatedState = dependencyOrder
+        .filter((dependencyCheck) => (!recalculated.includes(dependencyCheck)))
+        .reduce((previous, dependencyCheck) => {
         //
         // Because not every recalculation actually changes a value, the dependencyOrder
         // is only a suggestion for the order to check whether things *DO* have a need

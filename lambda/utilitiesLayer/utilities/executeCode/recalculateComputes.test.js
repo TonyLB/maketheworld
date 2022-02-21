@@ -37,11 +37,22 @@ describe('recalculateComputes', () => {
     it('should return unchanged on empty recalculated string', () => {
         expect(recalculateComputes(
             stateFactory(),
-            {},
+            testDependencies,
             []
         )).toEqual({
             state: stateFactory(),
             recalculated: []
+        })
+    })
+
+    it('should return unchanged when everything has already been recalculated', () => {
+        expect(recalculateComputes(
+            stateFactory({ power: false }),
+            testDependencies,
+            ['power', 'switchedOn', 'wobbly', 'lightsOn', 'lightsOff']
+        )).toEqual({
+            state: stateFactory({ power: false }),
+            recalculated: ['power', 'switchedOn', 'wobbly', 'lightsOn', 'lightsOff']
         })
     })
 
