@@ -5,7 +5,12 @@
   "description": "Utilities for MakeTheWorld Lambda functions",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.jsx?$": "$1"
+    }
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
@@ -15,5 +20,13 @@
     "@aws-sdk/client-dynamodb": "^3.49.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
     "immer": "^9.0.12"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
+    "babel-jest": "^27.5.1",
+    "babel-plugin-transform-import-meta": "^2.1.1",
+    "jest": "^27.5.1"
   }
 }
