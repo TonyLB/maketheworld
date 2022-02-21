@@ -1,3 +1,4 @@
+import { produce } from 'immer'
 
 import {
     assetDB,
@@ -213,36 +214,63 @@ export const cacheAsset = async (assetId) => {
                 EphemeraId: `ASSET#${AssetId}`,
                 DataCategory: 'Meta::Asset'
             })),
-        ProjectionFields: ['#state', 'EphemeraId'],
+        ProjectionFields: ['#state', 'Dependencies', 'EphemeraId'],
         ExpressionAttributeNames: {
             '#state': 'State'
         }
     })
 
     const importStateByAsset = (importAssetStates || [])
-        .reduce((previous, { State: state, EphemeraId }) => {
+        .reduce((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
             const assetId = splitType(EphemeraId)[1]
             if (assetId) {
                 return {
                     ...previous,
-                    [assetId]: state
+                    [assetId]: {
+                        state,
+                        dependencies
+                    }
                 }
             }
             return previous
         }, {})
 
+    const updateAssetDependencies = produce(importStateByAsset, (draft) => {
+        Object.values(secondPassNormal)
+            .filter(({ tag }) => (tag === 'Import'))
+            .filter(({ from }) => (from in importStateByAsset))
+            .forEach(({ from, mapping }) => {
+                if (draft[from]) {
+                    if (!draft[from].dependencies) {
+                        draft[from].dependencies = {}
+                    }
+                    Object.entries(mapping).forEach(([localKey, awayKey]) => {
+                        if (awayKey in importStateByAsset[from].state) {
+                            draft[from].dependencies[awayKey] = [
+                                ...((draft[from].dependencies[awayKey] || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
+                                {
+                                    asset: assetId,
+                                    key: localKey
+                                }
+                            ]
+                        }
+                    })
+                }
+            })
+    })
+
     const importState = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Import'))
         .reduce((previous, { from, mapping }) => {
             return Object.entries(mapping)
-                .filter(([_, awayKey]) => (awayKey in importStateByAsset[from]))
+                .filter(([_, awayKey]) => (awayKey in importStateByAsset[from].state))
                 .reduce((accumulator, [localKey, awayKey]) => ({
                     ...accumulator,
                     [localKey]: {
                         imported: true,
                         asset: from,
                         key: awayKey,
-                        value: importStateByAsset[from]?.[awayKey]?.value
+                        value: importStateByAsset[from]?.state?.[awayKey]?.value
                     }
                 }), previous)
         }, variableState)
@@ -275,10 +303,24 @@ export const cacheAsset = async (assetId) => {
                 src
             }
         }), {})
-    await pushMetaData(
-        assetId,
-        state,
-        dependencies,
-        actions
-    )
+    await Promise.all([
+        pushMetaData(
+            assetId,
+            state,
+            dependencies,
+            actions
+        ),
+        ...(Object.entries(updateAssetDependencies)
+            .map(([AssetId, { dependencies }]) => (
+                ephemeraDB.update({
+                    EphemeraId: `ASSET#${AssetId}`,
+                    DataCategory: 'Meta::Asset',
+                    UpdateExpression: 'SET Dependencies = :dependencies',
+                    ExpressionAttributeValues: {
+                        ':dependencies': dependencies
+                    }
+                })
+            ))
+        )
+    ])
 }
