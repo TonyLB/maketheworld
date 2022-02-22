@@ -1,7 +1,7 @@
 import { jest, describe, expect, it } from '@jest/globals'
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { splitType } from '../types.js'
+import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets.js'
 
 import dependencyCascade from './dependencyCascade.js'
 
@@ -12,124 +12,11 @@ import dependencyCascade from './dependencyCascade.js'
 // be mocked.
 //
 describe('dependencyCascade', () => {
-    const testAssetsFactory = ({
-        foo = true,
-        antiFoo = false,
-        layerAFoo = true,
-        bar = true,
-        antiBar = false,
-        fooBar = true,
-        layerBFoo = true,
-        baz = true,
-        antiBaz = false,
-        fooBaz = true,
-    } = {}) => ({
-        BASE: {
-            State: {
-                foo: { value: foo },
-                antiFoo: { computed: true, src: '!foo', value: antiFoo }
-            },
-            Dependencies: {
-                foo: {
-                    computed: ['antiFoo'],
-                    imported: [{
-                        asset: 'LayerA',
-                        key: 'foo'
-                    },
-                    {
-                        asset: 'LayerB',
-                        key: 'foo'
-                    }]
-                }
-            },
-            importTree: {}
-        },
-        LayerA: {
-            State: {
-                bar: { value: bar },
-                foo: { imported: true, value: layerAFoo, asset: 'BASE', key: 'foo' },
-                antiBar: { computed: true, src: '!bar', value: antiBar },
-                fooBar: { computed: true, src: 'foo && bar', value: fooBar }
-            },
-            Dependencies: {
-                bar: {
-                    computed: ['antiBar', 'fooBar']
-                },
-                foo: {
-                    computed: ['fooBar']
-                },
-                fooBar: {
-                    imported: [{
-                        asset: 'MixLayerA',
-                        key: 'fooBar'
-                    }]
-                }
-            },
-            importTree: {
-                BASE: {},
-                Irrelevant: {}
-            }
-        },
-        LayerB: {
-            State: {
-                baz: { value: baz },
-                foo: { imported: true, value: layerBFoo, asset: 'BASE', key: 'foo' },
-                antiBaz: { computed: true, src: '!baz', value: antiBaz },
-                fooBaz: { computed: true, src: 'foo || baz', value: fooBaz }
-            },
-            Dependencies: {
-                bar: {
-                    computed: ['antiBaz', 'fooBaz']
-                },
-                foo: {
-                    computed: ['fooBaz']
-                },
-                fooBaz: {
-                    imported: [{
-                        asset: 'MixLayerB',
-                        key: 'fooBaz'
-                    }]
-                }
-            },
-            importTree: {
-                BASE: {}
-            }
-        },
-        MixLayerA: {
-            State: {
-                fooBar: { imported: true, value: fooBar, asset: 'LayerA', key: 'fooBar' }
-            },
-            Dependencies: {},
-            importTree: {
-                LayerA: {
-                    BASE: {},
-                    Irrelevant: {}
-                }
-            }
-        },
-        MixLayerB: {
-            State: {
-                fooBaz: { imported: true, value: fooBaz, asset: 'LayerB', key: 'fooBaz' }
-            },
-            Dependencies: {},
-            ImportTree: {
-                LayerB: { BASE: {} }
-            }
-        }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.restoreAllMocks()
     })
-
-    const resultStateFactory = ({ exclude, ...props }) => (
-        Object.entries(testAssetsFactory(props))
-            .filter(([key]) => (!(exclude.includes(key))))
-            .reduce((previous, [key, { State }]) => ({ ...previous, [key]: State }), {})
-    )
-
-    const testMockImplementation = (testAssets) => ({ Items }) => {
-        return Items.map(({ EphemeraId }) => ({
-            EphemeraId,
-            ...testAssets[splitType(EphemeraId)[1]]
-        }))
-    }
 
     it('should return unchanged state on empty recalculate seed', async () => {
         const testAssets = testAssetsFactory()
