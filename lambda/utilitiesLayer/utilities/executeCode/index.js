@@ -1,11 +1,11 @@
 import { executeCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { updateRooms } from './updateRooms.js'
-import { recalculateComputes } from './recalculateComputes.js'
+import dependencyCascade from './dependencyCascade.js'
 
-export const executeInAsset = (AssetId) => async (src) => {
+export const executeInAsset = (assetId) => async (src) => {
     const { State: state = {}, Dependencies: dependencies = {}, importMap = {} } = await ephemeraDB.getItem({
-        EphemeraId: AssetId,
+        EphemeraId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['#state', 'Dependencies', 'importMap'],
         ExpressionAttributeNames: {
@@ -21,25 +21,37 @@ export const executeInAsset = (AssetId) => async (src) => {
             value
         }
     }), state)
-    const { state: newState, recalculated } = recalculateComputes(updatedState, dependencies, changedKeys)
+    const { states: newStates, recalculated } = await dependencyCascade(
+        { [assetId]: updatedState },
+        { [assetId]: dependencies },
+        { [assetId]: changedKeys }
+    )
 
-    await Promise.all([
-        ephemeraDB.update({
-            EphemeraId: AssetId,
-            DataCategory: 'Meta::Asset',
-            UpdateExpression: 'SET #state = :state',
-            ExpressionAttributeNames: {
-                '#state': 'State'
-            },
-            ExpressionAttributeValues: {
-                ':state': newState
-            }
-        })
-    ])
-    const roomsToCheck = [...(new Set(recalculated.reduce((previous, key) => ([
-        ...previous,
-        ...(dependencies[key]?.room || [])
-    ]), [])))]
+    await Promise.all(Object.entries(newStates)
+        .map(([key, newState]) => (
+            ephemeraDB.update({
+                EphemeraId: `ASSET#${key}`,
+                DataCategory: 'Meta::Asset',
+                UpdateExpression: 'SET #state = :state',
+                ExpressionAttributeNames: {
+                    '#state': 'State'
+                },
+                ExpressionAttributeValues: {
+                    ':state': newState.State
+                }
+            })    
+        ))
+    )
+    const recalculatedToRooms = ([asset, keys]) => (
+        keys
+            .map((key) => (newStates[asset]?.dependencies?.room || []))
+            .reduce((previous, keys) => ([ ...previous, ...keys ]), [])
+    )
+    const roomsToCheck = [...(new Set(
+        Object.entries(recalculated)
+            .map(recalculatedToRooms)
+            .reduce((previous, rooms) => ([ ...previous, ...rooms ]), [])
+    ))]
     await Promise.all([
         updateRooms(roomsToCheck)
     ])
@@ -55,6 +67,6 @@ export const executeAction = async ({ action, assetId }) => {
     })
     const { src = '' } = actions[action] || {}
     if (src) {
-        await executeInAsset(`ASSET#${assetId}`)(src)
+        await executeInAsset(assetId)(src)
     }
 }

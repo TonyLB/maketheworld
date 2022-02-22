@@ -4,7 +4,9 @@ jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
 jest.mock('./updateRooms.js')
 import { updateRooms } from './updateRooms.js'
-import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets.js'
+jest.mock('./dependencyCascade.js')
+import dependencyCascade from './dependencyCascade.js'
+import { testAssetsFactory, testMockImplementation } from './testAssets.js'
 
 import { executeInAsset } from './index.js'
 
@@ -17,8 +19,13 @@ describe('executeInAsset', () => {
     it('should post no changes on an empty change list', async () => {
         const testAssets = testAssetsFactory()
         ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
-        const output = await executeInAsset('ASSET#BASE')('return foo')
+        dependencyCascade.mockResolvedValue({
+            states: { BASE: testAssets.BASE },
+            recalculated: { BASE: [] }
+        })
+        const output = await executeInAsset('BASE')('return foo')
         expect(output).toBe(true)
+        expect(dependencyCascade).not.toHaveBeenCalled
         expect(ephemeraDB.batchGetItem).not.toHaveBeenCalled
         expect(ephemeraDB.update).toHaveBeenCalledTimes(1)
         expect(ephemeraDB.update).toHaveBeenCalledWith({
