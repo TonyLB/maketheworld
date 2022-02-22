@@ -41,7 +41,8 @@ describe('dependencyCascade', () => {
                         key: 'foo'
                     }]
                 }
-            }
+            },
+            importTree: {}
         },
         LayerA: {
             State: {
@@ -56,7 +57,17 @@ describe('dependencyCascade', () => {
                 },
                 foo: {
                     computed: ['fooBar']
+                },
+                fooBar: {
+                    imported: [{
+                        asset: 'MixLayerA',
+                        key: 'fooBar'
+                    }]
                 }
+            },
+            importTree: {
+                BASE: {},
+                Irrelevant: {}
             }
         },
         LayerB: {
@@ -72,36 +83,111 @@ describe('dependencyCascade', () => {
                 },
                 foo: {
                     computed: ['fooBaz']
+                },
+                fooBaz: {
+                    imported: [{
+                        asset: 'MixLayerB',
+                        key: 'fooBaz'
+                    }]
                 }
+            },
+            importTree: {
+                BASE: {}
             }
         },
         MixLayerA: {
             State: {
                 fooBar: { imported: true, value: fooBar, asset: 'LayerA', key: 'fooBar' }
             },
-            Dependencies: {}
+            Dependencies: {},
+            importTree: {
+                LayerA: {
+                    BASE: {},
+                    Irrelevant: {}
+                }
+            }
         },
         MixLayerB: {
             State: {
                 fooBaz: { imported: true, value: fooBaz, asset: 'LayerB', key: 'fooBaz' }
             },
-            Dependencies: {}
+            Dependencies: {},
+            ImportTree: {
+                LayerB: { BASE: {} }
+            }
         }
     })
 
+    const resultStateFactory = ({ exclude, ...props }) => (
+        Object.entries(testAssetsFactory(props))
+            .filter(([key]) => (!(exclude.includes(key))))
+            .reduce((previous, [key, { State }]) => ({ ...previous, [key]: State }), {})
+    )
+
     const testMockImplementation = (testAssets) => ({ Items }) => {
-        return Items.map(({ EphemeraId }) => (testAssets[splitType(EphemeraId)[1]]))
+        return Items.map(({ EphemeraId }) => ({
+            EphemeraId,
+            ...testAssets[splitType(EphemeraId)[1]]
+        }))
     }
 
-    xit('should return unchanged state on empty recalculate seed', () => {
+    it('should return unchanged state on empty recalculate seed', async () => {
         const testAssets = testAssetsFactory()
         ephemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
-        expect(dependencyCascade(
+        const output = await dependencyCascade(
             { BASE: testAssets.BASE },
             { BASE: [] }
-        )).toEqual({
-            states: { BASE: testAssets.BASE },
-            recalculate: { BASE: [] }
+        )
+        expect(output).toEqual({
+            states: { BASE: testAssets.BASE.State },
+            recalculated: { BASE: [] }
         })
     })
+
+    it('should update an end-to-end cascade', async () => {
+        const testAssets = testAssetsFactory({ foo: false })
+        ephemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
+        const output = await dependencyCascade(
+            { BASE: testAssets.BASE },
+            { BASE: ['foo'] }
+        )
+        expect(output).toEqual({
+            states: resultStateFactory({
+                foo: false,
+                antiFoo: true,
+                layerAFoo: false,
+                layerBFoo: false,
+                fooBar: false,
+                exclude: ['MixLayerB']
+            }),
+            recalculated: {
+                BASE: ['foo', 'antiFoo'],
+                LayerA: ['foo', 'fooBar'],
+                LayerB: ['foo'],
+                MixLayerA: ['fooBar']
+            }
+        })
+    })
+
+    it('should update a partial cascade', async () => {
+        const testAssets = testAssetsFactory({ bar: false })
+        ephemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
+        const output = await dependencyCascade(
+            { LayerA: testAssets.LayerA },
+            { LayerA: ['bar'] }
+        )
+        expect(output).toEqual({
+            states: resultStateFactory({
+                bar: false,
+                antiBar: true,
+                fooBar: false,
+                exclude: ['BASE', 'LayerB', 'MixLayerB']
+            }),
+            recalculated: {
+                LayerA: ['bar', 'antiBar', 'fooBar'],
+                MixLayerA: ['fooBar']
+            }
+        })
+    })
+
 })

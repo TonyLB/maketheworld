@@ -4,10 +4,10 @@ import { updateRooms } from './updateRooms.js'
 import { recalculateComputes } from './recalculateComputes.js'
 
 export const executeInAsset = (AssetId) => async (src) => {
-    const { State: state = {}, Dependencies: dependencies = {} } = await ephemeraDB.getItem({
+    const { State: state = {}, Dependencies: dependencies = {}, importMap = {} } = await ephemeraDB.getItem({
         EphemeraId: AssetId,
         DataCategory: 'Meta::Asset',
-        ProjectionFields: ['#state', 'Dependencies'],
+        ProjectionFields: ['#state', 'Dependencies', 'importMap'],
         ExpressionAttributeNames: {
             '#state': 'State'
         }

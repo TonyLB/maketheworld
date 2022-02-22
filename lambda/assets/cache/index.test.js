@@ -488,10 +488,12 @@ describe('cacheAsset', () => {
             UpdateExpression: 'SET Dependencies = :dependencies',
             ExpressionAttributeValues: {
                 ':dependencies': {
-                    powered: [{
-                        asset: 'ABC',
-                        key: 'power'
-                    }]
+                    powered: {
+                        imported: [{
+                            asset: 'ABC',
+                            key: 'power'
+                        }]
+                    }
                 }
             }
         })

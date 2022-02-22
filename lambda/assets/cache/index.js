@@ -247,8 +247,14 @@ export const cacheAsset = async (assetId) => {
                     }
                     Object.entries(mapping).forEach(([localKey, awayKey]) => {
                         if (awayKey in importStateByAsset[from].state) {
-                            draft[from].dependencies[awayKey] = [
-                                ...((draft[from].dependencies[awayKey] || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
+                            if (!(awayKey in draft[from].dependencies)) {
+                                draft[from].dependencies[awayKey] = {}
+                            }
+                            if (!('imported' in draft[from].dependencies[awayKey])) {
+                                draft[from].dependencies[awayKey].imported = []
+                            }
+                            draft[from].dependencies[awayKey].imported = [
+                                ...((draft[from].dependencies[awayKey].computed || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
                                 {
                                     asset: assetId,
                                     key: localKey
