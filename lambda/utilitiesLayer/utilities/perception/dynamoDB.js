@@ -12,6 +12,15 @@ export const getRoomMeta = async (rooms) => {
     return Object.assign({}, ...allRooms)
 }
 
+export const getGlobalAssets = async () => {
+    const { assets = [] } = await ephemeraDB.getItem({
+        EphemeraId: 'Global',
+        DataCategory: 'Assets',
+        ProjectionFields: ['assets']
+    })
+    return assets
+}
+
 export const getCharacterAssets = async (characters) => {
     const getSingleCharacterAssets = async (characterId) => {
         const { assets = [] } = await ephemeraDB.getItem({

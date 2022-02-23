@@ -1,10 +1,7 @@
 import { jest, describe, expect, it } from '@jest/globals'
 
 jest.mock('./dynamoDB.js')
-import { getCharacterAssets, getRoomMeta, getStateByAsset } from './dynamoDB.js'
-
-jest.mock('../dynamoDB/index.js')
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { getCharacterAssets, getRoomMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
 
 import { resultStateFactory, testMockImplementation } from '../executeCode/testAssets.js'
 
@@ -19,18 +16,14 @@ describe('dependencyCascade', () => {
     })
 
     it('should return empty on an empty list', async () => {
-        ephemeraDB.getItem.mockResolvedValue({
-            assets: []
-        })
+        getGlobalAssets.mockResolvedValue([])
         const output = await render([])
         expect(output).toEqual([])
     })
 
     it('should render with no provided state data', async () => {
         const testAssets = resultStateFactory()
-        ephemeraDB.getItem.mockResolvedValue({
-            assets: ['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB']
-        })
+        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({ ...previous, [asset]: testAssets[asset] || {} }), {})
         })
@@ -69,9 +62,7 @@ describe('dependencyCascade', () => {
 
     it('should render with provided state data', async () => {
         const testAssets = resultStateFactory()
-        ephemeraDB.getItem.mockResolvedValue({
-            assets: ['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB']
-        })
+        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getRoomMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
@@ -108,9 +99,7 @@ describe('dependencyCascade', () => {
 
     it('should render fetch data only where needed', async () => {
         const testAssets = resultStateFactory()
-        ephemeraDB.getItem.mockResolvedValue({
-            assets: ['BASE']
-        })
+        getGlobalAssets.mockResolvedValue(['BASE'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({ ...previous, [asset]: testAssets[asset] || {} }), {})
         })

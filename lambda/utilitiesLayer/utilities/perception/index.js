@@ -1,8 +1,7 @@
 import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
-import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
 
-import { getCharacterAssets, getRoomMeta, getStateByAsset } from './dynamoDB.js'
+import { getCharacterAssets, getRoomMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
 
 const evaluateConditionalList = (asset, list = [], state) => {
     if (list.length > 0) {
@@ -24,15 +23,11 @@ export const renderItems = async (renderList, existingStatesByAsset = {}) => {
     const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
 
     const [
-        { assets: globalAssets = [] } = {},
+        globalAssets = [],
         roomMetaData = {},
         characterAssets = {}
     ] = await Promise.all([
-        ephemeraDB.getItem({
-            EphemeraId: 'Global',
-            DataCategory: 'Assets',
-            ProjectionFields: ['assets']
-        }),
+        getGlobalAssets(),
         getRoomMeta(roomsToRender),
         getCharacterAssets(charactersToRenderFor)
     ])

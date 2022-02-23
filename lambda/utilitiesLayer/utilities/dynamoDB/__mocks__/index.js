@@ -14,3 +14,5 @@ export const ephemeraDB = dbMock()
 
 export const mergeIntoDataRange = jest.fn()
 export const batchWriteDispatcher = jest.fn()
+
+export const publishMessage = jest.fn()
