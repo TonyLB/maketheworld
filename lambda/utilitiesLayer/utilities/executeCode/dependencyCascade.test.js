@@ -1,7 +1,7 @@
 import { jest, describe, expect, it } from '@jest/globals'
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets.js'
+import { testAssetsFactory, testMockImplementation } from './testAssets.js'
 
 import dependencyCascade from './dependencyCascade.js'
 
@@ -26,7 +26,7 @@ describe('dependencyCascade', () => {
             { BASE: [] }
         )
         expect(output).toEqual({
-            states: { BASE: testAssets.BASE.State },
+            states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
     })
@@ -39,7 +39,7 @@ describe('dependencyCascade', () => {
             { BASE: ['foo'] }
         )
         expect(output).toEqual({
-            states: resultStateFactory({
+            states: testAssetsFactory({
                 foo: false,
                 antiFoo: true,
                 layerAFoo: false,
@@ -64,7 +64,7 @@ describe('dependencyCascade', () => {
             { LayerA: ['bar'] }
         )
         expect(output).toEqual({
-            states: resultStateFactory({
+            states: testAssetsFactory({
                 bar: false,
                 antiBar: true,
                 fooBar: false,

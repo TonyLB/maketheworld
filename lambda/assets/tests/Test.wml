@@ -1,8 +1,10 @@
 <Asset key=(TEST) fileName="wmlTest" zone="Canon">
     <Variable key=(power) default={true} />
+    <Action key=(togglePower) src={power = !power} />
     <Layer key=(123)>
         <Room key=(345)>
             Hello, world!
+            <Link key=(powerSwitch) to=(togglePower)>power</Link>
             <Name>Welcome Area</Name>
             <Exit to=(VORTEX)>vortex</Exit>
             <Exit from=(VORTEX)>welcome</Exit>

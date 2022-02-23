@@ -52,7 +52,7 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
                         EphemeraId: `ASSET#${asset}`,
                         DataCategory: 'Meta::Asset'
                     })),
-                ProjectionFields: ['EphemeraId', '#state', 'Dependencies', 'importMap'],
+                ProjectionFields: ['EphemeraId', '#state', 'Dependencies', 'importTree'],
                 ExpressionAttributeNames: {
                     '#state': 'State'
                 }
@@ -84,8 +84,7 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
     }
     else {
         return {
-            states: Object.entries(assetsMeta)
-                .reduce((previous, [key, { State }]) => ({ ...previous, [key]: State }), {}),
+            states: assetsMeta,
             recalculated: Object.entries(assetValuesChanged)
                 .reduce((previous, [assetId, keys]) => ({
                     ...previous,

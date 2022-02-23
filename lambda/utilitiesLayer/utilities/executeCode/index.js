@@ -4,10 +4,10 @@ import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
 
 export const executeInAsset = (assetId) => async (src) => {
-    const { State: state = {}, Dependencies: dependencies = {}, importMap = {} } = await ephemeraDB.getItem({
+    const { State: state = {}, Dependencies: dependencies = {}, importTree = {} } = await ephemeraDB.getItem({
         EphemeraId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
-        ProjectionFields: ['#state', 'Dependencies', 'importMap'],
+        ProjectionFields: ['#state', 'Dependencies', 'importTree'],
         ExpressionAttributeNames: {
             '#state': 'State'
         }
@@ -21,10 +21,17 @@ export const executeInAsset = (assetId) => async (src) => {
             value
         }
     }), state)
+
     const { states: newStates, recalculated } = await dependencyCascade(
-        { [assetId]: updatedState },
-        { [assetId]: dependencies },
-        { [assetId]: changedKeys }
+        {
+            [assetId]: {
+                State: updatedState,
+                Dependencies: dependencies,
+                importTree
+            }
+        },
+        { [assetId]: changedKeys },
+        []
     )
 
     await Promise.all(Object.entries(newStates)
@@ -44,7 +51,7 @@ export const executeInAsset = (assetId) => async (src) => {
     )
     const recalculatedToRooms = ([asset, keys]) => (
         keys
-            .map((key) => (newStates[asset]?.dependencies?.room || []))
+            .map((key) => (newStates[asset]?.Dependencies?.[key]?.room || []))
             .reduce((previous, keys) => ([ ...previous, ...keys ]), [])
     )
     const roomsToCheck = [...(new Set(
