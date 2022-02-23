@@ -2,6 +2,8 @@ import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types.js'
 
+import { getCharacterAssets, getRoomMeta, getStateByAsset } from './dynamoDB.js'
+
 const evaluateConditionalList = (asset, list = [], state) => {
     if (list.length > 0) {
         const [first, ...rest] = list
@@ -17,48 +19,7 @@ const evaluateConditionalList = (asset, list = [], state) => {
     return true
 }
 
-const getRoomMeta = async (rooms) => {
-    const getSingleRoomMeta = async (EphemeraId) => {
-        const roomItems = await ephemeraDB.query({
-            EphemeraId,
-            ProjectionFields: ['DataCategory', 'appearances'],
-        })
-        return { [EphemeraId]: roomItems }
-    }
-    const allRooms = await Promise.all(rooms.map(getSingleRoomMeta))
-    return Object.assign({}, ...allRooms)
-}
-
-const getCharacterAssets = async (characters) => {
-    const getSingleCharacterAssets = async (characterId) => {
-        const { assets = [] } = await ephemeraDB.getItem({
-            EphemeraId: `CHARACTERINPLAY#${characterId}`,
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
-        })
-        return { [characterId]: assets }
-    }
-    const allCharacters = await Promise.all(characters.map(getSingleCharacterAssets))
-    return Object.assign({}, ...allCharacters)
-}
-
-const getStateByAsset = async (assets) => {
-    const getSingleState = async (assetId) => {
-        const { State = {} } = await ephemeraDB.getItem({
-            EphemeraId: `ASSET#${assetId}`,
-            DataCategory: 'Meta::Asset',
-            ProjectionFields: ['#state'],
-            ExpressionAttributeNames: {
-                '#state': 'State'
-            }
-        })
-        return { [assetId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) }
-    }
-    const allStates = await Promise.all(assets.map(getSingleState))
-    return Object.assign({}, ...allStates)
-}
-
-export const renderItems = async (renderList) => {
+export const renderItems = async (renderList, existingStatesByAsset = {}) => {
     const roomsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
     const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
 
@@ -75,11 +36,23 @@ export const renderItems = async (renderList) => {
         getRoomMeta(roomsToRender),
         getCharacterAssets(charactersToRenderFor)
     ])
-    const allAssets = [...(new Set([
-        ...globalAssets,
-        ...(Object.values(characterAssets).reduce((previous, list) => ([ ...previous, ...list ]), []))
-    ]))]
-    const assetStateById = await getStateByAsset(allAssets)
+    
+    //
+    // Parse through the room/character combinations, and deduce the asset states that will be
+    // needed during the course of rendering them all, less the ones we were already passed
+    // in existingStatesByAsset
+    //
+    const allAssets = renderList.reduce((previous, { EphemeraId, CharacterId }) => ([
+            ...previous,
+            ...(roomMetaData[EphemeraId]
+                .map(({ DataCategory }) => (splitType(DataCategory)[1]))
+                .filter((value) => ([...globalAssets, ...(characterAssets[CharacterId])].includes(value)))
+            )
+        ]), [])
+        .filter((asset) => (!(asset in existingStatesByAsset)))
+    const deduplicatedAssetList = [...(new Set(allAssets))]
+    const fetchedAssetStateById = await getStateByAsset(deduplicatedAssetList)
+    const assetStateById = { ...existingStatesByAsset, ...fetchedAssetStateById }
 
     clearMemoSpace()
 
@@ -155,8 +128,8 @@ export const renderItems = async (renderList) => {
     })
 }
 
-export const render = async (renderList) => {
-    const renderedOutput = await renderItems(renderList)
+export const render = async (renderList, existingStatesByAsset = {}) => {
+    const renderedOutput = await renderItems(renderList, existingStatesByAsset)
     return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
         switch(objectType) {
@@ -184,4 +157,3 @@ export const render = async (renderList) => {
         }
     })
 }
-
