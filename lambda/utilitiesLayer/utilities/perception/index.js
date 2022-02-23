@@ -111,7 +111,25 @@ export const renderItems = async (renderList) => {
                         return appearances
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce(({ render: previousRender, name: previousName, exits: previousExits }, { render, name, exits }) => ({
-                                render: [ ...previousRender, ...(render || []) ],
+                                render: [
+                                    ...previousRender,
+                                    ...(
+                                        (render || [])
+                                            .map((value) => {
+                                                if (typeof value === 'object') {
+                                                    if (value.tag === 'Link') {
+                                                        const { to, ...rest } = value
+                                                        return {
+                                                            ...rest,
+                                                            toAssetId: splitType(AssetId)[1],
+                                                            toAction: to
+                                                        }
+                                                    }
+                                                }
+                                                return value
+                                            })
+                                    )
+                                ],
                                 name: [ ...previousName, ...(name || []) ],
                                 exits: [ ...previousExits, ...(exits || []) ],
                             }), previous)

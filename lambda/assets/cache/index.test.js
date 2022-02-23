@@ -12,7 +12,7 @@ import globalizeDBEntries from './globalize.js'
 jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
 import { mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
-import { recalculateComputes } from '/opt/utilities/executeCode/index.js'
+import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 
 import { cacheAsset } from './index.js'
@@ -34,7 +34,10 @@ describe('cacheAsset', () => {
         evaluateCode.mockReturnValue(mockEvaluate)
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test' })
+            .mockResolvedValueOnce({
+                fileName: 'test',
+                importTree: { BASE: {} }
+            })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
@@ -239,6 +242,9 @@ describe('cacheAsset', () => {
                 switchedOn: {
                     computed: ['active']
                 }
+            },
+            importTree: {
+                BASE: {}
             }
         })
     })
@@ -255,7 +261,7 @@ describe('cacheAsset', () => {
         evaluateCode.mockReturnValue(mockEvaluate)
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test' })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
@@ -384,7 +390,7 @@ describe('cacheAsset', () => {
         evaluateCode.mockReturnValue(mockEvaluate)
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test' })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         ephemeraDB.batchGetItem
@@ -473,7 +479,8 @@ describe('cacheAsset', () => {
                     value: 'On'
                 }
             },
-            Dependencies: {}
+            Dependencies: {},
+            importTree: {}
         })
         expect(ephemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',
@@ -481,10 +488,12 @@ describe('cacheAsset', () => {
             UpdateExpression: 'SET Dependencies = :dependencies',
             ExpressionAttributeValues: {
                 ':dependencies': {
-                    powered: [{
-                        asset: 'ABC',
-                        key: 'power'
-                    }]
+                    powered: {
+                        imported: [{
+                            asset: 'ABC',
+                            key: 'power'
+                        }]
+                    }
                 }
             }
         })

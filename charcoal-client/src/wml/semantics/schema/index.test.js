@@ -12,6 +12,7 @@ describe('WML semantic schema', () => {
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
                     Vortex
+                    <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
                     <Exit from=(DEF)>vortex</Exit>
                 </Room>
                 <Condition if={open}>
@@ -51,7 +52,17 @@ describe('WML semantic schema', () => {
                 tag: 'Room',
                 name: 'Vortex',
                 global: false,
-                render: ['Vortex '],
+                render: [
+                    'Vortex ',
+                    {
+                        tag: 'Link',
+                        key: 'switchToggle',
+                        text: '(toggle)',
+                        to: 'toggleOpen',
+                        props: {},
+                        contents: []
+                    }
+                ],
                 props: {},
                 contents: [{
                     tag: 'Exit',
