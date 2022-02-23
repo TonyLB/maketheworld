@@ -18,7 +18,7 @@ const evaluateConditionalList = (asset, list = [], state) => {
     return true
 }
 
-export const renderItems = async (renderList, existingStatesByAsset = {}) => {
+export const renderItems = async (renderList, existingStatesByAsset = {}, priorAssetLists = {}) => {
     const roomsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
     const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
 
@@ -27,9 +27,9 @@ export const renderItems = async (renderList, existingStatesByAsset = {}) => {
         roomMetaData = {},
         characterAssets = {}
     ] = await Promise.all([
-        getGlobalAssets(),
+        getGlobalAssets(priorAssetLists.global),
         getRoomMeta(roomsToRender),
-        getCharacterAssets(charactersToRenderFor)
+        getCharacterAssets(charactersToRenderFor, priorAssetLists.characters)
     ])
     
     //

@@ -12,7 +12,10 @@ export const getRoomMeta = async (rooms) => {
     return Object.assign({}, ...allRooms)
 }
 
-export const getGlobalAssets = async () => {
+export const getGlobalAssets = async (priorGlobalAssets) => {
+    if (priorGlobalAssets !== undefined) {
+        return priorGlobalAssets
+    }
     const { assets = [] } = await ephemeraDB.getItem({
         EphemeraId: 'Global',
         DataCategory: 'Assets',
@@ -21,7 +24,7 @@ export const getGlobalAssets = async () => {
     return assets
 }
 
-export const getCharacterAssets = async (characters) => {
+export const getCharacterAssets = async (characters, priorCharacterAssets = {}) => {
     const getSingleCharacterAssets = async (characterId) => {
         const { assets = [] } = await ephemeraDB.getItem({
             EphemeraId: `CHARACTERINPLAY#${characterId}`,
@@ -30,8 +33,12 @@ export const getCharacterAssets = async (characters) => {
         })
         return { [characterId]: assets }
     }
-    const allCharacters = await Promise.all(characters.map(getSingleCharacterAssets))
-    return Object.assign({}, ...allCharacters)
+    const neededCharacters = await Promise.all(
+        characters
+            .filter((character) => (!(character in priorCharacterAssets)))
+            .map(getSingleCharacterAssets)
+    )
+    return Object.assign(priorCharacterAssets, ...neededCharacters)
 }
 
 export const getStateByAsset = async (assets) => {

@@ -97,7 +97,7 @@ describe('dependencyCascade', () => {
 
     })
 
-    it('should render fetch data only where needed', async () => {
+    it('should fetch state data only where needed', async () => {
         const testAssets = resultStateFactory()
         getGlobalAssets.mockResolvedValue(['BASE'])
         getStateByAsset.mockImplementation(async (assets) => {
@@ -151,6 +151,92 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#TUV',
             CharacterId: 'QRS'
         }], { BASE: testAssets.BASE })
+        expect(output).toEqual([{
+            Ancestry: '',
+            CharacterId: 'XYZ',
+            Characters: [],
+            Description: ['Test One. '],
+            EphemeraId: 'ROOM#MNO',
+            RoomId: 'MNO',
+            Name: "",
+            Exits: []
+        },
+        {
+            Ancestry: '',
+            CharacterId: 'QRS',
+            Characters: [],
+            Description: ['Test Two. '],
+            EphemeraId: 'ROOM#TUV',
+            RoomId: 'TUV',
+            Name: "",
+            Exits: []
+        }])
+
+        expect(getStateByAsset).toHaveBeenCalledWith(['LayerB'])
+
+    })
+
+    xit('should fetch assetList data only where needed', async () => {
+        const testAssets = resultStateFactory()
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getRoomMeta.mockResolvedValue({
+            ['ROOM#MNO']: [
+                {
+                    DataCategory: 'ASSET#BASE',
+                    appearances: [{
+                        conditions: [{
+                            if: 'foo',
+                            dependencies: ['foo']
+                        }],
+                        render: ['Test One. '],
+                        exits: []
+                    }]
+                }
+            ],
+            ['ROOM#TUV']: [
+                {
+                    DataCategory: 'ASSET#LayerB',
+                    appearances: [{
+                        conditions: [{
+                            if: 'baz',
+                            dependencies: ['baz']
+                        }],
+                        render: ['Test Two. '],
+                        exits: []
+                    }]
+                },
+                {
+                    DataCategory: 'ASSET#LayerA',
+                    appearances: [{
+                        conditions: [{
+                            if: 'bar',
+                            dependencies: ['bar']
+                        }],
+                        render: ['Test Three. '],
+                        exits: []
+                    }]
+                }
+            ]
+        })
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getCharacterAssets.mockResolvedValue({ QRS: ['LayerB'], XYZ: ['LayerA'] })
+        const output = await render(
+            [{
+                EphemeraId: 'ROOM#MNO',
+                CharacterId: 'XYZ'
+            },
+            {
+                EphemeraId: 'ROOM#TUV',
+                CharacterId: 'QRS'
+            }],
+            testAssets,
+            {
+                global: ['BASE'],
+                characters: {
+                    QRS: ['LayerB']
+                }
+            }
+        )
         expect(output).toEqual([{
             Ancestry: '',
             CharacterId: 'XYZ',
