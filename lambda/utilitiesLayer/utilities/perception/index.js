@@ -123,8 +123,16 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     })
 }
 
-export const render = async (renderList, existingStatesByAsset = {}) => {
-    const renderedOutput = await renderItems(renderList, existingStatesByAsset)
+//
+// TODO: Import recalculated into render, and use it to only include characters who have
+// asset/room combinations that are changed by the recalculated values
+//
+export const render = async ({
+    renderList = [],
+    assetMeta = {},
+    assetLists = {}
+}) => {
+    const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
         switch(objectType) {

@@ -49,7 +49,7 @@ describe('executeInAsset', () => {
                 }
             }
         })
-        expect(updateRooms).toHaveBeenCalledWith([])
+        expect(updateRooms).toHaveBeenCalledWith({ assetsChangedByRoom: {} })
     })
 
     it('should post an end-to-end cascade', async () => {
@@ -172,6 +172,10 @@ describe('executeInAsset', () => {
                 }
             }
         })
-        expect(updateRooms).toHaveBeenCalledWith([])
+        expect(updateRooms).toHaveBeenCalledWith({
+            assetsChangedByRoom: {
+                MNO: ['LayerA']
+            }
+        })
     })
 })

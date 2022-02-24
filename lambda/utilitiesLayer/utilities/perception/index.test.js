@@ -17,7 +17,9 @@ describe('dependencyCascade', () => {
 
     it('should return empty on an empty list', async () => {
         getGlobalAssets.mockResolvedValue([])
-        const output = await render([])
+        const output = await render({
+            renderList: []
+        })
         expect(output).toEqual([])
     })
 
@@ -43,10 +45,12 @@ describe('dependencyCascade', () => {
             ]
         })
         getCharacterAssets.mockResolvedValue({ QRS: [] })
-        const output = await render([{
-            EphemeraId: 'ROOM#MNO',
-            CharacterId: 'QRS'
-        }])
+        const output = await render({
+            renderList: [{
+                EphemeraId: 'ROOM#MNO',
+                CharacterId: 'QRS'
+            }]
+        })
         expect(output).toEqual([{
             Ancestry: '',
             CharacterId: 'QRS',
@@ -79,10 +83,13 @@ describe('dependencyCascade', () => {
             ]
         })
         getCharacterAssets.mockResolvedValue({ QRS: [] })
-        const output = await render([{
-            EphemeraId: 'ROOM#MNO',
-            CharacterId: 'QRS'
-        }], testAssets)
+        const output = await render({
+                renderList: [{
+                    EphemeraId: 'ROOM#MNO',
+                    CharacterId: 'QRS'
+                }],
+                assetMeta: testAssets
+        })
         expect(output).toEqual([{
             Ancestry: '',
             CharacterId: 'QRS',
@@ -143,14 +150,18 @@ describe('dependencyCascade', () => {
             ]
         })
         getCharacterAssets.mockResolvedValue({ QRS: ['LayerB'], XYZ: ['LayerA'] })
-        const output = await render([{
-            EphemeraId: 'ROOM#MNO',
-            CharacterId: 'XYZ'
-        },
-        {
-            EphemeraId: 'ROOM#TUV',
-            CharacterId: 'QRS'
-        }], { BASE: testAssets.BASE })
+        const output = await render({
+            renderList:
+            [{
+                EphemeraId: 'ROOM#MNO',
+                CharacterId: 'XYZ'
+            },
+            {
+                EphemeraId: 'ROOM#TUV',
+                CharacterId: 'QRS'
+            }],
+            assetMeta: { BASE: testAssets.BASE }
+        })
         expect(output).toEqual([{
             Ancestry: '',
             CharacterId: 'XYZ',
@@ -176,7 +187,7 @@ describe('dependencyCascade', () => {
 
     })
 
-    xit('should fetch assetList data only where needed', async () => {
+    it('should fetch assetList data only where needed', async () => {
         const testAssets = resultStateFactory()
         getGlobalAssets.mockResolvedValue(['BASE'])
         getRoomMeta.mockResolvedValue({
@@ -220,23 +231,23 @@ describe('dependencyCascade', () => {
         })
         getGlobalAssets.mockResolvedValue(['BASE'])
         getCharacterAssets.mockResolvedValue({ QRS: ['LayerB'], XYZ: ['LayerA'] })
-        const output = await render(
-            [{
-                EphemeraId: 'ROOM#MNO',
-                CharacterId: 'XYZ'
-            },
-            {
-                EphemeraId: 'ROOM#TUV',
-                CharacterId: 'QRS'
-            }],
-            testAssets,
-            {
-                global: ['BASE'],
-                characters: {
-                    QRS: ['LayerB']
+        const output = await render({
+            renderList: [{
+                    EphemeraId: 'ROOM#MNO',
+                    CharacterId: 'XYZ'
+                },
+                {
+                    EphemeraId: 'ROOM#TUV',
+                    CharacterId: 'QRS'
+                }],
+            assetMeta: testAssets,
+            assetLists: {
+                    global: ['BASE'],
+                    characters: {
+                        QRS: ['LayerB']
+                    }
                 }
-            }
-        )
+        })
         expect(output).toEqual([{
             Ancestry: '',
             CharacterId: 'XYZ',
@@ -258,7 +269,8 @@ describe('dependencyCascade', () => {
             Exits: []
         }])
 
-        expect(getStateByAsset).toHaveBeenCalledWith(['LayerB'])
+        expect(getGlobalAssets).toHaveBeenCalledWith(['BASE'])
+        expect(getCharacterAssets).toHaveBeenCalledWith(['XYZ', 'QRS'], { QRS: ['LayerB'] })
 
     })
 

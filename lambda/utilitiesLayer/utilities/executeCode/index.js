@@ -52,15 +52,30 @@ export const executeInAsset = (assetId) => async (src) => {
     const recalculatedToRooms = ([asset, keys]) => (
         keys
             .map((key) => (newStates[asset]?.Dependencies?.[key]?.room || []))
-            .reduce((previous, keys) => ([ ...previous, ...keys ]), [])
+            .reduce((previous, rooms) => (
+                rooms.reduce((accumulator, room) => ({
+                    ...accumulator,
+                    [room]: [...(accumulator[room] || []), asset]
+                }), previous)),
+            {})
     )
-    const roomsToCheck = [...(new Set(
-        Object.entries(recalculated)
+    const assetsChangedByRoom = Object.entries(recalculated)
             .map(recalculatedToRooms)
-            .reduce((previous, rooms) => ([ ...previous, ...rooms ]), [])
-    ))]
+            .reduce((previous, roomMap) => (
+                Object.entries(roomMap)
+                    .reduce((accumulator, [room, assets = []]) => ({
+                        ...accumulator,
+                        [room]: [
+                            ...(accumulator[room] || []),
+                            ...assets
+                        ]
+                    }), previous)
+            ), {})
+
     await Promise.all([
-        updateRooms(roomsToCheck)
+        updateRooms({
+            assetsChangedByRoom
+        })
     ])
 
     return returnValue
