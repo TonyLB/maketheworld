@@ -43,7 +43,8 @@ export const testAssetsFactory = ({
             },
             Dependencies: {
                 bar: {
-                    computed: ['antiBar', 'fooBar']
+                    computed: ['antiBar', 'fooBar'],
+                    room: ['QRS']
                 },
                 foo: {
                     computed: ['fooBar']
@@ -52,7 +53,8 @@ export const testAssetsFactory = ({
                     imported: [{
                         asset: 'MixLayerA',
                         key: 'fooBar'
-                    }]
+                    }],
+                    room: ['MNO']
                 }
             },
             importTree: {
@@ -68,8 +70,9 @@ export const testAssetsFactory = ({
                 fooBaz: { computed: true, src: 'foo || baz', value: fooBaz }
             },
             Dependencies: {
-                bar: {
-                    computed: ['antiBaz', 'fooBaz']
+                baz: {
+                    computed: ['antiBaz', 'fooBaz'],
+                    room: ['QRS']
                 },
                 foo: {
                     computed: ['fooBaz']
@@ -78,7 +81,8 @@ export const testAssetsFactory = ({
                     imported: [{
                         asset: 'MixLayerB',
                         key: 'fooBaz'
-                    }]
+                    }],
+                    room: ['MNO']
                 }
             },
             importTree: {
