@@ -43,7 +43,7 @@ describe('updateRooms', () => {
         getCharacterAssets.mockResolvedValue({})
 
         await updateRooms({
-            assetsByRoom: { VORTEX: ['BASE'] }
+            assetsChangedByRoom: { VORTEX: ['BASE'] }
         })
 
         expect(render).toHaveBeenCalledWith({
@@ -66,7 +66,7 @@ describe('updateRooms', () => {
     it('should render no rooms on an empty check-list', async () => {
         render.mockResolvedValue([])
         await updateRooms({
-            assetsByRoom: {}
+            assetsChangedByRoom: {}
         })
         expect(render).toHaveBeenCalledTimes(0)
         expect(publishMessage).toHaveBeenCalledTimes(0)
@@ -85,7 +85,7 @@ describe('updateRooms', () => {
         getCharacterAssets.mockResolvedValue({})
 
         await updateRooms({
-            assetsByRoom: {
+            assetsChangedByRoom: {
                 VORTEX: ['LayerA', 'LayerB']
             }
         })
@@ -120,7 +120,7 @@ describe('updateRooms', () => {
         })
 
         await updateRooms({
-            assetsByRoom: {
+            assetsChangedByRoom: {
                 VORTEX: ['LayerA']
             }
         })

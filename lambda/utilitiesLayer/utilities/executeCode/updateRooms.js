@@ -6,12 +6,11 @@ import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
 import { splitType } from '../types.js'
 
 export const updateRooms = async ({
-    assetsByRoom,
-    existingStatesByAsset = {},
-    recalculated = []
+    assetsChangedByRoom,
+    existingStatesByAsset = {}
 }) => {
     const roomsMetaFetch = await Promise.all(
-        Object.keys(assetsByRoom).map((roomId) => (ephemeraDB.getItem({
+        Object.keys(assetsChangedByRoom).map((roomId) => (ephemeraDB.getItem({
             EphemeraId: `ROOM#${roomId}`,
             DataCategory: 'Meta::Room',
             ProjectionFields: ['EphemeraId', 'activeCharacters']
@@ -23,7 +22,7 @@ export const updateRooms = async ({
     const roomsMeta = roomsMetaFetch.map(({ EphemeraId, activeCharacters }) => ({
         EphemeraId,
         activeCharacters,
-        assets: assetsByRoom[splitType(EphemeraId)[1]] || []
+        assets: assetsChangedByRoom[splitType(EphemeraId)[1]] || []
     }))
 
     const allCharacters = [...(new Set(roomsMeta.reduce((previous, { activeCharacters }) => ([...previous, Object.keys(activeCharacters).map((value) => (splitType(value)[1]))]), [])))]
