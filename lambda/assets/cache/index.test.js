@@ -22,6 +22,21 @@ describe('cacheAsset', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
+
+    it('should skip processing when check option and already present', async () => {
+        ephemeraDB.getItem.mockResolvedValue({
+            EphemeraId: 'ASSET#Test'
+        })
+        await cacheAsset('Test', { check: true })
+
+        expect(parseWMLFile).toHaveBeenCalledTimes(0)
+        expect(globalizeDBEntries).toHaveBeenCalledTimes(0)
+        expect(initializeRooms).toHaveBeenCalledTimes(0)
+        expect(mergeIntoDataRange).toHaveBeenCalledTimes(0)
+        expect(recalculateComputes).toHaveBeenCalledTimes(0)
+        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
+    })
+
     it('should send rooms in need of update', async () => {
         const topLevelAppearance = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],

@@ -22,6 +22,14 @@ import initializeRooms from './initializeRooms.js'
 // of notifying people in it?
 //
 
+const checkEphemeraMetaData = async (assetId) => {
+    const { EphemeraId = null } = await ephemeraDB.getItem({
+        EphemeraId: AssetKey(assetId),
+        DataCategory: 'Meta::Asset',
+    })
+    return Boolean(EphemeraId)
+}
+
 export const fetchAssetMetaData = async (assetId) => {
     const { fileName = '', importTree = {} } = await assetDB.getItem({
         AssetId: AssetKey(assetId),
@@ -124,7 +132,15 @@ const mergeEntries = async (assetId, normalForm) => {
     ])
 }
 
-export const cacheAsset = async (assetId) => {
+export const cacheAsset = async (assetId, options = {}) => {
+    const { check = false } = options
+
+    if (check) {
+        const alreadyPresent = await checkEphemeraMetaData(assetId)
+        if (alreadyPresent) {
+            return
+        }
+    }
     const { fileName, importTree } = await fetchAssetMetaData(assetId)
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
