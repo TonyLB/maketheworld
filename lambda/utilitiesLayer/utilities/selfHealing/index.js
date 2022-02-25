@@ -103,7 +103,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
             const globalAssets = Items
                 .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
                 .filter(({ AssetId }) => (AssetId))
-                .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
+                .map(({ AssetId, importTree }) => ({ [AssetId]: { type: 'Asset', tree: importTree } }))
             const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
             await ephemeraDB.update({
                 EphemeraId: 'Global',
@@ -146,7 +146,7 @@ export const healPersonalAssets = async ({ PlayerName }) => {
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
         .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
         .filter(({ AssetId }) => (AssetId))
-        .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
+        .map(({ AssetId, importTree }) => ({ [AssetId]: { type: 'Asset', tree: importTree } }))
     const personalAssets = sortImportTree(Object.assign({}, ...personalAssetEntries))
 
     const characters = queryItems
@@ -182,7 +182,7 @@ export const generatePersonalAssetList = async (player) => {
         const personalAssets = Items
             .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
             .filter(({ AssetId }) => (AssetId))
-            .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
+            .map(({ AssetId, importTree }) => ({ [AssetId]: { type: 'Asset', tree: importTree } }))
         return sortImportTree(Object.assign({}, ...personalAssets))
     }    
     return []

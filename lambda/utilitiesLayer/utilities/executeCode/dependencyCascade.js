@@ -7,7 +7,7 @@ import { splitType, AssetKey } from '../types.js'
 
 export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAlreadyEvaluated = []) => {
     const aggregateImportTree = Object.entries(assetsMeta)
-        .reduce((previous, [key, { importTree }]) => ({ ...previous, [key]: importTree }), {})
+        .reduce((previous, [key, { importTree }]) => ({ ...previous, [key]: { type: 'Asset', tree: importTree } }), {})
     const orderOfEvaluation = sortImportTree(aggregateImportTree)
         .filter((key) => (!assetsAlreadyEvaluated.includes(key)))
         .filter((key) => ((key in assetsMeta) && (key in assetValuesChanged)))

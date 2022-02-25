@@ -51,7 +51,7 @@ describe('cacheAsset', () => {
         assetDB.getItem
             .mockResolvedValueOnce({
                 fileName: 'test',
-                importTree: { BASE: {} }
+                importTree: { BASE: { type: 'Asset', tree: {} } }
             })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
@@ -259,7 +259,10 @@ describe('cacheAsset', () => {
                 }
             },
             importTree: {
-                BASE: {}
+                BASE: {
+                    type: 'Asset',
+                    tree: {}    
+                }
             }
         })
     })
@@ -523,7 +526,7 @@ describe('cacheAsset', () => {
         })
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: { type: 'Asset', tree: {} } } })
             .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({})
@@ -612,7 +615,10 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
-            importTree: { BASE: {} }
+            importTree: { BASE: {
+                type: 'Asset',
+                tree: {}
+            } }
         })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#BASE",
@@ -633,7 +639,7 @@ describe('cacheAsset', () => {
         })
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: { type: 'Asset', tree: {} } } })
             .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ EphemeraId: 'ASSET#BASE' })
@@ -718,7 +724,10 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
-            importTree: { BASE: {} }
+            importTree: { BASE: {
+                type: 'Asset',
+                tree: {}
+            } }
         })
     })
 
@@ -731,7 +740,7 @@ describe('cacheAsset', () => {
         })
 
         assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
+            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: { type: 'Asset', tree: {} } } })
             .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
@@ -819,7 +828,10 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
-            importTree: { BASE: {} }
+            importTree: { BASE: {
+                type: 'Asset',
+                tree: {}
+            } }
         })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#BASE",
