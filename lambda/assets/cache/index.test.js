@@ -514,7 +514,7 @@ describe('cacheAsset', () => {
         })
     })
 
-    it('should recursively cache when recusive option set true', async () => {
+    it('should recursively cache when recursive option set true', async () => {
         const topLevelAppearance = (key) => ({
             contextStack: [{ key, tag: 'Asset', index: 0}],
             contents: [],
@@ -526,7 +526,6 @@ describe('cacheAsset', () => {
             .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
             .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
         ephemeraDB.getItem
-            .mockResolvedValueOnce({})
             .mockResolvedValueOnce({})
             .mockResolvedValueOnce({ State: {} })
         ephemeraDB.batchGetItem
@@ -622,6 +621,230 @@ describe('cacheAsset', () => {
             State: {},
             Dependencies: {},
             importTree: {}
+        })
+    })
+
+    it('recursive cache should not reload present assets', async () => {
+        const topLevelAppearance = (key) => ({
+            contextStack: [{ key, tag: 'Asset', index: 0}],
+            contents: [],
+            errors: [],
+            props: {}
+        })
+
+        assetDB.getItem
+            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
+            .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
+        ephemeraDB.getItem
+            .mockResolvedValueOnce({ EphemeraId: 'ASSET#BASE' })
+            .mockResolvedValueOnce({ State: {} })
+        ephemeraDB.batchGetItem
+            .mockResolvedValueOnce([{
+                EphemeraId: 'ASSET#BASE',
+                State: {
+                    powered: {
+                        value: 'On'
+                    }
+                },
+                Dependencies: {}
+            }])
+        parseWMLFile.mockResolvedValue(['Test'])
+        globalizeDBEntries
+            .mockResolvedValueOnce({
+                test: {
+                    key: 'test',
+                    tag: 'Asset',
+                    fileName: 'test',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: [{
+                            key: 'Import-0',
+                            tag: 'Import',
+                            index: 0
+                        }]
+                    }]
+                },
+                ['Import-0']: {
+                    key: 'Import-0',
+                    tag: 'Import',
+                    from: 'BASE',
+                    tag: 'Import',
+                    mapping: {},
+                    appearances: [topLevelAppearance('test')]
+                }
+            })
+            .mockResolvedValueOnce({
+                test: {
+                    key: 'BASE',
+                    tag: 'Asset',
+                    fileName: 'Base',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: []
+                    }]
+                }
+            })
+            
+        recalculateComputes.mockReturnValue({ state: {} })
+
+        await cacheAsset('ABC', { recursive: true })
+        expect(parseWMLFile).toHaveBeenCalledWith('test')
+        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(initializeRooms).toHaveBeenCalledWith([])
+        //
+        // TODO:  Figure out whether there's something important to store when a room
+        // is imported but not altered ... can the import just be a straight include?
+        //
+        expect(mergeIntoDataRange).toHaveBeenCalledTimes(1)
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#ABC' },
+            items: [],
+            mergeFunction: expect.any(Function)
+        })
+        expect(recalculateComputes).toHaveBeenCalledWith(
+            {},
+            {},
+            []
+        )
+        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(1)
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#ABC",
+            DataCategory: "Meta::Asset",
+            Actions: {},
+            State: {},
+            Dependencies: {},
+            importTree: { BASE: {} }
+        })
+    })
+
+    it('should recursively cache all when forceCache option set true', async () => {
+        const topLevelAppearance = (key) => ({
+            contextStack: [{ key, tag: 'Asset', index: 0}],
+            contents: [],
+            errors: [],
+            props: {}
+        })
+
+        assetDB.getItem
+            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
+            .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
+        ephemeraDB.getItem
+            .mockResolvedValueOnce({ State: {} })
+        ephemeraDB.batchGetItem
+            .mockResolvedValueOnce([{
+                EphemeraId: 'ASSET#BASE',
+                State: {
+                    powered: {
+                        value: 'On'
+                    }
+                },
+                Dependencies: {}
+            }])
+        parseWMLFile.mockResolvedValue(['Test'])
+        globalizeDBEntries
+            .mockResolvedValueOnce({
+                test: {
+                    key: 'test',
+                    tag: 'Asset',
+                    fileName: 'test',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: [{
+                            key: 'Import-0',
+                            tag: 'Import',
+                            index: 0
+                        }]
+                    }]
+                },
+                ['Import-0']: {
+                    key: 'Import-0',
+                    tag: 'Import',
+                    from: 'BASE',
+                    tag: 'Import',
+                    mapping: {},
+                    appearances: [topLevelAppearance('test')]
+                }
+            })
+            .mockResolvedValueOnce({
+                test: {
+                    key: 'BASE',
+                    tag: 'Asset',
+                    fileName: 'Base',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: []
+                    }]
+                }
+            })
+            
+        recalculateComputes.mockReturnValue({ state: {} })
+
+        await cacheAsset('ABC', { recursive: true, forceCache: true })
+        expect(parseWMLFile).toHaveBeenCalledWith('test')
+        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(initializeRooms).toHaveBeenCalledWith([])
+        //
+        // TODO:  Figure out whether there's something important to store when a room
+        // is imported but not altered ... can the import just be a straight include?
+        //
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#ABC' },
+            items: [],
+            mergeFunction: expect.any(Function)
+        })
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#BASE' },
+            items: [],
+            mergeFunction: expect.any(Function)
+        })
+        expect(recalculateComputes).toHaveBeenCalledWith(
+            {},
+            {},
+            []
+        )
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#ABC",
+            DataCategory: "Meta::Asset",
+            Actions: {},
+            State: {},
+            Dependencies: {},
+            importTree: { BASE: {} }
+        })
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#BASE",
+            DataCategory: "Meta::Asset",
+            Actions: {},
+            State: {},
+            Dependencies: {},
+            importTree: {}
+        })
+        expect(ephemeraDB.getItem).toHaveBeenCalledTimes(2)
+        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+            EphemeraId: 'ASSET#ABC',
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        })
+        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+            EphemeraId: 'ASSET#BASE',
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
         })
     })
 })
