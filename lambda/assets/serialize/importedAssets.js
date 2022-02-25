@@ -34,12 +34,12 @@ export const importedAssetIds = async (importMap) => {
     const getImportTree = async () => {
         const assetsToFetch = [...(new Set(Object.values(importMap).map(({ asset }) => (asset))))]
         const fetchAssetImportTree = async (asset) => {
-            const { ImportTree = {} } = await assetDB.getItem({
+            const { importTree = {} } = await assetDB.getItem({
                 AssetId: `ASSET#${asset}`,
                 DataCategory: 'Meta::Asset',
-                ProjectionFields: ['ImportTree']
+                ProjectionFields: ['importTree']
             })
-            return { [asset]: ImportTree }
+            return { [asset]: importTree }
         }
         const fetchPromises = assetsToFetch.
             map((asset) => (fetchAssetImportTree(asset)))
