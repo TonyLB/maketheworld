@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import {
     assetDB
 } from '/opt/utilities/dynamoDB/index.js'
-import { splitType } from '/opt/utilities/types.js'
+import { splitType, AssetKey } from '/opt/utilities/types.js'
 
 export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
     //
@@ -11,7 +11,7 @@ export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {
     //
     const Items = await assetDB.query({
         IndexName: 'DataCategoryIndex',
-        DataCategory: `ASSET#${assetId}`,
+        DataCategory: AssetKey(assetId),
         ProjectionFields: ['AssetId', 'scopedId']
     })
     //

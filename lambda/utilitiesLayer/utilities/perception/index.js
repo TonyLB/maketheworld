@@ -1,5 +1,5 @@
 import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
-import { splitType } from '../types.js'
+import { splitType, AssetKey } from '../types.js'
 
 import { getCharacterAssets, getRoomMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
 
@@ -71,7 +71,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 const assetsToRender = [
                         ...globalAssets,
                         ...(personalAssets.filter((value) => (!globalAssets.includes(value))))
-                    ].map((key) => (`ASSET#${key}`))
+                    ].map(AssetKey)
                     .filter((AssetId) => (RoomMetaByAsset[AssetId]))
                 const { render, name, exits } = assetsToRender.reduce((previous, AssetId) => {
                         const { appearances = [] } = RoomMetaByAsset[AssetId]

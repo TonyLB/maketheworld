@@ -3,7 +3,7 @@ import { produce } from 'immer'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import recalculateComputes from './recalculateComputes.js'
 import sortImportTree from './sortImportTree.js'
-import { splitType } from '../types.js'
+import { splitType, AssetKey } from '../types.js'
 
 export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAlreadyEvaluated = []) => {
     const aggregateImportTree = Object.entries(assetsMeta)
@@ -49,7 +49,7 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
             const metaFetched = await ephemeraDB.batchGetItem({
                 Items: unmappedAssets
                     .map((asset) => ({
-                        EphemeraId: `ASSET#${asset}`,
+                        EphemeraId: AssetKey(asset),
                         DataCategory: 'Meta::Asset'
                     })),
                 ProjectionFields: ['EphemeraId', '#state', 'Dependencies', 'importTree'],

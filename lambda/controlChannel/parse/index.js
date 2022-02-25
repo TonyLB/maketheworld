@@ -1,4 +1,4 @@
-import { splitType } from '/opt/utilities/types.js'
+import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 const getCurrentRoom = async (CharacterId) => {
@@ -9,7 +9,7 @@ const getCurrentRoom = async (CharacterId) => {
     })
     if (RoomId) {
         const Items = await ephemeraDB.query({
-            EphemeraId: `ROOM#${RoomId}`,
+            EphemeraId: RoomKey(RoomId),
             ProjectionFields: ['DataCategory', 'appearances', 'activeCharacters']
         })
         const { exits, characters } = (Items
@@ -55,7 +55,7 @@ export const parseCommand = async ({
 
     const { roomId, exits, characters } = await getCurrentRoom(CharacterId)
     if (command.match(/^\s*(?:look|l)\s*$/gi)) {
-        return { actionType: 'look', payload: { CharacterId, PermanentId: `ROOM#${roomId}` } }
+        return { actionType: 'look', payload: { CharacterId, PermanentId: RoomKey(roomId) } }
     }
     if (command.match(/^\s*home\s*$/gi)) {
         return { actionType: 'home', payload: { CharacterId } }

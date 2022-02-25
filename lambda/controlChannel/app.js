@@ -13,7 +13,7 @@ import { sync } from './sync/index.js'
 import { render } from '/opt/utilities/perception/index.js'
 import { executeAction as executeActionFromDB } from '/opt/utilities/executeCode/index.js'
 
-import { splitType } from '/opt/utilities/types.js'
+import { splitType, RoomKey } from '/opt/utilities/types.js'
 import {
     publishMessage,
     ephemeraDB,
@@ -214,7 +214,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
         await publishMessage({
             MessageId: `MESSAGE#${uuidv4()}`,
             CreatedTime: Date.now(),
-            Targets: [`ROOM#${RoomId}`],
+            Targets: [RoomKey(RoomId)],
             DisplayProtocol,
             CharacterId,
             Message,
@@ -261,7 +261,7 @@ const goHome = async ({ CharacterId } = {}) => {
         DataCategory: 'Meta::Character',
         UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
         ExpressionAttributeValues: {
-            ':roomId': `ROOM#${HomeId}`,
+            ':roomId': RoomKey(HomeId),
             ':leave': ` left to go home.`,
             ':enter': ` arrives.`
         }

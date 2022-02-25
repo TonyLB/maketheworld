@@ -1,4 +1,4 @@
-import { splitType } from '/opt/utilities/types.js'
+import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
 
@@ -34,7 +34,7 @@ export const characterEphemeraDenormalize = async ({
     ].join(' ')
 
     return await ephemeraDB.update({
-        EphemeraId: `ROOM#${RoomId}`,
+        EphemeraId: RoomKey(RoomId),
         DataCategory: 'Meta::Room',
         UpdateExpression,
         ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
