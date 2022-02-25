@@ -25,10 +25,7 @@ describe('importedAssetIds', () => {
                 Welcome: '12345'
             },
             importTree: {
-                BASE: {
-                    type: 'Asset',
-                    tree: {}
-                }
+                BASE: {}
             }
         })
     })
@@ -45,10 +42,7 @@ describe('importedAssetIds', () => {
                 case 'ASSET#LayerA': 
                     return {
                         importTree: {
-                            BASE: {
-                                type: 'Asset',
-                                tree: {}
-                            }
+                            BASE: {}
                         }
                     }
                 case 'ASSET#BASE': return {
@@ -66,18 +60,9 @@ describe('importedAssetIds', () => {
                 Welcome: '12345'
             },
             importTree: {
-                BASE: {
-                    type: 'Asset',
-                    tree: {}
-                },
+                BASE: {},
                 LayerA: {
-                    type: 'Asset',
-                    tree: {
-                        BASE: {
-                            type: 'Asset',
-                            tree: {}
-                        }
-                    }
+                    BASE: {}
                 }
             }
         })
@@ -93,33 +78,18 @@ describe('assetIdsFromTree', () => {
     it('should parse a nested tree', () => {
         expect(assetIdsFromTree({
             MixedLayerA: {
-                type: 'Asset',
-                tree: {
-                    LayerA: {
-                        type: 'Asset',
-                        tree: {
-                            BASE: {
-                                type: 'Asset',
-                                tree: {}
-                            }
-                        }
-                    },
-                    LayerB: {
-                        type: 'Asset',
-                        tree: {
-                            BASE: {
-                                type: 'Asset',
-                                tree: {}
-                            }
-                        }
-                    }
+                LayerA: {
+                    BASE: {}
+                },
+                LayerB: {
+                    BASE: {}
                 }
             }
         })).toEqual([
-            { key: 'MixedLayerA', type: 'Asset' },
-            { key: 'LayerA', type: 'Asset' },
-            { key: 'BASE', type: 'Asset' },
-            { key: 'LayerB', type: 'Asset' }
+            'MixedLayerA',
+            'LayerA',
+            'BASE',
+            'LayerB'
         ])
     })
 })

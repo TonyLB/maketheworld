@@ -39,10 +39,7 @@ export const importedAssetIds = async (importMap) => {
                 DataCategory: 'Meta::Asset',
                 ProjectionFields: ['importTree']
             })
-            return { [asset]: {
-                type: 'Asset',
-                tree: importTree
-            }}
+            return { [asset]: importTree }
         }
         const fetchPromises = assetsToFetch.
             map((asset) => (fetchAssetImportTree(asset)))
@@ -60,20 +57,20 @@ export const importedAssetIds = async (importMap) => {
 
 const assetIdsFromTreeRecurse = (tree) => {
     const returnValue = Object.entries(tree)
-        .map(([key, { type, tree: nested = {} }]) => ([{ key, type }, ...assetIdsFromTreeRecurse(nested)]))
+        .map(([key, nested]) => ([key, ...assetIdsFromTreeRecurse(nested)]))
         .reduce((previous, list) => ([...previous, ...list]), [])
     return returnValue
 }
 
 export const assetIdsFromTree = (importTree) => {
     return assetIdsFromTreeRecurse(importTree)
-        .reduce((previous, { key, type }) => {
-            if (previous.find(({ key: checkKey }) => (checkKey === key))) {
+        .reduce((previous, key) => {
+            if (previous.includes(key)) {
                 return previous
             }
             return [
                 ...previous,
-                { key, type }
+                key
             ]
         }, [])
 }
