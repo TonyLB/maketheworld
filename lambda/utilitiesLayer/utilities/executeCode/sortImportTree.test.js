@@ -10,50 +10,20 @@ describe('sortImportTree', () => {
     it('should sort dependencies', () => {
         expect(sortImportTree({
             Final: {
-                type: 'Asset',
-                tree: {
-                    Base: {
-                        type: 'Asset',
-                        tree: {}
-                    },
-                    LayerThree: {
-                        type: 'Asset',
-                        tree: {
-                            LayerOne: {
-                                type: 'Asset',
-                                tree: {
-                                    Base: {
-                                        type: 'Asset',
-                                        tree: {}
-                                    }
-                                }
-                            }
-                        }
+                Base: {},
+                LayerThree: {
+                    LayerOne: {
+                        Base: {}
                     }
                 }
             },
             LayerOne: {
-                type: 'Asset',
-                tree: {
-                    Base: {
-                        type: 'Asset',
-                        tree: {}
-                    }
-                }
+                Base: {}
             },
             LayerTwo: {
-                type: 'Asset',
-                tree: {
-                    Base: {
-                        type: 'Asset',
-                        tree: {}
-                    }
-                }
+                Base: {}
             },
-            Base: {
-                type: 'Asset',
-                tree: {}
-            }
+            Base: {}
         })).toEqual(['Base', 'LayerOne', 'LayerTwo', 'LayerThree', 'Final'])
     })
 })
