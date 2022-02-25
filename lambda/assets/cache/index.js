@@ -133,7 +133,7 @@ const mergeEntries = async (assetId, normalForm) => {
 }
 
 export const cacheAsset = async (assetId, options = {}) => {
-    const { check = false } = options
+    const { check = false, recursive = false } = options
 
     if (check) {
         const alreadyPresent = await checkEphemeraMetaData(assetId)
@@ -142,6 +142,9 @@ export const cacheAsset = async (assetId, options = {}) => {
         }
     }
     const { fileName, importTree } = await fetchAssetMetaData(assetId)
+    if (recursive) {
+        await Promise.all(Object.keys(importTree).map((assetId) => (cacheAsset(assetId, { check: true }))))
+    }
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
 
