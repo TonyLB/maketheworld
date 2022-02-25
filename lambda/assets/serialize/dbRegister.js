@@ -1,12 +1,13 @@
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 
 export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap, assets }) => {
-    const asset = assets.find(({ tag }) => (tag === 'Asset'))
+    const asset = assets.find(({ tag }) => (['Asset', 'Story'].includes(tag)))
     if (asset && asset.key) {
+        const prefix = asset.tag === 'Story' ? 'STORY#' : 'ASSET#'
         await Promise.all([
             assetDB.putItem({
-                AssetId: `ASSET#${asset.key}`,
-                DataCategory: 'Meta::Asset',
+                AssetId: `${prefix}${asset.key}`,
+                DataCategory: `Meta::${asset.tag}`,
                 fileName,
                 translateFile,
                 importTree,
@@ -17,7 +18,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
             }),
             mergeIntoDataRange({
                 table: 'assets',
-                search: { DataCategory: `ASSET#${asset.key}` },
+                search: { DataCategory: `${prefix}${asset.key}` },
                 items: assets
                     .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag))),
                 mergeFunction: ({ current, incoming }) => {

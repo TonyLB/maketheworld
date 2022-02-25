@@ -142,6 +142,7 @@ export const assetRegistryEntries = (schema) => {
     return Object.values(normalForm).map(({ tag, ...rest }) => {
         const { name, fileName, key, global: isGlobal, player, src } = rest
         switch(tag) {
+            case 'Story':
             case 'Asset':
                 return {
                     tag,

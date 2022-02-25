@@ -202,6 +202,19 @@ export const schema = {
                 liftUntagged('description', { allString: true })
             ])(node.schema())
     },
+    StoryExpression(node) {
+        return wmlProcessUpNonRecursive([
+                // desourceTag,
+                validate(confirmRequiredProps(['key', 'fileName'])),
+                validate(confirmKeyProps(['key'])),
+                validate(confirmLiteralProps(['fileName', 'zone', 'subFolder', "player"])),
+                liftKeyProps(['key']),
+                liftLiteralProps(['fileName', 'player', 'zone']),
+                validate(fileNameValidator),
+                liftLiteralTags({ Name: 'name' }),
+                liftUntagged('description', { allString: true })
+            ])(node.schema())
+    },
     CharacterExpression(node) {
         const returnVal = wmlProcessUpNonRecursive([
             // desourceTag,
