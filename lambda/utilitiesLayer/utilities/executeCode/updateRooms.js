@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB, publishMessage } from '../dynamoDB/index.js'
 import { render } from '../perception/index.js'
 import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
-import { splitType } from '../types.js'
+import { splitType, RoomKey } from '../types.js'
 
 export const updateRooms = async ({
     assetsChangedByRoom,
@@ -11,7 +11,7 @@ export const updateRooms = async ({
 }) => {
     const roomsMetaFetch = await Promise.all(
         Object.keys(assetsChangedByRoom).map((roomId) => (ephemeraDB.getItem({
-            EphemeraId: `ROOM#${roomId}`,
+            EphemeraId: RoomKey(roomId),
             DataCategory: 'Meta::Room',
             ProjectionFields: ['EphemeraId', 'activeCharacters']
         })))

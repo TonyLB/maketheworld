@@ -1,4 +1,5 @@
 import { ephemeraDB } from '../dynamoDB/index.js'
+import { AssetKey } from '../types.js'
 
 export const getRoomMeta = async (rooms) => {
     const getSingleRoomMeta = async (EphemeraId) => {
@@ -44,7 +45,7 @@ export const getCharacterAssets = async (characters, priorCharacterAssets = {}) 
 export const getStateByAsset = async (assets) => {
     const getSingleState = async (assetId) => {
         const { State = {} } = await ephemeraDB.getItem({
-            EphemeraId: `ASSET#${assetId}`,
+            EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['#state'],
             ExpressionAttributeNames: {

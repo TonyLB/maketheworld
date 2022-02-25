@@ -2,10 +2,11 @@ import { executeCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
+import { AssetKey } from '../types.js'
 
 export const executeInAsset = (assetId) => async (src) => {
     const { State: state = {}, Dependencies: dependencies = {}, importTree = {} } = await ephemeraDB.getItem({
-        EphemeraId: `ASSET#${assetId}`,
+        EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['#state', 'Dependencies', 'importTree'],
         ExpressionAttributeNames: {
@@ -37,7 +38,7 @@ export const executeInAsset = (assetId) => async (src) => {
     await Promise.all(Object.entries(newStates)
         .map(([key, newState]) => (
             ephemeraDB.update({
-                EphemeraId: `ASSET#${key}`,
+                EphemeraId: AssetKey(key),
                 DataCategory: 'Meta::Asset',
                 UpdateExpression: 'SET #state = :state',
                 ExpressionAttributeNames: {
@@ -83,7 +84,7 @@ export const executeInAsset = (assetId) => async (src) => {
 
 export const executeAction = async ({ action, assetId }) => {
     const { Actions: actions = {} } = await ephemeraDB.getItem({
-        EphemeraId: `ASSET#${assetId}`,
+        EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['Actions']
     })

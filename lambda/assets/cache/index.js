@@ -5,7 +5,7 @@ import {
     ephemeraDB,
     mergeIntoDataRange
 } from '/opt/utilities/dynamoDB/index.js'
-import { splitType } from '/opt/utilities/types.js'
+import { splitType, AssetKey } from '/opt/utilities/types.js'
 import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 import parseWMLFile from './parseWMLFile.js'
@@ -24,7 +24,7 @@ import initializeRooms from './initializeRooms.js'
 
 export const fetchAssetMetaData = async (assetId) => {
     const { fileName = '', importTree = {} } = await assetDB.getItem({
-        AssetId: `ASSET#${assetId}`,
+        AssetId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['fileName', 'importTree']
     })
@@ -41,7 +41,7 @@ const compareEntries = (current, incoming) => {
 
 const pushMetaData = async ({ assetId, state, dependencies, actions, importTree }) => {
     await ephemeraDB.putItem({
-        EphemeraId: `ASSET#${assetId}`,
+        EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         State: state || {},
         Dependencies: dependencies || {
@@ -104,7 +104,7 @@ const mergeEntries = async (assetId, normalForm) => {
     await Promise.all([
         mergeIntoDataRange({
             table: 'ephemera',
-            search: { DataCategory: `ASSET#${assetId}` },
+            search: { DataCategory: AssetKey(assetId) },
             items: mergeEntries,
             mergeFunction: ({ current, incoming }) => {
                 if (!incoming) {
@@ -131,7 +131,7 @@ export const cacheAsset = async (assetId) => {
 
     const [{ State: currentState = {} } = {}] = await Promise.all([
         ephemeraDB.getItem({
-            EphemeraId: `ASSET#${assetId}`,
+            EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['#state'],
             ExpressionAttributeNames: {
@@ -211,8 +211,8 @@ export const cacheAsset = async (assetId) => {
         .map(({ from }) => (from)))]
     const importAssetStates = await ephemeraDB.batchGetItem({
         Items: importAssetsToFetch
-            .map((AssetId) => ({
-                EphemeraId: `ASSET#${AssetId}`,
+            .map((assetId) => ({
+                EphemeraId: AssetKey(assetId),
                 DataCategory: 'Meta::Asset'
             })),
         ProjectionFields: ['#state', 'Dependencies', 'EphemeraId'],
@@ -319,9 +319,9 @@ export const cacheAsset = async (assetId) => {
             importTree
         }),
         ...(Object.entries(updateAssetDependencies)
-            .map(([AssetId, { dependencies }]) => (
+            .map(([assetId, { dependencies }]) => (
                 ephemeraDB.update({
-                    EphemeraId: `ASSET#${AssetId}`,
+                    EphemeraId: AssetKey(assetId),
                     DataCategory: 'Meta::Asset',
                     UpdateExpression: 'SET Dependencies = :dependencies',
                     ExpressionAttributeValues: {

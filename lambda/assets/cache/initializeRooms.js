@@ -4,6 +4,7 @@ import {
     ephemeraDB,
     batchWriteDispatcher
 } from '/opt/utilities/dynamoDB/index.js'
+import { RoomKey } from '/opt/utilities/types.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -60,7 +61,7 @@ export const initializeRooms = async (roomIDs) => {
             }
         })
         const newRoomsById = charactersInPlay.reduce((previous, { RoomId, EphemeraId, Name, Connected, ConnectionId }) => {
-            const targetRoom = `ROOM#${RoomId}`
+            const targetRoom = RoomKey(RoomId)
             if (previous[targetRoom]) {
                 if (Connected) {
                     return insertInto(previous, targetRoom, 'activeCharacters', { EphemeraId, Name, ConnectionId })
