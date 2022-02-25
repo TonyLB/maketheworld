@@ -5,14 +5,14 @@ const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     const directImports = Object.entries(tree)
         .filter(([key]) => (!excludeList.includes(key)))
     const unencumbered = directImports
-        .map(([key, imports]) => ([key, Object.keys(imports)]))
+        .map(([key, { tree: imports = {} }]) => ([key, Object.keys(imports)]))
         .map(([key, imports]) => ([
             key,
             imports.filter((dependency) => (!excludeList.includes(dependency)))
         ]))
     const unencumberedImportsAll = [
         ...unencumbered.filter(([key, imports]) => (imports.length === 0)).map(([key]) => key),
-        ...Object.values(tree).map((recurse) => (unencumberedImports(recurse, excludeList, depth + 1))).reduce((previous, list) => ([...previous, ...list]), [])
+        ...Object.values(tree).map(({ tree: recurse = {} }) => (unencumberedImports(recurse, excludeList, depth + 1))).reduce((previous, list) => ([...previous, ...list]), [])
     ]
     return [...(new Set(unencumberedImportsAll))]
 }

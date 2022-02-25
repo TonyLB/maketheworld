@@ -143,7 +143,7 @@ export const cacheAsset = async (assetId, options = {}) => {
     }
     const { fileName, importTree } = await fetchAssetMetaData(assetId)
     if (recursive) {
-        await Promise.all(Object.keys(importTree).map((assetId) => (cacheAsset(assetId, { recursive: true, check: !forceCache }))))
+        await Promise.all(Object.keys(importTree || {}).map((assetId) => (cacheAsset(assetId, { recursive: true, check: !forceCache }))))
     }
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
