@@ -51,12 +51,15 @@ export const importedAssetIds = async (importMap) => {
     const [ scopeMap, importTree ] = await Promise.all([ getScopeMap(), getImportTree() ])
     return {
         scopeMap,
-        importTree
+        importTree: {
+            assets: importTree,
+            stories: {}
+        }
     }
 }
 
-const assetIdsFromTreeRecurse = (importTree) => {
-    const returnValue = Object.entries(importTree)
+const assetIdsFromTreeRecurse = ({ assets = {} }) => {
+    const returnValue = Object.entries(assets)
         .map(([key, nested]) => ([key, ...assetIdsFromTreeRecurse(nested)]))
         .reduce((previous, list) => ([...previous, ...list]), [])
     return returnValue

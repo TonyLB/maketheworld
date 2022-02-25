@@ -13,7 +13,10 @@ describe('importedAssetIds', () => {
             }
         })
         assetDB.getItem.mockResolvedValue({
-            importTree: {}
+            importTree: {
+                assets: {},
+                stories: {}
+            }
         })
         const output = await importedAssetIds({
             VORTEX: { asset: 'BASE', scopedId: 'VORTEX' },
@@ -25,7 +28,13 @@ describe('importedAssetIds', () => {
                 Welcome: '12345'
             },
             importTree: {
-                BASE: {}
+                assets: {
+                    BASE: {
+                        assets: {},
+                        stories: {}
+                    }    
+                },
+                stories: {}
             }
         })
     })
@@ -39,8 +48,24 @@ describe('importedAssetIds', () => {
         })
         assetDB.getItem.mockImplementation(async ({ AssetId }) => {
             switch(AssetId) {
-                case 'ASSET#LayerA': return { importTree: { BASE: {} } }
-                case 'ASSET#BASE': return { importTree: {} }
+                case 'ASSET#LayerA': 
+                    return {
+                        importTree: { 
+                            assets: {
+                                BASE: {
+                                    assets: {},
+                                    stories: {}
+                                }
+                            },
+                            stories: {}
+                        }
+                    }
+                case 'ASSET#BASE': return {
+                        importTree: {
+                            assets: {},
+                            stories: {}
+                        }
+                    }
             }
         })
         const output = await importedAssetIds({
@@ -53,8 +78,22 @@ describe('importedAssetIds', () => {
                 Welcome: '12345'
             },
             importTree: {
-                BASE: {},
-                LayerA: { BASE: {} }
+                assets: {
+                    BASE: {
+                        assets: {},
+                        stories: {}
+                    },
+                    LayerA: {
+                        assets: {
+                            BASE: {
+                                assets: {},
+                                stories: {}
+                            }
+                        },
+                        stories: {}
+                    }
+                },
+                stories: {}
             }
         })
     })
@@ -63,15 +102,40 @@ describe('importedAssetIds', () => {
 
 describe('assetIdsFromTree', () => {
     it('should return empty list from empty tree', () => {
-        expect(assetIdsFromTree({})).toEqual([])
+        expect(assetIdsFromTree({
+            assets: {},
+            stories: {}
+        })).toEqual([])
     })
 
     it('should parse a nested tree', () => {
         expect(assetIdsFromTree({
-            MixedLayerA: {
-                LayerA: { BASE: {} },
-                LayerB: { BASE: {} }
-            }
+            assets: {
+                MixedLayerA: {
+                    assets: {
+                        LayerA: {
+                            assets: {
+                                BASE: {
+                                    assets: {},
+                                    stories: {}
+                                }
+                            },
+                            stories: {}
+                        },
+                        LayerB: {
+                            assets: {
+                                BASE: {
+                                    assets: {},
+                                    stories: {}
+                                }
+                            },
+                            stories: {}
+                        }
+                    },
+                    stories: {}
+                }
+            },
+            stories: {}
         })).toEqual(['MixedLayerA', 'LayerA', 'BASE', 'LayerB'])
     })
 })
