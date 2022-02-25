@@ -1,0 +1,10 @@
+<Story key=(StoryTest) fileName="storyTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
+    <Import from=(TEST)>
+        <Use key=(345) as=(welcomeRoom) />
+    </Import>
+    <Room key=(secretRoom)>
+        It's a secret room!
+        <Exit from=(345)>secret</Exit>
+        <Exit to=(345)>out</Exit>
+    </Room>
+</Asset>

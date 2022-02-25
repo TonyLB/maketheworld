@@ -122,4 +122,33 @@ describe('WML semantic schema', () => {
             }]
         })
     })
+
+    it('should parse a story element', () => {
+        const match = wmlGrammar.match(`
+            <Story key=(Test) fileName="test">
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    Vortex
+                </Room>
+            </Story>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toEqual({
+            key: 'Test',
+            tag: 'Story',
+            fileName: 'test',
+            props: {},
+            contents: [{
+                key: 'ABC',
+                tag: 'Room',
+                name: 'Vortex',
+                global: false,
+                render: [
+                    'Vortex '
+                ],
+                props: {},
+                contents: []
+            }]
+        })
+    })
 })

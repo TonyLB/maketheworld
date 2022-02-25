@@ -41,9 +41,18 @@ class AssetWorkspace {
 
 export const fileNameFromAssetId = async (AssetId) => {
     const [type] = splitType(AssetId)
+    let dataCategory = 'Meta::Asset'
+    switch(type) {
+        case 'CHARACTER':
+            dataCategory = 'Meta::Character'
+            break
+        case 'STORY':
+            dataCategory = 'Meta::Story'
+            break
+    }
     const { fileName } = await assetDB.getItem({
         AssetId,
-        DataCategory: type === 'CHARACTER' ? 'Meta::Character' : 'Meta::Asset',
+        DataCategory: dataCategory,
         ProjectionFields: ['fileName']
     })
     return fileName

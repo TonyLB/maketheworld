@@ -5,6 +5,7 @@ WorldMarkupLangage {
     //
 
     WMLFileContents = AssetExpression
+            | StoryExpression
             | CharacterExpression
 
     CharacterExpression = TagExpression<"Character", "key", ("player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
@@ -13,6 +14,8 @@ WorldMarkupLangage {
             | LiteralValueTag<"OneCoolThing">
             | LiteralValueTag<"Outfit">
             | LiteralValueTag<"FirstImpression">
+
+    StoryExpression = TagExpression<"Story", "key", ("fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
 
     AssetExpression = TagExpression<"Asset", "key", ("fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
     AssetLegalContents = ImportExpression
