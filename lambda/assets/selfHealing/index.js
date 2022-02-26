@@ -52,17 +52,22 @@ export const healAsset = async ({ s3Client }, fileName) => {
         await Promise.all([
             dbRegister({
                 fileName,
-                translateFile: translateName,
+                translateFile: asset.instance ? undefined : translateName,
                 importTree,
                 scopeMap: scopeMapContents,
                 assets: assetRegistryItems
             }),
-            putTranslateFile(s3Client, {
-                name: translateName,
-                importTree,
-                scopeMap: scopeMapContents,
-                assetKey
-            })
+            ...(asset.instance
+                ? []
+                : [
+                    putTranslateFile(s3Client, {
+                        name: translateName,
+                        importTree,
+                        scopeMap: scopeMapContents,
+                        assetKey
+                    })
+                ]
+            )
         ])
         return {
             scopeMap: scopeMapContents

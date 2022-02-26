@@ -100,8 +100,12 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
             const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
-                const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
-                const { scopeMap: currentScopeMap } = await getTranslateFile(s3Client, { name: translateFile })
+                let translateFile
+                let currentScopeMap = {}
+                if (!asset.instance) {
+                    translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
+                    currentScopeMap = (await getTranslateFile(s3Client, { name: translateFile })).scopeMap || {}
+                }
                 const normalized = assetWorkspace.normalize()
                 const importMap = Object.values(normalized)
                     .filter(({ tag }) => (tag === 'Import'))
@@ -136,19 +140,24 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         scopeMap: scopeMapContents,
                         assets: assetRegistryItems
                     }),
-                    putTranslateFile(s3Client, {
-                        name: translateFile,
-                        importTree,
-                        scopeMap: scopeMapContents,
-                        assetKey: asset.key
-                    }),
+                    ...(asset.instance
+                        ? []
+                        : [
+                            putTranslateFile(s3Client, {
+                                name: translateFile,
+                                importTree,
+                                scopeMap: scopeMapContents,
+                                assetKey: asset.key
+                            })
+                        ]
+                    ),
                     s3Client.send(new CopyObjectCommand({
                         Bucket: bucket,
                         CopySource: `${bucket}/${key}`,
                         Key: fileName
                     }))
                 ])
-                if (['Asset'].includes(asset.tag) && ['Canon', 'Personal'].includes(asset.zone)) {
+                if (['Asset'].includes(asset.tag) && (!asset.Story) && ['Canon', 'Personal'].includes(asset.zone)) {
                     await cacheAsset(asset.key)
                 }
             }
