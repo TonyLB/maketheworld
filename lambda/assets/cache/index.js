@@ -31,12 +31,12 @@ const checkEphemeraMetaData = async (assetId) => {
 }
 
 export const fetchAssetMetaData = async (assetId) => {
-    const { fileName = '', importTree = {} } = await assetDB.getItem({
+    const { fileName = '', importTree = {}, instance } = await assetDB.getItem({
         AssetId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
-        ProjectionFields: ['fileName', 'importTree']
+        ProjectionFields: ['fileName', 'importTree', 'instance']
     })
-    return { fileName, importTree }
+    return { fileName, importTree, instance }
 }
 
 //
@@ -141,7 +141,14 @@ export const cacheAsset = async (assetId, options = {}) => {
             return
         }
     }
-    const { fileName, importTree } = await fetchAssetMetaData(assetId)
+    const { fileName, importTree, instance } = await fetchAssetMetaData(assetId)
+    //
+    // Instanced stories are not directly cached, they are instantiated ... so
+    // this would be a miscall, and should be ignored.
+    //
+    if (instance) {
+        return
+    }
     if (recursive) {
         await Promise.all(Object.keys(importTree || {}).map((assetId) => (cacheAsset(assetId, { recursive: true, check: !forceCache }))))
     }

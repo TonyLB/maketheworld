@@ -37,6 +37,26 @@ describe('cacheAsset', () => {
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
 
+    it('should skip processing when asset is an instanced story', async () => {
+        ephemeraDB.getItem.mockResolvedValue({
+            EphemeraId: 'ASSET#Test'
+        })
+        assetDB.getItem
+            .mockResolvedValueOnce({
+                fileName: 'test',
+                importTree: { BASE: {} },
+                instance: true
+            })
+        await cacheAsset('Test')
+
+        expect(parseWMLFile).toHaveBeenCalledTimes(0)
+        expect(globalizeDBEntries).toHaveBeenCalledTimes(0)
+        expect(initializeRooms).toHaveBeenCalledTimes(0)
+        expect(mergeIntoDataRange).toHaveBeenCalledTimes(0)
+        expect(recalculateComputes).toHaveBeenCalledTimes(0)
+        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
+    })
+
     it('should send rooms in need of update', async () => {
         const topLevelAppearance = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
