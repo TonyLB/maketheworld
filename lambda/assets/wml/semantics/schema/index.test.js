@@ -125,7 +125,7 @@ describe('WML semantic schema', () => {
 
     it('should parse a story element', () => {
         const match = wmlGrammar.match(`
-            <Story key=(Test) fileName="test">
+            <Story key=(Test) instance fileName="test">
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
                     Vortex
@@ -138,6 +138,7 @@ describe('WML semantic schema', () => {
             tag: 'Asset',
             fileName: 'test',
             Story: true,
+            instance: true,
             props: {},
             contents: [{
                 key: 'ABC',
