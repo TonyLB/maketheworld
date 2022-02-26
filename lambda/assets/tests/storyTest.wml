@@ -1,4 +1,4 @@
-<Story key=(StoryTest) fileName="storyTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
+<Story key=(StoryTest) instance fileName="storyTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
     <Import from=(TEST)>
         <Use key=(345) as=(welcomeRoom) />
     </Import>

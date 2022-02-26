@@ -146,6 +146,8 @@ export const assetRegistryEntries = (schema) => {
             case 'Asset':
                 return {
                     tag,
+                    Story: rest.Story,
+                    instance: rest.instance,
                     name,
                     fileName,
                     key,
