@@ -211,6 +211,7 @@ export const schema = {
                 validate(confirmLiteralProps(['fileName', 'zone', 'subFolder', "player"])),
                 liftKeyProps(['key']),
                 liftLiteralProps(['fileName', 'player', 'zone']),
+                liftBooleanProps(['instance']),
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftUntagged('description', { allString: true })

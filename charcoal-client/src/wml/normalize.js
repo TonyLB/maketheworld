@@ -89,6 +89,7 @@ const pullProperties = (node) => {
             case 'Import':
                 pullTags = [...pullTags, 'mapping', 'from']
                 break
+            case 'Story':
             case 'Asset':
                 pullTags = [...pullTags, 'name', 'fileName', 'player', 'zone']
                 break
