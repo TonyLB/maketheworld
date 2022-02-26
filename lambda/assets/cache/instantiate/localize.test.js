@@ -2,134 +2,136 @@ import { jest, expect } from '@jest/globals'
 
 jest.mock('/opt/utilities/dynamoDB/index.js')
 import {
-    assetDB
+    ephemeraDB
 } from '/opt/utilities/dynamoDB/index.js'
 import { v4 as uuidv4 } from 'uuid'
 
 import localizeDBEntries from './localize.js'
 
-xdescribe('localizeDBEntries', () => {
+describe('localizeDBEntries', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
-    it('should return localized output', async () => {
-        const topLevelAppearance = {
-            contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            contents: [],
-            errors: [],
-            props: {}
-        }
-        const testEntries = {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'Condition-0',
-                        tag: 'Condition',
-                        index: 0
-                    },
-                    {
-                        key: 'powered',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'switchedOn',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'active',
-                        tag: 'Computed',
-                        index: 0
-                    },
-                    {
-                        key: 'toggleSwitch',
-                        tag: 'Action',
-                        index: 0
-                    }]
-                }]
-            },
-            ABC: {
-                key: 'ABC',
-                tag: 'Room',
-                appearances: [{
-                    ...topLevelAppearance,
-                    global: false,
-                    name: 'Vortex',
-                    render: []
+
+    const topLevelAppearance = {
+        contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
+        contents: [],
+        errors: [],
+        props: {}
+    }
+    const testNormalForm = {
+        test: {
+            key: 'test',
+            tag: 'Asset',
+            fileName: 'test',
+            appearances: [{
+                contextStack: [],
+                errors: [],
+                props: {},
+                contents: [{
+                    key: 'VORTEX',
+                    tag: 'Room',
+                    index: 0
                 },
                 {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    errors: [],
-                    global: false,
-                    props: {},
-                    render: ['The lights are on '],
-                    contents: []
+                    key: 'Condition-0',
+                    tag: 'Condition',
+                    index: 0
+                },
+                {
+                    key: 'Welcome',
+                    tag: 'Room',
+                    index: 0
                 }]
+            }]
+        },
+        VORTEX: {
+            key: 'VORTEX',
+            tag: 'Room',
+            isGlobal: true,
+            appearances: [{
+                ...topLevelAppearance,
+                name: 'Vortex',
+                render: [],
+                contents: [
+                    { key: 'VORTEX#Welcome', tag: 'Exit', index: 0 }
+                ]
             },
-            powered: {
-                key: 'powered',
-                tag: 'Variable',
-                default: 'false',
-                appearances: [topLevelAppearance]
-            },
-            switchedOn: {
-                key: 'switchedOn',
-                tag: 'Variable',
-                default: 'true',
-                appearances: [topLevelAppearance]
-            },
-            active: {
-                key: 'active',
-                tag: 'Computed',
-                src: 'powered && switchedOn',
-                dependencies: ['switchedOn', 'powered'],
-                appearances: [topLevelAppearance]
-            },
-            toggleSwitch: {
-                key: 'toggleSwitch',
-                tag: 'Action',
-                src: 'switchedOn = !switchedOn',
-                appearances: [topLevelAppearance]
-            },
-            ['Condition-0']: {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'active',
-                dependencies: ['active'],
-                appearances: [{
-                    ...topLevelAppearance,
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 1
-                    }]
+            {
+                contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                errors: [],
+                props: {},
+                render: ['The lights are on '],
+                contents: []
+            }]
+        },
+        ['Condition-0']: {
+            key: 'Condition-0',
+            tag: 'Condition',
+            if: 'active',
+            dependencies: ['active'],
+            appearances: [{
+                ...topLevelAppearance,
+                contents: [{
+                    key: 'VORTEX',
+                    tag: 'Room',
+                    index: 1
                 }]
-            }
+            }]
+        },
+        Welcome: {
+            key: 'Welcome',
+            tag: 'Room',
+            appearances: [{
+                ...topLevelAppearance,
+                global: false,
+                name: 'Welcome Area',
+                render: [],
+                contents: [
+                    { key: 'Welcome#VORTEX', tag: 'Exit', index: 0 }
+                ]
+            }]
+        },
+        'VORTEX#Welcome': {
+            key: 'VORTEX#Welcome',
+            tag: 'Exit',
+            to: 'Welcome',
+            from: 'VORTEX',
+            name: 'welcome',
+            appearances: [{
+                contextStack: [
+                    { key: 'test', tag: 'Asset', index: 0},
+                    { key: 'VORTEX', tag: 'Room', index: 0}
+                ]
+            }]
+        },
+        'Welcome#VORTEX': {
+            key: 'Welcome#VORTEX',
+            tag: 'Exit',
+            to: 'VORTEX',
+            from: 'Welcome',
+            name: 'vortex',
+            appearances: [{
+                contextStack: [
+                    { key: 'test', tag: 'Asset', index: 0},
+                    { key: 'Welcome', tag: 'Room', index: 0}
+                ]
+            }]
         }
-        assetDB.query.mockResolvedValue([{
-            AssetId: 'ROOM#DEF',
-            scopedId: 'ABC'
-        }])
+    }
+
+    it('should return localized output when none yet exists', async () => {
+        ephemeraDB.query.mockResolvedValue([{}])
         uuidv4.mockReturnValue('UUID')
-        const localizeOutput = await localizeDBEntries('test', testEntries)
+        const localizeOutput = await localizeDBEntries({
+            assetId: 'test',
+            normalizedDBEntries: testNormalForm
+        })
         expect(localizeOutput).toEqual({
-            ...testEntries,
-            ABC: {
-                ...testEntries.ABC,
-                EphemeraId: 'ROOM#DEF'
+            scopeMap: {
+                VORTEX: 'ROOM#VORTEX',
+                Welcome: 'ROOM#UUID'
             }
         })
     })
