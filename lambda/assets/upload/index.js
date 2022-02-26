@@ -97,7 +97,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
 
     if (assetRegistryItems.length) {
         try {
-            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Story', 'Character'].includes(tag)))
+            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 const translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
@@ -120,6 +120,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         }
                     }, {})
                 const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
+                console.log(`ImportedIDs: ${JSON.stringify(importedIds, null, 4)}`)
                 const scopeMapContents = scopeMap(
                     assetRegistryItems,
                     {
@@ -148,7 +149,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         Key: fileName
                     }))
                 ])
-                if (['Asset', 'Story'].includes(asset.tag) && ['Canon', 'Personal'].includes(asset.zone)) {
+                if (['Asset'].includes(asset.tag) && ['Canon', 'Personal'].includes(asset.zone)) {
                     await cacheAsset(asset.key)
                 }
             }

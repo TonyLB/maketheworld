@@ -135,8 +135,9 @@ describe('WML semantic schema', () => {
         const schema = wmlSemantics(match).schema()
         expect(schema).toEqual({
             key: 'Test',
-            tag: 'Story',
+            tag: 'Asset',
             fileName: 'test',
+            Story: true,
             props: {},
             contents: [{
                 key: 'ABC',
