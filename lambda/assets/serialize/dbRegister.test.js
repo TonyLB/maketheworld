@@ -106,7 +106,8 @@ describe('dbRegister', () => {
                 togglePower: 'DEF'
             },
             assets: [{
-                tag: 'Story',
+                tag: 'Asset',
+                Story: true,
                 key: 'TEST',
                 name: 'Test',
                 zone: 'Library'
@@ -127,8 +128,9 @@ describe('dbRegister', () => {
             }]
         })
         expect(assetDB.putItem).toHaveBeenCalledWith({
-            AssetId: 'STORY#TEST',
-            DataCategory: 'Meta::Story',
+            AssetId: 'ASSET#TEST',
+            DataCategory: 'Meta::Asset',
+            Story: true,
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
             name: 'Test',
@@ -136,7 +138,7 @@ describe('dbRegister', () => {
         })
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'assets',
-            search: { DataCategory: 'STORY#TEST' },
+            search: { DataCategory: 'ASSET#TEST' },
             items: [{
                 tag: 'Room',
                 key: 'Welcome',

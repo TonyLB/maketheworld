@@ -203,7 +203,8 @@ export const schema = {
             ])(node.schema())
     },
     StoryExpression(node) {
-        return wmlProcessUpNonRecursive([
+        return {
+            ...wmlProcessUpNonRecursive([
                 // desourceTag,
                 validate(confirmRequiredProps(['key', 'fileName'])),
                 validate(confirmKeyProps(['key'])),
@@ -213,7 +214,10 @@ export const schema = {
                 validate(fileNameValidator),
                 liftLiteralTags({ Name: 'name' }),
                 liftUntagged('description', { allString: true })
-            ])(node.schema())
+            ])(node.schema()),
+            tag: 'Asset',
+            Story: true
+        }
     },
     CharacterExpression(node) {
         const returnVal = wmlProcessUpNonRecursive([

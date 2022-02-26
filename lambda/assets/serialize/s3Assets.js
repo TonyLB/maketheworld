@@ -46,9 +46,6 @@ export const fileNameFromAssetId = async (AssetId) => {
         case 'CHARACTER':
             dataCategory = 'Meta::Character'
             break
-        case 'STORY':
-            dataCategory = 'Meta::Story'
-            break
     }
     const { fileName } = await assetDB.getItem({
         AssetId,

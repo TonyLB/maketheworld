@@ -4,7 +4,7 @@
     </Import>
     <Room key=(secretRoom)>
         It's a secret room!
-        <Exit from=(345)>secret</Exit>
-        <Exit to=(345)>out</Exit>
+        <Exit from=(welcomeRoom)>secret</Exit>
+        <Exit to=(welcomeRoom)>out</Exit>
     </Room>
-</Asset>
+</Story>
