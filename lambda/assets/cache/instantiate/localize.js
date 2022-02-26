@@ -5,6 +5,7 @@ import {
     ephemeraDB
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType, AssetKey } from '/opt/utilities/types.js'
+import ScopeMap from '../../serialize/scopeMap.js'
 
 export const localizeDBEntries = async ({
     assetId,
@@ -26,51 +27,14 @@ export const localizeDBEntries = async ({
             ...previous,
             ...(scopedId ? { [scopedId]: AssetId } : {})
         }), {})
-    //
-    // Add any incoming entries that have not yet been mapped
-    // NOTE:  There should be none.
-    //
-    const scopedToPermanentMapping = Object.values(normalizedDBEntries)
-        .filter(({ tag }) => (['Room'].includes(tag)))
-        .reduce((previous, { tag, key, isGlobal }) => {
-            let prefix = ''
-            switch(tag) {
-                default:
-                    prefix = 'ROOM'
-            }
-            const newEphemeraId = isGlobal
-                ? `${prefix}#${key}`
-                : previous[key] || `${prefix}#${uuidv4()}`
-            return {
-                ...previous,
-                [key]: newEphemeraId
-            }
-        }, currentScopedToPermanentMapping)
 
-    return Object.values(normalizedDBEntries)
-        .filter(({ tag }) => (['Room', 'Exit'].includes(tag)))
-        .reduce((previous, { tag, key, to }) => {
-            if (tag === 'Room') {
-                return {
-                    ...previous,
-                    [key]: {
-                        ...(previous[key] || {}),
-                        EphemeraId: scopedToPermanentMapping[key]
-                    }
-                }
-            }
-            if (tag === 'Exit') {
-                return {
-                    ...previous,
-                    [key]: {
-                        ...(previous[key] || {}),
-                        toEphemeraId: splitType(scopedToPermanentMapping[to])[1]
-                    }
-                }
-            }
-            return previous
-        },
-        normalizedDBEntries)
+    const scopeMap = new ScopeMap(currentScopedToPermanentMapping)
+    const mappedNormalForm = scopeMap.translateNormalForm(normalizedDBEntries)
+
+    return {
+        scopeMap: scopeMap.serialize()
+    }
+    
 }
 
 export default localizeDBEntries
