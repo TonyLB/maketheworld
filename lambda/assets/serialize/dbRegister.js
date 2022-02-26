@@ -10,6 +10,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 AssetId: AssetKey(asset.key),
                 DataCategory: `Meta::Asset`,
                 Story: asset.Story,
+                instance: asset.instance,
                 fileName,
                 translateFile,
                 importTree,
@@ -21,8 +22,10 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
             mergeIntoDataRange({
                 table: 'assets',
                 search: { DataCategory: AssetKey(asset.key) },
-                items: assets
-                    .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag))),
+                items: asset.instance
+                    ? []
+                    : assets
+                        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag))),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'

@@ -157,4 +157,55 @@ describe('dbRegister', () => {
             extractKey: expect.any(Function)
         })
     })
+
+    it('should save meta only for instanced Story type', async () => {
+        await dbRegister({
+            fileName: 'test.wml',
+            translateFile: 'test.translate.json',
+            scopeMap: {
+                Welcome: '12345',
+                power: 'ABC',
+                togglePower: 'DEF'
+            },
+            assets: [{
+                tag: 'Asset',
+                Story: true,
+                instance: true,
+                key: 'TEST',
+                name: 'Test',
+                zone: 'Library'
+            },
+            {
+                tag: 'Room',
+                key: 'Welcome',
+            },
+            {
+                tag: 'Variable',
+                key: 'power',
+                default: true
+            },
+            {
+                tag: 'Action',
+                key: 'togglePower',
+                src: 'power = !power'
+            }]
+        })
+        expect(assetDB.putItem).toHaveBeenCalledWith({
+            AssetId: 'ASSET#TEST',
+            DataCategory: 'Meta::Asset',
+            Story: true,
+            instance: true,
+            fileName: 'test.wml',
+            translateFile: 'test.translate.json',
+            name: 'Test',
+            zone: 'Library'
+        })
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'assets',
+            search: { DataCategory: 'ASSET#TEST' },
+            items: [],
+            mergeFunction: expect.any(Function),
+            extractKey: expect.any(Function)
+        })
+    })
 })

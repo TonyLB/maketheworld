@@ -120,7 +120,6 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         }
                     }, {})
                 const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
-                console.log(`ImportedIDs: ${JSON.stringify(importedIds, null, 4)}`)
                 const scopeMapContents = scopeMap(
                     assetRegistryItems,
                     {
