@@ -36,7 +36,7 @@ describe('dbRegister', () => {
         })
     })
 
-    it('should save meta, rooms, variables, and actions for Asset type', async () => {
+    it('should save meta, rooms for Asset type', async () => {
         await dbRegister({
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
@@ -79,24 +79,14 @@ describe('dbRegister', () => {
             search: { DataCategory: 'ASSET#TEST' },
             items: [{
                 tag: 'Room',
-                key: 'Welcome',
-            },
-            {
-                tag: 'Variable',
-                key: 'power',
-                default: true
-            },
-            {
-                tag: 'Action',
-                key: 'togglePower',
-                src: 'power = !power'
+                key: 'Welcome'
             }],
             mergeFunction: expect.any(Function),
             extractKey: expect.any(Function)
         })
     })
 
-    it('should save meta, rooms, variables, and actions for Story type', async () => {
+    it('should save meta, rooms for Story type', async () => {
         await dbRegister({
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
@@ -142,16 +132,6 @@ describe('dbRegister', () => {
             items: [{
                 tag: 'Room',
                 key: 'Welcome',
-            },
-            {
-                tag: 'Variable',
-                key: 'power',
-                default: true
-            },
-            {
-                tag: 'Action',
-                key: 'togglePower',
-                src: 'power = !power'
             }],
             mergeFunction: expect.any(Function),
             extractKey: expect.any(Function)
