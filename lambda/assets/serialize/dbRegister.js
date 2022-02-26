@@ -25,7 +25,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 items: asset.instance
                     ? []
                     : assets
-                        .filter(({ tag }) => (['Room', 'Variable', 'Action'].includes(tag))),
+                        .filter(({ tag }) => (['Room'].includes(tag))),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
@@ -47,12 +47,6 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 extractKey: ({ tag, isGlobal, key }) => {
                     let prefix = ''
                     switch(tag) {
-                        case 'Variable':
-                            prefix = 'VARIABLE'
-                            break
-                        case 'Action':
-                            prefix = 'ACTION'
-                            break
                         default:
                             prefix = 'ROOM'
                     }
