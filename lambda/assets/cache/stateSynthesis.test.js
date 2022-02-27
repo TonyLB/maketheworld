@@ -1,12 +1,16 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import {
-    extractDependencies,
+import StateSynthesizer, {
     extractStartingState
 } from './stateSynthesis.js'
 
 describe('stateSynthesis', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
     const topLevelAppearance = {
         contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
         contents: [],
@@ -14,110 +18,123 @@ describe('stateSynthesis', () => {
         props: {}
     }
 
-    describe('extractDependencies', () => {
-        it('should extract computed and room dependencies', () => {
-            const testAsset = {
-                test: {
-                    key: 'test',
-                    tag: 'Asset',
-                    fileName: 'test',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: [{
-                            key: 'ABC',
-                            tag: 'Room',
-                            index: 0
-                        },
-                        {
-                            key: 'Condition-0',
-                            tag: 'Condition',
-                            index: 0
-                        },
-                        {
-                            key: 'powered',
-                            tag: 'Variable',
-                            index: 0
-                        },
-                        {
-                            key: 'switchedOn',
-                            tag: 'Variable',
-                            index: 0
-                        },
-                        {
-                            key: 'active',
-                            tag: 'Computed',
-                            index: 0
-                        },
-                        {
-                            key: 'toggleSwitch',
-                            tag: 'Action',
-                            index: 0
-                        }]
-                    }]
-                },
-                ABC: {
+    const testAsset = {
+        test: {
+            key: 'test',
+            tag: 'Asset',
+            fileName: 'test',
+            appearances: [{
+                contextStack: [],
+                errors: [],
+                props: {},
+                contents: [{
                     key: 'ABC',
-                    EphemeraId: 'ROOM#DEF',
                     tag: 'Room',
-                    appearances: [{
-                        ...topLevelAppearance,
-                        global: false,
-                        name: 'Vortex',
-                        render: []
-                    },
-                    {
-                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                        errors: [],
-                        global: false,
-                        props: {},
-                        render: ['The lights are on '],
-                        contents: []
-                    }]
+                    index: 0
                 },
-                powered: {
-                    key: 'powered',
-                    tag: 'Variable',
-                    default: 'false',
-                    appearances: [topLevelAppearance]
-                },
-                switchedOn: {
-                    key: 'switchedOn',
-                    tag: 'Variable',
-                    default: 'true',
-                    appearances: [topLevelAppearance]
-                },
-                active: {
-                    key: 'active',
-                    tag: 'Computed',
-                    src: 'powered && switchedOn',
-                    dependencies: ['switchedOn', 'powered'],
-                    appearances: [topLevelAppearance]
-                },
-                toggleSwitch: {
-                    key: 'toggleSwitch',
-                    tag: 'Action',
-                    src: 'switchedOn = !switchedOn',
-                    appearances: [topLevelAppearance]
-                },
-                ['Condition-0']: {
+                {
                     key: 'Condition-0',
                     tag: 'Condition',
-                    if: 'active',
-                    dependencies: ['active'],
-                    appearances: [{
-                        ...topLevelAppearance,
-                        contents: [{
-                            key: 'ABC',
-                            tag: 'Room',
-                            index: 1
-                        }]
-                    }]
-                }
-            }
+                    index: 0
+                },
+                {
+                    key: 'powered',
+                    tag: 'Variable',
+                    index: 0
+                },
+                {
+                    key: 'switchedOn',
+                    tag: 'Variable',
+                    index: 0
+                },
+                {
+                    key: 'active',
+                    tag: 'Computed',
+                    index: 0
+                },
+                {
+                    key: 'toggleSwitch',
+                    tag: 'Action',
+                    index: 0
+                },
+                {
+                    key: 'Import-0',
+                    tag: 'Import',
+                    index: 0
+                }]
+            }]
+        },
+        ABC: {
+            key: 'ABC',
+            EphemeraId: 'ROOM#DEF',
+            tag: 'Room',
+            appearances: [{
+                ...topLevelAppearance,
+                global: false,
+                name: 'Vortex',
+                render: []
+            },
+            {
+                contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                errors: [],
+                global: false,
+                props: {},
+                render: ['The lights are on '],
+                contents: []
+            }]
+        },
+        powered: {
+            key: 'powered',
+            tag: 'Variable',
+            default: 'false',
+            appearances: [topLevelAppearance]
+        },
+        switchedOn: {
+            key: 'switchedOn',
+            tag: 'Variable',
+            default: 'true',
+            appearances: [topLevelAppearance]
+        },
+        active: {
+            key: 'active',
+            tag: 'Computed',
+            src: 'powered && switchedOn',
+            dependencies: ['switchedOn', 'powered'],
+            appearances: [topLevelAppearance]
+        },
+        toggleSwitch: {
+            key: 'toggleSwitch',
+            tag: 'Action',
+            src: 'switchedOn = !switchedOn',
+            appearances: [topLevelAppearance]
+        },
+        ['Condition-0']: {
+            key: 'Condition-0',
+            tag: 'Condition',
+            if: 'active',
+            dependencies: ['active'],
+            appearances: [{
+                ...topLevelAppearance,
+                contents: [{
+                    key: 'ABC',
+                    tag: 'Room',
+                    index: 1
+                }]
+            }]
+        },
+        ['Import-0']: {
+            key: 'Import-0',
+            tag: 'Import',
+            from: 'BASE',
+            appearances: [topLevelAppearance]
+        }
+    }
 
-            expect(extractDependencies(testAsset)).toEqual({
+    describe('constructor', () => {
+        it('should extract computed and room dependencies', () => {
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+
+            expect(testSynthesizer.dependencies).toEqual({
                 active: {
                     room: ['DEF']
                 },
@@ -126,6 +143,60 @@ describe('stateSynthesis', () => {
                 },
                 switchedOn: {
                     computed: ['active']
+                }
+            })
+        })
+
+        it('should extract computed variables', () => {
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+
+            expect(testSynthesizer.state).toEqual({
+                active: {
+                    key: 'active',
+                    computed: true,
+                    src: 'powered && switchedOn'
+                }
+            })
+        })
+    })
+
+    describe('fetchFromEphemera', () => {
+        it('should fetch and merge state from ephemera', async () => {
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            ephemeraDB.getItem.mockResolvedValue({
+                State: {
+                    powered: {
+                        key: 'powered',
+                        value: true
+                    },
+                    switchedOn: {
+                        key: 'switchedOn',
+                        value: true
+                    }
+                }
+            })
+            await testSynthesizer.fetchFromEphemera()
+            expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+                EphemeraId: 'ASSET#test',
+                DataCategory: 'Meta::Asset',
+                ProjectionFields: ['#state'],
+                ExpressionAttributeNames: {
+                    '#state': 'State'
+                }    
+            })
+            expect(testSynthesizer.state).toEqual({
+                active: {
+                    key: 'active',
+                    computed: true,
+                    src: 'powered && switchedOn'
+                },
+                powered: {
+                    key: 'powered',
+                    value: true
+                },
+                switchedOn: {
+                    key: 'switchedOn',
+                    value: true
                 }
             })
         })

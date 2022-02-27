@@ -19,18 +19,6 @@ const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) 
     ...rest
 })
 
-export const fetchAssetState = async (assetId) => {
-    const { State = {} } = await ephemeraDB.getItem({
-        EphemeraId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-        ProjectionFields: ['#state'],
-        ExpressionAttributeNames: {
-            '#state': 'State'
-        }
-    }) || {}
-    return State
-}
-
 export const extractDependencies = (normalForm) => {
     const computeDependencies = Object.values(normalForm)
         .filter(({ tag }) => (tag === 'Computed'))
@@ -71,6 +59,133 @@ export const extractDependencies = (normalForm) => {
         ), computeDependencies)
 
     return dependencies
+}
+
+const extractComputed = (normalForm) => {
+    const uncomputedState = Object.values(normalForm)
+        .filter(({ tag }) => (tag === 'Computed'))
+        .reduce((previous, { key, src }) => ({
+            ...previous,
+            [key]: {
+                key,
+                computed: true,
+                src
+            }
+        }), {})
+
+    return uncomputedState
+}
+
+const mergeStateReducer = (previous, [key, value]) => ({
+    ...previous,
+    [key]: {
+        ...(previous[key] || {}),
+        ...value
+    }
+})
+
+export class StateSynthesizer extends Object {
+    constructor(assetId, normalForm) {
+        super()
+        this.assetId = assetId
+        this.normalForm = normalForm
+        this.dependencies = extractDependencies(normalForm)
+        this.state = extractComputed(normalForm)
+    }
+
+    async fetchFromEphemera() {
+        const { State: incomingState = {} } = await ephemeraDB.getItem({
+            EphemeraId: AssetKey(this.assetId),
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        }) || {}
+        this.state = Object.entries(incomingState)
+            .reduce(mergeStateReducer, this.state || {})
+    }
+
+    evaluateDefaults() {
+        const variableState = Object.values(this.normalForm)
+            .filter(({ tag }) => (tag === 'Variable'))
+            .reduce((previous, { key, default: defaultValue }) => {
+                if (previous[key]?.value !== undefined) {
+                    return previous
+                }
+                const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})
+                return {
+                    ...previous,
+                    [key]: {
+                        value: defaultEvaluation
+                    }
+                }
+            }, this.state)
+        this.state = variableState
+    }
+
+    async fetchImportedValues() {
+        const importAssetsToFetch = [...new Set(Object.values(this.normalForm)
+            .filter(({ tag }) => (tag === 'Import'))
+            .map(({ from }) => (from)))]
+    
+        const importAssetStates = await ephemeraDB.batchGetItem({
+            Items: importAssetsToFetch
+                .map((assetId) => ({
+                    EphemeraId: AssetKey(assetId),
+                    DataCategory: 'Meta::Asset'
+                })),
+            ProjectionFields: ['#state', 'Dependencies', 'EphemeraId'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        })
+    
+        const importStateByAsset = (importAssetStates || [])
+            .reduce((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
+                const assetId = splitType(EphemeraId)[1]
+                if (assetId) {
+                    return {
+                        ...previous,
+                        [assetId]: {
+                            state,
+                            dependencies
+                        }
+                    }
+                }
+                return previous
+            }, {})
+    
+        const importState = Object.values(normalForm)
+            .filter(({ tag }) => (tag === 'Import'))
+            .reduce((previous, { from, mapping }) => {
+                return Object.entries(mapping)
+                    .filter(([_, awayKey]) => (awayKey in importStateByAsset[from].state))
+                    .reduce((accumulator, [localKey, awayKey]) => ({
+                        ...accumulator,
+                        [localKey]: {
+                            imported: true,
+                            asset: from,
+                            key: awayKey,
+                            value: importStateByAsset[from]?.state?.[awayKey]?.value
+                        }
+                    }), previous)
+            }, this.state)
+
+        this.state = importState
+    }
+}
+
+export const fetchAssetState = async (assetId) => {
+    const { State = {} } = await ephemeraDB.getItem({
+        EphemeraId: AssetKey(assetId),
+        DataCategory: 'Meta::Asset',
+        ProjectionFields: ['#state'],
+        ExpressionAttributeNames: {
+            '#state': 'State'
+        }
+    }) || {}
+    return State
 }
 
 export const extractStartingState = async (normalForm, currentState = {}) => {
@@ -150,3 +265,5 @@ export const extractStartingState = async (normalForm, currentState = {}) => {
     return uncomputedState
 
 }
+
+export default StateSynthesizer

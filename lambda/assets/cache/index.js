@@ -11,7 +11,7 @@ import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
-import { fetchAssetState, extractDependencies, extractStartingState } from './stateSynthesis.js'
+import StateSynthesizer, { extractStartingState } from './stateSynthesis.js'
 
 //
 // TODO:
@@ -22,23 +22,6 @@ import { fetchAssetState, extractDependencies, extractStartingState } from './st
 // What does it mean when the underlying assets of a room change, in terms
 // of notifying people in it?
 //
-
-const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
-    conditions: contextStack.reduce((previous, { key, tag }) => {
-        if (tag !== 'Condition') {
-            return previous
-        }
-        const { if: condition = '', dependencies = [] } = normalForm[key]
-        return [
-            ...previous,
-            {
-                if: condition,
-                dependencies
-            }
-        ]
-    }, []),
-    ...rest
-})
 
 export const cacheAsset = async (assetId, options = {}) => {
     const { check = false, recursive = false, forceCache = false } = options
@@ -64,8 +47,10 @@ export const cacheAsset = async (assetId, options = {}) => {
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
 
-    const [currentState] = await Promise.all([
-        fetchAssetState(assetId),
+    const stateSynthesizer = new StateSynthesizer(assetId, secondPassNormal)
+
+    await Promise.all([
+        stateSynthesizer.fetchFromEphemera(),
         mergeEntries(assetId, secondPassNormal),
         //
         // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
@@ -76,7 +61,7 @@ export const cacheAsset = async (assetId, options = {}) => {
         )
     ])
 
-    assetMetaData.dependencies = extractDependencies(secondPassNormal)
+    assetMetaData.dependencies = stateSynthesizer.dependencies
     
     const importAssetsToFetch = [...new Set(Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Import'))
@@ -138,7 +123,7 @@ export const cacheAsset = async (assetId, options = {}) => {
             })
     })
 
-    const uncomputedState = await extractStartingState(secondPassNormal, currentState)
+    const uncomputedState = await extractStartingState(secondPassNormal, stateSynthesizer.state)
     const { state } = recalculateComputes(
         uncomputedState,
         assetMetaData.dependencies,
