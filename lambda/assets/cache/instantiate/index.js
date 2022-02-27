@@ -50,10 +50,13 @@ export const instantiateAsset = async ({
 
     await Promise.all([
         // stateSynthesizer.fetchFromEphemera(),
-        mergeEntries(assetId, secondPassNormal),
-        initializeRooms(Object.values(secondPassNormal)
-            .filter(({ tag }) => (['Room'].includes(tag)))
-            .map(({ EphemeraId }) => EphemeraId)
+        ...(instantiateRooms
+            ? [
+                mergeEntries(assetId, secondPassNormal),
+                initializeRooms(Object.values(secondPassNormal)
+                    .filter(({ tag }) => (['Room'].includes(tag)))
+                    .map(({ EphemeraId }) => EphemeraId))
+            ]: []
         )
     ])
 
