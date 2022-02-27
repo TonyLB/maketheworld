@@ -47,10 +47,10 @@ export const instantiateAsset = async ({
 
     assetMetaData.scopeMap = scopeMap
 
-    // const stateSynthesizer = new StateSynthesizer(assetId, secondPassNormal)
+    const stateSynthesizer = new StateSynthesizer(assetId, secondPassNormal)
 
     await Promise.all([
-        // stateSynthesizer.fetchFromEphemera(),
+        stateSynthesizer.fetchFromEphemera(),
         ...(instantiateRooms
             ? [
                 mergeEntries(assetId, secondPassNormal),
@@ -61,9 +61,31 @@ export const instantiateAsset = async ({
         )
     ])
 
+    assetMetaData.dependencies = stateSynthesizer.dependencies
+    
+    stateSynthesizer.evaluateDefaults()
+    await stateSynthesizer.fetchImportedValues()
+    const { state } = recalculateComputes(
+        stateSynthesizer.state,
+        assetMetaData.dependencies,
+        Object.entries(stateSynthesizer.state)
+            .filter(([_, { computed }]) => (!computed))
+            .map(([key]) => (key))
+    )
+    assetMetaData.state = state
+
+    assetMetaData.actions = Object.values(secondPassNormal)
+        .filter(({ tag }) => (tag === 'Action'))
+        .reduce((previous, { key, src }) => ({
+            ...previous,
+            [key]: {
+                ...(previous[key] || {}),
+                src
+            }
+        }), {})
     await Promise.all([
         assetMetaData.pushEphemera(),
-        // stateSynthesizer.updateImportedDependencies()
+        stateSynthesizer.updateImportedDependencies()
     ])
 
 }
