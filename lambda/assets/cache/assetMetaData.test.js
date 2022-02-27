@@ -93,5 +93,29 @@ describe('AssetMap Class', () => {
                 importTree: { BASE: {} }
             })
         })
+
+        it('should push scopeMap when available', async () => {
+            const testAssetMetaData = new AssetMetaData('Test')
+            testAssetMetaData.state = {}
+            testAssetMetaData.dependencies = {}
+            testAssetMetaData.importTree = {}
+            testAssetMetaData.scopeMap = {
+                VORTEX: 'ROOM#VORTEX',
+                Welcome: 'ROOM#123456'
+            }
+            await testAssetMetaData.pushEphemera()
+            expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+                EphemeraId: 'ASSET#Test',
+                DataCategory: 'Meta::Asset',
+                Actions: {},
+                State: {},
+                Dependencies: {},
+                importTree: {},
+                scopeMap: {
+                    VORTEX: 'ROOM#VORTEX',
+                    Welcome: 'ROOM#123456'
+                }
+            })
+        })
     })
 })
