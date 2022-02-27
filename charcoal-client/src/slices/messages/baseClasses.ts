@@ -26,6 +26,7 @@ export type RoomCharacter = {
 
 export type RoomDescribeLink = {
     tag: 'Link',
+    RoomId: string;
     toAssetId: string;
     toAction: string;
     text: string;

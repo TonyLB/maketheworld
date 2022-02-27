@@ -37,7 +37,7 @@ const LinkDescription = ({ link }: LinkDescriptionProps) => {
             }}
             size="small"
             onClick={() => {
-                dispatch(socketDispatchPromise('link')({ Action: link.toAction, AssetId: link.toAssetId }))
+                dispatch(socketDispatchPromise('link')({ Action: link.toAction, AssetId: link.toAssetId, RoomId: link.RoomId }))
             }}
             label={link.text}
         />
