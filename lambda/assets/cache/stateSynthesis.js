@@ -198,7 +198,7 @@ export class StateSynthesizer extends Object {
                                     draft[from].dependencies[awayKey].imported = []
                                 }
                                 draft[from].dependencies[awayKey].imported = [
-                                    ...((draft[from].dependencies[awayKey].computed || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
+                                    ...((draft[from].dependencies[awayKey].imported || []).filter(({ asset, key }) => (asset !== this.assetId || key !== localKey))),
                                     {
                                         asset: this.assetId,
                                         key: localKey

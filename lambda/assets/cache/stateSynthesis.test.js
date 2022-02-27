@@ -256,7 +256,14 @@ describe('stateSynthesis', () => {
                             value: 'On'
                         }
                     },
-                    Dependencies: {}
+                    Dependencies: {
+                        powered: {
+                            imported: [{
+                                asset: 'somethingElse',
+                                key: 'powered'
+                            }]
+                        }
+                    }
                 }])
 
             const testSynthesizer = new StateSynthesizer('test', testAsset)
@@ -271,6 +278,10 @@ describe('stateSynthesis', () => {
                     ':dependencies': {
                         powered: {
                             imported: [{
+                                asset: 'somethingElse',
+                                key: 'powered'
+                            },
+                            {
                                 asset: 'test',
                                 key: 'power'
                             }]
