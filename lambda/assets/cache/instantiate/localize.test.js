@@ -135,4 +135,23 @@ describe('localizeDBEntries', () => {
             }
         })
     })
+
+    it('should map localized output where it exists', async () => {
+        ephemeraDB.query.mockResolvedValue([{
+            EphemeraId: 'ROOM#123456',
+            scopedId: 'Welcome'
+        }])
+        uuidv4.mockReturnValue('UUID')
+        const localizeOutput = await localizeDBEntries({
+            assetId: 'test',
+            normalizedDBEntries: testNormalForm
+        })
+        expect(localizeOutput).toEqual({
+            scopeMap: {
+                VORTEX: 'ROOM#VORTEX',
+                Welcome: 'ROOM#123456'
+            }
+        })
+    })
+
 })

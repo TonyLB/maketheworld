@@ -11,6 +11,7 @@ import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 import parseWMLFile from './parseWMLFile.js'
 import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
+import AssetMetaData from './assetMetaData.js'
 
 //
 // TODO:
@@ -22,43 +23,12 @@ import initializeRooms from './initializeRooms.js'
 // of notifying people in it?
 //
 
-const checkEphemeraMetaData = async (assetId) => {
-    const { EphemeraId = null } = await ephemeraDB.getItem({
-        EphemeraId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-    })
-    return Boolean(EphemeraId)
-}
-
-export const fetchAssetMetaData = async (assetId) => {
-    const { fileName = '', importTree = {}, instance } = await assetDB.getItem({
-        AssetId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-        ProjectionFields: ['fileName', 'importTree', 'instance']
-    })
-    return { fileName, importTree, instance }
-}
-
 //
 // At current levels of functionality, it is sufficient to do a deep-equality
 // check.
 //
 const compareEntries = (current, incoming) => {
     return JSON.stringify(current) === JSON.stringify(incoming)
-}
-
-const pushMetaData = async ({ assetId, state, dependencies, actions, importTree }) => {
-    await ephemeraDB.putItem({
-        EphemeraId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-        State: state || {},
-        Dependencies: dependencies || {
-            room: [],
-            computed: []
-        },
-        Actions: actions || {},
-        importTree: importTree || {}
-    })
 }
 
 const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
@@ -135,13 +105,14 @@ const mergeEntries = async (assetId, normalForm) => {
 export const cacheAsset = async (assetId, options = {}) => {
     const { check = false, recursive = false, forceCache = false } = options
 
+    const assetMetaData = new AssetMetaData(assetId)
     if (check) {
-        const alreadyPresent = await checkEphemeraMetaData(assetId)
+        const alreadyPresent = await assetMetaData.checkEphemera()
         if (alreadyPresent) {
             return
         }
     }
-    const { fileName, importTree, instance } = await fetchAssetMetaData(assetId)
+    const { fileName, importTree, instance } = await assetMetaData.fetch()
     //
     // Instanced stories are not directly cached, they are instantiated ... so
     // this would be a miscall, and should be ignored.
@@ -211,6 +182,7 @@ export const cacheAsset = async (assetId, options = {}) => {
                     ), accumulator)
                 ), previous)
         ), computeDependencies)
+    assetMetaData.dependencies = dependencies
 
     const variableState = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Variable'))
@@ -326,8 +298,9 @@ export const cacheAsset = async (assetId, options = {}) => {
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
     )
+    assetMetaData.state = state
 
-    const actions = Object.values(secondPassNormal)
+    assetMetaData.actions = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Action'))
         .reduce((previous, { key, src }) => ({
             ...previous,
@@ -337,13 +310,7 @@ export const cacheAsset = async (assetId, options = {}) => {
             }
         }), {})
     await Promise.all([
-        pushMetaData({
-            assetId,
-            state,
-            dependencies,
-            actions,
-            importTree
-        }),
+        assetMetaData.pushEphemera(),
         ...(Object.entries(updateAssetDependencies)
             .map(([assetId, { dependencies }]) => (
                 ephemeraDB.update({

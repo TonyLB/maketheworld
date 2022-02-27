@@ -23,9 +23,9 @@ export const localizeDBEntries = async ({
     // Derive all existing scope-to-uuid mappings from stored data
     //
     const currentScopedToPermanentMapping = Items
-        .reduce((previous, { scopedId, AssetId }) => ({
+        .reduce((previous, { scopedId, EphemeraId }) => ({
             ...previous,
-            ...(scopedId ? { [scopedId]: AssetId } : {})
+            ...(scopedId ? { [scopedId]: EphemeraId } : {})
         }), {})
 
     const scopeMap = new ScopeMap(currentScopedToPermanentMapping)
