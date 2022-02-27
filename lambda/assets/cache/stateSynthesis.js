@@ -1,3 +1,5 @@
+import { produce } from 'immer'
+
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 import { splitType, AssetKey } from '/opt/utilities/types.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
@@ -155,7 +157,9 @@ export class StateSynthesizer extends Object {
                 }
                 return previous
             }, {})
-    
+
+        this.importedStates = importStateByAsset
+
         const importState = Object.values(this.normalForm)
             .filter(({ tag }) => (tag === 'Import'))
             .reduce((previous, { from, mapping }) => {
@@ -173,6 +177,54 @@ export class StateSynthesizer extends Object {
             }, this.state)
 
         this.state = importState
+    }
+
+    async updateImportedDependencies() {
+        const updateAssetDependencies = produce(this.importedStates, (draft) => {
+            Object.values(this.normalForm)
+                .filter(({ tag }) => (tag === 'Import'))
+                .filter(({ from }) => (from in this.importedStates))
+                .forEach(({ from, mapping }) => {
+                    if (draft[from]) {
+                        if (!draft[from].dependencies) {
+                            draft[from].dependencies = {}
+                        }
+                        Object.entries(mapping).forEach(([localKey, awayKey]) => {
+                            if (awayKey in this.importedStates[from].state) {
+                                if (!(awayKey in draft[from].dependencies)) {
+                                    draft[from].dependencies[awayKey] = {}
+                                }
+                                if (!('imported' in draft[from].dependencies[awayKey])) {
+                                    draft[from].dependencies[awayKey].imported = []
+                                }
+                                draft[from].dependencies[awayKey].imported = [
+                                    ...((draft[from].dependencies[awayKey].computed || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
+                                    {
+                                        asset: this.assetId,
+                                        key: localKey
+                                    }
+                                ]
+                            }
+                        })
+                    }
+                })
+        })
+
+        //
+        // TODO: Upgrade with optimisticUpdate, when created
+        //
+        await Promise.all(Object.entries(updateAssetDependencies)
+            .map(([assetId, { dependencies }]) => (
+                ephemeraDB.update({
+                    EphemeraId: AssetKey(assetId),
+                    DataCategory: 'Meta::Asset',
+                    UpdateExpression: 'SET Dependencies = :dependencies',
+                    ExpressionAttributeValues: {
+                        ':dependencies': dependencies
+                    }
+                })
+            ))
+        )
     }
 }
 

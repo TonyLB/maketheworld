@@ -246,4 +246,40 @@ describe('stateSynthesis', () => {
         })
     })
 
+    describe('updateImportedDependencies', () => {
+        it('should update dependencies on fetched imports', async () => {
+            ephemeraDB.batchGetItem
+                .mockResolvedValueOnce([{
+                    EphemeraId: 'ASSET#BASE',
+                    State: {
+                        powered: {
+                            value: 'On'
+                        }
+                    },
+                    Dependencies: {}
+                }])
+
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            await testSynthesizer.fetchImportedValues()
+            await testSynthesizer.updateImportedDependencies()
+
+            expect(ephemeraDB.update).toHaveBeenCalledWith({
+                EphemeraId: 'ASSET#BASE',
+                DataCategory: 'Meta::Asset',
+                UpdateExpression: 'SET Dependencies = :dependencies',
+                ExpressionAttributeValues: {
+                    ':dependencies': {
+                        powered: {
+                            imported: [{
+                                asset: 'test',
+                                key: 'power'
+                            }]
+                        }
+                    }
+                }
+            })
+
+        })
+    })
+
 })

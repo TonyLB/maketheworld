@@ -63,66 +63,6 @@ export const cacheAsset = async (assetId, options = {}) => {
 
     assetMetaData.dependencies = stateSynthesizer.dependencies
     
-    const importAssetsToFetch = [...new Set(Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Import'))
-        .map(({ from }) => (from)))]
-    const importAssetStates = await ephemeraDB.batchGetItem({
-        Items: importAssetsToFetch
-            .map((assetId) => ({
-                EphemeraId: AssetKey(assetId),
-                DataCategory: 'Meta::Asset'
-            })),
-        ProjectionFields: ['#state', 'Dependencies', 'EphemeraId'],
-        ExpressionAttributeNames: {
-            '#state': 'State'
-        }
-    })
-
-    const importStateByAsset = (importAssetStates || [])
-        .reduce((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
-            const assetId = splitType(EphemeraId)[1]
-            if (assetId) {
-                return {
-                    ...previous,
-                    [assetId]: {
-                        state,
-                        dependencies
-                    }
-                }
-            }
-            return previous
-        }, {})
-
-    const updateAssetDependencies = produce(importStateByAsset, (draft) => {
-        Object.values(secondPassNormal)
-            .filter(({ tag }) => (tag === 'Import'))
-            .filter(({ from }) => (from in importStateByAsset))
-            .forEach(({ from, mapping }) => {
-                if (draft[from]) {
-                    if (!draft[from].dependencies) {
-                        draft[from].dependencies = {}
-                    }
-                    Object.entries(mapping).forEach(([localKey, awayKey]) => {
-                        if (awayKey in importStateByAsset[from].state) {
-                            if (!(awayKey in draft[from].dependencies)) {
-                                draft[from].dependencies[awayKey] = {}
-                            }
-                            if (!('imported' in draft[from].dependencies[awayKey])) {
-                                draft[from].dependencies[awayKey].imported = []
-                            }
-                            draft[from].dependencies[awayKey].imported = [
-                                ...((draft[from].dependencies[awayKey].computed || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
-                                {
-                                    asset: assetId,
-                                    key: localKey
-                                }
-                            ]
-                        }
-                    })
-                }
-            })
-    })
-
     stateSynthesizer.evaluateDefaults()
     await stateSynthesizer.fetchImportedValues()
     const { state } = recalculateComputes(
@@ -145,17 +85,6 @@ export const cacheAsset = async (assetId, options = {}) => {
         }), {})
     await Promise.all([
         assetMetaData.pushEphemera(),
-        ...(Object.entries(updateAssetDependencies)
-            .map(([assetId, { dependencies }]) => (
-                ephemeraDB.update({
-                    EphemeraId: AssetKey(assetId),
-                    DataCategory: 'Meta::Asset',
-                    UpdateExpression: 'SET Dependencies = :dependencies',
-                    ExpressionAttributeValues: {
-                        ':dependencies': dependencies
-                    }
-                })
-            ))
-        )
+        stateSynthesizer.updateImportedDependencies()
     ])
 }

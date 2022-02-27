@@ -103,7 +103,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
             const globalAssets = Items
                 .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
                 .filter(({ AssetId }) => (AssetId))
-                .map(({ AssetId, importTree }) => ({ [AssetId]: { type: 'Asset', tree: importTree } }))
+                .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
             const globalAssetsSorted = sortImportTree(Object.assign({}, ...globalAssets))
             await ephemeraDB.update({
                 EphemeraId: 'Global',
@@ -139,14 +139,15 @@ export const healPersonalAssets = async ({ PlayerName }) => {
     const queryItems = await assetDB.query({
         IndexName: 'PlayerIndex',
         player: PlayerName,
-        ProjectionFields: ['DataCategory', 'AssetId', 'importTree']
+        ProjectionFields: ['DataCategory', 'AssetId', 'importTree', 'Story']
     })
 
     const personalAssetEntries = queryItems
+        .filter(({ Story }) => (!Story))
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
         .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
         .filter(({ AssetId }) => (AssetId))
-        .map(({ AssetId, importTree }) => ({ [AssetId]: { type: 'Asset', tree: importTree } }))
+        .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
     const personalAssets = sortImportTree(Object.assign({}, ...personalAssetEntries))
 
     const characters = queryItems
@@ -177,12 +178,13 @@ export const generatePersonalAssetList = async (player) => {
             ExpressionAttributeValues: {
                 ":dc": `Meta::Asset`
             },
-            ProjectionFields: ['AssetId', 'importTree']
+            ProjectionFields: ['AssetId', 'importTree', 'Story']
         })
         const personalAssets = Items
+            .filter(({ Story }) => (!Story))
             .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
             .filter(({ AssetId }) => (AssetId))
-            .map(({ AssetId, importTree }) => ({ [AssetId]: { type: 'Asset', tree: importTree } }))
+            .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
         return sortImportTree(Object.assign({}, ...personalAssets))
     }    
     return []
