@@ -46,13 +46,6 @@ describe('instantiate Asset', () => {
     })
 
     it('should recursively cache when recursive option set true', async () => {
-        const topLevelAppearance = (key) => ({
-            contextStack: [{ key, tag: 'Asset', index: 0}],
-            contents: [],
-            errors: [],
-            props: {}
-        })
-
         assetMetaDataMock.fetch.mockResolvedValue({
             fileName: 'test',
             importTree: { BASE: {} },
@@ -61,39 +54,13 @@ describe('instantiate Asset', () => {
 
         localizeDBEntries.mockResolvedValue({
             scopeMap: { VORTEX: 'ROOM#VORTEX', Welcome: 'ROOM#123456' },
-            normalForm: {}
+            mappedNormalForm: {}
         })
+
+        recalculateComputes.mockReturnValue({ state: {} })
 
         await instantiateAsset({ assetId: 'test', options: { recursive: true } })
 
         expect(cacheAsset).toHaveBeenCalledWith('BASE', { recursive: true, check: true })
-        // expect(initializeRooms).toHaveBeenCalledWith([])
-        //
-        // TODO:  Figure out whether there's something important to store when a room
-        // is imported but not altered ... can the import just be a straight include?
-        //
-        // expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
-        // expect(mergeEntries).toHaveBeenCalledWith('BASE', baseAsset)
-        // expect(recalculateComputes).toHaveBeenCalledWith(
-        //     {},
-        //     {},
-        //     []
-        // )
-        // expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-        //     EphemeraId: "ASSET#test",
-        //     DataCategory: "Meta::Asset",
-        //     Actions: {},
-        //     State: {},
-        //     Dependencies: {},
-        //     importTree: { BASE: {} }
-        // })
-        // expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-        //     EphemeraId: "ASSET#BASE",
-        //     DataCategory: "Meta::Asset",
-        //     Actions: {},
-        //     State: {},
-        //     Dependencies: {},
-        //     importTree: {}
-        // })
     })
 })
