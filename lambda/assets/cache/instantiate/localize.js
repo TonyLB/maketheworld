@@ -69,7 +69,8 @@ export const localizeDBEntries = async ({
     const mappedNormalForm = scopeMap.translateNormalForm(normalizedDBEntries)
 
     return {
-        scopeMap: scopeMap.serialize()
+        scopeMap: scopeMap.serialize(),
+        mappedNormalForm
     }
     
 }

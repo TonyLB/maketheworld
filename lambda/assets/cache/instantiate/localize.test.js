@@ -133,6 +133,25 @@ describe('localizeDBEntries', () => {
             scopeMap: {
                 VORTEX: 'ROOM#VORTEX',
                 Welcome: 'ROOM#UUID'
+            },
+            mappedNormalForm: {
+                ...testNormalForm,
+                Welcome: {
+                    ...testNormalForm.Welcome,
+                    EphemeraId: 'ROOM#UUID'
+                },
+                'VORTEX#Welcome': {
+                    ...testNormalForm['VORTEX#Welcome'],
+                    toEphemeraId: 'UUID'
+                },
+                'Welcome#VORTEX': {
+                    ...testNormalForm['Welcome#VORTEX'],
+                    toEphemeraId: 'VORTEX'
+                },
+                VORTEX: {
+                    ...testNormalForm.VORTEX,
+                    EphemeraId: 'ROOM#VORTEX'
+                }
             }
         })
     })
@@ -151,6 +170,25 @@ describe('localizeDBEntries', () => {
             scopeMap: {
                 VORTEX: 'ROOM#VORTEX',
                 Welcome: 'ROOM#123456'
+            },
+            mappedNormalForm: {
+                ...testNormalForm,
+                Welcome: {
+                    ...testNormalForm.Welcome,
+                    EphemeraId: 'ROOM#123456'
+                },
+                'VORTEX#Welcome': {
+                    ...testNormalForm['VORTEX#Welcome'],
+                    toEphemeraId: '123456'
+                },
+                'Welcome#VORTEX': {
+                    ...testNormalForm['Welcome#VORTEX'],
+                    toEphemeraId: 'VORTEX'
+                },
+                VORTEX: {
+                    ...testNormalForm.VORTEX,
+                    EphemeraId: 'ROOM#VORTEX'
+                }
             }
         })
     })
@@ -245,6 +283,21 @@ describe('localizeDBEntries', () => {
             scopeMap: {
                 VORTEX: 'ROOM#BASEVORTEX',
                 Welcome: 'ROOM#UUID'
+            },
+            mappedNormalForm: {
+                ...testImportAsset,
+                Welcome: {
+                    ...testImportAsset.Welcome,
+                    EphemeraId: 'ROOM#UUID'
+                },
+                'Welcome#VORTEX': {
+                    ...testImportAsset['Welcome#VORTEX'],
+                    toEphemeraId: 'BASEVORTEX'
+                },
+                'VORTEX#Welcome': {
+                    ...testImportAsset['VORTEX#Welcome'],
+                    toEphemeraId: 'UUID'
+                }
             }
         })
     })

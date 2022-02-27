@@ -67,7 +67,8 @@ export const handler = async (event, context) => {
     }
     if (event.instantiate) {
         const fileName = await instantiateAsset({
-            assetId: event.instantiate
+            assetId: event.instantiate,
+            options: { instantiateRooms: true }
         })
 
         return JSON.stringify({ fileName })
