@@ -11,7 +11,7 @@ import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
-import { fetchAssetState, extractDependencies } from './stateSynthesis.js'
+import { fetchAssetState, extractDependencies, extractStartingState } from './stateSynthesis.js'
 
 //
 // TODO:
@@ -77,27 +77,7 @@ export const cacheAsset = async (assetId, options = {}) => {
     ])
 
     assetMetaData.dependencies = extractDependencies(secondPassNormal)
-
-    const variableState = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Variable'))
-        .reduce((previous, { key, default: defaultValue }) => {
-            if (previous[key]?.value !== undefined) {
-                return previous
-            }
-            const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})
-            return {
-                ...previous,
-                [key]: {
-                    value: defaultEvaluation
-                }
-            }
-        }, currentState)
-
     
-    //
-    // TODO: Import states from all dependency assets, and use that to discern
-    // which imports are variables (as opposed to, for instance, rooms)
-    //
     const importAssetsToFetch = [...new Set(Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Import'))
         .map(({ from }) => (from)))]
@@ -158,37 +138,11 @@ export const cacheAsset = async (assetId, options = {}) => {
             })
     })
 
-    const importState = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Import'))
-        .reduce((previous, { from, mapping }) => {
-            return Object.entries(mapping)
-                .filter(([_, awayKey]) => (awayKey in importStateByAsset[from].state))
-                .reduce((accumulator, [localKey, awayKey]) => ({
-                    ...accumulator,
-                    [localKey]: {
-                        imported: true,
-                        asset: from,
-                        key: awayKey,
-                        value: importStateByAsset[from]?.state?.[awayKey]?.value
-                    }
-                }), previous)
-        }, variableState)
-
-    const uncomputedState = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Computed'))
-        .reduce((previous, { key, src }) => ({
-            ...previous,
-            [key]: {
-                key,
-                computed: true,
-                src
-            }
-        }), importState)
-
+    const uncomputedState = await extractStartingState(secondPassNormal, currentState)
     const { state } = recalculateComputes(
         uncomputedState,
         assetMetaData.dependencies,
-        Object.entries(importState)
+        Object.entries(uncomputedState)
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
     )
