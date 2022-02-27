@@ -55,6 +55,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
         const [objectType] = splitType(EphemeraId)
         switch(objectType) {
             case 'ROOM':
+                const RoomId = splitType(EphemeraId)[1]
                 const personalAssets = characterAssets[CharacterId] || []
                 const RoomItems = roomMetaData[EphemeraId] || []
                 const RoomMeta = RoomItems.find(({ DataCategory }) => (DataCategory === 'Meta::Room'))
@@ -90,7 +91,8 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                                                         return {
                                                             ...rest,
                                                             toAssetId: splitType(AssetId)[1],
-                                                            toAction: to
+                                                            toAction: to,
+                                                            RoomId
                                                         }
                                                     }
                                                 }

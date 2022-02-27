@@ -4,7 +4,7 @@ import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
 import { AssetKey } from '../types.js'
 
-export const executeInAsset = (assetId) => async (src) => {
+export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { State: state = {}, Dependencies: dependencies = {}, importTree = {} } = await ephemeraDB.getItem({
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
@@ -89,7 +89,7 @@ export const executeInAsset = (assetId) => async (src) => {
     }
 }
 
-export const executeAction = async ({ action, assetId }) => {
+export const executeAction = async ({ action, assetId, RoomId }) => {
     const { Actions: actions = {} } = await ephemeraDB.getItem({
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
@@ -97,7 +97,7 @@ export const executeAction = async ({ action, assetId }) => {
     })
     const { src = '' } = actions[action] || {}
     if (src) {
-        return await executeInAsset(assetId)(src)
+        return await executeInAsset(assetId, { RoomId })(src)
     }
     else {
         return {
