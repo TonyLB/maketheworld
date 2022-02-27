@@ -1,9 +1,7 @@
 import { produce } from 'immer'
 
 import {
-    assetDB,
-    ephemeraDB,
-    mergeIntoDataRange
+    ephemeraDB
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType, AssetKey } from '/opt/utilities/types.js'
 import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
@@ -13,6 +11,7 @@ import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
+import StateSynthesizer from './stateSynthesis.js'
 
 //
 // TODO:
@@ -23,23 +22,6 @@ import mergeEntries from './mergeEntries.js'
 // What does it mean when the underlying assets of a room change, in terms
 // of notifying people in it?
 //
-
-const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
-    conditions: contextStack.reduce((previous, { key, tag }) => {
-        if (tag !== 'Condition') {
-            return previous
-        }
-        const { if: condition = '', dependencies = [] } = normalForm[key]
-        return [
-            ...previous,
-            {
-                if: condition,
-                dependencies
-            }
-        ]
-    }, []),
-    ...rest
-})
 
 export const cacheAsset = async (assetId, options = {}) => {
     const { check = false, recursive = false, forceCache = false } = options
@@ -65,15 +47,10 @@ export const cacheAsset = async (assetId, options = {}) => {
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
 
-    const [{ State: currentState = {} } = {}] = await Promise.all([
-        ephemeraDB.getItem({
-            EphemeraId: AssetKey(assetId),
-            DataCategory: 'Meta::Asset',
-            ProjectionFields: ['#state'],
-            ExpressionAttributeNames: {
-                '#state': 'State'
-            }
-        }),
+    const stateSynthesizer = new StateSynthesizer(assetId, secondPassNormal)
+
+    await Promise.all([
+        stateSynthesizer.fetchFromEphemera(),
         mergeEntries(assetId, secondPassNormal),
         //
         // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
@@ -84,156 +61,14 @@ export const cacheAsset = async (assetId, options = {}) => {
         )
     ])
 
-    const computeDependencies = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Computed'))
-        .reduce((previous, { key, dependencies }) => (
-            dependencies.reduce((accumulator, dependency) => ({
-                ...accumulator,
-                [dependency]: {
-                    computed: [
-                        ...(accumulator[dependency]?.computed || []),
-                        key
-                    ]
-                }
-            }), previous)
-        ), {})
-
-    const dependencies = Object.values(secondPassNormal)
-        .filter(({ tag }) => (['Room'].includes(tag)))
-        .reduce((previous, { EphemeraId, appearances = [] }) => (
-            appearances
-                .map(mapContextStackToConditions(secondPassNormal))
-                .reduce((accumulator, { conditions = [] }) => (
-                    conditions.reduce((innerAccumulator, { dependencies = [] }) => (
-                        dependencies.reduce((innermostAccumulator, dependency) => ({
-                            ...innermostAccumulator,
-                            [dependency]: {
-                                ...(innermostAccumulator[dependency] || {}),
-                                room: [...(new Set([
-                                    ...(innermostAccumulator[dependency]?.room || []),
-                                    //
-                                    // Extract the globalized RoomId
-                                    //
-                                    splitType(EphemeraId)[1]
-                                ]))]
-                            }
-                        }), innerAccumulator)
-                    ), accumulator)
-                ), previous)
-        ), computeDependencies)
-    assetMetaData.dependencies = dependencies
-
-    const variableState = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Variable'))
-        .reduce((previous, { key, default: defaultValue }) => {
-            if (previous[key]?.value !== undefined) {
-                return previous
-            }
-            const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})
-            return {
-                ...previous,
-                [key]: {
-                    value: defaultEvaluation
-                }
-            }
-        }, currentState)
-
+    assetMetaData.dependencies = stateSynthesizer.dependencies
     
-    //
-    // TODO: Import states from all dependency assets, and use that to discern
-    // which imports are variables (as opposed to, for instance, rooms)
-    //
-    const importAssetsToFetch = [...new Set(Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Import'))
-        .map(({ from }) => (from)))]
-    const importAssetStates = await ephemeraDB.batchGetItem({
-        Items: importAssetsToFetch
-            .map((assetId) => ({
-                EphemeraId: AssetKey(assetId),
-                DataCategory: 'Meta::Asset'
-            })),
-        ProjectionFields: ['#state', 'Dependencies', 'EphemeraId'],
-        ExpressionAttributeNames: {
-            '#state': 'State'
-        }
-    })
-
-    const importStateByAsset = (importAssetStates || [])
-        .reduce((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
-            const assetId = splitType(EphemeraId)[1]
-            if (assetId) {
-                return {
-                    ...previous,
-                    [assetId]: {
-                        state,
-                        dependencies
-                    }
-                }
-            }
-            return previous
-        }, {})
-
-    const updateAssetDependencies = produce(importStateByAsset, (draft) => {
-        Object.values(secondPassNormal)
-            .filter(({ tag }) => (tag === 'Import'))
-            .filter(({ from }) => (from in importStateByAsset))
-            .forEach(({ from, mapping }) => {
-                if (draft[from]) {
-                    if (!draft[from].dependencies) {
-                        draft[from].dependencies = {}
-                    }
-                    Object.entries(mapping).forEach(([localKey, awayKey]) => {
-                        if (awayKey in importStateByAsset[from].state) {
-                            if (!(awayKey in draft[from].dependencies)) {
-                                draft[from].dependencies[awayKey] = {}
-                            }
-                            if (!('imported' in draft[from].dependencies[awayKey])) {
-                                draft[from].dependencies[awayKey].imported = []
-                            }
-                            draft[from].dependencies[awayKey].imported = [
-                                ...((draft[from].dependencies[awayKey].computed || []).filter(({ asset, key }) => (asset !== assetId || key !== localKey))),
-                                {
-                                    asset: assetId,
-                                    key: localKey
-                                }
-                            ]
-                        }
-                    })
-                }
-            })
-    })
-
-    const importState = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Import'))
-        .reduce((previous, { from, mapping }) => {
-            return Object.entries(mapping)
-                .filter(([_, awayKey]) => (awayKey in importStateByAsset[from].state))
-                .reduce((accumulator, [localKey, awayKey]) => ({
-                    ...accumulator,
-                    [localKey]: {
-                        imported: true,
-                        asset: from,
-                        key: awayKey,
-                        value: importStateByAsset[from]?.state?.[awayKey]?.value
-                    }
-                }), previous)
-        }, variableState)
-
-    const uncomputedState = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Computed'))
-        .reduce((previous, { key, src }) => ({
-            ...previous,
-            [key]: {
-                key,
-                computed: true,
-                src
-            }
-        }), importState)
-
+    stateSynthesizer.evaluateDefaults()
+    await stateSynthesizer.fetchImportedValues()
     const { state } = recalculateComputes(
-        uncomputedState,
-        dependencies,
-        Object.entries(importState)
+        stateSynthesizer.state,
+        assetMetaData.dependencies,
+        Object.entries(stateSynthesizer.state)
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
     )
@@ -250,17 +85,6 @@ export const cacheAsset = async (assetId, options = {}) => {
         }), {})
     await Promise.all([
         assetMetaData.pushEphemera(),
-        ...(Object.entries(updateAssetDependencies)
-            .map(([assetId, { dependencies }]) => (
-                ephemeraDB.update({
-                    EphemeraId: AssetKey(assetId),
-                    DataCategory: 'Meta::Asset',
-                    UpdateExpression: 'SET Dependencies = :dependencies',
-                    ExpressionAttributeValues: {
-                        ':dependencies': dependencies
-                    }
-                })
-            ))
-        )
+        stateSynthesizer.updateImportedDependencies()
     ])
 }
