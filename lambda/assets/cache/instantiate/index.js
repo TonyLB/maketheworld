@@ -11,7 +11,12 @@ export const instantiateAsset = async ({
     instanceId,
     options = {}
 } = {}) => {
-    const { check = false, recursive = false, forceCache = false } = options
+    const {
+        check = false,
+        recursive = false,
+        forceCache = false,
+        instantiateRooms = false
+    } = options
 
     if (!assetId) {
         return
@@ -34,8 +39,7 @@ export const instantiateAsset = async ({
         await Promise.all(Object.keys(importTree || {}).map((assetId) => (cacheAsset(assetId, { recursive: true, check: !forceCache }))))
     }
     const firstPassNormal = await parseWMLFile(fileName)
-    console.log(`First Pass Normal: ${JSON.stringify(firstPassNormal, null, 4)}`)
-    const { scopeMap } = await localizeDBEntries({
+    const { scopeMap, mappedNormalForm: secondPassNormal } = await localizeDBEntries({
         assetId,
         normalizedDBEntries: firstPassNormal
     })
@@ -43,6 +47,15 @@ export const instantiateAsset = async ({
     assetMetaData.scopeMap = scopeMap
 
     // const stateSynthesizer = new StateSynthesizer(assetId, secondPassNormal)
+
+    await Promise.all([
+        // stateSynthesizer.fetchFromEphemera(),
+        mergeEntries(assetId, secondPassNormal),
+        initializeRooms(Object.values(secondPassNormal)
+            .filter(({ tag }) => (['Room'].includes(tag)))
+            .map(({ EphemeraId }) => EphemeraId)
+        )
+    ])
 
     await Promise.all([
         assetMetaData.pushEphemera(),
