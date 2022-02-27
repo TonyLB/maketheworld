@@ -24,7 +24,7 @@ describe('executeInAsset', () => {
             recalculated: { BASE: [] }
         })
         const output = await executeInAsset('BASE')('return foo')
-        expect(output).toBe(true)
+        expect(output.returnValue).toBe(true)
         expect(dependencyCascade).toHaveBeenCalledWith(
             { BASE: testAssets.BASE },
             { BASE: [] },

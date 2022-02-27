@@ -14,7 +14,11 @@ export const executeInAsset = (assetId) => async (src) => {
         }
     })
     const valueState = Object.entries(state).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+
+    const executeMessageQueue = []
+
     const { changedKeys, newValues, returnValue } = executeCode(src)(valueState)
+    
     const updatedState = Object.entries(newValues).reduce((previous, [key, value]) => ({
         ...previous,
         [key]: {
@@ -79,7 +83,10 @@ export const executeInAsset = (assetId) => async (src) => {
         })
     ])
 
-    return returnValue
+    return {
+        returnValue,
+        executeMessageQueue
+    }
 }
 
 export const executeAction = async ({ action, assetId }) => {
@@ -90,6 +97,11 @@ export const executeAction = async ({ action, assetId }) => {
     })
     const { src = '' } = actions[action] || {}
     if (src) {
-        await executeInAsset(assetId)(src)
+        return await executeInAsset(assetId)(src)
+    }
+    else {
+        return {
+            executeMessageQueue: []
+        }
     }
 }
