@@ -1,9 +1,7 @@
 import { produce } from 'immer'
 
 import {
-    assetDB,
-    ephemeraDB,
-    mergeIntoDataRange
+    ephemeraDB
 } from '/opt/utilities/dynamoDB/index.js'
 import { splitType, AssetKey } from '/opt/utilities/types.js'
 import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
@@ -13,6 +11,7 @@ import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
+import { fetchAssetState, extractDependencies } from './stateSynthesis.js'
 
 //
 // TODO:
@@ -65,15 +64,8 @@ export const cacheAsset = async (assetId, options = {}) => {
     const firstPassNormal = await parseWMLFile(fileName)
     const secondPassNormal = await globalizeDBEntries(assetId, firstPassNormal)
 
-    const [{ State: currentState = {} } = {}] = await Promise.all([
-        ephemeraDB.getItem({
-            EphemeraId: AssetKey(assetId),
-            DataCategory: 'Meta::Asset',
-            ProjectionFields: ['#state'],
-            ExpressionAttributeNames: {
-                '#state': 'State'
-            }
-        }),
+    const [currentState] = await Promise.all([
+        fetchAssetState(assetId),
         mergeEntries(assetId, secondPassNormal),
         //
         // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
@@ -84,44 +76,7 @@ export const cacheAsset = async (assetId, options = {}) => {
         )
     ])
 
-    const computeDependencies = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Computed'))
-        .reduce((previous, { key, dependencies }) => (
-            dependencies.reduce((accumulator, dependency) => ({
-                ...accumulator,
-                [dependency]: {
-                    computed: [
-                        ...(accumulator[dependency]?.computed || []),
-                        key
-                    ]
-                }
-            }), previous)
-        ), {})
-
-    const dependencies = Object.values(secondPassNormal)
-        .filter(({ tag }) => (['Room'].includes(tag)))
-        .reduce((previous, { EphemeraId, appearances = [] }) => (
-            appearances
-                .map(mapContextStackToConditions(secondPassNormal))
-                .reduce((accumulator, { conditions = [] }) => (
-                    conditions.reduce((innerAccumulator, { dependencies = [] }) => (
-                        dependencies.reduce((innermostAccumulator, dependency) => ({
-                            ...innermostAccumulator,
-                            [dependency]: {
-                                ...(innermostAccumulator[dependency] || {}),
-                                room: [...(new Set([
-                                    ...(innermostAccumulator[dependency]?.room || []),
-                                    //
-                                    // Extract the globalized RoomId
-                                    //
-                                    splitType(EphemeraId)[1]
-                                ]))]
-                            }
-                        }), innerAccumulator)
-                    ), accumulator)
-                ), previous)
-        ), computeDependencies)
-    assetMetaData.dependencies = dependencies
+    assetMetaData.dependencies = extractDependencies(secondPassNormal)
 
     const variableState = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Variable'))
@@ -232,7 +187,7 @@ export const cacheAsset = async (assetId, options = {}) => {
 
     const { state } = recalculateComputes(
         uncomputedState,
-        dependencies,
+        assetMetaData.dependencies,
         Object.entries(importState)
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
