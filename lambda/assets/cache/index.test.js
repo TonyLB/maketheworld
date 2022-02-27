@@ -11,7 +11,8 @@ jest.mock('./globalize.js')
 import globalizeDBEntries from './globalize.js'
 jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
-import { mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
+jest.mock('./mergeEntries.js')
+import mergeEntries from './mergeEntries.js'
 import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
 
@@ -32,7 +33,7 @@ describe('cacheAsset', () => {
         expect(parseWMLFile).toHaveBeenCalledTimes(0)
         expect(globalizeDBEntries).toHaveBeenCalledTimes(0)
         expect(initializeRooms).toHaveBeenCalledTimes(0)
-        expect(mergeIntoDataRange).toHaveBeenCalledTimes(0)
+        expect(mergeEntries).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
@@ -52,7 +53,7 @@ describe('cacheAsset', () => {
         expect(parseWMLFile).toHaveBeenCalledTimes(0)
         expect(globalizeDBEntries).toHaveBeenCalledTimes(0)
         expect(initializeRooms).toHaveBeenCalledTimes(0)
-        expect(mergeIntoDataRange).toHaveBeenCalledTimes(0)
+        expect(mergeEntries).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
@@ -76,7 +77,7 @@ describe('cacheAsset', () => {
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
-        globalizeDBEntries.mockResolvedValue({
+        const testAsset = {
             test: {
                 key: 'test',
                 tag: 'Asset',
@@ -175,7 +176,8 @@ describe('cacheAsset', () => {
                     }]
                 }]
             }
-        })
+        }
+        globalizeDBEntries.mockResolvedValue(testAsset)
         recalculateComputes.mockReturnValue({ state: {
             active: {
                 computed: true,
@@ -190,35 +192,11 @@ describe('cacheAsset', () => {
             }
         } })
 
-        await cacheAsset('ABC')
+        await cacheAsset('test')
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#DEF'])
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#ABC' },
-            items: [{
-                EphemeraId: 'ROOM#DEF',
-                key: 'ABC',
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    name: 'Vortex',
-                    render: [],
-                    exits: []
-                },
-                {
-                    conditions: [{
-                        dependencies: ['active'],
-                        if: 'active'
-                    }],
-                    render: ['The lights are on '],
-                    exits: []
-                }
-                ]
-            }],
-            mergeFunction: expect.any(Function)
-        })
+        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
             {
                 active: {
@@ -247,7 +225,7 @@ describe('cacheAsset', () => {
             ['powered', 'switchedOn']
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#ABC",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             Actions: {
                 toggleSwitch: {
@@ -300,7 +278,7 @@ describe('cacheAsset', () => {
         ephemeraDB.getItem
             .mockResolvedValueOnce({ State: {} })
         parseWMLFile.mockResolvedValue(['Test'])
-        globalizeDBEntries.mockResolvedValue({
+        const testAsset = {
             test: {
                 key: 'test',
                 tag: 'Asset',
@@ -371,46 +349,15 @@ describe('cacheAsset', () => {
                 name: 'vortex',
                 appearances: [topLevelAppearance, { key: 'DEF', tag: 'Room', index: 0 }]
             }
-        })
+        }
+        globalizeDBEntries.mockResolvedValue(testAsset)
         recalculateComputes.mockReturnValue({ state: {} })
 
-        await cacheAsset('ABC')
+        await cacheAsset('test')
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#XABC', 'ROOM#XDEF'])
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#ABC' },
-            items: [{
-                EphemeraId: 'ROOM#XABC',
-                key: 'ABC',
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    name: 'Vortex',
-                    render: [],
-                    exits: [{
-                        name: 'welcome',
-                        to: 'XDEF',
-                    }]
-                }]
-            },
-            {
-                EphemeraId: 'ROOM#XDEF',
-                key: 'DEF',
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    name: 'Welcome',
-                    render: [],
-                    exits: [{
-                        name: 'vortex',
-                        to: 'XABC',
-                    }]
-                }]
-            }],
-            mergeFunction: expect.any(Function)
-        })
+        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
     })
 
     it('should fetch imported variables', async () => {
@@ -439,7 +386,7 @@ describe('cacheAsset', () => {
                 Dependencies: {}
             }])
         parseWMLFile.mockResolvedValue(['Test'])
-        globalizeDBEntries.mockResolvedValue({
+        const testAsset = {
             test: {
                 key: 'test',
                 tag: 'Asset',
@@ -466,7 +413,8 @@ describe('cacheAsset', () => {
                 },
                 appearances: [topLevelAppearance]
             }
-        })
+        }
+        globalizeDBEntries.mockResolvedValue(testAsset)
         recalculateComputes.mockReturnValue({ state: {
             power: {
                 imported: true,
@@ -476,20 +424,15 @@ describe('cacheAsset', () => {
             }
         } })
 
-        await cacheAsset('ABC')
+        await cacheAsset('test')
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
         // is imported but not altered ... can the import just be a straight include?
         //
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#ABC' },
-            items: [],
-            mergeFunction: expect.any(Function)
-        })
+        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
             {
                 power: {
@@ -503,7 +446,7 @@ describe('cacheAsset', () => {
             ['power']
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#ABC",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             Actions: {},
             State: {
@@ -525,7 +468,7 @@ describe('cacheAsset', () => {
                 ':dependencies': {
                     powered: {
                         imported: [{
-                            asset: 'ABC',
+                            asset: 'test',
                             key: 'power'
                         }]
                     }
@@ -559,75 +502,67 @@ describe('cacheAsset', () => {
                 Dependencies: {}
             }])
         parseWMLFile.mockResolvedValue(['Test'])
+        const testAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    }]
+                }]
+            },
+            ['Import-0']: {
+                key: 'Import-0',
+                tag: 'Import',
+                from: 'BASE',
+                tag: 'Import',
+                mapping: {},
+                appearances: [topLevelAppearance('test')]
+            }
+        }
+        const baseAsset = {
+            test: {
+                key: 'BASE',
+                tag: 'Asset',
+                fileName: 'Base',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: []
+                }]
+            }
+        }
         globalizeDBEntries
-            .mockResolvedValueOnce({
-                test: {
-                    key: 'test',
-                    tag: 'Asset',
-                    fileName: 'test',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: [{
-                            key: 'Import-0',
-                            tag: 'Import',
-                            index: 0
-                        }]
-                    }]
-                },
-                ['Import-0']: {
-                    key: 'Import-0',
-                    tag: 'Import',
-                    from: 'BASE',
-                    tag: 'Import',
-                    mapping: {},
-                    appearances: [topLevelAppearance('test')]
-                }
-            })
-            .mockResolvedValueOnce({
-                test: {
-                    key: 'BASE',
-                    tag: 'Asset',
-                    fileName: 'Base',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: []
-                    }]
-                }
-            })
+            .mockResolvedValueOnce(baseAsset)
+            .mockResolvedValueOnce(testAsset)
             
         recalculateComputes.mockReturnValue({ state: {} })
 
-        await cacheAsset('ABC', { recursive: true })
+        await cacheAsset('test', { recursive: true })
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
         // is imported but not altered ... can the import just be a straight include?
         //
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#ABC' },
-            items: [],
-            mergeFunction: expect.any(Function)
-        })
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#BASE' },
-            items: [],
-            mergeFunction: expect.any(Function)
-        })
+        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
+        expect(mergeEntries).toHaveBeenCalledWith('BASE', baseAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
             {},
             {},
             []
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#ABC",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             Actions: {},
             State: {},
@@ -669,63 +604,46 @@ describe('cacheAsset', () => {
                 Dependencies: {}
             }])
         parseWMLFile.mockResolvedValue(['Test'])
+        const testAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    }]
+                }]
+            },
+            ['Import-0']: {
+                key: 'Import-0',
+                tag: 'Import',
+                from: 'BASE',
+                tag: 'Import',
+                mapping: {},
+                appearances: [topLevelAppearance('test')]
+            }
+        }
         globalizeDBEntries
-            .mockResolvedValueOnce({
-                test: {
-                    key: 'test',
-                    tag: 'Asset',
-                    fileName: 'test',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: [{
-                            key: 'Import-0',
-                            tag: 'Import',
-                            index: 0
-                        }]
-                    }]
-                },
-                ['Import-0']: {
-                    key: 'Import-0',
-                    tag: 'Import',
-                    from: 'BASE',
-                    tag: 'Import',
-                    mapping: {},
-                    appearances: [topLevelAppearance('test')]
-                }
-            })
-            .mockResolvedValueOnce({
-                test: {
-                    key: 'BASE',
-                    tag: 'Asset',
-                    fileName: 'Base',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: []
-                    }]
-                }
-            })
+            .mockResolvedValueOnce(testAsset)
             
         recalculateComputes.mockReturnValue({ state: {} })
 
-        await cacheAsset('ABC', { recursive: true })
+        await cacheAsset('test', { recursive: true })
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
         // is imported but not altered ... can the import just be a straight include?
         //
-        expect(mergeIntoDataRange).toHaveBeenCalledTimes(1)
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#ABC' },
-            items: [],
-            mergeFunction: expect.any(Function)
-        })
+        expect(mergeEntries).toHaveBeenCalledTimes(1)
+        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
             {},
             {},
@@ -733,7 +651,7 @@ describe('cacheAsset', () => {
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(1)
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#ABC",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             Actions: {},
             State: {},
@@ -766,75 +684,67 @@ describe('cacheAsset', () => {
                 Dependencies: {}
             }])
         parseWMLFile.mockResolvedValue(['Test'])
+        const testAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'Import-0',
+                        tag: 'Import',
+                        index: 0
+                    }]
+                }]
+            },
+            ['Import-0']: {
+                key: 'Import-0',
+                tag: 'Import',
+                from: 'BASE',
+                tag: 'Import',
+                mapping: {},
+                appearances: [topLevelAppearance('test')]
+            }
+        }
+        const baseAsset = {
+            test: {
+                key: 'BASE',
+                tag: 'Asset',
+                fileName: 'Base',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: []
+                }]
+            }
+        }
         globalizeDBEntries
-            .mockResolvedValueOnce({
-                test: {
-                    key: 'test',
-                    tag: 'Asset',
-                    fileName: 'test',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: [{
-                            key: 'Import-0',
-                            tag: 'Import',
-                            index: 0
-                        }]
-                    }]
-                },
-                ['Import-0']: {
-                    key: 'Import-0',
-                    tag: 'Import',
-                    from: 'BASE',
-                    tag: 'Import',
-                    mapping: {},
-                    appearances: [topLevelAppearance('test')]
-                }
-            })
-            .mockResolvedValueOnce({
-                test: {
-                    key: 'BASE',
-                    tag: 'Asset',
-                    fileName: 'Base',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: []
-                    }]
-                }
-            })
+            .mockResolvedValueOnce(baseAsset)
+            .mockResolvedValueOnce(testAsset)
             
         recalculateComputes.mockReturnValue({ state: {} })
 
-        await cacheAsset('ABC', { recursive: true, forceCache: true })
+        await cacheAsset('test', { recursive: true, forceCache: true })
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('ABC', ['Test'])
+        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
         // is imported but not altered ... can the import just be a straight include?
         //
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#ABC' },
-            items: [],
-            mergeFunction: expect.any(Function)
-        })
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'ephemera',
-            search: { DataCategory: 'ASSET#BASE' },
-            items: [],
-            mergeFunction: expect.any(Function)
-        })
+        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
+        expect(mergeEntries).toHaveBeenCalledWith('BASE', baseAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
             {},
             {},
             []
         )
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#ABC",
+            EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
             Actions: {},
             State: {},
@@ -851,7 +761,7 @@ describe('cacheAsset', () => {
         })
         expect(ephemeraDB.getItem).toHaveBeenCalledTimes(2)
         expect(ephemeraDB.getItem).toHaveBeenCalledWith({
-            EphemeraId: 'ASSET#ABC',
+            EphemeraId: 'ASSET#test',
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['#state'],
             ExpressionAttributeNames: {

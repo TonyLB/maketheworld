@@ -12,6 +12,7 @@ import parseWMLFile from './parseWMLFile.js'
 import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
+import mergeEntries from './mergeEntries.js'
 
 //
 // TODO:
@@ -22,14 +23,6 @@ import AssetMetaData from './assetMetaData.js'
 // What does it mean when the underlying assets of a room change, in terms
 // of notifying people in it?
 //
-
-//
-// At current levels of functionality, it is sufficient to do a deep-equality
-// check.
-//
-const compareEntries = (current, incoming) => {
-    return JSON.stringify(current) === JSON.stringify(incoming)
-}
 
 const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
     conditions: contextStack.reduce((previous, { key, tag }) => {
@@ -47,60 +40,6 @@ const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) 
     }, []),
     ...rest
 })
-
-const mapContentsToExits = (normalForm) => ({ contents, ...rest }) => ({
-    ...rest,
-    exits: contents.reduce((previous, { tag, key }) => {
-        if (tag === 'Exit') {
-            return [
-                ...previous,
-                {
-                    to: normalForm[key].toEphemeraId,
-                    name: normalForm[key].name
-                }
-            ]
-        }
-        return previous
-    }, [])
-})
-
-const mergeEntries = async (assetId, normalForm) => {
-    const mergeEntries = Object.values(normalForm)
-        .filter(({ tag }) => (['Room'].includes(tag)))
-        .map(({ appearances, ...rest }) => ({
-            ...rest,
-            appearances: appearances
-                .map(mapContextStackToConditions(normalForm))
-                .map(mapContentsToExits(normalForm))
-                .map(({ conditions, name, render, exits }) => ({
-                    conditions,
-                    name,
-                    render,
-                    exits
-                }))
-        }))
-    await Promise.all([
-        mergeIntoDataRange({
-            table: 'ephemera',
-            search: { DataCategory: AssetKey(assetId) },
-            items: mergeEntries,
-            mergeFunction: ({ current, incoming }) => {
-                if (!incoming) {
-                    return 'delete'
-                }
-                if (!current) {
-                    return incoming
-                }
-                if (compareEntries(current, incoming)) {
-                    return 'ignore'
-                }
-                else {
-                    return incoming
-                }
-            }
-        })
-    ])
-}
 
 export const cacheAsset = async (assetId, options = {}) => {
     const { check = false, recursive = false, forceCache = false } = options
