@@ -385,7 +385,16 @@ export const handler = async (event, context) => {
         case 'action':
             return executeAction(request)
         case 'link':
-            await executeActionFromDB({ action: request.Action, assetId: request.AssetId })
+            const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId })
+            const epochTime = Date.now()
+            await Promise.all(executeMessageQueue
+                .map((message, index) => ({
+                    MessageId: `MESSAGE#${uuidv4()}`,
+                    CreatedTime: epochTime + index,
+                    ...message
+                }))
+                .map(publishMessage)
+            )
             return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
