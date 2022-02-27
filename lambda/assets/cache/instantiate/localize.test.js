@@ -2,6 +2,7 @@ import { jest, expect } from '@jest/globals'
 
 jest.mock('/opt/utilities/dynamoDB/index.js')
 import {
+    assetDB,
     ephemeraDB
 } from '/opt/utilities/dynamoDB/index.js'
 import { v4 as uuidv4 } from 'uuid'
@@ -139,7 +140,7 @@ describe('localizeDBEntries', () => {
     it('should map localized output where it exists', async () => {
         ephemeraDB.query.mockResolvedValue([{
             EphemeraId: 'ROOM#123456',
-            scopedId: 'Welcome'
+            key: 'Welcome'
         }])
         uuidv4.mockReturnValue('UUID')
         const localizeOutput = await localizeDBEntries({
@@ -150,6 +151,100 @@ describe('localizeDBEntries', () => {
             scopeMap: {
                 VORTEX: 'ROOM#VORTEX',
                 Welcome: 'ROOM#123456'
+            }
+        })
+    })
+
+    it('should map imported non-instance assets', async () => {
+        const testImportAsset = {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'VORTEX',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'Condition-0',
+                        tag: 'Condition',
+                        index: 0
+                    },
+                    {
+                        key: 'Welcome',
+                        tag: 'Room',
+                        index: 0
+                    }]
+                }]
+            },
+            'Import-0': {
+                key: 'Import-0',
+                tag: 'Import',
+                from: 'BASE',
+                mapping: {
+                    VORTEX: 'VORTEX'
+                },
+                appearances: [topLevelAppearance]
+            },
+            Welcome: {
+                key: 'Welcome',
+                tag: 'Room',
+                appearances: [{
+                    ...topLevelAppearance,
+                    global: false,
+                    name: 'Welcome Area',
+                    render: [],
+                    contents: [
+                        { key: 'Welcome#VORTEX', tag: 'Exit', index: 0 }
+                    ]
+                }]
+            },
+            'VORTEX#Welcome': {
+                key: 'VORTEX#Welcome',
+                tag: 'Exit',
+                to: 'Welcome',
+                from: 'VORTEX',
+                name: 'welcome',
+                appearances: [{
+                    contextStack: [
+                        { key: 'test', tag: 'Asset', index: 0},
+                        { key: 'VORTEX', tag: 'Room', index: 0}
+                    ]
+                }]
+            },
+            'Welcome#VORTEX': {
+                key: 'Welcome#VORTEX',
+                tag: 'Exit',
+                to: 'VORTEX',
+                from: 'Welcome',
+                name: 'vortex',
+                appearances: [{
+                    contextStack: [
+                        { key: 'test', tag: 'Asset', index: 0},
+                        { key: 'Welcome', tag: 'Room', index: 0}
+                    ]
+                }]
+            }
+        }
+        ephemeraDB.query.mockResolvedValue([])
+        assetDB.query.mockResolvedValue([{
+            AssetId: 'ROOM#BASEVORTEX',
+            scopedId: 'VORTEX'
+        }])
+        uuidv4.mockReturnValue('UUID')
+        const localizeOutput = await localizeDBEntries({
+            assetId: 'test',
+            normalizedDBEntries: testImportAsset
+        })
+        expect(localizeOutput).toEqual({
+            scopeMap: {
+                VORTEX: 'ROOM#BASEVORTEX',
+                Welcome: 'ROOM#UUID'
             }
         })
     })
