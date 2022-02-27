@@ -1,9 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import StateSynthesizer, {
-    extractStartingState
-} from './stateSynthesis.js'
+import StateSynthesizer from './stateSynthesis.js'
 
 describe('stateSynthesis', () => {
     beforeEach(() => {
@@ -83,7 +81,7 @@ describe('stateSynthesis', () => {
                 contents: []
             }]
         },
-        powered: {
+        power: {
             key: 'powered',
             tag: 'Variable',
             default: 'false',
@@ -98,8 +96,8 @@ describe('stateSynthesis', () => {
         active: {
             key: 'active',
             tag: 'Computed',
-            src: 'powered && switchedOn',
-            dependencies: ['switchedOn', 'powered'],
+            src: 'power && switchedOn',
+            dependencies: ['switchedOn', 'power'],
             appearances: [topLevelAppearance]
         },
         toggleSwitch: {
@@ -126,6 +124,10 @@ describe('stateSynthesis', () => {
             key: 'Import-0',
             tag: 'Import',
             from: 'BASE',
+            mapping: {
+                welcome: 'ABC',
+                power: 'powered'
+            },
             appearances: [topLevelAppearance]
         }
     }
@@ -138,7 +140,7 @@ describe('stateSynthesis', () => {
                 active: {
                     room: ['DEF']
                 },
-                powered: {
+                power: {
                     computed: ['active']
                 },
                 switchedOn: {
@@ -154,7 +156,7 @@ describe('stateSynthesis', () => {
                 active: {
                     key: 'active',
                     computed: true,
-                    src: 'powered && switchedOn'
+                    src: 'power && switchedOn'
                 }
             })
         })
@@ -165,8 +167,8 @@ describe('stateSynthesis', () => {
             const testSynthesizer = new StateSynthesizer('test', testAsset)
             ephemeraDB.getItem.mockResolvedValue({
                 State: {
-                    powered: {
-                        key: 'powered',
+                    power: {
+                        key: 'power',
                         value: true
                     },
                     switchedOn: {
@@ -188,10 +190,10 @@ describe('stateSynthesis', () => {
                 active: {
                     key: 'active',
                     computed: true,
-                    src: 'powered && switchedOn'
+                    src: 'power && switchedOn'
                 },
-                powered: {
-                    key: 'powered',
+                power: {
+                    key: 'power',
                     value: true
                 },
                 switchedOn: {
@@ -202,7 +204,7 @@ describe('stateSynthesis', () => {
         })
     })
 
-    describe('extractStartingState', () => {
+    describe('fetchImportedValues', () => {
         it('should fetch imported values', async () => {
             ephemeraDB.batchGetItem
                 .mockResolvedValueOnce([{
@@ -214,38 +216,16 @@ describe('stateSynthesis', () => {
                     },
                     Dependencies: {}
                 }])
-            const testAsset = {
-                test: {
-                    key: 'test',
-                    tag: 'Asset',
-                    fileName: 'test',
-                    appearances: [{
-                        contextStack: [],
-                        errors: [],
-                        props: {},
-                        contents: [{
-                            key: 'Import-0',
-                            tag: 'Import',
-                            index: 0
-                        }]
-                    }]
+
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            await testSynthesizer.fetchImportedValues()
+
+            expect(testSynthesizer.state).toEqual({
+                active: {
+                    key: 'active',
+                    computed: true,
+                    src: 'power && switchedOn'
                 },
-                ['Import-0']: {
-                    key: 'Import-0',
-                    tag: 'Import',
-                    from: 'BASE',
-                    tag: 'Import',
-                    mapping: {
-                        welcome: 'ABC',
-                        power: 'powered'
-                    },
-                    appearances: [topLevelAppearance]
-                }
-            }
-
-            const stateOutput = await extractStartingState(testAsset)
-
-            expect(stateOutput).toEqual({
                 power: {
                     imported: true,
                     asset: 'BASE',
@@ -265,4 +245,5 @@ describe('stateSynthesis', () => {
             })
         })
     })
+
 })

@@ -11,7 +11,7 @@ import globalizeDBEntries from "./globalize.js"
 import initializeRooms from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
-import StateSynthesizer, { extractStartingState } from './stateSynthesis.js'
+import StateSynthesizer from './stateSynthesis.js'
 
 //
 // TODO:
@@ -123,11 +123,12 @@ export const cacheAsset = async (assetId, options = {}) => {
             })
     })
 
-    const uncomputedState = await extractStartingState(secondPassNormal, stateSynthesizer.state)
+    stateSynthesizer.evaluateDefaults()
+    await stateSynthesizer.fetchImportedValues()
     const { state } = recalculateComputes(
-        uncomputedState,
+        stateSynthesizer.state,
         assetMetaData.dependencies,
-        Object.entries(uncomputedState)
+        Object.entries(stateSynthesizer.state)
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
     )

@@ -156,7 +156,7 @@ export class StateSynthesizer extends Object {
                 return previous
             }, {})
     
-        const importState = Object.values(normalForm)
+        const importState = Object.values(this.normalForm)
             .filter(({ tag }) => (tag === 'Import'))
             .reduce((previous, { from, mapping }) => {
                 return Object.entries(mapping)
@@ -186,84 +186,6 @@ export const fetchAssetState = async (assetId) => {
         }
     }) || {}
     return State
-}
-
-export const extractStartingState = async (normalForm, currentState = {}) => {
-    const variableState = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Variable'))
-        .reduce((previous, { key, default: defaultValue }) => {
-            if (previous[key]?.value !== undefined) {
-                return previous
-            }
-            const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})
-            return {
-                ...previous,
-                [key]: {
-                    value: defaultEvaluation
-                }
-            }
-        }, currentState)
-
-    const importAssetsToFetch = [...new Set(Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Import'))
-        .map(({ from }) => (from)))]
-
-    const importAssetStates = await ephemeraDB.batchGetItem({
-        Items: importAssetsToFetch
-            .map((assetId) => ({
-                EphemeraId: AssetKey(assetId),
-                DataCategory: 'Meta::Asset'
-            })),
-        ProjectionFields: ['#state', 'Dependencies', 'EphemeraId'],
-        ExpressionAttributeNames: {
-            '#state': 'State'
-        }
-    })
-
-    const importStateByAsset = (importAssetStates || [])
-        .reduce((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
-            const assetId = splitType(EphemeraId)[1]
-            if (assetId) {
-                return {
-                    ...previous,
-                    [assetId]: {
-                        state,
-                        dependencies
-                    }
-                }
-            }
-            return previous
-        }, {})
-
-    const importState = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Import'))
-        .reduce((previous, { from, mapping }) => {
-            return Object.entries(mapping)
-                .filter(([_, awayKey]) => (awayKey in importStateByAsset[from].state))
-                .reduce((accumulator, [localKey, awayKey]) => ({
-                    ...accumulator,
-                    [localKey]: {
-                        imported: true,
-                        asset: from,
-                        key: awayKey,
-                        value: importStateByAsset[from]?.state?.[awayKey]?.value
-                    }
-                }), previous)
-        }, variableState)
-
-    const uncomputedState = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Computed'))
-        .reduce((previous, { key, src }) => ({
-            ...previous,
-            [key]: {
-                key,
-                computed: true,
-                src
-            }
-        }), importState)
-
-    return uncomputedState
-
 }
 
 export default StateSynthesizer
