@@ -385,7 +385,7 @@ export const handler = async (event, context) => {
         case 'action':
             return executeAction(request)
         case 'link':
-            const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId: request.RoomId })
+            const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId: request.RoomId, CharacterId: request.CharacterId })
             const epochTime = Date.now()
             await Promise.all(executeMessageQueue
                 .map((message, index) => ({
