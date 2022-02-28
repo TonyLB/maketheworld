@@ -6,7 +6,13 @@ describe('wmlQuery selector', () => {
     const match = wmlGrammar.match(`
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             <Name>Tess</Name>
-            <Pronouns>She/her</Pronouns>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
@@ -58,57 +64,88 @@ describe('wmlQuery selector', () => {
             type: 'tag',
             tag: 'Pronouns',
             tagEnd: 115,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "She/her",
-                start: 116,
-                end: 123
-            }],
+            props: {
+                subject: {
+                    value: 'she',
+                    start: 132,
+                    end: 145,
+                    valueStart: 141,
+                    valueEnd: 144
+                },
+                object: {
+                    value: 'her',
+                    start: 162,
+                    end: 174,
+                    valueStart: 170,
+                    valueEnd: 173
+                },
+                possessive: {
+                    value: 'her',
+                    start: 191,
+                    end: 207,
+                    valueStart: 203,
+                    valueEnd: 206
+                },
+                adjective: {
+                    value: 'hers',
+                    start: 224,
+                    end: 240,
+                    valueStart: 235,
+                    valueEnd: 239
+                },
+                reflexive: {
+                    value: 'herself',
+                    start: 257,
+                    end: 276,
+                    valueStart: 268,
+                    valueEnd: 275
+                }
+            },
+            contents: [],
             start: 106,
-            end: 134
+            end: 301
         }, {
             type: 'tag',
             tag: 'FirstImpression',
-            tagEnd: 163,
+            tagEnd: 330,
             props: {},
             contents: [{
                 type: 'string',
                 value: "Frumpy Goth",
-                start: 164,
-                end: 175
+                start: 331,
+                end: 342
             }],
-            start: 147,
-            end: 193
+            start: 314,
+            end: 360
         }, {
             type: 'tag',
             tag: 'OneCoolThing',
-            tagEnd: 219,
+            tagEnd: 386,
             props: {},
             contents: [{
                 type: 'string',
                 value: "Fuchsia eyes",
-                start: 220,
-                end: 232
+                start: 387,
+                end: 399
             }],
-            start: 206,
-            end: 247
+            start: 373,
+            end: 414
         }, {
             type: 'tag',
             tag: 'Outfit',
-            tagEnd: 267,
+            tagEnd: 434,
             props: {},
             contents: [{
                 type: 'string',
                 value: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
-                start: 268,
-                end: 350
+                start: 435,
+                end: 517
             }],
-            start: 260,
-            end: 359
+            start: 427,
+            end: 526
         }],
         start: 9,
-        end: 380
+        end: 547
     }
 
     it('should return empty on illegal selector', () => {

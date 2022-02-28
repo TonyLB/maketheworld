@@ -91,7 +91,10 @@ const pullProperties = (node) => {
                 break
             case 'Story':
             case 'Asset':
-                pullTags = [...pullTags, 'name', 'fileName', 'player', 'zone']
+                pullTags = [...pullTags, 'Story', 'instance', 'name', 'fileName', 'player', 'zone']
+                break
+            case 'Character':
+                pullTags = [...pullTags, 'Name', 'fileName', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player', 'zone']
                 break
         }
         if (pullTags.includes(key)) {

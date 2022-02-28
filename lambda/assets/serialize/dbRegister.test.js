@@ -14,7 +14,13 @@ describe('dbRegister', () => {
                 tag: 'Character',
                 key: 'TESS',
                 Name: 'Tess',
-                Pronouns: 'She/her',
+                Pronouns: {
+                    subject: 'she',
+                    object: 'her',
+                    possessive: 'her',
+                    adjective: 'hers',
+                    reflexive: 'herself'
+                },
                 FirstImpression: 'Frumpy Goth',
                 OneCoolThing: 'Fuchsia eyes',
                 Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
@@ -29,7 +35,13 @@ describe('dbRegister', () => {
             scopedId: 'TESS',
             player: 'TEST',
             Name: 'Tess',
-            Pronouns: 'She/her',
+            Pronouns: {
+                subject: 'she',
+                object: 'her',
+                possessive: 'her',
+                adjective: 'hers',
+                reflexive: 'herself'
+            },
             FirstImpression: 'Frumpy Goth',
             OneCoolThing: 'Fuchsia eyes',
             Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.'

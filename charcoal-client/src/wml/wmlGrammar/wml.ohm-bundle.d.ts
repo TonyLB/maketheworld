@@ -15,6 +15,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   WMLFileContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   CharacterExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   CharacterLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  PronounsExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   StoryExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   AssetExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   AssetLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
