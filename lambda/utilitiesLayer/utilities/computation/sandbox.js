@@ -23,7 +23,7 @@ export const evaluateCode = (src) => {
 
 export const executeCode = (src) => (sandbox, primitives = {}) => {
     let returnValue = null
-    const updatedSandbox = produce({ ...primitives, ...sandbox }, (draftSandbox) => {
+    const executeSandbox = produce({ ...primitives, ...sandbox }, (draftSandbox) => {
         const transform = (globalSandbox) => (new Proxy(globalSandbox, {
             has: () => true,
             get: (target, key) => (key === Symbol.unscopables ? undefined: target[key]),
@@ -38,6 +38,8 @@ export const executeCode = (src) => (sandbox, primitives = {}) => {
         }))
         returnValue = sandboxedExecution(src)(transform)(draftSandbox)
     })
+    const updatedSandbox = Object.keys(sandbox)
+        .reduce((previous, key) => ({ ...previous, [key]: executeSandbox[key] }), {})
     const changedKeys = Object.keys(sandbox)
         .filter((key) => (updatedSandbox[key] !== sandbox[key]))
     return {
