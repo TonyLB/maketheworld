@@ -17,7 +17,7 @@ export const handleCharacterEvents = async ({ events }) => {
                 }
                 return 'ignore'
             }
-            const remap = ['Name', 'Pronouns', 'FirstImpression', 'Outfit', 'OneCoolThing', 'fileName']
+            const remap = ['Name', 'Pronouns', 'fileName']
                 .reduce((previous, key) => ({ ...previous, [key]: mappedValue(key) }), {})
             const flagName = (key) => (key === 'Name' ? '#Name' : key)
             const setItems = Object.entries(remap)
