@@ -43,24 +43,27 @@ export const handleCharacterEvents = async ({ events }) => {
                         EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                         DataCategory: 'Meta::Character',
                         UpdateExpression,
-                        ...(expressionValues ? { ExpressionAttributeValues: expressionValues }: {}),
+                        ...(Object.keys(expressionValues).length ? { ExpressionAttributeValues: expressionValues }: {}),
                         ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
                     }),
-                    assetDB.update({
-                        AssetId: `PLAYER#${newImage.player}`,
-                        DataCategory: 'Meta::Player',
-                        UpdateExpression: 'SET Characters.#characterId = :character',
-                        ExpressionAttributeNames: {
-                            '#characterId': CharacterId
-                        },
-                        ExpressionAttributeValues: {
-                            ':character': {
-                                Name: newImage.Name,
-                                scopedId: newImage.scopedId,
-                                fileName: newImage.fileName
+                    ...(newImage.player
+                        ? [assetDB.update({
+                            AssetId: `PLAYER#${newImage.player}`,
+                            DataCategory: 'Meta::Player',
+                            UpdateExpression: 'SET Characters.#characterId = :character',
+                            ExpressionAttributeNames: {
+                                '#characterId': CharacterId
+                            },
+                            ExpressionAttributeValues: {
+                                ':character': {
+                                    Name: newImage.Name,
+                                    scopedId: newImage.scopedId,
+                                    fileName: newImage.fileName
+                                }
                             }
-                        }
-                    })
+                        })]
+                        : []
+                    )
                 ])
             }
         })

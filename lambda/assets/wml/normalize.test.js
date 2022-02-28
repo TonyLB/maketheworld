@@ -354,6 +354,48 @@ describe('WML normalize', () => {
         expect(normalize({})).toEqual({})
     })
 
+    it('should normalize a character asset', () => {
+        expect(normalize({
+            tag: 'Character',
+            key: 'TESS',
+            Name: 'Tess',
+            Pronouns: {
+                subjective: 'she',
+                objective: 'her',
+                possessive: 'her',
+                adjective: 'hers',
+                reflexive: 'herself'
+            },
+            FirstImpression: 'Frumpy Goth',
+            OneCoolThing: 'Fuchsia eyes',
+            Outfit: 'A battered hoodie trimmed with lace',
+            fileName: 'test.wml',
+            // zone: 'Canon',
+            contents: []
+        })).toEqual({
+            TESS: {
+                key: 'TESS',
+                tag: 'Character',
+                fileName: 'test.wml',
+                Name: 'Tess',
+                Pronouns: {
+                    subjective: 'she',
+                    objective: 'her',
+                    possessive: 'her',
+                    adjective: 'hers',
+                    reflexive: 'herself'
+                },
+                FirstImpression: 'Frumpy Goth',
+                OneCoolThing: 'Fuchsia eyes',
+                Outfit: 'A battered hoodie trimmed with lace',
+                appearances: [{
+                    contextStack: [],
+                    contents: []
+                }]
+            }
+        })
+    })
+
     it('should normalize every needed tag', () => {
         expect(normalize({
             tag: 'Asset',

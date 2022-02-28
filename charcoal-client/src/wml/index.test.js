@@ -248,6 +248,45 @@ describe('WML assetRegistryEntries', () => {
             }
         ])
     })
+
+    it('should serialize a Character asset', () => {
+        const characterSchema = {
+            tag: 'Character',
+            key: 'TESS',
+            Name: 'Tess',
+            fileName: 'Tess',
+            Pronouns: {
+                subjective: 'she',
+                objective: 'her',
+                possessive: 'her',
+                adjective: 'hers',
+                reflexive: 'herself'
+            },
+            FirstImpression: 'Frumpy Goth',
+            OneCoolThing: 'Fuchsia eyes',
+            Outfit: 'A battered hoodie trimmed with lace',
+            fileName: 'test.wml',
+            // zone: 'Canon',
+            contents: []
+        }
+
+        expect(assetRegistryEntries(characterSchema)).toEqual([{
+            tag: 'Character',
+            key: 'TESS',
+            fileName: 'test.wml',
+            Name: 'Tess',
+            Pronouns: {
+                subjective: 'she',
+                objective: 'her',
+                possessive: 'her',
+                adjective: 'hers',
+                reflexive: 'herself'
+            },
+            FirstImpression: 'Frumpy Goth',
+            OneCoolThing: 'Fuchsia eyes',
+            Outfit: 'A battered hoodie trimmed with lace',
+        }])
+    })
 })
 
 describe('WML validateSchema', () => {

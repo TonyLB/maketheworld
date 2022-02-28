@@ -11,6 +11,7 @@ import {
     liftContents,
     liftUseTags,
     liftDependencyTags,
+    liftPronounTags,
     confirmKeyProps,
     confirmExpressionProps,
     confirmLiteralProps,
@@ -220,6 +221,14 @@ export const schema = {
             Story: true
         }
     },
+    PronounsExpression(node) {
+        const returnVal = wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmLiteralProps(['subject', 'object', 'possessive', 'adjective', 'reflexive'])),
+            liftLiteralProps(['subject', 'object', 'possessive', 'adjective', 'reflexive']),
+        ])(node.schema())
+        return returnVal
+    },
     CharacterExpression(node) {
         const returnVal = wmlProcessUpNonRecursive([
             // desourceTag,
@@ -229,9 +238,9 @@ export const schema = {
             liftKeyProps(['key']),
             liftLiteralProps(['player', 'fileName']),
             validate(fileNameValidator),
+            liftPronounTags,
             liftLiteralTags({
                 Name: 'Name',
-                Pronouns: 'Pronouns',
                 FirstImpression: 'FirstImpression',
                 OneCoolThing: 'OneCoolThing',
                 Outfit: 'Outfit'

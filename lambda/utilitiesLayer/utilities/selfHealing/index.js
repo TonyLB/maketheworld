@@ -199,7 +199,7 @@ export const healCharacter = async (CharacterId) => {
         const Item = await assetDB.getItem({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['player', '#Name', 'HomeId', 'Color'],
+            ProjectionFields: ['player', '#Name', 'HomeId', 'Color', 'Pronouns'],
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
@@ -207,12 +207,24 @@ export const healCharacter = async (CharacterId) => {
 
         const healCharacterItem = async () => {
             if (Item) {
-                const { Name, HomeId, player, Color = defaultColorFromCharacterId(CharacterId) } = Item
+                const {
+                    Name,
+                    HomeId,
+                    player,
+                    Color = defaultColorFromCharacterId(CharacterId),
+                    Pronouns = {
+                        subject: 'they',
+                        object: 'them',
+                        possessive: 'their',
+                        adjective: 'theirs',
+                        reflexive: 'themself'
+                    }
+                } = Item
                 const personalAssets = await generatePersonalAssetList(player)
                 await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
-                    UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color`,
+                    UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color, Pronouns = :pronouns`,
                     ExpressionAttributeNames: {
                         '#Name': 'Name'
                     },
@@ -221,7 +233,8 @@ export const healCharacter = async (CharacterId) => {
                         ':homeId': HomeId || 'VORTEX',
                         ':false': false,
                         ':assets': personalAssets,
-                        ':color': Color
+                        ':color': Color,
+                        ':pronouns': Pronouns
                     }
                 })
             }

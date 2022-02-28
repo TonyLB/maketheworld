@@ -10,10 +10,13 @@ WorldMarkupLangage {
 
     CharacterExpression = TagExpression<"Character", "key", ("player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
     CharacterLegalContents = LiteralNameExpression
-            | LiteralValueTag<"Pronouns">
+            | PronounsExpression
             | LiteralValueTag<"OneCoolThing">
             | LiteralValueTag<"Outfit">
             | LiteralValueTag<"FirstImpression">
+
+    PronounsExpression = TagExpression<"Pronouns", none, ("subject" | "object" | "possessive" | "adjective" | "reflexive"), none, none, none>
+            | TagSelfClosing<"Pronouns", none, ("subject" | "object" | "possessive" | "adjective" | "reflexive"), none, none>
 
     StoryExpression = TagExpression<"Story", "key", ("fileName" | "zone" | "subFolder" | "player"), none, "instance", AssetLegalContents>
 
