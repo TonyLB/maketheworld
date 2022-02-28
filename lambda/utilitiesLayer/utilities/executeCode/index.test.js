@@ -178,4 +178,20 @@ describe('executeInAsset', () => {
             }
         })
     })
+
+    it('should add a message to queue on here.worldMessage call', async () => {
+        const testAssets = testAssetsFactory()
+        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        dependencyCascade.mockResolvedValue({
+            states: { BASE: testAssets.BASE },
+            recalculated: { BASE: [] }
+        })
+        const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('here.worldMessage("Test Message")')
+        expect(executeMessageQueue).toEqual([{
+            DisplayProtocol: 'WorldMessage',
+            Message: 'Test Message',
+            Targets: ['ROOM#123456']
+        }])
+
+    })
 })
