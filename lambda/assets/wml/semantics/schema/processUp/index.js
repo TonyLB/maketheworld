@@ -184,8 +184,8 @@ export const liftDependencyTags = ({ contents = [], ...rest}) => {
 }
 
 export const liftPronounTags = ({ contents = [], ...rest}) => {
-    const tagsToLift = contents.filter(({ tag }) => (tag === 'Pronoun'))
-    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Pronoun'))
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Pronouns'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Pronouns'))
     const Pronouns = tagsToLift.reduce((previous, { subject, object, possessive, adjective, reflexive }) => ({
         ...previous,
         subject,
@@ -196,8 +196,8 @@ export const liftPronounTags = ({ contents = [], ...rest}) => {
     }), {
         subject: 'they',
         object: 'them',
-        possessive: 'theirs',
-        adjective: 'their',
+        possessive: 'their',
+        adjective: 'theirs',
         reflexive: 'themself'
     })
     return {

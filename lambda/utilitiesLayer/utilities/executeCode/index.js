@@ -7,7 +7,21 @@ import { defaultColorFromCharacterId } from '../selfHealing/index.js'
 
 export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { RoomId, CharacterId } = options
-    const [{ State: state = {}, Dependencies: dependencies = {}, importTree = {} }, { Name = 'Someone', Color } = {}] = await Promise.all([
+    const [{
+            State: state = {},
+            Dependencies: dependencies = {},
+            importTree = {}
+        }, {
+            Name = 'Someone',
+            Color,
+            Pronouns = {
+                subject: 'they',
+                object: 'them',
+                possessive: 'their',
+                adjective: 'theirs',
+                reflexive: 'themself'
+            }
+        } = {}] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
@@ -21,7 +35,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                 ephemeraDB.getItem({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['#name', 'Color'],
+                    ProjectionFields: ['#name', 'Color', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
@@ -35,6 +49,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
 
     const executeMessageQueue = []
 
+    const capitalize = (value) => ([value.slice(0, 1).toUppercase, value.slice(1)].join(''))
     const { changedKeys, newValues, returnValue } = executeCode(src)(
         valueState,
         {
@@ -62,7 +77,17 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                             Color: Color || defaultColorFromCharacterId(CharacterId)
                         })
                     }
-                }
+                },
+                subject: Pronouns.subject,
+                Subject: capitalize(Pronouns.subject),
+                object: Pronouns.object,
+                Object: capitalize(Pronouns.object),
+                possessive: Pronouns.possessive,
+                Possessive: capitalize(Pronouns.possessive),
+                adjective: Pronouns.adjective,
+                Adjective: capitalize(Pronouns.adjective),
+                reflexive: Pronouns.reflexive,
+                Reflexive: capitalize(Pronouns.reflexive),
             }
         }
     )
