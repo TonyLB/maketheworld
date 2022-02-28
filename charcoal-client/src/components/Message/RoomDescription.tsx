@@ -23,12 +23,14 @@ import {
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
+import { useActiveCharacter } from '../ActiveCharacter'
 
 interface LinkDescriptionProps {
     link: RoomDescribeLink
 }
 
 const LinkDescription = ({ link }: LinkDescriptionProps) => {
+    const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
     return <Chip
             sx={{
@@ -37,7 +39,12 @@ const LinkDescription = ({ link }: LinkDescriptionProps) => {
             }}
             size="small"
             onClick={() => {
-                dispatch(socketDispatchPromise('link')({ Action: link.toAction, AssetId: link.toAssetId, RoomId: link.RoomId }))
+                dispatch(socketDispatchPromise('link')({
+                    Action: link.toAction,
+                    AssetId: link.toAssetId,
+                    RoomId: link.RoomId,
+                    CharacterId
+                }))
             }}
             label={link.text}
         />

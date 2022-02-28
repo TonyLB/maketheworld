@@ -5,34 +5,56 @@ import dependencyCascade from './dependencyCascade.js'
 import { AssetKey, RoomKey } from '../types.js'
 
 export const executeInAsset = (assetId, options = {}) => async (src) => {
-    const { RoomId } = options
-    const { State: state = {}, Dependencies: dependencies = {}, importTree = {} } = await ephemeraDB.getItem({
-        EphemeraId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-        ProjectionFields: ['#state', 'Dependencies', 'importTree'],
-        ExpressionAttributeNames: {
-            '#state': 'State'
-        }
-    })
+    const { RoomId, CharacterId } = options
+    const [{ State: state = {}, Dependencies: dependencies = {}, importTree = {} }, { Name = 'Someone' } = {}] = await Promise.all([
+        ephemeraDB.getItem({
+            EphemeraId: AssetKey(assetId),
+            DataCategory: 'Meta::Asset',
+            ProjectionFields: ['#state', 'Dependencies', 'importTree'],
+            ExpressionAttributeNames: {
+                '#state': 'State'
+            }
+        }),
+        ...(CharacterId
+            ? [
+                ephemeraDB.getItem({
+                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                    DataCategory: 'Meta::Character',
+                    ProjectionFields: ['#name'],
+                    ExpressionAttributeNames: {
+                        '#name': 'Name'
+                    }
+                })
+            ]
+            : []
+        )
+    ])
+
     const valueState = Object.entries(state).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
 
     const executeMessageQueue = []
 
     const { changedKeys, newValues, returnValue } = executeCode(src)(
         valueState,
-        RoomId
-            ? {
-                here: {
-                    worldMessage: (message) => {
-                        executeMessageQueue.push({
-                            Targets: [RoomKey(RoomId)],
-                            DisplayProtocol: 'WorldMessage',
-                            Message: message
-                        })
+        {
+            ...(RoomId
+                ? {
+                    here: {
+                        worldMessage: (message) => {
+                            executeMessageQueue.push({
+                                Targets: [RoomKey(RoomId)],
+                                DisplayProtocol: 'WorldMessage',
+                                Message: message
+                            })
+                        }
                     }
                 }
+                : {}
+            ),
+            me: {
+                Name
             }
-            : {}
+        }
     )
     
     const updatedState = Object.entries(newValues).reduce((previous, [key, value]) => ({
@@ -105,7 +127,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
     }
 }
 
-export const executeAction = async ({ action, assetId, RoomId }) => {
+export const executeAction = async ({ action, assetId, RoomId, CharacterId }) => {
     const { Actions: actions = {} } = await ephemeraDB.getItem({
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
@@ -113,7 +135,7 @@ export const executeAction = async ({ action, assetId, RoomId }) => {
     })
     const { src = '' } = actions[action] || {}
     if (src) {
-        return await executeInAsset(assetId, { RoomId })(src)
+        return await executeInAsset(assetId, { RoomId, CharacterId })(src)
     }
     else {
         return {
