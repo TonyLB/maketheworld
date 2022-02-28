@@ -84,7 +84,10 @@ export const schema = {
         return processTagProps(tag, props)
     },
     TagSelfClosing(open, tag, props, close) {
-        return processTagProps(tag, props)
+        return {
+            ...processTagProps(tag, props),
+            contents: []
+        }
     },
     TagExpression(open, contents, close) {
         return {
@@ -121,6 +124,19 @@ export const schema = {
             liftExpressionProps(['src']),
             liftKeyProps(['key']),
             discardContents,
+        ])(node.schema())
+    },
+    FeatureExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmKeyProps(['key'])),
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
+            liftKeyProps(['key']),
+            liftLiteralProps(['display']),
+            liftBooleanProps(['global']),
+            liftLiteralTags({ Name: 'name' }),
+            liftContents('render'),
         ])(node.schema())
     },
     RoomExpression(node) {

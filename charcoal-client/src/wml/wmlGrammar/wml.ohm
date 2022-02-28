@@ -68,6 +68,11 @@ WorldMarkupLangage {
 
     LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, none, string>
 
+    FeatureExpression = TagExpression<"Feature", "key", "display", none, "global", FeatureContents>
+    FeatureContents = TextContents
+            | NameExpression
+            | LinkExpression
+
     RoomExpression = TagExpression<"Room", "key", "display", none, "global", RoomContents>
     RoomContents = TextContents
             | NameExpression
