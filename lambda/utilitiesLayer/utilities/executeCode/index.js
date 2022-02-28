@@ -3,10 +3,11 @@ import { ephemeraDB } from '../dynamoDB/index.js'
 import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
 import { AssetKey, RoomKey } from '../types.js'
+import { defaultColorFromCharacterId } from '../selfHealing/index.js'
 
 export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { RoomId, CharacterId } = options
-    const [{ State: state = {}, Dependencies: dependencies = {}, importTree = {} }, { Name = 'Someone' } = {}] = await Promise.all([
+    const [{ State: state = {}, Dependencies: dependencies = {}, importTree = {} }, { Name = 'Someone', Color } = {}] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
@@ -20,7 +21,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                 ephemeraDB.getItem({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['#name'],
+                    ProjectionFields: ['#name', 'Color'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
@@ -37,22 +38,31 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { changedKeys, newValues, returnValue } = executeCode(src)(
         valueState,
         {
-            ...(RoomId
-                ? {
-                    here: {
-                        worldMessage: (message) => {
-                            executeMessageQueue.push({
-                                Targets: [RoomKey(RoomId)],
-                                DisplayProtocol: 'WorldMessage',
-                                Message: message
-                            })
-                        }
+            here: {
+                message: (message) => {
+                    if (RoomId) {
+                        executeMessageQueue.push({
+                            Targets: [RoomKey(RoomId)],
+                            DisplayProtocol: 'WorldMessage',
+                            Message: message
+                        })
                     }
                 }
-                : {}
-            ),
+            },
             me: {
-                Name
+                Name,
+                narrate: (message) => {
+                    if (RoomId && CharacterId) {
+                        executeMessageQueue.push({
+                            Targets: [RoomKey(RoomId)],
+                            DisplayProtocol: 'NarrateMessage',
+                            Message: message,
+                            CharacterId,
+                            Name,
+                            Color: Color || defaultColorFromCharacterId(CharacterId)
+                        })
+                    }
+                }
             }
         }
     )

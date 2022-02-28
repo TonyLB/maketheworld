@@ -10,7 +10,7 @@
     </Computed>
     <Action key=(toggleSwitch) src={
         switchUp = !switchUp
-        here.worldMessage(`${me.Name} flipped the light switch.`)
+        me.narrate(`${me.Name} flips the light switch.`)
     } />
     <Room key=(welcomeRoom)>
         <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
