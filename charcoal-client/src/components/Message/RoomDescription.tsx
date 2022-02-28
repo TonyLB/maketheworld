@@ -35,7 +35,10 @@ const LinkDescription = ({ link }: LinkDescriptionProps) => {
     return <Chip
             sx={{
                 background: `linear-gradient(${blue[400]}, ${blue[600]})`,
-                color: 'white'
+                color: 'white',
+                '&:hover': {
+                    background: `linear-gradient(${blue[500]}, ${blue[700]})`,
+                }
             }}
             size="small"
             onClick={() => {
@@ -71,8 +74,8 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
             sx={{
                 paddingTop: "10px",
                 paddingBottom: "10px",
-                background: `linear-gradient(${blue[700]} 30%, ${blue[900]})`,
-                color: (theme) => (theme.palette.getContrastText(blue[800]))
+                background: `linear-gradient(75deg, ${blue[200]}, #ffffff)`,
+                color: (theme) => (theme.palette.getContrastText(blue[200]))
             }}
             leftIcon={<HouseIcon />}
         >
