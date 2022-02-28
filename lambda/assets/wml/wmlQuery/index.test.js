@@ -7,7 +7,13 @@ describe('wmlQuery', () => {
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
-            <Pronouns>She/her</Pronouns>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
@@ -58,7 +64,13 @@ describe('wmlQuery', () => {
         <Character key=(Tess) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
-            <Pronouns>She/her</Pronouns>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
@@ -71,7 +83,13 @@ describe('wmlQuery', () => {
         <Character fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
-            <Pronouns>She/her</Pronouns>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
@@ -84,7 +102,13 @@ describe('wmlQuery', () => {
         <Character key=(TESS) fileName="Tess" player="TonyLB" zone="Library">
             // Comments should be preserved
             <Name>Tess</Name>
-            <Pronouns>She/her</Pronouns>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
@@ -118,7 +142,13 @@ describe('wmlQuery', () => {
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Glinda</Name>
-            <Pronouns>She/her</Pronouns>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            ></Pronouns>
             <FirstImpression>Frumpy Goth</FirstImpression>
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
