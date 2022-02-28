@@ -2,9 +2,10 @@ import { executeCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
-import { AssetKey } from '../types.js'
+import { AssetKey, RoomKey } from '../types.js'
 
 export const executeInAsset = (assetId, options = {}) => async (src) => {
+    const { RoomId } = options
     const { State: state = {}, Dependencies: dependencies = {}, importTree = {} } = await ephemeraDB.getItem({
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
@@ -17,7 +18,22 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
 
     const executeMessageQueue = []
 
-    const { changedKeys, newValues, returnValue } = executeCode(src)(valueState)
+    const { changedKeys, newValues, returnValue } = executeCode(src)(
+        valueState,
+        RoomId
+            ? {
+                here: {
+                    worldMessage: (message) => {
+                        executeMessageQueue.push({
+                            Targets: [RoomKey(RoomId)],
+                            DisplayProtocol: 'WorldMessage',
+                            Message: message
+                        })
+                    }
+                }
+            }
+            : {}
+    )
     
     const updatedState = Object.entries(newValues).reduce((previous, [key, value]) => ({
         ...previous,

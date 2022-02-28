@@ -3,8 +3,8 @@ import { produce } from 'immer'
 const sandboxedExecution = (src) => (sandboxTransform) => {
     src = 'with (sandbox) {' + src + '}'
     const code = new Function('sandbox', src)
-    return (sandbox) => {
-        const sandboxProxy = sandboxTransform(sandbox)
+    return (...args) => {
+        const sandboxProxy = sandboxTransform(...args)
         return code(sandboxProxy)
     }
 }
@@ -21,14 +21,14 @@ export const evaluateCode = (src) => {
     return sandboxedExecution(src)(transform)
 }
 
-export const executeCode = (src) => (sandbox) => {
+export const executeCode = (src) => (sandbox, primitives = {}) => {
     let returnValue = null
-    const updatedSandbox = produce(sandbox, (draftSandbox) => {
-        const transform = (sandbox) => (new Proxy(sandbox, {
+    const updatedSandbox = produce({ ...primitives, ...sandbox }, (draftSandbox) => {
+        const transform = (globalSandbox) => (new Proxy(globalSandbox, {
             has: () => true,
             get: (target, key) => (key === Symbol.unscopables ? undefined: target[key]),
             set: (target, key, value) => {
-                if (key === Symbol.unscopables) {
+                if (key === Symbol.unscopables || !(key in sandbox)) {
                     return null
                 }
                 else {
