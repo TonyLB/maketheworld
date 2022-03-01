@@ -65,6 +65,7 @@ export class ScopeMap extends Object {
                 this.scopeMap[key] = newEphemeraId
             })
 
+        const { key: AssetId } = Object.values(normalForm).find(({ tag }) => (tag === 'Asset')) || {}
         return Object.values(normalForm)
             .filter(({ tag }) => (['Room', 'Feature', 'Exit'].includes(tag)))
             .reduce((previous, { tag, key, to }) => {
@@ -91,14 +92,26 @@ export class ScopeMap extends Object {
                                                         if (normalForm[value.to]) {
                                                             return {
                                                                 ...value,
-                                                                targetTag: normalForm[value.to].tag
+                                                                targetTag: normalForm[value.to].tag,
+                                                                ...((normalForm[value.to].tag === 'Feature')
+                                                                    ? { toFeatureId: splitType(this.scopeMap[value.to])[1] }
+                                                                    : {}
+                                                                ),
+                                                                ...((normalForm[value.to].tag === 'Action')
+                                                                    ? {
+                                                                        toAssetId: AssetId,
+                                                                        toAction: value.to
+                                                                    }
+                                                                    : {}
+                                                                )
                                                             }
                                                         }
                                                         else {
                                                             if (this.scopeMap[value.to] && (splitType(this.scopeMap[value.to])[0] === 'FEATURE')) {
                                                                 return {
                                                                     ...value,
-                                                                    targetTag: 'Feature'
+                                                                    targetTag: 'Feature',
+                                                                    toFeatureId: splitType(this.scopeMap[value.to])[1]
                                                                 }
                                                             }
                                                         }
