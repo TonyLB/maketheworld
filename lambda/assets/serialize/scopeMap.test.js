@@ -51,11 +51,21 @@ describe('ScopeMap class', () => {
                         index: 0
                     },
                     {
+                        key: 'clockTower',
+                        tag: 'Feature',
+                        index: 0
+                    },
+                    {
                         key: 'Welcome',
                         tag: 'Room',
                         index: 0
                     }]
                 }]
+            },
+            clockTower: {
+                key: 'clockTower',
+                tag: 'Feature',
+                appearances: [topLevelAppearance]
             },
             VORTEX: {
                 key: 'VORTEX',
@@ -136,7 +146,8 @@ describe('ScopeMap class', () => {
         it('should translate without change to scope map when all keys already scoped', () => {
             const testScope = new ScopeMap({
                 VORTEX: 'ROOM#VORTEX',
-                Welcome: 'ROOM#123456'
+                Welcome: 'ROOM#123456',
+                clockTower: 'FEATURE#ABCDEF'
             })
             expect(testScope.translateNormalForm(testNormalForm)).toEqual({
                 ...testNormalForm,
@@ -155,6 +166,10 @@ describe('ScopeMap class', () => {
                 VORTEX: {
                     ...testNormalForm.VORTEX,
                     EphemeraId: 'ROOM#VORTEX'
+                },
+                clockTower: {
+                    ...testNormalForm.clockTower,
+                    EphemeraId: 'FEATURE#ABCDEF'
                 }
             })
         })
@@ -181,11 +196,16 @@ describe('ScopeMap class', () => {
                 VORTEX: {
                     ...testNormalForm.VORTEX,
                     EphemeraId: 'ROOM#VORTEX'
+                },
+                clockTower: {
+                    ...testNormalForm.clockTower,
+                    EphemeraId: 'FEATURE#UUID'
                 }
             })
             expect(testScope.serialize()).toEqual({
                 VORTEX: 'ROOM#VORTEX',
-                Welcome: 'ROOM#UUID'
+                Welcome: 'ROOM#UUID',
+                clockTower: 'FEATURE#UUID'
             })
         })
     })

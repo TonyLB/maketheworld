@@ -11,7 +11,7 @@ export const scopeMap = (assets, currentScopeMap = {}) => {
     let scopeMap = {}
     if (assets) {
         assets
-            .filter(({ tag }) => (['Room', 'Variable', 'Character', 'Action'].includes(tag)))
+            .filter(({ tag }) => (['Room', 'Feature', 'Character'].includes(tag)))
             .forEach(({ key, isGlobal }) => {
                 if (!scopeMap[key]) {
                     if (isGlobal) {
@@ -48,11 +48,14 @@ export class ScopeMap extends Object {
         // Add any incoming entries that have not yet been mapped
         //
         Object.values(normalForm)
-            .filter(({ tag }) => (['Room'].includes(tag)))
+            .filter(({ tag }) => (['Room', 'Feature'].includes(tag)))
             .filter(({ key }) => (!(key in this.scopeMap)))
             .forEach(({ tag, key, isGlobal }) => {
                 let prefix = ''
                 switch(tag) {
+                    case 'Feature':
+                        prefix = 'FEATURE'
+                        break
                     default:
                         prefix = 'ROOM'
                 }
@@ -63,9 +66,9 @@ export class ScopeMap extends Object {
             })
 
         return Object.values(normalForm)
-            .filter(({ tag }) => (['Room', 'Exit'].includes(tag)))
+            .filter(({ tag }) => (['Room', 'Feature', 'Exit'].includes(tag)))
             .reduce((previous, { tag, key, to }) => {
-                if (tag === 'Room') {
+                if (['Room', 'Feature'].includes(tag)) {
                     return {
                         ...previous,
                         [key]: {
