@@ -189,11 +189,19 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
             EphemeraId: PermanentId
         }]
     })
+    let DisplayProtocol = 'RoomDescription'
+    switch(splitType(PermanentId)[0]) {
+        case 'ROOM':
+            break
+        case 'FEATURE':
+            DisplayProtocol = 'FeatureDescription'
+            break
+    }
     await publishMessage({
         MessageId: `MESSAGE#${uuidv4()}`,
         Targets: [`CHARACTER#${CharacterId}`],
         CreatedTime: Date.now(),
-        DisplayProtocol: 'RoomDescription',
+        DisplayProtocol,
         ...roomMessage
     })
     return {
@@ -385,16 +393,24 @@ export const handler = async (event, context) => {
         case 'action':
             return executeAction(request)
         case 'link':
-            const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId: request.RoomId, CharacterId: request.CharacterId })
-            const epochTime = Date.now()
-            await Promise.all(executeMessageQueue
-                .map((message, index) => ({
-                    MessageId: `MESSAGE#${uuidv4()}`,
-                    CreatedTime: epochTime + index,
-                    ...message
-                }))
-                .map(publishMessage)
-            )
+            switch(request.targetTag) {
+                case 'Action':
+                    const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId: request.RoomId, CharacterId: request.CharacterId })
+                    const epochTime = Date.now()
+                    await Promise.all(executeMessageQueue
+                        .map((message, index) => ({
+                            MessageId: `MESSAGE#${uuidv4()}`,
+                            CreatedTime: epochTime + index,
+                            ...message
+                        }))
+                        .map(publishMessage)
+                    )
+                case 'Feature':
+                    await lookPermanent({
+                        CharacterId: request.CharacterId,
+                        PermanentId: `FEATURE#${request.FeatureId}`
+                    })
+            }
             return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
