@@ -208,5 +208,135 @@ describe('ScopeMap class', () => {
                 clockTower: 'FEATURE#UUID'
             })
         })
+
+        it('should update embedded links', () => {
+            const linksNormalForm = {
+                test: {
+                    key: 'test',
+                    tag: 'Asset',
+                    fileName: 'test',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: [{
+                            key: 'VORTEX',
+                            tag: 'Room',
+                            index: 0
+                        },
+                        {
+                            key: 'Condition-0',
+                            tag: 'Condition',
+                            index: 0
+                        },
+                        {
+                            key: 'testOne',
+                            tag: 'Feature',
+                            index: 0
+                        },
+                        {
+                            key: 'testTwo',
+                            tag: 'Action',
+                            index: 0
+                        },
+                        {
+                            key: 'Import-0',
+                            tag: 'Import',
+                            index: 0
+                        }]
+                    }]
+                },
+                'Import-0': {
+                    key: 'Import-0',
+                    from: 'Somewhere',
+                    mapping: {
+                        testThree: 'testThree'
+                    }
+                },
+                testOne: {
+                    key: 'testOne',
+                    tag: 'Feature',
+                    appearances: [topLevelAppearance]
+                },
+                testTwo: {
+                    key: 'testTwo',
+                    tag: 'Action',
+                    appearances: [topLevelAppearance]
+                },
+                VORTEX: {
+                    key: 'VORTEX',
+                    tag: 'Room',
+                    appearances: [{
+                        ...topLevelAppearance,
+                        global: false,
+                        name: 'Vortex',
+                        render: [{
+                            tag: 'Link',
+                            key: 'linkOne',
+                            to: 'testOne',
+                            text: 'Test One'
+                        },
+                        {
+                            tag: 'Link',
+                            key: 'linkTwo',
+                            to: 'testTwo',
+                            text: 'Test Two'
+                        },
+                        {
+                            tag: 'Link',
+                            key: 'linkThree',
+                            to: 'testThree',
+                            text: 'Test Three'
+                        }],
+                        contents: []
+                    }]
+                },
+            }
+            uuidv4.mockReturnValue('UUID')
+            const testScope = new ScopeMap({
+                VORTEX: 'ROOM#VORTEX',
+                testOne: 'FEATURE#TESTONE',
+                testThree: 'FEATURE#TESTTHREE'
+            })
+            expect(testScope.translateNormalForm(linksNormalForm)).toEqual({
+                ...linksNormalForm,
+                VORTEX: {
+                    ...linksNormalForm.VORTEX,
+                    EphemeraId: 'ROOM#VORTEX',
+                    appearances: [{
+                        ...topLevelAppearance,
+                        global: false,
+                        name: 'Vortex',
+                        render: [{
+                            tag: 'Link',
+                            key: 'linkOne',
+                            to: 'testOne',
+                            text: 'Test One',
+                            targetTag: 'Feature'
+                        },
+                        {
+                            tag: 'Link',
+                            key: 'linkTwo',
+                            to: 'testTwo',
+                            text: 'Test Two',
+                            targetTag: 'Action'
+                        },
+                        {
+                            tag: 'Link',
+                            key: 'linkThree',
+                            to: 'testThree',
+                            text: 'Test Three',
+                            targetTag: 'Feature'
+                        }],
+                        contents: []
+
+                    }]
+                },
+                testOne: {
+                    ...linksNormalForm.testOne,
+                    EphemeraId: 'FEATURE#TESTONE'
+                }
+            })
+        })
     })
 })

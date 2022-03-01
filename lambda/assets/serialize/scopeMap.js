@@ -73,7 +73,45 @@ export class ScopeMap extends Object {
                         ...previous,
                         [key]: {
                             ...(previous[key] || {}),
-                            EphemeraId: this.scopeMap[key]
+                            EphemeraId: this.scopeMap[key],
+                            //
+                            // Parse the incoming scopeMap and normalForm to derive targetTags for links embedded in render
+                            //
+                            appearances: (previous[key].appearances || [])
+                                .map(({ render, ...rest }) => {
+                                    if (render === undefined) {
+                                        return rest
+                                    }
+                                    return {
+                                        ...rest,
+                                        render: render
+                                            .map((value) => {
+                                                if (typeof value === 'object') {
+                                                    if (value.tag === 'Link') {
+                                                        if (normalForm[value.to]) {
+                                                            return {
+                                                                ...value,
+                                                                targetTag: normalForm[value.to].tag
+                                                            }
+                                                        }
+                                                        else {
+                                                            if (this.scopeMap[value.to] && (splitType(this.scopeMap[value.to])[0] === 'FEATURE')) {
+                                                                return {
+                                                                    ...value,
+                                                                    targetTag: 'Feature'
+                                                                }
+                                                            }
+                                                        }
+                                                        return {
+                                                            ...value,
+                                                            targetTag: 'Action'
+                                                        }
+                                                    }
+                                                }
+                                                return value
+                                            })
+                                    }
+                                })
                         }
                     }
                 }

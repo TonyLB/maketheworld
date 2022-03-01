@@ -17,6 +17,7 @@
         A small panel with a single switch
     </Feature>
     <Room key=(welcomeRoom)>
+        <Link key=(switchLink) to=(lightSwitch)>[Light Switch]</Link>
         <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
         <Feature key=(lightSwitch) />
     </Room>
