@@ -1,15 +1,15 @@
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { AssetKey } from '../types.js'
 
-export const getRoomMeta = async (rooms) => {
-    const getSingleRoomMeta = async (EphemeraId) => {
-        const roomItems = await ephemeraDB.query({
+export const getItemMeta = async (items) => {
+    const getSingleMeta = async (EphemeraId) => {
+        const metaItems = await ephemeraDB.query({
             EphemeraId,
             ProjectionFields: ['DataCategory', 'appearances'],
         })
-        return { [EphemeraId]: roomItems }
+        return { [EphemeraId]: metaItems }
     }
-    const allRooms = await Promise.all(rooms.map(getSingleRoomMeta))
+    const allRooms = await Promise.all(items.map(getSingleMeta))
     return Object.assign({}, ...allRooms)
 }
 

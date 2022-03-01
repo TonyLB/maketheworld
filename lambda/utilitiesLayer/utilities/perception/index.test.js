@@ -1,7 +1,7 @@
 import { jest, describe, expect, it } from '@jest/globals'
 
 jest.mock('./dynamoDB.js')
-import { getCharacterAssets, getRoomMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
+import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
 
 import { resultStateFactory, testMockImplementation } from '../executeCode/testAssets.js'
 
@@ -29,7 +29,7 @@ describe('dependencyCascade', () => {
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({ ...previous, [asset]: testAssets[asset] || {} }), {})
         })
-        getRoomMeta.mockResolvedValue({
+        getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -52,6 +52,7 @@ describe('dependencyCascade', () => {
             }]
         })
         expect(output).toEqual([{
+            tag: 'Room',
             Ancestry: '',
             CharacterId: 'QRS',
             Characters: [],
@@ -67,7 +68,7 @@ describe('dependencyCascade', () => {
     it('should render with provided state data', async () => {
         const testAssets = resultStateFactory()
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
-        getRoomMeta.mockResolvedValue({
+        getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -91,6 +92,7 @@ describe('dependencyCascade', () => {
                 assetMeta: testAssets
         })
         expect(output).toEqual([{
+            tag: 'Room',
             Ancestry: '',
             CharacterId: 'QRS',
             Characters: [],
@@ -104,13 +106,53 @@ describe('dependencyCascade', () => {
 
     })
 
+    it('should render features', async () => {
+        const featureAssets = {
+            BASE: {
+                State: {},
+                Dependencies: {},
+                importTree: {}
+            },
+        }
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getItemMeta.mockResolvedValue({
+            ['FEATURE#MNO']: [
+                {
+                    DataCategory: 'ASSET#BASE',
+                    name: 'Clock Tower',
+                    appearances: [{
+                        render: ['A cheery clock-tower of pale yellow stone.']
+                    }]
+                }
+            ]
+        })
+        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        const output = await render({
+            renderList: [{
+                EphemeraId: 'FEATURE#MNO',
+                CharacterId: 'QRS'
+            }],
+            assetMeta: featureAssets
+        })
+        expect(output).toEqual([{
+            tag: 'Feature',
+            CharacterId: 'QRS',
+            Description: ['A cheery clock-tower of pale yellow stone.'],
+            EphemeraId: 'FEATURE#MNO',
+            FeatureId: 'MNO',
+            Name: "Clock Tower"
+        }])
+        expect(getStateByAsset).toHaveBeenCalledWith([])
+
+    })
+
     it('should fetch state data only where needed', async () => {
         const testAssets = resultStateFactory()
         getGlobalAssets.mockResolvedValue(['BASE'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({ ...previous, [asset]: testAssets[asset] || {} }), {})
         })
-        getRoomMeta.mockResolvedValue({
+        getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -163,6 +205,7 @@ describe('dependencyCascade', () => {
             assetMeta: { BASE: testAssets.BASE }
         })
         expect(output).toEqual([{
+            tag: 'Room',
             Ancestry: '',
             CharacterId: 'XYZ',
             Characters: [],
@@ -173,6 +216,7 @@ describe('dependencyCascade', () => {
             Exits: []
         },
         {
+            tag: 'Room',
             Ancestry: '',
             CharacterId: 'QRS',
             Characters: [],
@@ -190,7 +234,7 @@ describe('dependencyCascade', () => {
     it('should fetch assetList data only where needed', async () => {
         const testAssets = resultStateFactory()
         getGlobalAssets.mockResolvedValue(['BASE'])
-        getRoomMeta.mockResolvedValue({
+        getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -249,6 +293,7 @@ describe('dependencyCascade', () => {
                 }
         })
         expect(output).toEqual([{
+            tag: 'Room',
             Ancestry: '',
             CharacterId: 'XYZ',
             Characters: [],
@@ -259,6 +304,7 @@ describe('dependencyCascade', () => {
             Exits: []
         },
         {
+            tag: 'Room',
             Ancestry: '',
             CharacterId: 'QRS',
             Characters: [],
