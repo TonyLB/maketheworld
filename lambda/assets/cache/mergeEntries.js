@@ -46,12 +46,12 @@ const mapContentsToExits = (normalForm) => ({ contents, ...rest }) => ({
 
 export const mergeEntries = async (assetId, normalForm) => {
     const mergeEntries = Object.values(normalForm)
-        .filter(({ tag }) => (['Room'].includes(tag)))
+        .filter(({ tag }) => (['Room', 'Feature'].includes(tag)))
         .map(({ appearances, ...rest }) => ({
             ...rest,
             appearances: appearances
                 .map(mapContextStackToConditions(normalForm))
-                .map(mapContentsToExits(normalForm))
+                .map((item) => (rest.tag === 'Room' ? mapContentsToExits(normalForm)(item) : item))
                 .map(({ conditions, name, render, exits }) => ({
                     conditions,
                     name,

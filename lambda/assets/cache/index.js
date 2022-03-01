@@ -1,7 +1,7 @@
 import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import parseWMLFile from './parseWMLFile.js'
 import globalizeDBEntries from "./globalize.js"
-import initializeRooms from './initializeRooms.js'
+import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
 import StateSynthesizer from './stateSynthesis.js'
@@ -51,7 +51,11 @@ export const cacheAsset = async (assetId, options = {}) => {
         initializeRooms(Object.values(secondPassNormal)
             .filter(({ tag }) => (['Room'].includes(tag)))
             .map(({ EphemeraId }) => EphemeraId)
-        )
+        ),
+        initializeFeatures(Object.values(secondPassNormal)
+            .filter(({ tag }) => (['Feature'].includes(tag)))
+            .map(({ EphemeraId }) => EphemeraId)
+        ),
     ])
 
     assetMetaData.dependencies = stateSynthesizer.dependencies

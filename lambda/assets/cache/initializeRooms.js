@@ -84,4 +84,30 @@ export const initializeRooms = async (roomIDs) => {
     }
 }
 
+export const initializeFeatures = async (featureIDs) => {
+    const currentFeatureItems = await ephemeraDB.batchGetItem(
+            {
+                Items: featureIDs.map((EphemeraId) => ({
+                    EphemeraId,
+                    DataCategory: 'Meta::Feature'
+                })),
+                ProjectionFields: ['EphemeraId']
+            }
+        )
+    const currentFeatureIds = currentFeatureItems.map(({ EphemeraId }) => (EphemeraId))
+    const missingFeatureIds = featureIDs.filter((featureId) => (!currentFeatureIds.includes(featureId)))
+    if (missingFeatureIds.length > 0) {
+        await batchWriteDispatcher({
+            table: ephemeraTable,
+            items: missingFeatureIds
+                .map((featureId) => ({
+                    PutRequest: { Item: marshall({
+                        EphemeraId: featureId,
+                        DataCategory: 'Meta::Feature'
+                    }) }
+                }))
+        })
+    }
+}
+
 export default initializeRooms
