@@ -149,7 +149,7 @@ export const schema = {
             liftLiteralProps(['display']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
-            liftContents('render', { exclude: ['Exit'] }),
+            liftContents('render', { exclude: ['Exit', 'Feature'] }),
         ])(node.schema())
     },
     ExitExpression(node) {

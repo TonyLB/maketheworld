@@ -32,6 +32,13 @@ const testSchema = {
         }]
     },
     {
+        tag: 'Feature',
+        key: 'clockTower',
+        name: 'Clock Tower',
+        render: ['A clock-tower of weathered grey stone looms over the area. '],
+        contents: []
+    },
+    {
         tag: 'Condition',
         if: 'true',
         contents: [{
@@ -108,6 +115,14 @@ describe('WML dbEntries', () => {
                         name: 'vortex',
                         to: '123',
                     }]
+                }]
+            },
+            clockTower: {
+                tag: 'Feature',
+                name: 'Clock Tower',
+                appearances: [{
+                    conditions: [],
+                    render: ['A clock-tower of weathered grey stone looms over the area. ']
                 }]
             },
             active: {
@@ -231,7 +246,7 @@ describe('WML assetRegistryEntries', () => {
         })).toEqual([{ tag: 'Asset', key: 'Test' }])
     })
 
-    it('should serialize Rooms, Exits, Variables and Actions', () => {
+    it('should serialize Rooms, Features, Exits, Variables and Actions', () => {
         expect(assetRegistryEntries(testSchema)).toEqual([
             {
                 tag: 'Room',
@@ -245,6 +260,11 @@ describe('WML assetRegistryEntries', () => {
                 tag: 'Asset',
                 key: 'Test',
                 ...assetProps
+            },
+            {
+                tag: 'Feature',
+                key: 'clockTower',
+                name: 'Clock Tower'
             }
         ])
     })

@@ -417,7 +417,16 @@ describe('WML normalize', () => {
                 contents: [{
                     tag: 'Exit',
                     from: '456'
+                },
+                {
+                    tag: 'Feature',
+                    key: 'clockTower'
                 }]
+            },
+            {
+                tag: 'Feature',
+                key: 'clockTower',
+                name: 'Clock Tower',
             },
             {
                 tag: 'Variable',
@@ -457,6 +466,11 @@ describe('WML normalize', () => {
                         index: 0
                     },
                     {
+                        key: 'clockTower',
+                        tag: 'Feature',
+                        index: 1
+                    },
+                    {
                         key: 'active',
                         tag: 'Variable',
                         index: 0
@@ -493,7 +507,11 @@ describe('WML normalize', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     name: 'Vortex',
-                    contents: []
+                    contents: [{
+                        key: 'clockTower',
+                        tag: 'Feature',
+                        index: 0
+                    }]
                 }]
             },
             '456#123': {
@@ -512,6 +530,22 @@ describe('WML normalize', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     contents: [{ key: '456#123', tag: 'Exit', index: 0 }]
+                }]
+            },
+            clockTower: {
+                key: 'clockTower',
+                tag: 'Feature',
+                name: 'Clock Tower',
+                appearances: [{
+                    contextStack: [
+                        { key: 'Test', tag: 'Asset', index: 0 },
+                        { key: '123', tag: 'Room', index: 0 }
+                    ],
+                    contents: []
+                },
+                {
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: []
                 }]
             },
             active: {
