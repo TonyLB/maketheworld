@@ -8,7 +8,7 @@ import {
     batchWriteDispatcher
 } from '/opt/utilities/dynamoDB/index.js'
 
-import initializeRooms from './initializeRooms.js'
+import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 
 describe('initializeRooms', () => {
     beforeEach(() => {
@@ -52,6 +52,29 @@ describe('initializeRooms', () => {
                                 Name: 'Marco'
                             }
                         }
+                    })
+                }
+            }]
+        })
+    })
+})
+
+describe('initializeFeatures', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+    it('should send features in need of update', async () => {
+        ephemeraDB.batchGetItem.mockResolvedValue([])
+        batchWriteDispatcher.mockResolvedValue([])
+        await initializeFeatures(['FEATURE#ABC'])
+        expect(batchWriteDispatcher).toHaveBeenCalledWith({
+            table: "undefined_ephemera",
+            items: [{
+                PutRequest: {
+                    Item: marshall({
+                        EphemeraId: 'FEATURE#ABC',
+                        DataCategory: 'Meta::Feature'
                     })
                 }
             }]

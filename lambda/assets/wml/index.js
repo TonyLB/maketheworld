@@ -86,7 +86,7 @@ export const dbEntries = (schema) => {
     })
 
     return Object.values(normalForm)
-        .filter(({ tag }) => (['Room', 'Variable', 'Action', 'Computed'].includes(tag)))
+        .filter(({ tag }) => (['Room', 'Feature', 'Variable', 'Action', 'Computed'].includes(tag)))
         .map(({ tag, key, appearances, ...rest }) => {
             switch(tag) {
                 case 'Room':
@@ -112,6 +112,16 @@ export const dbEntries = (schema) => {
                             })
                     }
                     return returnVal
+                case 'Feature':
+                    const featureVal = {
+                        tag,
+                        key,
+                        ...rest,
+                        appearances: appearances
+                            .map(mapContextStackToConditions)
+                            .map(({ contents, ...rest }) => (rest))
+                    }
+                    return featureVal
                 case 'Variable':
                     return {
                         tag,
@@ -155,6 +165,13 @@ export const assetRegistryEntries = (schema) => {
                     zone: rest.zone
                 }
             case 'Room':
+                return {
+                    tag,
+                    name,
+                    isGlobal,
+                    key
+                }
+            case 'Feature':
                 return {
                     tag,
                     name,

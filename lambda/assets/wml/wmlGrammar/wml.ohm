@@ -29,6 +29,7 @@ WorldMarkupLangage {
             | ConditionExpression
             | RoomExpression
             | ExitExpression
+            | FeatureExpression
             | LiteralNameExpression
             | string
 
@@ -56,6 +57,7 @@ WorldMarkupLangage {
             | TextContents
             | LayerExpression
             | ExitExpression
+            | FeatureExpression
             | DependencyExpression
 
     LayerExpression = TagExpression<"Layer", "key", none, none, none, LayerLegalContents>
@@ -68,15 +70,17 @@ WorldMarkupLangage {
 
     LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, none, string>
 
-    FeatureExpression = TagExpression<"Feature", "key", "display", none, "global", FeatureContents>
-    FeatureContents = TextContents
-            | NameExpression
-            | LinkExpression
-
     RoomExpression = TagExpression<"Room", "key", "display", none, "global", RoomContents>
     RoomContents = TextContents
             | NameExpression
             | ExitExpression
+            | FeatureExpression
+            | LinkExpression
+
+    FeatureExpression = TagExpression<"Feature", "key", "display", none, "global", FeatureContents>
+            | TagSelfClosing<"Feature", "key", "display", none, "global">
+    FeatureContents = TextContents
+            | NameExpression
             | LinkExpression
 
     LiteralNameExpression = LiteralValueTag<"Name">

@@ -231,4 +231,83 @@ describe('Asset cache mergeEntries', () => {
             mergeFunction: expect.any(Function)
         })
     })
+
+    it('should correctly handle Features', async () => {
+        await mergeEntries('test', {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Feature',
+                        index: 0
+                    },
+                    {
+                        key: 'Condition-0',
+                        tag: 'Condition',
+                        index: 0
+                    }]
+                }]
+            },
+            ABC: {
+                key: 'ABC',
+                EphemeraId: 'FEATURE#DEF',
+                tag: 'Feature',
+                name: 'Vortex',
+                appearances: [{
+                    ...topLevelAppearance,
+                    render: []
+                },
+                {
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                    errors: [],
+                    props: {},
+                    render: ['The lights are on '],
+                    contents: []
+                }]
+            },
+            ['Condition-0']: {
+                key: 'Condition-0',
+                tag: 'Condition',
+                if: 'true',
+                dependencies: [],
+                appearances: [{
+                    ...topLevelAppearance,
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Feature',
+                        index: 1
+                    }]
+                }]
+            }
+        })
+
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#test' },
+            items: [{
+                EphemeraId: 'FEATURE#DEF',
+                key: 'ABC',
+                tag: 'Feature',
+                name: 'Vortex',
+                appearances: [{
+                    conditions: [],
+                    render: [],
+                },
+                {
+                    conditions: [{
+                        dependencies: [],
+                        if: 'true'
+                    }],
+                    render: ['The lights are on '],
+                }]
+            }],
+            mergeFunction: expect.any(Function)
+        })
+    })
 })

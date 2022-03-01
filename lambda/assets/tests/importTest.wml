@@ -12,8 +12,13 @@
         switchUp = !switchUp
         me.narrate(`${me.Name} lifts ${me.possessive} finger and flips the light switch.`)
     } />
+    <Feature key=(lightSwitch)>
+        <Name>Light switch</Name>
+        A small panel with a single switch
+    </Feature>
     <Room key=(welcomeRoom)>
         <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
+        <Feature key=(lightSwitch) />
     </Room>
     <Condition if={active}>
         <Depend on=(active) />

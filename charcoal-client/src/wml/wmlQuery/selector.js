@@ -100,6 +100,12 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 tagMatch: tags.length > 0 && (tag.sourceString === tags[0])
             }
         },
+        TagSelfClosing(open, tag, props, close) {
+            const { tags } = this.args.selector
+            return {
+                tagMatch: tags.length === 1 && (tag.sourceString === tags[0])
+            }
+        },
         TagExpression(open, contents, close) {
             if (this.args.selector.selector === 'MatchFirst') {
                 return [this.toNode()]

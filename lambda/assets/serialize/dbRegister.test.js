@@ -68,6 +68,10 @@ describe('dbRegister', () => {
                 key: 'Welcome',
             },
             {
+                tag: 'Feature',
+                key: 'clockTower'
+            },
+            {
                 tag: 'Variable',
                 key: 'power',
                 default: true
@@ -92,6 +96,10 @@ describe('dbRegister', () => {
             items: [{
                 tag: 'Room',
                 key: 'Welcome'
+            },
+            {
+                tag: 'Feature',
+                key: 'clockTower'
             }],
             mergeFunction: expect.any(Function),
             extractKey: expect.any(Function)

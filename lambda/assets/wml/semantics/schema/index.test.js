@@ -153,4 +153,55 @@ describe('WML semantic schema', () => {
             }]
         })
     })
+
+    it('should parse feature elements', () => {
+        const match = wmlGrammar.match(`
+            <Story key=(Test) instance fileName="test">
+                <Feature key=(clockTower)>
+                    A clock-tower of weathered grey stone looms over the area.
+                </Feature>
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    <Feature key=(clockTower) />
+                    Vortex
+                </Room>
+            </Story>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toEqual({
+            key: 'Test',
+            tag: 'Asset',
+            fileName: 'test',
+            Story: true,
+            instance: true,
+            props: {},
+            contents: [{
+                key: 'clockTower',
+                tag: 'Feature',
+                global: false,
+                props: {},
+                contents: [],
+                render: ['A clock-tower of weathered grey stone looms over the area. ']
+            },
+            {
+                key: 'ABC',
+                tag: 'Room',
+                name: 'Vortex',
+                global: false,
+                render: [
+                    'Vortex '
+                ],
+                props: {},
+                contents: [{
+                    key: 'clockTower',
+                    tag: 'Feature',
+                    global: false,
+                    props: {},
+                    contents: [],
+                    render: []
+                }]
+            }]
+        })
+
+    })
 })
