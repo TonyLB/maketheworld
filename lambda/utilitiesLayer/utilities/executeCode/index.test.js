@@ -186,7 +186,7 @@ describe('executeInAsset', () => {
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
-        const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('here.worldMessage("Test Message")')
+        const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('here.message("Test Message")')
         expect(executeMessageQueue).toEqual([{
             DisplayProtocol: 'WorldMessage',
             Message: 'Test Message',

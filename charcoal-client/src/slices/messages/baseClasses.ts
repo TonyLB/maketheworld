@@ -24,13 +24,24 @@ export type RoomCharacter = {
     CharacterId: string;
 }
 
+type RoomDescribeActionLink = {
+    targetTag: 'Action';
+    toAssetId: string;
+    toAction: string;
+}
+
+type RoomDescribeFeatureLink = {
+    targetTag: 'Feature';
+    toFeatureId: string;
+}
+
+type RoomDescribeLinkPayload = RoomDescribeActionLink | RoomDescribeFeatureLink
+
 export type RoomDescribeLink = {
     tag: 'Link',
     RoomId: string;
-    toAssetId: string;
-    toAction: string;
     text: string;
-}
+} & RoomDescribeLinkPayload
 
 export type RoomDescribePortion = RoomDescribeLink | string;
 

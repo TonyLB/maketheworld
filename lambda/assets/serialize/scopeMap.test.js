@@ -311,6 +311,7 @@ describe('ScopeMap class', () => {
                             tag: 'Link',
                             key: 'linkOne',
                             to: 'testOne',
+                            toFeatureId: 'TESTONE',
                             text: 'Test One',
                             targetTag: 'Feature'
                         },
@@ -318,6 +319,8 @@ describe('ScopeMap class', () => {
                             tag: 'Link',
                             key: 'linkTwo',
                             to: 'testTwo',
+                            toAssetId: 'test',
+                            toAction: 'testTwo',
                             text: 'Test Two',
                             targetTag: 'Action'
                         },
@@ -325,6 +328,7 @@ describe('ScopeMap class', () => {
                             tag: 'Link',
                             key: 'linkThree',
                             to: 'testThree',
+                            toFeatureId: 'TESTTHREE',
                             text: 'Test Three',
                             targetTag: 'Feature'
                         }],

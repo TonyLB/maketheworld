@@ -24,34 +24,7 @@ import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
-
-interface LinkDescriptionProps {
-    link: RoomDescribeLink
-}
-
-const LinkDescription = ({ link }: LinkDescriptionProps) => {
-    const { CharacterId } = useActiveCharacter()
-    const dispatch = useDispatch()
-    return <Chip
-            sx={{
-                background: `linear-gradient(${blue[400]}, ${blue[600]})`,
-                color: 'white',
-                '&:hover': {
-                    background: `linear-gradient(${blue[500]}, ${blue[700]})`,
-                }
-            }}
-            size="small"
-            onClick={() => {
-                dispatch(socketDispatchPromise('link')({
-                    Action: link.toAction,
-                    AssetId: link.toAssetId,
-                    RoomId: link.RoomId,
-                    CharacterId
-                }))
-            }}
-            label={link.text}
-        />
-}
+import DescriptionLink from './DescriptionLink'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
@@ -64,7 +37,7 @@ const renderRoomDescriptionItem = (item: RoomDescribePortion, index: number) => 
     }
     switch(item.tag) {
         case 'Link':
-            return <LinkDescription link={item} key={index} />
+            return <DescriptionLink link={item} key={index} />
     }
 }
 
