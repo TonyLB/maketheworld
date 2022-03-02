@@ -215,16 +215,14 @@ describe('Asset cache mergeEntries', () => {
                 appearances: [{
                     conditions: [],
                     name: 'Vortex',
-                    render: [],
-                    exits: []
+                    render: []
                 },
                 {
                     conditions: [{
                         dependencies: ['active'],
                         if: 'active'
                     }],
-                    render: ['The lights are on '],
-                    exits: []
+                    render: ['The lights are on ']
                 }
                 ]
             }],
@@ -248,6 +246,11 @@ describe('Asset cache mergeEntries', () => {
                         index: 0
                     },
                     {
+                        key: 'MNO',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
                         key: 'Condition-0',
                         tag: 'Condition',
                         index: 0
@@ -264,11 +267,33 @@ describe('Asset cache mergeEntries', () => {
                     render: []
                 },
                 {
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'MNO', tag: 'Room', index: 0 }],
+                    errors: [],
+                    props: {},
+                    render: [],
+                    contents: []
+                },
+                {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                     errors: [],
                     props: {},
                     render: ['The lights are on '],
                     contents: []
+                }]
+            },
+            MNO: {
+                key: 'MNO',
+                EphemeraId: 'ROOM#PQR',
+                tag: 'Room',
+                name: 'Wherever',
+                appearances: [{
+                    ...topLevelAppearance,
+                    render: [],
+                    contents: [{
+                        key: 'ABC',
+                        tag: 'Feature',
+                        index: 1
+                    }]
                 }]
             },
             ['Condition-0']: {
@@ -281,7 +306,7 @@ describe('Asset cache mergeEntries', () => {
                     contents: [{
                         key: 'ABC',
                         tag: 'Feature',
-                        index: 1
+                        index: 2
                     }]
                 }]
             }
@@ -300,12 +325,30 @@ describe('Asset cache mergeEntries', () => {
                     render: [],
                 },
                 {
+                    conditions: [],
+                    render: [],
+                },
+                {
                     conditions: [{
                         dependencies: [],
                         if: 'true'
                     }],
                     render: ['The lights are on '],
                 }]
+            },
+            {
+                EphemeraId: 'ROOM#PQR',
+                key: 'MNO',
+                tag: 'Room',
+                name: 'Wherever',
+                appearances: [{
+                    conditions: [],
+                    render: [],
+                    features: [{
+                        name: 'Vortex',
+                        EphemeraId: 'FEATURE#DEF'
+                    }]
+                }],
             }],
             mergeFunction: expect.any(Function)
         })
