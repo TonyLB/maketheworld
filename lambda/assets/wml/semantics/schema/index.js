@@ -11,6 +11,7 @@ import {
     liftContents,
     liftUseTags,
     liftDependencyTags,
+    liftRoomLocations,
     liftPronounTags,
     confirmKeyProps,
     confirmExpressionProps,
@@ -126,6 +127,15 @@ export const schema = {
             discardContents,
         ])(node.schema())
     },
+    MapExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmKeyProps(['key'])),
+            liftKeyProps(['key']),
+            liftRoomLocations
+        ])(node.schema())
+    },
     FeatureExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
@@ -147,6 +157,19 @@ export const schema = {
             validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
             liftKeyProps(['key']),
             liftLiteralProps(['display']),
+            liftBooleanProps(['global']),
+            liftLiteralTags({ Name: 'name' }),
+            liftContents('render', { exclude: ['Exit', 'Feature'] }),
+        ])(node.schema())
+    },
+    MapRoomExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmKeyProps(['key'])),
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
+            liftKeyProps(['key']),
+            liftLiteralProps(['display', 'x', 'y']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
             liftContents('render', { exclude: ['Exit', 'Feature'] }),

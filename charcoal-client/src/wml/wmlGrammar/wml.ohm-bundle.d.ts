@@ -19,6 +19,8 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   StoryExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   AssetExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   AssetLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  MapExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  MapLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ImportExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ImportLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   UseExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
@@ -32,6 +34,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   LayerLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ExitExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   LinkExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  MapRoomExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   RoomExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   RoomContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   FeatureExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;

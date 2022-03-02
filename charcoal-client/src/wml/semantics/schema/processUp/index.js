@@ -183,6 +183,23 @@ export const liftDependencyTags = ({ contents = [], ...rest}) => {
     }
 }
 
+export const liftRoomLocations = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Room'))
+    const roomLocations = tagsToLift.reduce((previous, { key, x, y }) => ({
+        ...previous,
+        [key]: {
+            x: parseFloat(x || ''),
+            y: parseFloat(y || '')
+        }
+    }), {})
+    const mappedContents = contents.map(({ x, y, ...rest }) => (rest))
+    return {
+        contents: mappedContents,
+        ...rest,
+        roomLocations
+    }
+}
+
 export const liftPronounTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Pronouns'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Pronouns'))
