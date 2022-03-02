@@ -80,17 +80,18 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
         const { assets, meta, itemsByAsset } = extractRenderArguments({ EphemeraId, CharacterId })
         switch(objectType) {
             case 'ROOM':
-                const { render: roomRender, name: roomName, exits: roomExits } = assets.reduce((previous, AssetId) => {
+                const { render: roomRender, name: roomName, exits: roomExits, features: roomFeatures } = assets.reduce((previous, AssetId) => {
                         const { appearances = [] } = itemsByAsset[AssetId]
                         const state = assetStateById[splitType(AssetId)[1]] || {}
                         return appearances
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                            .reduce(({ render: previousRender, name: previousName, exits: previousExits }, { render, name, exits }) => ({
+                            .reduce(({ render: previousRender, name: previousName, exits: previousExits, features: previousFeatures }, { render, name, exits, features }) => ({
                                 render: [ ...previousRender, ...(render || []) ],
                                 name: [ ...previousName, ...(name || []) ],
                                 exits: [ ...previousExits, ...(exits || []) ],
+                                features: [ ...previousFeatures, ...(features || []) ]
                             }), previous)
-                    }, { render: [], name: [], exits: [] })
+                    }, { render: [], name: [], exits: [], features: [] })
                     //
                     // TODO: Evaluate expressions before inserting them
                     //
@@ -100,22 +101,22 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     render: roomRender,
                     name: roomName.join(''),
                     exits: roomExits,
+                    features: roomFeatures,
                     characters: Object.values((meta ?? {}).activeCharacters || {})
                 }
 
             case 'FEATURE':
-                const { render: featureRender, name: featureName } = assets.reduce((previous, AssetId) => {
+                const { render: featureRender, name: featureName, features: featureFeatures } = assets.reduce((previous, AssetId) => {
                         const { appearances = [], name } = itemsByAsset[AssetId]
                         const state = assetStateById[splitType(AssetId)[1]] || {}
-                        return {
-                            render: appearances
-                                .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                                .reduce((previousRender, { render }) => ([
-                                    ...previousRender, ...(render || [])
-                                ]), previous.render),
-                            name: name ? [...previous.name, name] : previous.name
-                        }
-                    }, { render: [], name: [] })
+                        return appearances
+                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                            .reduce(({ render: previousRender, features: previousFeatures, name: previousName }, { render, features }) => ({
+                                render: [ ...previousRender, ...(render || []) ],
+                                features: [ ...previousFeatures, ...(features || []) ],
+                                name: previousName
+                            }), { ...previous, name: [ ...previous.name, name ] })
+                    }, { render: [], name: [], features: [] })
                     //
                     // TODO: Evaluate expressions before inserting them
                     //
@@ -123,7 +124,8 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     EphemeraId,
                     CharacterId,
                     render: featureRender,
-                    name: featureName.join('')
+                    name: featureName.join(''),
+                    features: featureFeatures
                 }
 
             default:
@@ -147,7 +149,7 @@ export const render = async ({
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
-        const { render: Description, name: Name, exits, characters } = rest
+        const { render: Description, name: Name, exits, characters, features } = rest
         switch(objectType) {
             case 'ROOM':
                 const RoomMessage = {
@@ -162,7 +164,8 @@ export const render = async ({
                     Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
                     Description,
                     Name,
-                    Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' }))
+                    Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' })),
+                    Features: features
                 }
                 return RoomMessage
             case 'FEATURE':
@@ -172,7 +175,8 @@ export const render = async ({
                     CharacterId,
                     FeatureId: objectKey,
                     Description,
-                    Name
+                    Name,
+                    Features: features
                 }
                 return FeatureMessage
             default:

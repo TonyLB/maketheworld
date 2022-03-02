@@ -1,5 +1,6 @@
 import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { render } from '/opt/utilities/perception/index.js'
 
 const getCurrentRoom = async (CharacterId) => {
     const { RoomId } = await ephemeraDB.getItem({
@@ -8,38 +9,21 @@ const getCurrentRoom = async (CharacterId) => {
         ProjectionFields: ['RoomId']
     })
     if (RoomId) {
-        const Items = await ephemeraDB.query({
-            EphemeraId: RoomKey(RoomId),
-            ProjectionFields: ['DataCategory', 'appearances', 'activeCharacters']
-        })
-        const { exits, characters } = (Items
-            .reduce((previous, { DataCategory, ...rest }) => {
-                if (DataCategory === 'Meta::Room') {
-                    return {
-                        ...previous,
-                        characters: Object.values(rest.activeCharacters || {})
-                    }
-                }
-                const [tag, value] = splitType(DataCategory)
-                if (tag === 'ASSET') {
-                    //
-                    // TODO: Look up what assets the character has a view of, and
-                    // limit whether or not to include exits here.  Also, evaluate
-                    // the conditions on each incoming exit, to make sure that
-                    // they are valid before including.
-                    //
-                    return {
-                        ...previous,
-                        exits: rest.appearances
-                            .map(({ exits = [] }) => (exits))
-                            .reduce((accumulate, exits) => ([...accumulate, ...exits]), previous.exits)
-                    }
-                }
-            }, { exits: [], characters: [] }))
-        return { roomId: RoomId, exits, characters }
+        const [{
+            Exits: exits = [],
+            Characters: characters = [],
+            Features: features = []
+        } = {}] = await render({
+            renderList: [{
+                CharacterId,
+                EphemeraId: RoomKey(RoomId)
+            }]
+        })    
+
+        return { roomId: RoomId, exits, characters, features }
     }
     else {
-        return { roomId: null, exits: [], characters: [] }
+        return { roomId: null, exits: [], characters: [], features: [] }
     }
 }
 
