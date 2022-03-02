@@ -60,7 +60,8 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#MNO',
             RoomId: 'MNO',
             Name: "",
-            Exits: []
+            Exits: [],
+            Features: []
         }])
         expect(getStateByAsset).toHaveBeenCalledWith(['BASE'])
     })
@@ -100,7 +101,8 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#MNO',
             RoomId: 'MNO',
             Name: "",
-            Exits: []
+            Exits: [],
+            Features: []
         }])
         expect(getStateByAsset).toHaveBeenCalledWith([])
 
@@ -140,7 +142,8 @@ describe('dependencyCascade', () => {
             Description: ['A cheery clock-tower of pale yellow stone.'],
             EphemeraId: 'FEATURE#MNO',
             FeatureId: 'MNO',
-            Name: "Clock Tower"
+            Name: "Clock Tower",
+            Features: []
         }])
         expect(getStateByAsset).toHaveBeenCalledWith([])
 
@@ -213,7 +216,8 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#MNO',
             RoomId: 'MNO',
             Name: "",
-            Exits: []
+            Exits: [],
+            Features: []
         },
         {
             tag: 'Room',
@@ -224,7 +228,8 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#TUV',
             RoomId: 'TUV',
             Name: "",
-            Exits: []
+            Exits: [],
+            Features: []
         }])
 
         expect(getStateByAsset).toHaveBeenCalledWith(['LayerB'])
@@ -301,7 +306,8 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#MNO',
             RoomId: 'MNO',
             Name: "",
-            Exits: []
+            Exits: [],
+            Features: []
         },
         {
             tag: 'Room',
@@ -312,7 +318,8 @@ describe('dependencyCascade', () => {
             EphemeraId: 'ROOM#TUV',
             RoomId: 'TUV',
             Name: "",
-            Exits: []
+            Exits: [],
+            Features: []
         }])
 
         expect(getGlobalAssets).toHaveBeenCalledWith(['BASE'])

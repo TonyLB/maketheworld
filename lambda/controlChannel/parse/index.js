@@ -1,5 +1,6 @@
 import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { render } from '/opt/utilities/perception/index.js'
 
 const getCurrentRoom = async (CharacterId) => {
     const { RoomId } = await ephemeraDB.getItem({
@@ -8,38 +9,21 @@ const getCurrentRoom = async (CharacterId) => {
         ProjectionFields: ['RoomId']
     })
     if (RoomId) {
-        const Items = await ephemeraDB.query({
-            EphemeraId: RoomKey(RoomId),
-            ProjectionFields: ['DataCategory', 'appearances', 'activeCharacters']
-        })
-        const { exits, characters } = (Items
-            .reduce((previous, { DataCategory, ...rest }) => {
-                if (DataCategory === 'Meta::Room') {
-                    return {
-                        ...previous,
-                        characters: Object.values(rest.activeCharacters || {})
-                    }
-                }
-                const [tag, value] = splitType(DataCategory)
-                if (tag === 'ASSET') {
-                    //
-                    // TODO: Look up what assets the character has a view of, and
-                    // limit whether or not to include exits here.  Also, evaluate
-                    // the conditions on each incoming exit, to make sure that
-                    // they are valid before including.
-                    //
-                    return {
-                        ...previous,
-                        exits: rest.appearances
-                            .map(({ exits = [] }) => (exits))
-                            .reduce((accumulate, exits) => ([...accumulate, ...exits]), previous.exits)
-                    }
-                }
-            }, { exits: [], characters: [] }))
-        return { roomId: RoomId, exits, characters }
+        const [{
+            Exits: exits = [],
+            Characters: characters = [],
+            Features: features = []
+        } = {}] = await render({
+            renderList: [{
+                CharacterId,
+                EphemeraId: RoomKey(RoomId)
+            }]
+        })    
+
+        return { roomId: RoomId, exits, characters, features }
     }
     else {
-        return { roomId: null, exits: [], characters: [] }
+        return { roomId: null, exits: [], characters: [], features: [] }
     }
 }
 
@@ -47,13 +31,7 @@ export const parseCommand = async ({
     CharacterId,
     command
 }) => {
-    //
-    // TODO: Build ControlChannel functions to parse free text entries looking for actions of
-    // looking at characters, looking at the room, and traversing exits.  Replace the front-end
-    // parsing with a round-trip call to the back-end parser.
-    //
-
-    const { roomId, exits, characters } = await getCurrentRoom(CharacterId)
+    const { roomId, exits, characters, features } = await getCurrentRoom(CharacterId)
     if (command.match(/^\s*(?:look|l)\s*$/gi)) {
         return { actionType: 'look', payload: { CharacterId, PermanentId: RoomKey(roomId) } }
     }
@@ -62,13 +40,20 @@ export const parseCommand = async ({
     }
     const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(command)
     if (lookMatch) {
-        const object = lookMatch.slice(1)[0].toLowerCase().trim()
-        const characterMatch = characters.find(({ Name }) => (Name.toLowerCase() === object))
+        const lookTarget = lookMatch.slice(1)[0].toLowerCase().trim()
+        const characterMatch = characters.find(({ Name = '' }) => (Name.toLowerCase() === lookTarget))
         if (characterMatch) {
             //
             // TODO:  Build a perception function for looking at characters, and route to it here.
             //
             return {}
+        }
+        const featureMatch = features.find(({ name = '' }) => (name.toLowerCase() === lookTarget))
+        if (featureMatch) {
+            //
+            // TODO:  Build a perception function for looking at characters, and route to it here.
+            //
+            return { actionType: 'look', payload: { CharacterId, PermanentId: featureMatch.EphemeraId }}
         }
     }
     //
