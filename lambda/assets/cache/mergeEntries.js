@@ -28,20 +28,35 @@ const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) 
     ...rest
 })
 
-const mapContentsToExits = (normalForm) => ({ contents, ...rest }) => ({
+const mapContents = (normalForm) => ({ contents, ...rest }) => ({
     ...rest,
-    exits: contents.reduce((previous, { tag, key }) => {
+    ...(contents.reduce((previous, { tag, key }) => {
         if (tag === 'Exit') {
-            return [
+            return {
                 ...previous,
-                {
-                    to: normalForm[key].toEphemeraId,
-                    name: normalForm[key].name
-                }
-            ]
+                exits: [
+                    ...(previous.exits || []),
+                    {
+                        to: normalForm[key].toEphemeraId,
+                        name: normalForm[key].name
+                    }
+                ]
+            }
+        }
+        if (tag === 'Feature') {
+            return {
+                ...previous,
+                features: [
+                    ...(previous.features || []),
+                    {
+                        EphemeraId: normalForm[key].EphemeraId,
+                        name: normalForm[key].name
+                    }
+                ]
+            }
         }
         return previous
-    }, [])
+    }, {}))
 })
 
 export const mergeEntries = async (assetId, normalForm) => {
@@ -51,12 +66,13 @@ export const mergeEntries = async (assetId, normalForm) => {
             ...rest,
             appearances: appearances
                 .map(mapContextStackToConditions(normalForm))
-                .map((item) => (rest.tag === 'Room' ? mapContentsToExits(normalForm)(item) : item))
-                .map(({ conditions, name, render, exits }) => ({
+                .map((item) => (rest.tag === 'Room' ? mapContents(normalForm)(item) : item))
+                .map(({ conditions, name, render, exits, features }) => ({
                     conditions,
                     name,
                     render,
-                    exits
+                    exits,
+                    features
                 }))
         }))
     await Promise.all([
