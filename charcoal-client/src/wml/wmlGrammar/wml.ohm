@@ -27,11 +27,15 @@ WorldMarkupLangage {
             | ActionExpression
             | LayerExpression
             | ConditionExpression
+            | MapExpression
             | RoomExpression
             | ExitExpression
             | FeatureExpression
             | LiteralNameExpression
             | string
+
+    MapExpression = TagExpression<"Map", "key", none, none, none, MapLegalContents>
+    MapLegalContents = MapRoomExpression
 
     ImportExpression = TagExpression<"Import", "from", none, none, none, ImportLegalContents>
     ImportLegalContents = UseExpression
@@ -53,6 +57,7 @@ WorldMarkupLangage {
 
     ConditionExpression = TagExpression<"Condition", none, none, "if", none, ConditionLegalContents>
     ConditionLegalContents = RoomExpression
+            | MapExpression
             | ConditionExpression
             | TextContents
             | LayerExpression
@@ -70,7 +75,10 @@ WorldMarkupLangage {
 
     LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, none, string>
 
+    MapRoomExpression = TagExpression<"Room", "key", ("display" | "x" | "y"), none, "global", RoomContents>
+            | TagSelfClosing<"Room", "key", ("display" | "x" | "y"), none, "global">
     RoomExpression = TagExpression<"Room", "key", "display", none, "global", RoomContents>
+            | TagSelfClosing<"Room", "key", "display", none, "global">
     RoomContents = TextContents
             | NameExpression
             | ExitExpression

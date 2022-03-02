@@ -424,6 +424,20 @@ describe('WML normalize', () => {
                 }]
             },
             {
+                tag: 'Map',
+                key: 'TestMap',
+                roomLocations: {
+                    '123': {
+                        x: 200,
+                        y: 150
+                    }
+                },
+                contents: [{
+                    tag: 'Room',
+                    key: '123'
+                }]
+            },
+            {
                 tag: 'Feature',
                 key: 'clockTower',
                 name: 'Clock Tower',
@@ -463,6 +477,11 @@ describe('WML normalize', () => {
                     {
                         key: '456',
                         tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'TestMap',
+                        tag: 'Map',
                         index: 0
                     },
                     {
@@ -511,6 +530,31 @@ describe('WML normalize', () => {
                         key: 'clockTower',
                         tag: 'Feature',
                         index: 0
+                    }]
+                },
+                {
+                    contextStack: [
+                        { key: 'Test', tag: 'Asset', index: 0 },
+                        { key: 'TestMap', tag: 'Map', index: 0 }
+                    ],
+                    contents: []
+                }]
+            },
+            TestMap: {
+                tag: 'Map',
+                key: 'TestMap',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    roomLocations: {
+                        '123': {
+                            x: 200,
+                            y: 150
+                        }
+                    },
+                    contents: [{
+                        tag: 'Room',
+                        key: '123',
+                        index: 1
                     }]
                 }]
             },

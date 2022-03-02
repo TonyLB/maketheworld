@@ -202,6 +202,43 @@ describe('WML semantic schema', () => {
                 }]
             }]
         })
+    })
 
+    it('should parse map elements', () => {
+        const match = wmlGrammar.match(`
+            <Story key=(Test) instance fileName="test">
+                <Map key=(TestMap)>
+                    <Room key=(ABC) x="200" y="150" />
+                </Map>
+            </Story>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toEqual({
+            key: 'Test',
+            tag: 'Asset',
+            fileName: 'test',
+            Story: true,
+            instance: true,
+            props: {},
+            contents: [{
+                key: 'TestMap',
+                tag: 'Map',
+                props: {},
+                roomLocations: {
+                    ABC: {
+                        x: 200,
+                        y: 150
+                    }
+                },
+                contents: [{
+                    key: 'ABC',
+                    tag: 'Room',
+                    global: false,
+                    render: [],
+                    props: {},
+                    contents: []
+                }]
+            }]
+        })
     })
 })
