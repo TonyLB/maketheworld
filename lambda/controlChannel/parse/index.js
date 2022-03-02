@@ -31,13 +31,7 @@ export const parseCommand = async ({
     CharacterId,
     command
 }) => {
-    //
-    // TODO: Build ControlChannel functions to parse free text entries looking for actions of
-    // looking at characters, looking at the room, and traversing exits.  Replace the front-end
-    // parsing with a round-trip call to the back-end parser.
-    //
-
-    const { roomId, exits, characters } = await getCurrentRoom(CharacterId)
+    const { roomId, exits, characters, features } = await getCurrentRoom(CharacterId)
     if (command.match(/^\s*(?:look|l)\s*$/gi)) {
         return { actionType: 'look', payload: { CharacterId, PermanentId: RoomKey(roomId) } }
     }
@@ -46,13 +40,20 @@ export const parseCommand = async ({
     }
     const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(command)
     if (lookMatch) {
-        const object = lookMatch.slice(1)[0].toLowerCase().trim()
-        const characterMatch = characters.find(({ Name }) => (Name.toLowerCase() === object))
+        const lookTarget = lookMatch.slice(1)[0].toLowerCase().trim()
+        const characterMatch = characters.find(({ Name = '' }) => (Name.toLowerCase() === lookTarget))
         if (characterMatch) {
             //
             // TODO:  Build a perception function for looking at characters, and route to it here.
             //
             return {}
+        }
+        const featureMatch = features.find(({ name = '' }) => (name.toLowerCase() === lookTarget))
+        if (featureMatch) {
+            //
+            // TODO:  Build a perception function for looking at characters, and route to it here.
+            //
+            return { actionType: 'look', payload: { CharacterId, PermanentId: featureMatch.EphemeraId }}
         }
     }
     //
