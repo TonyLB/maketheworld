@@ -39,6 +39,17 @@ const testSchema = {
         contents: []
     },
     {
+        tag: 'Map',
+        key: 'TestMap',
+        contents: [{
+            tag: 'Room',
+            key: '123',
+            x: "300",
+            y: "200",
+            contents: []
+        }]
+    },
+    {
         tag: 'Condition',
         if: 'true',
         contents: [{
@@ -100,6 +111,11 @@ describe('WML dbEntries', () => {
                     exits: [{
                         to: "456"
                     }]
+                },
+                {
+                    conditions: [],
+                    x: "300",
+                    y: "200"
                 },
                 {
                     conditions: [{ if: 'true', dependencies: [] }],
@@ -265,6 +281,10 @@ describe('WML assetRegistryEntries', () => {
                 tag: 'Feature',
                 key: 'clockTower',
                 name: 'Clock Tower'
+            },
+            {
+                tag: 'Map',
+                key: 'TestMap'
             }
         ])
     })

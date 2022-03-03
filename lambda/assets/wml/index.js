@@ -164,6 +164,11 @@ export const assetRegistryEntries = (schema) => {
                     player,
                     zone: rest.zone
                 }
+            case 'Map':
+                return {
+                    tag,
+                    key,
+                }
             case 'Room':
                 return {
                     tag,

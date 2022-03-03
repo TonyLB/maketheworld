@@ -41,8 +41,8 @@ describe('ScopeMap class', () => {
                     errors: [],
                     props: {},
                     contents: [{
-                        key: 'VORTEX',
-                        tag: 'Room',
+                        key: 'Village',
+                        tag: 'Map',
                         index: 0
                     },
                     {
@@ -67,11 +67,23 @@ describe('ScopeMap class', () => {
                 tag: 'Feature',
                 appearances: [topLevelAppearance]
             },
+            Village: {
+                key: 'Village',
+                tag: 'Map',
+                appearances: [{
+                    ...topLevelAppearance,
+                    contents: [
+                        { key: 'VORTEX', tag: 'Room', index: 0 }
+                    ]
+                }]
+            },
             VORTEX: {
                 key: 'VORTEX',
                 tag: 'Room',
                 appearances: [{
-                    ...topLevelAppearance,
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Village', tag: 'Map', index: 0 }],
+                    errors: [],
+                    props: {},
                     global: false,
                     name: 'Vortex',
                     render: [],
@@ -147,7 +159,8 @@ describe('ScopeMap class', () => {
             const testScope = new ScopeMap({
                 VORTEX: 'ROOM#VORTEX',
                 Welcome: 'ROOM#123456',
-                clockTower: 'FEATURE#ABCDEF'
+                clockTower: 'FEATURE#ABCDEF',
+                Village: 'MAP#XYZ'
             })
             expect(testScope.translateNormalForm(testNormalForm)).toEqual({
                 ...testNormalForm,
@@ -158,6 +171,10 @@ describe('ScopeMap class', () => {
                 'Welcome#VORTEX': {
                     ...testNormalForm['Welcome#VORTEX'],
                     toEphemeraId: 'VORTEX'
+                },
+                Village: {
+                    ...testNormalForm.Village,
+                    EphemeraId: 'MAP#XYZ'
                 },
                 Welcome: {
                     ...testNormalForm.Welcome,
@@ -189,6 +206,10 @@ describe('ScopeMap class', () => {
                     ...testNormalForm['Welcome#VORTEX'],
                     toEphemeraId: 'VORTEX'
                 },
+                Village: {
+                    ...testNormalForm.Village,
+                    EphemeraId: 'MAP#UUID'
+                },
                 Welcome: {
                     ...testNormalForm.Welcome,
                     EphemeraId: 'ROOM#UUID'
@@ -205,7 +226,8 @@ describe('ScopeMap class', () => {
             expect(testScope.serialize()).toEqual({
                 VORTEX: 'ROOM#VORTEX',
                 Welcome: 'ROOM#UUID',
-                clockTower: 'FEATURE#UUID'
+                clockTower: 'FEATURE#UUID',
+                Village: 'MAP#UUID'
             })
         })
 

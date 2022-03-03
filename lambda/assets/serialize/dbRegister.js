@@ -25,7 +25,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 items: asset.instance
                     ? []
                     : assets
-                        .filter(({ tag }) => (['Room', 'Feature'].includes(tag))),
+                        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag))),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
@@ -49,6 +49,9 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                     switch(tag) {
                         case 'Feature':
                             prefix = 'FEATURE'
+                            break
+                        case 'Map':
+                            prefix = 'MAP'
                             break
                         default:
                             prefix = 'ROOM'

@@ -64,6 +64,10 @@ describe('dbRegister', () => {
                 zone: 'Library'
             },
             {
+                tag: 'Map',
+                key: 'Village'
+            },
+            {
                 tag: 'Room',
                 key: 'Welcome',
             },
@@ -94,6 +98,10 @@ describe('dbRegister', () => {
             table: 'assets',
             search: { DataCategory: 'ASSET#TEST' },
             items: [{
+                tag: 'Map',
+                key: 'Village'
+            },
+            {
                 tag: 'Room',
                 key: 'Welcome'
             },
