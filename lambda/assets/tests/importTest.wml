@@ -16,6 +16,9 @@
         <Name>Light switch</Name>
         A small panel with a single switch
     </Feature>
+    <Map key=(importTestMap)>
+        <Room key=(welcomeRoom) x="300" y="200" />
+    </Map>
     <Room key=(welcomeRoom)>
         <Link key=(switchLink) to=(lightSwitch)>[Light Switch]</Link>
         <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
