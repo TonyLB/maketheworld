@@ -28,7 +28,7 @@ const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) 
     ...rest
 })
 
-const mapContents = (normalForm) => ({ contents, ...rest }) => ({
+const mapContents = (normalForm) => ({ contents = [], ...rest }) => ({
     ...rest,
     ...(contents.reduce((previous, { tag, key }) => {
         if (tag === 'Exit') {
@@ -61,18 +61,19 @@ const mapContents = (normalForm) => ({ contents, ...rest }) => ({
 
 export const mergeEntries = async (assetId, normalForm) => {
     const mergeEntries = Object.values(normalForm)
-        .filter(({ tag }) => (['Room', 'Feature'].includes(tag)))
-        .map(({ appearances, ...rest }) => ({
+        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
+        .map(({ appearances = [], ...rest }) => ({
             ...rest,
             appearances: appearances
                 .map(mapContextStackToConditions(normalForm))
-                .map((item) => (rest.tag === 'Room' ? mapContents(normalForm)(item) : item))
-                .map(({ conditions, name, render, exits, features }) => ({
+                .map((item) => (['Room'].includes(rest.tag) ? mapContents(normalForm)(item) : item))
+                .map(({ conditions, name, render, exits, features, roomLocations }) => ({
                     conditions,
                     name,
                     render,
                     exits,
-                    features
+                    features,
+                    roomLocations
                 }))
         }))
     await Promise.all([

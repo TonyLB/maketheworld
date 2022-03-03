@@ -353,4 +353,92 @@ describe('Asset cache mergeEntries', () => {
             mergeFunction: expect.any(Function)
         })
     })
+
+    it('should correctly handle Maps', async () => {
+        await mergeEntries('test', {
+            test: {
+                key: 'test',
+                tag: 'Asset',
+                fileName: 'test',
+                appearances: [{
+                    contextStack: [],
+                    errors: [],
+                    props: {},
+                    contents: [{
+                        key: 'MNO',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'TestMap',
+                        tag: 'Map',
+                        index: 0
+                    }]
+                }]
+            },
+            MNO: {
+                key: 'MNO',
+                EphemeraId: 'ROOM#PQR',
+                tag: 'Room',
+                name: 'Wherever',
+                appearances: [{
+                    ...topLevelAppearance,
+                    render: [],
+                    contents: [],
+                },
+                {
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                    errors: [],
+                    props: {},
+                    contents: []
+                }]
+            },
+            TestMap: {
+                key: 'TestMap',
+                tag: 'Map',
+                EphemeraId: 'MAP#TEST',
+                appearances: [{
+                    ...topLevelAppearance,
+                    contents: [{
+                        key: 'MNO',
+                        tag: 'Room',
+                        index: 0
+                    }],
+                    roomLocations: {
+                        MNO: { x: 300, y: 200 }
+                    }
+                }]
+            }
+        })
+
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#test' },
+            items: [{
+                EphemeraId: 'ROOM#PQR',
+                key: 'MNO',
+                tag: 'Room',
+                name: 'Wherever',
+                appearances: [{
+                    conditions: [],
+                    render: []
+                },
+                {
+                    conditions: [],
+                }]
+            },
+            {
+                EphemeraId: 'MAP#TEST',
+                key: 'TestMap',
+                tag: 'Map',
+                appearances: [{
+                    conditions: [],
+                    roomLocations: {
+                        MNO: { x: 300, y: 200 }
+                    }
+                }],
+            }],
+            mergeFunction: expect.any(Function)
+        })
+    })
 })
