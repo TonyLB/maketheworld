@@ -114,3 +114,67 @@ export const socketQueueFactory = () => {
         }
     }
 }
+
+export class SocketQueue extends Object {
+    constructor() {
+        super()
+        this.globalMessageQueue = queueInitial
+        this.messageQueueByConnection = {}
+    }
+
+    clear() {
+        this.globalMessageQueue = queueInitial
+        this.messageQueueByConnection = {}
+    }
+    send({ ConnectionId, Message }) {
+        this.messageQueueByConnection[ConnectionId] = queueReducer(
+            this.messageQueueByConnection[ConnectionId] || queueInitial,
+            Message
+        )
+    }
+    sendAll(Message) {
+        this.globalMessageQueue = queueReducer(this.globalMessageQueue, Message)
+    }
+    async flush() {
+        const deliver = async (ConnectionId) => {
+            const deliverMessage = async (message) => {
+                await apiClient.send({
+                    ConnectionId,
+                    Data: JSON.stringify(message)
+                })
+            }
+            try {
+                await Promise.all([
+                    ...queueSerialize(this.globalMessageQueue),
+                    ...(this.messageQueueByConnection[ConnectionId]
+                        ? queueSerialize(this.messageQueueByConnection[ConnectionId])
+                        : []
+                    )
+                ].map(deliverMessage))
+            }
+            catch (err) {
+                if (err.name === 'GoneException') {
+                    await forceDisconnect(ConnectionId)
+                }
+                else {
+                    throw err
+                }
+            }
+
+        }
+        if (queueHasContent(this.globalMessageQueue)) {
+            const { connections = {} } = await ephemeraDB.getItem({
+                EphemeraId: 'Global',
+                DataCategory: 'Connections',
+                ProjectionFields: ['connections']
+            })
+            await Promise.all(Object.keys(connections).map(deliver))
+        }
+        else {
+            await Promise.all(Object.keys(this.messageQueueByConnection).map(deliver))
+        }
+        this.globalMessageQueue = queueInitial
+        this.messageQueueByConnection = {}
+
+    }
+}

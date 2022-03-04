@@ -1,11 +1,13 @@
-# socketQueueFactory
-This factory function creates a pseudo-class that stores and aggregates payloads that should 
-(eventually) be flushed out to one or more WebSocket connections.
+# socketQueue
+This class stores and aggregates payloads that should (eventually) be flushed out to
+one or more WebSocket connections.
 
-> **TODO**: Refactor socketQueueFactory to be a proper constructed class
 ---
+
 ## Needs Addressed
+
 ---
+
 - Functions that just want to deliver a message on the socket should not be worrying about
     the details of the apiManagementClient SDK
 - Socket payloads should be aggregated for compact delivery and easier client parsing:
@@ -13,8 +15,11 @@ This factory function creates a pseudo-class that stores and aggregates payloads
     - Ephemera Updates to the same connection should be grouped
 
 ---
+
 ## Usage
+
 ---
+
 ```js
     const queue = socketQueueFactory()
     queue.send({
@@ -26,9 +31,13 @@ This factory function creates a pseudo-class that stores and aggregates payloads
     })
     await queue.flush()
 ```
+
 ---
+
 ## Methods
+
 ---
+
 | clear |
 | --- |
 | Removes all the payloads that have been sent to the queue |

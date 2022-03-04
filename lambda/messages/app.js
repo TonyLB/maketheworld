@@ -2,7 +2,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 import { splitType } from '/opt/utilities/types.js'
 import { ephemeraDB, batchWriteDispatcher, messageDelete } from '/opt/utilities/dynamoDB/index.js'
-import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
+import { SocketQueue } from '/opt/utilities/apiManagement/index.js'
 
 const messageTable = `${process.env.TABLE_PREFIX}_messages`
 const deltaTable = `${process.env.TABLE_PREFIX}_message_delta`
@@ -119,7 +119,7 @@ export const handler = async (event, context) => {
             }
 
             const epochTime = Date.now()
-            const socketQueue = socketQueueFactory()
+            const socketQueue = new SocketQueue()
 
             const { messageItems, deltaItems, messagesToDelete } = metaRecords.reduce(
                 (previous, { Targets, CreatedTime, MessageId, ...rest }) => {

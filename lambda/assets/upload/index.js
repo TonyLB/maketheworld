@@ -11,7 +11,7 @@ import { assetRegistryEntries } from "../wml/index.js"
 import { cacheAsset } from "../cache/index.js"
 
 import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
-import { socketQueueFactory } from "/opt/utilities/apiManagement/index.js"
+import { SocketQueue } from "/opt/utilities/apiManagement/index.js"
 
 const { S3_BUCKET } = process.env;
 
@@ -68,7 +68,7 @@ const uploadResponse = async ({ uploadId, ...rest }) => {
             const connections = await getConnectionsByPlayerName(PlayerName)
             await Promise.all((connections || [])
                 .map(async (ConnectionId) => {
-                    const socketQueue = socketQueueFactory()
+                    const socketQueue = new SocketQueue()
                     socketQueue.send({
                         ConnectionId, 
                         Message: {

@@ -8,7 +8,7 @@ import { healGlobalValues, healCharacter } from '/opt/utilities/selfHealing/inde
 import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
-import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
+import { SocketQueue } from '/opt/utilities/apiManagement/index.js'
 import { executeAction } from '/opt/utilities/executeCode/index.js'
 
 const postRecords = async (Records) => {
@@ -42,7 +42,7 @@ const postRecords = async (Records) => {
         ...characterRecords
     ]
     if (updates.length) {
-        const socketQueue = socketQueueFactory()
+        const socketQueue = new SocketQueue()
         socketQueue.sendAll({
             messageType: 'Ephemera',
             updates

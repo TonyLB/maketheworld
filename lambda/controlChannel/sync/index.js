@@ -1,5 +1,5 @@
 import { messageDataCategoryQuery, messageDeltaQuery } from '/opt/utilities/dynamoDB/index.js'
-import { socketQueueFactory } from '/opt/utilities/apiManagement/index.js'
+import { SocketQueue } from '/opt/utilities/apiManagement/index.js'
 
 //
 // syncRawHelper executes one step of the raw sync operation (either the first query or subsequent
@@ -61,7 +61,7 @@ export const sync = async ({
     let LastEvaluatedKey = null
     let loopCount = 0
     let sendPromises = []
-    const socketQueue = socketQueueFactory()
+    const socketQueue = new SocketQueue()
     while (!LastSync && loopCount < 20) {
         const returnVal = (type === 'Raw')
             ? await syncRawHelper({
