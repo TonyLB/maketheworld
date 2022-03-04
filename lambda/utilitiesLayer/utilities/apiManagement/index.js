@@ -1,11 +1,6 @@
-import apiManagement, { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi'
+import { apiClient } from './apiManagementClient.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { forceDisconnect } from './forceDisconnect.js'
-
-const apiClient = new ApiGatewayManagementApiClient({
-    apiVersion: '2018-11-29',
-    endpoint: process.env.WEBSOCKET_API
-})
 
 const queueInitial = {
     messages: {},
@@ -14,7 +9,7 @@ const queueInitial = {
 
 const queueReducer = (state, action) => {
     const { messages, otherSends } = state
-    switch(action.messageType) {
+    switch(action.messageType || '') {
         case 'Messages':
             return {
                 messages: (action.messages || [])
@@ -38,7 +33,7 @@ const queueReducer = (state, action) => {
     }
 }
 
-const queueSerialize = ({ messages, otherSends}) => {
+const queueSerialize = ({ messages = [], otherSends = []}) => {
     return [
         ...(Object.keys(messages).length
             ? [{
@@ -78,10 +73,10 @@ export const socketQueueFactory = () => {
         flush: async () => {
             const deliver = async (ConnectionId) => {
                 const deliverMessage = async (message) => {
-                    await apiClient.send(new PostToConnectionCommand({
+                    await apiClient.send({
                         ConnectionId,
                         Data: JSON.stringify(message)
-                    }))    
+                    })
                 }
                 try {
                     await Promise.all([
