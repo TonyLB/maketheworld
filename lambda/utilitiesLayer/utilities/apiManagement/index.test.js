@@ -5,7 +5,7 @@ import { ephemeraDB } from '../dynamoDB.js'
 jest.mock('./apiManagementClient.js')
 import { apiClient } from './apiManagementClient.js'
 
-import { socketQueueFactory } from './index.js'
+import { SocketQueue } from './index.js'
 
 describe('apiManagment', () => {
 
@@ -15,15 +15,15 @@ describe('apiManagment', () => {
         jest.restoreAllMocks()
     })
 
-    describe('socketQueueFactory', () => {
+    describe('socketQueue class', () => {
         it('should initialize empty', async () => {
-            const testSocket = socketQueueFactory()
+            const testSocket = new SocketQueue()
             await testSocket.flush()
             expect(apiClient.send).toHaveBeenCalledTimes(0)
         })
 
         it('should send a queued non-Message item', async() => {
-            const testSocket = socketQueueFactory()
+            const testSocket = new SocketQueue()
             testSocket.send({ ConnectionId: 'ABC', Message: { update: 'Test' } })
             await testSocket.flush()
             expect(apiClient.send).toHaveBeenCalledWith({
@@ -33,7 +33,7 @@ describe('apiManagment', () => {
         })
 
         it('should aggregate queued Message items', async() => {
-            const testSocket = socketQueueFactory()
+            const testSocket = new SocketQueue()
             testSocket.send({
                 ConnectionId: 'ABC',
                 Message: {
@@ -86,7 +86,7 @@ describe('apiManagment', () => {
         })
 
         it('should should deliver global messages', async() => {
-            const testSocket = socketQueueFactory()
+            const testSocket = new SocketQueue()
             testSocket.send({
                 ConnectionId: '123',
                 Message: {
