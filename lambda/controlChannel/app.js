@@ -1,9 +1,7 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-
-import AWSXRay from 'aws-xray-sdk'
-import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
+import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 
 import { whoAmI, getPlayerByConnectionId } from './player/index.js'
@@ -22,8 +20,9 @@ import {
 import { forceDisconnect } from '/opt/utilities/apiManagement/forceDisconnect.js'
 import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
 
-const REGION = process.env.AWS_REGION
-const lambdaClient = AWSXRay.captureAWSv3Client(new LambdaClient({ region: REGION }))
+import fetchEphemera from './fetchEphemera/index.js'
+
+import lambdaClient from './lambdaClient.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -124,59 +123,6 @@ export const registerCharacter = async ({ connectionId, CharacterId, RequestId }
     ])
 
     return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
-}
-
-const serialize = ({
-    EphemeraId,
-    Connected,
-    RoomId,
-    Name
-}) => {
-    const [type, payload] = splitType(EphemeraId)
-    switch(type) {
-        case 'CHARACTERINPLAY':
-            return {
-                type: 'CharacterInPlay',
-                CharacterId: payload,
-                Connected,
-                RoomId,
-                Name
-            }
-        //
-        // TODO:  More serializers for more data types!
-        //
-        default:
-            return null
-    }
-}
-
-const fetchEphemera = async (RequestId) => {
-    const Items = await ephemeraDB.query({
-        IndexName: 'DataCategoryIndex',
-        DataCategory: 'Meta::Character',
-        KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
-        ExpressionAttributeValues: {
-            ':EphemeraPrefix': 'CHARACTERINPLAY#'
-        },
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name']
-    })
-    const returnItems = Items
-        .map(serialize)
-        .filter((value) => value)
-        .filter(({ Connected }) => (Connected))
-    //
-    // TODO:  Instead of depending upon APIGateway to route the message back
-    // to its own connection, maybe manually route multiple messages, so that
-    // you can break a large scan into limited message-lengths.
-    //
-    return {
-        messageType: 'Ephemera',
-        RequestId,
-        updates: returnItems
-    }
 }
 
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
