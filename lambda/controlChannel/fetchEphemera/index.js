@@ -42,11 +42,7 @@ export const fetchEphemera = async (RequestId) => {
         .map(serialize)
         .filter((value) => value)
         .filter(({ Connected }) => (Connected))
-    //
-    // TODO:  Instead of depending upon APIGateway to route the message back
-    // to its own connection, maybe manually route multiple messages, so that
-    // you can break a large scan into limited message-lengths.
-    //
+
     return {
         messageType: 'Ephemera',
         RequestId,
