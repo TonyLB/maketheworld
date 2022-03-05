@@ -44,7 +44,7 @@ This function serializes the state of current Ephemera in order to update a fron
 
 ### Output
 
-**fetchEphemera** posts messages to all open WebSocket connections, with format as follows
+**fetchEphemera** returns a message suitable for posting to WebSocket, with format as follows
 
 ```ts
     output = {
@@ -128,7 +128,7 @@ type MapAppearance = {
 
 ### Output
 
-**fetchEphemeraForCharacter** posts messages to all open WebSocket connections, with format as follows
+**fetchEphemeraForCharacter** returns a message suitable for posting to WebSocket, with format as follows
 
 ```ts
     output = {

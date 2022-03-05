@@ -1,5 +1,6 @@
 import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { renderItems } from '../__mocks__/opt/utilities/perception'
 
 const serialize = ({
     EphemeraId,
@@ -48,6 +49,67 @@ export const fetchEphemera = async (RequestId) => {
         RequestId,
         updates: returnItems
     }
+}
+
+export const fetchEphemeraForCharacter = async ({
+    RequestId,
+    CharacterId
+}) => {
+    const [
+        { assets: characterAssets = [] } = {},
+        { assets: globalAssets = [] } = {}
+    ] = await Promise.all([
+        ephemeraDB.getItem({
+            EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+            DataCategory: 'Meta::Character',
+            ProjectionFields: ['assets']
+        }),
+        ephemeraDB.getItem({
+            EphemeraId: 'Global',
+            DataCategory: 'Assets',
+            ProjectionFields: ['assets']
+        })
+    ])
+
+    const mapQueryLists = await Promise.all(
+        [ ...globalAssets, ...characterAssets ].map((asset) => (
+            ephemeraDB.query({
+                IndexName: 'DataCategoryIndex',
+                DataCategory: `ASSET#${asset}`
+            })
+        ))
+    )
+
+    const allMaps = [...(new Set(
+        mapQueryLists.reduce((previous, mapList) => (
+            [ ...previous, ...mapList.map(({ EphemeraId }) => (EphemeraId))]
+        ), [])
+    ))]
+
+    if (allMaps.length) {
+        const renderOutput = await renderItems(
+            allMaps.map((EphemeraId) => ({ EphemeraId, CharacterId })),
+            {},
+            {
+                global: globalAssets,
+                characters: {
+                    [CharacterId]: characterAssets
+                }
+            }
+        )
+    
+        return {
+            type: 'Ephemera',
+            RequestId,
+            updates: renderOutput
+        }    
+    }
+    return {
+        type: 'Ephemera',
+        RequestId,
+        updates: []
+    }    
+
 }
 
 export default fetchEphemera
