@@ -20,7 +20,7 @@ import {
 import { forceDisconnect } from '/opt/utilities/apiManagement/forceDisconnect.js'
 import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
 
-import fetchEphemera from './fetchEphemera/index.js'
+import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.js'
 
 import lambdaClient from './lambdaClient.js'
 
@@ -304,7 +304,16 @@ export const handler = async (event, context) => {
             }
             break
         case 'fetchEphemera':
-            const ephemera = await fetchEphemera(request.RequestId)
+            let ephemera = {}
+            if (request.CharacterId) {
+                ephemera = await fetchEphemeraForCharacter({
+                    RequestId: request.RequestId,
+                    CharacterId: request.CharacterId
+                })
+            }
+            else {
+                ephemera = await fetchEphemera(request.RequestId)
+            }
             return {
                 statusCode: 200,
                 body: JSON.stringify(ephemera)

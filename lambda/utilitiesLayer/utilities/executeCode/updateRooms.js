@@ -50,13 +50,16 @@ export const updateRooms = async ({
             characters: characterAssets
         }
     })
-    await Promise.all(renderOutput.map(({ EphemeraId, CharacterId, ...roomMessage }) => (
-        publishMessage({
-            MessageId: `MESSAGE#${uuidv4()}`,
-            Targets: [`CHARACTER#${CharacterId}`],
-            CreatedTime: Date.now(),
-            DisplayProtocol: 'RoomUpdate',
-            ...roomMessage
-        })
-    )))
+    await Promise.all(renderOutput
+        .filter(({ tag }) => (tag === 'Room'))
+        .map(({ EphemeraId, CharacterId, ...roomMessage }) => (
+            publishMessage({
+                MessageId: `MESSAGE#${uuidv4()}`,
+                Targets: [`CHARACTER#${CharacterId}`],
+                CreatedTime: Date.now(),
+                DisplayProtocol: 'RoomUpdate',
+                ...roomMessage
+            })
+        ))
+    )
 }

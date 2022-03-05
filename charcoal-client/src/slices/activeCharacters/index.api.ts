@@ -35,6 +35,7 @@ export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => 
 }
 
 export const registerAction: ActiveCharacterAction = ({ internalData: { id }}) => async (dispatch) => {
+    await dispatch(socketDispatchPromise('fetchEphemera')({ CharacterId: id }))
     await dispatch(socketDispatchPromise('registercharacter')({ CharacterId: id }))
     return {}
 }

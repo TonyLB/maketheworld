@@ -1,6 +1,6 @@
 import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { renderItems } from '../__mocks__/opt/utilities/perception'
+import { renderItems } from '/opt/utilities/perception/index.js'
 
 const serialize = ({
     EphemeraId,
@@ -72,10 +72,14 @@ export const fetchEphemeraForCharacter = async ({
     ])
 
     const mapQueryLists = await Promise.all(
-        [ ...globalAssets, ...characterAssets ].map((asset) => (
+        [...(new Set([ ...globalAssets, ...characterAssets ]))].map((asset) => (
             ephemeraDB.query({
                 IndexName: 'DataCategoryIndex',
-                DataCategory: `ASSET#${asset}`
+                DataCategory: `ASSET#${asset}`,
+                KeyConditionExpression: 'begins_with(EphemeraId, :map)',
+                ExpressionAttributeValues: {
+                    ':map': 'MAP#'
+                }
             })
         ))
     )

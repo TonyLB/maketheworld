@@ -51,6 +51,7 @@ This function serializes the state of current Ephemera in order to update a fron
         type: 'Ephemera',
         RequestId: 'Request1234',
         updates: [{
+            type: 'CharacterInPlay',
             CharacterId: 'ABC',
             Name: 'TestOne',
             Connected: true,
@@ -135,6 +136,7 @@ type MapAppearance = {
         type: 'Ephemera',
         RequestId: 'Request1234',
         updates: [{
+            type: 'Map',
             CharacterId: 'Lucian',
             MapId: 'ABC',
             name: 'Grand Bazaar',

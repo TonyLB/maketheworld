@@ -106,7 +106,13 @@ describe('fetchEphemeraForCharacter', () => {
             return {}
         })
         renderItems.mockResolvedValue([{
-            type: 'test'
+            type: 'Map',
+            CharacterId: 'TEST',
+            MapId: 'MAP#ABC',
+            name: 'Grand Bazaar',
+            roomLocations: {
+                fountainSquare: { x: -50, y: 0 }
+            }
         }])
         const output = await fetchEphemeraForCharacter({
             RequestId: '1234',
@@ -133,7 +139,13 @@ describe('fetchEphemeraForCharacter', () => {
             type: 'Ephemera',
             RequestId: '1234',
             updates: [{
-                type: 'test'
+                type: 'Map',
+                CharacterId: 'TEST',
+                MapId: 'MAP#ABC',
+                name: 'Grand Bazaar',
+                roomLocations: {
+                    fountainSquare: { x: -50, y: 0 }
+                }
             }]
         })
     })
