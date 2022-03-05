@@ -128,6 +128,25 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     features: featureFeatures
                 }
 
+            case 'MAP':
+                const { mapRoomLocations = {}, name: mapName = [] } = assets.reduce((previous, AssetId) => {
+                        const { appearances = [], name } = itemsByAsset[AssetId]
+                        const state = assetStateById[splitType(AssetId)[1]] || {}
+                        return appearances
+                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+                            .reduce(({ mapRoomLocations: previousRoomLocations, name: previousName }, { roomLocations }) => ({
+                                mapRoomLocations: { ...previousRoomLocations, ...roomLocations },
+                                name: previousName
+                            }), { ...previous, name: [ ...previous.name, name ].filter((value) => (value)) })
+                    }, { mapRoomLocations: {}, name: [] })
+
+                return {
+                    EphemeraId,
+                    CharacterId,
+                    name: mapName.join(''),
+                    roomLocations: mapRoomLocations
+                }
+    
             default:
                 return {
                     EphemeraId,
@@ -149,7 +168,7 @@ export const render = async ({
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
-        const { render: Description, name: Name, exits, characters, features } = rest
+        const { render: Description, name: Name, exits, characters, features, roomLocations } = rest
         switch(objectType) {
             case 'ROOM':
                 const RoomMessage = {
@@ -179,6 +198,16 @@ export const render = async ({
                     Features: features
                 }
                 return FeatureMessage
+            case 'MAP':
+                const MapMessage = {
+                    tag: 'Map',
+                    EphemeraId,
+                    CharacterId,
+                    MapId: objectKey,
+                    Name,
+                    roomLocations
+                }
+                return MapMessage
             default:
                 return {
                     EphemeraId,

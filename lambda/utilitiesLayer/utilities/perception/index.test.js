@@ -149,6 +149,51 @@ describe('dependencyCascade', () => {
 
     })
 
+    it('should render maps', async () => {
+        const mapAssets = {
+            BASE: {
+                State: {},
+                Dependencies: {},
+                importTree: {}
+            },
+        }
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getItemMeta.mockResolvedValue({
+            ['MAP#MNO']: [
+                {
+                    DataCategory: 'ASSET#BASE',
+                    name: 'Grand Bazaar',
+                    appearances: [{
+                        conditions: [],
+                        roomLocations: {
+                            fountainSquare: { x: 0, y: 100 }
+                        }
+                    }]
+                }
+            ]
+        })
+        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        const output = await render({
+            renderList: [{
+                EphemeraId: 'MAP#MNO',
+                CharacterId: 'QRS'
+            }],
+            assetMeta: mapAssets
+        })
+        expect(output).toEqual([{
+            tag: 'Map',
+            CharacterId: 'QRS',
+            EphemeraId: 'MAP#MNO',
+            MapId: 'MNO',
+            Name: "Grand Bazaar",
+            roomLocations: {
+                fountainSquare: { x: 0, y: 100 }
+            }
+        }])
+        expect(getStateByAsset).toHaveBeenCalledWith([])
+
+    })
+
     it('should fetch state data only where needed', async () => {
         const testAssets = resultStateFactory()
         getGlobalAssets.mockResolvedValue(['BASE'])
