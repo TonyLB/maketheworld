@@ -4,8 +4,17 @@
   "version": "1.0.0",
   "description": "A websocket channel to provide a persistent service-client connection for MTW",
   "main": "src/app.js",
-  "author": "SAM CLI",
+  "author": "Tony Lower-Basch",
   "license": "MIT",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^/opt/utilities/(.*).jsx?$": "<rootDir>/__mocks__/opt/utilities/$1",
+      "^(\\.{1,2}/.*)\\.jsx?$": "$1"
+    }
+  },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.13.0",
     "@aws-sdk/util-dynamodb": "^3.13.0",
@@ -13,5 +22,13 @@
     "node-fetch": "^3.2.0",
     "node-jose": "^2.0.0",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
+    "babel-jest": "^27.5.1",
+    "babel-plugin-transform-import-meta": "^2.1.1",
+    "jest": "^27.5.1"
   }
 }
