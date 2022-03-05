@@ -129,5 +129,43 @@ describe('apiManagment', () => {
             })
         })
 
+        it('should should deliver targeted ephemera messages', async() => {
+            const testSocket = new SocketQueue()
+            testSocket.send({
+                ConnectionId: '123',
+                Message: {
+                    messageType: 'Ephemera',
+                    updates: [{
+                        type: 'Map',
+                        CharacterId: 'ABC',
+                        MapId: 'TestMap',
+                        Layers: [{
+                            roomLocations: {
+                                welcome: { x: 300, y: 200 }
+                            }
+                        }]
+                    }]
+                }
+            })
+            await testSocket.flush()
+            expect(apiClient.send).toHaveBeenCalledTimes(1)
+            expect(apiClient.send).toHaveBeenCalledWith({
+                ConnectionId: '123',
+                Data: JSON.stringify({
+                    messageType: 'Ephemera',
+                    updates: [{
+                        type: 'Map',
+                        CharacterId: 'ABC',
+                        MapId: 'TestMap',
+                        Layers: [{
+                            roomLocations: {
+                                welcome: { x: 300, y: 200 }
+                            }
+                        }]
+                    }]
+                })
+            })
+        })
+
     })
 })
