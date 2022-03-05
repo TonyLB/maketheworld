@@ -78,19 +78,35 @@ type SocketQueueMessagePayload = {
     LastSync?: number;
 }
 ```
-Ephemera payloads are expected to contain a list of possible updates (so far only of type
-'CharacterInPlay')
+Ephemera payloads are expected to contain a list of possible updates (so far 'CharacterInPlay' and
+'Map')
 ```ts
+type EphemeraUpdateCharacterInPlay = {
+    type: 'CharacterInPlay';
+    CharacterId: string;
+    Name: string;
+    Color?: string;
+    RoomId?: string;
+    Connected: boolean;
+}
+
+type EphemeraUpdateMapLayer = {
+    roomLocations: Record<string, { x: number; y: number }>;
+    //
+    // Does each MapLayer also need exit connections?
+    //
+}
+
+type EphemeraUpdateMap = {
+    type: 'Map':
+    CharacterId: string;
+    MapId: string;
+    Layers: EphemeraUpdateMapLayer[];
+}
+
 type SocketQueueEphemeraPayload = {
     messageType: 'Ephemera';
-    updates: {
-        type: 'CharacterInPlay';
-        CharacterId: string;
-        Name: string;
-        Color?: string;
-        RoomId?: string;
-        Connected: boolean;
-    }[]
+    updates: (EphemeraUpdateCharacterInPlay | EphemeraUpdateMap)[]
 }
 ```
 Success and Error messages can also be sent for various operations (so far only 'Upload')
