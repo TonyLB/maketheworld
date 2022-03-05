@@ -21,7 +21,7 @@ one or more WebSocket connections.
 ---
 
 ```js
-    const queue = socketQueueFactory()
+    const queue = new SocketQueue()
     queue.send({
         ConnectionId: '1234',
         Message: {
@@ -74,17 +74,38 @@ type Message = {
 
 type SocketQueueMessagePayload = {
     messageType: 'Messages';
-    messages: Message[]
+    messages: Message[];
+    LastSync?: number;
 }
 ```
-Ephemera payloads are expected to have ... what?
+Ephemera payloads are expected to contain a list of possible updates (so far only of type
+'CharacterInPlay')
 ```ts
 type SocketQueueEphemeraPayload = {
     messageType: 'Ephemera';
-    // ???
+    updates: {
+        type: 'CharacterInPlay';
+        CharacterId: string;
+        Name: string;
+        Color?: string;
+        RoomId?: string;
+        Connected: boolean;
+    }[]
+}
+```
+Success and Error messages can also be sent for various operations (so far only 'Upload')
+```ts
+type SocketQueueUploadError = {
+    messageType: 'Error';
+    operation: 'Upload';
 }
 
-type SocketQueuePayload = SocketQueueMessagePayload | SocketQueueEphemeraPayload
+type SocketQueueUploadSuccess = {
+    messageType: 'Success';
+    operation: 'Upload';
+}
+
+type SocketQueuePayload = SocketQueueMessagePayload | SocketQueueEphemeraPayload | SocketQueueUploadError | SocketQueueUploadSuccess
 ```
 
 ### Aggregation

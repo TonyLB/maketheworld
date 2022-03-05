@@ -52,69 +52,6 @@ const queueHasContent = ({ messages, otherSends }) => (
     (Object.keys(messages).length) || (otherSends.length)
 )
 
-export const socketQueueFactory = () => {
-    let globalMessageQueue = queueInitial
-    let messageQueueByConnection = {}
-
-    return {
-        clear: () => {
-            globalMessageQueue = queueInitial
-            messageQueueByConnection = {}
-        },
-        send: ({ ConnectionId, Message }) => {
-            messageQueueByConnection[ConnectionId] = queueReducer(
-                messageQueueByConnection[ConnectionId] || queueInitial,
-                Message
-            )
-        },
-        sendAll: (Message) => {
-            globalMessageQueue = queueReducer(globalMessageQueue, Message)
-        },
-        flush: async () => {
-            const deliver = async (ConnectionId) => {
-                const deliverMessage = async (message) => {
-                    await apiClient.send({
-                        ConnectionId,
-                        Data: JSON.stringify(message)
-                    })
-                }
-                try {
-                    await Promise.all([
-                        ...queueSerialize(globalMessageQueue),
-                        ...(messageQueueByConnection[ConnectionId]
-                            ? queueSerialize(messageQueueByConnection[ConnectionId])
-                            : []
-                        )
-                    ].map(deliverMessage))
-                }
-                catch (err) {
-                    if (err.name === 'GoneException') {
-                        await forceDisconnect(ConnectionId)
-                    }
-                    else {
-                        throw err
-                    }
-                }
-
-            }
-            if (queueHasContent(globalMessageQueue)) {
-                const { connections = {} } = await ephemeraDB.getItem({
-                    EphemeraId: 'Global',
-                    DataCategory: 'Connections',
-                    ProjectionFields: ['connections']
-                })
-                await Promise.all(Object.keys(connections).map(deliver))
-            }
-            else {
-                await Promise.all(Object.keys(messageQueueByConnection).map(deliver))
-            }
-            globalMessageQueue = queueInitial
-            messageQueueByConnection = {}
-
-        }
-    }
-}
-
 export class SocketQueue extends Object {
     constructor() {
         super()
