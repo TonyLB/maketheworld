@@ -38,6 +38,9 @@ Asset data is passed in standard normal form (add link when documentation comple
 
 [**mergeEntries**](./README.mergeEntries.md) adds several types of adjaceny list data to the Ephemera table
 
+**putAssetNormalized** adds a Meta::AssetNormalized record for the Asset being cached, to store the parsed and
+normalized structure of the asset (for later render-manipulation)
+
 **pushEphemera** adds a Meta::Asset record for the particular Asset being cached
 
 **updateDependencies** side-effects the Meta::Asset records of other imported assets, as needed

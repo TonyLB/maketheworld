@@ -2,6 +2,7 @@ import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.
 import parseWMLFile from '../parseWMLFile.js'
 import localizeDBEntries from './localize.js'
 import initializeRooms from '../initializeRooms.js'
+import putAssetNormalized from '../putAssetNormalized.js'
 import AssetMetaData from '../assetMetaData.js'
 import mergeEntries from '../mergeEntries.js'
 import StateSynthesizer from '../stateSynthesis.js'
@@ -53,6 +54,7 @@ export const instantiateAsset = async ({
         stateSynthesizer.fetchFromEphemera(),
         ...(instantiateRooms
             ? [
+                putAssetNormalized({ assetId, normalForm: secondPassNormal }),
                 mergeEntries(assetId, secondPassNormal),
                 initializeRooms(Object.values(secondPassNormal)
                     .filter(({ tag }) => (['Room'].includes(tag)))
