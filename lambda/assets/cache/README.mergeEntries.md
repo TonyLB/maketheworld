@@ -111,6 +111,7 @@ each other in that same order.
 
 ```ts
     type MapRoomLocation = {
+        EphemeraId: string;
         x: number;
         y: number;
     }
