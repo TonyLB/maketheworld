@@ -2,6 +2,7 @@ import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.
 import parseWMLFile from './parseWMLFile.js'
 import globalizeDBEntries from "./globalize.js"
 import initializeRooms, { initializeFeatures } from './initializeRooms.js'
+import putAssetNormalized from './putAssetNormalized.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
 import StateSynthesizer from './stateSynthesis.js'
@@ -44,6 +45,7 @@ export const cacheAsset = async (assetId, options = {}) => {
 
     await Promise.all([
         stateSynthesizer.fetchFromEphemera(),
+        putAssetNormalized({ assetId, normalForm: secondPassNormal }),
         mergeEntries(assetId, secondPassNormal),
         //
         // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
