@@ -75,7 +75,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
 
     }
 
-    return renderList.map(({ EphemeraId, CharacterId }) => {
+    return renderList.map(({ EphemeraId, CharacterId, mapValuesOnly = false }) => {
         const [objectType] = splitType(EphemeraId)
         const { assets, meta, itemsByAsset } = extractRenderArguments({ EphemeraId, CharacterId })
         switch(objectType) {
@@ -84,12 +84,18 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                         const { appearances = [] } = itemsByAsset[AssetId]
                         const state = assetStateById[splitType(AssetId)[1]] || {}
                         return appearances
+                            .filter(({ name, exits }) => (!mapValuesOnly || ((name || []).length > 0 || (exits || []).length > 0)))
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce(({ render: previousRender, name: previousName, exits: previousExits, features: previousFeatures }, { render, name, exits, features }) => ({
-                                render: [ ...previousRender, ...(render || []) ],
                                 name: [ ...previousName, ...(name || []) ],
                                 exits: [ ...previousExits, ...(exits || []) ],
-                                features: [ ...previousFeatures, ...(features || []) ]
+                                ...(mapValuesOnly
+                                    ? {}
+                                    : {
+                                        render: [ ...previousRender, ...(render || []) ],
+                                        features: [ ...previousFeatures, ...(features || []) ]
+                                    }
+                                )
                             }), previous)
                     }, { render: [], name: [], exits: [], features: [] })
                     //
@@ -98,6 +104,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 return {
                     EphemeraId,
                     CharacterId,
+                    mapValuesOnly,
                     render: roomRender,
                     name: roomName.join(''),
                     exits: roomExits,
@@ -166,7 +173,7 @@ export const render = async ({
     assetLists = {}
 }) => {
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
-    return renderedOutput.map(({ EphemeraId, CharacterId, ...rest }) => {
+    return renderedOutput.map(({ EphemeraId, CharacterId, mapValuesOnly, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
         const { render: Description, name: Name, exits, characters, features, roomLocations } = rest
         switch(objectType) {
@@ -180,11 +187,17 @@ export const render = async ({
                     // TODO:  Replace Ancestry with a new map system
                     //
                     Ancestry: '',
-                    Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
-                    Description,
                     Name,
                     Exits: exits.map(({ to, name }) => ({ RoomId: to, Name: name, Visibility: 'Public' })),
-                    Features: features
+                    ...(
+                        mapValuesOnly
+                            ? {}
+                            : {
+                                Characters: characters.map(({ EphemeraId, ConnectionId, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
+                                Description,
+                                Features: features
+                            }
+                    )
                 }
                 return RoomMessage
             case 'FEATURE':

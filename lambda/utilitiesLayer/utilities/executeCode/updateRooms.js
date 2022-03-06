@@ -52,7 +52,7 @@ export const updateRooms = async ({
     })
     await Promise.all(renderOutput
         .filter(({ tag }) => (tag === 'Room'))
-        .map(({ EphemeraId, CharacterId, ...roomMessage }) => (
+        .map(({ EphemeraId, CharacterId, tag, ...roomMessage }) => (
             publishMessage({
                 MessageId: `MESSAGE#${uuidv4()}`,
                 Targets: [`CHARACTER#${CharacterId}`],
