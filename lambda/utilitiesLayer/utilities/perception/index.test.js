@@ -261,7 +261,11 @@ describe('render', () => {
                     appearances: [{
                         conditions: [],
                         rooms: {
-                            fountainSquare: { x: 0, y: 100 }
+                            fountainSquare: {
+                                EphemeraId: 'ROOM#XYZ',
+                                x: 0,
+                                y: 100
+                            }
                         }
                     }]
                 }

@@ -37,13 +37,26 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     // needed during the course of rendering them all, less the ones we were already passed
     // in existingStatesByAsset
     //
-    const allAssets = renderList.reduce((previous, { EphemeraId, CharacterId }) => ([
+    const allAssets = renderList.reduce((previous, { EphemeraId, CharacterId }) => {
+        //
+        // Map items need to evaluate the mapCache from every accessible asset (even ones
+        // that the Map isn't present in)...
+        //
+        if (splitType(EphemeraId)[0] === 'MAP') {
+            return [...previous, ...globalAssets, ...(characterAssets[CharacterId])]
+        }
+        //
+        // Whereas Room and Feature items only need the State information from the
+        // specific assets they have appearances in
+        //
+        return [
             ...previous,
             ...(itemMetaData[EphemeraId]
                 .map(({ DataCategory }) => (splitType(DataCategory)[1]))
                 .filter((value) => ([...globalAssets, ...(characterAssets[CharacterId])].includes(value)))
             )
-        ]), [])
+        ]
+    }, [])
     const deduplicatedAssetList = [...(new Set(allAssets))]
     const assetStateById = await getStateByAsset(deduplicatedAssetList, existingStatesByAsset)
 
@@ -136,17 +149,44 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             case 'MAP':
                 const { mapRooms = {}, name: mapName = [] } = assets.reduce((previous, AssetId) => {
                         const { appearances = [], name } = itemsByAsset[AssetId]
-                        const { state = {}, mapCache = {} } = assetStateById[splitType(AssetId)[1]] || {}
+
+                        const aggregatedMapCacheByEphemeraId = [...(new Set([...globalAssets, ...characterAssets[CharacterId]]))]
+                            .reduce((previous, assetId) => (Object.values(assetStateById[assetId]?.mapCache || {})
+                                .reduce((accumulator, { EphemeraId, name = [], exits = [] }) => ({
+                                    ...accumulator,
+                                    [EphemeraId]: {
+                                        ...(accumulator[EphemeraId] || {}),
+                                        name: [
+                                            ...(accumulator[EphemeraId]?.name || []),
+                                            ...name
+                                        ],
+                                        exits: [
+                                            ...(accumulator[EphemeraId]?.exits || []),
+                                            ...exits
+                                        ]
+                                    }
+                                }), previous)
+                            ), {})
+                        //
+                        // TODO: After aggregating all rooms that show up in map appearances, limit the
+                        // exits rendered to only be those to rooms visible in the map
+                        //
+                        // TODO: Instead of merging all room updates beyond separation, sort into
+                        // sequential layers, labelled with the AssetId in which the appearances occurred,
+                        // and ordered in the sortImportMap sequence.
+                        //
+                        const { state = {} } = assetStateById[splitType(AssetId)[1]] || {}
                         return appearances
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce(({ mapRooms: previousRooms, name: previousName }, { rooms }) => ({
                                 mapRooms: {
                                     ...previousRooms,
-                                    ...(Object.entries(rooms).reduce((accumulator, [roomId, value]) => ({
+                                    ...(Object.entries(rooms).reduce((accumulator, [roomId, { EphemeraId, ...rest }]) => ({
                                         ...accumulator,
                                         [roomId]: {
-                                            ...(mapCache[roomId] || {}),
-                                            ...value,
+                                            ...(aggregatedMapCacheByEphemeraId[EphemeraId] || {}),
+                                            EphemeraId,
+                                            ...rest,
                                         }
                                     }), {}))
                                 },
