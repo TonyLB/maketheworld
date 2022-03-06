@@ -404,7 +404,7 @@ describe('Asset cache mergeEntries', () => {
                         tag: 'Room',
                         index: 0
                     }],
-                    roomLocations: {
+                    rooms: {
                         MNO: { x: 300, y: 200 }
                     }
                 }]
@@ -433,7 +433,7 @@ describe('Asset cache mergeEntries', () => {
                 tag: 'Map',
                 appearances: [{
                     conditions: [],
-                    roomLocations: {
+                    rooms: {
                         MNO: {
                             EphemeraId: 'ROOM#PQR',
                             x: 300,

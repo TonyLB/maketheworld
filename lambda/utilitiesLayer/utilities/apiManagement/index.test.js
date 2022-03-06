@@ -140,7 +140,7 @@ describe('apiManagment', () => {
                         CharacterId: 'ABC',
                         MapId: 'TestMap',
                         Layers: [{
-                            roomLocations: {
+                            rooms: {
                                 welcome: { x: 300, y: 200 }
                             }
                         }]
@@ -158,7 +158,7 @@ describe('apiManagment', () => {
                         CharacterId: 'ABC',
                         MapId: 'TestMap',
                         Layers: [{
-                            roomLocations: {
+                            rooms: {
                                 welcome: { x: 300, y: 200 }
                             }
                         }]

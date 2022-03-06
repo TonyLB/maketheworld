@@ -44,10 +44,8 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 .filter((value) => ([...globalAssets, ...(characterAssets[CharacterId])].includes(value)))
             )
         ]), [])
-        .filter((asset) => (!(asset in existingStatesByAsset)))
     const deduplicatedAssetList = [...(new Set(allAssets))]
-    const fetchedAssetStateById = await getStateByAsset(deduplicatedAssetList)
-    const assetStateById = { ...existingStatesByAsset, ...fetchedAssetStateById }
+    const assetStateById = await getStateByAsset(deduplicatedAssetList, existingStatesByAsset)
 
     clearMemoSpace()
 
@@ -136,22 +134,31 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 }
 
             case 'MAP':
-                const { mapRoomLocations = {}, name: mapName = [] } = assets.reduce((previous, AssetId) => {
+                const { mapRooms = {}, name: mapName = [] } = assets.reduce((previous, AssetId) => {
                         const { appearances = [], name } = itemsByAsset[AssetId]
-                        const state = assetStateById[splitType(AssetId)[1]]?.state || {}
+                        const { state = {}, mapCache = {} } = assetStateById[splitType(AssetId)[1]] || {}
                         return appearances
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                            .reduce(({ mapRoomLocations: previousRoomLocations, name: previousName }, { roomLocations }) => ({
-                                mapRoomLocations: { ...previousRoomLocations, ...roomLocations },
+                            .reduce(({ mapRooms: previousRooms, name: previousName }, { rooms }) => ({
+                                mapRooms: {
+                                    ...previousRooms,
+                                    ...(Object.entries(rooms).reduce((accumulator, [roomId, value]) => ({
+                                        ...accumulator,
+                                        [roomId]: {
+                                            ...(mapCache[roomId] || {}),
+                                            ...value,
+                                        }
+                                    }), {}))
+                                },
                                 name: previousName
                             }), { ...previous, name: [ ...previous.name, name ].filter((value) => (value)) })
-                    }, { mapRoomLocations: {}, name: [] })
+                    }, { mapRooms: {}, name: [] })
 
                 return {
                     EphemeraId,
                     CharacterId,
                     name: mapName.join(''),
-                    roomLocations: mapRoomLocations
+                    rooms: mapRooms
                 }
     
             default:
@@ -175,7 +182,7 @@ export const render = async ({
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, mapValuesOnly, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
-        const { render: Description, name: Name, exits, characters, features, roomLocations } = rest
+        const { render: Description, name: Name, exits, characters, features, rooms } = rest
         switch(objectType) {
             case 'ROOM':
                 const RoomMessage = {
@@ -218,7 +225,7 @@ export const render = async ({
                     CharacterId,
                     MapId: objectKey,
                     Name,
-                    roomLocations
+                    rooms
                 }
                 return MapMessage
             default:

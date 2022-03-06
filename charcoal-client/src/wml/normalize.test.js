@@ -426,7 +426,7 @@ describe('WML normalize', () => {
             {
                 tag: 'Map',
                 key: 'TestMap',
-                roomLocations: {
+                rooms: {
                     '123': {
                         x: 200,
                         y: 150
@@ -545,7 +545,7 @@ describe('WML normalize', () => {
                 key: 'TestMap',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    roomLocations: {
+                    rooms: {
                         '123': {
                             x: 200,
                             y: 150

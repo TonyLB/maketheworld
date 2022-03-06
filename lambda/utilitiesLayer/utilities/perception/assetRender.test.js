@@ -102,7 +102,7 @@ describe('assetRender', () => {
             key: 'TestMap',
             appearances: [{
                 contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                roomLocations: {
+                rooms: {
                     'MNO': {
                         x: 200,
                         y: 150

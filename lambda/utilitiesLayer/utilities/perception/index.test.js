@@ -7,7 +7,7 @@ import { resultStateFactory, testMockImplementation } from '../executeCode/testA
 
 import { render } from './index.js'
 
-describe('dependencyCascade', () => {
+describe('render', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -70,7 +70,7 @@ describe('dependencyCascade', () => {
             Exits: [],
             Features: []
         }])
-        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'])
+        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], {})
     })
 
     it('should render with provided state data', async () => {
@@ -80,6 +80,12 @@ describe('dependencyCascade', () => {
                 [key]: { state: value }
             }), {})
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        getStateByAsset.mockImplementation(async (assets) => {
+            return assets.reduce((previous, asset) => ({
+                ...previous,
+                [asset]: testAssets[asset] || {}
+            }), {})
+        })
         getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
@@ -115,7 +121,7 @@ describe('dependencyCascade', () => {
             Exits: [],
             Features: []
         }])
-        expect(getStateByAsset).toHaveBeenCalledWith([])
+        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
 
     })
 
@@ -125,6 +131,7 @@ describe('dependencyCascade', () => {
                 ...previous,
                 [key]: { state: value }
             }), {})
+        getStateByAsset.mockResolvedValue(testAssets)
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
@@ -173,7 +180,10 @@ describe('dependencyCascade', () => {
                 Visibility: "Public"
             }],
         }])
-        expect(getStateByAsset).toHaveBeenCalledWith([])
+        expect(getStateByAsset).toHaveBeenCalledWith(
+            ['BASE', 'LayerA'],
+            testAssets
+        )
 
     })
 
@@ -186,6 +196,7 @@ describe('dependencyCascade', () => {
             },
         }
         getGlobalAssets.mockResolvedValue(['BASE'])
+        getStateByAsset.mockResolvedValue(featureAssets)
         getItemMeta.mockResolvedValue({
             ['FEATURE#MNO']: [
                 {
@@ -214,7 +225,10 @@ describe('dependencyCascade', () => {
             Name: "Clock Tower",
             Features: []
         }])
-        expect(getStateByAsset).toHaveBeenCalledWith([])
+        expect(getStateByAsset).toHaveBeenCalledWith(
+            ['BASE'],
+            featureAssets
+        )
 
     })
 
@@ -223,10 +237,22 @@ describe('dependencyCascade', () => {
             BASE: {
                 State: {},
                 Dependencies: {},
+                mapCache: {
+                    fountainSquare: {
+                        EphemeraId: 'ROOM#XYZ',
+                        name: ['Fountain Square'],
+                        exits: [{
+                            to: 'alley',
+                            toEphemeraId: 'MAP#TUV',
+                            name: 'alley'
+                        }]
+                    }
+                },
                 importTree: {}
             },
         }
         getGlobalAssets.mockResolvedValue(['BASE'])
+        getStateByAsset.mockResolvedValue(mapAssets)
         getItemMeta.mockResolvedValue({
             ['MAP#MNO']: [
                 {
@@ -234,7 +260,7 @@ describe('dependencyCascade', () => {
                     name: 'Grand Bazaar',
                     appearances: [{
                         conditions: [],
-                        roomLocations: {
+                        rooms: {
                             fountainSquare: { x: 0, y: 100 }
                         }
                     }]
@@ -255,11 +281,21 @@ describe('dependencyCascade', () => {
             EphemeraId: 'MAP#MNO',
             MapId: 'MNO',
             Name: "Grand Bazaar",
-            roomLocations: {
-                fountainSquare: { x: 0, y: 100 }
+            rooms: {
+                fountainSquare: {
+                    x: 0,
+                    y: 100,
+                    EphemeraId: 'ROOM#XYZ',
+                    name: ['Fountain Square'],
+                    exits: [{
+                        to: 'alley',
+                        toEphemeraId: 'MAP#TUV',
+                        name: 'alley'
+                    }]
+                }
             }
         }])
-        expect(getStateByAsset).toHaveBeenCalledWith([])
+        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], mapAssets)
 
     })
 
@@ -353,7 +389,10 @@ describe('dependencyCascade', () => {
             Features: []
         }])
 
-        expect(getStateByAsset).toHaveBeenCalledWith(['LayerB'])
+        expect(getStateByAsset).toHaveBeenCalledWith(
+            ['BASE', 'LayerB'],
+            { BASE: testAssets.BASE }
+        )
 
     })
 
@@ -363,6 +402,12 @@ describe('dependencyCascade', () => {
                 ...previous,
                 [key]: { state: value }
             }), {})
+        getStateByAsset.mockImplementation(async (assets) => {
+            return assets.reduce((previous, asset) => ({
+                ...previous,
+                [asset]: testAssets[asset] || {}
+            }), {})
+        })
         getGlobalAssets.mockResolvedValue(['BASE'])
         getItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [

@@ -91,7 +91,7 @@ type EphemeraUpdateCharacterInPlay = {
 }
 
 type EphemeraUpdateMapLayer = {
-    roomLocations: Record<string, { x: number; y: number }>;
+    rooms: Record<string, { x: number; y: number }>;
     //
     // Does each MapLayer also need exit connections?
     //

@@ -118,7 +118,7 @@ each other in that same order.
 
     type MapAppearance = {
         conditions: AppearanceCondition;
-        roomLocations: Record<string, MapRoomLocation>;
+        rooms: Record<string, MapRoomLocation>;
     }
 ```
 
