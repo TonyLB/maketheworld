@@ -108,6 +108,60 @@ describe('dependencyCascade', () => {
 
     })
 
+    it('should render when mapValueOnly set true', async () => {
+        const testAssets = resultStateFactory()
+        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        getItemMeta.mockResolvedValue({
+            ['ROOM#MNO']: [
+                {
+                    DataCategory: 'ASSET#BASE',
+                    appearances: [{
+                        conditions: [{
+                            if: 'foo',
+                            dependencies: ['foo']
+                        }],
+                        name: ['Test One. '],
+                    }]
+                },
+                {
+                    DataCategory: 'ASSET#LayerA',
+                    appearances: [{
+                        conditions: [],
+                        name: ['Test Two. '],
+                        exits: [{
+                            name: 'vortex',
+                            to: 'VORTEX'
+                        }]
+                    }]
+                }
+            ]
+        })
+        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        const output = await render({
+                renderList: [{
+                    EphemeraId: 'ROOM#MNO',
+                    CharacterId: 'QRS',
+                    mapValuesOnly: true
+                }],
+                assetMeta: testAssets
+        })
+        expect(output).toEqual([{
+            tag: 'Room',
+            Ancestry: '',
+            CharacterId: 'QRS',
+            EphemeraId: 'ROOM#MNO',
+            RoomId: 'MNO',
+            Name: "Test One. Test Two. ",
+            Exits: [{
+                Name: 'vortex',
+                RoomId: 'VORTEX',
+                Visibility: "Public"
+            }],
+        }])
+        expect(getStateByAsset).toHaveBeenCalledWith([])
+
+    })
+
     it('should render features', async () => {
         const featureAssets = {
             BASE: {

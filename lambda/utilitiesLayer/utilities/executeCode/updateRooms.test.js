@@ -33,6 +33,7 @@ describe('updateRooms', () => {
             activeCharacters: {}
         })
         render.mockResolvedValue([{
+            tag: 'Room',
             RoomId: 'VORTEX',
             CharacterId: 'TESS',
             Name: 'Vortex',
