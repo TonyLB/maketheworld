@@ -15,6 +15,7 @@ jest.mock('./mergeEntries.js')
 import mergeEntries from './mergeEntries.js'
 import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
+import assetRender from '/opt/utilities/perception/assetRender.js'
 
 import { cacheAsset } from './index.js'
 
@@ -191,6 +192,7 @@ describe('cacheAsset', () => {
                 value: true
             }
         } })
+        assetRender.mockResolvedValue({ foo: 'bar' })
 
         await cacheAsset('test')
         expect(parseWMLFile).toHaveBeenCalledWith('test')
@@ -224,6 +226,24 @@ describe('cacheAsset', () => {
             },
             ['powered', 'switchedOn']
         )
+        const expectedState = {
+            active: {
+                computed: true,
+                key: 'active',
+                src: 'powered && switchedOn'
+            },
+            powered: {
+                value: true
+            },
+            switchedOn: {
+                value: true
+            }
+        }
+        expect(assetRender).toHaveBeenCalledWith({
+            assetId: 'test',
+            existingNormalFormsByAsset: { test: testAsset },
+            existingStatesByAsset: { test: expectedState }
+        })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
@@ -232,19 +252,7 @@ describe('cacheAsset', () => {
                     src: 'switchedOn = !switchedOn'
                 }
             },
-            State: {
-                active: {
-                    computed: true,
-                    key: 'active',
-                    src: 'powered && switchedOn'
-                },
-                powered: {
-                    value: true
-                },
-                switchedOn: {
-                    value: true
-                }
-            },
+            State: expectedState,
             Dependencies: {
                 active: {
                     room: ['DEF']
@@ -256,9 +264,15 @@ describe('cacheAsset', () => {
                     computed: ['active']
                 }
             },
+            mapCache: { foo: 'bar' },
             importTree: {
                 BASE: {}
             }
+        })
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: 'ASSET#test',
+            DataCategory: 'Meta::AssetNormalized',
+            normalForm: testAsset
         })
     })
 
@@ -352,6 +366,7 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
+            mapCache: {},
             importTree: { BASE: {} }
         })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
@@ -360,6 +375,7 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
+            mapCache: {},
             importTree: {}
         })
     })
@@ -441,6 +457,7 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
+            mapCache: {},
             importTree: { BASE: {} }
         })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
@@ -539,6 +556,7 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
+            mapCache: {},
             importTree: { BASE: {} }
         })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
@@ -547,6 +565,7 @@ describe('cacheAsset', () => {
             Actions: {},
             State: {},
             Dependencies: {},
+            mapCache: {},
             importTree: {}
         })
         expect(ephemeraDB.getItem).toHaveBeenCalledTimes(2)

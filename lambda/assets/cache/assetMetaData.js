@@ -43,6 +43,7 @@ export class AssetMetaData extends Object {
                 computed: []
             },
             Actions: this.actions || {},
+            mapCache: this.mapCache || {},
             importTree: this.importTree || {},
             scopeMap: this.scopeMap
         })
