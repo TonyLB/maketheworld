@@ -45,8 +45,11 @@ export const getCharacterAssets = async (characters, priorCharacterAssets = {}) 
     return Object.assign(priorCharacterAssets, ...neededCharacters)
 }
 
-export const getStateByAsset = async (assets) => {
-    const getSingleState = async (assetId) => {
+export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
+    const getSingleState = async (assetId, existingStatesByAsset = {}) => {
+        if (existingStatesByAsset[assetId]) {
+            return existingStatesByAsset[assetId]
+        }
         const { State = {} } = await ephemeraDB.getItem({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
@@ -57,6 +60,18 @@ export const getStateByAsset = async (assets) => {
         })
         return { [assetId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) }
     }
-    const allStates = await Promise.all(assets.map(getSingleState))
+    const allStates = await Promise.all(assets.map((assetId) => (getSingleState(assetId, existingStatesByAsset))))
     return Object.assign({}, ...allStates)
+}
+
+export const getNormalForm = async (assetId, existingNormalFormsByAsset = {}) => {
+    if (existingNormalFormsByAsset[assetId]) {
+        return existingNormalFormsByAsset[assetId]
+    }
+    const { normalForm = {} } = await ephemeraDB.getItem({
+        EphemeraId: AssetKey(assetId),
+        DataCategory: 'Meta::AssetNormalized',
+        ProjectionFields: ['normalForm']
+    })
+    return normalForm
 }
