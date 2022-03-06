@@ -109,7 +109,7 @@ type MapRoomLocation = {
 
 type MapAppearance = {
     conditions: AppearanceCondition;
-    roomLocations: Record<string, MapRoomLocation>;
+    rooms: Record<string, MapRoomLocation>;
 }
 ```
 
@@ -140,8 +140,8 @@ type MapAppearance = {
             CharacterId: 'Lucian',
             MapId: 'ABC',
             name: 'Grand Bazaar',
-            roomLocations: {
-                // Render-aggregated set of roomLocations this character can see
+            rooms: {
+                // Render-aggregated set of room headers this character can see
             }
         }]
     }

@@ -66,7 +66,7 @@ describe('putAssetNormalized', () => {
                         tag: 'Room',
                         index: 0
                     }],
-                    roomLocations: {
+                    rooms: {
                         MNO: { x: 300, y: 200 }
                     }
                 }]

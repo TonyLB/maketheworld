@@ -48,17 +48,24 @@ export const getCharacterAssets = async (characters, priorCharacterAssets = {}) 
 export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
     const getSingleState = async (assetId, existingStatesByAsset = {}) => {
         if (existingStatesByAsset[assetId]) {
-            return existingStatesByAsset[assetId]
+            return {
+                [assetId]: existingStatesByAsset[assetId]
+            }
         }
-        const { State = {} } = await ephemeraDB.getItem({
+        const { State = {}, mapCache = {} } = await ephemeraDB.getItem({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
-            ProjectionFields: ['#state'],
+            ProjectionFields: ['#state', 'mapCache'],
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
         })
-        return { [assetId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) }
+        return {
+            [assetId]: {
+                state: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}),
+                mapCache
+            }
+        }
     }
     const allStates = await Promise.all(assets.map((assetId) => (getSingleState(assetId, existingStatesByAsset))))
     return Object.assign({}, ...allStates)

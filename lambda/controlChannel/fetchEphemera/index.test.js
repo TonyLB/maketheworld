@@ -110,7 +110,7 @@ describe('fetchEphemeraForCharacter', () => {
             CharacterId: 'TEST',
             MapId: 'MAP#ABC',
             name: 'Grand Bazaar',
-            roomLocations: {
+            rooms: {
                 fountainSquare: { x: -50, y: 0 }
             }
         }])
@@ -143,7 +143,7 @@ describe('fetchEphemeraForCharacter', () => {
                 CharacterId: 'TEST',
                 MapId: 'MAP#ABC',
                 name: 'Grand Bazaar',
-                roomLocations: {
+                rooms: {
                     fountainSquare: { x: -50, y: 0 }
                 }
             }]

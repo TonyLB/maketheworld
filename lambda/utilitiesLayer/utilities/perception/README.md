@@ -64,6 +64,9 @@ object was a Room, Feature or Map.
 Room objects are expected to be cached in the Ephemera table using the standards
 in [**mergeEntries**](../../../assets/cache/README.mergeEntries.md).
 
+Assets are expected to be cached in the Ephemera table using the standards
+in **pushEphemera** (TODO: Document pushEphemera)
+
 ### Output
 
 ***TODO:*** Document the render output formats

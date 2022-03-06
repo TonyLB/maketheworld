@@ -102,7 +102,7 @@ describe('assetRender', () => {
             key: 'TestMap',
             appearances: [{
                 contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                roomLocations: {
+                rooms: {
                     'MNO': {
                         x: 200,
                         y: 150
@@ -173,7 +173,11 @@ describe('assetRender', () => {
     }
 
     it('should render with no provided state and data', async () => {
-        const testAssets = resultStateFactory()
+        const testAssets = Object.entries(resultStateFactory())
+            .reduce((previous, [key, value]) => ({
+                ...previous,
+                [key]: { state: value }
+            }), {})
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({ ...previous, [asset]: testAssets[asset] || {} }), {})
         })
@@ -202,8 +206,12 @@ describe('assetRender', () => {
     })
 
     it('should render with provided state and normal data', async () => {
-        const testAssets = resultStateFactory()
-        getStateByAsset.mockImplementation(async (assets) => {
+        const testAssets = Object.entries(resultStateFactory())
+            .reduce((previous, [key, value]) => ({
+                ...previous,
+                [key]: { state: value }
+            }), {})
+        getStateByAsset.mockImplementation(async () => {
             return { LayerA: testAssets.LayerA }
         })
         getNormalForm.mockResolvedValue(normalForm)

@@ -224,7 +224,7 @@ describe('WML semantic schema', () => {
                 key: 'TestMap',
                 tag: 'Map',
                 props: {},
-                roomLocations: {
+                rooms: {
                     ABC: {
                         x: 200,
                         y: 150
