@@ -77,6 +77,7 @@ describe('stateSynthesis', () => {
                 errors: [],
                 global: false,
                 props: {},
+                name: ['(lit)'],
                 render: ['The lights are on '],
                 contents: []
             }]
@@ -133,12 +134,13 @@ describe('stateSynthesis', () => {
     }
 
     describe('constructor', () => {
-        it('should extract computed and room dependencies', () => {
+        it('should extract computed, room, and mapCache dependencies', () => {
             const testSynthesizer = new StateSynthesizer('test', testAsset)
 
             expect(testSynthesizer.dependencies).toEqual({
                 active: {
-                    room: ['DEF']
+                    room: ['DEF'],
+                    mapCache: ['DEF']
                 },
                 power: {
                     computed: ['active']

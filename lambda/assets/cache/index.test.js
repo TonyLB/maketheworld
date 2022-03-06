@@ -434,7 +434,7 @@ describe('cacheAsset', () => {
             {},
             []
         )
-        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(1)
+        expect(ephemeraDB.putItem).toHaveBeenCalledTimes(2)
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
@@ -442,6 +442,11 @@ describe('cacheAsset', () => {
             State: {},
             Dependencies: {},
             importTree: { BASE: {} }
+        })
+        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
+            EphemeraId: "ASSET#test",
+            DataCategory: "Meta::AssetNormalized",
+            normalForm: testAsset
         })
     })
 

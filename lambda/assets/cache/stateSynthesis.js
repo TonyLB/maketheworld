@@ -41,21 +41,35 @@ export const extractDependencies = (normalForm) => {
         .reduce((previous, { EphemeraId, appearances = [] }) => (
             appearances
                 .map(mapContextStackToConditions(normalForm))
-                .reduce((accumulator, { conditions = [] }) => (
+                .reduce((accumulator, { conditions = [], name = [], contents = [] }) => (
                     conditions.reduce((innerAccumulator, { dependencies = [] }) => (
-                        dependencies.reduce((innermostAccumulator, dependency) => ({
-                            ...innermostAccumulator,
-                            [dependency]: {
-                                ...(innermostAccumulator[dependency] || {}),
-                                room: [...(new Set([
-                                    ...(innermostAccumulator[dependency]?.room || []),
-                                    //
-                                    // Extract the globalized RoomId
-                                    //
-                                    splitType(EphemeraId)[1]
-                                ]))]
+                        dependencies.reduce((innermostAccumulator, dependency) => {
+                            const mapCacheDependency = (name.length > 0) || (contents.filter(({ tag }) => (tag === 'Exit')).length > 0)
+                            return {
+                                ...innermostAccumulator,
+                                [dependency]: {
+                                    ...(innermostAccumulator[dependency] || {}),
+                                    room: [...(new Set([
+                                        ...(innermostAccumulator[dependency]?.room || []),
+                                        //
+                                        // Extract the globalized RoomId
+                                        //
+                                        splitType(EphemeraId)[1]
+                                    ]))],
+                                    ...(mapCacheDependency
+                                        ? {
+                                            mapCache: [...(new Set([
+                                                ...(innermostAccumulator[dependency]?.mapCache || []),
+                                                //
+                                                // Extract the globalized RoomId
+                                                //
+                                                splitType(EphemeraId)[1]
+                                            ]))]
+                                        }
+                                        : {})
+                                }
                             }
-                        }), innerAccumulator)
+                        }, innerAccumulator)
                     ), accumulator)
                 ), previous)
         ), computeDependencies)
