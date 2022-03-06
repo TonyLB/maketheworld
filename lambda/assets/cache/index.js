@@ -6,6 +6,7 @@ import putAssetNormalized from './putAssetNormalized.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
 import StateSynthesizer from './stateSynthesis.js'
+import assetRender from '/opt/utilities/perception/assetRender.js'
 
 //
 // TODO:
@@ -72,6 +73,16 @@ export const cacheAsset = async (assetId, options = {}) => {
             .map(([key]) => (key))
     )
     assetMetaData.state = state
+
+    assetMetaData.mapCache = await assetRender({
+        assetId,
+        existingStatesByAsset: {
+            [assetId]: state,
+        },
+        existingNormalFormsByAsset: {
+            [assetId]: secondPassNormal
+        }
+    })
 
     assetMetaData.actions = Object.values(secondPassNormal)
         .filter(({ tag }) => (tag === 'Action'))

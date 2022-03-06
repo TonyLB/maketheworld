@@ -51,7 +51,7 @@ describe('AssetMap Class', () => {
             })
         })
 
-        it('should return true on no Ephemera value', async () => {
+        it('should return false on no Ephemera value', async () => {
             ephemeraDB.getItem.mockResolvedValue({})
             const testAssetMetaData = new AssetMetaData('Test')
             const checkValue = await testAssetMetaData.checkEphemera()
@@ -90,6 +90,7 @@ describe('AssetMap Class', () => {
                         computed: ['antiFoo']
                     }
                 },
+                mapCache: {},
                 importTree: { BASE: {} }
             })
         })
@@ -110,6 +111,7 @@ describe('AssetMap Class', () => {
                 Actions: {},
                 State: {},
                 Dependencies: {},
+                mapCache: {},
                 importTree: {},
                 scopeMap: {
                     VORTEX: 'ROOM#VORTEX',

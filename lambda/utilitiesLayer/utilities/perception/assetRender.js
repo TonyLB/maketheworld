@@ -61,5 +61,9 @@ export const assetRender = async ({ assetId, existingStatesByAsset = {}, existin
             }
         }, {})
 
-    return roomNamesAndExits
+    return Object.entries(roomNamesAndExits)
+        .filter(([_, { names = [], exits = [] }]) => (names.length > 0 || exits.length > 0))
+        .reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
 }
+
+export default assetRender
