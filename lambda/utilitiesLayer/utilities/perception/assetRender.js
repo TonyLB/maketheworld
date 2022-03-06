@@ -32,11 +32,11 @@ export const assetRender = async ({ assetId, existingStatesByAsset = {}, existin
         .reduce((previous, { key, EphemeraId, appearances = [] }) => {
             const name = appearances
                 .filter(({ name }) => (name !== undefined))
-                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState)))
+                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState[assetId]?.state || {})))
                 .map(({ name }) => (name))
             const exits = appearances
                 .filter(({ contents = [] }) => (contents.filter(({ tag }) => (tag === 'Exit')).length > 0))
-                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState)))
+                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState[assetId]?.state || {})))
                 .map(({ contents }) => {
                     return contents
                         .filter(({ tag }) => (tag === 'Exit'))
@@ -62,7 +62,7 @@ export const assetRender = async ({ assetId, existingStatesByAsset = {}, existin
         }, {})
 
     return Object.entries(roomNamesAndExits)
-        .filter(([_, { names = [], exits = [] }]) => (names.length > 0 || exits.length > 0))
+        .filter(([_, { name = [], exits = [] }]) => (name.length > 0 || exits.length > 0))
         .reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
 }
 

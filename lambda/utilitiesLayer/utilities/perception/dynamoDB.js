@@ -58,7 +58,11 @@ export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
                 '#state': 'State'
             }
         })
-        return { [assetId]: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) }
+        return {
+            [assetId]: {
+                state: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}) 
+            }
+        }
     }
     const allStates = await Promise.all(assets.map((assetId) => (getSingleState(assetId, existingStatesByAsset))))
     return Object.assign({}, ...allStates)
