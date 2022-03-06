@@ -434,7 +434,11 @@ describe('Asset cache mergeEntries', () => {
                 appearances: [{
                     conditions: [],
                     roomLocations: {
-                        MNO: { x: 300, y: 200 }
+                        MNO: {
+                            EphemeraId: 'ROOM#PQR',
+                            x: 300,
+                            y: 200
+                        }
                     }
                 }],
             }],
