@@ -58,6 +58,27 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             scrollingWindowRef.current.addEventListener("mousewheel", (event) => { event.preventDefault() })
         }
     }, [scrollingWindowRef])
+    //
+    // useEffect to respond to cached windowDetails changes (so that the setWindowDetails doesn't happen
+    // during the actual render)
+    //
+    const cacheWindowDetails = useRef<{ width: number; height: number; }>({ width: 0, height: 0 })
+    useEffect((): void => {
+        const width: number = cacheWindowDetails.current.width
+        const height: number = cacheWindowDetails.current.height
+        const midScalePoint = Math.min(height / 400, width / 600)
+        if (!scale){
+            setScale(midScalePoint)
+        }
+        if (!(windowDetails.width === width && windowDetails.height === height)) {
+            setWindowDetails({
+                width,
+                height,
+                minScale: midScalePoint * 0.5,
+                maxScale: midScalePoint * 4.0
+            })
+        }
+    }, [cacheWindowDetails.current.width, cacheWindowDetails.current.height])
     const bind = useGesture({
         onWheel: ({ movement: [, y] }) => {
             const oldScale = scale
@@ -83,18 +104,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
             const midScalePoint = Math.min(height / 400, width / 600)
-            if (!scale){
-                setScale(midScalePoint)
-                return null
-            }
-            if (!(windowDetails.width === width && windowDetails.height === height)) {
-                setWindowDetails({
-                    width,
-                    height,
-                    minScale: midScalePoint * 0.5,
-                    maxScale: midScalePoint * 4.0
-                })
-            }
+            cacheWindowDetails.current = { width, height }
             const onClickScaled = (event: React.MouseEvent<SVGElement>) => {
                 if (toolSelected === 'AddRoom' && scale) {
                     const rect = event.currentTarget.getBoundingClientRect()
@@ -180,6 +190,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 const toX = to === undefined ? undefined : to.x + 300
                                 const toY = to === undefined ? undefined : to.y + 200
                                 return <MapEdgeComponent
+                                    key={`${fromRoomId}::${toRoomId}`}
                                     fromX={fromX}
                                     fromY={fromY}
                                     toX={toX}
@@ -213,16 +224,33 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 x: room.x + 300,
                                 y: room.y + 200
                             }))
-                            .map((room) => (
+                            .map(({
+                                PermanentId,
+                                roomId,
+                                Name,
+                                className,
+                                contrastClassName,
+                                x,
+                                y,
+                                zLevel
+                            }) => (
                                 <RoomGestures
-                                    roomId={room.roomId}
-                                    x={room.x}
-                                    y={room.y}
-                                    zLevel={room.zLevel}
+                                    key={`Gesture-${roomId}`}
+                                    roomId={roomId}
+                                    x={x}
+                                    y={y}
+                                    zLevel={zLevel}
                                     localDispatch={mapDispatch}
                                     scale={scale}
                                 >
-                                    <MapRoomComponent {...room} />
+                                    <MapRoomComponent
+                                        PermanentId={PermanentId}
+                                        Name={Name}
+                                        className={className}
+                                        contrastClassName={contrastClassName}
+                                        x={x}
+                                        y={y}
+                                    />
                                 </RoomGestures>
                             ))
                         }
