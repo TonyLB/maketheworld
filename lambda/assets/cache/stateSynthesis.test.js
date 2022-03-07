@@ -151,6 +151,107 @@ describe('stateSynthesis', () => {
             })
         })
 
+        it('should extract map dependencies', () => {
+            const mapAsset = {
+                test: {
+                    key: 'test',
+                    tag: 'Asset',
+                    fileName: 'test',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: [{
+                            key: 'ABC',
+                            tag: 'Room',
+                            index: 0
+                        },
+                        {
+                            key: 'Condition-0',
+                            tag: 'Condition',
+                            index: 0
+                        },
+                        {
+                            key: 'powered',
+                            tag: 'Variable',
+                            index: 0
+                        }]
+                    }]
+                },
+                ABC: {
+                    key: 'ABC',
+                    EphemeraId: 'ROOM#DEF',
+                    tag: 'Room',
+                    appearances: [{
+                        ...topLevelAppearance,
+                        global: false,
+                        name: 'Vortex',
+                        render: []
+                    },
+                    {
+                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                        errors: [],
+                        global: false,
+                        props: {},
+                        name: ['(lit)'],
+                        render: ['The lights are on '],
+                        contents: []
+                    }]
+                },
+                powered: {
+                    key: 'powered',
+                    tag: 'Variable',
+                    default: 'false',
+                    appearances: [topLevelAppearance]
+                },
+                ['Condition-0']: {
+                    key: 'Condition-0',
+                    tag: 'Condition',
+                    if: 'powered',
+                    dependencies: ['powered'],
+                    appearances: [{
+                        ...topLevelAppearance,
+                        contents: [{
+                            key: 'TestMap',
+                            tag: 'Map',
+                            index: 0
+                        }]
+                    }]
+                },
+                TestMap: {
+                    key: 'TestMap',
+                    tag: 'Map',
+                    EphemeraId: 'MAP#TESTMAP',
+                    appearances: [{
+                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        errors: [],
+                        props: {},
+                        name: ['Test Map'],
+                        rooms: {
+                            'ABC': {
+                                x: 200,
+                                y: 150
+                            }
+                        },
+                        contents: [{
+                            tag: 'Room',
+                            key: 'ABC',
+                            index: 1
+                        }]
+                    }]
+                }
+            }
+            const mapSynthesizer = new StateSynthesizer('test', mapAsset)
+
+            expect(mapSynthesizer.dependencies).toEqual({
+                powered: {
+                    room: ['DEF'],
+                    mapCache: ['DEF'],
+                    map: ['TESTMAP']
+                }
+            })
+        })
+
         it('should extract computed variables', () => {
             const testSynthesizer = new StateSynthesizer('test', testAsset)
 

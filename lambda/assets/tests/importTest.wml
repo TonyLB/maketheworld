@@ -28,6 +28,9 @@
     </Room>
     <Condition if={active}>
         <Depend on=(active) />
+        <Map key=(importTestMap)>
+            <Room key=(welcomeRoom) x="50" y="0" />
+        </Map>
         <Room key=(welcomeRoom)>
             It's a welcome area, with bright lighting and pastel walls.
         </Room>
