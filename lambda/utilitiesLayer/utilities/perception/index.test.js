@@ -243,8 +243,13 @@ describe('render', () => {
                         name: ['Fountain Square'],
                         exits: [{
                             to: 'alley',
-                            toEphemeraId: 'MAP#TUV',
+                            toEphemeraId: 'TUV',
                             name: 'alley'
+                        },
+                        {
+                            to: 'library',
+                            toEphemeraId: 'Library',
+                            name: 'library'
                         }]
                     }
                 },
@@ -265,6 +270,11 @@ describe('render', () => {
                                 EphemeraId: 'ROOM#XYZ',
                                 x: 0,
                                 y: 100
+                            },
+                            library: {
+                                EphemeraId: 'ROOM#Library',
+                                x: 0,
+                                y: -100
                             }
                         }
                     }]
@@ -280,22 +290,26 @@ describe('render', () => {
             assetMeta: mapAssets
         })
         expect(output).toEqual([{
-            tag: 'Map',
+            type: 'Map',
             CharacterId: 'QRS',
             EphemeraId: 'MAP#MNO',
             MapId: 'MNO',
             Name: "Grand Bazaar",
             rooms: {
-                fountainSquare: {
+                ['BASE#fountainSquare']: {
                     x: 0,
                     y: 100,
                     EphemeraId: 'ROOM#XYZ',
                     name: ['Fountain Square'],
                     exits: [{
-                        to: 'alley',
-                        toEphemeraId: 'MAP#TUV',
-                        name: 'alley'
+                        to: 'BASE#library',
+                        name: 'library'
                     }]
+                },
+                ['BASE#library']: {
+                    EphemeraId: 'ROOM#Library',
+                    x: 0,
+                    y: -100
                 }
             }
         }])
