@@ -37,25 +37,51 @@ export const extractDependencies = (normalForm) => {
         ), {})
 
     const dependencies = Object.values(normalForm)
-        .filter(({ tag }) => (['Room'].includes(tag)))
-        .reduce((previous, { EphemeraId, appearances = [] }) => (
+        .filter(({ tag }) => (['Room', 'Map'].includes(tag)))
+        .reduce((previous, { tag, EphemeraId, appearances = [] }) => (
             appearances
                 .map(mapContextStackToConditions(normalForm))
                 .reduce((accumulator, { conditions = [], name = [], contents = [] }) => (
                     conditions.reduce((innerAccumulator, { dependencies = [] }) => (
                         dependencies.reduce((innermostAccumulator, dependency) => {
-                            const mapCacheDependency = (name.length > 0) || (contents.filter(({ tag }) => (tag === 'Exit')).length > 0)
+                            const mapCacheDependency = (tag === 'Room') && ((name.length > 0) || (contents.filter(({ tag }) => (tag === 'Exit')).length > 0))
                             return {
                                 ...innermostAccumulator,
                                 [dependency]: {
                                     ...(innermostAccumulator[dependency] || {}),
-                                    room: [...(new Set([
-                                        ...(innermostAccumulator[dependency]?.room || []),
-                                        //
-                                        // Extract the globalized RoomId
-                                        //
-                                        splitType(EphemeraId)[1]
-                                    ]))],
+                                    //
+                                    // For a map, add to the map dependencies
+                                    //
+                                    ...((tag === 'Map')
+                                        ? {
+                                            map: [...(new Set([
+                                                ...(innermostAccumulator[dependency]?.map || []),
+                                                //
+                                                // Extract the globalized MapId
+                                                //
+                                                splitType(EphemeraId)[1]
+                                            ]))]
+                                        }
+                                        : {}
+                                    ),
+                                    //
+                                    // For a room, add to the room dependencies
+                                    //
+                                    ...((tag === 'Room')
+                                        ? {
+                                            room: [...(new Set([
+                                                ...(innermostAccumulator[dependency]?.room || []),
+                                                //
+                                                // Extract the globalized RoomId
+                                                //
+                                                splitType(EphemeraId)[1]
+                                            ]))]
+                                        }
+                                        : {}
+                                    ),
+                                    //
+                                    // For a room with name or exit changes, also add to the mapCache dependencies
+                                    //
                                     ...(mapCacheDependency
                                         ? {
                                             mapCache: [...(new Set([
