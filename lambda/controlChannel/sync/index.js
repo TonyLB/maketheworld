@@ -60,7 +60,6 @@ export const sync = async ({
     let LastSync = null
     let LastEvaluatedKey = null
     let loopCount = 0
-    let sendPromises = []
     const socketQueue = new SocketQueue()
     while (!LastSync && loopCount < 20) {
         const returnVal = (type === 'Raw')

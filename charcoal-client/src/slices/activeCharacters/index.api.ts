@@ -2,6 +2,7 @@ import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
 import cacheDB, { LastSyncType } from '../../cacheDB'
 import {
     socketDispatchPromise,
+    LifeLinePubSub,
     getStatus
 } from '../lifeLine'
 import { getMyCharacterById } from '../player'
@@ -34,10 +35,22 @@ export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => 
     return { internalData: { LastMessageSync } }
 }
 
-export const registerAction: ActiveCharacterAction = ({ internalData: { id }}) => async (dispatch) => {
+export const registerAction: ActiveCharacterAction = (incoming) => async (dispatch) => {
+    const { internalData: { id }, actions } = incoming
+    const { receiveMapEphemera } = actions
+    const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
+        if (payload.messageType === 'Ephemera') {
+            const { updates } = payload
+            updates
+                .filter(({ CharacterId }) => (CharacterId === id))
+                .forEach(({ CharacterId, ...rest }) => {
+                    dispatch(receiveMapEphemera(rest))
+                })
+        }
+    })
     await dispatch(socketDispatchPromise('fetchEphemera')({ CharacterId: id }))
     await dispatch(socketDispatchPromise('registercharacter')({ CharacterId: id }))
-    return {}
+    return { internalData: { subscription: lifeLineSubscription } }
 }
 
 //

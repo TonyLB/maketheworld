@@ -194,7 +194,15 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                             inProgress: keyof Nodes,
                             data: InferredDataTypeAggregateFromNodes<Nodes>
                         }) => (internalStateChange({ key, newState, inProgress, data })),
-                    actions: slice.actions
+                    actions: {
+                        ...slice.actions,
+                        ...(Object.entries(publicActions)
+                            .reduce((previous, [functionName, value]) => ({
+                                ...previous,
+                                [functionName]: value(key)
+                            }), {})
+                        )
+                    }
                 }))
             })
     }
