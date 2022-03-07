@@ -109,17 +109,12 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 }
 
-const CharacterMapRouter = () => {
-    const { MapId } = useParams()
-    return <MapView MapId={MapId} />
-}
-
 const CharacterRouterSwitch = ({ messagePanel }) => {
     const { CharacterId } = useParams()
     return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
         <Routes>
             <Route path={`Play`} element={messagePanel} />
-            <Route path={`Map/:MapId/`} element={<CharacterMapRouter />} />
+            <Route path={`Map/`} element={<MapView />} />
         </Routes>
     </ActiveCharacter>
 }
