@@ -7,7 +7,26 @@ export interface ActiveCharacterInternal {
     incrementalBackoff: number;
 }
 
+type ActiveCharacterMapExit = {
+
+}
+
+type ActiveCharacterMapRoom = {
+    EphemeraId: string;
+    exits?: ActiveCharacterMapExit[];
+    name?: string[];
+    x?: number;
+    y?: number;
+}
+
+export type ActiveCharacterMap = {
+    MapId: string;
+    Name: string;
+    rooms: Record<string, ActiveCharacterMapRoom>
+}
+
 export interface ActiveCharacterPublic {
+    maps: Record<string, ActiveCharacterMap>;
 }
 
 export type ActiveCharacterRecord = ISSMDataLayout<ActiveCharacterInternal, ActiveCharacterPublic>

@@ -1,6 +1,6 @@
 import { splitType, RoomKey } from '/opt/utilities/types.js'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { renderItems } from '/opt/utilities/perception/index.js'
+import { render } from '/opt/utilities/perception/index.js'
 
 const serialize = ({
     EphemeraId,
@@ -91,25 +91,24 @@ export const fetchEphemeraForCharacter = async ({
     ))]
 
     if (allMaps.length) {
-        const renderOutput = await renderItems(
-            allMaps.map((EphemeraId) => ({ EphemeraId, CharacterId })),
-            {},
-            {
+        const renderOutput = await render({
+            renderList: allMaps.map((EphemeraId) => ({ EphemeraId, CharacterId })),
+            assetLists: {
                 global: globalAssets,
                 characters: {
                     [CharacterId]: characterAssets
                 }
             }
-        )
+        })
     
         return {
-            type: 'Ephemera',
+            messageType: 'Ephemera',
             RequestId,
             updates: renderOutput
         }    
     }
     return {
-        type: 'Ephemera',
+        messageType: 'Ephemera',
         RequestId,
         updates: []
     }    

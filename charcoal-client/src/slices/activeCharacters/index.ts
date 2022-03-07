@@ -8,6 +8,7 @@ import {
     syncAction,
     backoffAction
 } from './index.api'
+import receiveMapEphemera from './receiveMapEphemera'
 
 export const {
     slice: activeCharactersSlice,
@@ -23,12 +24,12 @@ export const {
             incrementalBackoff: 0.5
         },
         publicData: {
-            defaultValue: {},
-            value: {}
+            maps: {}
         }
     },
     sliceSelector: ({ activeCharacters }) => (activeCharacters),
     publicReducers: {
+        receiveMapEphemera
     },
     publicSelectors: {},
     template: {
@@ -38,8 +39,7 @@ export const {
                 incrementalBackoff: 0.5
             },
             publicData: {
-                defaultValue: {},
-                value: {}
+                maps: {}
             }
         },
         states: {

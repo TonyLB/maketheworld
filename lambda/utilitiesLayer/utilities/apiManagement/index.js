@@ -4,11 +4,12 @@ import { forceDisconnect } from './forceDisconnect.js'
 
 const queueInitial = {
     messages: {},
+    messageMeta: {},
     otherSends: []
 }
 
 const queueReducer = (state, action) => {
-    const { messages, otherSends } = state
+    const { messages, otherSends, messageMeta } = state
     switch(action.messageType || '') {
         case 'Messages':
             return {
@@ -20,6 +21,11 @@ const queueReducer = (state, action) => {
                             [Target]: { MessageId, Target, ...rest }
                         }
                     }), messages),
+                messageMeta: {
+                    ...messageMeta,
+                    LastSync: action.LastSync,
+                    RequestId: action.RequestId
+                },
                 otherSends
             }
         default:
@@ -33,11 +39,12 @@ const queueReducer = (state, action) => {
     }
 }
 
-const queueSerialize = ({ messages = [], otherSends = []}) => {
+const queueSerialize = ({ messages = [], messageMeta = {}, otherSends = []}) => {
     return [
         ...(Object.keys(messages).length
             ? [{
                 messageType: 'Messages',
+                ...messageMeta,
                 messages: Object.values(messages)
                     .reduce((previous, targets) => ([ ...previous, ...(Object.values(targets)) ]), [])
                     .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))

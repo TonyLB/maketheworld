@@ -260,7 +260,7 @@ export const render = async ({
                 return FeatureMessage
             case 'MAP':
                 const MapMessage = {
-                    tag: 'Map',
+                    type: 'Map',
                     EphemeraId,
                     CharacterId,
                     MapId: objectKey,
