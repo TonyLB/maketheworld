@@ -38,7 +38,8 @@ import { useSelector } from 'react-redux'
 //
 // TODO:  Rewrite activeCharacters selectors to refer to SSMs
 //
-import { getActiveCharacters } from '../../slices/activeCharacters'
+import { getActiveCharacters, getActiveCharacterMaps } from '../../slices/activeCharacters'
+import { ActiveCharacterMap } from '../../slices/activeCharacters/baseClasses'
 import { getMessagesByRoom } from '../../slices/messages'
 import { getCharactersInPlay } from '../../slices/ephemera'
 import { EphemeraCharacterInPlay } from '../../slices/ephemera/baseClasses'
@@ -48,10 +49,12 @@ type ActiveCharacterContextType = {
     CharacterId: string;
     messageBreakdown: MessageRoomBreakdown;
     info?: EphemeraCharacterInPlay;
+    maps: Record<string, ActiveCharacterMap>
 }
 
 const ActiveCharacterContext = React.createContext<ActiveCharacterContextType>({
     CharacterId: '',
+    maps: {},
     messageBreakdown: {
         Messages: [],
         Groups: []
@@ -66,6 +69,7 @@ type ActiveCharacterProps = {
 export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ CharacterId, children }) => {
 
     const characterState = useSelector(getActiveCharacters)[CharacterId]
+    const maps = useSelector(getActiveCharacterMaps(CharacterId))
     const messageBreakdown = useSelector(getMessagesByRoom(CharacterId))
     const info = useSelector(getCharactersInPlay)[CharacterId]
     return (
@@ -73,6 +77,7 @@ export const ActiveCharacter: FunctionComponent<ActiveCharacterProps> = ({ Chara
             CharacterId,
             messageBreakdown,
             info,
+            maps,
             ...characterState
         }}>
             {children}
