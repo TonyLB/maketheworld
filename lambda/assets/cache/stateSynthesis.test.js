@@ -350,7 +350,7 @@ describe('stateSynthesis', () => {
     })
 
     describe('updateImportedDependencies', () => {
-        it('should update dependencies on fetched imports', async () => {
+        it('should update asset dependencies on fetched imports', async () => {
             ephemeraDB.batchGetItem
                 .mockResolvedValueOnce([{
                     EphemeraId: 'ASSET#BASE',
@@ -389,6 +389,90 @@ describe('stateSynthesis', () => {
                                 key: 'power'
                             }]
                         }
+                    }
+                }
+            })
+
+        })
+
+        it('should update room dependencies on map entries', async () => {
+            const mapAsset = {
+                test: {
+                    key: 'test',
+                    tag: 'Asset',
+                    fileName: 'test',
+                    appearances: [{
+                        contextStack: [],
+                        errors: [],
+                        props: {},
+                        contents: [{
+                            key: 'ABC',
+                            tag: 'Room',
+                            index: 0
+                        },
+                        {
+                            key: 'TestMap',
+                            tag: 'Map',
+                            index: 0
+                        }]
+                    }]
+                },
+                ABC: {
+                    key: 'ABC',
+                    EphemeraId: 'ROOM#DEF',
+                    tag: 'Room',
+                    appearances: [{
+                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                        errors: [],
+                        global: false,
+                        props: {},
+                        name: 'Vortex',
+                        render: []
+                    }]
+                },
+                TestMap: {
+                    key: 'TestMap',
+                    tag: 'Map',
+                    EphemeraId: 'MAP#TESTMAP',
+                    appearances: [{
+                        contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
+                        errors: [],
+                        props: {},
+                        name: ['Test Map'],
+                        rooms: {
+                            'ABC': {
+                                x: 200,
+                                y: 150
+                            }
+                        },
+                        contents: [{
+                            tag: 'Room',
+                            key: 'ABC',
+                            index: 0
+                        }]
+                    }]
+                }
+            }
+
+            ephemeraDB.batchGetItem
+                .mockResolvedValueOnce([])
+            
+            ephemeraDB.getItem
+                .mockResolvedValueOnce({
+                    Dependencies: {}
+                })
+
+            const testSynthesizer = new StateSynthesizer('test', mapAsset)
+            await testSynthesizer.fetchImportedValues()
+            await testSynthesizer.updateImportedDependencies()
+
+            expect(ephemeraDB.update).toHaveBeenCalledWith({
+                EphemeraId: 'ROOM#DEF',
+                DataCategory: 'Meta::Room',
+                UpdateExpression: 'SET Dependencies = :dependencies',
+                ExpressionAttributeValues: {
+                    ':dependencies': {
+                        map: ['MAP#TESTMAP']
                     }
                 }
             })

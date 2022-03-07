@@ -251,20 +251,77 @@ export class StateSynthesizer extends Object {
         })
 
         //
+        // Experimental:  Try processing the normal form by aggregating all appearances for all objects, then
+        // filtering on the contextStack to get the right elements
+        //
+        const allAppearances = Object.values(this.normalForm)
+            .reduce((previous, { appearances = [], ...rest }) => ([
+                ...previous,
+                ...(appearances.map((appearance) => ({ item: rest, ...appearance })))
+            ]), [])
+        const mapDependenciesByRoom = allAppearances
+            .filter(({ item: { tag } }) => (tag === 'Room'))
+            .reduce((previous, { item: { EphemeraId }, contextStack = [] }) => {
+                const { key } = contextStack.find(({ tag }) => (tag === 'Map')) || {}
+                const mapId = this.normalForm[key]?.EphemeraId
+                if (mapId) {
+                    return {
+                        ...previous,
+                        [EphemeraId]: [...(new Set([
+                            ...(previous[EphemeraId] || []),
+                            mapId
+                        ]))]
+                    }    
+                }
+                else {
+                    return previous
+                }
+            }, {})
+
+        const updateMapDependencyOnRoom = async ({ EphemeraId, Dependencies }) => {
+            const { Dependencies: fetchedDependencies = {} } = await ephemeraDB.getItem({
+                EphemeraId,
+                DataCategory: 'Meta::Room',
+                ProjectionFields: ['Dependencies']
+            })
+            const newDependencies = {
+                ...fetchedDependencies,
+                map: [
+                    ...(fetchedDependencies.map || []),
+                    ...Dependencies
+                ]
+            }
+            await ephemeraDB.update({
+                EphemeraId,
+                DataCategory: 'Meta::Room',
+                UpdateExpression: 'SET Dependencies = :dependencies',
+                ExpressionAttributeValues: {
+                    ':dependencies': newDependencies
+                }
+            })
+        }
+
+        //
         // TODO: Upgrade with optimisticUpdate, when created
         //
-        await Promise.all(Object.entries(updateAssetDependencies)
-            .map(([assetId, { dependencies }]) => (
-                ephemeraDB.update({
-                    EphemeraId: AssetKey(assetId),
-                    DataCategory: 'Meta::Asset',
-                    UpdateExpression: 'SET Dependencies = :dependencies',
-                    ExpressionAttributeValues: {
-                        ':dependencies': dependencies
-                    }
-                })
-            ))
-        )
+        await Promise.all([
+            ...(Object.entries(updateAssetDependencies)
+                .map(([assetId, { dependencies }]) => (
+                    ephemeraDB.update({
+                        EphemeraId: AssetKey(assetId),
+                        DataCategory: 'Meta::Asset',
+                        UpdateExpression: 'SET Dependencies = :dependencies',
+                        ExpressionAttributeValues: {
+                            ':dependencies': dependencies
+                        }
+                    })
+                ))
+            ),
+            ...(Object.entries(mapDependenciesByRoom)
+                .map(([EphemeraId, Dependencies]) => ({ EphemeraId, Dependencies }))
+                .map(updateMapDependencyOnRoom)
+            )
+        ])
     }
 }
 
