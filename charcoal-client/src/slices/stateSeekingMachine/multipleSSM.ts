@@ -197,9 +197,9 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                     actions: {
                         ...slice.actions,
                         ...(Object.entries(publicActions)
-                            .reduce((previous, [key, value]) => ({
+                            .reduce((previous, [functionName, value]) => ({
                                 ...previous,
-                                [key]: value(key)
+                                [functionName]: value(key)
                             }), {})
                         )
                     }

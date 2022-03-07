@@ -37,14 +37,15 @@ export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => 
 
 export const registerAction: ActiveCharacterAction = (incoming) => async (dispatch) => {
     const { internalData: { id }, actions } = incoming
-    console.log(`Actions: ${Object.keys(actions)}`)
     const { receiveMapEphemera } = actions
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Ephemera') {
             const { updates } = payload
             updates
                 .filter(({ CharacterId }) => (CharacterId === id))
-                .forEach(({ CharacterId, ...rest }) => { dispatch(receiveMapEphemera(rest)) })
+                .forEach(({ CharacterId, ...rest }) => {
+                    dispatch(receiveMapEphemera(rest))
+                })
         }
     })
     await dispatch(socketDispatchPromise('fetchEphemera')({ CharacterId: id }))

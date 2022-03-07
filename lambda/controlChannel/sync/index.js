@@ -40,7 +40,6 @@ const syncDeltaHelper = async ({
         Limit: limit,
         ExclusiveStartKey
     })
-    console.log(`Last Evaluated Key: ${LastEvaluatedKey}`)
     return {
         Items: Items
             .map(({ Target, DeltaId, RowId, ...rest }) => ({ Target: TargetId, MessageId: RowId, ...rest })),
@@ -78,7 +77,6 @@ export const sync = async ({
         //
         // TODO: Error handling for failed query calls
         //
-        console.log(`LastSync: ${returnVal.LastSync}`)
         socketQueue.send({
             ConnectionId,
             Message: {
