@@ -8,7 +8,10 @@ export interface ActiveCharacterInternal {
 }
 
 type ActiveCharacterMapExit = {
-
+    name?: string;
+    to: string;
+    toEphemeraId: string;
+    key: string;
 }
 
 type ActiveCharacterMapRoom = {
