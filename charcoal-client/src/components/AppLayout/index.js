@@ -35,6 +35,7 @@ import InDevelopment from '../InDevelopment'
 import ChoiceDialog from '../ChoiceDialog'
 
 import MapHome from '../Maps'
+import MapView from '../Maps/View'
 import CharacterEdit from '../CharacterEdit'
 import HelpPage from '../Help'
 
@@ -98,12 +99,17 @@ const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {
 
 }
 
+const CharacterMapRouter = () => {
+    const { MapId } = useParams()
+    return <MapView MapId={MapId} />
+}
+
 const CharacterRouterSwitch = ({ messagePanel }) => {
     const { CharacterId } = useParams()
     return <ActiveCharacter key={`Character-${CharacterId}`} CharacterId={CharacterId}>
         <Routes>
             <Route path={`Play`} element={messagePanel} />
-            <Route path={`Map`} element={<InDevelopment />} />
+            <Route path={`Map/:MapId/`} element={<CharacterMapRouter />} />
         </Routes>
     </ActiveCharacter>
 }

@@ -9,13 +9,14 @@ import {
     backoffAction
 } from './index.api'
 import receiveMapEphemera from './receiveMapEphemera'
+import { publicSelectors, PublicSelectors } from './selectors'
 
 export const {
     slice: activeCharactersSlice,
     selectors,
     publicActions,
     iterateAllSSMs
-} = multipleSSM<ActiveCharacterNodes, {}>({
+} = multipleSSM<ActiveCharacterNodes, PublicSelectors>({
     name: 'activeCharacters',
     initialSSMState: 'INITIAL',
     initialSSMDesired: 'CONNECTED',
@@ -31,7 +32,7 @@ export const {
     publicReducers: {
         receiveMapEphemera
     },
-    publicSelectors: {},
+    publicSelectors,
     template: {
         initialState: 'INITIAL',
         initialData: {
@@ -86,8 +87,9 @@ export const {
 
 export const { addItem } = activeCharactersSlice.actions
 // export const { } = publicActions
-// export const {
-// } = selectors
+export const {
+    getActiveCharacterMaps
+} = selectors
 
 type ActiveCharacterSlice = multipleSSMSlice<ActiveCharacterNodes>
 
@@ -110,5 +112,7 @@ export const getActiveCharacters = ({ activeCharacters }: { activeCharacters: Ac
         })
     )
 }
+
+
 
 export default activeCharactersSlice.reducer
