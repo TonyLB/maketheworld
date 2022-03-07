@@ -24,8 +24,8 @@ export const cacheToTree = ({ rooms = {} }: ActiveCharacterMap): MapTree => {
                     item: {
                         type: 'EXIT',
                         name: name || '',
-                        fromRoomId: key,
-                        toRoomId: to,
+                        fromRoomId: EphemeraId,
+                        toRoomId: rooms[to].EphemeraId,
                         visible: true
                     },
                     children: []
