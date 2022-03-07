@@ -1,5 +1,6 @@
 import React, { useState, FunctionComponent, ReactElement, useRef, useEffect } from 'react'
 import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import {
     Avatar,
     Box,
@@ -7,23 +8,27 @@ import {
     SpeedDialAction,
     TextField
 } from '@mui/material'
+import { blue } from '@mui/material/colors'
+import OptionsIcon from '@mui/icons-material/MoreHoriz'
 import SayMessageIcon from '@mui/icons-material/Chat'
 import NarrateMessageIcon from '@mui/icons-material/Receipt'
 import OOCMessageIcon from '@mui/icons-material/CropFree'
 import CommandIcon from '@mui/icons-material/Code'
+import MapIcon from '@mui/icons-material/Explore'
 
 import {
     // getServerSettings,
     getClientSettings
 } from '../../slices/settings'
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
+import { useActiveCharacter } from '../ActiveCharacter'
 import { SpeechBubble } from '../Message/SayMessage'
 import { NarrateBubble } from '../Message/NarrateMessage'
 import { OOCBubble } from '../Message/OOCMessage'
 import MessageComponent from '../Message/MessageComponent'
 import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/baseClasses'
 
-type LineEntryMode = ParseCommandModes
+type LineEntryMode = ParseCommandModes | 'Options'
 
 interface EntryFieldProps {
     value: string;
@@ -48,10 +53,12 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue
         value={value}
         onKeyPress={(event) => {
             if (event.key === 'Enter') {
-                event.preventDefault()
-                const callbackResult = callback({ entry: (value || ''), mode })
-                if (callbackResult) {
-                    onChange(defaultValue)
+                if (mode !== 'Options') {
+                    event.preventDefault()
+                    const callbackResult = callback({ entry: (value || ''), mode })
+                    if (callbackResult) {
+                        onChange(defaultValue)
+                    }
                 }
             }
             if (empty) {
@@ -87,6 +94,7 @@ interface EntryModeSpeedDialProps {
 
 const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, setMode }) => {
     const icons: Record<LineEntryMode, ReactElement> = {
+        Options: <OptionsIcon sx={{ width: "30px", height: "30px" }} />,
         SayMessage: <SayMessageIcon sx={{ width: "30px", height: "30px" }} />,
         NarrateMessage: <NarrateMessageIcon sx={{ width: "30px", height: "30px" }} />,
         OOCMessage: <OOCMessageIcon sx={{ width: "30px", height: "30px" }} />,
@@ -122,6 +130,12 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, 
             tooltipTitle="Command"
             onClick={() => { setMode('Command') }}
         />
+        <SpeedDialAction
+            key="Options"
+            icon={<OptionsIcon />}
+            tooltipTitle="More"
+            onClick={() => { setMode('Options') }}
+        />
     </SpeedDial>
 }
 
@@ -131,7 +145,27 @@ const EntryModeDispatcher = React.forwardRef<any, EntryDispatcherProps>(({
     mode,
     ...props
 }, ref) => {
+    const { CharacterId } = useActiveCharacter()
+    const navigate = useNavigate()
     switch(mode) {
+        case 'Options':
+            return <Box sx={{
+                    background: (theme: any) => (theme.palette.extras.paleGradient),
+                    padding: '10px 15px 15px 15px',
+                    borderRadius: '15px',
+                    position: 'relative',
+                    marginRight: '10px'
+                }}
+            >
+                <Avatar sx={{ width: 50, height: 50, bgcolor: blue[500] }}>
+                    <MapIcon
+                        sx={{ width:40, height: 50 }}
+                        onClick={() => {
+                            navigate(`/Character/${CharacterId}/Map/`)
+                        }}
+                    />
+                </Avatar>
+            </Box>
         case 'SayMessage':
             return <SpeechBubble variant="right" tailOffset="30px">
                     <EntryField ref={ref} mode={mode} placeholder='What do you say?' {...props} />

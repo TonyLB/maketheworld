@@ -72,8 +72,7 @@ export const Home = ({
                 {
                     icon: <MapIcon />,
                     title: 'Maps',
-                    href: '/Character/f2bcee0f-d2b5-442a-863f-1d8ecf7bec4a/Map/'
-                    // href: '/Maps/'
+                    href: '/Maps/'
                 },
                 {
                     icon: null,
