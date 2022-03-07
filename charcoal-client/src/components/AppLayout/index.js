@@ -27,6 +27,7 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import ForumIcon from '@mui/icons-material/Forum'
+import MapIcon from '@mui/icons-material/Explore'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import HomeIcon from '@mui/icons-material/Home'
 
@@ -49,6 +50,15 @@ const a11yProps = (index) => {
     }
 }
 
+const IconDispatcher = ({ iconName = 'Forum' }) => {
+    switch(iconName) {
+        case 'Map':
+            return <MapIcon />
+        default:
+            return <ForumIcon />
+    }
+}
+
 const tabList = ({ large, navigationTabs = [] }) => ([
     <Tab
         key="Home"
@@ -59,18 +69,18 @@ const tabList = ({ large, navigationTabs = [] }) => ([
         component={Link}
         to="/"
     />,
-    ...(navigationTabs.map(({ href, label }, index) => (
+    ...(navigationTabs.map(({ href, label, iconName }, index) => (
         <Tab
             key={href}
             label={label}
             value={href}
             {...a11yProps(index + 1)}
-            icon={<ForumIcon />}
+            icon={<IconDispatcher iconName={iconName} />}
             component={Link}
             to={href}
         />
     ))),
-    ...(large ? [] : [<Tab key="Who" label="Who is on" value="who" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} to="/Who/" />])
+    ...(large ? [] : [<Tab key="Who" label="Who is on" value="/Who/" {...a11yProps(2+navigationTabs.length)} icon={<PeopleAltIcon />} to="/Who/" />])
 ])
 
 const FeedbackSnackbar = ({ feedbackMessage, closeFeedback }) => {

@@ -5,6 +5,7 @@ import { Selector } from '../../../store'
 export interface NavigationTab {
     label: string;
     href: string;
+    iconName?: string;
 }
 
 const initialState = [] as NavigationTab[]
