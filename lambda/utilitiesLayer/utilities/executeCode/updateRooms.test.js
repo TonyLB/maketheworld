@@ -1,9 +1,11 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('../dynamoDB/index.js')
-import { ephemeraDB, publishMessage } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB/index.js'
 jest.mock('../perception/index.js')
 import { render } from '../perception/index.js'
+jest.mock('../perception/deliverRenders.js')
+import { deliverRenders } from '../perception/deliverRenders.js'
 jest.mock('../perception/dynamoDB.js')
 import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
 jest.mock('uuid')
@@ -52,15 +54,15 @@ describe('updateRooms', () => {
             assetMeta: {},
             assetLists: { global: ['BASE'], characters: {} }
         })
-        expect(publishMessage).toHaveBeenCalledWith({
-            MessageId: 'MESSAGE#UUID',
-            Targets: ['CHARACTER#TESS'],
-            CreatedTime: 1000000000000,
-            DisplayProtocol: 'RoomUpdate',
-            Name: 'Vortex',
-            RoomId: 'VORTEX',
-            Description: ['A swirling vortex '],
-            Exits: []
+        expect(deliverRenders).toHaveBeenCalledWith({
+            renderOutputs: [{
+                tag: 'Room',
+                CharacterId: 'TESS',
+                Name: 'Vortex',
+                RoomId: 'VORTEX',
+                Description: ['A swirling vortex '],
+                Exits: []
+            }]
         })
     })
 
@@ -70,7 +72,7 @@ describe('updateRooms', () => {
             assetsChangedByRoom: {}
         })
         expect(render).toHaveBeenCalledTimes(0)
-        expect(publishMessage).toHaveBeenCalledTimes(0)
+        expect(deliverRenders).toHaveBeenCalledTimes(0)
     })
 
     it('should publish to all characters on a global-asset update', async() => {

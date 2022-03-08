@@ -1,7 +1,6 @@
 import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
-import { splitType, AssetKey } from '../types.js'
 
-import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets, getNormalForm } from './dynamoDB.js'
+import { getStateByAsset, getNormalForm } from './dynamoDB.js'
 
 const evaluateConditionalList = (asset, list = [], state) => {
     if (list.length > 0) {

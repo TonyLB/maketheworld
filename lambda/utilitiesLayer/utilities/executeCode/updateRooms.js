@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { ephemeraDB, publishMessage } from '../dynamoDB/index.js'
 import { render } from '../perception/index.js'
+import { deliverRenders } from '../perception/deliverRenders.js'
 import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
 import { splitType, RoomKey } from '../types.js'
 
@@ -110,7 +111,7 @@ export const updateRooms = async ({
             ))
         return [...roomsToUpdate, ...deduplicatedMapUpdates]
     }
-    const renderOutput = await render({
+    const renderOutputs = await render({
         renderList: deduplicate(roomsToUpdate, mapUpdates),
         assetMeta: existingStatesByAsset,
         assetLists: {
@@ -122,16 +123,7 @@ export const updateRooms = async ({
     // TODO: Abstract a deliverRenderOutput function in perception, and use it here
     // (as well as other places where render is called and delivered)
     //
-    await Promise.all(renderOutput
-        .filter(({ tag }) => (tag === 'Room'))
-        .map(({ EphemeraId, CharacterId, tag, ...roomMessage }) => (
-            publishMessage({
-                MessageId: `MESSAGE#${uuidv4()}`,
-                Targets: [`CHARACTER#${CharacterId}`],
-                CreatedTime: Date.now(),
-                DisplayProtocol: 'RoomUpdate',
-                ...roomMessage
-            })
-        ))
-    )
+    await deliverRenders({
+        renderOutputs
+    })
 }

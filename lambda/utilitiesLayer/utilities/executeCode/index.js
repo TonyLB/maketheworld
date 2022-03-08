@@ -4,6 +4,7 @@ import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
 import { AssetKey, RoomKey } from '../types.js'
 import { defaultColorFromCharacterId } from '../selfHealing/index.js'
+import updateAssets from './updateAssets.js'
 
 export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { RoomId, CharacterId } = options
@@ -112,21 +113,10 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
         []
     )
 
-    await Promise.all(Object.entries(newStates)
-        .map(([key, newState]) => (
-            ephemeraDB.update({
-                EphemeraId: AssetKey(key),
-                DataCategory: 'Meta::Asset',
-                UpdateExpression: 'SET #state = :state',
-                ExpressionAttributeNames: {
-                    '#state': 'State'
-                },
-                ExpressionAttributeValues: {
-                    ':state': newState.State
-                }
-            })    
-        ))
-    )
+    await updateAssets({
+        newStates,
+        recalculated
+    })
     const recalculatedToRooms = ([asset, keys]) => (
         keys
             .map((key) => (newStates[asset]?.Dependencies?.[key]?.room || []))
@@ -138,21 +128,22 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
             {})
     )
     const assetsChangedByRoom = Object.entries(recalculated)
-            .map(recalculatedToRooms)
-            .reduce((previous, roomMap) => (
-                Object.entries(roomMap)
-                    .reduce((accumulator, [room, assets = []]) => ({
-                        ...accumulator,
-                        [room]: [
-                            ...(accumulator[room] || []),
-                            ...assets
-                        ]
-                    }), previous)
-            ), {})
+        .map(recalculatedToRooms)
+        .reduce((previous, roomMap) => (
+            Object.entries(roomMap)
+                .reduce((accumulator, [room, assets = []]) => ({
+                    ...accumulator,
+                    [room]: [
+                        ...(accumulator[room] || []),
+                        ...assets
+                    ]
+                }), previous)
+        ), {})
 
     await Promise.all([
         updateRooms({
-            assetsChangedByRoom
+            assetsChangedByRoom,
+            existingStatesByAsset: newStates
         })
     ])
 
