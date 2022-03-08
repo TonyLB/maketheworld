@@ -24,6 +24,12 @@ const updateSingleAsset = async({ assetId, newStates, recalculated }) => {
                 [':mapCache']: renderedAsset
             }
         })
+        return {
+            [assetId]: {
+                ...(newStates[assetId] || {}),
+                mapCache: renderedAsset
+            }
+        }
     }
     else {
         await ephemeraDB.update({
@@ -37,15 +43,17 @@ const updateSingleAsset = async({ assetId, newStates, recalculated }) => {
                 ':state': newStates[assetId]?.State || {}
             }
         })
+        return {}
     }
 }
 
 export const updateAssets = async ({ newStates, recalculated }) => {
 
-    await Promise.all(Object.keys(newStates)
+    const updates = await Promise.all(Object.keys(newStates)
         .map((assetId) => (updateSingleAsset({ assetId, newStates, recalculated: recalculated[assetId] || [] })))
     )
 
+    return Object.assign(newStates, ...updates)
 }
 
 export default updateAssets

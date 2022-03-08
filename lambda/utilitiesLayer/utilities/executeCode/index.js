@@ -101,7 +101,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
         }
     }), state)
 
-    const { states: newStates, recalculated } = await dependencyCascade(
+    const { states: firstPassStates, recalculated } = await dependencyCascade(
         {
             [assetId]: {
                 State: updatedState,
@@ -113,13 +113,13 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
         []
     )
 
-    await updateAssets({
-        newStates,
+    const secondPassStates = await updateAssets({
+        newStates: firstPassStates,
         recalculated
     })
     const recalculatedToRooms = ([asset, keys]) => (
         keys
-            .map((key) => (newStates[asset]?.Dependencies?.[key]?.room || []))
+            .map((key) => (secondPassStates[asset]?.Dependencies?.[key]?.room || []))
             .reduce((previous, rooms) => (
                 rooms.reduce((accumulator, room) => ({
                     ...accumulator,
@@ -143,7 +143,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
     await Promise.all([
         updateRooms({
             assetsChangedByRoom,
-            existingStatesByAsset: newStates
+            existingStatesByAsset: secondPassStates
         })
     ])
 

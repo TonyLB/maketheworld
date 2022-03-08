@@ -191,9 +191,16 @@ describe('updateAssets', () => {
                 importTree: {}
             }
         }
-        await updateAssets({
+        const updatedState = await updateAssets({
             newStates: mapCacheAssets,
             recalculated: { BASE: ['foo'] }
+        })
+        expect(updatedState).toEqual({
+            ...mapCacheAssets,
+            BASE: {
+                ...mapCacheAssets.BASE,
+                mapCache: testRender
+            }
         })
         expect(assetRender).toHaveBeenCalledTimes(1)
         expect(assetRender).toHaveBeenCalledWith({

@@ -25,6 +25,7 @@ describe('executeInAsset', () => {
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
+        updateAssets.mockResolvedValue({ BASE: testAssets.BASE })
         const output = await executeInAsset('BASE')('return foo')
         expect(output.returnValue).toBe(true)
         expect(dependencyCascade).toHaveBeenCalledWith(
@@ -63,6 +64,7 @@ describe('executeInAsset', () => {
                 MixLayerA: ['fooBar']
             }
         })
+        updateAssets.mockResolvedValue(cascadedAssets)
         await executeInAsset('BASE')('foo = false')
         expect(dependencyCascade).toHaveBeenCalledWith(
             { BASE: testAssetsFactory({ foo: false }).BASE },
@@ -94,6 +96,7 @@ describe('executeInAsset', () => {
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
+        updateAssets.mockResolvedValue(testAssets)
         const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('here.message("Test Message")')
         expect(executeMessageQueue).toEqual([{
             DisplayProtocol: 'WorldMessage',
