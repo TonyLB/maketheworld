@@ -79,7 +79,8 @@ describe('updateRooms', () => {
             activeCharacters: {
                 ['CHARACTERINPLAY#TESS']: { Name: 'Tess' },
                 ['CHARACTERINPLAY#MARCO']: { Name: 'Marco' }
-            }
+            },
+            Dependencies: {}
         })
         render.mockResolvedValue([])
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB'])
@@ -130,6 +131,71 @@ describe('updateRooms', () => {
             renderList: [{
                 EphemeraId: 'ROOM#VORTEX',
                 CharacterId: 'TESS'
+            }],
+            assetMeta: {},
+            assetLists: { global: ['BASE'], characters: {
+                TESS: ['LayerA'],
+                MARCO: ['LayerB']
+            } }
+        })
+    })
+
+    it('should publish map updates to everyone on a global map-dependency change', async () => {
+        ephemeraDB.getItem.mockResolvedValue({
+            EphemeraId: 'ROOM#VORTEX',
+            activeCharacters: {
+                ['CHARACTERINPLAY#TESS']: { Name: 'Tess' },
+                ['CHARACTERINPLAY#MARCO']: { Name: 'Marco' }
+            },
+            Dependencies: {
+                map: ['MAP#TestMap']
+            }
+        })
+        ephemeraDB.query.mockImplementation(({ IndexName }) => {
+            if (IndexName === 'DataCategoryIndex') {
+                return [{
+                    EphemeraId: 'CHARACTERINPLAY#TESS',
+                    Connected: true
+                },
+                {
+                    EphemeraId: 'CHARACTERINPLAY#MARCO',
+                    Connected: true
+                },
+                {
+                    EphemeraId: 'CHARACTERINPLAY#AKUA',
+                    Connected: false
+                }]
+            }
+            return [{
+                EphemeraId: 'MAP#TestMap',
+                DataCategory: 'ASSET#BASE'
+            }]
+        })
+        render.mockResolvedValue([])
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getCharacterAssets.mockResolvedValue({
+            TESS: ['LayerA'],
+            MARCO: ['LayerB']
+        })
+
+        await updateRooms({
+            assetsChangedByRoom: {
+                VORTEX: ['LayerA']
+            }
+        })
+
+        expect(render).toHaveBeenCalledWith({
+            renderList: [{
+                EphemeraId: 'ROOM#VORTEX',
+                CharacterId: 'TESS'
+            },
+            {
+                EphemeraId: 'MAP#TestMap',
+                CharacterId: 'TESS'
+            },
+            {
+                EphemeraId: 'MAP#TestMap',
+                CharacterId: 'MARCO'
             }],
             assetMeta: {},
             assetLists: { global: ['BASE'], characters: {
