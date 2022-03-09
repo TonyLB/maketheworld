@@ -4,6 +4,7 @@ import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
 import { AssetKey, RoomKey } from '../types.js'
 import { defaultColorFromCharacterId } from '../selfHealing/index.js'
+import updateAssets from './updateAssets.js'
 
 export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { RoomId, CharacterId } = options
@@ -100,7 +101,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
         }
     }), state)
 
-    const { states: newStates, recalculated } = await dependencyCascade(
+    const { states: firstPassStates, recalculated } = await dependencyCascade(
         {
             [assetId]: {
                 State: updatedState,
@@ -112,24 +113,13 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
         []
     )
 
-    await Promise.all(Object.entries(newStates)
-        .map(([key, newState]) => (
-            ephemeraDB.update({
-                EphemeraId: AssetKey(key),
-                DataCategory: 'Meta::Asset',
-                UpdateExpression: 'SET #state = :state',
-                ExpressionAttributeNames: {
-                    '#state': 'State'
-                },
-                ExpressionAttributeValues: {
-                    ':state': newState.State
-                }
-            })    
-        ))
-    )
+    const secondPassStates = await updateAssets({
+        newStates: firstPassStates,
+        recalculated
+    })
     const recalculatedToRooms = ([asset, keys]) => (
         keys
-            .map((key) => (newStates[asset]?.Dependencies?.[key]?.room || []))
+            .map((key) => (secondPassStates[asset]?.Dependencies?.[key]?.room || []))
             .reduce((previous, rooms) => (
                 rooms.reduce((accumulator, room) => ({
                     ...accumulator,
@@ -137,22 +127,46 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                 }), previous)),
             {})
     )
+    const recalculatedToMaps = ([asset, keys]) => (
+        keys
+            .map((key) => (secondPassStates[asset]?.Dependencies?.[key]?.map || []))
+            .reduce((previous, maps) => (
+                maps.reduce((accumulator, map) => ({
+                    ...accumulator,
+                    [map]: [...(accumulator[map] || []), asset]
+                }), previous)),
+            {})
+    )
     const assetsChangedByRoom = Object.entries(recalculated)
-            .map(recalculatedToRooms)
-            .reduce((previous, roomMap) => (
-                Object.entries(roomMap)
-                    .reduce((accumulator, [room, assets = []]) => ({
-                        ...accumulator,
-                        [room]: [
-                            ...(accumulator[room] || []),
-                            ...assets
-                        ]
-                    }), previous)
-            ), {})
+        .map(recalculatedToRooms)
+        .reduce((previous, roomMap) => (
+            Object.entries(roomMap)
+                .reduce((accumulator, [room, assets = []]) => ({
+                    ...accumulator,
+                    [room]: [
+                        ...(accumulator[room] || []),
+                        ...assets
+                    ]
+                }), previous)
+        ), {})
+    const assetsChangedByMap = Object.entries(recalculated)
+        .map(recalculatedToMaps)
+        .reduce((previous, mapMap) => (
+            Object.entries(mapMap)
+                .reduce((accumulator, [mapId, assets = []]) => ({
+                    ...accumulator,
+                    [mapId]: [
+                        ...(accumulator[mapId] || []),
+                        ...assets
+                    ]
+                }), previous)
+        ), {})
 
     await Promise.all([
         updateRooms({
-            assetsChangedByRoom
+            assetsChangedByRoom,
+            assetsChangedByMap,
+            existingStatesByAsset: secondPassStates
         })
     ])
 

@@ -5,11 +5,13 @@ import { forceDisconnect } from './forceDisconnect.js'
 const queueInitial = {
     messages: {},
     messageMeta: {},
+    ephemera: [],
+    ephemeraMeta: {},
     otherSends: []
 }
 
 const queueReducer = (state, action) => {
-    const { messages, otherSends, messageMeta } = state
+    const { messages, otherSends, messageMeta, ephemera, ephemeraMeta } = state
     switch(action.messageType || '') {
         case 'Messages':
             return {
@@ -26,11 +28,30 @@ const queueReducer = (state, action) => {
                     LastSync: action.LastSync,
                     RequestId: action.RequestId
                 },
+                ephemera,
+                ephemeraMeta,
+                otherSends
+            }
+        case 'Ephemera':
+            return {
+                messages,
+                messageMeta,
+                ephemera: [
+                    ...ephemera,
+                    ...action.updates
+                ],
+                ephemeraMeta: {
+                    ...ephemeraMeta,
+                    RequestId: action.RequestId
+                },
                 otherSends
             }
         default:
             return {
                 messages,
+                messageMeta,
+                ephemera,
+                ephemeraMeta,
                 otherSends: [
                     ...otherSends,
                     action
@@ -39,7 +60,7 @@ const queueReducer = (state, action) => {
     }
 }
 
-const queueSerialize = ({ messages = [], messageMeta = {}, otherSends = []}) => {
+const queueSerialize = ({ messages = [], messageMeta = {}, ephemera = [], ephemeraMeta = {}, otherSends = []}) => {
     return [
         ...(Object.keys(messages).length
             ? [{
@@ -48,6 +69,14 @@ const queueSerialize = ({ messages = [], messageMeta = {}, otherSends = []}) => 
                 messages: Object.values(messages)
                     .reduce((previous, targets) => ([ ...previous, ...(Object.values(targets)) ]), [])
                     .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
+            }]
+            : []
+        ),
+        ...(ephemera.length
+            ? [{
+                messageType: 'Ephemera',
+                ...ephemeraMeta,
+                updates: ephemera
             }]
             : []
         ),
