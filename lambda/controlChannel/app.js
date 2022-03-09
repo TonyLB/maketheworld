@@ -360,11 +360,13 @@ export const handler = async (event, context) => {
                         }))
                         .map(publishMessage)
                     )
+                    break
                 case 'Feature':
                     await lookPermanent({
                         CharacterId: request.CharacterId,
                         PermanentId: `FEATURE#${request.FeatureId}`
                     })
+                    break
             }
             return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
         case 'command':
