@@ -127,12 +127,22 @@ export const schema = {
             discardContents,
         ])(node.schema())
     },
+    ImageExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(confirmRequiredProps(['key'])),
+            validate(confirmKeyProps(['key'])),
+            liftKeyProps(['key']),
+            liftLiteralProps(['fileURL']),
+        ])(node.schema())
+    },
     MapExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
             validate(confirmRequiredProps(['key'])),
             validate(confirmKeyProps(['key'])),
             liftKeyProps(['key']),
+            liftLiteralTags({ Name: 'name' }),
             liftRoomLocations
         ])(node.schema())
     },

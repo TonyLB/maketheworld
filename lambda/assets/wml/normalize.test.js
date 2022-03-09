@@ -433,6 +433,11 @@ describe('WML normalize', () => {
                     }
                 },
                 contents: [{
+                    key: 'ImageTest',
+                    tag: 'Image',
+                    fileURL: 'https://test.com/imageTest.png'
+                },
+                {
                     tag: 'Room',
                     key: '123'
                 }]
@@ -540,6 +545,15 @@ describe('WML normalize', () => {
                     contents: []
                 }]
             },
+            ImageTest: {
+                tag: 'Image',
+                key: 'ImageTest',
+                fileURL: 'https://test.com/imageTest.png',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                    contents: []
+                }]
+            },
             TestMap: {
                 tag: 'Map',
                 key: 'TestMap',
@@ -552,6 +566,11 @@ describe('WML normalize', () => {
                         }
                     },
                     contents: [{
+                        tag: 'Image',
+                        key: 'ImageTest',
+                        index: 0
+                    },
+                    {
                         tag: 'Room',
                         key: '123',
                         index: 1
