@@ -527,6 +527,46 @@ Resources:
                   - HEAD
                 AllowedHeaders:
                   - "*"
+  CloudFrontAccessIdentity:
+      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+      Properties:
+          CloudFrontOriginAccessIdentityConfig:
+              Comment: Cloudfront Origin identity for MakeTheWorld
+  ImageCloudFrontDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+          DistributionConfig:
+              Enabled: True
+              Origins:
+                - DomainName: !GetAtt AssetBucket.RegionalDomainName
+                  Id: !Sub "S3-origin-${AssetBucket}"
+                  OriginPath: /images
+                  S3OriginConfig:
+                      OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontAccessIdentity}"
+              PriceClass: PriceClass_100
+              DefaultCacheBehavior:
+                  AllowedMethods:
+                  - GET
+                  - HEAD
+                  TargetOriginId: !Sub "S3-origin-${AssetBucket}"
+                  ForwardedValues:
+                    QueryString: 'false'
+                    Cookies:
+                      Forward: none
+                  ViewerProtocolPolicy: allow-all
+  ImageHostingPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+          Bucket: !Ref AssetBucket
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - "s3:GetObject"
+                Effect: Allow
+                Principal:
+                  AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontAccessIdentity}"
+                Resource: !Sub "arn:aws:s3:::${AssetBucket}/images/*"
+            Version: "2012-10-17"
   AssetsFunction:
       Type: AWS::Serverless::Function
       Properties:
