@@ -49,7 +49,11 @@ export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
     const getSingleState = async (assetId, existingStatesByAsset = {}) => {
         if (existingStatesByAsset[assetId]) {
             return {
-                [assetId]: existingStatesByAsset[assetId]
+                [assetId]: {
+                    ...existingStatesByAsset[assetId],
+                    State: Object.entries(existingStatesByAsset[assetId]?.State || {})
+                        .reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}),
+                }
             }
         }
         const { State = {}, mapCache = {} } = await ephemeraDB.getItem({
@@ -62,7 +66,7 @@ export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
         })
         return {
             [assetId]: {
-                state: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}),
+                State: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}),
                 mapCache
             }
         }

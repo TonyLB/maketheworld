@@ -40,6 +40,7 @@ describe('executeInAsset', () => {
         })
         expect(updateRooms).toHaveBeenCalledWith({
             assetsChangedByRoom: {},
+            assetsChangedByMap: {},
             existingStatesByAsset: { BASE: testAssets.BASE }
         })
     })
@@ -85,7 +86,65 @@ describe('executeInAsset', () => {
             assetsChangedByRoom: {
                 MNO: ['LayerA']
             },
+            assetsChangedByMap: {},
             existingStatesByAsset: cascadedAssets
+        })
+    })
+
+    it('should detect a map update', async () => {
+        const testAssets = {
+            BASE: {
+                State: {
+                    foo: { value: false },
+                },
+                Dependencies: {
+                    foo: {
+                        map: ['TestMap']
+                    }
+                },
+                importTree: {}
+            }
+        }
+        const updatedAssets = {
+            BASE: {
+                State: {
+                    foo: { value: true },
+                },
+                Dependencies: {
+                    foo: {
+                        map: ['TestMap']
+                    }
+                },
+                importTree: {}
+            }
+        }
+        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        dependencyCascade.mockResolvedValue({
+            states: updatedAssets,
+            recalculated: {
+                BASE: ['foo']
+            }
+        })
+        updateAssets.mockResolvedValue(updatedAssets)
+        await executeInAsset('BASE')('foo = true')
+        expect(dependencyCascade).toHaveBeenCalledWith(
+            { BASE: updatedAssets.BASE },
+            { BASE: ['foo'] },
+            []
+        )
+        expect(updateAssets).toHaveBeenCalledTimes(1)
+        expect(updateAssets).toHaveBeenCalledWith({
+            newStates: updatedAssets,
+            recalculated: {
+                BASE: ['foo'],
+            }
+        })
+        expect(updateRooms).toHaveBeenCalledWith({
+            assetsChangedByRoom: {},
+            assetsChangedByMap: {
+                TestMap: ['BASE']
+            },
+            existingStatesByAsset: updatedAssets
         })
     })
 

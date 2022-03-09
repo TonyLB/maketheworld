@@ -93,7 +93,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             case 'ROOM':
                 const { render: roomRender, name: roomName, exits: roomExits, features: roomFeatures } = assets.reduce((previous, AssetId) => {
                         const { appearances = [] } = itemsByAsset[AssetId]
-                        const state = assetStateById[splitType(AssetId)[1]]?.state || {}
+                        const state = assetStateById[splitType(AssetId)[1]]?.State || {}
                         return appearances
                             .filter(({ name, exits }) => (!mapValuesOnly || ((name || []).length > 0 || (exits || []).length > 0)))
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
@@ -126,7 +126,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             case 'FEATURE':
                 const { render: featureRender, name: featureName, features: featureFeatures } = assets.reduce((previous, AssetId) => {
                         const { appearances = [], name } = itemsByAsset[AssetId]
-                        const state = assetStateById[splitType(AssetId)[1]]?.state || {}
+                        const state = assetStateById[splitType(AssetId)[1]]?.State || {}
                         return appearances
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce(({ render: previousRender, features: previousFeatures, name: previousName }, { render, features }) => ({
@@ -170,7 +170,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 const { visibleMapAppearancesByAsset, name: mapName = [] } = assets.reduce((previous, AssetId) => {
                     const { appearances = [], name } = itemsByAsset[AssetId]
 
-                    const { state = {} } = assetStateById[splitType(AssetId)[1]] || {}
+                    const { State: state = {} } = assetStateById[splitType(AssetId)[1]] || {}
                     return {
                         visibleMapAppearancesByAsset: {
                             ...previous.visibleMapAppearancesByAsset,

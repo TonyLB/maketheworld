@@ -183,13 +183,21 @@ describe('updateRooms', () => {
         await updateRooms({
             assetsChangedByRoom: {
                 VORTEX: ['LayerA']
-            }
+            },
+            assetsChangedByMap: {
+                TestMapTwo: ['LayerB']
+            },
+            roomsWithMapUpdates: ['VORTEX'],
         })
 
         expect(render).toHaveBeenCalledWith({
             renderList: [{
                 EphemeraId: 'ROOM#VORTEX',
                 CharacterId: 'TESS'
+            },
+            {
+                EphemeraId: 'MAP#TestMapTwo',
+                CharacterId: 'MARCO'
             },
             {
                 EphemeraId: 'MAP#TestMap',

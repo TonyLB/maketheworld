@@ -127,6 +127,16 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                 }), previous)),
             {})
     )
+    const recalculatedToMaps = ([asset, keys]) => (
+        keys
+            .map((key) => (secondPassStates[asset]?.Dependencies?.[key]?.map || []))
+            .reduce((previous, maps) => (
+                maps.reduce((accumulator, map) => ({
+                    ...accumulator,
+                    [map]: [...(accumulator[map] || []), asset]
+                }), previous)),
+            {})
+    )
     const assetsChangedByRoom = Object.entries(recalculated)
         .map(recalculatedToRooms)
         .reduce((previous, roomMap) => (
@@ -139,10 +149,23 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                     ]
                 }), previous)
         ), {})
+    const assetsChangedByMap = Object.entries(recalculated)
+        .map(recalculatedToMaps)
+        .reduce((previous, mapMap) => (
+            Object.entries(mapMap)
+                .reduce((accumulator, [mapId, assets = []]) => ({
+                    ...accumulator,
+                    [mapId]: [
+                        ...(accumulator[mapId] || []),
+                        ...assets
+                    ]
+                }), previous)
+        ), {})
 
     await Promise.all([
         updateRooms({
             assetsChangedByRoom,
+            assetsChangedByMap,
             existingStatesByAsset: secondPassStates
         })
     ])

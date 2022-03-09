@@ -27,7 +27,7 @@ describe('render', () => {
         const testAssets = Object.entries(resultStateFactory())
             .reduce((previous, [key, value]) => ({
                 ...previous,
-                [key]: { state: value }
+                [key]: { State: value }
             }), {})
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getStateByAsset.mockImplementation(async (assets) => {
@@ -77,7 +77,7 @@ describe('render', () => {
         const testAssets = Object.entries(resultStateFactory())
             .reduce((previous, [key, value]) => ({
                 ...previous,
-                [key]: { state: value }
+                [key]: { State: value }
             }), {})
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getStateByAsset.mockImplementation(async (assets) => {
@@ -129,7 +129,7 @@ describe('render', () => {
         const testAssets = Object.entries(resultStateFactory())
             .reduce((previous, [key, value]) => ({
                 ...previous,
-                [key]: { state: value }
+                [key]: { State: value }
             }), {})
         getStateByAsset.mockResolvedValue(testAssets)
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
@@ -321,7 +321,7 @@ describe('render', () => {
         const testAssets = Object.entries(resultStateFactory())
             .reduce((previous, [key, value]) => ({
                 ...previous,
-                [key]: { state: value }
+                [key]: { State: value }
             }), {})
         getGlobalAssets.mockResolvedValue(['BASE'])
         getStateByAsset.mockImplementation(async (assets) => {
@@ -418,7 +418,7 @@ describe('render', () => {
         const testAssets = Object.entries(resultStateFactory())
             .reduce((previous, [key, value]) => ({
                 ...previous,
-                [key]: { state: value }
+                [key]: { State: value }
             }), {})
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({

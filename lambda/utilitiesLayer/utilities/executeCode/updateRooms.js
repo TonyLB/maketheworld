@@ -5,9 +5,17 @@ import { render } from '../perception/index.js'
 import { deliverRenders } from '../perception/deliverRenders.js'
 import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
 import { splitType, RoomKey } from '../types.js'
+import { unique } from '../lists.js'
 
+//
+// Assumption:  roomsWithMapUpdates should be a subset of Object.keys(assetsChangedByRoom)
+// (which is to say, any room updated in such a way as to side-effect maps should also
+// be included in the updates to room description)
+//
 export const updateRooms = async ({
     assetsChangedByRoom,
+    assetsChangedByMap = {},
+    roomsWithMapUpdates = [],
     existingStatesByAsset = {}
 }) => {
     const roomsMetaFetch = await Promise.all(
@@ -33,6 +41,7 @@ export const updateRooms = async ({
     // those who have visibility on an Asset in which that map is defined
     //
     const mapsToCheck = [...(new Set(roomsMeta
+        .filter(({ EphemeraId }) => (roomsWithMapUpdates.includes(splitType(EphemeraId)[1])))
         .map(({ Dependencies: { map = [] } = {} }) => (map))
         .reduce((previous, map) => ([ ...previous, ...map ]), [])))]
     const fetchAssetsByMap = async () => {
@@ -66,11 +75,10 @@ export const updateRooms = async ({
             .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
     }
 
-    const referencedCharacters = [...(new Set(roomsMeta.reduce((previous, { activeCharacters }) => ([...previous, Object.keys(activeCharacters).map((value) => (splitType(value)[1]))]), [])))]
-    const [globalAssets, characterAssets, assetsByMap = {}, allCharacters] = await Promise.all([
+    const referencedCharacters = unique(...roomsMeta.map(({ activeCharacters }) => (Object.keys(activeCharacters).map((value) => (splitType(value)[1])))))
+    const [globalAssets, fetchedAssetsByMap = {}, fetchAllCharacters = []] = await Promise.all([
         getGlobalAssets(),
-        getCharacterAssets(referencedCharacters),
-        ...((mapsToCheck.length > 0)
+        ...(((mapsToCheck.length > 0) || (Object.keys(assetsChangedByMap).length > 0))
             ? [
                 fetchAssetsByMap(),
                 fetchAllActiveCharacters()
@@ -78,6 +86,20 @@ export const updateRooms = async ({
             :[]
         )
     ])
+    const allCharacters = unique(referencedCharacters, fetchAllCharacters)
+    const characterAssets = await getCharacterAssets(allCharacters)
+    //
+    // Combine the assets-per-map from mapCache side-effects with the assets-per-map sent from
+    // direct map changes detected in calculating dependency updates
+    //
+    const assetsByMap = Object.entries(fetchedAssetsByMap)
+        .reduce((previous, [mapId, assets]) => ({
+            ...previous,
+            [mapId]: [...(new Set([
+                ...(previous[mapId] || []),
+                ...assets
+            ]))]
+        }), assetsChangedByMap)
     const characterSeesChange = (characterId, changedAssets) => {
         const localAssets = characterAssets[characterId] || []
         return Boolean([...globalAssets, ...localAssets].find((asset) => (changedAssets.includes(asset))))
@@ -90,7 +112,21 @@ export const updateRooms = async ({
                 .filter((characterId) => (characterSeesChange(characterId, assets)))
                 .reduce((accumulator, characterId) => ([ ...accumulator, { EphemeraId, CharacterId: characterId }]), previous)
         }, [])
-    const mapUpdates = mapsToCheck
+    const mapDirectUpdates = Object.keys(assetsChangedByMap)
+        .reduce((previous, mapId) => {
+            const charactersWhoSeeUpdate = allCharacters
+                .filter((characterId) => (characterSeesChange(characterId, assetsChangedByMap[mapId] || [])))
+            return [
+                ...previous,
+                ...(charactersWhoSeeUpdate
+                    .map((CharacterId) => ({
+                        EphemeraId: `MAP#${mapId}`,
+                        CharacterId
+                    }))
+                )
+            ]                
+        }, [])
+    const mapRoomUpdates = mapsToCheck
         .reduce((previous, mapId) => {
             const charactersWhoSeeMap = allCharacters
                 .filter((characterId) => (characterSeesChange(characterId, assetsByMap[mapId] || [])))
@@ -103,26 +139,22 @@ export const updateRooms = async ({
                     }))
                 )
             ]
-        }, [])
-    const deduplicate = (roomsToUpdate, mapUpdates) => {
-        const deduplicatedMapUpdates = mapUpdates
+        }, mapDirectUpdates)
+    const deduplicate = (firstList, secondList) => {
+        const deduplicatedMapUpdates = secondList
             .filter(({ EphemeraId: mapEphemeraId, CharacterId: mapCharacterId }) => (
-                !(roomsToUpdate.find(({ EphemeraId, CharacterId }) => (EphemeraId === mapEphemeraId && CharacterId === mapCharacterId)))
+                !(firstList.find(({ EphemeraId, CharacterId }) => (EphemeraId === mapEphemeraId && CharacterId === mapCharacterId)))
             ))
-        return [...roomsToUpdate, ...deduplicatedMapUpdates]
+        return [...firstList, ...deduplicatedMapUpdates]
     }
     const renderOutputs = await render({
-        renderList: deduplicate(roomsToUpdate, mapUpdates),
+        renderList: deduplicate(roomsToUpdate, mapRoomUpdates),
         assetMeta: existingStatesByAsset,
         assetLists: {
             global: globalAssets,
             characters: characterAssets
         }
     })
-    //
-    // TODO: Abstract a deliverRenderOutput function in perception, and use it here
-    // (as well as other places where render is called and delivered)
-    //
     await deliverRenders({
         renderOutputs
     })
