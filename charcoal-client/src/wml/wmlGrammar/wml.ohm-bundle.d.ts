@@ -21,6 +21,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   AssetLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   MapExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   MapLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  ImageExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ImportExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ImportLegalContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   UseExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;

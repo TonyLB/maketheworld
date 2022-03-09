@@ -36,6 +36,11 @@ WorldMarkupLangage {
 
     MapExpression = TagExpression<"Map", "key", none, none, none, MapLegalContents>
     MapLegalContents = MapRoomExpression
+            | NameExpression
+            | ImageExpression
+
+    ImageExpression = TagExpression<"Image", "key", "fileURL", none, none, none>
+            | TagSelfClosing<"Image", "key", "fileURL", none, none>
 
     ImportExpression = TagExpression<"Import", "from", none, none, none, ImportLegalContents>
     ImportLegalContents = UseExpression

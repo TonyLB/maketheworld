@@ -208,6 +208,8 @@ describe('WML semantic schema', () => {
         const match = wmlGrammar.match(`
             <Story key=(Test) instance fileName="test">
                 <Map key=(TestMap)>
+                    <Name>Test Map</Name>
+                    <Image key=(ImageTest) fileURL="https://test.com/imageTest.png" />
                     <Room key=(ABC) x="200" y="150" />
                 </Map>
             </Story>
@@ -223,6 +225,7 @@ describe('WML semantic schema', () => {
             contents: [{
                 key: 'TestMap',
                 tag: 'Map',
+                name: 'Test Map',
                 props: {},
                 rooms: {
                     ABC: {
@@ -231,6 +234,13 @@ describe('WML semantic schema', () => {
                     }
                 },
                 contents: [{
+                    key: 'ImageTest',
+                    tag: 'Image',
+                    fileURL: 'https://test.com/imageTest.png',
+                    props: {},
+                    contents: []
+                },
+                {
                     key: 'ABC',
                     tag: 'Room',
                     global: false,

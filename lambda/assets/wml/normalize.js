@@ -89,6 +89,9 @@ const pullProperties = (node) => {
             case 'Condition':
                 pullTags = [...pullTags, 'if', 'dependencies']
                 break
+            case 'Image':
+                pullTags.push('fileURL')
+                break
             case 'Import':
                 pullTags = [...pullTags, 'mapping', 'from']
                 break
