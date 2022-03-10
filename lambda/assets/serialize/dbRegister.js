@@ -77,7 +77,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 fileName,
                 translateFile,
                 scopedId: character.key,
-                ...(['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player']
+                ...(['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player', 'fileURL']
                     .reduce((previous, label) => ({ ...previous, [label]: character[label] }), {}))
             })
         ])

@@ -12,6 +12,7 @@ import {
     liftUseTags,
     liftDependencyTags,
     liftRoomLocations,
+    liftImageFileURL,
     liftPronounTags,
     confirmKeyProps,
     confirmExpressionProps,
@@ -288,6 +289,7 @@ export const schema = {
             liftLiteralProps(['player', 'fileName']),
             validate(fileNameValidator),
             liftPronounTags,
+            liftImageFileURL,
             liftLiteralTags({
                 Name: 'Name',
                 FirstImpression: 'FirstImpression',

@@ -359,6 +359,7 @@ describe('WML normalize', () => {
             tag: 'Character',
             key: 'TESS',
             Name: 'Tess',
+            fileURL: 'testIcon.png',
             Pronouns: {
                 subjective: 'she',
                 objective: 'her',
@@ -377,6 +378,7 @@ describe('WML normalize', () => {
                 key: 'TESS',
                 tag: 'Character',
                 fileName: 'test.wml',
+                fileURL: 'testIcon.png',
                 Name: 'Tess',
                 Pronouns: {
                     subjective: 'she',

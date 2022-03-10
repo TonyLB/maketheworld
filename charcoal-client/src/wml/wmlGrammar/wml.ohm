@@ -9,7 +9,8 @@ WorldMarkupLangage {
             | CharacterExpression
 
     CharacterExpression = TagExpression<"Character", "key", ("player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
-    CharacterLegalContents = LiteralNameExpression
+    CharacterLegalContents = ImageExpression
+            | LiteralNameExpression
             | PronounsExpression
             | LiteralValueTag<"OneCoolThing">
             | LiteralValueTag<"Outfit">

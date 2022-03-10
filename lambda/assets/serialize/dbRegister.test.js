@@ -14,6 +14,7 @@ describe('dbRegister', () => {
                 tag: 'Character',
                 key: 'TESS',
                 Name: 'Tess',
+                fileURL: 'testIcon.png',
                 Pronouns: {
                     subject: 'she',
                     object: 'her',
@@ -34,6 +35,7 @@ describe('dbRegister', () => {
             translateFile: 'test.translate.json',
             scopedId: 'TESS',
             player: 'TEST',
+            fileURL: 'testIcon.png',
             Name: 'Tess',
             Pronouns: {
                 subject: 'she',

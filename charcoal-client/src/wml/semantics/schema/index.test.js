@@ -123,6 +123,40 @@ describe('WML semantic schema', () => {
         })
     })
 
+    it('should parse a character element', () => {
+        const match = wmlGrammar.match(`
+            <Character key=(Tess) fileName="Tess" player="testy">
+                <Image key=(icon) fileURL="testIcon.png" />
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+            </Character>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toEqual({
+            key: 'Tess',
+            tag: 'Character',
+            fileName: 'Tess',
+            player: "testy",
+            Name: 'Tess',
+            Pronouns: {
+                subject: 'she',
+                object: 'her',
+                possessive: 'her',
+                adjective: 'hers',
+                reflexive: 'herself'
+            },
+            fileURL: 'testIcon.png',
+            props: {},
+            contents: []
+        })
+    })
+
     it('should parse a story element', () => {
         const match = wmlGrammar.match(`
             <Story key=(Test) instance fileName="test">

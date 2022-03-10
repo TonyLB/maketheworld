@@ -200,6 +200,17 @@ export const liftRoomLocations = ({ contents = [], ...rest}) => {
     }
 }
 
+export const liftImageFileURL = ({ contents = [], ...rest }) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Image'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Image'))
+    const fileURL = tagsToLift.reduce((previous, { fileURL }) => (fileURL || previous), undefined)
+    return {
+        contents: unliftedItems,
+        ...rest,
+        fileURL
+    }
+}
+
 export const liftPronounTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Pronouns'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Pronouns'))
