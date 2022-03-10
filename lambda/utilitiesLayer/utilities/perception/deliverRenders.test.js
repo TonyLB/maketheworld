@@ -66,6 +66,7 @@ describe('displayRenders', () => {
                 EphemeraId: 'MAP#TestMap',
                 MapId: 'TestMap',
                 Name: "Grand Bazaar",
+                fileURL: 'test.png',
                 rooms: {
                     ['BASE#fountainSquare']: {
                         x: 0,
@@ -121,6 +122,7 @@ describe('displayRenders', () => {
                     EphemeraId: 'MAP#TestMap',
                     MapId: 'TestMap',
                     Name: "Grand Bazaar",
+                    fileURL: 'test.png',
                     rooms: {
                         ['BASE#fountainSquare']: {
                             x: 0,

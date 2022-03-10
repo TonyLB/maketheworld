@@ -265,6 +265,7 @@ describe('render', () => {
                     name: 'Grand Bazaar',
                     appearances: [{
                         conditions: [],
+                        fileURL: 'test.png',
                         rooms: {
                             fountainSquare: {
                                 EphemeraId: 'ROOM#XYZ',
@@ -295,6 +296,7 @@ describe('render', () => {
             EphemeraId: 'MAP#MNO',
             MapId: 'MNO',
             Name: "Grand Bazaar",
+            fileURL: 'test.png',
             rooms: {
                 ['BASE#fountainSquare']: {
                     x: 0,
