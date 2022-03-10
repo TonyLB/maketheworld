@@ -25,6 +25,7 @@ type ActiveCharacterMapRoom = {
 export type ActiveCharacterMap = {
     MapId: string;
     Name: string;
+    fileURL?: string;
     rooms: Record<string, ActiveCharacterMapRoom>
 }
 
