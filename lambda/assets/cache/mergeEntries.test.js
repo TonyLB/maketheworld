@@ -393,6 +393,17 @@ describe('Asset cache mergeEntries', () => {
                     contents: []
                 }]
             },
+            TestImage: {
+                key: 'TestImage',
+                tag: 'Image',
+                fileURL: 'https://test.com/testImage.png',
+                appearances: [{
+                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                    errors: [],
+                    props: {},
+                    contents: []
+                }]
+            },
             TestMap: {
                 key: 'TestMap',
                 tag: 'Map',
@@ -400,6 +411,11 @@ describe('Asset cache mergeEntries', () => {
                 appearances: [{
                     ...topLevelAppearance,
                     contents: [{
+                        key: 'TestImage',
+                        tag: 'Image',
+                        index: 0
+                    },
+                    {
                         key: 'MNO',
                         tag: 'Room',
                         index: 0
@@ -433,6 +449,7 @@ describe('Asset cache mergeEntries', () => {
                 tag: 'Map',
                 appearances: [{
                     conditions: [],
+                    fileURL: 'https://test.com/testImage.png',
                     rooms: {
                         MNO: {
                             EphemeraId: 'ROOM#PQR',
