@@ -10,6 +10,7 @@ import mapAreaReducer, { treeToVisible } from './reducer'
 import { MapDispatch } from '../reducer.d'
 
 type MapAreaProps = {
+    fileURL?: string;
     tree: MapTree;
     dispatch: MapDispatch;
 }
@@ -18,7 +19,7 @@ const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGEl
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
 
-export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch }) => {
     // const localClasses = useMapStyles()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
@@ -59,6 +60,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ tree, dispatch }) => {
     const decoratorExits = exitDragSourceRoom
         ? [{ fromX: exitDragSourceRoom.x, fromY: exitDragSourceRoom.y, toX: exitDrag.x, toY: exitDrag.y, double: true }]: []
     return <MapDisplay
+        fileURL={fileURL}
         rooms={rooms}
         exits={exits}
         mapDispatch={mapDispatch}

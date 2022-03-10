@@ -42,7 +42,8 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
         mapDispatch,
         onClick = () => {},
         decoratorCircles = [],
-        decoratorExits = []
+        decoratorExits = [],
+        fileURL = ''
     }) => {
     const localClasses = useMapStyles()
     const [scale, setScale] = useState(0)
@@ -179,7 +180,17 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                     refX='5.75' refY='5'>
                                 <path d='M10,1.3 V8.7 L2.4,5 Z' fill='#FFFFFF' />
                             </marker>
+                            { fileURL &&
+                                <pattern id="backgroundImg" patternUnits="userSpaceOnUse" x="0" y="0" width="600" height="400">
+                                    <image xlinkHref={fileURL} width="600" height="400" />
+                                </pattern>
+                            }
                         </defs>
+                        {
+                            fileURL && <path d="M0,0
+                                l0,400 l600,0 l0,-400 l-600,0"
+                            fill="url(#backgroundImg)" />
+                        }
                         {
                             deduplicatedExits
                                 .map(({ fromRoomId, toRoomId, double }) => {

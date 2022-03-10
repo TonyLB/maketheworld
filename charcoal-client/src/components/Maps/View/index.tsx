@@ -49,6 +49,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
             </Box>
         </Box>
         { MapId && <MapArea
+            fileURL={maps[MapId].fileURL}
             tree={cacheToTree(maps[MapId])}
             dispatch={() => {}}
         /> }
