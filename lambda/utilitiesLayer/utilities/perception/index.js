@@ -233,9 +233,15 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     return mapRooms
                 }, {})
 
+                const fileURL = assets.reduce((previous, AssetId) => {
+                    const appearances = visibleMapAppearancesByAsset[AssetId] || []
+                    return appearances.reduce((accumulator, { fileURL }) => (fileURL || accumulator), previous)
+                }, undefined)
+
                 return {
                     EphemeraId,
                     CharacterId,
+                    fileURL,
                     name: mapName.join(''),
                     rooms: mapRooms
                 }
@@ -261,7 +267,7 @@ export const render = async ({
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, mapValuesOnly, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
-        const { render: Description, name: Name, exits, characters, features, rooms } = rest
+        const { render: Description, name: Name, exits, characters, features, rooms, fileURL } = rest
         switch(objectType) {
             case 'ROOM':
                 const RoomMessage = {
@@ -304,6 +310,7 @@ export const render = async ({
                     CharacterId,
                     MapId: objectKey,
                     Name,
+                    fileURL,
                     rooms
                 }
                 return MapMessage

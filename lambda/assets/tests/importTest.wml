@@ -18,7 +18,7 @@
         A small panel with a single switch
     </Feature>
     <Map key=(importTestMap)>
-        <Image key=(testImage) fileURL="test.png" />
+        <Image key=(testImage) fileURL="https://musique.opus-31.fr/images/aaa.png" />
         <Room key=(welcomeRoom) x="0" y="0" />
         <Room key=(VORTEX) x="0" y="100" />
     </Map>
