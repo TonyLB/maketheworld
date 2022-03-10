@@ -43,4 +43,5 @@ export interface VisibleMapRoom extends MapRoom {
 type VisibleMapItems = {
     rooms: VisibleMapRoom[];
     exits: MapExit[];
+    fileURL?: string;
 }
