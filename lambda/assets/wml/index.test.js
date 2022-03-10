@@ -295,6 +295,7 @@ describe('WML assetRegistryEntries', () => {
             key: 'TESS',
             Name: 'Tess',
             fileName: 'Tess',
+            fileURL: 'testIcon.png',
             Pronouns: {
                 subjective: 'she',
                 objective: 'her',
@@ -314,6 +315,7 @@ describe('WML assetRegistryEntries', () => {
             tag: 'Character',
             key: 'TESS',
             fileName: 'test.wml',
+            fileURL: 'testIcon.png',
             Name: 'Tess',
             Pronouns: {
                 subjective: 'she',

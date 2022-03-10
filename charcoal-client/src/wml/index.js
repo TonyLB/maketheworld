@@ -188,6 +188,7 @@ export const assetRegistryEntries = (schema) => {
                     tag,
                     key,
                     fileName,
+                    fileURL: rest.fileURL,
                     player,
                     Name: rest.Name,
                     Pronouns: rest.Pronouns,
