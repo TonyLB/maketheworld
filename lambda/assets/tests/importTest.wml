@@ -18,6 +18,7 @@
         A small panel with a single switch
     </Feature>
     <Map key=(importTestMap)>
+        <Image key=(testImage) fileURL="test.png" />
         <Room key=(welcomeRoom) x="0" y="0" />
         <Room key=(VORTEX) x="0" y="100" />
     </Map>

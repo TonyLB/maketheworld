@@ -59,9 +59,14 @@ const mapContents = (normalForm) => ({ contents = [], ...rest }) => ({
     }, {}))
 })
 
-const mapRoomLocations = (normalForm) => ({ rooms, ...rest }) => {
+const mapRoomLocations = (normalForm) => ({ rooms, contents, ...rest }) => {
+    const fileURL = contents
+        .filter(({ tag }) => (tag === 'Image'))
+        .reduce((previous, { key }) => (normalForm[key]?.fileURL || previous), undefined)
     return {
         ...rest,
+        fileURL,
+        contents: contents.filter(({ tag }) => (tag !== 'Image')),
         rooms: (Object.entries(rooms).reduce((previous, [roomId, location]) => {
             const { EphemeraId } = normalForm[roomId]
             return {
@@ -84,13 +89,14 @@ export const mergeEntries = async (assetId, normalForm) => {
                 .map(mapContextStackToConditions(normalForm))
                 .map((item) => (['Room'].includes(rest.tag) ? mapContents(normalForm)(item) : item))
                 .map((item) => (['Map'].includes(rest.tag) ? mapRoomLocations(normalForm)(item) : item))
-                .map(({ conditions, name, render, exits, features, rooms }) => ({
+                .map(({ conditions, name, render, exits, features, rooms, fileURL }) => ({
                     conditions,
                     name,
                     render,
                     exits,
                     features,
-                    rooms
+                    rooms,
+                    fileURL
                 }))
         }))
     await Promise.all([
