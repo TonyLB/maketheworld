@@ -10,6 +10,7 @@ export const characterEphemeraDenormalize = async ({
     RoomId,
     EphemeraId,
     Name,
+    fileURL,
     Color,
     ConnectionIds,
     isActive,
@@ -46,6 +47,7 @@ export const characterEphemeraDenormalize = async ({
                         EphemeraId,
                         Name,
                         Color: Color || defaultColorFromCharacterId(CharacterId),
+                        fileURL: fileURL,
                         ConnectionIds
                     }
                 }

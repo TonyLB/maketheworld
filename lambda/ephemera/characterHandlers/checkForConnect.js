@@ -34,13 +34,14 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
             ])
         }
         const updateRoomEphemera = async () => {
-            const { RoomId, EphemeraId, Name, Color, ConnectionIds } = newImage
+            const { RoomId, EphemeraId, Name, Color, fileURL, ConnectionIds } = newImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
                     CharacterId,
                     RoomId,
                     Name,
+                    fileURL,
                     Color,
                     ConnectionIds,
                     anchorTime: epochTime,
