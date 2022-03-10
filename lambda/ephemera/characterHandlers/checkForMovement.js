@@ -72,13 +72,14 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
             }
         }
         const enterRoomEphemera = async () => {
-            const { RoomId, EphemeraId, Name, Color, ConnectionIds } = newImage
+            const { RoomId, EphemeraId, Name, Color, ConnectionIds, fileURL } = newImage
             if (RoomId) {
                 const CharacterId = splitType(EphemeraId)[1]
                 await roomOccupancyEphemera({
                     CharacterId,
                     RoomId,
                     Name,
+                    fileURL,
                     Color,
                     ConnectionIds,
                     anchorTime: epochTime,

@@ -199,7 +199,7 @@ export const healCharacter = async (CharacterId) => {
         const Item = await assetDB.getItem({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['player', '#Name', 'HomeId', 'Color', 'Pronouns'],
+            ProjectionFields: ['player', '#Name', 'fileURL', 'HomeId', 'Color', 'Pronouns'],
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
@@ -209,6 +209,7 @@ export const healCharacter = async (CharacterId) => {
             if (Item) {
                 const {
                     Name,
+                    fileURL,
                     HomeId,
                     player,
                     Color = defaultColorFromCharacterId(CharacterId),
@@ -224,12 +225,13 @@ export const healCharacter = async (CharacterId) => {
                 await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
-                    UpdateExpression: `SET #Name = :name, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color, Pronouns = :pronouns`,
+                    UpdateExpression: `SET #Name = :name, fileURL = :fileURL, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color, Pronouns = :pronouns`,
                     ExpressionAttributeNames: {
                         '#Name': 'Name'
                     },
                     ExpressionAttributeValues: {
                         ':name': Name,
+                        ':fileURL': fileURL,
                         ':homeId': HomeId || 'VORTEX',
                         ':false': false,
                         ':assets': personalAssets,
