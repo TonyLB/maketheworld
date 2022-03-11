@@ -19,6 +19,7 @@ export type EphemeraCharacterInPlay = {
     RoomId?: string;
     Connected?: boolean;
     Name: string;
+    fileURL?: string;
     color: EphemeraCharacterColor
 }
 
