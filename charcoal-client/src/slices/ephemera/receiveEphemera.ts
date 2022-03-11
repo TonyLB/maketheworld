@@ -19,13 +19,14 @@ const colorSequence: EphemeraCharacterColor[] = ['pink', 'purple', 'green']
 
 export const receiveEphemera = (state: any, action: PayloadAction<EphemeraChange>) => {
     if (action.payload.type === 'CharacterInPlay') {
-        const { CharacterId, Name, Connected, RoomId } = action.payload
+        const { CharacterId, Name, Connected, RoomId, fileURL } = action.payload
         const nextColorIndex = (Object.values(state.charactersInPlay).length + 2) % 3
         state.charactersInPlay[CharacterId] = {
             CharacterId,
             Name,
             Connected,
             RoomId,
+            fileURL,
             color: state.charactersInPlay[CharacterId]?.color || colorSequence[nextColorIndex]
         }
     }

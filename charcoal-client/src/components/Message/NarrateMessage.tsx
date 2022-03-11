@@ -2,8 +2,7 @@ import React, { ReactChildren, ReactChild, FunctionComponent } from 'react'
 
 import {
     Box,
-    Typography,
-    Avatar
+    Typography
 } from '@mui/material'
 
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
@@ -11,6 +10,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 
 import { CharacterNarration } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
+import CharacterAvatar from '../CharacterAvatar'
 
 interface NarrateMessageProps {
     message: CharacterNarration;
@@ -72,24 +72,20 @@ export const NarrateBubble: FunctionComponent<NarrateBubbleProps> = ({ variant, 
 }
 export const NarrateMessage = ({ message, variant }: NarrateMessageProps) => {
     const { CharacterId: activeId } = useActiveCharacter()
-    const { CharacterId, Name, Color } = message
+    const { CharacterId, Color } = message
     return <CharacterColorWrapper color={CharacterId === activeId ? 'blue' : Color}>
         <MessageComponent
             leftIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
-                    { variant === 'left' && 
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            { (Name || '?')[0].toUpperCase() }
-                        </Avatar>
+                    { variant === 'left' &&
+                        <CharacterAvatar CharacterId={CharacterId} />
                     }
                 </Box>
             }
             rightIcon={
                 <Box sx={{ height: "100%", display: 'flex', alignItems: 'end', paddingBottom: '5px' }}>
-                    { variant === 'right' && 
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            { (Name || '?')[0].toUpperCase() }
-                        </Avatar>
+                    { variant === 'right' &&
+                        <CharacterAvatar CharacterId={CharacterId} />
                     }
                 </Box>
             }

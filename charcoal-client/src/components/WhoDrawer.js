@@ -6,12 +6,11 @@ import {
     TableHead,
     TableBody,
     TableRow,
-    TableCell,
-    Avatar
+    TableCell
 } from '@mui/material'
 
 import { getActiveCharacterList } from '../slices/ephemera'
-import CharacterStyleWrapper from './CharacterStyleWrapper'
+import CharacterAvatar from './CharacterAvatar'
 
 export const WhoDrawer = () => {
     const whoIsActive = useSelector(getActiveCharacterList)
@@ -27,7 +26,7 @@ export const WhoDrawer = () => {
             </TableHead>
             <TableBody>
                 {
-                    whoIsActive.map(({ CharacterId, Name }) => {
+                    whoIsActive.map(({ CharacterId, Name, fileURL }) => {
                         //
                         // TODO: Figure out how to present a workable room/area name using the new WML Asset
                         // system.
@@ -38,17 +37,13 @@ export const WhoDrawer = () => {
                         // some replacement for DirectMessageDialog)
                         //
                         return (
-                            <CharacterStyleWrapper key={CharacterId} CharacterId={CharacterId}>
-                                <TableRow hover onClick={() => { }}>
-                                    <TableCell>
-                                        <Avatar sx={{ bgcolor: 'primary.main' }} >
-                                            { Name[0].toUpperCase() }
-                                        </Avatar>
-                                    </TableCell>
-                                    <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
-                                    <TableCell>{ neighborhoodName }</TableCell>
-                                </TableRow>
-                            </CharacterStyleWrapper>
+                            <TableRow hover onClick={() => { }}>
+                                <TableCell>
+                                    <CharacterAvatar CharacterId={CharacterId} />
+                                </TableCell>
+                                <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
+                                <TableCell>{ neighborhoodName }</TableCell>
+                            </TableRow>
                         )
                     })
                 }
