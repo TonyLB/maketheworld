@@ -61,6 +61,14 @@ describe('displayRenders', () => {
                 Features: []
             },
             {
+                tag: 'Character',
+                Targets: ['CHARACTER#TESS'],
+                EphemeraId: 'CHARACTERINPLAY#GHI',
+                CharacterId: 'GHI',
+                Name: "Marco",
+                fileURL: 'marco.png'
+            },
+            {
                 type: 'Map',
                 CharacterId: 'TESS',
                 EphemeraId: 'MAP#TestMap',
@@ -87,7 +95,7 @@ describe('displayRenders', () => {
             }]
         })
 
-        expect(publishMessage).toHaveBeenCalledTimes(2)
+        expect(publishMessage).toHaveBeenCalledTimes(3)
         expect(publishMessage).toHaveBeenCalledWith({
             MessageId: 'MESSAGE#UUID',
             CreatedTime: 1000000000000,
@@ -110,6 +118,15 @@ describe('displayRenders', () => {
             FeatureId: 'MNO',
             Name: "Clock Tower",
             Features: []
+        })
+        expect(publishMessage).toHaveBeenCalledWith({
+            MessageId: 'MESSAGE#UUID',
+            CreatedTime: 1000000000000,
+            DisplayProtocol: 'CharacterDescription',
+            Targets: ['CHARACTER#TESS'],
+            CharacterId: 'GHI',
+            Name: "Marco",
+            fileURL: 'marco.png'
         })
         expect(socketSendMock).toHaveBeenCalledTimes(1)
         expect(socketSendMock).toHaveBeenCalledWith({

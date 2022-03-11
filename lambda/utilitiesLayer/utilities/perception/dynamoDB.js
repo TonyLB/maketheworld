@@ -1,16 +1,33 @@
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { AssetKey } from '../types.js'
+import { splitType } from '../types.js'
 
 export const getItemMeta = async (items) => {
     const getSingleMeta = async (EphemeraId) => {
-        const metaItems = await ephemeraDB.query({
-            EphemeraId,
-            ProjectionFields: ['DataCategory', 'appearances', '#name', 'activeCharacters'],
-            ExpressionAttributeNames: {
-                '#name': 'name'
-            }
-        })
-        return { [EphemeraId]: metaItems }
+        switch(splitType(EphemeraId)[0]) {
+            case 'CHARACTERINPLAY':
+                const characterItem = await ephemeraDB.getItem({
+                    EphemeraId,
+                    DataCategory: 'Meta::Character',
+                    ProjectionFields: ['#name', 'fileURL'],
+                    ExpressionAttributeNames: {
+                        '#name': 'Name'
+                    }
+                })
+                return { [EphemeraId]: [{
+                    DataCategory: 'Meta::Character',
+                    ...characterItem
+                }] }
+            default:
+                const metaItems = await ephemeraDB.query({
+                    EphemeraId,
+                    ProjectionFields: ['DataCategory', 'appearances', '#name', 'activeCharacters'],
+                    ExpressionAttributeNames: {
+                        '#name': 'name'
+                    }
+                })
+                return { [EphemeraId]: metaItems }        
+        }
     }
     const allRooms = await Promise.all(items.map(getSingleMeta))
     return Object.assign({}, ...allRooms)

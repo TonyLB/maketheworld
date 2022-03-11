@@ -3,7 +3,7 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
 
-import { getCharacterAssets, getGlobalAssets } from './dynamoDB.js'
+import { getCharacterAssets, getGlobalAssets, getItemMeta } from './dynamoDB.js'
 
 describe('getGlobalAssets', () => {
     beforeEach(() => {
@@ -78,4 +78,60 @@ describe('getCharacterAssets', () => {
             ProjectionFields: ['assets']
         })
     })
+})
+
+describe('getItemMeta', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    it('should fetch all types of data', async () => {
+        const mockQueryImplementation = async ({ EphemeraId }) => {
+            switch(EphemeraId) {
+                case 'ROOM#ABC':
+                    return [{
+                        DataCategory: 'Meta::Room',
+                        activeCharacters: {}
+                    },
+                    {
+                        DataCategory: 'ASSET#BASE',
+                        appearances: [{
+                            contextStack: [],
+                            render: ['Test']
+                        }]
+                    }]
+                default:
+                    return []
+            }
+        }
+        ephemeraDB.getItem.mockResolvedValue({
+            Name: 'Tess',
+            fileURL: 'tess.png'
+        })
+        ephemeraDB.query.mockImplementation(mockQueryImplementation)
+        const output = await getItemMeta([
+            'ROOM#ABC',
+            'CHARACTERINPLAY#QRS'
+        ])
+        expect(output).toEqual({
+            ['CHARACTERINPLAY#QRS']: [{
+                DataCategory: 'Meta::Character',
+                Name: 'Tess',
+                fileURL: 'tess.png'
+            }],
+            ['ROOM#ABC']: [{
+                DataCategory: 'Meta::Room',
+                activeCharacters: {}
+            },
+            {
+                DataCategory: 'ASSET#BASE',
+                appearances: [{
+                    contextStack: [],
+                    render: ['Test']
+                }]
+            }]
+        })
+    })
+
 })

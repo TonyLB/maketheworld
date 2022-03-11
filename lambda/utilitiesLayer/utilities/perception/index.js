@@ -90,6 +90,14 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
         const [objectType] = splitType(EphemeraId)
         const { assets, meta, itemsByAsset } = extractRenderArguments({ EphemeraId, CharacterId })
         switch(objectType) {
+            case 'CHARACTERINPLAY':
+                return {
+                    Targets: [`CHARACTER#${CharacterId}`],
+                    EphemeraId,
+                    CharacterId: splitType(EphemeraId)[1],
+                    Name: meta.Name,
+                    fileURL: meta.fileURL
+                }
             case 'ROOM':
                 const { render: roomRender, name: roomName, exits: roomExits, features: roomFeatures } = assets.reduce((previous, AssetId) => {
                         const { appearances = [] } = itemsByAsset[AssetId]
@@ -267,7 +275,7 @@ export const render = async ({
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, mapValuesOnly, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
-        const { render: Description, name: Name, exits, characters, features, rooms, fileURL } = rest
+        const { render: Description, name: Name, exits, characters, features, rooms, fileURL, Targets } = rest
         switch(objectType) {
             case 'ROOM':
                 const RoomMessage = {
@@ -314,6 +322,16 @@ export const render = async ({
                     rooms
                 }
                 return MapMessage
+            case 'CHARACTERINPLAY':
+                const CharacterMessage = {
+                    type: 'Character',
+                    EphemeraId,
+                    Targets,
+                    CharacterId,
+                    Name: rest.Name,
+                    fileURL
+                }
+                return CharacterMessage
             default:
                 return {
                     EphemeraId,

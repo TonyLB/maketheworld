@@ -9,7 +9,8 @@ export const deliverRenders = async ({
     RequestId,
     options: {
         roomProtocol = 'RoomUpdate',
-        featureProtocol = 'FeatureMessage'
+        featureProtocol = 'FeatureMessage',
+        characterProtocol = 'CharacterDescription'
     } = {}
 }) => {
 
@@ -65,6 +66,11 @@ export const deliverRenders = async ({
                         ...restOfMessage
                     })
                     break
+                case 'Character':
+                    messagesToPublish.push({
+                        DisplayProtocol: characterProtocol,
+                        ...restOfMessage,
+                    })
             }
         }
     })
@@ -72,14 +78,20 @@ export const deliverRenders = async ({
     await Promise.all([
         socketQueue.flush(),
         ...(messagesToPublish
-            .map(({ EphemeraId, CharacterId, tag, type, ...roomMessage }) => (
-                publishMessage({
+            .map(({ EphemeraId, CharacterId, Targets = [], tag, type, ...roomMessage }) => {
+                const aggregateTargets = [
+                    ...Targets,
+                    ...(Targets.length === 0 ? [`CHARACTER#${CharacterId}`] : [])
+                ]
+                const selectedCharacterId = (Targets.length === 0) ? undefined : CharacterId
+                return publishMessage({
                     MessageId: `MESSAGE#${uuidv4()}`,
-                    Targets: [`CHARACTER#${CharacterId}`],
+                    Targets: aggregateTargets,
+                    CharacterId: selectedCharacterId,
                     CreatedTime: Date.now(),
                     ...roomMessage
                 })
-            ))
+            })
         )
     ])
 }
