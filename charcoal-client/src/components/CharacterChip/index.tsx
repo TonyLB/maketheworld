@@ -5,7 +5,7 @@
 
 import React, { FunctionComponent } from 'react'
 import { useSelector } from 'react-redux'
-import { Chip } from '@mui/material'
+import { Chip, Avatar } from '@mui/material'
 
 import { getCharactersInPlay } from '../../slices/ephemera'
 import CharacterStyleWrapper from '../CharacterStyleWrapper'
@@ -17,11 +17,17 @@ type CharacterChipProps = {
 
 export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name }) => {
     const charactersInPlay = useSelector(getCharactersInPlay)
-    const { Name: defaultName } = charactersInPlay[CharacterId]
+    const { Name: defaultName, fileURL } = charactersInPlay[CharacterId]
     return (
         <CharacterStyleWrapper CharacterId={CharacterId} nested>
             <Chip
                 label={Name || defaultName}
+                avatar={fileURL
+                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={fileURL}>
+                        { (Name || '')[0].toUpperCase() }
+                    </Avatar>
+                    : undefined
+                }
                 sx={{
                     color: 'black',
                     bgcolor: 'extras.midPale',

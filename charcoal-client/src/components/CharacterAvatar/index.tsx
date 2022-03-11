@@ -10,14 +10,16 @@ import CharacterStyleWrapper from '../CharacterStyleWrapper'
 
 interface CharacterAvatarProps {
     CharacterId: string;
+    width?: string;
+    height?: string;
 }
 
-export const CharacterAvatar: FunctionComponent<CharacterAvatarProps> = ({ CharacterId }) => {
+export const CharacterAvatar: FunctionComponent<CharacterAvatarProps> = ({ CharacterId, width, height }) => {
     const charactersInPlay = useSelector(getCharactersInPlay)
 
     const { Name, fileURL } = charactersInPlay[CharacterId]
     return <CharacterStyleWrapper key={CharacterId} CharacterId={CharacterId}>
-        <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={fileURL}>
+        <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid", width, height } : { bgcolor: 'primary.main', width, height }} alt={Name} src={fileURL}>
             { Name[0].toUpperCase() }
         </Avatar>
     </CharacterStyleWrapper>

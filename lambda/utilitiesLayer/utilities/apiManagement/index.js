@@ -130,10 +130,11 @@ export class SocketQueue extends Object {
                 ].map(deliverMessage))
             }
             catch (err) {
-                if (err.name === 'GoneException') {
+                if (err.name === 'GoneException' || err.name === 'BadRequestException') {
                     await forceDisconnect(ConnectionId)
                 }
                 else {
+                    console.log(`Error: ${err.name}`)
                     throw err
                 }
             }
