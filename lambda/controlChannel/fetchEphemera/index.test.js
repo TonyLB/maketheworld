@@ -1,7 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { renderItems } from '/opt/utilities/perception/index.js'
+import { render } from '/opt/utilities/perception/index.js'
 
 import fetchEphemera, { fetchEphemeraForCharacter } from './index.js'
 
@@ -16,7 +16,8 @@ describe('fetchEphemera', () => {
             EphemeraId: 'CHARACTERINPLAY#ABC',
             Connected: true,
             RoomId: 'ROOM#XYZ',
-            Name: 'Testy'
+            Name: 'Testy',
+            fileURL: 'test.png'
         }])
         const output = await fetchEphemera('Request123')
         expect(output).toEqual({
@@ -27,7 +28,8 @@ describe('fetchEphemera', () => {
                 CharacterId: 'ABC',
                 Connected: true,
                 RoomId: 'ROOM#XYZ',
-                Name: 'Testy'
+                Name: 'Testy',
+                fileURL: 'test.png'
             }]
         })
     })
@@ -61,15 +63,19 @@ describe('fetchEphemeraForCharacter', () => {
         expect(ephemeraDB.query).toHaveBeenCalledTimes(2)
         expect(ephemeraDB.query).toHaveBeenCalledWith({
             IndexName: 'DataCategoryIndex',
-            DataCategory: 'ASSET#BASE'
+            DataCategory: 'ASSET#BASE',
+            KeyConditionExpression: 'begins_with(EphemeraId, :map)',
+            ExpressionAttributeValues: { ':map': 'MAP#' }
         })
         expect(ephemeraDB.query).toHaveBeenCalledWith({
             IndexName: 'DataCategoryIndex',
-            DataCategory: 'ASSET#TESTONE'
+            DataCategory: 'ASSET#TESTONE',
+            KeyConditionExpression: 'begins_with(EphemeraId, :map)',
+            ExpressionAttributeValues: { ':map': 'MAP#' }
         })
-        expect(renderItems).toHaveBeenCalledTimes(0)
+        expect(render).toHaveBeenCalledTimes(0)
         expect(output).toEqual({
-            type: 'Ephemera',
+            messageType: 'Ephemera',
             RequestId: '1234',
             updates: []
         })
@@ -105,7 +111,7 @@ describe('fetchEphemeraForCharacter', () => {
             }
             return {}
         })
-        renderItems.mockResolvedValue([{
+        render.mockResolvedValue([{
             type: 'Map',
             CharacterId: 'TEST',
             MapId: 'MAP#ABC',
@@ -118,8 +124,8 @@ describe('fetchEphemeraForCharacter', () => {
             RequestId: '1234',
             CharacterId: 'TEST'
         })
-        expect(renderItems).toHaveBeenCalledWith(
-            [{
+        expect(render).toHaveBeenCalledWith({
+            renderList: [{
                 CharacterId: 'TEST',
                 EphemeraId: 'MAP#ABC'
             },
@@ -127,16 +133,15 @@ describe('fetchEphemeraForCharacter', () => {
                 CharacterId: 'TEST',
                 EphemeraId: 'MAP#DEF'
             }],
-            {},
-            {
+            assetLists: {
                 global: ['BASE'],
                 characters: {
                     TEST: ['TESTONE']
                 }
             }
-        )
+        })
         expect(output).toEqual({
-            type: 'Ephemera',
+            messageType: 'Ephemera',
             RequestId: '1234',
             updates: [{
                 type: 'Map',

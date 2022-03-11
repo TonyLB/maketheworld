@@ -9,6 +9,7 @@ import { processCharacterEvent } from './characterHandlers/index.js'
 import { processPlayerEvent } from './playerHandlers/index.js'
 import { splitType } from '/opt/utilities/types.js'
 import { SocketQueue } from '/opt/utilities/apiManagement/index.js'
+import { unique } from '/opt/utilities/lists.js'
 import { executeAction } from '/opt/utilities/executeCode/index.js'
 
 const postRecords = async (Records) => {
@@ -23,14 +24,16 @@ const postRecords = async (Records) => {
     const characterRecords = unmarshalledRecords
         .filter(({ data: { newImage } }) => ((newImage.EphemeraId ?? '').startsWith('CHARACTERINPLAY#') && newImage.DataCategory === 'Meta::Character'))
         .map(({ data: { newImage } }) => {
-            const { EphemeraId, Name, RoomId, Connected, Color } = newImage
+            const { EphemeraId, Name, RoomId, Connected, ConnectionIds, Color, fileURL } = newImage
             return {
                 type: 'CharacterInPlay',
                 CharacterId: splitType(EphemeraId)[1],
                 Name,
+                fileURL,
                 Color,
                 RoomId,
-                Connected
+                Connected,
+                ConnectionIds
             }
         })
     //
@@ -38,14 +41,21 @@ const postRecords = async (Records) => {
     // client side of the fence (if any)
     //
 
+    const forceConnections = unique(...(characterRecords
+        .filter(({ Connected }) => (Connected))
+        .map(({ ConnectionIds }) => (ConnectionIds || []))
+    ))
     const updates = [
-        ...characterRecords
+        ...(characterRecords.map(({ ConnectionIds, ...rest }) => (rest)))
     ]
     if (updates.length) {
         const socketQueue = new SocketQueue()
         socketQueue.sendAll({
             messageType: 'Ephemera',
             updates
+        },
+        {
+            forceConnections
         })
         await socketQueue.flush()
     }

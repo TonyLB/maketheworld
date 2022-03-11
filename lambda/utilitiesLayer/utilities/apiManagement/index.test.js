@@ -97,6 +97,8 @@ describe('apiManagment', () => {
             testSocket.sendAll({
                 messageType: 'Another',
                 payload: 'TestTwo'
+            }, {
+                forceConnections: ['789']
             })
             ephemeraDB.getItem.mockResolvedValue({
                 connections: {
@@ -105,7 +107,7 @@ describe('apiManagment', () => {
                 }
             })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledTimes(3)
+            expect(apiClient.send).toHaveBeenCalledTimes(4)
             expect(apiClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
@@ -122,6 +124,13 @@ describe('apiManagment', () => {
             })
             expect(apiClient.send).toHaveBeenCalledWith({
                 ConnectionId: '456',
+                Data: JSON.stringify({
+                    messageType: 'Another',
+                    payload: 'TestTwo'
+                })
+            })
+            expect(apiClient.send).toHaveBeenCalledWith({
+                ConnectionId: '789',
                 Data: JSON.stringify({
                     messageType: 'Another',
                     payload: 'TestTwo'

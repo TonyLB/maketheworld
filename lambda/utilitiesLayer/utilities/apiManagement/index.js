@@ -1,6 +1,7 @@
 import { apiClient } from './apiManagementClient.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { forceDisconnect } from './forceDisconnect.js'
+import { unique } from '../lists.js'
 
 const queueInitial = {
     messages: {},
@@ -84,14 +85,15 @@ const queueSerialize = ({ messages = [], messageMeta = {}, ephemera = [], epheme
     ]
 }
 
-const queueHasContent = ({ messages, otherSends }) => (
-    (Object.keys(messages).length) || (otherSends.length)
+const queueHasContent = ({ messages, ephemera, otherSends }) => (
+    (Object.keys(messages).length) || (ephemera.length) || (otherSends.length)
 )
 
 export class SocketQueue extends Object {
     constructor() {
         super()
         this.globalMessageQueue = queueInitial
+        this.forceConnections = []
         this.messageQueueByConnection = {}
     }
 
@@ -105,8 +107,10 @@ export class SocketQueue extends Object {
             Message
         )
     }
-    sendAll(Message) {
+    sendAll(Message, options) {
+        const { forceConnections = [] } = options || {}
         this.globalMessageQueue = queueReducer(this.globalMessageQueue, Message)
+        this.forceConnections = unique(this.forceConnections, forceConnections)
     }
     async flush() {
         const deliver = async (ConnectionId) => {
@@ -141,12 +145,18 @@ export class SocketQueue extends Object {
                 DataCategory: 'Connections',
                 ProjectionFields: ['connections']
             })
-            await Promise.all(Object.keys(connections).map(deliver))
+            await Promise.all(
+                [
+                    ...Object.keys(connections),
+                    ...this.forceConnections
+                ].map(deliver)
+            )
         }
         else {
             await Promise.all(Object.keys(this.messageQueueByConnection).map(deliver))
         }
         this.globalMessageQueue = queueInitial
+        this.forceConnections = []
         this.messageQueueByConnection = {}
 
     }
