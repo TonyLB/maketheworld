@@ -319,6 +319,40 @@ describe('render', () => {
 
     })
 
+    it('should render characters', async () => {
+        const characterAssets = {}
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getStateByAsset.mockResolvedValue(characterAssets)
+        getItemMeta.mockResolvedValue({
+            ['CHARACTERINPLAY#QRS']: [
+                {
+                    DataCategory: 'Meta::Character',
+                    Name: 'Tess',
+                    fileURL: 'tess.png'
+                }
+            ]
+        })
+        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        const output = await render({
+            renderList: [{
+                EphemeraId: 'CHARACTERINPLAY#QRS',
+                CharacterId: 'QRS'
+            }],
+            assetMeta: characterAssets
+        })
+        expect(output).toEqual([{
+            type: 'Character',
+            Targets: ['CHARACTER#QRS'],
+            CharacterId: 'QRS',
+            EphemeraId: 'CHARACTERINPLAY#QRS',
+            Name: "Tess",
+            fileURL: 'tess.png'
+        }])
+        expect(getItemMeta).toHaveBeenCalledWith(['CHARACTERINPLAY#QRS'])
+        expect(getStateByAsset).toHaveBeenCalledWith([], characterAssets)
+
+    })
+
     it('should fetch state data only where needed', async () => {
         const testAssets = Object.entries(resultStateFactory())
             .reduce((previous, [key, value]) => ({
