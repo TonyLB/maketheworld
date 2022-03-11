@@ -37,7 +37,7 @@ export const WhoDrawer = () => {
                         // some replacement for DirectMessageDialog)
                         //
                         return (
-                            <TableRow hover onClick={() => { }}>
+                            <TableRow key={CharacterId} hover onClick={() => { }}>
                                 <TableCell>
                                     <CharacterAvatar CharacterId={CharacterId} />
                                 </TableCell>

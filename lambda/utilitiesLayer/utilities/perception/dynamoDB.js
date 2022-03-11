@@ -5,7 +5,7 @@ export const getItemMeta = async (items) => {
     const getSingleMeta = async (EphemeraId) => {
         const metaItems = await ephemeraDB.query({
             EphemeraId,
-            ProjectionFields: ['DataCategory', 'appearances', '#name'],
+            ProjectionFields: ['DataCategory', 'appearances', '#name', 'activeCharacters'],
             ExpressionAttributeNames: {
                 '#name': 'name'
             }
