@@ -6,7 +6,8 @@ const serialize = ({
     EphemeraId,
     Connected,
     RoomId,
-    Name
+    Name,
+    fileURL
 }) => {
     const [type, payload] = splitType(EphemeraId)
     switch(type) {
@@ -16,7 +17,8 @@ const serialize = ({
                 CharacterId: payload,
                 Connected,
                 RoomId,
-                Name
+                Name,
+                fileURL
             }
         //
         // TODO:  More serializers for more data types!
@@ -37,7 +39,7 @@ export const fetchEphemera = async (RequestId) => {
         ExpressionAttributeNames: {
             '#name': 'Name'
         },
-        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name']
+        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL']
     })
     const returnItems = Items
         .map(serialize)
