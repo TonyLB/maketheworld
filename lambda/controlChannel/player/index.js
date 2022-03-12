@@ -37,17 +37,30 @@ export const getConnectionsByPlayerName = async (PlayerName) => {
 export const whoAmI = async (connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(connectionId)
     if (username) {
-        const { Characters, CodeOfConductConsent } = await assetDB.getItem({
-            AssetId: `PLAYER#${username}`,
-            DataCategory: 'Meta::Player',
-            ProjectionFields: ['Characters', 'CodeOfConductConsent']
-        })
+        const [{ CodeOfConductConsent }, queryItems] = await Promise.all([
+            assetDB.getItem({
+                AssetId: `PLAYER#${username}`,
+                DataCategory: 'Meta::Player',
+                ProjectionFields: ['CodeOfConductConsent']
+            }),
+            assetDB.query({
+                IndexName: 'PlayerIndex',
+                player: username,
+                ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL'],
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                }
+            })
+        ])
+        const Characters = queryItems
+            .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
+            .map(({ AssetId, Name, scopedId, fileName, fileURL }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL }))
         return {
             statusCode: 200,
             body: JSON.stringify({
                 messageType: 'Player',
                 PlayerName: username,
-                Characters: Object.entries(Characters || {}).reduce((previous, [CharacterId, { Name, scopedId, fileName }]) => ([...previous, { CharacterId, Name, scopedId, fileName }]), []),
+                Characters,
                 CodeOfConductConsent,
                 RequestId
             })
