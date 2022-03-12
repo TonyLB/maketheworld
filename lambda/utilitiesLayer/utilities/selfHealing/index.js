@@ -168,9 +168,9 @@ export const convertAssetQuery = (queryItems) => {
 
 export const generatePersonalAssetLibrary = async (player) => {
     if (player) {
-        const items = assetDB.query({
+        const items = await assetDB.query({
             IndexName: 'PlayerIndex',
-            player: username,
+            player,
             ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
             ExpressionAttributeNames: {
                 '#name': 'Name'

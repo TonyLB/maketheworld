@@ -52,7 +52,7 @@ export const convertAssetQuery = (queryItems) => {
 export const whoAmI = async (connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(connectionId)
     if (username) {
-        const [{ CodeOfConductConsent }, { Characters, Assets }] = await Promise.all([
+        const [{ CodeOfConductConsent }, { Characters = [], Assets = [] }] = await Promise.all([
             assetDB.getItem({
                 AssetId: `PLAYER#${username}`,
                 DataCategory: 'Meta::Player',
