@@ -67,6 +67,16 @@ export type FeatureDescription = {
     DisplayProtocol: 'FeatureDescription';
 } & FeatureDescribeData & MessageAddressing
 
+type CharacterDescribeData = {
+    CharacterId: string;
+    Name: string;
+    fileURL?: string;
+}
+
+export type CharacterDescription = {
+    DisplayProtocol: 'CharacterDescription';
+} & CharacterDescribeData & MessageAddressing
+
 export type RoomHeader = {
     DisplayProtocol: 'RoomHeader';
 } & RoomDescribeData & MessageAddressing
@@ -98,6 +108,6 @@ export type OutOfCharacterMessage = {
     Message: string;
 } & MessageAddressing & MessageCharacterInfo
 
-export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
+export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage
 
 export type MessageState = Record<string, Message[]>

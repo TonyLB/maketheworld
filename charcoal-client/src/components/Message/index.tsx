@@ -11,6 +11,7 @@ import UnknownMessage from './UnknownMessage'
 
 import { Message as MessageType } from '../../slices/messages/baseClasses'
 import { useActiveCharacter } from '../ActiveCharacter'
+import CharacterDescription from './CharacterDescription'
 
 interface MessageProps {
     message: MessageType;
@@ -34,6 +35,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <RoomDescription message={message} {...rest} />
         case 'FeatureDescription':
             return <FeatureDescription message={message} {...rest} />
+        case 'CharacterDescription':
+            return <CharacterDescription message={message} {...rest} />
         case 'SpacerMessage':
             return <SpacerMessage message={message} />
         default:

@@ -13,15 +13,17 @@ import CharacterStyleWrapper from '../CharacterStyleWrapper'
 type CharacterChipProps = {
     CharacterId: string;
     Name?: string;
+    onClick: () => void;
 }
 
-export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name }) => {
+export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ CharacterId, Name, onClick }) => {
     const charactersInPlay = useSelector(getCharactersInPlay)
     const { Name: defaultName, fileURL } = charactersInPlay[CharacterId]
     return (
         <CharacterStyleWrapper CharacterId={CharacterId} nested>
             <Chip
                 label={Name || defaultName}
+                onClick={onClick}
                 avatar={fileURL
                     ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={fileURL}>
                         { (Name || '')[0].toUpperCase() }

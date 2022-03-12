@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { ReactChildren, ReactChild, ReactElement } from 'react'
+import React, { ReactChildren, ReactChild, ReactElement, FunctionComponent } from 'react'
 import { css } from '@emotion/react'
 import { SxProps } from '@mui/system'
 import { Theme } from '@mui/material'
@@ -11,12 +11,21 @@ import {
 
 interface MessageComponentProps {
     leftIcon?: ReactElement;
+    leftGutter?: Number;
     rightIcon?: ReactElement;
+    rightGutter?: Number;
     sx?: SxProps<Theme>;
     children?: ReactChild | ReactChildren;
 }
 
-export const MessageComponent = ({ children, leftIcon, rightIcon, sx }: MessageComponentProps) => {
+export const MessageComponent: FunctionComponent<MessageComponentProps> = ({
+    children,
+    leftIcon,
+    leftGutter = 70,
+    rightIcon,
+    rightGutter = 70,
+    sx
+}) => {
     return <Box sx={{ padding: "2px" }}>
             <Box
                 sx={sx}
@@ -24,7 +33,7 @@ export const MessageComponent = ({ children, leftIcon, rightIcon, sx }: MessageC
                     display: grid;
                     grid-template-areas:
                         "leftIcon content rightIcon";
-                    grid-template-columns: 70px 1fr 70px;
+                    grid-template-columns: ${`${leftGutter}`}px 1fr ${`${rightGutter}`}px;
                 `}
             >
                 <Box css={css`
