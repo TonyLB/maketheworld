@@ -324,7 +324,7 @@ export const render = async ({
                 return MapMessage
             case 'CHARACTERINPLAY':
                 const CharacterMessage = {
-                    type: 'Character',
+                    tag: 'Character',
                     EphemeraId,
                     Targets,
                     CharacterId,

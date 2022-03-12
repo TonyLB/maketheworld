@@ -341,7 +341,7 @@ describe('render', () => {
             assetMeta: characterAssets
         })
         expect(output).toEqual([{
-            type: 'Character',
+            tag: 'Character',
             Targets: ['CHARACTER#QRS'],
             CharacterId: 'QRS',
             EphemeraId: 'CHARACTERINPLAY#QRS',

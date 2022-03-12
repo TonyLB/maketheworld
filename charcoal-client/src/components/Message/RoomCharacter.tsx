@@ -1,13 +1,11 @@
 import React, { ReactChild, ReactChildren} from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 
 import { RoomCharacter as RoomCharacterType } from '../../slices/messages/baseClasses'
+import { socketDispatchPromise } from '../../slices/lifeLine'
 
-import { getCharactersInPlay } from '../../slices/ephemera'
 import { useActiveCharacter } from '../ActiveCharacter'
-//
-// TODO: Refactor character chip to handle data as it is passed in v2Alpha
-//
+
 import CharacterChip from '../CharacterChip'
 
 interface RoomCharacterProps {
@@ -21,7 +19,22 @@ export const RoomCharacter = ({
         Name
     }
 }: RoomCharacterProps) => {
-    return <CharacterChip CharacterId={CharacterId} Name={Name} />
+    const { CharacterId: viewCharacterId } = useActiveCharacter()
+    const dispatch = useDispatch()
+    //
+    // TODO: Create locking mechanism, and embed something akin to "clickable" into
+    // the data structure for the Exit
+    //
+    const clickable = true
+    const clickHandler = clickable ? () => {
+        dispatch(socketDispatchPromise('link')({
+            targetTag: 'Character',
+            viewCharacterId,
+            CharacterId
+        }))
+    } : () => {}
+
+    return <CharacterChip CharacterId={CharacterId} onClick={clickHandler} Name={Name} />
 }
 
 export default RoomCharacter

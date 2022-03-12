@@ -9,6 +9,7 @@ import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
 import { render } from '/opt/utilities/perception/index.js'
+import { deliverRenders } from '/opt/utilities/perception/deliverRenders.js'
 import { executeAction as executeActionFromDB } from '/opt/utilities/executeCode/index.js'
 
 import { splitType, RoomKey } from '/opt/utilities/types.js'
@@ -129,26 +130,14 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     //
     // TODO: Create asset management system to allow non-hard-coded asset lists
     //
-    const [{ EphemeraId: removeOne, CharacterId: removeTwo, ...roomMessage }] = await render({
+    const renderOutputs = await render({
         renderList: [{
             CharacterId,
             EphemeraId: PermanentId
         }]
     })
-    let DisplayProtocol = 'RoomDescription'
-    switch(splitType(PermanentId)[0]) {
-        case 'ROOM':
-            break
-        case 'FEATURE':
-            DisplayProtocol = 'FeatureDescription'
-            break
-    }
-    await publishMessage({
-        MessageId: `MESSAGE#${uuidv4()}`,
-        Targets: [`CHARACTER#${CharacterId}`],
-        CreatedTime: Date.now(),
-        DisplayProtocol,
-        ...roomMessage
+    await deliverRenders({
+        renderOutputs
     })
     return {
         statusCode: 200,
@@ -365,6 +354,12 @@ export const handler = async (event, context) => {
                     await lookPermanent({
                         CharacterId: request.CharacterId,
                         PermanentId: `FEATURE#${request.FeatureId}`
+                    })
+                    break
+                case 'Character':
+                    await lookPermanent({
+                        CharacterId: request.viewCharacterId,
+                        PermanentId: `CHARACTERINPLAY#${request.CharacterId}`
                     })
                     break
             }

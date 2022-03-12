@@ -295,7 +295,7 @@ export const publishMessage = async (Item) => {
             Item: marshall({
                 DataCategory: 'Meta::Message',
                 ...Item
-            })
+            }, { removeUndefinedValues: true })
         }))
     })
 }
