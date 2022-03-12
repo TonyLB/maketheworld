@@ -19,6 +19,7 @@ const extractKeyInfo = (table, indexName, {
     player,
     scopedId,
     ConnectionId,
+    zone
 }) => {
     if (indexName) {
         switch(indexName) {
@@ -36,6 +37,11 @@ const extractKeyInfo = (table, indexName, {
                 return {
                     KeyConditionExpression: 'ConnectionId = :keyId',
                     keyId: ConnectionId
+                }
+            case 'ZoneIndex':
+                return {
+                    KeyConditionExpression: '#zone = :keyId',
+                    keyId: zone
                 }
             case 'DataCategoryIndex':
             default:
@@ -101,7 +107,10 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
                 ...(ExpressionAttributeValues || {})
             }),
             ProjectionExpression: ProjectionFields.join(', '),
-            ExpressionAttributeNames,
+            ExpressionAttributeNames: {
+                ...ExpressionAttributeNames,
+                ...(IndexName === 'ZoneIndex' ? { '#zone': 'zone' } : {})
+            },
             FilterExpression
         }))
         return {

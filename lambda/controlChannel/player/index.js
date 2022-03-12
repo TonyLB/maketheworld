@@ -34,6 +34,20 @@ export const getConnectionsByPlayerName = async (PlayerName) => {
     return returnVal
 }
 
+export const convertAssetQuery = (queryItems) => {
+    const Characters = queryItems
+        .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
+        .map(({ AssetId, Name, scopedId, fileName, fileURL }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL }))
+    const Assets = queryItems
+        .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
+        .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
+
+    return {
+        Characters,
+        Assets
+    }
+}
+
 export const whoAmI = async (connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(connectionId)
     if (username) {
@@ -52,12 +66,7 @@ export const whoAmI = async (connectionId, RequestId) => {
                 }
             })
         ])
-        const Characters = queryItems
-            .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-            .map(({ AssetId, Name, scopedId, fileName, fileURL }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL }))
-        const Assets = queryItems
-            .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
-            .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
+        const { Characters, Assets } = convertAssetQuery(queryItems)
         return {
             statusCode: 200,
             body: JSON.stringify({
