@@ -16,6 +16,11 @@ export const getMyCharacters = (player: PlayerPublic): PlayerPublic['Characters'
     return Characters
 }
 
+export const getMyAssets = (player: PlayerPublic): PlayerPublic['Assets'] => {
+    const { Assets = [] } = player || {}
+    return Assets
+}
+
 export const getMyCharacterByKey = (getMyCharacters: Selector<PlayerPublic['Characters']>) => (key: string | undefined): Selector<any> => (state) => {
     const Characters = getMyCharacters(state)
     return Characters.find(({ scopedId }) => (scopedId === key))
@@ -32,4 +37,5 @@ export const getMyCharacterById = (getMyCharacters: Selector<PlayerPublic['Chara
 export type PlayerSelectors = {
     getPlayer: (player: PlayerPublic) => PlayerPublic;
     getMyCharacters: (player: PlayerPublic) => PlayerPublic['Characters'];
+    getMyAssets: (player: PlayerPublic) => PlayerPublic['Assets'];
 }
