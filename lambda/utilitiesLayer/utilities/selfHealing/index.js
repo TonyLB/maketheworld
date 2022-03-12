@@ -131,44 +131,6 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
     }, async () => ({}))
 }
 
-export const healPersonalAssets = async ({ PlayerName }) => {
-    if (!PlayerName) {
-        return
-    }
-
-    const queryItems = await assetDB.query({
-        IndexName: 'PlayerIndex',
-        player: PlayerName,
-        ProjectionFields: ['DataCategory', 'AssetId', 'importTree', 'Story']
-    })
-
-    const personalAssetEntries = queryItems
-        .filter(({ Story }) => (!Story))
-        .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
-        .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
-        .filter(({ AssetId }) => (AssetId))
-        .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
-    const personalAssets = sortImportTree(Object.assign({}, ...personalAssetEntries))
-
-    const characters = queryItems
-        .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-
-    if (CharacterId)
-    await Promise.all(
-        characters.map(({ AssetId }) => (
-            ephemeraDB.update({
-                EphemeraId: `CHARACTERINPLAY#${splitType(AssetId)[1]}`,
-                DataCategory: 'Meta::Character',
-                UpdateExpression: `SET assets = :assets`,
-                ExpressionAttributeValues: {
-                    ':assets': personalAssets
-                }
-            })        
-        ))
-    )
-
-}
-
 export const generatePersonalAssetList = async (player) => {
     if (player) {
         const Items = await assetDB.query({
@@ -188,6 +150,40 @@ export const generatePersonalAssetList = async (player) => {
         return sortImportTree(Object.assign({}, ...personalAssets))
     }    
     return []
+}
+
+export const convertAssetQuery = (queryItems) => {
+    const Characters = queryItems
+        .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
+        .map(({ AssetId, Name, scopedId, fileName, fileURL }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL }))
+    const Assets = queryItems
+        .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
+        .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
+
+    return {
+        Characters,
+        Assets
+    }
+}
+
+export const generatePersonalAssetLibrary = async (player) => {
+    if (player) {
+        const items = assetDB.query({
+            IndexName: 'PlayerIndex',
+            player: username,
+            ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
+            ExpressionAttributeNames: {
+                '#name': 'Name'
+            }
+        })
+        const { Characters, Assets } = convertAssetQuery(items)
+        return {
+            PlayerName: player,
+            Characters,
+            Assets
+        }
+    }
+    return {}
 }
 
 export const defaultColorFromCharacterId = (CharacterId) => (

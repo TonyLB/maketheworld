@@ -1,5 +1,6 @@
 import { splitType } from '/opt/utilities/types.js'
 import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { generatePersonalAssetLibrary } from '/opt/utilities/selfHealing/index.js'
 
 export const getPlayerByConnectionId = async (connectionId) => {
     const { player } = await ephemeraDB.getItem({
@@ -51,22 +52,14 @@ export const convertAssetQuery = (queryItems) => {
 export const whoAmI = async (connectionId, RequestId) => {
     const username = await getPlayerByConnectionId(connectionId)
     if (username) {
-        const [{ CodeOfConductConsent }, queryItems] = await Promise.all([
+        const [{ CodeOfConductConsent }, { Characters, Assets }] = await Promise.all([
             assetDB.getItem({
                 AssetId: `PLAYER#${username}`,
                 DataCategory: 'Meta::Player',
                 ProjectionFields: ['CodeOfConductConsent']
             }),
-            assetDB.query({
-                IndexName: 'PlayerIndex',
-                player: username,
-                ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                }
-            })
+            generatePersonalAssetLibrary(username)
         ])
-        const { Characters, Assets } = convertAssetQuery(queryItems)
         return {
             statusCode: 200,
             body: JSON.stringify({
