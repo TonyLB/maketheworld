@@ -102,8 +102,8 @@ describe('apiManagment', () => {
             })
             ephemeraDB.getItem.mockResolvedValue({
                 connections: {
-                    '123': {},
-                    '456': {}
+                    '123': 'TestPlayer',
+                    '456': 'OtherTestPlayer'
                 }
             })
             await testSocket.flush()
@@ -138,6 +138,53 @@ describe('apiManagment', () => {
             })
         })
 
+        it('should deliver player messages', async() => {
+            const testSocket = new SocketQueue()
+            testSocket.send({
+                ConnectionId: '123',
+                Message: {
+                    messageType: 'Other',
+                    payload: 'Test'
+                }
+            })
+            testSocket.sendPlayer({
+                PlayerName: 'TestPlayer',
+                Message: {
+                    messageType: 'Another',
+                    payload: 'TestTwo'
+                }
+            })
+            ephemeraDB.getItem.mockResolvedValue({
+                connections: {
+                    '123': 'TestPlayer',
+                    '456': 'OtherTestPlayer',
+                    '789': 'TestPlayer'
+                }
+            })
+            await testSocket.flush()
+            expect(apiClient.send).toHaveBeenCalledTimes(3)
+            expect(apiClient.send).toHaveBeenCalledWith({
+                ConnectionId: '123',
+                Data: JSON.stringify({
+                    messageType: 'Other',
+                    payload: 'Test'
+                })
+            })
+            expect(apiClient.send).toHaveBeenCalledWith({
+                ConnectionId: '123',
+                Data: JSON.stringify({
+                    messageType: 'Another',
+                    payload: 'TestTwo'
+                })
+            })
+            expect(apiClient.send).toHaveBeenCalledWith({
+                ConnectionId: '789',
+                Data: JSON.stringify({
+                    messageType: 'Another',
+                    payload: 'TestTwo'
+                })
+            })
+        })
         it('should deliver targeted ephemera messages', async() => {
             const testSocket = new SocketQueue()
             testSocket.send({

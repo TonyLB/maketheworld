@@ -77,7 +77,7 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
         IndexName,
         ProjectionFields: passedProjectionFields,
         KeyConditionExpression: extraExpression,
-        ExpressionAttributeNames,
+        ExpressionAttributeNames = {},
         ExpressionAttributeValues,
         FilterExpression
     } = props
@@ -98,6 +98,10 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
         const KeyConditionExpression = extraExpression
             ? `${baseExpression} AND ${extraExpression}`
             : baseExpression
+        const revisedExpressionAttributeNames = {
+            ...ExpressionAttributeNames,
+            ...(IndexName === 'ZoneIndex' ? { '#zone': 'zone' } : {})
+        }
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: table,
             KeyConditionExpression,
@@ -107,10 +111,9 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
                 ...(ExpressionAttributeValues || {})
             }),
             ProjectionExpression: ProjectionFields.join(', '),
-            ExpressionAttributeNames: {
-                ...ExpressionAttributeNames,
-                ...(IndexName === 'ZoneIndex' ? { '#zone': 'zone' } : {})
-            },
+            ExpressionAttributeNames: (Object.keys(revisedExpressionAttributeNames).length > 0)
+                ? revisedExpressionAttributeNames
+                : undefined,
             FilterExpression
         }))
         return {

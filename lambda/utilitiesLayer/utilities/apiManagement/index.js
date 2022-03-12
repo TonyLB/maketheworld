@@ -95,15 +95,23 @@ export class SocketQueue extends Object {
         this.globalMessageQueue = queueInitial
         this.forceConnections = []
         this.messageQueueByConnection = {}
+        this.messageQueueByPlayer = {}
     }
 
     clear() {
         this.globalMessageQueue = queueInitial
         this.messageQueueByConnection = {}
+        this.messageQueueByPlayer = {}
     }
     send({ ConnectionId, Message }) {
         this.messageQueueByConnection[ConnectionId] = queueReducer(
             this.messageQueueByConnection[ConnectionId] || queueInitial,
+            Message
+        )
+    }
+    sendPlayer({ PlayerName, Message }) {
+        this.messageQueueByPlayer[PlayerName] = queueReducer(
+            this.messageQueueByPlayer[PlayerName] || queueInitial,
             Message
         )
     }
@@ -113,7 +121,7 @@ export class SocketQueue extends Object {
         this.forceConnections = unique(this.forceConnections, forceConnections)
     }
     async flush() {
-        const deliver = async (ConnectionId) => {
+        const deliver = (connections = {}) => async (ConnectionId) => {
             const deliverMessage = async (message) => {
                 await apiClient.send({
                     ConnectionId,
@@ -121,12 +129,16 @@ export class SocketQueue extends Object {
                 })
             }
             try {
+                const connectionMessages = this.messageQueueByConnection[ConnectionId]
+                    ? queueSerialize(this.messageQueueByConnection[ConnectionId])
+                    : []
+                const playerMessages = (connections[ConnectionId] && this.messageQueueByPlayer[connections[ConnectionId]])
+                    ? queueSerialize(this.messageQueueByPlayer[connections[ConnectionId]])
+                    : []
                 await Promise.all([
                     ...queueSerialize(this.globalMessageQueue),
-                    ...(this.messageQueueByConnection[ConnectionId]
-                        ? queueSerialize(this.messageQueueByConnection[ConnectionId])
-                        : []
-                    )
+                    ...connectionMessages,
+                    ...playerMessages
                 ].map(deliverMessage))
             }
             catch (err) {
@@ -140,7 +152,7 @@ export class SocketQueue extends Object {
             }
 
         }
-        if (queueHasContent(this.globalMessageQueue)) {
+        if (queueHasContent(this.globalMessageQueue) || Object.values(this.messageQueueByPlayer).find((queue) => (queueHasContent(queue)))) {
             const { connections = {} } = await ephemeraDB.getItem({
                 EphemeraId: 'Global',
                 DataCategory: 'Connections',
@@ -150,15 +162,16 @@ export class SocketQueue extends Object {
                 [
                     ...Object.keys(connections),
                     ...this.forceConnections
-                ].map(deliver)
+                ].map(deliver(connections))
             )
         }
         else {
-            await Promise.all(Object.keys(this.messageQueueByConnection).map(deliver))
+            await Promise.all(Object.keys(this.messageQueueByConnection).map(deliver()))
         }
         this.globalMessageQueue = queueInitial
         this.forceConnections = []
         this.messageQueueByConnection = {}
+        this.messageQueueByPlayer = {}
 
     }
 }
