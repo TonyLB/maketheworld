@@ -13,6 +13,7 @@ import { deliverRenders } from '/opt/utilities/perception/deliverRenders.js'
 import { executeAction as executeActionFromDB } from '/opt/utilities/executeCode/index.js'
 
 import { splitType, RoomKey } from '/opt/utilities/types.js'
+import { unique } from '/opt/utilities/lists.js'
 import {
     publishMessage,
     ephemeraDB,
@@ -274,6 +275,26 @@ const fetchLink = async ({ fileName, connectionId, requestId }) => {
     return null
 }
 
+export const subscribe = async ({ connectionId, requestId, options = {} }) => {
+    const { ConnectionIds = [] } = await ephemeraDB.getItem({
+        EphemeraId: 'Library',
+        DataCategory: 'Subscriptions',
+        ProjectionFields: ['ConnectionIds']
+    })
+    await ephemeraDB.update({
+        EphemeraId: 'Library',
+        DataCategory: 'Subscriptions',
+        UpdateExpression: 'SET ConnectionIds = :connectionIds',
+        ExpressionAttributeValues: {
+            ':connectionIds': unique(ConnectionIds, [connectionId])
+        }
+    })
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ RequestId: requestId })
+    }
+}
+
 export const handler = async (event, context) => {
 
     const { connectionId, routeKey } = event.requestContext
@@ -307,6 +328,8 @@ export const handler = async (event, context) => {
                 statusCode: 200,
                 body: JSON.stringify(ephemera)
             }
+        case 'subscribe':
+            return subscribe({ connectionId, RequestId: request.RequestId })
         case 'whoAmI':
             return whoAmI(connectionId, request.RequestId)
         case 'sync':

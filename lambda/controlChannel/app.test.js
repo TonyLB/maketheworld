@@ -3,11 +3,11 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('./validateJWT.js')
 jest.mock('./lambdaClient.js')
 
-import { registerCharacter } from './app.js'
+import { registerCharacter, subscribe } from './app.js'
 import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 
 describe("registerCharacter", () => {
-    afterEach(() => {
+    beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
@@ -65,4 +65,63 @@ describe("registerCharacter", () => {
         })
     })
 
+})
+
+describe('subscribe to library', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    it('should add to absent subscribe', async () => {
+        ephemeraDB.getItem.mockResolvedValue({})
+        const output = await subscribe({
+            connectionId: '123',
+            requestId: 'ABC'
+        })
+        expect(output).toEqual({
+            statusCode: 200,
+            body: JSON.stringify({ RequestId: 'ABC' })
+        })
+        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+            EphemeraId: 'Library',
+            DataCategory: 'Subscriptions',
+            ProjectionFields: ['ConnectionIds']
+        })
+        expect(ephemeraDB.update).toHaveBeenCalledWith({
+            EphemeraId: 'Library',
+            DataCategory: 'Subscriptions',
+            UpdateExpression: 'SET ConnectionIds = :connectionIds',
+            ExpressionAttributeValues: {
+                ':connectionIds': ['123']
+            }
+        })
+    })
+
+    it('should add to existing subscribe', async () => {
+        ephemeraDB.getItem.mockResolvedValue({
+            ConnectionIds: ['456']
+        })
+        const output = await subscribe({
+            connectionId: '123',
+            requestId: 'ABC'
+        })
+        expect(output).toEqual({
+            statusCode: 200,
+            body: JSON.stringify({ RequestId: 'ABC' })
+        })
+        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+            EphemeraId: 'Library',
+            DataCategory: 'Subscriptions',
+            ProjectionFields: ['ConnectionIds']
+        })
+        expect(ephemeraDB.update).toHaveBeenCalledWith({
+            EphemeraId: 'Library',
+            DataCategory: 'Subscriptions',
+            UpdateExpression: 'SET ConnectionIds = :connectionIds',
+            ExpressionAttributeValues: {
+                ':connectionIds': ['456', '123']
+            }
+        })
+    })
 })
