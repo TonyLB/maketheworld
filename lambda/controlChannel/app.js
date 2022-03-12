@@ -4,7 +4,7 @@
 import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 
-import { whoAmI, getPlayerByConnectionId } from './player/index.js'
+import { whoAmI, getPlayerByConnectionId, convertAssetQuery } from './player/index.js'
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
@@ -254,6 +254,30 @@ const upload = async ({ fileName, connectionId, requestId, uploadRequestId }) =>
     return null
 }
 
+export const fetchLibrary = async (RequestId) => {
+    const Items = await assetDB.query({
+        IndexName: 'ZoneIndex',
+        zone: 'Library',
+        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+        ExpressionAttributeValues: {
+            ':dcPrefix': 'Meta::'
+        },
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        },
+        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL']
+    })
+
+    const { Characters, Assets } = convertAssetQuery(Items)
+
+    return {
+        messageType: 'Library',
+        RequestId,
+        Characters,
+        Assets
+    }
+}
+
 const fetchLink = async ({ fileName, connectionId, requestId }) => {
     const PlayerName = await getPlayerByConnectionId(connectionId)
     if (PlayerName) {
@@ -327,6 +351,12 @@ export const handler = async (event, context) => {
             return {
                 statusCode: 200,
                 body: JSON.stringify(ephemera)
+            }
+        case 'fetchLibrary':
+            const libraryEphemera = await fetchLibrary(request.RequestId)
+            return {
+                statusCode: 200,
+                body: JSON.stringify(libraryEphemera)
             }
         case 'subscribe':
             return subscribe({ connectionId, RequestId: request.RequestId })
