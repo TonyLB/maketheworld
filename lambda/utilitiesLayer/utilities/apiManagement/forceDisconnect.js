@@ -42,6 +42,12 @@ export const forceDisconnect = async (ConnectionId) => {
         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'CHARACTERINPLAY'))
         .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
 
+    const { ConnectionIds: oldLibrarySubscription = [] } = await ephemeraDB.getItem({
+        EphemeraId: 'Library',
+        DataCategory: 'Subscriptions',
+        ProjectionFields: ['ConnectionIds']
+    })
+
     await Promise.all([
         ephemeraDB.deleteItem({
             EphemeraId: `CONNECTION#${ConnectionId}`,
@@ -58,6 +64,14 @@ export const forceDisconnect = async (ConnectionId) => {
             // TODO: When self-Healing is lifted to utility layer, add a catchException
             // callback here to heal global connections
             //
+        }),
+        ephemeraDB.update({
+            EphemeraId: 'Library',
+            DataCategory: 'Subscriptions',
+            UpdateExpression: 'SET ConnectionIds = :connectionIds',
+            ExpressionAttributeValues: {
+                ':connectionIds': oldLibrarySubscription.filter((value) => (value !== ConnectionId))
+            }    
         }),
         ...(connectedCharacterIds
             .map((CharacterId) => (

@@ -5,12 +5,26 @@
   "description": "Lambda handler for MTW ephemera data",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",
+  "jest": {
+    "moduleNameMapper": {
+      "^/opt/utilities/(.*).jsx?$": "<rootDir>/__mocks__/opt/utilities/$1",
+      "^(\\.{1,2}/.*)\\.jsx?$": "$1"
+    }
+  },
   "dependencies": {
     "@aws-sdk/util-dynamodb": "^3.13.1",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.5",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
+    "babel-jest": "^27.5.1",
+    "babel-plugin-transform-import-meta": "^2.1.1",
+    "jest": "^27.5.1"
   }
 }
