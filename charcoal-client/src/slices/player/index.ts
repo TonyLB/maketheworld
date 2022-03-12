@@ -9,6 +9,7 @@ import {
 import {
     getPlayer as getPlayerSelector,
     getMyCharacters as getMyCharactersSelector,
+    getMyAssets as getMyAssetsSelector,
     getMyCharacterById as getMyCharacterByIdSelector,
     getMyCharacterByKey as getMyCharacterByKeySelector,
     PlayerSelectors
@@ -42,6 +43,7 @@ export const {
     publicSelectors: {
         getPlayer: getPlayerSelector,
         getMyCharacters: getMyCharactersSelector,
+        getMyAssets: getMyAssetsSelector
     },
     template: {
         initialState: 'INITIAL',
@@ -95,7 +97,8 @@ export const {
 // export const { } = publicActions
 export const {
     getPlayer,
-    getMyCharacters
+    getMyCharacters,
+    getMyAssets
 } = selectors
 
 export const getMyCharacterById = getMyCharacterByIdSelector(getMyCharacters)

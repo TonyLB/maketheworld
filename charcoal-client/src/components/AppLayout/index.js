@@ -39,6 +39,7 @@ import MapHome from '../Maps'
 import MapView from '../Maps/View'
 import CharacterEdit from '../CharacterEdit'
 import HelpPage from '../Help'
+import Library from '../Library'
 
 import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 
@@ -201,13 +202,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Character/Archived" element={<InDevelopment />} />
                         <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
                         <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-                        <Route path="/Forum/" element={<InDevelopment />} />
-                        <Route path="/Calendar/" element={<InDevelopment />} />
-                        <Route path="/Scenes/" element={<InDevelopment />} />
-                        <Route path="/Stories/" element={<InDevelopment />} />
-                        <Route path="/Chat/" element={<InDevelopment />} />
-                        <Route path="/Logs/" element={<InDevelopment />} />
-                        <Route path="/Forum/" element={<InDevelopment />} />
+                        <Route path="/Library/" element={<Library />} />
                         <Route path="/Maps/*" element={<MapHome />} />
                         <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/Who/" element={whoPanel} />

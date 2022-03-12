@@ -10,10 +10,8 @@ import CardHeader from '@mui/material/CardHeader'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 
-import ForumIcon from '@mui/icons-material/AllInbox'
-import CalendarIcon from '@mui/icons-material/Event'
+import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
-import ChatIcon from '@mui/icons-material/Sms'
 
 //
 // TODO:  Choose better typography for the Home page.
@@ -31,53 +29,30 @@ export const Home = ({
         <div style={{ textAlign: "center" }}>
             <h2>Make the World</h2>
             A text-based platform for cooperative storytelling
-            <Divider />
-            <h2>Organize</h2>
-            <Divider />
         </div>
         <Grid
             sx={{ width: "100%", padding: "10px" }}
             container
             direction="row"
-            justifycontent="center"
+            justifyContent="center"
             alignItems="center"
             spacing={3}
         >
+            <Grid item xs={12} sx={{ textAlign: "center" }}>
+                <Divider />
+                    <h2>Create</h2>
+                <Divider />
+            </Grid>
             {[
                 {
-                    icon: <ForumIcon />,
-                    title: 'Forum',
-                    href: '/Forum/'
-                },
-                {
-                    icon: <CalendarIcon />,
-                    title: 'Calendar',
-                    href: '/Calendar/'
-                },
-                {
-                    icon: null,
-                    title: 'Scenes',
-                    href: '/Scenes/'
-                },
-                {
-                    icon: null,
-                    title: 'Stories',
-                    href: '/Stories/'
-                },
-                {
-                    icon: <ChatIcon />,
-                    title: 'Out-of-game Chat',
-                    href: '/Chat/'
+                    icon: <LibraryIcon />,
+                    title: 'Library',
+                    href: '/Library/'
                 },
                 {
                     icon: <MapIcon />,
                     title: 'Maps',
                     href: '/Maps/'
-                },
-                {
-                    icon: null,
-                    title: 'Logs',
-                    href: '/Logs/'
                 }
             ].map(({ icon, title, href }) => (
                 <Grid key={title} item sm={3}>
@@ -95,20 +70,11 @@ export const Home = ({
                     </Card>
                 </Grid>
             )) }
-        </Grid>
-        <div style={{ textAlign: "center" }}>
-            <Divider />
-            <h2>Play</h2>
-            <Divider />
-        </div>
-        <Grid
-            sx={{ width: "100%", padding: "10px" }}
-            container
-            direction="row"
-            justifycontent="space-evenly"
-            alignItems="center"
-            spacing={3}
-        >
+            <Grid item xs={12} sx={{ textAlign: "center" }}>
+                <Divider />
+                    <h2>Play</h2>
+                <Divider />
+            </Grid>
             { myCharacters.map(({ Name, CharacterId }) => (
                 CharacterId && <Grid key={`${Name}:${CharacterId}`} item sm={3}>
                     <Card onClick={() => {
@@ -125,20 +91,11 @@ export const Home = ({
                     </Card>
                 </Grid>))
             }
-        </Grid>
-        <div style={{ textAlign: "center" }}>
-            <Divider />
-            <h2>Administer</h2>
-            <Divider />
-        </div>
-        <Grid
-            sx={{ width: "100%", padding: "10px" }}
-            container
-            direction="row"
-            justifycontent="center"
-            alignItems="center"
-            spacing={3}
-        >
+            <Grid item xs={12} sx={{ textAlign: "center" }}>
+                <Divider />
+                    <h2>Administer</h2>
+                <Divider />
+            </Grid>
             {[
                 {
                     icon: null,
