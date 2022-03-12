@@ -1,6 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { generatePersonalAssetLibrary } from '/opt/utilities/selfHealing/index.js'
 
 import { whoAmI } from './index.js'
 
@@ -17,22 +18,22 @@ describe('whoAmI', () => {
         assetDB.getItem.mockResolvedValue({
             CodeOfConductConsent: true
         })
-        assetDB.query.mockResolvedValue([{
-            AssetId: 'CHARACTER#MNO',
-            DataCategory: 'Meta::Character',
-            scopedId: 'TESS',
-            Name: 'Tess'
-        },
-        {
-            AssetId: 'ASSET#QRS',
-            DataCategory: 'Meta::Asset'
-        },
-        {
-            AssetId: 'ASSET#StoryTest',
-            DataCategory: 'Meta::Asset',
-            Story: true,
-            instance: true
-        }])
+        generatePersonalAssetLibrary.mockResolvedValue({
+            PlayerName: 'TestPlayer',
+            Assets:  [{
+                AssetId: 'QRS'
+            },
+            {
+                AssetId: 'StoryTest',
+                Story: true,
+                instance: true
+            }],
+            Characters: [{
+                CharacterId: 'MNO',
+                Name: 'Tess',
+                scopedId: 'TESS'
+            }]
+        })
         const output = await whoAmI('ABC', 'RequestTest')
         expect(output).toEqual({
             statusCode: 200,

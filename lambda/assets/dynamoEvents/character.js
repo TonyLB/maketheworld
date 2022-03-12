@@ -46,7 +46,7 @@ export const handleCharacterEvents = async ({ events }) => {
                         ...(Object.keys(expressionValues).length ? { ExpressionAttributeValues: expressionValues }: {}),
                         ...(remap['Name'] !== 'ignore' ? { ExpressionAttributeNames: { '#Name': 'Name' }} : {})
                     }),
-                    ...(newImage.player
+                    ...((newImage.player && newImage.player !== 'undefined') 
                         ? [assetDB.update({
                             AssetId: `PLAYER#${newImage.player}`,
                             DataCategory: 'Meta::Player',
