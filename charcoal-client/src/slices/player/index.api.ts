@@ -14,8 +14,8 @@ export const lifelineCondition: PlayerCondition = (_, getState) => {
 export const subscribeAction: PlayerAction = ({ actions: { receivePlayer } }) => async (dispatch) => {
     const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
         if (payload.messageType === 'Player') {
-            const { PlayerName, CodeOfConductConsent, Characters } = payload
-            dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Characters }))
+            const { PlayerName, CodeOfConductConsent, Characters, Assets } = payload
+            dispatch(receivePlayer({ PlayerName, CodeOfConductConsent, Assets, Characters }))
         }
     })
 

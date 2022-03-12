@@ -31,6 +31,7 @@ export const {
         publicData: {
             PlayerName: '',
             CodeOfConductConsent: false,
+            Assets: [],
             Characters: []
         }
     },
@@ -51,6 +52,7 @@ export const {
             publicData: {
                 PlayerName: '',
                 CodeOfConductConsent: false,
+                Assets: [],
                 Characters: []                    
             }
         },

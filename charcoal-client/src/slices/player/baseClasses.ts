@@ -5,13 +5,25 @@ export interface PlayerInternal {
     incrementalBackoff: number;
 }
 
+export type PlayerAsset = {
+    AssetId: string;
+    Story?: boolean;
+    instance?: boolean;
+}
+
+export type PlayerCharacter = {
+    CharacterId: string;
+    Name: string;
+    scopedId: string;
+    fileName: string;
+    fileURL?: string;
+}
+
 export interface PlayerPublic {
     PlayerName: string;
     CodeOfConductConsent: boolean;
-    //
-    // TODO: Type-constrain characters
-    //
-    Characters: any[];
+    Assets: PlayerAsset[];
+    Characters: PlayerCharacter[];
 }
 
 export type PlayerRecord = ISSMDataLayout<PlayerInternal, PlayerPublic>

@@ -46,7 +46,7 @@ export const whoAmI = async (connectionId, RequestId) => {
             assetDB.query({
                 IndexName: 'PlayerIndex',
                 player: username,
-                ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL'],
+                ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
                 ExpressionAttributeNames: {
                     '#name': 'Name'
                 }

@@ -1,6 +1,6 @@
 import { Message } from '../messages'
 import { EphemeraFormat } from './ephemera'
-import { PlayerData } from './player'
+import { PlayerPublic } from '../player/baseClasses'
 
 type LifeLineRegisterMessage = {
     messageType: 'Registered';
@@ -23,7 +23,7 @@ type LifeLineReceiveEphemera = {
 type LifeLineReceivePlayer = {
     messageType: 'Player',
     RequestId?: string;
-} & PlayerData
+} & PlayerPublic
 
 type LifeLineError = {
     messageType: 'Error',
