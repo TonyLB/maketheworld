@@ -309,6 +309,8 @@ Resources:
             AttributeType: "S"
           - AttributeName: "player"
             AttributeType: "S"
+          - AttributeName: "zone"
+            AttributeType: "S"
         BillingMode: "PAY_PER_REQUEST"
         KeySchema:
           - AttributeName: "AssetId"
@@ -335,6 +337,14 @@ Resources:
           - IndexName: PlayerIndex
             KeySchema:
               - AttributeName: player
+                KeyType: HASH
+              - AttributeName: DataCategory
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: ZoneIndex
+            KeySchema:
+              - AttributeName: zone
                 KeyType: HASH
               - AttributeName: DataCategory
                 KeyType: RANGE
