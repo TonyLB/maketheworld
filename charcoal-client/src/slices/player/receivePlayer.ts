@@ -8,9 +8,10 @@ import { PlayerPublic } from './baseClasses'
 //
 
 export const receivePlayer = (state: PlayerPublic, action: PayloadAction<PlayerPublic>) => {
-    const { PlayerName, CodeOfConductConsent, Characters } = action.payload
+    const { PlayerName, CodeOfConductConsent, Assets, Characters } = action.payload
     state.PlayerName = PlayerName
     state.CodeOfConductConsent = CodeOfConductConsent
+    state.Assets = Assets
     state.Characters = Characters
 }
 
