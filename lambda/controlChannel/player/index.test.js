@@ -22,6 +22,16 @@ describe('whoAmI', () => {
             DataCategory: 'Meta::Character',
             scopedId: 'TESS',
             Name: 'Tess'
+        },
+        {
+            AssetId: 'ASSET#QRS',
+            DataCategory: 'Meta::Asset'
+        },
+        {
+            AssetId: 'ASSET#StoryTest',
+            DataCategory: 'Meta::Asset',
+            Story: true,
+            instance: true
         }])
         const output = await whoAmI('ABC', 'RequestTest')
         expect(output).toEqual({
@@ -29,6 +39,14 @@ describe('whoAmI', () => {
             body: JSON.stringify({
                 messageType: 'Player',
                 PlayerName: 'TestPlayer',
+                Assets: [{
+                    AssetId: 'QRS'
+                },
+                {
+                    AssetId: 'StoryTest',
+                    Story: true,
+                    instance: true
+                }],
                 Characters: [{
                     CharacterId: 'MNO',
                     Name: 'Tess',

@@ -55,11 +55,15 @@ export const whoAmI = async (connectionId, RequestId) => {
         const Characters = queryItems
             .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
             .map(({ AssetId, Name, scopedId, fileName, fileURL }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL }))
+        const Assets = queryItems
+            .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
+            .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
         return {
             statusCode: 200,
             body: JSON.stringify({
                 messageType: 'Player',
                 PlayerName: username,
+                Assets,
                 Characters,
                 CodeOfConductConsent,
                 RequestId
