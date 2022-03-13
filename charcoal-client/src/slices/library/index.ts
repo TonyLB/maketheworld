@@ -20,7 +20,7 @@ export const {
 } = singleSSM<Library, LibrarySelectors>({
     name: 'library',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'INITIAL',
+    initialSSMDesired: 'INACTIVE',
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
@@ -30,9 +30,9 @@ export const {
             Characters: []
         }
     },
-    sliceSelector: ({ player }) => (player),
+    sliceSelector: ({ library }) => (library),
     publicReducers: {
-        receivePlayer: receiveLibrary
+        receiveLibrary
     },
     publicSelectors: {
         getLibrary: getLibrarySelector
@@ -51,8 +51,12 @@ export const {
         states: {
             INITIAL: {
                 stateType: 'HOLD',
-                next: 'SUBSCRIBE',
+                next: 'INACTIVE',
                 condition: lifelineCondition
+            },
+            INACTIVE: {
+                stateType: 'CHOICE',
+                choices: ['SUBSCRIBE']
             },
             SUBSCRIBE: {
                 stateType: 'ATTEMPT',
@@ -73,7 +77,7 @@ export const {
             UNSUBSCRIBE: {
                 stateType: 'ATTEMPT',
                 action: unsubscribeAction,
-                resolve: 'INITIAL',
+                resolve: 'INACTIVE',
                 reject: 'ERROR'
             },
             ERROR: {

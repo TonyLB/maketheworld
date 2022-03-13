@@ -31,6 +31,7 @@ export type LibraryCondition = ISSMHoldCondition<LibraryInternal, LibraryPublic>
 
 export interface Library {
     INITIAL: ISSMHoldNode<LibraryInternal, LibraryPublic>;
+    INACTIVE: ISSMChoiceNode;
     SUBSCRIBE: ISSMAttemptNode<LibraryInternal, LibraryPublic>;
     SYNCHRONIZE: ISSMAttemptNode<LibraryInternal, LibraryPublic>;
     CONNECTED: ISSMChoiceNode;
