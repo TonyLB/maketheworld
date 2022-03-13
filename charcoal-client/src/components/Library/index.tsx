@@ -19,19 +19,38 @@ import AssetIcon from '@mui/icons-material/Landscape'
 import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { PlayerAsset, PlayerCharacter } from '../../slices/player/baseClasses'
 import { getMyCharacters, getMyAssets } from '../../slices/player'
-import { CharacterAvatarDirect } from '../CharacterAvatar'
 import { getLibrary, setIntent } from '../../slices/library'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
+import { CharacterAvatarDirect } from '../CharacterAvatar'
+import PreviewPane, { PreviewPaneContents } from './PreviewPane'
+
+
 interface TableOfContentsProps {
     Characters: PlayerCharacter[];
-    Assets: PlayerAsset[]
+    Assets: PlayerAsset[];
+    selectItem: (index: number) => void;
+    selectedIndex?: number;
+    setPreviewItem: (item: undefined | PreviewPaneContents) => void;
 }
 
-const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters = [], Assets = [] }) => {
-    const [selectedIndex, setSelectedIndex] = React.useState<undefined | number>()
+const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters = [], Assets = [], selectItem = () => {}, selectedIndex, setPreviewItem = () => {} }) => {
     const handleListItemClick = (event: any, index: number) => {
-        setSelectedIndex(index)
+        selectItem(index)
+        if (index >= Assets.length) {
+            if ((index - Assets.length) < Characters.length) {
+                setPreviewItem({
+                    type: 'Character',
+                    ...Characters[index-Assets.length]
+                })
+            }
+        }
+        else {
+            setPreviewItem({
+                type: 'Asset',
+                ...Assets[index]
+            })
+        }
     }
     return <List component="nav" aria-label="main mailbox folders">
         { (Assets.length > 0) && <ListSubheader>Assets</ListSubheader> }
@@ -75,6 +94,10 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         dispatch(setIntent('CONNECTED'))
         dispatch(heartbeat)
     }, [])
+    const [selectedPersonalIndex, setSelectedPersonalIndex] = React.useState<undefined | number>()
+    const [personalPreviewItem, setPersonalPreviewItem] = React.useState<undefined | PreviewPaneContents>()
+    const [selectedLibraryIndex, setSelectedLibraryIndex] = React.useState<undefined | number>()
+    const [libraryPreviewItem, setLibraryPreviewItem] = React.useState<undefined | PreviewPaneContents>()
     useAutoPin({ href: `/Library/`, label: `Library`})
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
@@ -96,9 +119,21 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             spacing={3}
         >
             <Grid item xs={6}>
-                <TableOfContents Characters={Characters} Assets={Assets} />
+                <TableOfContents
+                    Characters={Characters}
+                    Assets={Assets}
+                    selectItem={setSelectedPersonalIndex}
+                    selectedIndex={selectedPersonalIndex}
+                    setPreviewItem={setPersonalPreviewItem}
+                />
             </Grid>
             <Grid item xs={6}>
+                { personalPreviewItem &&
+                    <PreviewPane
+                        personal={true}
+                        {...personalPreviewItem}
+                    />
+                }
             </Grid>
         </Grid>
         <div style={{ textAlign: "center" }}>
@@ -115,7 +150,13 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             spacing={3}
         >
             <Grid item xs={6}>
-                <TableOfContents Characters={libraryCharacters} Assets={libraryAssets} />
+                <TableOfContents
+                    Characters={libraryCharacters}
+                    Assets={libraryAssets}
+                    selectItem={setSelectedLibraryIndex}
+                    selectedIndex={selectedLibraryIndex}
+                    setPreviewItem={setLibraryPreviewItem}
+                />
             </Grid>
             <Grid item xs={6}>
             </Grid>
