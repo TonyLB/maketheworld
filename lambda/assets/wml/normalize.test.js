@@ -358,6 +358,7 @@ describe('WML normalize', () => {
         expect(normalize({
             tag: 'Character',
             key: 'TESS',
+            zone: 'Library',
             Name: 'Tess',
             fileURL: 'testIcon.png',
             Pronouns: {
@@ -377,6 +378,7 @@ describe('WML normalize', () => {
             TESS: {
                 key: 'TESS',
                 tag: 'Character',
+                zone: 'Library',
                 fileName: 'test.wml',
                 fileURL: 'testIcon.png',
                 Name: 'Tess',

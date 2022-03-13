@@ -13,6 +13,7 @@ describe('dbRegister', () => {
             assets: [{
                 tag: 'Character',
                 key: 'TESS',
+                zone: 'Library',
                 Name: 'Tess',
                 fileURL: 'testIcon.png',
                 Pronouns: {
@@ -31,6 +32,7 @@ describe('dbRegister', () => {
         expect(assetDB.putItem).toHaveBeenCalledWith({
             AssetId: 'CHARACTER#12345',
             DataCategory: 'Meta::Character',
+            zone: 'Library',
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
             scopedId: 'TESS',

@@ -286,7 +286,7 @@ export const schema = {
             validate(confirmKeyProps(['key'])),
             validate(confirmLiteralProps(['player', 'fileName'])),
             liftKeyProps(['key']),
-            liftLiteralProps(['player', 'fileName']),
+            liftLiteralProps(['player', 'fileName', 'zone']),
             validate(fileNameValidator),
             liftPronounTags,
             liftImageFileURL,

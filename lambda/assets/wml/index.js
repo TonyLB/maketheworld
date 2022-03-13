@@ -187,6 +187,7 @@ export const assetRegistryEntries = (schema) => {
                 return {
                     tag,
                     key,
+                    zone: rest.zone,
                     fileName,
                     fileURL: rest.fileURL,
                     player,

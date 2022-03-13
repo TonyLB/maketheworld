@@ -125,7 +125,7 @@ describe('WML semantic schema', () => {
 
     it('should parse a character element', () => {
         const match = wmlGrammar.match(`
-            <Character key=(Tess) fileName="Tess" player="testy">
+            <Character key=(Tess) fileName="Tess" player="testy" zone="Library">
                 <Image key=(icon) fileURL="testIcon.png" />
                 <Name>Tess</Name>
                 <Pronouns
@@ -143,6 +143,7 @@ describe('WML semantic schema', () => {
             tag: 'Character',
             fileName: 'Tess',
             player: "testy",
+            zone: 'Library',
             Name: 'Tess',
             Pronouns: {
                 subject: 'she',

@@ -293,6 +293,7 @@ describe('WML assetRegistryEntries', () => {
         const characterSchema = {
             tag: 'Character',
             key: 'TESS',
+            zone: 'Library',
             Name: 'Tess',
             fileName: 'Tess',
             fileURL: 'testIcon.png',
@@ -307,13 +308,13 @@ describe('WML assetRegistryEntries', () => {
             OneCoolThing: 'Fuchsia eyes',
             Outfit: 'A battered hoodie trimmed with lace',
             fileName: 'test.wml',
-            // zone: 'Canon',
             contents: []
         }
 
         expect(assetRegistryEntries(characterSchema)).toEqual([{
             tag: 'Character',
             key: 'TESS',
+            zone: 'Library',
             fileName: 'test.wml',
             fileURL: 'testIcon.png',
             Name: 'Tess',

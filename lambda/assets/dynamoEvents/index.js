@@ -3,6 +3,7 @@ import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { handleCharacterEvents } from './character.js'
 import { handleAssetEvents } from './asset.js'
 import { handlePlayerEvents } from './player.js'
+import { handleLibraryEvents } from './library.js'
 
 //
 // TODO: Optimize Record-handling procedure for batches of multiple
@@ -25,6 +26,9 @@ export const handleDynamoEvent = async ({ events }) => {
             events: translatedEvents.filter(({ oldImage, newImage }) => ([oldImage.DataCategory, newImage.DataCategory].includes('Meta::Asset')))
         }),
         handlePlayerEvents({
+            events: translatedEvents
+        }),
+        handleLibraryEvents({
             events: translatedEvents
         })
     ])

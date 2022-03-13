@@ -186,6 +186,22 @@ export const generatePersonalAssetLibrary = async (player) => {
     return {}
 }
 
+export const generateLibrary = async () => {
+    const items = await assetDB.query({
+        IndexName: 'ZoneIndex',
+        zone: 'Library',
+        ProjectionFields: ['AssetId', 'DataCategory', '#name', 'scopedId', 'fileName', 'fileURL', 'Story', 'instance'],
+        ExpressionAttributeNames: {
+            '#name': 'Name'
+        }
+    })
+    const { Characters, Assets } = convertAssetQuery(items)
+    return {
+        Characters,
+        Assets
+    }
+}
+
 export const defaultColorFromCharacterId = (CharacterId) => (
     ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
 )
