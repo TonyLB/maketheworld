@@ -23,7 +23,7 @@ import { getLibrary, setIntent } from '../../slices/library'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import { CharacterAvatarDirect } from '../CharacterAvatar'
-import PreviewCharacter, { PreviewPaneProps } from './PreviewPane'
+import PreviewPane, { PreviewPaneContents } from './PreviewPane'
 
 
 interface TableOfContentsProps {
@@ -31,7 +31,7 @@ interface TableOfContentsProps {
     Assets: PlayerAsset[];
     selectItem: (index: number) => void;
     selectedIndex?: number;
-    setPreviewItem: (item: undefined | PreviewPaneProps) => void;
+    setPreviewItem: (item: undefined | PreviewPaneContents) => void;
 }
 
 const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters = [], Assets = [], selectItem = () => {}, selectedIndex, setPreviewItem = () => {} }) => {
@@ -95,9 +95,9 @@ export const Library: FunctionComponent<LibraryProps> = () => {
         dispatch(heartbeat)
     }, [])
     const [selectedPersonalIndex, setSelectedPersonalIndex] = React.useState<undefined | number>()
-    const [personalPreviewItem, setPersonalPreviewItem] = React.useState<undefined | PreviewPaneProps>()
+    const [personalPreviewItem, setPersonalPreviewItem] = React.useState<undefined | PreviewPaneContents>()
     const [selectedLibraryIndex, setSelectedLibraryIndex] = React.useState<undefined | number>()
-    const [libraryPreviewItem, setLibraryPreviewItem] = React.useState<undefined | PreviewPaneProps>()
+    const [libraryPreviewItem, setLibraryPreviewItem] = React.useState<undefined | PreviewPaneContents>()
     useAutoPin({ href: `/Library/`, label: `Library`})
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
@@ -129,7 +129,8 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             </Grid>
             <Grid item xs={6}>
                 { personalPreviewItem &&
-                    <PreviewCharacter
+                    <PreviewPane
+                        personal={true}
                         {...personalPreviewItem}
                     />
                 }
