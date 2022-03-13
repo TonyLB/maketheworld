@@ -299,7 +299,7 @@ const fetchLink = async ({ fileName, connectionId, requestId }) => {
     return null
 }
 
-export const subscribe = async ({ connectionId, requestId, options = {} }) => {
+export const subscribe = async ({ connectionId, RequestId, options = {} }) => {
     const { ConnectionIds = [] } = await ephemeraDB.getItem({
         EphemeraId: 'Library',
         DataCategory: 'Subscriptions',
@@ -315,7 +315,7 @@ export const subscribe = async ({ connectionId, requestId, options = {} }) => {
     })
     return {
         statusCode: 200,
-        body: JSON.stringify({ RequestId: requestId })
+        body: JSON.stringify({ RequestId })
     }
 }
 

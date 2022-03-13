@@ -93,4 +93,8 @@ export const {
     getLibrary,
 } = selectors
 
+export const {
+    setIntent
+} = librarySlice.actions
+
 export default librarySlice.reducer
