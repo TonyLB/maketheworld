@@ -9,6 +9,7 @@ import ephemera from '../slices/ephemera'
 import player from '../slices/player'
 import lifeLine from '../slices/lifeLine'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
+import library from '../slices/library'
 
 export const store = configureStore({
     reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
         ephemera,
         messages,
         player,
+        library,
         settings,
         UI: uiReducer,
         ssmHeartbeat
