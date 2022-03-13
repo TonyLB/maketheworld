@@ -25,10 +25,11 @@ export type PreviewPaneContents = ({
 } & PlayerCharacter)
 
 type PreviewPaneProps = {
+    clearPreview: () => void;
     personal: boolean;
 } & PreviewPaneContents
 
-const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean }> = ({ personal, CharacterId, Name, fileURL }) => {
+const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, Name, fileURL }) => {
     const dispatch = useDispatch()
     const theme = useTheme()
     const medium = useMediaQuery(theme.breakpoints.up('md'))
@@ -58,13 +59,19 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean 
         />
         <CardActions>
             { personal && <Button
-                    onClick={() => { /* dispatch(socketDispatchPromise('checkin')({ AssetId: `CHARACTER#${CharacterId}` })) */ }}
+                    onClick={() => {
+                        dispatch(socketDispatchPromise('checkin')({ AssetId: `CHARACTER#${CharacterId}` }))
+                        clearPreview()
+                    }}
                 >
                     Check In to Library
                 </Button>
             }
             { !personal && <Button
-                    onClick={() => { /* dispatch(socketDispatchPromise('checkout')({ AssetId: `CHARACTER#${CharacterId}` })) */ }}
+                    onClick={() => {
+                        dispatch(socketDispatchPromise('checkout')({ AssetId: `CHARACTER#${CharacterId}` }))
+                        clearPreview()
+                    }}
                 >
                     Check Out of Library
                 </Button>
@@ -74,10 +81,10 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean 
 }
 
 export const PreviewPane: FunctionComponent<PreviewPaneProps> = (props) => {
-    const { type, personal, ...rest } = props
+    const { type, personal, clearPreview, ...rest } = props
     switch(type) {
         case 'Character':
-            return <PreviewCharacter personal={personal} {...rest as PlayerCharacter} />
+            return <PreviewCharacter clearPreview={clearPreview} personal={personal} {...rest as PlayerCharacter} />
         default:
             return <div>
                 Preview Pane
