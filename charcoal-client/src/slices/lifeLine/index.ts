@@ -16,14 +16,6 @@ export {
     LifeLinePubSub
 } from './index.api'
 
-// import {
-//     getPlayer as getPlayerSelector,
-//     getMyCharacters as getMyCharactersSelector,
-//     getMyCharacterById as getMyCharacterByIdSelector,
-//     getMyCharacterByKey as getMyCharacterByKeySelector
-// } from './selectors'
-// import { receivePlayer } from './receivePlayer'
-
 export const {
     slice: lifeLineSlice,
     selectors,

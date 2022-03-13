@@ -1,5 +1,5 @@
-import React, { FunctionComponent, useState } from 'react'
-import { useSelector } from 'react-redux'
+import React, { FunctionComponent, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -20,6 +20,8 @@ import useAutoPin from '../../slices/UI/navigationTabs/useAutoPin'
 import { PlayerAsset, PlayerCharacter } from '../../slices/player/baseClasses'
 import { getMyCharacters, getMyAssets } from '../../slices/player'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
+import { getLibrary, setIntent } from '../../slices/library'
+import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 interface TableOfContentsProps {
     Characters: PlayerCharacter[];
@@ -68,10 +70,16 @@ interface LibraryProps {
 }
 
 export const Library: FunctionComponent<LibraryProps> = () => {
+    const dispatch = useDispatch()
+    useEffect(() => {
+        dispatch(setIntent('CONNECTED'))
+        dispatch(heartbeat)
+    }, [])
     useAutoPin({ href: `/Library/`, label: `Library`})
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
     const Assets = useSelector(getMyAssets)
+    const { Characters: libraryCharacters, Assets: libraryAssets } = useSelector(getLibrary)
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
@@ -106,6 +114,11 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             alignItems="center"
             spacing={3}
         >
+            <Grid item xs={6}>
+                <TableOfContents Characters={libraryCharacters} Assets={libraryAssets} />
+            </Grid>
+            <Grid item xs={6}>
+            </Grid>
         </Grid>
     </Box>
 }
