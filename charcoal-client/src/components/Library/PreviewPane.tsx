@@ -5,6 +5,7 @@ import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
 import {
+    Avatar,
     Card,
     CardHeader,
     CardActions,
@@ -18,16 +19,68 @@ import { PlayerAsset, PlayerCharacter } from '../../slices/player/baseClasses'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 
+import AssetIcon from '@mui/icons-material/Landscape'
+
 export type PreviewPaneContents = ({
     type: 'Asset'
 } & PlayerAsset) | ({
     type: 'Character'
 } & PlayerCharacter)
 
-type PreviewPaneProps = {
+type PreviewPaneMeta = {
     clearPreview: () => void;
     personal: boolean;
-} & PreviewPaneContents
+}
+
+type PreviewPaneProps = PreviewPaneMeta & PreviewPaneContents
+
+const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ personal, clearPreview, AssetId }) => {
+    const dispatch = useDispatch()
+    const theme = useTheme()
+    const medium = useMediaQuery(theme.breakpoints.up('md'))
+    const large = useMediaQuery(theme.breakpoints.up('lg'))
+    const portraitSize = large ? 80 : medium ? 70 : 60
+    return <Card>
+        <CardHeader
+            avatar={
+                <Avatar sx={{ width: `${portraitSize}px`, height: `${portraitSize}px` }} variant="rounded">
+                    <AssetIcon sx={{ width: `${portraitSize*0.7}px`, height: `${portraitSize*0.7}px` }}/>
+                </Avatar>
+            }
+            action={
+                personal && 
+                    <IconButton aria-label="edit">
+                        <EditIcon />
+                    </IconButton>
+            }
+            title={
+                <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div" gutterBottom>
+                    { AssetId }
+                </Typography>
+            }
+        />
+        <CardActions>
+            { personal && <Button
+                    onClick={() => {
+                        dispatch(socketDispatchPromise('checkin')({ AssetId: `ASSET#${AssetId}` }))
+                        clearPreview()
+                    }}
+                >
+                    Check In to Library
+                </Button>
+            }
+            { !personal && <Button
+                    onClick={() => {
+                        dispatch(socketDispatchPromise('checkout')({ AssetId: `ASSET#${AssetId}` }))
+                        clearPreview()
+                    }}
+                >
+                    Check Out of Library
+                </Button>
+            }
+        </CardActions>
+    </Card>
+}
 
 const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, Name, fileURL }) => {
     const dispatch = useDispatch()
@@ -47,9 +100,10 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
                 />    
             }
             action={
-                <IconButton aria-label="edit">
-                    <EditIcon />
-                </IconButton>
+                personal && 
+                    <IconButton aria-label="edit">
+                        <EditIcon />
+                    </IconButton>
             }
             title={
                 <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div" gutterBottom>
@@ -85,6 +139,8 @@ export const PreviewPane: FunctionComponent<PreviewPaneProps> = (props) => {
     switch(type) {
         case 'Character':
             return <PreviewCharacter clearPreview={clearPreview} personal={personal} {...rest as PlayerCharacter} />
+        case 'Asset':
+            return <PreviewAsset clearPreview={clearPreview} personal={personal} {...rest as PlayerAsset} />
         default:
             return <div>
                 Preview Pane

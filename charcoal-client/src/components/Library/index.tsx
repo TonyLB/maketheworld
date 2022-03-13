@@ -61,7 +61,7 @@ const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters =
                 onClick={(event) => handleListItemClick(event, index)}
             >
                 <ListItemIcon>
-                    <Avatar>
+                    <Avatar variant="rounded">
                         <AssetIcon />
                     </Avatar>
                 </ListItemIcon>
