@@ -77,7 +77,7 @@ describe('subscribe to library', () => {
         ephemeraDB.getItem.mockResolvedValue({})
         const output = await subscribe({
             connectionId: '123',
-            requestId: 'ABC'
+            RequestId: 'ABC'
         })
         expect(output).toEqual({
             statusCode: 200,
@@ -104,7 +104,7 @@ describe('subscribe to library', () => {
         })
         const output = await subscribe({
             connectionId: '123',
-            requestId: 'ABC'
+            RequestId: 'ABC'
         })
         expect(output).toEqual({
             statusCode: 200,

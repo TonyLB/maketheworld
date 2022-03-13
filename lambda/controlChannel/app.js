@@ -265,7 +265,7 @@ export const fetchLibrary = async (RequestId) => {
         ExpressionAttributeNames: {
             '#name': 'Name'
         },
-        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL']
+        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL']
     })
 
     const { Characters, Assets } = convertAssetQuery(Items)
@@ -297,6 +297,46 @@ const fetchLink = async ({ fileName, connectionId, requestId }) => {
         }
     }
     return null
+}
+
+const checkIn = async ({ AssetId, RequestId, connectionId }) => {
+    const PlayerName = await getPlayerByConnectionId(connectionId)
+    const { player } = await assetDB.getItem({
+        AssetId,
+        DataCategory: splitType(AssetId)[0] === 'CHARACTER' ? 'Meta::Character' : 'Meta::Asset',
+        ProjectionFields: ['player']
+    })
+    if (PlayerName === player) {
+        await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.ASSETS_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({
+                checkin: AssetId
+            }))
+        }))
+    }
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: "Success", RequestId })
+    }
+}
+
+const checkOut = async ({ AssetId, RequestId, connectionId }) => {
+    const PlayerName = await getPlayerByConnectionId(connectionId)
+    if (PlayerName) {
+        await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.ASSETS_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({
+                PlayerName,
+                checkout: AssetId
+            }))
+        }))
+    }
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ messageType: "Success", RequestId })
+    }
 }
 
 export const subscribe = async ({ connectionId, RequestId, options = {} }) => {
@@ -447,6 +487,18 @@ export const handler = async (event, context) => {
                 return fetchReturnVal
             }
             break
+        case 'checkin':
+            return await checkIn({
+                AssetId: request.AssetId,
+                connectionId,
+                RequestId: request.RequestId
+            })
+        case 'checkout':
+            return await checkOut({
+                AssetId: request.AssetId,
+                connectionId,
+                RequestId: request.RequestId
+            })
         default:
             break
     }

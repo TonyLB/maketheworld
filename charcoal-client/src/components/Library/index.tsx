@@ -96,8 +96,16 @@ export const Library: FunctionComponent<LibraryProps> = () => {
     }, [])
     const [selectedPersonalIndex, setSelectedPersonalIndex] = React.useState<undefined | number>()
     const [personalPreviewItem, setPersonalPreviewItem] = React.useState<undefined | PreviewPaneContents>()
+    const clearPersonalPreview = () => {
+        setSelectedPersonalIndex(undefined)
+        setPersonalPreviewItem(undefined)
+    }
     const [selectedLibraryIndex, setSelectedLibraryIndex] = React.useState<undefined | number>()
     const [libraryPreviewItem, setLibraryPreviewItem] = React.useState<undefined | PreviewPaneContents>()
+    const clearLibraryPreview = () => {
+        setSelectedLibraryIndex(undefined)
+        setLibraryPreviewItem(undefined)
+    }
     useAutoPin({ href: `/Library/`, label: `Library`})
     const navigate = useNavigate()
     const Characters = useSelector(getMyCharacters)
@@ -130,6 +138,7 @@ export const Library: FunctionComponent<LibraryProps> = () => {
             <Grid item xs={6}>
                 { personalPreviewItem &&
                     <PreviewPane
+                        clearPreview={clearPersonalPreview}
                         personal={true}
                         {...personalPreviewItem}
                     />
@@ -159,6 +168,13 @@ export const Library: FunctionComponent<LibraryProps> = () => {
                 />
             </Grid>
             <Grid item xs={6}>
+            { libraryPreviewItem &&
+                    <PreviewPane
+                        clearPreview={clearLibraryPreview}
+                        personal={false}
+                        {...libraryPreviewItem}
+                    />
+                }
             </Grid>
         </Grid>
     </Box>
