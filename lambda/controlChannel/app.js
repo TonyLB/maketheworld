@@ -278,7 +278,7 @@ export const fetchLibrary = async (RequestId) => {
     }
 }
 
-const fetchLink = async ({ fileName, connectionId, requestId }) => {
+const fetchLink = async ({ fileName, AssetId, connectionId, requestId }) => {
     const PlayerName = await getPlayerByConnectionId(connectionId)
     if (PlayerName) {
         const { Payload } = await lambdaClient.send(new InvokeCommand({
@@ -287,7 +287,8 @@ const fetchLink = async ({ fileName, connectionId, requestId }) => {
             Payload: new TextEncoder().encode(JSON.stringify({
                 message: 'fetch',
                 PlayerName,
-                fileName
+                fileName,
+                AssetId
             }))
         }))
         const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
@@ -480,6 +481,7 @@ export const handler = async (event, context) => {
         case 'fetch':
             const fetchReturnVal = await fetchLink({
                 fileName: request.fileName,
+                AssetId: request.AssetId,
                 connectionId,
                 requestId: request.RequestId
             })

@@ -10,6 +10,7 @@ import player from '../slices/player'
 import lifeLine from '../slices/lifeLine'
 import ssmHeartbeat from '../slices/stateSeekingMachine/ssmHeartbeat'
 import library from '../slices/library'
+import personalAssets from '../slices/personalAssets'
 
 export const store = configureStore({
     reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
         messages,
         player,
         library,
+        personalAssets,
         settings,
         UI: uiReducer,
         ssmHeartbeat

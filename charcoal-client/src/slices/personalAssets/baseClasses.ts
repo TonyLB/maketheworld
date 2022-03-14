@@ -3,6 +3,7 @@ import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMD
 export interface PersonalAssetsInternal {
     id?: string;
     incrementalBackoff: number;
+    fetchURL?: string;
 }
 
 export interface PersonalAssetsPublic {
@@ -18,6 +19,8 @@ export type PersonalAssetsCondition = ISSMHoldCondition<PersonalAssetsInternal, 
 export interface PersonalAssetsNodes {
     INITIAL: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     INACTIVE: ISSMChoiceNode;
+    FETCHURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    FETCHURLBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCH: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
