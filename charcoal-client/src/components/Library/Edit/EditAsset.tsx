@@ -1,8 +1,9 @@
 import React, { FunctionComponent, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import CircularProgress from '@mui/material/CircularProgress'
-
 import {
+    Routes,
+    Route,
     useParams
 } from "react-router-dom"
 
@@ -15,6 +16,8 @@ import {
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalAsset } from '../../../wml/normalize'
+
+import WMLEdit from './WMLEdit'
 
 type AssetEditFormProps = {
     AssetId: string;
@@ -56,7 +59,12 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const currentStatus = useSelector(getStatus(AssetId))
 
     return (['FRESH', 'DIRTY'].includes(currentStatus || ''))
-        ? <AssetEditForm AssetId={assetKey || ''} />
+        ? 
+            <Routes>
+                <Route path={'WML'} element={<WMLEdit AssetId={AssetId} />} />
+                <Route path={''} element={<AssetEditForm AssetId={assetKey || ''} />} />
+            </Routes>
+            
         : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
 
 }
