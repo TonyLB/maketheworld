@@ -5,5 +5,5 @@ export type PublicSelectors = {
 }
 
 export const publicSelectors: PublicSelectors = {
-    getCurrentWML: (state) => (state.currentWML || '')
+    getCurrentWML: (state) => (state.wmlQuery?.('')?.source() || '')
 }

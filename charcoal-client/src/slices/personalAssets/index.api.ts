@@ -1,13 +1,9 @@
+import { wmlQueryFactory } from '../../wml/wmlQuery'
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
-// import cacheDB, { LastSyncType } from '../../cacheDB'
 import {
     socketDispatchPromise,
-    // LifeLinePubSub,
     getStatus
 } from '../lifeLine'
-// import { getMyCharacterById } from '../player'
-// import { receiveMessages } from '../messages'
-// import { push as pushFeedback } from '../UI/feedback'
 import delayPromise from '../../lib/delayPromise'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -30,7 +26,8 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }
         throw new Error()
     }
     const assetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
-    return { publicData: { originalWML: assetWML, currentWML: assetWML }}
+    const wmlQuery = wmlQueryFactory(assetWML)
+    return { publicData: { originalWML: assetWML, wmlQuery }}
 }
 
 export const saveAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
@@ -38,7 +35,7 @@ export const saveAction: PersonalAssetsAction = ({ internalData: { id } }) => as
 }
 
 export const clearAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    return { publicData: { originalWML: undefined, currentWML: undefined } }
+    return { publicData: { originalWML: undefined, wmlQuery: undefined } }
 }
 
 export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementalBackoff = 0.5 }}) => async (dispatch) => {

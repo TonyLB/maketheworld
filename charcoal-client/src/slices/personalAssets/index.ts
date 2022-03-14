@@ -1,4 +1,3 @@
-import { objectMap } from '../../lib/objects'
 import { PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM, multipleSSMSlice } from '../stateSeekingMachine/multipleSSM'
 import {
