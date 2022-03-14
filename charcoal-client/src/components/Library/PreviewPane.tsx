@@ -1,5 +1,6 @@
 import React, { FunctionComponent } from 'react'
 import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -35,6 +36,7 @@ type PreviewPaneMeta = {
 type PreviewPaneProps = PreviewPaneMeta & PreviewPaneContents
 
 const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ personal, clearPreview, AssetId }) => {
+    const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
     const medium = useMediaQuery(theme.breakpoints.up('md'))
@@ -49,7 +51,12 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
             }
             action={
                 personal && 
-                    <IconButton aria-label="edit">
+                    <IconButton
+                        onClick={() => {
+                            navigate(`/Library/Edit/Asset/${AssetId}`)
+                        }}
+                        aria-label="edit"
+                    >
                         <EditIcon />
                     </IconButton>
             }

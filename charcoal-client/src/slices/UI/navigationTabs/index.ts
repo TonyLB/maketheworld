@@ -47,7 +47,7 @@ export const navigationTabSelected = (pathname: string): Selector<NavigationTab 
     (navigationTabs) => {
         const matches = navigationTabs
             .filter(({ href }) => (pathname.startsWith(href)))
-            .sort(({ href: hrefA = '' }, { href: hrefB = '' }) => (hrefA.length - hrefB.length))
+            .sort(({ href: hrefA = '' }, { href: hrefB = '' }) => (hrefB.length - hrefA.length))
         if (matches.length) {
             return matches[0]
         }
