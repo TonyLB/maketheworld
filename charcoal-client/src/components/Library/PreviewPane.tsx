@@ -53,7 +53,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
                 personal && 
                     <IconButton
                         onClick={() => {
-                            navigate(`/Library/Edit/Asset/${AssetId}`)
+                            navigate(`/Library/Edit/Asset/${AssetId}/`)
                         }}
                         aria-label="edit"
                     >

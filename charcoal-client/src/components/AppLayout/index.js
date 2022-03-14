@@ -204,7 +204,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
                         <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
                         <Route path="/Library/" element={<Library />} />
-                        <Route path="/Library/Edit/Asset/:AssetId" element={<EditAsset />} />
+                        <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
                         <Route path="/Maps/*" element={<MapHome />} />
                         <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/Who/" element={whoPanel} />
