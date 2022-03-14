@@ -103,7 +103,8 @@ export const handler = async (event, context) => {
         case 'fetch':
             return await createFetchLink({ s3Client })({
                 PlayerName: event.PlayerName,
-                fileName: event.fileName
+                fileName: event.fileName,
+                AssetId: event.AssetId
             })
         case 'move':
             return await moveAsset({ s3Client })({
