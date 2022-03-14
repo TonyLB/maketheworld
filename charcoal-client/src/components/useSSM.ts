@@ -7,6 +7,7 @@ import { iterateAllSSMs as ephemeraSSM } from '../slices/ephemera'
 import { iterateAllSSMs as playerSSM } from '../slices/player'
 import { iterateAllSSMs as lifeLineSSM } from '../slices/lifeLine'
 import { iterateAllSSMs as librarySSM } from '../slices/library'
+import { iterateAllSSMs as personalAssetsSSM } from '../slices/personalAssets'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -18,6 +19,7 @@ export const useStateSeekingMachines = () => {
         dispatch(playerSSM)
         dispatch(lifeLineSSM)
         dispatch(librarySSM)
+        dispatch(personalAssetsSSM)
     }, [dispatch, heartbeat])
 }
 
