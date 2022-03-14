@@ -3,12 +3,12 @@ import { PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM, multipleSSMSlice } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
+    getFetchURL,
     fetchAction,
     saveAction,
     clearAction,
     backoffAction
 } from './index.api'
-import receiveMapEphemera from './receiveMapEphemera'
 import { publicSelectors, PublicSelectors } from './selectors'
 
 export const {
@@ -49,6 +49,18 @@ export const {
             INACTIVE: {
                 stateType: 'CHOICE',
                 choices: ['FETCH']
+            },
+            FETCHURL: {
+                stateType: 'ATTEMPT',
+                action: getFetchURL,
+                resolve: 'FETCH',
+                reject: 'FETCHURLBACKOFF'
+            },
+            FETCHURLBACKOFF: {
+                stateType: 'ATTEMPT',
+                action: backoffAction,
+                resolve: 'FETCHURL',
+                reject: 'FETCHERROR'
             },
             FETCH: {
                 stateType: 'ATTEMPT',

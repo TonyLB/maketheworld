@@ -1,13 +1,13 @@
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
-import cacheDB, { LastSyncType } from '../../cacheDB'
+// import cacheDB, { LastSyncType } from '../../cacheDB'
 import {
     socketDispatchPromise,
-    LifeLinePubSub,
+    // LifeLinePubSub,
     getStatus
 } from '../lifeLine'
-import { getMyCharacterById } from '../player'
-import { receiveMessages } from '../messages'
-import { push as pushFeedback } from '../UI/feedback'
+// import { getMyCharacterById } from '../player'
+// import { receiveMessages } from '../messages'
+// import { push as pushFeedback } from '../UI/feedback'
 import delayPromise from '../../lib/delayPromise'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -17,8 +17,20 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     return (status === 'CONNECTED')
 }
 
-export const fetchAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    return {}
+export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
+    const { url } = await dispatch(socketDispatchPromise('fetch')({
+        AssetId: id
+    }))
+
+    return { internalData: { fetchURL: url } }
+}
+
+export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }) => async () => {
+    if (!fetchURL) {
+        throw new Error()
+    }
+    const assetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
+    return { publicData: { originalWML: assetWML, currentWML: assetWML }}
 }
 
 export const saveAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
