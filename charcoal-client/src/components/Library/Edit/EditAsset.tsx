@@ -7,8 +7,14 @@ import {
 } from "react-router-dom"
 
 import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
-import { addItem, getStatus, getCurrentWML } from '../../../slices/personalAssets'
+import {
+    addItem,
+    getStatus,
+    getCurrentWML,
+    getNormalized
+} from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
+import { NormalAsset } from '../../../wml/normalize'
 
 type AssetEditFormProps = {
     AssetId: string;
@@ -16,8 +22,16 @@ type AssetEditFormProps = {
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId }) => {
     const currentWML = useSelector(getCurrentWML(`ASSET#${AssetId}`))
+    const normalForm = useSelector(getNormalized(`ASSET#${AssetId}`))
+
+    const asset = Object.values(normalForm).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset
     return <div>
-        { currentWML }
+        <div>
+            { asset?.Story ? 'Story' : 'Asset' }: { asset?.key }
+        </div>
+        <div>
+            { currentWML }
+        </div>
     </div>
 }
 
@@ -25,23 +39,24 @@ type EditAssetProps = {}
 
 export const EditAsset: FunctionComponent<EditAssetProps> = () => {
 
-    const { AssetId } = useParams<{ AssetId: string }>()
+    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+    const AssetId = `ASSET#${assetKey}`
     useAutoPin({
-        href: `/Library/Edit/Asset/${AssetId}`,
-        label: `${AssetId}`
+        href: `/Library/Edit/Asset/${assetKey}`,
+        label: `${assetKey}`
     })
     const dispatch = useDispatch()
     useEffect(() => {
-        if (AssetId) {
-            dispatch(addItem(`ASSET#${AssetId}`))
+        if (assetKey) {
+            dispatch(addItem(AssetId))
             dispatch(heartbeat)
         }
-    }, [dispatch, AssetId])
+    }, [dispatch, assetKey])
 
-    const currentStatus = useSelector(getStatus(`ASSET#${AssetId}` || 'none'))
+    const currentStatus = useSelector(getStatus(AssetId))
 
     return (['FRESH', 'DIRTY'].includes(currentStatus || ''))
-        ? <AssetEditForm AssetId={AssetId || ''} />
+        ? <AssetEditForm AssetId={assetKey || ''} />
         : <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div><CircularProgress /></div></div>
 
 }

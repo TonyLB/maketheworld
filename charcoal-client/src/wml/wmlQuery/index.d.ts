@@ -10,6 +10,7 @@ export interface WMLQuery {
         prop: (key: string, value: string) => WMLQuery;
         prop: (key: string) => string;
         removeProp: (key: string) => WMLQuery;
+        normalize: () => any;
     }
 }
 

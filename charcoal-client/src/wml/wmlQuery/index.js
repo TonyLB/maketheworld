@@ -1,6 +1,8 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
+import { validatedSchema } from '../index'
+import { normalize } from '../normalize'
 
 export const wmlQueryFactory = (sourceString) => {
     let matcher = wmlGrammar.matcher()
@@ -16,7 +18,8 @@ export const wmlQueryFactory = (sourceString) => {
             })
         },
         removeProp(key) {},
-        contents: () => ([])
+        contents: () => ([]),
+        normalize: () => ({})
     })
     getReturnValue = () => (search) => ({
         matcher: () => (matcher),
@@ -28,6 +31,10 @@ export const wmlQueryFactory = (sourceString) => {
             else {
                 return []
             }
+        },
+        normalize: () => {
+            const schema = validatedSchema(matcher.match())
+            return normalize(schema)
         },
         source: () => (matcher.getInput()),
         contents(value) {
