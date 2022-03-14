@@ -40,6 +40,7 @@ import MapView from '../Maps/View'
 import CharacterEdit from '../CharacterEdit'
 import HelpPage from '../Help'
 import Library from '../Library'
+import EditAsset from '../Library/Edit/EditAsset'
 
 import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
 
@@ -203,6 +204,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Character/Edit/:CharacterKey" element={<CharacterEdit />} />
                         <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
                         <Route path="/Library/" element={<Library />} />
+                        <Route path="/Library/Edit/Asset/:AssetId" element={<EditAsset />} />
                         <Route path="/Maps/*" element={<MapHome />} />
                         <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/Who/" element={whoPanel} />

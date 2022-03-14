@@ -19,7 +19,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'INACTIVE',
+    initialSSMDesired: 'FRESH',
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
@@ -48,7 +48,7 @@ export const {
             },
             INACTIVE: {
                 stateType: 'CHOICE',
-                choices: ['FETCH']
+                choices: ['FETCHURL']
             },
             FETCHURL: {
                 stateType: 'ATTEMPT',
@@ -115,6 +115,8 @@ export const {
 export const { addItem } = personalAssetsSlice.actions
 // export const { } = publicActions
 export const {
+    getStatus,
+    getCurrentWML
 } = selectors
 
 type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
