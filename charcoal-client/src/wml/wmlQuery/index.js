@@ -19,7 +19,8 @@ export const wmlQueryFactory = (sourceString) => {
         },
         removeProp(key) {},
         contents: () => ([]),
-        normalize: () => ({})
+        normalize: () => ({}),
+        replaceInputRange: () => {}
     })
     getReturnValue = () => (search) => ({
         matcher: () => (matcher),
@@ -110,6 +111,9 @@ export const wmlQueryFactory = (sourceString) => {
                 })
             }
             return getReturnValue()(search)
+        },
+        replaceInputRange(startIdx, endIdx, str) {
+            matcher.replaceInputRange(startIdx, endIdx, str)
         }
     })
     return getReturnValue()

@@ -116,7 +116,8 @@ export const { addItem } = personalAssetsSlice.actions
 export const {
     getStatus,
     getCurrentWML,
-    getNormalized
+    getNormalized,
+    getWMLQuery
 } = selectors
 
 type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
