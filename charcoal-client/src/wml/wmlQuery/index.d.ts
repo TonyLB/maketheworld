@@ -1,3 +1,4 @@
+import { NormalForm } from '../normalize';
 import { Matcher } from 'ohm-js'
 
 export interface WMLQuery {
@@ -10,7 +11,8 @@ export interface WMLQuery {
         prop: (key: string, value: string) => WMLQuery;
         prop: (key: string) => string;
         removeProp: (key: string) => WMLQuery;
-        normalize: () => any;
+        normalize: () => NormalForm;
+        replaceInputRange: (startIdx: number, endIdx: number, str: string) => void;
     }
 }
 
