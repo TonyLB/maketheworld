@@ -25,7 +25,8 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }
     if (!fetchURL) {
         throw new Error()
     }
-    const assetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
+    const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
+    const assetWML = fetchedAssetWML.replace(/\r/g, '')
     const wmlQuery = wmlQueryFactory(assetWML)
     return { publicData: { originalWML: assetWML, wmlQuery }}
 }
