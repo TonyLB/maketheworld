@@ -1,108 +1,153 @@
 import React, { FunctionComponent, useState, useEffect, useCallback } from 'react'
-import { useSelector } from 'react-redux'
-import { BaseEditor, Descendant, createEditor, Editor, Node, Range } from 'slate'
-import { ReactEditor, Slate, Editable, withReact } from 'slate-react'
+import { Descendant, createEditor, Editor, Node, Range, Text, Point } from 'slate'
+import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
 
 import {
     Box
 } from '@mui/material'
 
-import {
-    getWMLQuery
-} from '../../../slices/personalAssets'
 import { WMLQuery } from '../../../wml/wmlQuery'
+import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
 
 interface WMLEditProps {
-    AssetId: string;
-}
-
-type CustomElement = { type: 'paragraph'; children: CustomText[] }
-type CustomText = { text: string }
-
-declare module 'slate' {
-  interface CustomTypes {
-    Editor: BaseEditor & ReactEditor
-    Element: CustomElement
-    Text: CustomText
-  }
+    wmlQuery: WMLQuery;
 }
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
+type Decoration = Range & { error: boolean }
 
-const withWMLUpdate = (wmlQuery: WMLQuery | undefined, debouncedUpdate: () => void) => (editor: Editor) => {
-    if (wmlQuery) {
-        const { insertText, insertNode, insertFragment, deleteBackward, deleteForward, deleteFragment } = editor
-
-        editor.insertText = (text: string) => {
-            if (editor?.selection) {
-                const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
-                wmlQuery('').replaceInputRange(startIdx, endIdx, text)
-            }
-            insertText(text)
-            debouncedUpdate()
-        }
-        editor.insertBreak = () => {
-            if (editor?.selection) {
-                const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
-                wmlQuery('').replaceInputRange(startIdx, endIdx, '\n')
-            }
-            insertText('\n')
-            debouncedUpdate()
-        }
-        editor.insertNode = (node) => {
-            const text = Node.string(node)
-            if (editor?.selection) {
-                const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
-                wmlQuery('').replaceInputRange(startIdx, endIdx, text)
-            }
-            insertNode(node)
-            debouncedUpdate()
-        }
-        editor.insertFragment = (nodes) => {
-            const text = nodes.map((n) => (Node.string(n))).join('')
-            if (editor?.selection) {
-                const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
-                wmlQuery('').replaceInputRange(startIdx, endIdx, text)
-            }
-            insertFragment(nodes)
-            debouncedUpdate()
-        }
-        editor.deleteBackward = (unit: SlateUnit) => {
-            if (editor?.selection) {
-                const [{ offset: endIdx }] = Range.edges(editor.selection)
-                const { offset: startIdx = endIdx } = Editor.before(editor, editor.selection.anchor, { distance: 1, unit }) || {}
-                wmlQuery('').replaceInputRange(startIdx, endIdx, '')
-            }
-            deleteBackward(unit)
-            debouncedUpdate()
-        }
-        editor.deleteForward = (unit: SlateUnit) => {
-            if (editor?.selection) {
-                const [{ offset: startIdx }] = Range.edges(editor.selection)
-                const { offset: endIdx = startIdx } = Editor.after(editor, editor.selection.anchor, { distance: 1, unit }) || {}
-                wmlQuery('').replaceInputRange(startIdx, endIdx, '')
-            }
-            deleteForward(unit)
-            debouncedUpdate()
-        }
-        editor.deleteFragment = () => {
-            if (editor?.selection) {
-                const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
-                wmlQuery('').replaceInputRange(startIdx, endIdx, '')
-            }
-            deleteFragment()
-            debouncedUpdate()
-        }
-    }
-    return editor
+const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, leaf: any }) => {
+    return (
+        <span
+            {...attributes}
+            style={{ backgroundColor: leaf.error && '#ffeeba' }}
+        >
+            {children}
+        </span>
+    )
 }
 
-export const WMLEdit: FunctionComponent<WMLEditProps> = ({ AssetId }) => {
-    const wmlQuery = useSelector(getWMLQuery(AssetId))
-    const initialValue: CustomElement[] = [{
-        type: 'paragraph',
-        children: [{ text: wmlQuery?.('').source() || '' }]
-    }]
+// const withWMLUpdate = (wmlQueryRef: { current: WMLQuery | undefined }, debouncedUpdate: () => void) => (editor: Editor) => {
+//     if (wmlQueryRef.current) {
+//         const { insertText, insertNode, insertFragment, deleteBackward, deleteForward, deleteFragment } = editor
+
+//         editor.insertText = (text: string) => {
+//             console.log(`InsertText: ${text}`)
+//             if (editor?.selection) {
+//                 console.log(`Operations: ${JSON.stringify(editor.operations, null, 4)}`)
+//                 console.log(`Editor Selection: ${JSON.stringify(editor.selection, null, 4)}`)
+//                 console.log(`IsCollapsed: ${Range.isCollapsed(editor.selection)}`)
+//                 const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, text)
+//             }
+//             insertText(text)
+//             debouncedUpdate()
+//         }
+//         editor.insertBreak = () => {
+//             console.log(`InsertBreak`)
+//             if (editor?.selection) {
+//                 const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, '\n')
+//             }
+//             insertText('\n')
+//             debouncedUpdate()
+//         }
+//         editor.insertNode = (node) => {
+//             console.log(`InsertNode: ${JSON.stringify(Node, null, 4)}`)
+//             const text = Node.string(node)
+//             if (editor?.selection) {
+//                 const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, text)
+//             }
+//             insertNode(node)
+//             debouncedUpdate()
+//         }
+//         editor.insertFragment = (nodes) => {
+//             console.log(`InsertFragment: ${JSON.stringify(nodes, null, 4)}`)
+//             const text = nodes.map((n) => (Node.string(n))).join('')
+//             if (editor?.selection) {
+//                 const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, text)
+//             }
+//             insertFragment(nodes)
+//             debouncedUpdate()
+//         }
+//         editor.deleteBackward = (unit: SlateUnit) => {
+//             console.log(`DeleteBackward: ${JSON.stringify(unit)}`)
+//             if (editor?.selection) {
+//                 const [{ offset: endIdx }] = Range.edges(editor.selection)
+//                 const { offset: startIdx = endIdx } = Editor.before(editor, editor.selection.anchor, { distance: 1, unit }) || {}
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, '')
+//             }
+//             deleteBackward(unit)
+//             debouncedUpdate()
+//         }
+//         editor.deleteForward = (unit: SlateUnit) => {
+//             console.log(`DeleteForward: ${JSON.stringify(unit)}`)
+//             if (editor?.selection) {
+//                 const [{ offset: startIdx }] = Range.edges(editor.selection)
+//                 const { offset: endIdx = startIdx } = Editor.after(editor, editor.selection.anchor, { distance: 1, unit }) || {}
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, '')
+//             }
+//             deleteForward(unit)
+//             debouncedUpdate()
+//         }
+//         editor.deleteFragment = () => {
+//             console.log(`DeleteFragment`)
+//             if (editor?.selection) {
+//                 const [{ offset: startIdx }, { offset: endIdx }] = Range.edges(editor.selection)
+//                 wmlQueryRef.current?.('')?.replaceInputRange?.(startIdx, endIdx, '')
+//             }
+//             deleteFragment()
+//             debouncedUpdate()
+//         }
+//     }
+//     return editor
+// }
+
+const decorateWithError = ({ editor, errorRange }: { editor: Editor; errorRange: Range | undefined }) => ([node, path]: [node: Descendant, path: number[]]): Decoration[] => {
+    if (errorRange === undefined) {
+        return []
+    }
+    if (Text.isText(node)) {
+        const intersection = Range.intersection(errorRange, Editor.range(editor, path))
+
+        if (intersection == null) {
+            return []
+        }
+
+        const range = {
+            error: true,
+            ...intersection
+        }
+        return [range]
+    }
+    else {
+        return node.children
+            .reduce((previous: Decoration[], child: Descendant, index: number) => ([
+                ...previous,
+                ...decorateWithError({
+                    editor,
+                    errorRange
+                })([child, [...path, index]])
+            ]), [] as Decoration[])
+    }
+}
+
+const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point | undefined => {
+    const matcher = wmlQuery('').matcher()
+    matcher.setInput(sourceStringFromSlate(value))
+    const match = matcher.match()
+    if (match.succeeded()) {
+        return undefined
+    }
+    const failurePosition: number = (match as any).getRightmostFailurePosition()
+    return indexToSlatePoint(wmlQuery, failurePosition)
+}
+
+
+export const WMLEdit: FunctionComponent<WMLEditProps> = ({ wmlQuery }) => {
+    const initialValue = wmlQueryToSlate(wmlQuery)
     const [debounceMoment, setDebounce] = useState<number>(Date.now())
     let debounceTimeout: ReturnType<typeof setTimeout>
     const debouncedUpdate = () => {
@@ -122,19 +167,51 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = ({ AssetId }) => {
         return 'WMLQuery initiating'
     }, [wmlQuery])
     const [statusMessage, setStatusMessage] = useState<string>('')
-    useEffect(() => {
-        setStatusMessage(generateStatusMessage())
-    }, [debounceMoment, setStatusMessage, generateStatusMessage])
-    const [editor] = useState(() => withWMLUpdate(wmlQuery, debouncedUpdate)(withReact(createEditor())))
+    const [errorPosition, setErrorPosition] = useState<Point | undefined>()
     const [value, setValue] = useState<Descendant[]>(initialValue)
+    const [lastDebounceMoment, setLastDebounceMoment] = useState<number>(0)
+    useEffect(() => {
+        if (debounceMoment !== lastDebounceMoment) {
+            setErrorPosition(generateErrorPosition(wmlQuery, value))
+            setStatusMessage(generateStatusMessage())
+            setLastDebounceMoment(debounceMoment)
+        }
+    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition])
+    const [editor] = useState(() => withReact(createEditor() as ReactEditor))
+    const decorate = useCallback(
+        ([node, path]) => {
+            const endPosition = Editor.end(editor, [])
+            const returnValue = decorateWithError({
+                editor,
+                errorRange: errorPosition
+                    ? {
+                        anchor: errorPosition,
+                        focus: endPosition
+                    }
+                    : undefined
+            })([node, path])
+            return returnValue
+        },
+        [editor, errorPosition]
+    )
+    const handleChange = useCallback(newValue => {
+        if (sourceStringFromSlate(newValue) !== sourceStringFromSlate(value)) {
+            debouncedUpdate()
+        }
+        setValue(newValue)
+    }, [value])
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em" }}>
             <Slate
                 editor={editor}
                 value={value}
-                onChange={newValue => setValue(newValue)}
+                onChange={handleChange}
             >
-                <Editable {...({ spellCheck: "false" } as any)} />
+                <Editable
+                    {...({ spellCheck: "false" } as any)}
+                    decorate={decorate}
+                    renderLeaf={props => <Leaf {...props} />}
+                />
             </Slate>
         </Box>
         {/* { JSON.stringify(wmlQuery?.('').source() || '') } */}
