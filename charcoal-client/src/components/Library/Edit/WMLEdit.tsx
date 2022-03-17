@@ -1,5 +1,6 @@
 import React, { FunctionComponent, useState, useEffect, useCallback } from 'react'
 import { Descendant, createEditor, Editor, Node, Range, Text, Point } from 'slate'
+import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
 
 import {
@@ -177,7 +178,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = ({ wmlQuery }) => {
             setLastDebounceMoment(debounceMoment)
         }
     }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition])
-    const [editor] = useState(() => withReact(createEditor() as ReactEditor))
+    const [editor] = useState(() => withHistory(withReact(createEditor() as ReactEditor)))
     const decorate = useCallback(
         ([node, path]) => {
             const endPosition = Editor.end(editor, [])
