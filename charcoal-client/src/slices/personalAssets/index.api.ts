@@ -27,8 +27,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
-    const wmlQuery = new WMLQuery(assetWML)
-    return { publicData: { originalWML: assetWML, wmlQuery }}
+    return { publicData: { originalWML: assetWML, currentWML: assetWML }}
 }
 
 export const saveAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
@@ -36,7 +35,7 @@ export const saveAction: PersonalAssetsAction = ({ internalData: { id } }) => as
 }
 
 export const clearAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    return { publicData: { originalWML: undefined, wmlQuery: undefined } }
+    return { publicData: { originalWML: undefined, currentWML: undefined } }
 }
 
 export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementalBackoff = 0.5 }}) => async (dispatch) => {
