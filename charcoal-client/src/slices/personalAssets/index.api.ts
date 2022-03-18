@@ -1,4 +1,4 @@
-import { wmlQueryFactory } from '../../wml/wmlQuery'
+import { WMLQuery } from '../../wml/wmlQuery'
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
 import {
     socketDispatchPromise,
@@ -27,7 +27,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
-    const wmlQuery = wmlQueryFactory(assetWML)
+    const wmlQuery = new WMLQuery(assetWML)
     return { publicData: { originalWML: assetWML, wmlQuery }}
 }
 

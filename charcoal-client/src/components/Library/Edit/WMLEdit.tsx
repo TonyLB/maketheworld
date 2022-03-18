@@ -136,9 +136,8 @@ const decorateWithError = ({ editor, errorRange }: { editor: Editor; errorRange:
 }
 
 const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point | undefined => {
-    const matcher = wmlQuery('').matcher()
-    matcher.setInput(sourceStringFromSlate(value))
-    const match = matcher.match()
+    wmlQuery.setInput(sourceStringFromSlate(value))
+    const match = wmlQuery.matcher.match()
     if (match.succeeded()) {
         return undefined
     }
@@ -159,7 +158,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = ({ wmlQuery }) => {
     }
     const generateStatusMessage = useCallback(() => {
         if (wmlQuery) {
-            const match = wmlQuery('').matcher().match()
+            const match = wmlQuery.matcher.match()
             if (match.succeeded()) {
                 return 'Success!'
             }

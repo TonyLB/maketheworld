@@ -9,7 +9,7 @@ export type PublicSelectors = {
 }
 
 export const publicSelectors: PublicSelectors = {
-    getCurrentWML: (state) => (state.wmlQuery?.('')?.source() || ''),
+    getCurrentWML: (state) => (state.wmlQuery?.source || ''),
     getWMLQuery: (state) => (state.wmlQuery),
-    getNormalized: (state) => (state.wmlQuery?.('')?.normalize() || {})
+    getNormalized: (state) => (state.wmlQuery?.normalize() || {})
 }
