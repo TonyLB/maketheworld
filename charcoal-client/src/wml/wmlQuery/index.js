@@ -96,7 +96,9 @@ export class WMLQueryResult {
 }
 
 export class WMLQuery {
-    constructor(sourceString) {
+    constructor(sourceString, options = {}) {
+        const { onChange = () => {} } = options
+        this.onChange = onChange
         this.matcher = wmlGrammar.matcher()
         this.matcher.setInput(sourceString)
     }
@@ -106,6 +108,11 @@ export class WMLQuery {
     }
     setInput(str) {
         this.matcher.setInput(str)
+        this.onChange({
+            type: 'set',
+            text: str,
+            wmlQuery: this
+        })
     }
     normalize() {
         const schema = validatedSchema(this.matcher.match())
@@ -113,6 +120,13 @@ export class WMLQuery {
     }
     replaceInputRange(startIdx, endIdx, str) {
         this.matcher.replaceInputRange(startIdx, endIdx, str)
+        this.onChange({
+            type: 'replace',
+            startIdx,
+            endIdx,
+            text: str,
+            wmlQuery: this
+        })
     }
 
     search(searchString) {

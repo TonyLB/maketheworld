@@ -21,9 +21,12 @@ describe('wmlQuery', () => {
     `
 
     let wmlQuery = null
+    const onChangeMock = jest.fn()
 
     beforeEach(() => {
-        wmlQuery = new WMLQuery(match)
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        wmlQuery = new WMLQuery(match, { onChange: onChangeMock })
     })
 
     it('should return empty on illegal selector', () => {
@@ -76,6 +79,15 @@ describe('wmlQuery', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
+        expect(onChangeMock).toHaveBeenCalledTimes(1)
+        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
+        expect(rest).toEqual({
+            type: 'replace',
+            startIdx: 25,
+            endIdx: 29,
+            text: 'Tess'
+        })
+
     })
 
     it('should correctly remove existing prop', () => {
@@ -114,10 +126,20 @@ describe('wmlQuery', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
+        expect(onChangeMock).toHaveBeenCalledTimes(1)
+        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
+        expect(rest).toEqual({
+            type: 'replace',
+            startIdx: 62,
+            endIdx: 62,
+            text: ' zone="Library"'
+        })
+
     })
 
     it('should correctly no-op when asked to remove an absent prop', () => {
         expect(wmlQuery.search('Name').removeProp('key').source).toEqual(match)
+        expect(onChangeMock).toHaveBeenCalledTimes(0)
     })
 
     it('should return empty array contents on failed match', () => {
@@ -154,5 +176,14 @@ describe('wmlQuery', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
+        expect(onChangeMock).toHaveBeenCalledTimes(1)
+        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
+        expect(rest).toEqual({
+            type: 'replace',
+            startIdx: 126,
+            endIdx: 130,
+            text: 'Glinda'
+        })
+
     })
 })
