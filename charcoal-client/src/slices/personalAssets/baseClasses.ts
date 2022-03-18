@@ -9,7 +9,7 @@ export interface PersonalAssetsInternal {
 
 export interface PersonalAssetsPublic {
     originalWML?: string;
-    wmlQuery?: WMLQuery;
+    currentWML?: string;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>
