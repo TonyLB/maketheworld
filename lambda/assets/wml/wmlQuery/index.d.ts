@@ -13,8 +13,28 @@ declare class WMLQueryResult {
 
 }
 
+export interface WMLQueryUpdateReplace {
+    type: 'replace';
+    startIdx: number;
+    endIdx: number;
+    text: string;
+    wmlQuery: WMLQuery;
+}
+
+export interface WMLQueryUpdateSet {
+    type: 'set';
+    text: string;
+    wmlQuery: WMLQuery;
+}
+
+export type WMLQueryUpdate = WMLQueryUpdateReplace | WMLQueryUpdateSet
+
+type WMLQueryOptions = {
+    onChange?: (update: WMLQueryUpdate) => void;
+}
+
 export class WMLQuery {
-    constructor(string);
+    constructor(string, options?: WMLQueryOptions);
     matcher: Matcher;
     source: string;
     setInput: (string) => void;
