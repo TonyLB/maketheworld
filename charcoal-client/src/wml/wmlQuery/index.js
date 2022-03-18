@@ -1,8 +1,8 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
-import { validatedSchema } from '../index'
-import { normalize } from '../normalize'
+import { validatedSchema } from '../index.js'
+import { normalize } from '../normalize.js'
 
 export class WMLQueryResult {
     constructor(wmlQuery, search) {

@@ -1,5 +1,5 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { wmlQueryFactory  } from './index.js'
+// import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
+import { WMLQuery } from './index.js'
 
 describe('wmlQuery', () => {
 
@@ -23,15 +23,15 @@ describe('wmlQuery', () => {
     let wmlQuery = null
 
     beforeEach(() => {
-        wmlQuery = wmlQueryFactory(match)
+        wmlQuery = new WMLQuery(match)
     })
 
     it('should return empty on illegal selector', () => {
-        expect(wmlQuery('Fraggle Rock').nodes()).toEqual([])
+        expect(wmlQuery.search('Fraggle Rock').nodes()).toEqual([])
     })
 
     it('should correctly query nodes', () => {
-        expect(wmlQuery('Character Name').nodes()).toEqual([{
+        expect(wmlQuery.search('Character Name').nodes()).toEqual([{
             type: 'tag',
             tag: 'Name',
             tagEnd: 125,
@@ -48,19 +48,19 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly return prop when available', () => {
-        expect(wmlQuery('Character').prop('player')).toEqual('TonyLB')
+        expect(wmlQuery.search('Character').prop('player')).toEqual('TonyLB')
     })
 
     it('should correctly return undefined from prop when unavailable', () => {
-        expect(wmlQuery('Character').prop('origin')).toBe(undefined)
+        expect(wmlQuery.search('Character').prop('origin')).toBe(undefined)
     })
 
     it('should correctly return undefined prop when search fails', () => {
-        expect(wmlQuery('Fraggle Rock').prop('rhythm')).toBe(undefined)
+        expect(wmlQuery.search('Fraggle Rock').prop('rhythm')).toBe(undefined)
     })
 
     it('should correctly update existing prop', () => {
-        expect(wmlQuery('Character').prop('key', 'Tess').source()).toEqual(`
+        expect(wmlQuery.search('Character').prop('key', 'Tess').source).toEqual(`
         <Character key=(Tess) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -79,7 +79,7 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly remove existing prop', () => {
-        expect(wmlQuery('Character').removeProp('key').source()).toEqual(`
+        expect(wmlQuery.search('Character').removeProp('key').source).toEqual(`
         <Character fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -98,7 +98,7 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly add a new prop', () => {
-        expect(wmlQuery('Character').prop('zone', 'Library').source()).toEqual(`
+        expect(wmlQuery.search('Character').prop('zone', 'Library').source).toEqual(`
         <Character key=(TESS) fileName="Tess" player="TonyLB" zone="Library">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -117,15 +117,15 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly no-op when asked to remove an absent prop', () => {
-        expect(wmlQuery('Name').removeProp('key').source()).toEqual(match)
+        expect(wmlQuery.search('Name').removeProp('key').source).toEqual(match)
     })
 
     it('should return empty array contents on failed match', () => {
-        expect(wmlQuery('Name Outfit').contents()).toEqual([])
+        expect(wmlQuery.search('Name Outfit').contents()).toEqual([])
     })
 
     it('should correctly return contents on match', () => {
-        expect(wmlQuery('Character Name').contents()).toEqual([{
+        expect(wmlQuery.search('Character Name').contents()).toEqual([{
             type: 'string',
             value: 'Tess',
             start: 126,
@@ -134,11 +134,11 @@ describe('wmlQuery', () => {
     })
 
     it('should no-op on failed match on contents', () => {
-        expect(wmlQuery('Name Outfit').contents('An olive-green pea-coat').source()).toEqual(match)
+        expect(wmlQuery.search('Name Outfit').contents('An olive-green pea-coat').source).toEqual(match)
     })
 
     it('should update contents on match', () => {
-        expect(wmlQuery('Character Name').contents('Glinda').source()).toEqual(`
+        expect(wmlQuery.search('Character Name').contents('Glinda').source).toEqual(`
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Glinda</Name>

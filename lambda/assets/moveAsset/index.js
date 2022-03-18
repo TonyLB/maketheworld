@@ -17,16 +17,16 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
         if (checkAsset) {
             const [zone, ...rest] = toPath.split('/')
             const subFolder = rest.join('/')
-            assetWorkspace.wmlQuery('')
+            assetWorkspace.wmlQuery.search('')
                 .prop('zone', zone)
                 .prop('subFolder', subFolder)
 
             if (['Canon', 'Library'].includes(zone)) {
-                assetWorkspace.wmlQuery('').removeProp('player')
+                assetWorkspace.wmlQuery.search('').removeProp('player')
             }
             if (zone === 'Personal') {
                 if (rest[0]) {
-                    assetWorkspace.wmlQuery('').prop('player', rest[0])
+                    assetWorkspace.wmlQuery.search('').prop('player', rest[0])
                 }
             }
 

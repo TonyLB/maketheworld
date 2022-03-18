@@ -2,7 +2,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from '/opt/utilities/stream.js'
 import { validatedSchema } from "../wml/index.js"
 import { normalize } from '../wml/normalize.js'
-import { wmlQueryFactory } from '../wml/wmlQuery/index.js'
+import { WMLQuery } from '../wml/wmlQuery/index.js'
 import { assetDB } from "/opt/utilities/dynamoDB/index.js"
 import { splitType } from "/opt/utilities/types.js"
 
@@ -10,13 +10,13 @@ const { S3_BUCKET } = process.env;
 
 class AssetWorkspace {
     constructor(contents) {
-        this.wmlQuery = wmlQueryFactory(contents)
+        this.wmlQuery = new WMLQuery(contents)
     }
     contents() {
-        return this.wmlQuery('').source()
+        return this.wmlQuery.source
     }
     match() {
-        return this.wmlQuery('').matcher().match()
+        return this.wmlQuery.matcher.match()
     }
     isMatched() {
         return this.match().succeeded()
@@ -32,10 +32,7 @@ class AssetWorkspace {
         return this.cachedSchema
     }
     normalize() {
-        if (!this.isMatched) {
-            return {}
-        }
-        return normalize(this.schema())
+        return this.wmlQuery.normalize()
     }
 }
 
