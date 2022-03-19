@@ -1,4 +1,3 @@
-import { WMLQuery } from '../../wml/wmlQuery'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 
 export interface PersonalAssetsInternal {
@@ -10,6 +9,7 @@ export interface PersonalAssetsInternal {
 export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
+    draftWML?: string;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>

@@ -7,11 +7,15 @@ import {
     Box
 } from '@mui/material'
 
-import { WMLQuery } from '../../../wml/wmlQuery'
+import { WMLQuery, WMLQueryUpdate } from '../../../wml/wmlQuery'
 import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
+import { setCurrentWML, setDraftWML } from '../../../slices/personalAssets'
+import { useDispatch } from 'react-redux'
 
 interface WMLEditProps {
-    wmlQuery: WMLQuery;
+    currentWML: string;
+    updateWML?: (value: string) => void;
+    AssetId: string;
 }
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
@@ -145,8 +149,24 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
     return indexToSlatePoint(wmlQuery, failurePosition)
 }
 
+export const WMLEdit: FunctionComponent<WMLEditProps> = ({ currentWML, updateWML = () => {}, AssetId }) => {
+    const dispatch = useDispatch()
+    const onChange = (change: WMLQueryUpdate) => {
+        const match = change.wmlQuery.matcher.match()
+        if (match.succeeded()) {
+            updateWML(change.wmlQuery.source)
+        }
+        else {
+            dispatch(setDraftWML(AssetId)({ value: change.wmlQuery.source }))
+        }
+    }
+    const [wmlQuery] = useState(() => (new WMLQuery(currentWML, { onChange })))
 
-export const WMLEdit: FunctionComponent<WMLEditProps> = ({ wmlQuery }) => {
+    useEffect(() => {
+        if (wmlQuery.source !== currentWML) {
+            wmlQuery.setInput(currentWML)
+        }
+    }, [currentWML])
     const initialValue = wmlQueryToSlate(wmlQuery)
     const [debounceMoment, setDebounce] = useState<number>(Date.now())
     let debounceTimeout: ReturnType<typeof setTimeout>
@@ -200,6 +220,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = ({ wmlQuery }) => {
         }
         setValue(newValue)
     }, [value])
+    const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em" }}>
             <Slate
@@ -210,11 +231,13 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = ({ wmlQuery }) => {
                 <Editable
                     {...({ spellCheck: "false" } as any)}
                     decorate={decorate}
-                    renderLeaf={props => <Leaf {...props} />}
+                    renderLeaf={renderLeaf}
                 />
             </Slate>
         </Box>
-        {/* { JSON.stringify(wmlQuery?.('').source() || '') } */}
+        {/* { currentWML }
+        <br/>
+        { JSON.stringify(wmlQuery?.source || '') } */}
         <Box>
             { statusMessage }
         </Box>
