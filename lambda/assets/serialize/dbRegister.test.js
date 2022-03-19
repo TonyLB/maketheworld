@@ -5,6 +5,10 @@ import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { dbRegister } from './dbRegister.js'
 
 describe('dbRegister', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
     it('should put a single element for a Character file', async () => {
         await dbRegister({
             fileName: 'test.wml',
@@ -159,11 +163,13 @@ describe('dbRegister', () => {
             },
             {
                 tag: 'Room',
-                key: 'Welcome'
+                key: 'Welcome',
+                defaultAppearances: []
             },
             {
                 tag: 'Feature',
-                key: 'clockTower'
+                key: 'clockTower',
+                defaultAppearances: []
             }],
             mergeFunction: expect.any(Function),
             extractKey: expect.any(Function)
@@ -248,6 +254,7 @@ describe('dbRegister', () => {
             items: [{
                 tag: 'Room',
                 key: 'Welcome',
+                defaultAppearances: []
             }],
             mergeFunction: expect.any(Function),
             extractKey: expect.any(Function)
@@ -353,13 +360,17 @@ describe('dbRegister', () => {
             assets: {
                 TEST: {
                     tag: 'Asset',
-                    Story: true,
                     key: 'TEST',
                     name: 'Test',
                     zone: 'Library',
                     appearances: [{
                         contextStack: [],
                         contents: [{
+                            tag: 'Condition',
+                            key: 'Condition-0',
+                            index: 0
+                        },
+                        {
                             tag: 'Room',
                             key: 'Welcome',
                             index: 0
@@ -371,12 +382,38 @@ describe('dbRegister', () => {
                         }]
                     }]
                 },
+                ['Condition-0']: {
+                    tag: 'Condition',
+                    key: 'Condition-0',
+                    if: 'false',
+                    appearances: [{
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
+                        contents: [{
+                            tag: 'Room',
+                            key: 'Welcome',
+                            index: 1
+                        },
+                        {
+                            tag: 'Feature',
+                            key: 'clockTower',
+                            index: 1
+                        }]
+                    }]
+                },
                 Welcome: {
                     tag: 'Room',
                     key: 'Welcome',
                     appearances: [{
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
                         contents: [],
+                        render: ['Test render!'],
+                        name: 'Test'
+                    },
+                    {
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        contents: [],
+                        render: ['Should not render'],
+                        name: 'Should not'
                     }]
                 },
                 clockTower: {
@@ -384,7 +421,16 @@ describe('dbRegister', () => {
                     key: 'clockTower',
                     appearances: [{
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        contents: []
+                        name: 'TestFeature',
+                        render: ['Test feature render']
+                    },
+                    {
+                        contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
+                    },
+                    {
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        render: ['Should not render'],
+                        name: 'Should not'
                     }]
                 }
             }
@@ -402,11 +448,20 @@ describe('dbRegister', () => {
             search: { DataCategory: 'ASSET#TEST' },
             items: [{
                 tag: 'Room',
-                key: 'Welcome'
+                key: 'Welcome',
+                defaultAppearances: [{
+                    render: ['Test render!'],
+                    name: 'Test',
+                    contents: []
+                }]
             },
             {
                 tag: 'Feature',
-                key: 'clockTower'
+                key: 'clockTower',
+                defaultAppearances: [{
+                    name: 'TestFeature',
+                    render: ['Test feature render']
+                }]
             }],
             mergeFunction: expect.any(Function),
             extractKey: expect.any(Function)

@@ -1,8 +1,8 @@
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { AssetKey } from '/opt/utilities/types.js'
 
-const itemRegistry = (item) => {
-    const { tag, name, key, global: isGlobal } = item
+const itemRegistry = (normalForm) => (item) => {
+    const { tag, name, key, global: isGlobal, appearances = [] } = item
     switch(tag) {
         case 'Map':
             return {
@@ -14,14 +14,22 @@ const itemRegistry = (item) => {
                 tag,
                 name,
                 isGlobal,
-                key
+                key,
+                defaultAppearances: appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .filter(({ contents= [], render = [], name = '' }) => (contents.length > 0 || render.length > 0 || name))
+                    .map(({ contents, render, name }) => ({ contents, render, name }))
             }
         case 'Feature':
             return {
                 tag,
                 name,
                 isGlobal,
-                key
+                key,
+                defaultAppearances: appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .filter(({ render = [], name = '' }) => (render.length > 0 || name))
+                    .map(({ render, name }) => ({ render, name }))
             }
     }
 }
@@ -50,23 +58,19 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                     ? []
                     : Object.values(assets)
                         .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
-                        .map(itemRegistry),
+                        .map(itemRegistry(assets)),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
                     }
-                    if (!current) {
+                    if (!current || (JSON.stringify(current) !== JSON.stringify(incoming))) {
                         const { tag, key, isGlobal, ...rest } = incoming
                         return {
                             scopedId: key,
                             ...rest
                         }
                     }
-                    //
-                    // TODO: When Room entries are expanded to store more than the sheer fact of their
-                    // existence (likely as part of Map storage), extend this function to compensate
-                    // by testing whether an update is needed
-                    //
+
                     return 'ignore'
                 },
                 extractKey: ({ tag, isGlobal, key }) => {
