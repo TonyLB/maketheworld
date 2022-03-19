@@ -138,7 +138,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         translateFile,
                         importTree,
                         scopeMap: scopeMapContents,
-                        assets: assetRegistryItems
+                        assets: normalized
                     }),
                     ...(asset.instance
                         ? []
