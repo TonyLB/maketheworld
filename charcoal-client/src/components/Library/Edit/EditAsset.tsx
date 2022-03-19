@@ -18,7 +18,8 @@ import {
     getStatus,
     getCurrentWML,
     getNormalized,
-    getWMLQuery
+    getWMLQuery,
+    setCurrentWML
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalAsset } from '../../../wml/normalize'
@@ -68,12 +69,13 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     }, [dispatch, assetKey])
 
     const currentStatus = useSelector(getStatus(AssetId))
+    const currentWML = useSelector(getCurrentWML(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
 
     return (['FRESH', 'DIRTY'].includes(currentStatus || '') && wmlQuery)
         ? 
             <Routes>
-                <Route path={'WML'} element={<WMLEdit wmlQuery={wmlQuery} />} />
+                <Route path={'WML'} element={<WMLEdit currentWML={currentWML} AssetId={AssetId} updateWML={ (value) => { dispatch(setCurrentWML(AssetId)({ value })) }} />} />
                 <Route path={''} element={<AssetEditForm AssetId={assetKey || ''} assetKey={assetKey || ''} />} />
             </Routes>
             

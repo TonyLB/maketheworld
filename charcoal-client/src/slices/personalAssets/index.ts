@@ -9,6 +9,7 @@ import {
     backoffAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
+import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer } from './reducers'
 
 export const {
     slice: personalAssetsSlice,
@@ -28,6 +29,8 @@ export const {
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
     publicReducers: {
+        setCurrentWML: setCurrentWMLReducer,
+        setDraftWML: setDraftWMLReducer
     },
     publicSelectors,
     template: {
@@ -112,7 +115,10 @@ export const {
 })
 
 export const { addItem } = personalAssetsSlice.actions
-// export const { } = publicActions
+export const {
+    setCurrentWML,
+    setDraftWML
+} = publicActions
 export const {
     getStatus,
     getCurrentWML,
