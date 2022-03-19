@@ -1,9 +1,33 @@
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { AssetKey } from '/opt/utilities/types.js'
 
+const itemRegistry = (item) => {
+    const { tag, name, key, global: isGlobal } = item
+    switch(tag) {
+        case 'Map':
+            return {
+                tag,
+                key,
+            }
+        case 'Room':
+            return {
+                tag,
+                name,
+                isGlobal,
+                key
+            }
+        case 'Feature':
+            return {
+                tag,
+                name,
+                isGlobal,
+                key
+            }
+    }
+}
 
 export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap, assets }) => {
-    const asset = assets.find(({ tag }) => (['Asset'].includes(tag)))
+    const asset = Object.values(assets).find(({ tag }) => (['Asset'].includes(tag)))
     if (asset && asset.key) {
         await Promise.all([
             assetDB.putItem({
@@ -24,8 +48,9 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 search: { DataCategory: AssetKey(asset.key) },
                 items: asset.instance
                     ? []
-                    : assets
-                        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag))),
+                    : Object.values(assets)
+                        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
+                        .map(itemRegistry),
                 mergeFunction: ({ current, incoming }) => {
                     if (!incoming) {
                         return 'delete'
@@ -68,7 +93,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
             })
         ])
     }
-    const character = assets.find(({ tag }) => (tag === 'Character'))
+    const character = Object.values(assets).find(({ tag }) => (tag === 'Character'))
     if (character && character.key) {
         await Promise.all([
             assetDB.putItem({

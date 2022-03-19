@@ -92,166 +92,166 @@ const assetProps = {
     zone: 'Canon',
 }
 
-describe('WML dbEntries', () => {
-    it('should return empty record when passed empty asset', () => {
-        expect(dbEntries({
-            tag: 'Asset',
-            contents: []
-        })).toEqual({})
-    })
+// describe('WML dbEntries', () => {
+//     it('should return empty record when passed empty asset', () => {
+//         expect(dbEntries({
+//             tag: 'Asset',
+//             contents: []
+//         })).toEqual({})
+//     })
 
-    it('should serialize Rooms, Exits, Variables, Computes, and Actions', () => {
-        expect(dbEntries(testSchema)).toEqual({
-            '123': {
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    name: 'Vortex',
-                    render: ["Hello, world!"],
-                    exits: [{
-                        to: "456"
-                    }]
-                },
-                {
-                    conditions: [],
-                    x: "300",
-                    y: "200"
-                },
-                {
-                    conditions: [{ if: 'true', dependencies: [] }],
-                    render: ['Vortex!'],
-                }]
-            },
-            '456': {
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    name: 'Welcome',
-                    exits: [{
-                        name: 'vortex',
-                        to: '123',
-                    }]
-                }]
-            },
-            clockTower: {
-                tag: 'Feature',
-                name: 'Clock Tower',
-                appearances: [{
-                    conditions: [],
-                    render: ['A clock-tower of weathered grey stone looms over the area. ']
-                }]
-            },
-            active: {
-                tag: 'Variable',
-                default: 'true'
-            },
-            inactive: {
-                tag: 'Computed',
-                src: '!active',
-                dependencies: ['active']
-            },
-            toggleActive: {
-                tag: 'Action',
-                src: 'active = !active'
-            }
-        })
-    })
+//     it('should serialize Rooms, Exits, Variables, Computes, and Actions', () => {
+//         expect(dbEntries(testSchema)).toEqual({
+//             '123': {
+//                 tag: 'Room',
+//                 appearances: [{
+//                     conditions: [],
+//                     name: 'Vortex',
+//                     render: ["Hello, world!"],
+//                     exits: [{
+//                         to: "456"
+//                     }]
+//                 },
+//                 {
+//                     conditions: [],
+//                     x: "300",
+//                     y: "200"
+//                 },
+//                 {
+//                     conditions: [{ if: 'true', dependencies: [] }],
+//                     render: ['Vortex!'],
+//                 }]
+//             },
+//             '456': {
+//                 tag: 'Room',
+//                 appearances: [{
+//                     conditions: [],
+//                     name: 'Welcome',
+//                     exits: [{
+//                         name: 'vortex',
+//                         to: '123',
+//                     }]
+//                 }]
+//             },
+//             clockTower: {
+//                 tag: 'Feature',
+//                 name: 'Clock Tower',
+//                 appearances: [{
+//                     conditions: [],
+//                     render: ['A clock-tower of weathered grey stone looms over the area. ']
+//                 }]
+//             },
+//             active: {
+//                 tag: 'Variable',
+//                 default: 'true'
+//             },
+//             inactive: {
+//                 tag: 'Computed',
+//                 src: '!active',
+//                 dependencies: ['active']
+//             },
+//             toggleActive: {
+//                 tag: 'Action',
+//                 src: 'active = !active'
+//             }
+//         })
+//     })
 
-    it('should correctly place exits into rooms', () => {
-        const testOutput = dbEntries({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                contents: [{
-                    tag: 'Exit',
-                    from: '456',
-                    contents: [],
-                }],
-                conditions: []
-            },
-            {
-                tag: 'Condition',
-                if: 'true',
-                contents: [{
-                    tag: 'Exit',
-                    from: '123',
-                    to: '456',
-                    contents: []
-                }]
-            }]
-        })
-        expect(testOutput).toEqual({
-            '123': {
-                tag: 'Room',
-                appearances: [{
-                    conditions: []
-                },
-                {
-                    conditions: [{ if: 'true', dependencies: [] }],
-                    exits: [{
-                        to: "456"
-                    }]
-                }]
-            },
-            '456': {
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    exits: [{
-                        to: '123',
-                    }]
-                }]
-            }
-        })
-        const testOutputTwo = dbEntries({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                contents: [{
-                    tag: 'Exit',
-                    to: '123',
-                    from: '456',
-                    name: 'vortex',
-                    contents: [],
-                },
-                {
-                    tag: 'Exit',
-                    from: '123',
-                    to: '456',
-                    name: 'welcome',
-                    contents: []
-                }],
-                conditions: []
-            }]
-        })
-        expect(testOutputTwo).toEqual({
-            '123': {
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    exits: [{
-                        to: "456",
-                        name: 'welcome',
-                    }]
-                }]
-            },
-            '456': {
-                tag: 'Room',
-                appearances: [{
-                    conditions: [],
-                    exits: [{
-                        to: '123',
-                        name: 'vortex',
-                    }]
-                }]
-            }
-        })
-    })
-})
+//     it('should correctly place exits into rooms', () => {
+//         const testOutput = dbEntries({
+//             tag: 'Asset',
+//             key: 'Test',
+//             contents: [{
+//                 tag: 'Room',
+//                 key: '123',
+//                 contents: [{
+//                     tag: 'Exit',
+//                     from: '456',
+//                     contents: [],
+//                 }],
+//                 conditions: []
+//             },
+//             {
+//                 tag: 'Condition',
+//                 if: 'true',
+//                 contents: [{
+//                     tag: 'Exit',
+//                     from: '123',
+//                     to: '456',
+//                     contents: []
+//                 }]
+//             }]
+//         })
+//         expect(testOutput).toEqual({
+//             '123': {
+//                 tag: 'Room',
+//                 appearances: [{
+//                     conditions: []
+//                 },
+//                 {
+//                     conditions: [{ if: 'true', dependencies: [] }],
+//                     exits: [{
+//                         to: "456"
+//                     }]
+//                 }]
+//             },
+//             '456': {
+//                 tag: 'Room',
+//                 appearances: [{
+//                     conditions: [],
+//                     exits: [{
+//                         to: '123',
+//                     }]
+//                 }]
+//             }
+//         })
+//         const testOutputTwo = dbEntries({
+//             tag: 'Asset',
+//             key: 'Test',
+//             contents: [{
+//                 tag: 'Room',
+//                 key: '123',
+//                 contents: [{
+//                     tag: 'Exit',
+//                     to: '123',
+//                     from: '456',
+//                     name: 'vortex',
+//                     contents: [],
+//                 },
+//                 {
+//                     tag: 'Exit',
+//                     from: '123',
+//                     to: '456',
+//                     name: 'welcome',
+//                     contents: []
+//                 }],
+//                 conditions: []
+//             }]
+//         })
+//         expect(testOutputTwo).toEqual({
+//             '123': {
+//                 tag: 'Room',
+//                 appearances: [{
+//                     conditions: [],
+//                     exits: [{
+//                         to: "456",
+//                         name: 'welcome',
+//                     }]
+//                 }]
+//             },
+//             '456': {
+//                 tag: 'Room',
+//                 appearances: [{
+//                     conditions: [],
+//                     exits: [{
+//                         to: '123',
+//                         name: 'vortex',
+//                     }]
+//                 }]
+//             }
+//         })
+//     })
+// })
 
 describe('WML assetRegistryEntries', () => {
     it('should return empty record when passed empty asset', () => {

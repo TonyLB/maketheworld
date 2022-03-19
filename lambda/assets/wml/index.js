@@ -66,86 +66,86 @@ export const validatedSchema = (match) => {
     return thirdPass
 }
 
-export const dbEntries = (schema) => {
-    const normalForm = normalize(schema)
-    const mapContextStackToConditions = ({ contextStack, ...rest }) => ({
-        conditions: contextStack.reduce((previous, { key, tag }) => {
-            if (tag !== 'Condition') {
-                return previous
-            }
-            const { if: condition = '', dependencies = [] } = normalForm[key]
-            return [
-                ...previous,
-                {
-                    if: condition,
-                    dependencies
-                }
-            ]
-        }, []),
-        ...rest
-    })
+// export const dbEntries = (schema) => {
+//     const normalForm = normalize(schema)
+//     const mapContextStackToConditions = ({ contextStack, ...rest }) => ({
+//         conditions: contextStack.reduce((previous, { key, tag }) => {
+//             if (tag !== 'Condition') {
+//                 return previous
+//             }
+//             const { if: condition = '', dependencies = [] } = normalForm[key]
+//             return [
+//                 ...previous,
+//                 {
+//                     if: condition,
+//                     dependencies
+//                 }
+//             ]
+//         }, []),
+//         ...rest
+//     })
 
-    return Object.values(normalForm)
-        .filter(({ tag }) => (['Room', 'Feature', 'Variable', 'Action', 'Computed'].includes(tag)))
-        .map(({ tag, key, appearances, ...rest }) => {
-            switch(tag) {
-                case 'Room':
-                    const returnVal = {
-                        tag,
-                        key,
-                        ...rest,
-                        appearances: appearances
-                            .map(mapContextStackToConditions)
-                            .map(({ contents, ...remainder }) => {
-                                const exitContents = contents
-                                    .filter(({ tag }) => (tag === 'Exit'))
-                                return {
-                                    ...remainder,
-                                    exits: (exitContents.length > 0)
-                                        ? exitContents
-                                            .map(({ key }) => {
-                                                const { name, to } = normalForm[key]
-                                                return { name, to }
-                                            })
-                                        : undefined
-                                }
-                            })
-                    }
-                    return returnVal
-                case 'Feature':
-                    const featureVal = {
-                        tag,
-                        key,
-                        ...rest,
-                        appearances: appearances
-                            .map(mapContextStackToConditions)
-                            .map(({ contents, ...rest }) => (rest))
-                    }
-                    return featureVal
-                case 'Variable':
-                    return {
-                        tag,
-                        key,
-                        default: rest.default
-                    }
-                case 'Computed':
-                    return {
-                        tag,
-                        key,
-                        dependencies: rest.dependencies,
-                        src: rest.src
-                    }
-                case 'Action':
-                    return {
-                        tag,
-                        key,
-                        src: rest.src
-                    }
-            }
-        })
-        .filter(({ key } = {}) => (key))
-        .reduce((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
-}
+//     return Object.values(normalForm)
+//         .filter(({ tag }) => (['Room', 'Feature', 'Variable', 'Action', 'Computed'].includes(tag)))
+//         .map(({ tag, key, appearances, ...rest }) => {
+//             switch(tag) {
+//                 case 'Room':
+//                     const returnVal = {
+//                         tag,
+//                         key,
+//                         ...rest,
+//                         appearances: appearances
+//                             .map(mapContextStackToConditions)
+//                             .map(({ contents, ...remainder }) => {
+//                                 const exitContents = contents
+//                                     .filter(({ tag }) => (tag === 'Exit'))
+//                                 return {
+//                                     ...remainder,
+//                                     exits: (exitContents.length > 0)
+//                                         ? exitContents
+//                                             .map(({ key }) => {
+//                                                 const { name, to } = normalForm[key]
+//                                                 return { name, to }
+//                                             })
+//                                         : undefined
+//                                 }
+//                             })
+//                     }
+//                     return returnVal
+//                 case 'Feature':
+//                     const featureVal = {
+//                         tag,
+//                         key,
+//                         ...rest,
+//                         appearances: appearances
+//                             .map(mapContextStackToConditions)
+//                             .map(({ contents, ...rest }) => (rest))
+//                     }
+//                     return featureVal
+//                 case 'Variable':
+//                     return {
+//                         tag,
+//                         key,
+//                         default: rest.default
+//                     }
+//                 case 'Computed':
+//                     return {
+//                         tag,
+//                         key,
+//                         dependencies: rest.dependencies,
+//                         src: rest.src
+//                     }
+//                 case 'Action':
+//                     return {
+//                         tag,
+//                         key,
+//                         src: rest.src
+//                     }
+//             }
+//         })
+//         .filter(({ key } = {}) => (key))
+//         .reduce((previous, { key, ...rest }) => ({ ...previous, [key]: rest }), {})
+// }
 
 export const assetRegistryEntries = (schema) => {
     const normalForm = normalize(schema)

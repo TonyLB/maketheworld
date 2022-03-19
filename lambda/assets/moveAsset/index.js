@@ -48,8 +48,6 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                 Key: `${toPath}${fileName}.wml`,
                 Body: assetWorkspace.contents()
             }))
-            const assetRegistryItems = assetRegistryEntries(assetWorkspace.schema())
-            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
             const normalized = assetWorkspace.normalize()
             const importMap = Object.values(normalized)
                 .filter(({ tag }) => (tag === 'Import'))
@@ -73,7 +71,7 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                 translateFile: `${toPath}${fileName}.translate.json`,
                 importTree,
                 scopeMap: scopeMap.scopeMap,
-                assets: assetRegistryItems
+                assets: normalized
             })
             await s3Client.send(new DeleteObjectCommand({
                 Bucket: S3_BUCKET,
