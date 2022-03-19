@@ -1,8 +1,14 @@
-import React, { FunctionComponent, useEffect } from 'react'
+import React, { FunctionComponent, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
+    Box,
     CircularProgress,
-    IconButton
+    IconButton,
+    List,
+    ListItemButton,
+    ListItemText,
+    ListItemIcon,
+    ListSubheader
 } from '@mui/material'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
@@ -22,9 +28,10 @@ import {
     setCurrentWML
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset } from '../../../wml/normalize'
+import { NormalAsset, NormalRoom } from '../../../wml/normalize'
 
 import WMLEdit from './WMLEdit'
+import RoomHeader from './RoomHeader'
 
 type AssetEditFormProps = {
     AssetId: string;
@@ -36,6 +43,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
     const normalForm = useSelector(getNormalized(`ASSET#${AssetId}`))
     const navigate = useNavigate()
 
+    const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const asset = Object.values(normalForm).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset
     return <div>
         <div>
@@ -44,9 +52,12 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
                 <TextSnippetIcon />
             </IconButton>
         </div>
-        <div>
-            { currentWML }
-        </div>
+        <Box sx={{ marginLeft: '20px' }}>
+            <List>
+                <ListSubheader>Rooms</ListSubheader>
+                { rooms.map((room) => (<RoomHeader room={room} />))}
+            </List>
+        </Box>
     </div>
 }
 
