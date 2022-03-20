@@ -33,6 +33,7 @@ import { NormalAsset, NormalRoom } from '../../../wml/normalize'
 import WMLEdit from './WMLEdit'
 import RoomHeader from './RoomHeader'
 import RoomDetail from './RoomDetail'
+import LibraryBanner from './LibraryBanner'
 
 type AssetEditFormProps = {
     AssetId: string;
@@ -46,13 +47,29 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const asset = Object.values(normalForm).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset
-    return <div>
-        <div>
+    return <Box sx={{ width: "100%" }}>
+        <LibraryBanner
+            primary={asset?.key || 'Untitled'}
+            secondary={asset?.Story ? 'Story' : 'Asset'}
+            commands={
+                <IconButton onClick={() => { navigate(`WML`) }}>
+                    <TextSnippetIcon />
+                </IconButton>
+            }
+            breadCrumbProps={[{
+                    href: '/Library',
+                    label: 'Library'
+                },
+                {
+                    label: asset?.key || 'Untitled'
+            }]}
+        />
+        {/* <Box>
             { asset?.Story ? 'Story' : 'Asset' }: { asset?.key }
             <IconButton onClick={() => { navigate(`WML`) }}>
                 <TextSnippetIcon />
             </IconButton>
-        </div>
+        </Box> */}
         <Box sx={{ marginLeft: '20px' }}>
             <List>
                 <ListSubheader>Rooms</ListSubheader>
@@ -64,7 +81,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
                 />))}
             </List>
         </Box>
-    </div>
+    </Box>
 }
 
 type EditAssetProps = {}
