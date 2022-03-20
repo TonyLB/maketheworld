@@ -49,14 +49,19 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
     return <div>
         <div>
             { asset?.Story ? 'Story' : 'Asset' }: { asset?.key }
-            <IconButton onClick={() => { navigate(`/Library/Edit/Asset/${assetKey}/WML`) }}>
+            <IconButton onClick={() => { navigate(`WML`) }}>
                 <TextSnippetIcon />
             </IconButton>
         </div>
         <Box sx={{ marginLeft: '20px' }}>
             <List>
                 <ListSubheader>Rooms</ListSubheader>
-                { rooms.map((room) => (<RoomHeader key={room.key} room={room} AssetId={AssetId} />))}
+                { rooms.map((room) => (<RoomHeader
+                    key={room.key}
+                    room={room}
+                    AssetId={AssetId}
+                    onClick={() => { navigate(`Room/${room.key}`)}}
+                />))}
             </List>
         </Box>
     </div>
