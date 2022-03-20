@@ -20,6 +20,8 @@ import { blue } from '@mui/material/colors'
 import { NormalRoom } from '../../../wml/normalize'
 import { getDefaultAppearances, getNormalized } from '../../../slices/personalAssets'
 
+import LibraryBanner from './LibraryBanner'
+
 interface RoomDetailProps {
 }
 
@@ -44,7 +46,23 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     console.log(`aggregateName: ${aggregateName}`)
     console.log(`aggregateRender: ${JSON.stringify(aggregateRender, null, 4)}`)
     return <Box sx={{ width: "100%" }}>
-            <Box sx={{ width: "100%", backgroundColor: blue[100] }}>
+            <LibraryBanner
+                primary={`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}
+                secondary={room.key}
+                icon={<HomeIcon />}
+                breadCrumbProps={[{
+                    href: '/Library',
+                    label: 'Library'
+                },
+                {
+                    href: `/Library/Edit/Asset/${assetKey}`,
+                    label: assetKey || ''
+                },
+                {
+                    label: `${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'
+                }]}
+            />
+            {/* <Box sx={{ width: "100%", backgroundColor: blue[100] }}>
                 <List>
                     <ListItem>
                         <ListItemIcon>
@@ -60,7 +78,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                         <ListItemText primary={`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'} secondary={room.key} />
                     </ListItem>
                 </List>
-            </Box>
+            </Box> */}
 
             <Box sx={{ marginLeft: '0.5em' }}>Name: {`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}</Box>
             <Box sx={{ marginLeft: '0.5em' }}>Description:&nbsp;

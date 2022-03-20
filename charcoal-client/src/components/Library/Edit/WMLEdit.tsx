@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useState, useEffect, useCallback } from 'react'
+import { useDispatch } from 'react-redux'
 import { Descendant, createEditor, Editor, Node, Range, Text, Point } from 'slate'
 import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
@@ -10,7 +11,8 @@ import {
 import { WMLQuery, WMLQueryUpdate } from '../../../wml/wmlQuery'
 import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
 import { setCurrentWML, setDraftWML } from '../../../slices/personalAssets'
-import { useDispatch } from 'react-redux'
+
+import LibraryBanner from './LibraryBanner'
 
 interface WMLEditProps {
     currentWML: string;
@@ -150,6 +152,7 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
 }
 
 export const WMLEdit: FunctionComponent<WMLEditProps> = ({ currentWML, updateWML = () => {}, AssetId }) => {
+    const [_, assetKey = 'Unknown'] = AssetId.split('#')
     const dispatch = useDispatch()
     const onChange = (change: WMLQueryUpdate) => {
         const match = change.wmlQuery.matcher.match()
@@ -222,6 +225,21 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = ({ currentWML, updateWML
     }, [value])
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     return <Box sx={{ height: "100%", width: "100%" }}>
+        <LibraryBanner
+            primary="Edit World Markup Language"
+            secondary={assetKey}
+            breadCrumbProps={[{
+                href: '/Library',
+                label: 'Library'
+            },
+            {
+                href: `/Library/Edit/Asset/${assetKey}`,
+                label: assetKey || ''
+            },
+            {
+                label: 'Edit WML'
+            }]}
+        />
         <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em" }}>
             <Slate
                 editor={editor}
