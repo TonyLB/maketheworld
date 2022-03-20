@@ -2,6 +2,7 @@ type TagType = 'Asset' |
     'Story' |
     'Character' |
     'Import' |
+    'Condition' |
     'Room' |
     'Feature' |
     'Image' |
@@ -33,8 +34,9 @@ type NormalAsset = {
     appearances: BaseAppearance[];
 } & NormalBase
 
-type RoomAppearance = {
+export type RoomAppearance = {
     name?: string;
+    render?: any[];
 } & BaseAppearance
 
 type NormalRoom = {
@@ -69,6 +71,10 @@ type NormalExit = {
     to: string;
     from: string;
 } & NormalBase
+
+type FeatureAppearance = {
+    render?: any[];
+} & BaseAppearance
 
 type NormalFeature = {
     tag: 'Feature';

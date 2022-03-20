@@ -138,11 +138,10 @@ export const {
     getStatus,
     getCurrentWML,
     getNormalized,
-    getWMLQuery
+    getWMLQuery,
+    getDefaultAppearances
 } = selectors
 
-type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
-
-
+// type PersonalAssetsSlice = multipleSSMSlice<PersonalAssetsNodes>
 
 export default personalAssetsSlice.reducer
