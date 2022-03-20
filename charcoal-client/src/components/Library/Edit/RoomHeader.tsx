@@ -14,15 +14,16 @@ import { getDefaultAppearances } from '../../../slices/personalAssets'
 interface RoomHeaderProps {
     room: NormalRoom;
     AssetId: string;
+    onClick: () => void;
 }
 
-export const RoomHeader: FunctionComponent<RoomHeaderProps> = ({ room, AssetId }) => {
+export const RoomHeader: FunctionComponent<RoomHeaderProps> = ({ room, AssetId, onClick }) => {
     const defaultAppearances = useSelector(getDefaultAppearances(`ASSET#${AssetId}`))
     const aggregateName = room.appearances
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
         .map(({ name = '' }) => name)
         .join('')
-    return <ListItemButton>
+    return <ListItemButton onClick={onClick}>
         <ListItemIcon>
             <HomeIcon />
         </ListItemIcon>

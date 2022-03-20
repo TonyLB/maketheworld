@@ -41,6 +41,8 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
         .map(({ render = [] }) => render)
         .reduce((previous, render) => ([ ...previous, ...render ]), [])
+    console.log(`aggregateName: ${aggregateName}`)
+    console.log(`aggregateRender: ${JSON.stringify(aggregateRender, null, 4)}`)
     return <Box sx={{ width: "100%" }}>
             <Box sx={{ width: "100%", backgroundColor: blue[100] }}>
                 <List>
@@ -62,8 +64,8 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
 
             <Box sx={{ marginLeft: '0.5em' }}>Name: {`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}</Box>
             <Box sx={{ marginLeft: '0.5em' }}>Description:&nbsp;
-                {defaultAppearances[room.key]?.render}
-                {aggregateRender}
+                {(defaultAppearances[room.key]?.render || []).filter((value) => (typeof value !== 'object'))}
+                {aggregateRender.filter((value) => (typeof value !== 'object'))}
             </Box>
         </Box>
 }
