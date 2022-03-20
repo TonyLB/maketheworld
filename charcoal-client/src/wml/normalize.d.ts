@@ -34,9 +34,15 @@ type NormalAsset = {
     appearances: BaseAppearance[];
 } & NormalBase
 
+type RoomRenderItem = {
+    tag: 'Link';
+    key: string;
+    to: string;
+} | string
+
 export type RoomAppearance = {
     name?: string;
-    render?: any[];
+    render?: RoomRenderItem[];
 } & BaseAppearance
 
 type NormalRoom = {
@@ -73,7 +79,7 @@ type NormalExit = {
 } & NormalBase
 
 type FeatureAppearance = {
-    render?: any[];
+    render?: RoomRenderItem[];
 } & BaseAppearance
 
 type NormalFeature = {

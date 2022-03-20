@@ -34,7 +34,7 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
         <Box sx={{ flexGrow: 1 }}>
             <Breadcrumbs aria-label="navigation breadcrumbs">
                 {
-                    breadCrumbProps.map(({ href, label }) => (
+                    breadCrumbProps.map(({ href, label }, index) => (
                         href 
                             ? (<Link
                                 sx={{ cursor: 'pointer' }}
@@ -45,7 +45,7 @@ export const LibraryBanner: FunctionComponent<LibraryBannerProps> = ({ primary, 
                             >
                                 {label}
                             </Link>)
-                            : (<Typography color="text.primary">{label}</Typography>)
+                            : (<Typography key={`text-${index}`} color="text.primary">{label}</Typography>)
                     ))
                 }
             </Breadcrumbs>
