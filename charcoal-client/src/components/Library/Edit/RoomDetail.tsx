@@ -21,6 +21,7 @@ import { NormalRoom } from '../../../wml/normalize'
 import { getDefaultAppearances, getNormalized } from '../../../slices/personalAssets'
 
 import LibraryBanner from './LibraryBanner'
+import DescriptionEditor from './DescriptionEditor'
 
 interface RoomDetailProps {
 }
@@ -43,8 +44,6 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
         .map(({ render = [] }) => render)
         .reduce((previous, render) => ([ ...previous, ...render ]), [])
-    console.log(`aggregateName: ${aggregateName}`)
-    console.log(`aggregateRender: ${JSON.stringify(aggregateRender, null, 4)}`)
     return <Box sx={{ width: "100%" }}>
             <LibraryBanner
                 primary={`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}
@@ -62,28 +61,15 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                     label: `${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'
                 }]}
             />
-            {/* <Box sx={{ width: "100%", backgroundColor: blue[100] }}>
-                <List>
-                    <ListItem>
-                        <ListItemIcon>
-                            <IconButton onClick={() => {
-                                navigate(`/Library/Edit/Asset/${assetKey}`)
-                            }}>
-                                <ArrowBackIcon />
-                            </IconButton>
-                            <Box component="span" sx={{ width: "20px" }} />
-                            <HomeIcon />
-                            <Box component="span" sx={{ width: "20px" }} />
-                        </ListItemIcon>
-                        <ListItemText primary={`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'} secondary={room.key} />
-                    </ListItem>
-                </List>
-            </Box> */}
 
             <Box sx={{ marginLeft: '0.5em' }}>Name: {`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}</Box>
-            <Box sx={{ marginLeft: '0.5em' }}>Description:&nbsp;
-                {(defaultAppearances[room.key]?.render || []).filter((value) => (typeof value !== 'object'))}
-                {aggregateRender.filter((value) => (typeof value !== 'object'))}
+            <Box sx={{ marginLeft: '0.25em', padding: '0.5em', border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
+                <DescriptionEditor
+                    inheritedRender={defaultAppearances[room.key]?.render}
+                    render={aggregateRender}
+                />
+                {/* {(defaultAppearances[room.key]?.render || []).filter((value) => (typeof value !== 'object'))}
+                {aggregateRender.filter((value) => (typeof value !== 'object'))} */}
             </Box>
         </Box>
 }
