@@ -401,7 +401,11 @@ export const handler = async (event, context) => {
             }
             return {
                 statusCode: 200,
-                body: JSON.stringify(importDefaults)
+                body: JSON.stringify({
+                    messageType: 'ImportDefaults',
+                    RequestId: request.RequestId,
+                    importDefaults
+                })
             }
         case 'fetchLibrary':
             const libraryEphemera = await fetchLibrary(request.RequestId)

@@ -4,6 +4,7 @@ import {
     lifelineCondition,
     getFetchURL,
     fetchAction,
+    fetchDefaultsAction,
     saveAction,
     clearAction,
     backoffAction
@@ -25,6 +26,7 @@ export const {
             incrementalBackoff: 0.5
         },
         publicData: {
+            defaultAppearances: {}
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -40,6 +42,7 @@ export const {
                 incrementalBackoff: 0.5
             },
             publicData: {
+                defaultAppearances: {}
             }
         },
         states: {
@@ -67,10 +70,22 @@ export const {
             FETCH: {
                 stateType: 'ATTEMPT',
                 action: fetchAction,
-                resolve: 'FRESH',
+                resolve: 'FETCHDEFAULTS',
                 reject: 'FETCHBACKOFF'
             },
             FETCHBACKOFF: {
+                stateType: 'ATTEMPT',
+                action: backoffAction,
+                resolve: 'FETCH',
+                reject: 'FETCHERROR'
+            },
+            FETCHDEFAULTS: {
+                stateType: 'ATTEMPT',
+                action: fetchDefaultsAction,
+                resolve: 'FRESH',
+                reject: 'FETCHDEFAULTSBACKOFF'
+            },
+            FETCHDEFAULTSBACKOFF: {
                 stateType: 'ATTEMPT',
                 action: backoffAction,
                 resolve: 'FETCH',
