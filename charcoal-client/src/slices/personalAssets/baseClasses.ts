@@ -10,6 +10,7 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
+    defaultAppearances: Record<string, any>;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>
@@ -24,6 +25,8 @@ export interface PersonalAssetsNodes {
     FETCHURLBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCH: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    FETCHDEFAULTS: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    FETCHDEFAULTSBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
     FRESH: ISSMChoiceNode;
     DIRTY: ISSMChoiceNode;
