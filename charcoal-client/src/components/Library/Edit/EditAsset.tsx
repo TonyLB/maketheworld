@@ -55,7 +55,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
         <Box sx={{ marginLeft: '20px' }}>
             <List>
                 <ListSubheader>Rooms</ListSubheader>
-                { rooms.map((room) => (<RoomHeader room={room} />))}
+                { rooms.map((room) => (<RoomHeader room={room} AssetId={AssetId} />))}
             </List>
         </Box>
     </div>
