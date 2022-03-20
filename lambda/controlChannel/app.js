@@ -23,6 +23,7 @@ import { forceDisconnect } from '/opt/utilities/apiManagement/forceDisconnect.js
 import { defaultColorFromCharacterId } from '/opt/utilities/selfHealing/index.js'
 
 import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.js'
+import fetchImportDefaults from './fetchImportDefaults/index.js'
 
 import lambdaClient from './lambdaClient.js'
 
@@ -392,6 +393,15 @@ export const handler = async (event, context) => {
             return {
                 statusCode: 200,
                 body: JSON.stringify(ephemera)
+            }
+        case 'fetchImportDefaults':
+            let importDefaults = {}
+            if (request.importsByAssetId) {
+                importDefaults = await fetchImportDefaults(request.importsByAssetId)
+            }
+            return {
+                statusCode: 200,
+                body: JSON.stringify(importDefaults)
             }
         case 'fetchLibrary':
             const libraryEphemera = await fetchLibrary(request.RequestId)
