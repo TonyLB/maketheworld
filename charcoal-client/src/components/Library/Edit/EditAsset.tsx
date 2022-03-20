@@ -32,6 +32,7 @@ import { NormalAsset, NormalRoom } from '../../../wml/normalize'
 
 import WMLEdit from './WMLEdit'
 import RoomHeader from './RoomHeader'
+import RoomDetail from './RoomDetail'
 
 type AssetEditFormProps = {
     AssetId: string;
@@ -55,7 +56,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = ({ AssetId, assetKe
         <Box sx={{ marginLeft: '20px' }}>
             <List>
                 <ListSubheader>Rooms</ListSubheader>
-                { rooms.map((room) => (<RoomHeader room={room} AssetId={AssetId} />))}
+                { rooms.map((room) => (<RoomHeader key={room.key} room={room} AssetId={AssetId} />))}
             </List>
         </Box>
     </div>
@@ -87,6 +88,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
         ? 
             <Routes>
                 <Route path={'WML'} element={<WMLEdit currentWML={currentWML} AssetId={AssetId} updateWML={ (value) => { dispatch(setCurrentWML(AssetId)({ value })) }} />} />
+                <Route path={'Room/:RoomId'} element={<RoomDetail />} />
                 <Route path={''} element={<AssetEditForm AssetId={assetKey || ''} assetKey={assetKey || ''} />} />
             </Routes>
             
