@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { ReactChild, ReactChildren } from 'react'
+import React, { ReactChild, ReactChildren, FunctionComponent } from 'react'
 import { useDispatch } from 'react-redux'
 import { css } from '@emotion/react'
 
@@ -18,6 +18,54 @@ import {
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
 
+interface DescriptionLinkChipProps {
+    text?: string;
+    children?: ReactChildren[];
+    onClick?: () => void;
+}
+
+export const DescriptionLinkActionChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick }) => (
+    <Box
+        component="span"
+        sx={{
+            background: `linear-gradient(${blue[400]}, ${blue[600]})`,
+            '&:hover': {
+                background: `linear-gradient(${blue[500]}, ${blue[700]})`,
+            },
+            borderRadius: '200px',
+            paddingTop: '0.125em',
+            paddingBottom: '0.25em',
+            paddingLeft: '0.35em',
+            paddingRight: '0.35em',
+            ...(onClick ? { cursor: 'pointer' } : {})
+        }}
+        onClick={onClick || (() => {})}
+    >
+        {text}
+        {children}
+    </Box>
+)
+
+export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick }) => (
+    <Box
+        component="span"
+        sx={{
+            background: `linear-gradient(${blue[200]}, ${blue[300]})`,
+            borderRadius: 0,
+            borderLeft: `solid ${blue[400]} 3px`,
+            paddingBottom: '5px',
+            '&:hover': {
+                background: `linear-gradient(${blue[300]}, ${blue[400]})`,
+            },
+            ...(onClick ? { cursor: 'pointer' } : {})
+        }}
+        onClick={onClick || (() => {})}
+    >
+        {text}
+        {children}
+    </Box>
+)
+
 interface DescriptionLinkProps {
     link: RoomDescribeLink
 }
@@ -27,15 +75,8 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
     const dispatch = useDispatch()
     switch(link.targetTag) {
         case 'Action':
-            return <Chip
-                sx={{
-                    background: `linear-gradient(${blue[400]}, ${blue[600]})`,
-                    color: 'white',
-                    '&:hover': {
-                        background: `linear-gradient(${blue[500]}, ${blue[700]})`,
-                    }
-                }}
-                size="small"
+            return <DescriptionLinkActionChip
+                text={link.text}
                 onClick={() => {
                     dispatch(socketDispatchPromise('link')({
                         targetTag: 'Action',
@@ -45,21 +86,10 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
                         CharacterId
                     }))
                 }}
-                label={link.text}
             />
         case 'Feature':
-            return <Box
-                component="span"
-                sx={{
-                    background: `linear-gradient(${blue[200]}, ${blue[300]})`,
-                    borderRadius: 0,
-                    borderLeft: `solid ${blue[400]} 3px`,
-                    paddingBottom: '5px',
-                    cursor: 'pointer',
-                    '&:hover': {
-                        background: `linear-gradient(${blue[300]}, ${blue[400]})`,
-                    }
-                }}
+            return <DescriptionLinkFeatureChip
+                text={link.text}
                 onClick={() => {
                     dispatch(socketDispatchPromise('link')({
                         targetTag: 'Feature',
@@ -68,9 +98,7 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
                         CharacterId
                     }))
                 }}
-            >
-                { link.text }
-            </Box>
+            />
     }
 }
 
