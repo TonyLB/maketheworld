@@ -36,8 +36,10 @@ type NormalAsset = {
 
 type RoomRenderItem = {
     tag: 'Link';
+    targetTag: 'Feature' | 'Action';
     key: string;
     to: string;
+    text?: string;
 } | string
 
 export type RoomAppearance = {

@@ -68,8 +68,6 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                     inheritedRender={defaultAppearances[room.key]?.render}
                     render={aggregateRender}
                 />
-                {/* {(defaultAppearances[room.key]?.render || []).filter((value) => (typeof value !== 'object'))}
-                {aggregateRender.filter((value) => (typeof value !== 'object'))} */}
             </Box>
         </Box>
 }

@@ -11,6 +11,7 @@ import {
 import { WMLQuery, WMLQueryUpdate } from '../../../wml/wmlQuery'
 import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
 import { setCurrentWML, setDraftWML } from '../../../slices/personalAssets'
+import { CustomText } from './baseClasses'
 
 import LibraryBanner from './LibraryBanner'
 
@@ -130,8 +131,8 @@ const decorateWithError = ({ editor, errorRange }: { editor: Editor; errorRange:
         return [range]
     }
     else {
-        return node.children
-            .reduce((previous: Decoration[], child: Descendant, index: number) => ([
+        return (node.children as CustomText[])
+            .reduce((previous: Decoration[], child: CustomText, index: number) => ([
                 ...previous,
                 ...decorateWithError({
                     editor,
