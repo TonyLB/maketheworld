@@ -63,7 +63,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
             />
 
             <Box sx={{ marginLeft: '0.5em' }}>Name: {`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}</Box>
-            <Box sx={{ marginLeft: '0.25em', padding: '0.5em', border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
+            <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
                     inheritedRender={defaultAppearances[room.key]?.render}
                     render={aggregateRender}

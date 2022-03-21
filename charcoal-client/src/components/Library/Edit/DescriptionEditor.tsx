@@ -5,9 +5,21 @@ import {
 } from "react-router-dom"
 
 import { useSlateStatic } from 'slate-react'
-import { Descendant, createEditor, Editor, Node, Range, Text, Point, Element as SlateElement } from 'slate'
+import {
+    Descendant,
+    createEditor,
+    Editor,
+    Element as SlateElement,
+} from 'slate'
 import { withHistory } from 'slate-history'
 import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeafProps } from 'slate-react'
+import {
+    Box,
+    Toolbar,
+    Button
+} from '@mui/material'
+import LinkIcon from '@mui/icons-material/Link'
+
 import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkElement, CustomText } from './baseClasses'
 
 import { RoomRenderItem, NormalForm } from '../../../wml/normalize'
@@ -86,10 +98,15 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     return <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
-        <Editable
-            renderElement={renderElement}
-            renderLeaf={renderLeaf}
-        />
+        <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+            <Button variant="outlined"><LinkIcon /></Button>
+        </Toolbar>
+        <Box sx={{ padding: '0.5em' }}>
+            <Editable
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+            />
+        </Box>
     </Slate>
 }
 
