@@ -93,13 +93,13 @@ const Element: FunctionComponent<RenderElementProps> = ({ attributes, children, 
         case 'featureLink':
             return <React.Fragment>
                     <InlineChromiumBugfix />
-                    <DescriptionLinkFeatureChip>{children}</DescriptionLinkFeatureChip>
+                    <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${element.to}`}>{children}</DescriptionLinkFeatureChip>
                     <InlineChromiumBugfix />
                 </React.Fragment>
         case 'actionLink':
             return <React.Fragment>
                 <InlineChromiumBugfix />
-                <DescriptionLinkActionChip>{children}</DescriptionLinkActionChip>
+                <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>{children}</DescriptionLinkActionChip>
                 <InlineChromiumBugfix />
             </React.Fragment>
         case 'description':
