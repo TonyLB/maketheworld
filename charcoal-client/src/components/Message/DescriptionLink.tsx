@@ -7,7 +7,8 @@ import {
     Box,
     Chip,
     Typography,
-    Divider
+    Divider,
+    Tooltip
 } from '@mui/material'
 import { blue } from '@mui/material/colors'
 
@@ -22,49 +23,67 @@ interface DescriptionLinkChipProps {
     text?: string;
     children?: ReactChildren[];
     onClick?: () => void;
+    tooltipTitle?: string;
 }
 
-export const DescriptionLinkActionChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick }) => (
-    <Box
-        component="span"
-        sx={{
-            background: `linear-gradient(${blue[400]}, ${blue[600]})`,
-            '&:hover': {
-                background: `linear-gradient(${blue[500]}, ${blue[700]})`,
-            },
-            borderRadius: '200px',
-            paddingTop: '0.125em',
-            paddingBottom: '0.25em',
-            paddingLeft: '0.35em',
-            paddingRight: '0.35em',
-            ...(onClick ? { cursor: 'pointer' } : {})
-        }}
-        onClick={onClick || (() => {})}
-    >
-        {text}
-        {children}
-    </Box>
-)
+export const DescriptionLinkActionChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick, tooltipTitle }) => {
+    const element = <Box
+            component="span"
+            sx={{
+                background: `linear-gradient(${blue[400]}, ${blue[600]})`,
+                '&:hover': {
+                    background: `linear-gradient(${blue[500]}, ${blue[700]})`,
+                },
+                borderRadius: '200px',
+                paddingTop: '0.125em',
+                paddingBottom: '0.25em',
+                paddingLeft: '0.35em',
+                paddingRight: '0.35em',
+                ...(onClick ? { cursor: 'pointer' } : {})
+            }}
+            onClick={onClick || (() => {})}
+        >
+            {text}
+            {children}
+        </Box>
+    if (tooltipTitle) {
+        return <Tooltip title={tooltipTitle}>
+            { element }
+        </Tooltip>
+    }
+    else {
+        return element
+    }
+    
+}
 
-export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick }) => (
-    <Box
-        component="span"
-        sx={{
-            background: `linear-gradient(${blue[200]}, ${blue[300]})`,
-            borderRadius: 0,
-            borderLeft: `solid ${blue[400]} 3px`,
-            paddingBottom: '5px',
-            '&:hover': {
-                background: `linear-gradient(${blue[300]}, ${blue[400]})`,
-            },
-            ...(onClick ? { cursor: 'pointer' } : {})
-        }}
-        onClick={onClick || (() => {})}
-    >
-        {text}
-        {children}
-    </Box>
-)
+export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick, tooltipTitle }) => {
+    const element = <Box
+            component="span"
+            sx={{
+                background: `linear-gradient(${blue[200]}, ${blue[300]})`,
+                borderRadius: 0,
+                borderLeft: `solid ${blue[400]} 3px`,
+                paddingBottom: '5px',
+                '&:hover': {
+                    background: `linear-gradient(${blue[300]}, ${blue[400]})`,
+                },
+                ...(onClick ? { cursor: 'pointer' } : {})
+            }}
+            onClick={onClick || (() => {})}
+        >
+            {text}
+            {children}
+        </Box>
+    if (tooltipTitle) {
+        return <Tooltip title={tooltipTitle}>
+            { element }
+        </Tooltip>
+    }
+    else {
+        return element
+    }
+}
 
 interface DescriptionLinkProps {
     link: RoomDescribeLink
