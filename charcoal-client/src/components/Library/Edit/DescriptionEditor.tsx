@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo, useState, useCallback } from 'react'
+import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import {
     useParams
@@ -16,13 +16,22 @@ import { Slate, Editable, withReact, ReactEditor, RenderElementProps, RenderLeaf
 import {
     Box,
     Toolbar,
-    Button
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    List,
+    ListItemButton,
+    ListItemText,
+    ListSubheader,
+    IconButton
 } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
 
 import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkElement, CustomText } from './baseClasses'
 
-import { RoomRenderItem, NormalForm } from '../../../wml/normalize'
+import { RoomRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
 
@@ -83,6 +92,67 @@ const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children, leaf }
     return <span {...attributes}>{children}</span>
 }
 
+interface LinkDialogProps {
+    open: boolean;
+    onClose: () => void;
+}
+
+const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
+    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+    const AssetId = `ASSET#${assetKey}`
+    const normalForm = useSelector(getNormalized(AssetId))
+    const actions = Object.values(normalForm)
+        .filter(({ tag }) => (tag === 'Action'))
+    const features = Object.values(normalForm)
+        .filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]
+    return <Dialog
+        open={open}
+        scroll='paper'
+        onClose={onClose}
+    >
+        <DialogTitle>
+            <Box sx={{ marginRight: '2rem' }}>
+                Select Link Target
+            </Box>
+            <IconButton
+                aria-label="close"
+                onClick={onClose}
+                sx={{
+                position: 'absolute',
+                right: 8,
+                top: 8
+                }}
+            >
+                <CloseIcon />
+            </IconButton>
+        </DialogTitle>
+        <DialogContent>
+            <List>
+                <ListSubheader>
+                    Actions
+                </ListSubheader>
+                { actions.map(({ key }) => (
+                    <ListItemButton key={key}>
+                        <ListItemText>
+                            {key}
+                        </ListItemText>
+                    </ListItemButton>
+                ))}
+                <ListSubheader>
+                    Features
+                </ListSubheader>
+                { features.map(({ key, name }) => (
+                    <ListItemButton key={key}>
+                        <ListItemText>
+                            {name}
+                        </ListItemText>
+                    </ListItemButton>
+                ))}
+            </List>
+        </DialogContent>
+    </Dialog>
+}
+
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -95,19 +165,24 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             ...descendantsFromRender(normalForm)(render)
         ]
     }])
+    const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
-    return <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
-        <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-            <Button variant="outlined"><LinkIcon /></Button>
-        </Toolbar>
-        <Box sx={{ padding: '0.5em' }}>
-            <Editable
-                renderElement={renderElement}
-                renderLeaf={renderLeaf}
-            />
-        </Box>
-    </Slate>
+    return <React.Fragment>
+        <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
+        <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
+            <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                <Button variant="outlined" onClick={() => { setLinkDialogOpen(true) }}><LinkIcon /></Button>
+            </Toolbar>
+            <Box sx={{ padding: '0.5em' }}>
+                <Editable
+                    renderElement={renderElement}
+                    renderLeaf={renderLeaf}
+                />
+            </Box>
+        </Slate>
+
+    </React.Fragment>
 }
 
 export default DescriptionEditor
