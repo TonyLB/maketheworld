@@ -6,7 +6,7 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { isKeyHotkey } from 'is-hotkey'
 
-import { useSlateStatic } from 'slate-react'
+import { useSlateStatic, useSlate } from 'slate-react'
 import {
     Descendant,
     createEditor,
@@ -195,7 +195,7 @@ const isLinkActive = (editor: Editor) => {
         match: n =>
             !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
     }).next()
-    return !!link
+    return !!(link?.value)
 }
   
 const unwrapLink = (editor: Editor) => {
@@ -249,6 +249,22 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
     }
 }
 
+interface AddLinkButtonProps {
+    openDialog: () => void;
+}
+
+const AddLinkButton: FunctionComponent<AddLinkButtonProps> = ({ openDialog }) => {
+    const editor = useSlate()
+    const { selection } = editor
+    return <Button
+        variant={isLinkActive(editor) ? "contained" : "outlined"}
+        disabled={!selection || Boolean(!isLinkActive(editor) && Range.isCollapsed(selection))}
+        onClick={openDialog}
+    >
+        <LinkIcon />
+    </Button>
+}
+
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -291,7 +307,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
         <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                <Button variant="outlined" onClick={() => { setLinkDialogOpen(true) }}><LinkIcon /></Button>
+                <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
