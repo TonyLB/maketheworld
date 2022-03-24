@@ -92,17 +92,17 @@ const InlineChromiumBugfix = () => (
 const Element: FunctionComponent<RenderElementProps> = ({ attributes, children, element }) => {
     switch(element.type) {
         case 'featureLink':
-            return <React.Fragment>
-                    <InlineChromiumBugfix />
-                    <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${element.to}`}>{children}</DescriptionLinkFeatureChip>
-                    <InlineChromiumBugfix />
-                </React.Fragment>
+            return <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${element.to}`}>
+                <InlineChromiumBugfix />
+                {children}
+                <InlineChromiumBugfix />
+            </DescriptionLinkFeatureChip>
         case 'actionLink':
-            return <React.Fragment>
+            return <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>
                 <InlineChromiumBugfix />
-                <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>{children}</DescriptionLinkActionChip>
+                {children}
                 <InlineChromiumBugfix />
-            </React.Fragment>
+            </DescriptionLinkActionChip>
         case 'description':
             return <span {...attributes}>{children}</span>
         default: return (
@@ -351,9 +351,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             }
         }
     }, [])
-    const saveSelection = useCallback(() => {
-        editor.saveSelection = editor.selection
-    }, [editor])
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
@@ -366,7 +363,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
                     onKeyDown={onKeyDown}
-                    onBlur={saveSelection}
                 />
             </Box>
         </Slate>
