@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
+import React, { FunctionComponent, useMemo, useState, useCallback, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import {
     useParams
@@ -162,6 +162,12 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
                         onClick={() => {
                             wrapActionLink(editor, key)
                             onClose()
+                            setTimeout(() => {
+                                if (editor.saveSelection) {
+                                    Transforms.select(editor, editor.saveSelection)
+                                }
+                                ReactEditor.focus(editor)
+                            }, 10)
                         }}
                     >
                         <ListItemText>
@@ -178,9 +184,15 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
                         onClick={() => {
                             wrapFeatureLink(editor, key)
                             onClose()
+                            setTimeout(() => {
+                                if (editor.saveSelection) {
+                                    Transforms.select(editor, editor.saveSelection)
+                                }
+                                ReactEditor.focus(editor)
+                            }, 10)
                         }}
                     >
-                    <ListItemText>
+                        <ListItemText>
                             {name}
                         </ListItemText>
                     </ListItemButton>
@@ -197,6 +209,17 @@ const isLinkActive = (editor: Editor) => {
     }).next()
     return !!(link?.value)
 }
+
+const selectActiveLink = (editor: Editor) => {
+    const link = Editor.nodes(editor, {
+        match: n =>
+            !Editor.isEditor(n) && SlateElement.isElement(n) && ['actionLink', 'featureLink'].includes(n.type),
+    }).next()
+    if (link?.value) {
+        const location = link.value[1]
+        Transforms.select(editor, location)
+    }
+}
   
 const unwrapLink = (editor: Editor) => {
     Transforms.unwrapNodes(editor, {
@@ -207,6 +230,7 @@ const unwrapLink = (editor: Editor) => {
 
 const wrapActionLink = (editor: Editor, to: string) => {
     if (isLinkActive(editor)) {
+        selectActiveLink(editor)
         unwrapLink(editor)
     }
   
@@ -224,11 +248,13 @@ const wrapActionLink = (editor: Editor, to: string) => {
     } else {
         Transforms.wrapNodes(editor, link, { split: true })
         Transforms.collapse(editor, { edge: 'end' })
+        editor.saveSelection = undefined
     }
 }
 
 const wrapFeatureLink = (editor: Editor, to: string) => {
     if (isLinkActive(editor)) {
+        selectActiveLink(editor)
         unwrapLink(editor)
     }
   
@@ -246,6 +272,7 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
     } else {
         Transforms.wrapNodes(editor, link, { split: true })
         Transforms.collapse(editor, { edge: 'end' })
+        editor.saveSelection = undefined
     }
 }
 
@@ -303,6 +330,9 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 }
         }
     }, [])
+    const saveSelection = useCallback(() => {
+        editor.saveSelection = editor.selection
+    }, [editor])
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
@@ -314,6 +344,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
                     onKeyDown={onKeyDown}
+                    onBlur={saveSelection}
                 />
             </Box>
         </Slate>

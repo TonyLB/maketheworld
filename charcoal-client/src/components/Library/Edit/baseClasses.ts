@@ -1,4 +1,4 @@
-import { BaseEditor } from 'slate'
+import { BaseEditor, Selection } from 'slate'
 import { ReactEditor } from 'slate-react'
 
 export type CustomText = {
@@ -36,7 +36,7 @@ type CustomElement = CustomLineElement |
 
 declare module 'slate' {
     interface CustomTypes {
-      Editor: BaseEditor & ReactEditor
+      Editor: BaseEditor & ReactEditor & { saveSelection?: Selection }
       Element: CustomElement
       Text: CustomText
     }
