@@ -32,6 +32,7 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
+import LinkOffIcon from '@mui/icons-material/LinkOff'
 
 import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkElement, CustomText } from './baseClasses'
 
@@ -292,6 +293,26 @@ const AddLinkButton: FunctionComponent<AddLinkButtonProps> = ({ openDialog }) =>
     </Button>
 }
 
+interface RemoveLinkButtonProps {
+}
+
+const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
+    const editor = useSlate()
+    const { selection } = editor
+    const handleClick = useCallback(() => {
+        unwrapLink(editor)
+        setTimeout(() => {
+            ReactEditor.focus(editor)
+        }, 10)
+    }, [editor])
+    return <Button
+        variant={isLinkActive(editor) ? "contained" : "outlined"}
+        disabled={!selection || Boolean(!isLinkActive(editor) && Range.isCollapsed(selection))}
+        onClick={handleClick}
+    >
+        <LinkOffIcon />
+    </Button>
+}
 export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
@@ -327,7 +348,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 event.preventDefault()
                 Transforms.move(editor, { unit: 'offset' })
                 return
-                }
+            }
         }
     }, [])
     const saveSelection = useCallback(() => {
@@ -338,6 +359,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+                <RemoveLinkButton />
             </Toolbar>
             <Box sx={{ padding: '0.5em' }}>
                 <Editable
