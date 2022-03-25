@@ -55,7 +55,7 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                     return {
                         ...previous,
                         ...(Object.entries(mapping)
-                            .reduce((previous, [key, scopedId]) => ({
+                            .reduce((previous, [key, { key: scopedId }]) => ({
                                 ...previous,
                                 [key]: {
                                     scopedId,

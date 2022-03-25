@@ -225,7 +225,7 @@ describe('localizeDBEntries', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    VORTEX: 'VORTEX'
+                    VORTEX: { key: 'VORTEX', type: 'Room' }
                 },
                 appearances: [topLevelAppearance]
             },

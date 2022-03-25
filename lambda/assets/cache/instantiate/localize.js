@@ -31,7 +31,7 @@ export const localizeDBEntries = async ({
         return items.reduce((previous, { AssetId, scopedId }) => {
             const mapping = importAssetMappings[assetId]
             return Object.entries(mapping)
-                .filter(([_, checkKey]) => (checkKey === scopedId))
+                .filter(([_, { key: checkKey }]) => (checkKey === scopedId))
                 .reduce((accumulator, [localKey]) => ({
                     ...accumulator,
                     [localKey]: AssetId

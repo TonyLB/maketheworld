@@ -204,8 +204,8 @@ export class StateSynthesizer extends Object {
             .filter(({ tag }) => (tag === 'Import'))
             .reduce((previous, { from, mapping }) => {
                 return Object.entries(mapping)
-                    .filter(([_, awayKey]) => (awayKey in importStateByAsset[from].state))
-                    .reduce((accumulator, [localKey, awayKey]) => ({
+                    .filter(([_, { key: awayKey }]) => (awayKey in importStateByAsset[from].state))
+                    .reduce((accumulator, [localKey, { key: awayKey }]) => ({
                         ...accumulator,
                         [localKey]: {
                             imported: true,
@@ -229,7 +229,7 @@ export class StateSynthesizer extends Object {
                         if (!draft[from].dependencies) {
                             draft[from].dependencies = {}
                         }
-                        Object.entries(mapping).forEach(([localKey, awayKey]) => {
+                        Object.entries(mapping).forEach(([localKey, { key: awayKey }]) => {
                             if (awayKey in this.importedStates[from].state) {
                                 if (!(awayKey in draft[from].dependencies)) {
                                     draft[from].dependencies[awayKey] = {}

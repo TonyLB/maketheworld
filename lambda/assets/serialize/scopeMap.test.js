@@ -272,7 +272,7 @@ describe('ScopeMap class', () => {
                     key: 'Import-0',
                     from: 'Somewhere',
                     mapping: {
-                        testThree: 'testThree'
+                        testThree: { key: 'testThree', type: 'Feature' }
                     }
                 },
                 testOne: {
