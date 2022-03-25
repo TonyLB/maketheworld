@@ -406,7 +406,7 @@ describe('dbRegister', () => {
                     appearances: [{
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
                         contents: [],
-                        render: ['Test render!'],
+                        render: ['Test render!', { tag: 'Link', to: 'clockTower', text: '(clock tower)'}],
                         name: 'Test'
                     },
                     {
@@ -450,7 +450,15 @@ describe('dbRegister', () => {
                 tag: 'Room',
                 key: 'Welcome',
                 defaultAppearances: [{
-                    render: ['Test render!'],
+                    render: [
+                        'Test render!',
+                        {
+                            tag: 'Link',
+                            to: 'clockTower',
+                            text: '(clock tower)',
+                            targetTag: 'Feature'
+                        }
+                    ],
                     name: 'Test',
                     contents: []
                 }]

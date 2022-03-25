@@ -525,12 +525,12 @@ describe('WML normalize', () => {
                 },
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{ key: 'basePower', tag: 'Variable', index: 0 }, { key: 'overview', tag: 'Room', index: 0 }],
+                    contents: [{ key: 'power', tag: 'Variable', index: 0 }, { key: 'overview', tag: 'Room', index: 0 }],
                     props: {}
                 }]
             },
-            'basePower': {
-                key: 'basePower',
+            'power': {
+                key: 'power',
                 tag: 'Variable',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Import-0', tag: 'Import', index: 0 }],
