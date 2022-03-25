@@ -1,8 +1,8 @@
 <Asset key=(ImportTest) fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
     <Import from=(TEST)>
-        <Use key=(345) as=(welcomeRoom) />
-        <Use key=(VORTEX) />
-        <Use key=(power) />
+        <Use key=(345) type="Room" as=(welcomeRoom) />
+        <Use key=(VORTEX) type="Room" />
+        <Use key=(power) type="Variable" />
     </Import>
     <Variable key=(switchUp) default={false} />
     <Computed key=(active) src={switchUp && power}>

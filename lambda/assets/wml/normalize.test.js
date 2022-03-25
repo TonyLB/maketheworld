@@ -408,8 +408,8 @@ describe('WML normalize', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    power: 'basePower',
-                    overview: "overview"
+                    power: { key: 'basePower', type: 'Variable' },
+                    overview: { key: "overview", type: 'Room' }
                 },
                 contents: [],
                 props: {}
@@ -520,13 +520,29 @@ describe('WML normalize', () => {
                 tag: 'Import',
                 from: 'BASE',
                 mapping: {
-                    power: 'basePower',
-                    overview: 'overview'
+                    power: { key: 'basePower', type: 'Variable' },
+                    overview: { key: 'overview', type: 'Room' }
                 },
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [],
+                    contents: [{ key: 'basePower', tag: 'Variable', index: 0 }, { key: 'overview', tag: 'Room', index: 0 }],
                     props: {}
+                }]
+            },
+            'basePower': {
+                key: 'basePower',
+                tag: 'Variable',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Import-0', tag: 'Import', index: 0 }],
+                    contents: []
+                }]
+            },
+            'overview': {
+                key: 'overview',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Import-0', tag: 'Import', index: 0 }],
+                    contents: []
                 }]
             },
             '123': {

@@ -68,12 +68,20 @@ describe('assetRender', () => {
             tag: 'Import',
             from: 'BASE',
             mapping: {
-                power: 'foo'
+                power: { key: 'foo', type: 'Variable' }
             },
             appearances: [{
                 contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                contents: [],
+                contents: [{ key: 'power', tag: 'Variable', index: 0 }],
                 props: {}
+            }]
+        },
+        'power': {
+            key: 'power',
+            tag: 'Variable',
+            appearances: [{
+                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Import-0', tag: 'Import', index: 0 }],
+                contents: []
             }]
         },
         'MNO': {

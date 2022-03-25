@@ -126,8 +126,8 @@ describe('stateSynthesis', () => {
             tag: 'Import',
             from: 'BASE',
             mapping: {
-                welcome: 'ABC',
-                power: 'powered'
+                welcome: { key: 'ABC', type: 'Room' },
+                power: { key: 'powered', type: 'Variable' }
             },
             appearances: [topLevelAppearance]
         }

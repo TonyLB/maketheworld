@@ -158,9 +158,9 @@ export const liftContents = (label, { separator = '', allString = false, exclude
 export const liftUseTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Use'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Use'))
-    const mapping = tagsToLift.reduce((previous, { key, as }) => ({
+    const mapping = tagsToLift.reduce((previous, { key, as, type }) => ({
         ...previous,
-        [as || key]: key
+        [as || key]: { key, type }
     }), {})
     return {
         contents: unliftedItems,
