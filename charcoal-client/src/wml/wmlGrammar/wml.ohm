@@ -46,8 +46,8 @@ WorldMarkupLangage {
     ImportExpression = TagExpression<"Import", "from", none, none, none, ImportLegalContents>
     ImportLegalContents = UseExpression
 
-    UseExpression = TagExpression<"Use", ("key" | "as"), none, none, none, none>
-            | TagSelfClosing<"Use", ("key" | "as"), none, none, none>
+    UseExpression = TagExpression<"Use", ("key" | "as"), "type", none, none, none>
+            | TagSelfClosing<"Use", ("key" | "as"), "type", none, none>
 
     DependencyExpression = TagExpression<"Depend", "on", none, none, none, none>
             | TagSelfClosing<"Depend", "on", none, none, none>

@@ -1,6 +1,18 @@
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { AssetKey } from '/opt/utilities/types.js'
 
+const tagRenderLink = (normalForm) => (renderItem) => {
+    if (typeof renderItem === 'object') {
+        if (renderItem.tag === 'Link') {
+            return {
+                ...renderItem,
+                targetTag: normalForm[renderItem.to]?.tag
+            }
+        }
+    }
+    return renderItem
+}
+
 const itemRegistry = (normalForm) => (item) => {
     const { tag, name, key, global: isGlobal, appearances = [] } = item
     switch(tag) {
@@ -18,7 +30,11 @@ const itemRegistry = (normalForm) => (item) => {
                 defaultAppearances: appearances
                     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                     .filter(({ contents= [], render = [], name = '' }) => (contents.length > 0 || render.length > 0 || name))
-                    .map(({ contents, render, name }) => ({ contents, render, name }))
+                    .map(({ contents, render, name }) => ({
+                        contents,
+                        render: render.map(tagRenderLink(normalForm)),
+                        name
+                    }))
             }
         case 'Feature':
             return {
@@ -29,7 +45,10 @@ const itemRegistry = (normalForm) => (item) => {
                 defaultAppearances: appearances
                     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                     .filter(({ render = [], name = '' }) => (render.length > 0 || name))
-                    .map(({ render, name }) => ({ render, name }))
+                    .map(({ render, name }) => ({
+                        render: render.map(tagRenderLink(normalForm)),
+                        name
+                    }))
             }
     }
 }

@@ -216,7 +216,9 @@ export const transformNode = (contextStack, node) => {
         return {
             node: {
                 key,
-                ...node
+                ...node,
+                contents: Object.entries(node.mapping)
+                    .map(([key, { type }]) => ({ key, tag: type }))
             },
             contextStack
         }

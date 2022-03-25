@@ -52,10 +52,15 @@ type NormalRoom = {
     appearances: RoomAppearance[];
 } & NormalBase
 
+type NormalImportMapping = {
+    key: string;
+    type: string;
+}
+
 type NormalImport = {
     tag: 'Import';
     from: string;
-    mapping: Record<string, string>;
+    mapping: Record<string, NormalImportMapping>;
     appearances: BaseAppearance[];
 } & NormalBase
 

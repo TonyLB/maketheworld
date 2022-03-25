@@ -220,9 +220,10 @@ export const schema = {
     },
     UseExpression(node) {
         return wmlProcessUpNonRecursive([
-            validate(confirmRequiredProps(['key'])),
+            validate(confirmRequiredProps(['key', 'type'])),
             validate(confirmKeyProps(['key', 'as'])),
-            liftKeyProps(['key', 'as'])
+            liftKeyProps(['key', 'as']),
+            liftLiteralProps(['type'])
         ])(node.schema())
     },
     ImportExpression(node) {
