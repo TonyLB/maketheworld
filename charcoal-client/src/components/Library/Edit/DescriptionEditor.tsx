@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useMemo, useState, useCallback, useRef } from 'react'
+import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import {
     useParams
@@ -58,20 +58,24 @@ const descendantsFromRender = (normalForm: NormalForm) => (render: RoomRenderIte
                         children: [{
                             text: item.text || ''
                         }]
-                    }
+                    } as CustomActionLinkElement | CustomFeatureLinkElement
                 }
             }
-            return { text: item as string }
+            return { text: item as string } as CustomText
         })
     }
     return []
 }
 
 const withInlines = (editor: Editor) => {
-    const { isInline } = editor
+    const { isInline, isVoid } = editor
 
     editor.isInline = (element: SlateElement) => (
         ['actionLink', 'featureLink'].includes(element.type) || isInline(element)
+    )
+
+    editor.isVoid = (element: SlateElement) => (
+        ['inherited'].includes(element.type) || isVoid(element)
     )
 
     return editor
@@ -89,22 +93,60 @@ const InlineChromiumBugfix = () => (
     </Box>
 )
 
-const Element: FunctionComponent<RenderElementProps> = ({ attributes, children, element }) => {
+const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem[] }> = ({ inheritedRender=[] }) => {
+    const { AssetId: assetKey } = useParams<{ AssetId: string }>()
+    const AssetId = `ASSET#${assetKey}`
+    const normalForm = useSelector(getNormalized(AssetId))
+    return <span
+        contentEditable={false}
+        style={{ background: 'lightgrey' }}
+    >
+        {
+            inheritedRender.map((item) => {
+                console.log(`Item: ${JSON.stringify(item, null, 4)}`)
+                if (typeof item === 'object') {
+                    if (item.tag === 'Link') {
+                        switch(item.targetTag) {
+                            case 'Feature':
+                                return <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${item.to}`}>
+                                        {item.text}
+                                    </DescriptionLinkFeatureChip>
+                            case 'Action':
+                                return <DescriptionLinkActionChip tooltipTitle={`Action: ${item.to}`}>
+                                        {item.text}
+                                    </DescriptionLinkActionChip>
+                            default:
+                                return null
+                        }
+                    }
+                }
+                return item as string
+            })
+        }
+    </span>
+}
+
+const Element: FunctionComponent<RenderElementProps & { inheritedRender?: RoomRenderItem[] }> = ({ inheritedRender, ...props }) => {
+    const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
-            return <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${element.to}`}>
-                <InlineChromiumBugfix />
-                {children}
-                <InlineChromiumBugfix />
-            </DescriptionLinkFeatureChip>
+            return <span {...attributes}>
+                <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${element.to}`}>
+                    <InlineChromiumBugfix />
+                    {children}
+                    <InlineChromiumBugfix />
+                </DescriptionLinkFeatureChip>
+            </span>
         case 'actionLink':
-            return <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>
-                <InlineChromiumBugfix />
-                {children}
-                <InlineChromiumBugfix />
-            </DescriptionLinkActionChip>
+            return <span {...attributes}>
+                <DescriptionLinkActionChip tooltipTitle={`Action: ${element.to}`}>
+                    <InlineChromiumBugfix />
+                    {children}
+                    <InlineChromiumBugfix />
+                </DescriptionLinkActionChip>
+            </span>
         case 'description':
-            return <span {...attributes}>{children}</span>
+            return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{children}</span>
         default: return (
             <p {...attributes}>
                 {children}
@@ -319,14 +361,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const [value, setValue] = useState<Descendant[]>([{
-        type: 'description',
-        children: [
-            ...descendantsFromRender(normalForm)(inheritedRender),
-            ...descendantsFromRender(normalForm)(render)
-        ]
-    }])
+            type: 'description',
+            children: descendantsFromRender(normalForm)(render)
+        }])
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
-    const renderElement = useCallback((props: RenderElementProps) => <Element {...props} />, [])
+    const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
     const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((event) => {
         const { selection } = editor

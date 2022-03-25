@@ -10,7 +10,7 @@ import {
     Divider,
     Tooltip
 } from '@mui/material'
-import { blue } from '@mui/material/colors'
+import { blue, grey } from '@mui/material/colors'
 
 import {
     RoomDescribeLink
@@ -21,18 +21,19 @@ import { useActiveCharacter } from '../ActiveCharacter'
 
 interface DescriptionLinkChipProps {
     text?: string;
-    children?: ReactChildren[];
     onClick?: () => void;
     tooltipTitle?: string;
+    active?: boolean;
 }
 
-export const DescriptionLinkActionChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick, tooltipTitle }) => {
+export const DescriptionLinkActionChip: FunctionComponent<DescriptionLinkChipProps> = ({ text = '', children = [], onClick, tooltipTitle, active=true }) => {
+    const linearGradient = (color: Record<string | number, string>, low: number, high: number) => `linear-gradient(${color[low]}, ${color[high]})`
     const element = <Box
             component="span"
             sx={{
-                background: `linear-gradient(${blue[400]}, ${blue[600]})`,
+                background: active ? linearGradient(blue, 400, 600) : linearGradient(grey, 400, 600),
                 '&:hover': {
-                    background: `linear-gradient(${blue[500]}, ${blue[700]})`,
+                    background: active ? linearGradient(blue, 500, 700) : linearGradient(grey, 500, 700)
                 },
                 borderRadius: '200px',
                 paddingTop: '0.125em',
