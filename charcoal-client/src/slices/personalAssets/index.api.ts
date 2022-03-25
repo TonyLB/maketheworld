@@ -44,7 +44,11 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
         .map((item) => (item as NormalImport))
         .reduce((previous, { from, mapping }) => ({
             ...previous,
-            [from]: mapping
+            [from]: Object.entries(mapping)
+                .reduce((previous, [localKey, { key: awayKey }]) => ({
+                    ...previous,
+                    [localKey]: awayKey
+                }), {})
         }), {} as ImportsByAssets)
 
     const { importDefaults } = await dispatch(socketDispatchPromise('fetchImportDefaults')({ importsByAssetId }))

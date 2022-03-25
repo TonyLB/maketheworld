@@ -108,11 +108,11 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem
                     if (item.tag === 'Link') {
                         switch(item.targetTag) {
                             case 'Feature':
-                                return <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${item.to}`}>
+                                return <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${item.to}`} active={false}>
                                         {item.text}
                                     </DescriptionLinkFeatureChip>
                             case 'Action':
-                                return <DescriptionLinkActionChip tooltipTitle={`Action: ${item.to}`}>
+                                return <DescriptionLinkActionChip tooltipTitle={`Action: ${item.to}`} active={false}>
                                         {item.text}
                                     </DescriptionLinkActionChip>
                             default:
