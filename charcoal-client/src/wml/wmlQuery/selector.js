@@ -5,15 +5,13 @@ import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle.js'
 export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
     .addOperation("parse", {
         MatchAncestry(matches) {
-            return {
+            const returnValue = {
                 selector: 'MatchAncestry',
                 matches: matches.parse()
             }
+            return returnValue
         },
         matchComponent(match) {
-            return match.parse()
-        },
-        matchPredicate(match) {
             return match.parse()
         },
         wmlLegalTag(value) {
@@ -21,6 +19,16 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
                 matchType: 'tag',
                 tag: this.sourceString
             }
+        },
+        propertyEqualityFilter(spaceOne, key, spaceTwo, syntaxOne, value, syntaxTwo) {
+            return {
+                matchType: 'property',
+                key: key.sourceString,
+                value: value.sourceString
+            }
+        },
+        propertyFilter(syntaxOne, filter, syntaxTwo) {
+            return filter.parse()
         },
         _iter(...nodes) {
             return nodes.map((node) => (node.parse()))
@@ -31,18 +39,25 @@ const evaluateMatchPredicate = ({
     predicate,
     node
 }) => {
-    const { tag } = node
-    const { matchType } = predicate
-    switch(matchType) {
-        case 'tag':
-            if (tag.sourceString === predicate.tag) {
-                return true
-            }
-            break
-        default:
-            break
-    }
-    return false
+    const { tag, props } = node
+    return predicate.reduce((previous, component) => {
+        const { matchType } = component
+        switch(matchType) {
+            case 'tag':
+                if (tag === component.tag) {
+                    return previous
+                }
+                break
+            case 'property':
+                if (props[component.key]?.value === component.value) {
+                    return previous
+                }
+                break
+            default:
+                break
+        }
+        return false    
+    }, true)
 }
 
 const wmlQuerySemantics = wmlGrammar.createSemantics()
@@ -127,17 +142,17 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 tagMatch: matches.length > 0 &&
                     evaluateMatchPredicate({
                         predicate: matches[0],
-                        node: { tag, props }
+                        node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
                     })
             }
         },
         TagSelfClosing(open, tag, props, close) {
             const { matches } = this.args.selector
             return {
-                tagMatch: matchess.length === 1 &&
+                tagMatch: matches.length === 1 &&
                     evaluateMatchPredicate({
                         predicate: matches[0],
-                        node: { tag, props }
+                        node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
                     })
             }
         },

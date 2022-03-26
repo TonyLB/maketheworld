@@ -1,5 +1,5 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { wmlSelectorFactory, wmlSelectorSemantics } from './selector.js'
+import { wmlSelectorFactory } from './selector.js'
 
 describe('wmlQuery selector', () => {
 
@@ -19,134 +19,6 @@ describe('wmlQuery selector', () => {
         </Character>
     `)
     let characterQuery = wmlSelectorFactory(characterMatch)
-
-    const characterRootNode = {
-        type: 'tag',
-        tag: 'Character',
-        tagEnd: 19,
-        props: {
-            key: {
-                value: 'TESS',
-                start: 20,
-                end: 30,
-                valueStart: 25,
-                valueEnd: 29
-            },
-            fileName: {
-                value: 'Tess',
-                start: 31,
-                end: 46,
-                valueStart: 41,
-                valueEnd: 45
-            },
-            player: {
-                value: 'TonyLB',
-                start: 47,
-                end: 62,
-                valueStart: 55,
-                valueEnd: 61
-            }
-        },
-        contents: [{
-            type: 'tag',
-            tag: 'Name',
-            tagEnd: 81,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "Tess",
-                start: 82,
-                end: 86
-            }],
-            start: 76,
-            end: 93
-        }, {
-            type: 'tag',
-            tag: 'Pronouns',
-            tagEnd: 115,
-            props: {
-                subject: {
-                    value: 'she',
-                    start: 132,
-                    end: 145,
-                    valueStart: 141,
-                    valueEnd: 144
-                },
-                object: {
-                    value: 'her',
-                    start: 162,
-                    end: 174,
-                    valueStart: 170,
-                    valueEnd: 173
-                },
-                possessive: {
-                    value: 'her',
-                    start: 191,
-                    end: 207,
-                    valueStart: 203,
-                    valueEnd: 206
-                },
-                adjective: {
-                    value: 'hers',
-                    start: 224,
-                    end: 240,
-                    valueStart: 235,
-                    valueEnd: 239
-                },
-                reflexive: {
-                    value: 'herself',
-                    start: 257,
-                    end: 276,
-                    valueStart: 268,
-                    valueEnd: 275
-                }
-            },
-            contents: [],
-            start: 106,
-            end: 301
-        }, {
-            type: 'tag',
-            tag: 'FirstImpression',
-            tagEnd: 330,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "Frumpy Goth",
-                start: 331,
-                end: 342
-            }],
-            start: 314,
-            end: 360
-        }, {
-            type: 'tag',
-            tag: 'OneCoolThing',
-            tagEnd: 386,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "Fuchsia eyes",
-                start: 387,
-                end: 399
-            }],
-            start: 373,
-            end: 414
-        }, {
-            type: 'tag',
-            tag: 'Outfit',
-            tagEnd: 434,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
-                start: 435,
-                end: 517
-            }],
-            start: 427,
-            end: 526
-        }],
-        start: 9,
-        end: 547
-    }
 
     const assetMatch = wmlGrammar.match(`
         <Asset key=(BASE)>
@@ -179,52 +51,34 @@ describe('wmlQuery selector', () => {
     })
 
     it('should correctly select root node', () => {
-        expect(characterQuery('Character')).toEqual([characterRootNode])
+        expect(characterQuery('Character')).toMatchSnapshot()
     })
 
     it('should select root node when passed empty string', () => {
-        expect(characterQuery('')).toEqual([characterRootNode])
+        expect(characterQuery('')).toMatchSnapshot()
     })
 
     it('should correctly select leaf node', () => {
-        expect(characterQuery('Name')).toEqual([{
-            type: 'tag',
-            tag: 'Name',
-            tagEnd: 81,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "Tess",
-                start: 82,
-                end: 86
-            }],
-            start: 76,
-            end: 93
-        }])
+        expect(characterQuery('Name')).toMatchSnapshot()
     })
 
     it('should correctly select ancestor chain', () => {
-        expect(characterQuery('Character Name')).toEqual([{
-            type: 'tag',
-            tag: 'Name',
-            tagEnd: 81,
-            props: {},
-            contents: [{
-                type: 'string',
-                value: "Tess",
-                start: 82,
-                end: 86
-            }],
-            start: 76,
-            end: 93
-        }])
+        expect(characterQuery('Character Name')).toMatchSnapshot()
     })
 
     it('should select nothing on a nonmatching chain', () => {
         expect(characterQuery('Name Outfit')).toEqual([])
     })
 
+    it('should return a list for multiple matches', () => {
+        expect(assetQuery('Room')).toMatchSnapshot()
+    })
+
     it('should correctly subset by property', () => {
-        expect(assetQuery('Room[key="VORTEX"]')).toEqual([])
+        expect(assetQuery('Room[key="VORTEX"]')).toMatchSnapshot()
+    })
+
+    it('should properly chain complex predicates', () => {
+        expect(assetQuery('Room[key="VORTEX"] Exit[to="Test"]')).toMatchSnapshot()
     })
 })

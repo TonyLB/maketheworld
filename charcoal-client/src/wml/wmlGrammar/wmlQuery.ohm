@@ -15,15 +15,18 @@ WMLQuerySelector {
 
     stringText = (~("<" | "{" | "\"") any | "\\<" | "\\{" | "\\\"")+
 
-    legalProperties = "key"
+    legalProperties = "key" |
+        "to" |
+        "from"
 
     propertyEqualityFilter = whitespace* legalProperties whitespace* "=\"" stringText "\""
 
     propertyFilter = "[" propertyEqualityFilter "]"
 
-    matchComponent = wmlLegalTag
+    matchComponent = wmlLegalTag |
+        propertyFilter
 
-    matchPredicate = matchComponent
+    matchPredicate = matchComponent+
 
     MatchAncestry = matchPredicate+
 
