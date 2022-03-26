@@ -9,7 +9,7 @@ declare class WMLQueryResult {
     contents: () => string;
     prop: (key: string, value: string) => WMLQuery;
     prop: (key: string) => string;
-    render: (key: string, value: RoomRenderItem[]) => WMLQuery;
+    render: (value: RoomRenderItem[]) => WMLQuery;
     render: () => RoomRenderItem[];
     removeProp: (key: string) => WMLQuery;
 }

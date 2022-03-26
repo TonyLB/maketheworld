@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`wmlQuery render method should correctly extract renders 1`] = `
+Array [
+  "Test Render:
+                ",
+  Object {
+    "key": "123",
+    "tag": "Link",
+    "targetTag": "Feature",
+    "text": "Clock Tower",
+    "to": "clockTower",
+  },
+]
+`;

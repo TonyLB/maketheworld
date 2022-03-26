@@ -4,6 +4,22 @@ import { wmlSelectorFactory } from './selector.js'
 import { validatedSchema } from '../index.js'
 import { normalize } from '../normalize.js'
 
+const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, contents = [] }) => {
+    switch(type) {
+        case 'tag':
+            const flattenedProps = Object.entries(props)
+                .reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+            return {
+                tag,
+                ...flattenedProps,
+                text: contents.map(renderFromNode(normalForm)).filter((item) => (typeof item !== 'object')).join(''),
+                targetTag: normalForm[flattenedProps.to]?.tag === 'Action' ? 'Action' : 'Feature'
+            }
+        default:
+            return value
+    }
+}
+
 export class WMLQueryResult {
     constructor(wmlQuery, search) {
         this.wmlQuery = wmlQuery
@@ -91,6 +107,21 @@ export class WMLQueryResult {
                 return this._nodes[0].contents || []
             }
             return []
+        }
+    }
+
+    render(value) {
+        if (value !== undefined) {
+
+        }
+        else {
+            if (this._nodes.length && ['Room', 'Feature'].includes(this._nodes[0].tag)) {
+                return (this._nodes[0].contents || [])
+                    .filter(({ tag, type }) => (
+                        type === 'string' || tag === 'Link'
+                    ))
+                    .map(renderFromNode(this.wmlQuery.normalize()))
+            }
         }
     }
 }
