@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
-import { validatedSchema, assetRegistryEntries } from "../../../wml"
+import { validatedSchema } from "../../../wml"
+import normalize, { NormalCharacter } from '../../../wml/normalize.js'
 import wmlGrammar from '../../../wml/wmlGrammar/wml.ohm-bundle'
 import { getStatus } from '../../lifeLine'
 
@@ -87,13 +88,16 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
     }
     const schema = validatedSchema(match)
 
-    const evaluated = assetRegistryEntries(schema).find(({ tag }: { tag?: string } = {}) => (tag === 'Character'))
+    const evaluated = Object.values(normalize(schema)).find(({ tag }: { tag?: string } = {}) => (tag === 'Character')) as NormalCharacter
 
     if (evaluated) {
         const defaultValue = {
             assetKey: id,
             Name: evaluated.Name || '',
-            Pronouns: evaluated.Pronouns || '',
+            //
+            // This API needs a rewrite to handle pronouns
+            //
+            Pronouns: JSON.stringify(evaluated.Pronouns) || '',
             FirstImpression: evaluated.FirstImpression || '',
             OneCoolThing: evaluated.OneCoolThing || '',
             Outfit: evaluated.Outfit || ''

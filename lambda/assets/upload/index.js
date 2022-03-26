@@ -5,7 +5,6 @@ import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile } from "../serialize/translateFile.js"
 import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
-import { assetRegistryEntries } from "../wml/index.js"
 import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "/opt/utilities/dynamoDB/index.js"
@@ -42,11 +41,10 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
         : ''
 
     const assetWorkspace = await getAssets(s3Client, key)
-    const assetRegistryItems = (assetWorkspace && assetRegistryEntries(assetWorkspace.schema())) || []
 
-    if (assetRegistryItems.length) {
+    if (assetWorkspace.isMatched()) {
         try {
-            const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+            const asset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 let translateFile
