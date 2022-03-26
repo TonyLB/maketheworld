@@ -3,7 +3,7 @@ import { wmlSelectorFactory, wmlSelectorSemantics } from './selector.js'
 
 describe('wmlQuery selector', () => {
 
-    const match = wmlGrammar.match(`
+    const characterMatch = wmlGrammar.match(`
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             <Name>Tess</Name>
             <Pronouns
@@ -18,9 +18,9 @@ describe('wmlQuery selector', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `)
-    const wmlQuery = wmlSelectorFactory(match)
+    let characterQuery = wmlSelectorFactory(characterMatch)
 
-    const rootNode = {
+    const characterRootNode = {
         type: 'tag',
         tag: 'Character',
         tagEnd: 19,
@@ -148,20 +148,46 @@ describe('wmlQuery selector', () => {
         end: 547
     }
 
+    const assetMatch = wmlGrammar.match(`
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+                <Exit from=(Test)>vortex</Exit>
+            </Room>
+            <Room key=(Test)>
+            </Room>
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    `)
+    let assetQuery = wmlSelectorFactory(assetMatch)
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        characterQuery = wmlSelectorFactory(characterMatch)
+        assetQuery = wmlSelectorFactory(assetMatch)
+    })
+
     it('should return empty on illegal selector', () => {
-        expect(wmlQuery('Fraggle Rock')).toEqual([])
+        expect(characterQuery('Fraggle Rock')).toEqual([])
     })
 
     it('should correctly select root node', () => {
-        expect(wmlQuery('Character')).toEqual([rootNode])
+        expect(characterQuery('Character')).toEqual([characterRootNode])
     })
 
     it('should select root node when passed empty string', () => {
-        expect(wmlQuery('')).toEqual([rootNode])
+        expect(characterQuery('')).toEqual([characterRootNode])
     })
 
     it('should correctly select leaf node', () => {
-        expect(wmlQuery('Name')).toEqual([{
+        expect(characterQuery('Name')).toEqual([{
             type: 'tag',
             tag: 'Name',
             tagEnd: 81,
@@ -178,7 +204,7 @@ describe('wmlQuery selector', () => {
     })
 
     it('should correctly select ancestor chain', () => {
-        expect(wmlQuery('Character Name')).toEqual([{
+        expect(characterQuery('Character Name')).toEqual([{
             type: 'tag',
             tag: 'Name',
             tagEnd: 81,
@@ -195,6 +221,10 @@ describe('wmlQuery selector', () => {
     })
 
     it('should select nothing on a nonmatching chain', () => {
-        expect(wmlQuery('Name Outfit')).toEqual([])
+        expect(characterQuery('Name Outfit')).toEqual([])
+    })
+
+    it('should correctly subset by property', () => {
+        expect(assetQuery('Room[key="VORTEX"]')).toEqual([])
     })
 })

@@ -4,19 +4,46 @@ import wmlQueryGrammar from '../wmlGrammar/wmlQuery.ohm-bundle.js'
 
 export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
     .addOperation("parse", {
-        TagAncestry(tags) {
+        MatchAncestry(matches) {
             return {
-                selector: 'TagAncestry',
-                tags: tags.parse()
+                selector: 'MatchAncestry',
+                matches: matches.parse()
             }
         },
-        WMLLegalTag(value) {
-            return this.sourceString
+        matchComponent(match) {
+            return match.parse()
+        },
+        matchPredicate(match) {
+            return match.parse()
+        },
+        wmlLegalTag(value) {
+            return {
+                matchType: 'tag',
+                tag: this.sourceString
+            }
         },
         _iter(...nodes) {
             return nodes.map((node) => (node.parse()))
         }    
     })
+
+const evaluateMatchPredicate = ({
+    predicate,
+    node
+}) => {
+    const { tag } = node
+    const { matchType } = predicate
+    switch(matchType) {
+        case 'tag':
+            if (tag.sourceString === predicate.tag) {
+                return true
+            }
+            break
+        default:
+            break
+    }
+    return false
+}
 
 const wmlQuerySemantics = wmlGrammar.createSemantics()
     .addOperation("toNode", {
@@ -95,15 +122,23 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
     })
     .addOperation("search(selector)", {
         TagOpen(open, tag, props, close) {
-            const { tags } = this.args.selector
+            const { matches } = this.args.selector
             return {
-                tagMatch: tags.length > 0 && (tag.sourceString === tags[0])
+                tagMatch: matches.length > 0 &&
+                    evaluateMatchPredicate({
+                        predicate: matches[0],
+                        node: { tag, props }
+                    })
             }
         },
         TagSelfClosing(open, tag, props, close) {
-            const { tags } = this.args.selector
+            const { matches } = this.args.selector
             return {
-                tagMatch: tags.length === 1 && (tag.sourceString === tags[0])
+                tagMatch: matchess.length === 1 &&
+                    evaluateMatchPredicate({
+                        predicate: matches[0],
+                        node: { tag, props }
+                    })
             }
         },
         TagExpression(open, contents, close) {
@@ -112,10 +147,10 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }
             const { tagMatch } = open.search(this.args.selector)
             if (tagMatch) {
-                const { tags, selector } = this.args.selector
-                if (tags.length > 1) {
-                    const remainingTags = tags.slice(1)
-                    return contents.search({ selector, tags: remainingTags })
+                const { matches, selector } = this.args.selector
+                if (matches.length > 1) {
+                    const remainingTags = matches.slice(1)
+                    return contents.search({ selector, matches: remainingTags })
                 }
                 else {
                     return [this.toNode()]
@@ -131,11 +166,6 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         _terminal() {
             return []
         }
-        //
-        // TODO: Create a first cut semantics engine that generates a tree of Tags with leafs of their inner text.
-        // Figure out a way to return *both* the relevant and searchable semantic data of the tag, *and* the
-        // Intervals into the source string, that will allow for future editing of the string.
-        //
     })
 
 export const wmlSelectorFactory = (schema) => (searchString) => {
@@ -145,10 +175,6 @@ export const wmlSelectorFactory = (schema) => (searchString) => {
             return []
         }
         const selector = wmlSelectorSemantics(match).parse()
-        //
-        // TODO: Pass the selector to the querySemantics above, in order to parse out the
-        // specific nodes/ranges being looked at
-        //
         return wmlQuerySemantics(schema).search(selector)
     }
     else {

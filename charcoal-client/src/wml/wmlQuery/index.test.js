@@ -186,4 +186,32 @@ describe('wmlQuery', () => {
         })
 
     })
+
+    // describe('render method', () => {
+    //     const renderMatch = `
+    //     <Asset key=(BASE)>
+    //         <Room key=(VORTEX) global>
+    //             Test Render:
+    //             <Link key=(123) to=(clockTower)>Clock Tower</Link>
+    //             <Exit to=(Test)>test</Exit>
+    //         </Room>
+    //         <Room key=(Test)>
+    //         </Room>
+    //         <Feature key=(clockTower)>
+    //             Clocktower
+    //             test
+    //             on multiple lines
+    //         </Feature>
+    //     </Asset>
+    // `
+    //     beforeEach(() => {
+    //         jest.clearAllMocks()
+    //         jest.resetAllMocks()
+    //         renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+    //     })    
+
+    //     it('should correctly extract renders', () => {
+    //         expect(renderQuery(''))
+    //     })
+    // })
 })

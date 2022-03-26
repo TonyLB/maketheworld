@@ -1,7 +1,7 @@
 WMLQuerySelector {
-    WMLQueryContents = TagAncestry
+    WMLQueryContents = MatchAncestry
 
-    WMLLegalTag = "Asset" |
+    wmlLegalTag = "Asset" |
         "Character" |
         "Name" |
         "Pronouns" |
@@ -13,6 +13,25 @@ WMLQuerySelector {
         "Exit" |
         "Room"
 
-    TagAncestry = WMLLegalTag+
+    stringText = (~("<" | "{" | "\"") any | "\\<" | "\\{" | "\\\"")+
+
+    legalProperties = "key"
+
+    propertyEqualityFilter = whitespace* legalProperties whitespace* "=\"" stringText "\""
+
+    propertyFilter = "[" propertyEqualityFilter "]"
+
+    matchComponent = wmlLegalTag
+
+    matchPredicate = matchComponent
+
+    MatchAncestry = matchPredicate+
+
+    whitespace = "\t"
+        | "\x0B"    -- verticalTab
+        | "\x0C"    -- formFeed
+        | " "
+        | "\u00A0"  -- noBreakSpace
+        | "\uFEFF"  -- byteOrderMark
 
 }
