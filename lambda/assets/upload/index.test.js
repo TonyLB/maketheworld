@@ -1,8 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { assetDB } from '/opt/utilities/dynamoDB/index.js'
 jest.mock('../serialize/s3Assets.js')
-import { AssetWorkspace, getAssets } from '../serialize/s3Assets.js'
+import { getAssets } from '../serialize/s3Assets.js'
 jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
 jest.mock('../wml/index.js')
@@ -14,7 +13,7 @@ import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.j
 jest.mock('../serialize/dbRegister.js')
 import { dbRegister } from '../serialize/dbRegister.js'
 
-import * as module from './index.js'
+import { handleUpload } from './index.js'
 
 describe('handleUpload', () => {
     beforeEach(() => {
@@ -59,7 +58,7 @@ describe('handleUpload', () => {
             }
         })
         putTranslateFile.mockResolvedValue({})
-        await module.handleUpload({ s3Client: { send: jest.fn() } })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
+        await handleUpload({ s3Client: { send: jest.fn() } })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
         const matchS3 = { send: expect.any(Function) }
         expect(getAssets).toHaveBeenCalledWith(matchS3, "TestPlayer/Test.wml")
         expect(getTranslateFile).toHaveBeenCalledWith(

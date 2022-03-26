@@ -1,6 +1,5 @@
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
-import { assetRegistryEntries } from "../wml/index.js"
 import { getTranslateFile } from "../serialize/translateFile.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"

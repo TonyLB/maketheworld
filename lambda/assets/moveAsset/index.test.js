@@ -1,0 +1,107 @@
+import { jest, describe, it, expect } from '@jest/globals'
+
+jest.mock('@aws-sdk/client-s3')
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { assetDB } from '/opt/utilities/dynamoDB/index.js'
+jest.mock('../serialize/s3Assets.js')
+import { getAssets } from '../serialize/s3Assets.js'
+jest.mock('../serialize/importedAssets.js')
+import { importedAssetIds } from '../serialize/importedAssets.js'
+jest.mock('../wml/index.js')
+import { assetRegistryEntries } from "../wml/index.js"
+jest.mock('../serialize/translateFile.js')
+import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
+jest.mock('../serialize/dbRegister.js')
+import { dbRegister } from '../serialize/dbRegister.js'
+
+import { moveAsset } from './index.js'
+
+describe('moveAsset', () => {
+    const schemaMock = jest.fn()
+    const normalizeMock = jest.fn()
+    const wmlPropMock = jest.fn()
+    const wmlRemovePropMock = jest.fn()
+    const searchMockReturn = {
+        prop: wmlPropMock,
+        removeProp: wmlRemovePropMock
+    }
+    wmlPropMock.mockReturnValue(searchMockReturn)
+    wmlRemovePropMock.mockReturnValue(searchMockReturn)
+    const searchMock = jest.fn().mockReturnValue(searchMockReturn)
+    const wmlQueryMock = {
+        search: searchMock
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.restoreAllMocks()
+    })
+
+    it('should correctly move asset files and update DB', async () => {
+        getAssets.mockResolvedValue({
+            schema: schemaMock,
+            normalize: normalizeMock,
+            contents: jest.fn().mockReturnValue('Test'),
+            wmlQuery: wmlQueryMock
+        })
+        normalizeMock.mockReturnValue({
+            'Import-0': {
+                tag: 'Import',
+            },
+            Test: {
+                tag: 'Asset'
+            }
+        })
+        getTranslateFile.mockResolvedValue({
+            scopeMap: {
+                test: '123'
+            }
+        })
+        importedAssetIds.mockResolvedValue({
+            importTree: ['BASE'],
+            scopeMap: {
+                VORTEX: 'VORTEX'
+            }
+        })
+        putTranslateFile.mockResolvedValue({})
+        await moveAsset({ s3Client: { send: jest.fn() } })({
+            fromPath: 'Personal/',
+            fileName: 'Test',
+            toPath: 'Library/'
+        })
+        const matchS3 = { send: expect.any(Function) }
+        expect(getAssets).toHaveBeenCalledWith(matchS3, "Personal/Test.wml")
+        expect(searchMock).toHaveBeenCalledWith('')
+        expect(wmlPropMock).toHaveBeenCalledWith('zone', 'Library')
+        expect(wmlPropMock).toHaveBeenCalledWith('subFolder', '')
+        expect(wmlRemovePropMock).toHaveBeenCalledWith('player')
+        expect(getTranslateFile).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test.translate.json' })
+        expect(CopyObjectCommand).toHaveBeenCalledWith({
+            CopySource: 'undefined/Personal/Test.translate.json',
+            Key: 'Library/Test.translate.json'
+        })
+        expect(PutObjectCommand).toHaveBeenCalledWith({
+            Key: 'Library/Test.wml',
+            Body: 'Test'
+        })
+        expect(dbRegister).toHaveBeenCalledWith({
+            assets: {
+                'Import-0': { tag: 'Import' },
+                Test: { tag: 'Asset' }
+            },
+            fileName: 'Library/Test.wml',
+            importTree: ['BASE'],
+            scopeMap: {
+                test: '123'
+            },
+            translateFile: 'Library/Test.translate.json'
+        })
+        expect(DeleteObjectCommand).toHaveBeenCalledWith({
+            Key: 'Personal/Test.wml'
+        })
+        expect(DeleteObjectCommand).toHaveBeenCalledWith({
+            Key: 'Personal/Test.translate.json'
+        })
+    })
+
+})
