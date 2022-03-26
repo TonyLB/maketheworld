@@ -3,7 +3,6 @@ import { dbRegister } from "../serialize/dbRegister.js"
 import { putTranslateFile } from "../serialize/translateFile.js"
 import { getAssets } from "../serialize/s3Assets.js"
 import { asyncSuppressExceptions } from '/opt/utilities/errors.js'
-import { assetRegistryEntries } from "../wml/index.js"
 
 export const healAsset = async ({ s3Client }, fileName) => {
     const baseFileName = fileName.replace(/\.wml$/, '')
@@ -14,11 +13,10 @@ export const healAsset = async ({ s3Client }, fileName) => {
             getAssets(s3Client, fileName),
             scopeMap.getTranslateFile(s3Client, { name: translateName })
         ])
-        const assetRegistryItems = (assetWorkspace && assetRegistryEntries(assetWorkspace.schema())) || []
-        if (!assetRegistryItems.length) {
+        if (!assetWorkspace.isMatched()) {
             return
         }
-        const asset = assetRegistryItems.find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+        const asset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
         const normalized = assetWorkspace.normalize()
         const importMap = Object.values(normalized)

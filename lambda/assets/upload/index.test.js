@@ -4,8 +4,6 @@ jest.mock('../serialize/s3Assets.js')
 import { getAssets } from '../serialize/s3Assets.js'
 jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
-jest.mock('../wml/index.js')
-import { assetRegistryEntries } from "../wml/index.js"
 jest.mock('./uploadResponse.js')
 import uploadResponse from './uploadResponse.js'
 jest.mock('../serialize/translateFile.js')
@@ -26,26 +24,19 @@ describe('handleUpload', () => {
         const normalizeMock = jest.fn()
         getAssets.mockResolvedValue({
             schema: schemaMock,
-            normalize: normalizeMock
+            normalize: normalizeMock,
+            isMatched: jest.fn().mockReturnValue(true)
         })
         normalizeMock.mockReturnValue({
             'Import-0': {
                 tag: 'Import',
+            },
+            TestAsset: {
+                key: 'TestAsset',
+                tag: 'Asset',
+                fileName: 'Test'
             }
         })
-        assetRegistryEntries.mockReturnValue([{
-            tag: 'Asset',
-            key: 'TestAsset',
-            fileName: 'Test'
-        },
-        {
-            tag: 'Room',
-            key: 'VORTEX'
-        },
-        {
-            tag: 'Room',
-            key: 'test'
-        }])
         getTranslateFile.mockResolvedValue({
             scopeMap: {
                 test: '123'
@@ -81,7 +72,12 @@ describe('handleUpload', () => {
         )
         expect(dbRegister).toHaveBeenCalledWith({
             assets: {
-                'Import-0': { tag: 'Import' }
+                'Import-0': { tag: 'Import' },
+                TestAsset: {
+                    key: 'TestAsset',
+                    tag: 'Asset',
+                    fileName: 'Test'
+                }
             },
             fileName: 'Personal/Test.wml',
             importTree: ['BASE'],

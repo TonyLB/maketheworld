@@ -1,14 +1,10 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@aws-sdk/client-s3')
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
-import { assetDB } from '/opt/utilities/dynamoDB/index.js'
 jest.mock('../serialize/s3Assets.js')
 import { getAssets } from '../serialize/s3Assets.js'
 jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
-jest.mock('../wml/index.js')
-import { assetRegistryEntries } from "../wml/index.js"
 jest.mock('../serialize/translateFile.js')
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
 jest.mock('../serialize/dbRegister.js')
@@ -30,28 +26,17 @@ describe('healAsset', () => {
             schema: schemaMock,
             normalize: normalizeMock,
             contents: jest.fn().mockReturnValue('Test'),
+            isMatched: jest.fn().mockReturnValue(true)
         })
         normalizeMock.mockReturnValue({
             'Import-0': {
                 tag: 'Import',
             },
-            Test: {
-                tag: 'Asset'
+            TestAsset: {
+                tag: 'Asset',
+                key: 'TestAsset'
             }
         })
-        assetRegistryEntries.mockReturnValue([{
-            tag: 'Asset',
-            key: 'TestAsset',
-            fileName: 'Test'
-        },
-        {
-            tag: 'Room',
-            key: 'VORTEX'
-        },
-        {
-            tag: 'Room',
-            key: 'test'
-        }])
         getTranslateFile.mockResolvedValue({
             scopeMap: {
                 test: '123'
@@ -83,7 +68,10 @@ describe('healAsset', () => {
         expect(dbRegister).toHaveBeenCalledWith({
             assets: {
                 'Import-0': { tag: 'Import' },
-                Test: { tag: 'Asset' }
+                TestAsset: {
+                    tag: 'Asset',
+                    key: 'TestAsset'
+                }
             },
             fileName: 'Personal/healTest.wml',
             importTree: ['BASE'],

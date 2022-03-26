@@ -1,6 +1,5 @@
 import {
     dbEntries,
-    assetRegistryEntries,
     validatedSchema
 } from './index.js'
 import { NormalizeTagMismatchError } from './normalize.js'
@@ -250,85 +249,6 @@ describe('WML dbEntries', () => {
                 }]
             }
         })
-    })
-})
-
-describe('WML assetRegistryEntries', () => {
-    it('should return empty record when passed empty asset', () => {
-        expect(assetRegistryEntries({
-            tag: 'Asset',
-            key: 'Test',
-            contents: []
-        })).toEqual([{ tag: 'Asset', key: 'Test' }])
-    })
-
-    it('should serialize Rooms, Features, Exits, Variables and Actions', () => {
-        expect(assetRegistryEntries(testSchema)).toEqual([
-            {
-                tag: 'Room',
-                key: '123'
-            },
-            {
-                tag: 'Room',
-                key: '456',
-            },
-            {
-                tag: 'Asset',
-                key: 'Test',
-                ...assetProps
-            },
-            {
-                tag: 'Feature',
-                key: 'clockTower',
-                name: 'Clock Tower'
-            },
-            {
-                tag: 'Map',
-                key: 'TestMap'
-            }
-        ])
-    })
-
-    it('should serialize a Character asset', () => {
-        const characterSchema = {
-            tag: 'Character',
-            key: 'TESS',
-            zone: 'Library',
-            Name: 'Tess',
-            fileName: 'Tess',
-            fileURL: 'testIcon.png',
-            Pronouns: {
-                subjective: 'she',
-                objective: 'her',
-                possessive: 'her',
-                adjective: 'hers',
-                reflexive: 'herself'
-            },
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A battered hoodie trimmed with lace',
-            fileName: 'test.wml',
-            contents: []
-        }
-
-        expect(assetRegistryEntries(characterSchema)).toEqual([{
-            tag: 'Character',
-            key: 'TESS',
-            zone: 'Library',
-            fileName: 'test.wml',
-            fileURL: 'testIcon.png',
-            Name: 'Tess',
-            Pronouns: {
-                subjective: 'she',
-                objective: 'her',
-                possessive: 'her',
-                adjective: 'hers',
-                reflexive: 'herself'
-            },
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A battered hoodie trimmed with lace',
-        }])
     })
 })
 
