@@ -1,7 +1,6 @@
-import ScopeMap, { scopeMap } from "../serialize/scopeMap.js"
+import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from "../serialize/dbRegister.js"
-import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-import { importedAssetIds } from '../serialize/importedAssets.js'
+import { putTranslateFile } from "../serialize/translateFile.js"
 import { getAssets } from "../serialize/s3Assets.js"
 import { asyncSuppressExceptions } from '/opt/utilities/errors.js'
 import { assetRegistryEntries } from "../wml/index.js"
