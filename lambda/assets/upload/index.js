@@ -2,9 +2,8 @@ import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-s
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 import { getAssets } from '../serialize/s3Assets.js'
-import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-import { importedAssetIds } from '../serialize/importedAssets.js'
-import ScopeMap, { scopeMap } from "../serialize/scopeMap.js"
+import { putTranslateFile } from "../serialize/translateFile.js"
+import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { assetRegistryEntries } from "../wml/index.js"
 import { cacheAsset } from "../cache/index.js"
@@ -51,10 +50,10 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 let translateFile
-                let currentScopeMap = {}
+                const scopeMap = new ScopeMap({})
                 if (!asset.instance) {
                     translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
-                    currentScopeMap = (await getTranslateFile(s3Client, { name: translateFile })).scopeMap || {}
+                    await scopeMap.getTranslateFile(s3Client, { name: translateFile })
                 }
                 const normalized = assetWorkspace.normalize()
                 const importMap = Object.values(normalized)
@@ -73,21 +72,14 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                             )
                         }
                     }, {})
-                const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
-                const scopeMapContents = scopeMap(
-                    assetRegistryItems,
-                    {
-                        ...currentScopeMap,
-                        ...importedIds
-                    }
-                )
+                const importTree = await scopeMap.importAssetIds(importMap || {})
 
                 await Promise.all([
                     dbRegister({
                         fileName,
                         translateFile,
                         importTree,
-                        scopeMap: scopeMapContents,
+                        scopeMap: scopeMap.serialize(),
                         assets: normalized
                     }),
                     ...(asset.instance
@@ -96,7 +88,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                             putTranslateFile(s3Client, {
                                 name: translateFile,
                                 importTree,
-                                scopeMap: scopeMapContents,
+                                scopeMap: scopeMap.serialize(),
                                 assetKey: asset.key
                             })
                         ]

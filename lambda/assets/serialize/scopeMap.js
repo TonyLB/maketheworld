@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { splitType } from '/opt/utilities/types.js'
+import { importedAssetIds } from "./importedAssets.js"
+import { getTranslateFile } from "./translateFile.js"
 
 //
 // TODO: When scoped imports are introduced, scopeMap will become a more complicated
@@ -42,17 +44,38 @@ export class ScopeMap extends Object {
         return this.scopeMap
     }
 
+    async importAssetIds(importMap) {
+        const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
+        this.scopeMap = {
+            ...this.scopeMap,
+            ...importedIds
+        }
+        return importTree
+    }
+
+    async getTranslateFile(s3Client, props) {
+        const { scopeMap, ...rest } = await getTranslateFile(s3Client, props)
+        this.scopeMap = {
+            ...this.scopeMap,
+            ...scopeMap
+        }
+        return rest
+    }
+
     translateNormalForm(normalForm) {
 
         //
         // Add any incoming entries that have not yet been mapped
         //
         Object.values(normalForm)
-            .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
+            .filter(({ tag }) => (['Room', 'Feature', 'Map', 'Character'].includes(tag)))
             .filter(({ key }) => (!(key in this.scopeMap)))
             .forEach(({ tag, key, isGlobal }) => {
                 let prefix = ''
                 switch(tag) {
+                    case 'Character':
+                        prefix = 'CHARACTER'
+                        break
                     case 'Feature':
                         prefix = 'FEATURE'
                         break
