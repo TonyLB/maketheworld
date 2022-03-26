@@ -92,6 +92,7 @@ describe('moveAsset', () => {
             fileName: 'Library/Test.wml',
             importTree: ['BASE'],
             scopeMap: {
+                VORTEX: 'VORTEX',
                 test: '123'
             },
             translateFile: 'Library/Test.translate.json'

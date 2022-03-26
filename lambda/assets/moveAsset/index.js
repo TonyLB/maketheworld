@@ -1,10 +1,9 @@
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
-import { getTranslateFile } from "../serialize/translateFile.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"
 import { asyncSuppressExceptions } from "/opt/utilities/errors.js"
-import { importedAssetIds } from "../serialize/importedAssets.js"
+import ScopeMap from '../serialize/scopeMap.js'
 
 const { S3_BUCKET } = process.env;
 
@@ -30,17 +29,16 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
             }
 
             const isScopedAsset = !checkAsset.instance
-            let scopeMap = { scopeMap: {} }
+            const scopeMap = new ScopeMap({})
             if (isScopedAsset) {
-                const [foundScopeMap] = await Promise.all([
-                    getTranslateFile(s3Client, { name: `${fromPath}${fileName}.translate.json` }),
+                await Promise.all([
+                    scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}.translate.json` }),
                     s3Client.send(new CopyObjectCommand({
                         Bucket: S3_BUCKET,
                         CopySource: `${S3_BUCKET}/${fromPath}${fileName}.translate.json`,
                         Key: `${toPath}${fileName}.translate.json`
                     }))
                 ])
-                scopeMap = foundScopeMap
             }
             await s3Client.send(new PutObjectCommand({
                 Bucket: S3_BUCKET,
@@ -48,6 +46,7 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                 Body: assetWorkspace.contents()
             }))
             const normalized = assetWorkspace.normalize()
+            scopeMap.translateNormalForm(normalized)
             const importMap = Object.values(normalized)
                 .filter(({ tag }) => (tag === 'Import'))
                 .reduce((previous, { mapping = {}, from }) => {
@@ -64,12 +63,12 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                         )
                     }
                 }, {})
-            const { importTree } = await importedAssetIds(importMap || {})
+            const importTree = await scopeMap.importAssetIds(importMap || {})
             await dbRegister({
                 fileName: `${toPath}${fileName}.wml`,
                 translateFile: `${toPath}${fileName}.translate.json`,
                 importTree,
-                scopeMap: scopeMap.scopeMap,
+                scopeMap: scopeMap.serialize(),
                 assets: normalized
             })
             await s3Client.send(new DeleteObjectCommand({
