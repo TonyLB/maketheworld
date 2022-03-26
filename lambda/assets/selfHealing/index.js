@@ -1,7 +1,6 @@
-import { scopeMap } from "../serialize/scopeMap.js"
+import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from "../serialize/dbRegister.js"
-import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-import { importedAssetIds } from '../serialize/importedAssets.js'
+import { putTranslateFile } from "../serialize/translateFile.js"
 import { getAssets } from "../serialize/s3Assets.js"
 import { asyncSuppressExceptions } from '/opt/utilities/errors.js'
 import { assetRegistryEntries } from "../wml/index.js"
@@ -9,14 +8,11 @@ import { assetRegistryEntries } from "../wml/index.js"
 export const healAsset = async ({ s3Client }, fileName) => {
     const baseFileName = fileName.replace(/\.wml$/, '')
     const translateName = `${baseFileName}.translate.json`
-    const getScopeMap = async () => {
-        const translateFileItem = await getTranslateFile(s3Client, { name: translateName })
-        return translateFileItem.scopeMap || {}
-    }
+    const scopeMap = new ScopeMap({})
     return asyncSuppressExceptions(async () => {
         const [assetWorkspace, currentScopeMap] = await Promise.all([
             getAssets(s3Client, fileName),
-            getScopeMap()
+            scopeMap.getTranslateFile(s3Client, { name: translateName })
         ])
         const assetRegistryItems = (assetWorkspace && assetRegistryEntries(assetWorkspace.schema())) || []
         if (!assetRegistryItems.length) {
@@ -41,20 +37,13 @@ export const healAsset = async ({ s3Client }, fileName) => {
                     )
                 }
             }, {})
-        const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
-        const scopeMapContents = scopeMap(
-            assetRegistryItems,
-            {
-                ...currentScopeMap,
-                ...importedIds
-            }
-        )
+        const importTree = await scopeMap.importAssetIds(importMap || {})
         await Promise.all([
             dbRegister({
                 fileName,
                 translateFile: asset.instance ? undefined : translateName,
                 importTree,
-                scopeMap: scopeMapContents,
+                scopeMap: scopeMap.serialize(),
                 assets: normalized
             }),
             ...(asset.instance
@@ -63,14 +52,14 @@ export const healAsset = async ({ s3Client }, fileName) => {
                     putTranslateFile(s3Client, {
                         name: translateName,
                         importTree,
-                        scopeMap: scopeMapContents,
+                        scopeMap: scopeMap.serialize(),
                         assetKey
                     })
                 ]
             )
         ])
         return {
-            scopeMap: scopeMapContents
+            scopeMap: scopeMap.serialize()
         }
     }, {})
 }

@@ -2,34 +2,17 @@ import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-s
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 import { getAssets } from '../serialize/s3Assets.js'
-import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-import { importedAssetIds } from '../serialize/importedAssets.js'
-import { scopeMap } from "../serialize/scopeMap.js"
+import { putTranslateFile } from "../serialize/translateFile.js"
+import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
-import { splitType } from '/opt/utilities/types.js'
 import { assetRegistryEntries } from "../wml/index.js"
 import { cacheAsset } from "../cache/index.js"
 
-import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
-import { SocketQueue } from "/opt/utilities/apiManagement/index.js"
+import { assetDB } from "/opt/utilities/dynamoDB/index.js"
+
+import uploadResponse from "./uploadResponse.js"
 
 const { S3_BUCKET } = process.env;
-
-const getConnectionsByPlayerName = async (PlayerName) => {
-    const Items = await ephemeraDB.query({
-        EphemeraId: `PLAYER#${PlayerName}`
-    })
-    
-    const returnVal = Items
-        .reduce((previous, { DataCategory }) => {
-            const [ itemType, itemKey ] = splitType(DataCategory)
-            if (itemType === 'CONNECTION') {
-                return [...previous, itemKey]
-            }
-            return previous
-        }, [])
-    return returnVal
-}
 
 //
 // TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
@@ -52,40 +35,6 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
     return presignedOutput
 }
 
-//
-// uploadResponse forwards a processing response from an Upload to the players that have
-// subscribed to know when it finishes processing.
-//
-const uploadResponse = async ({ uploadId, ...rest }) => {
-    const Items = await assetDB.query({
-        AssetId: `UPLOAD#${uploadId}`,
-        ProjectionFields: ['DataCategory', 'RequestId']
-    })
-    const playerNames = Items
-        .map(({ DataCategory, RequestId }) => ({ PlayerName: splitType(DataCategory)[1], RequestId }))
-    await Promise.all(playerNames
-        .map(async ({ PlayerName, RequestId }) => {
-            const connections = await getConnectionsByPlayerName(PlayerName)
-            await Promise.all((connections || [])
-                .map(async (ConnectionId) => {
-                    const socketQueue = new SocketQueue()
-                    socketQueue.send({
-                        ConnectionId, 
-                        Message: {
-                            ...rest,
-                            RequestId
-                        }
-                    })
-                    await socketQueue.flush()
-                    await assetDB.deleteItem({
-                        AssetId: `UPLOAD#${uploadId}`,
-                        DataCategory: `PLAYER#${PlayerName}`
-                    })
-                })
-            )
-        }))
-}
-
 export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
@@ -101,10 +50,10 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 let translateFile
-                let currentScopeMap = {}
+                const scopeMap = new ScopeMap({})
                 if (!asset.instance) {
                     translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
-                    currentScopeMap = (await getTranslateFile(s3Client, { name: translateFile })).scopeMap || {}
+                    await scopeMap.getTranslateFile(s3Client, { name: translateFile })
                 }
                 const normalized = assetWorkspace.normalize()
                 const importMap = Object.values(normalized)
@@ -123,21 +72,14 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                             )
                         }
                     }, {})
-                const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
-                const scopeMapContents = scopeMap(
-                    assetRegistryItems,
-                    {
-                        ...currentScopeMap,
-                        ...importedIds
-                    }
-                )
+                const importTree = await scopeMap.importAssetIds(importMap || {})
 
                 await Promise.all([
                     dbRegister({
                         fileName,
                         translateFile,
                         importTree,
-                        scopeMap: scopeMapContents,
+                        scopeMap: scopeMap.serialize(),
                         assets: normalized
                     }),
                     ...(asset.instance
@@ -146,7 +88,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                             putTranslateFile(s3Client, {
                                 name: translateFile,
                                 importTree,
-                                scopeMap: scopeMapContents,
+                                scopeMap: scopeMap.serialize(),
                                 assetKey: asset.key
                             })
                         ]
