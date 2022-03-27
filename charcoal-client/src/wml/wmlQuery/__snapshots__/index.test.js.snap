@@ -164,6 +164,23 @@ Array [
 ]
 `;
 
+exports[`wmlQuery prepend method should correctly aggregate child nodes 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Name>Vortex</Name>Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    Conditional Render
+                </Room>
+            </Condition>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery remove method should correctly remove nodes from source 1`] = `
 "
         <Asset key=(BASE)>

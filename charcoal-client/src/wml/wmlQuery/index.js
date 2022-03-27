@@ -62,11 +62,20 @@ export class WMLQueryResult {
             this.replaceInputRange(start - offset, end - offset, '')
             offset += end - start
         })
+        this.refresh()
         return this
     }
 
     children() {
         this._nodes = this._nodes.reduce((previous, { contents = [] }) => ([...previous, ...contents]), [])
+        return this
+    }
+
+    prepend(sourceString) {
+        if (this._nodes.length) {
+            this.replaceInputRange(this._nodes[0].start, this._nodes[0].start, sourceString)
+            this.refresh()
+        }
         return this
     }
 
