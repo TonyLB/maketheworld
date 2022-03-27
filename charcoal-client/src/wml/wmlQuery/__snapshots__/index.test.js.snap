@@ -90,6 +90,29 @@ Array [
 ]
 `;
 
+exports[`wmlQuery remove method should correctly remove nodes from source 1`] = `
+"
+        <Asset key=(BASE)>
+            
+            <Condition>
+                
+            </Condition>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                Render One
+            </Room>
+            <Room key=(multipleTest)>
+                Render Two
+            </Room>
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery render method should (temporarily) ignore render updates on self-closed tags 1`] = `
 "
         <Asset key=(BASE)>
