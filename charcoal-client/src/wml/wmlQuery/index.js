@@ -65,6 +65,11 @@ export class WMLQueryResult {
         return this
     }
 
+    children() {
+        this._nodes = this._nodes.reduce((previous, { contents = [] }) => ([...previous, ...contents]), [])
+        return this
+    }
+
     prop(key, value) {
         if (value !== undefined) {
             this._nodes.forEach((node) => {

@@ -1,5 +1,79 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`wmlQuery children method should correctly aggregate child nodes 1`] = `
+Array [
+  Object {
+    "end": 112,
+    "start": 83,
+    "type": "string",
+    "value": "Test Render:
+                ",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "end": 155,
+        "start": 144,
+        "type": "string",
+        "value": "Clock Tower",
+      },
+    ],
+    "end": 162,
+    "props": Object {
+      "key": Object {
+        "end": 127,
+        "start": 118,
+        "value": "123",
+        "valueEnd": 126,
+        "valueStart": 123,
+      },
+      "to": Object {
+        "end": 143,
+        "start": 128,
+        "value": "clockTower",
+        "valueEnd": 142,
+        "valueStart": 132,
+      },
+    },
+    "start": 112,
+    "tag": "Link",
+    "tagEnd": 117,
+    "type": "tag",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "end": 199,
+        "start": 195,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "end": 206,
+    "props": Object {
+      "to": Object {
+        "end": 194,
+        "start": 185,
+        "value": "Test",
+        "valueEnd": 193,
+        "valueStart": 189,
+      },
+    },
+    "start": 179,
+    "tag": "Exit",
+    "tagEnd": 184,
+    "type": "tag",
+  },
+  Object {
+    "end": 349,
+    "start": 314,
+    "type": "string",
+    "value": "Conditional Render
+                ",
+  },
+]
+`;
+
 exports[`wmlQuery not method should correctly remove nodes from result-set 1`] = `
 Array [
   Object {
