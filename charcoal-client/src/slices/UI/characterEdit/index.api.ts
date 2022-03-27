@@ -4,7 +4,7 @@ import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
 import { validatedSchema } from "../../../wml"
-import normalize, { NormalCharacter } from '../../../wml/normalize.js'
+import normalize, { NormalItem, NormalCharacter } from '../../../wml/normalize.js'
 import wmlGrammar from '../../../wml/wmlGrammar/wml.ohm-bundle'
 import { getStatus } from '../../lifeLine'
 
@@ -88,7 +88,7 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
     }
     const schema = validatedSchema(match)
 
-    const evaluated = Object.values(normalize(schema)).find(({ tag }: { tag?: string } = {}) => (tag === 'Character')) as NormalCharacter
+    const evaluated = (Object.values(normalize(schema)) as NormalItem[]).find(({ tag }: { tag?: string } = {}) => (tag === 'Character')) as unknown as NormalCharacter
 
     if (evaluated) {
         const defaultValue = {

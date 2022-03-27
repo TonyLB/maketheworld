@@ -27,14 +27,23 @@ type NormalBase = {
     key: string;
 }
 
-type NormalAsset = {
-    tag: 'Asset',
-    Story?: boolean,
-    instance?: boolean,
+export type NormalAsset = {
+    tag: 'Asset';
+    Story?: boolean;
+    instance?: boolean;
     appearances: BaseAppearance[];
 } & NormalBase
 
-type RoomRenderItem = {
+export type NormalCharacter = {
+    type: 'Character';
+    Name: string;
+    Pronouns: any;
+    FirstImpression: string;
+    OneCoolThing: string;
+    Outfit: string;
+} & NormalBase
+
+export type RoomRenderItem = {
     tag: 'Link';
     targetTag: 'Feature' | 'Action';
     key: string;
@@ -47,7 +56,7 @@ export type RoomAppearance = {
     render?: RoomRenderItem[];
 } & BaseAppearance
 
-type NormalRoom = {
+export type NormalRoom = {
     tag: 'Room';
     appearances: RoomAppearance[];
 } & NormalBase
@@ -57,7 +66,7 @@ type NormalImportMapping = {
     type: string;
 }
 
-type NormalImport = {
+export type NormalImport = {
     tag: 'Import';
     from: string;
     mapping: Record<string, NormalImportMapping>;
@@ -89,7 +98,7 @@ type FeatureAppearance = {
     render?: RoomRenderItem[];
 } & BaseAppearance
 
-type NormalFeature = {
+export type NormalFeature = {
     tag: 'Feature';
     name: string;
     appearances: BaseAppearance[];
@@ -126,3 +135,7 @@ export type NormalItem = NormalAsset |
     NormalAction
 
 export type NormalForm = Record<string, NormalItem>
+
+export const normalize = (node: any, existingMap?: any, contextStack?: any) => NormalForm
+
+export default normalize
