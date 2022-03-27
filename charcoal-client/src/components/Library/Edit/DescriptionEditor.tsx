@@ -403,7 +403,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                             tag: 'Link',
                             targetTag: item.type === 'featureLink' ? 'Feature' : 'Action',
                             key: item.key,
-                            to: item.to
+                            to: item.to,
+                            text: item.children
+                                .filter((child) => ('text' in child))
+                                .map(({ text }) => (text))
+                                .join('')
                         }
                     ]
                 }

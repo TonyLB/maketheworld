@@ -32,12 +32,8 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     const wmlQuery = useSelector(getWMLQuery(AssetId))
     const dispatch = useDispatch()
     const onChange = useCallback((newRender) => {
-        // console.log(`OnChange`)
-        // console.log(`start Source: ${wmlQuery.source}`)
-        // console.log(`newRender: ${JSON.stringify(newRender, null, 4)}`)
-        // wmlQuery.search(`!Condition !Map Room[key="${RoomId}"]`).render(newRender)
-        // console.log(`Updated Source: ${wmlQuery.source}`)
-        // dispatch(setCurrentWML(AssetId)(wmlQuery.source))
+        wmlQuery.search(`Room[key="${RoomId}"]`).render(newRender)
+        dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
     }, [dispatch, wmlQuery])
     const room = normalForm[RoomId || '']
     if (!room || room.tag !== 'Room') {
