@@ -56,6 +56,15 @@ export class WMLQueryResult {
         return this._nodes || []
     }
 
+    remove() {
+        let offset = 0
+        this._nodes.forEach(({ start, end }) => {
+            this.replaceInputRange(start - offset, end - offset, '')
+            offset += end - start
+        })
+        return this
+    }
+
     prop(key, value) {
         if (value !== undefined) {
             this._nodes.forEach((node) => {

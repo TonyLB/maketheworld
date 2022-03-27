@@ -291,4 +291,43 @@ describe('wmlQuery', () => {
             expect(notQuery.search('Room[key="VORTEX"]').not('Condition Room').nodes()).toMatchSnapshot()
         })
     })
+
+    describe('remove method', () => {
+        const removeMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    Conditional Render
+                </Room>
+            </Condition>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                Render One
+            </Room>
+            <Room key=(multipleTest)>
+                Render Two
+            </Room>
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    `
+        let removeQuery = new WMLQuery(removeMatch, { onChange: onChangeMock })
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            removeQuery = new WMLQuery(removeMatch, { onChange: onChangeMock })
+        })    
+
+        it('should correctly remove nodes from source', () => {
+            expect(removeQuery.search('Room[key="VORTEX"]').remove().source).toMatchSnapshot()
+        })
+    })
 })
