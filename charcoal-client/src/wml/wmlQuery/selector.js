@@ -71,10 +71,13 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         },
         TagSelfClosing(open, tag, props, close) {
             return {
+                type: 'tag',
                 tag: tag.toNode(),
                 tagEnd: tag.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
-                contents: []
+                contents: [],
+                start: this.source.startIdx,
+                end: this.source.endIdx
             }
         },
         TagExpression(open, contents, close) {
@@ -147,13 +150,20 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }
         },
         TagSelfClosing(open, tag, props, close) {
+            if (this.args.selector.selector === 'MatchFirst') {
+                return [this.toNode()]
+            }
             const { matches } = this.args.selector
-            return {
-                tagMatch: matches.length === 1 &&
-                    evaluateMatchPredicate({
-                        predicate: matches[0],
-                        node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
-                    })
+            const tagMatch = matches.length === 1 &&
+                evaluateMatchPredicate({
+                    predicate: matches[0],
+                    node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
+                })
+            if (tagMatch) {
+                return [this.toNode()]
+            }
+            else {
+                return []
             }
         },
         TagExpression(open, contents, close) {
@@ -176,7 +186,9 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             }
         },
         _iter(...contents) {
-            return contents.reduce((previous, child) => ([...previous, ...child.search(this.args.selector)]), [])
+            return contents.reduce((previous, child) => {
+                return [...previous, ...child.search(this.args.selector)]
+            }, [])
         },
         _terminal() {
             return []
