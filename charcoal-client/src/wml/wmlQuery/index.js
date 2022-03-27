@@ -4,6 +4,22 @@ import { wmlSelectorFactory } from './selector.js'
 import { validatedSchema } from '../index.js'
 import { normalize } from '../normalize.js'
 
+const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, contents = [] }) => {
+    switch(type) {
+        case 'tag':
+            const flattenedProps = Object.entries(props)
+                .reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+            return {
+                tag,
+                ...flattenedProps,
+                text: contents.map(renderFromNode(normalForm)).filter((item) => (typeof item !== 'object')).join(''),
+                targetTag: normalForm[flattenedProps.to]?.tag === 'Action' ? 'Action' : 'Feature'
+            }
+        default:
+            return value
+    }
+}
+
 export class WMLQueryResult {
     constructor(wmlQuery, search) {
         this.wmlQuery = wmlQuery
@@ -89,6 +105,53 @@ export class WMLQueryResult {
         else {
             if (this._nodes.length) {
                 return this._nodes[0].contents || []
+            }
+            return []
+        }
+    }
+
+    render(value) {
+        if (value !== undefined) {
+            const renderContents = value.map((item) => {
+                if (typeof item === 'object') {
+                    return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
+                }
+                else {
+                    return item
+                }
+            })
+            this._nodes.forEach((node) => {
+                //
+                // Generate new contents, replacing current render elements with new
+                //
+                const nonRenderNodes = node.contents.filter(({ type, tag }) => (type === 'tag' && tag !== 'Link'))
+
+                const reApplyNonRenderContents = nonRenderNodes.map(({ start, end }) => (this.source.substring(start, end)))
+                const revisedContents = [
+                    ...renderContents,
+                    ...reApplyNonRenderContents
+                ].join("\n")
+                //
+                // Calculate the entire span being filled with contents
+                //
+                const { start, end } = (node.contents || []).reduce((previous, probeNode) => ({
+                    start: Math.min(probeNode.start, previous.start),
+                    end: Math.max(probeNode.end, previous.end)
+                }), { start: node.end, end: 0 })
+                if (end > 0) {
+                    this.replaceInputRange(start, end, revisedContents)
+                }
+            })
+            this.refresh()
+            return this
+        }
+        else {
+            if (this._nodes.length && ['Room', 'Feature'].includes(this._nodes[0].tag)) {
+                return (this._nodes[0].contents || [])
+                    .filter(({ tag, type }) => (
+                        type === 'string' || tag === 'Link'
+                    ))
+                    .map(renderFromNode(this.wmlQuery.normalize()))
             }
             return []
         }

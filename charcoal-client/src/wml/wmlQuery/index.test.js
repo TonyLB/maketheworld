@@ -186,4 +186,45 @@ describe('wmlQuery', () => {
         })
 
     })
+
+    describe('render method', () => {
+        const renderMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test)>
+            </Room>
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    `
+        let renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+        })    
+
+        it('should correctly extract renders', () => {
+            expect(renderQuery.search('Room[key="VORTEX"]').render()).toMatchSnapshot()
+        })
+
+        it('should correctly update renders', () => {
+            expect(renderQuery.search('Room[key="VORTEX"]').render([
+                'Test Render Two: ',
+                {
+                    tag: 'Link',
+                    key: '456',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                }
+            ]).source).toMatchSnapshot()
+        })
+    })
 })
