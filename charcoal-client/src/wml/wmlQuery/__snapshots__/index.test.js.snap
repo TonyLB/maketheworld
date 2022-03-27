@@ -9,6 +9,12 @@ exports[`wmlQuery render method should (temporarily) ignore render updates on se
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
+            <Room key=(multipleTest)>
+                Render One
+            </Room>
+            <Room key=(multipleTest)>
+                Render Two
+            </Room>
             <Feature key=(clockTower)>
                 Clocktower
                 test
@@ -32,6 +38,32 @@ Array [
 ]
 `;
 
+exports[`wmlQuery render method should correctly update multiple renders in a set 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            </Room>
+            <Room key=(multipleTest)>
+                Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            </Room>
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery render method should correctly update renders 1`] = `
 "
         <Asset key=(BASE)>
@@ -41,6 +73,12 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
+            <Room key=(multipleTest)>
+                Render One
+            </Room>
+            <Room key=(multipleTest)>
+                Render Two
+            </Room>
             <Feature key=(clockTower)>
                 Clocktower
                 test

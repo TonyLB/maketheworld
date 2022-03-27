@@ -120,6 +120,7 @@ export class WMLQueryResult {
                     return item
                 }
             })
+            let offset = 0
             this._nodes.forEach((node) => {
                 //
                 // Generate new contents, replacing current render elements with new
@@ -139,7 +140,8 @@ export class WMLQueryResult {
                     end: Math.max(probeNode.end, previous.end)
                 }), { start: node.end, end: 0 })
                 if (end > 0) {
-                    this.replaceInputRange(start, end, revisedContents)
+                    this.replaceInputRange(start+offset, end+offset, revisedContents)
+                    offset += revisedContents.length - (end - start)
                 }
             })
             this.refresh()
