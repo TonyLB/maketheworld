@@ -23,8 +23,11 @@ WMLQuerySelector {
 
     propertyFilter = "[" propertyEqualityFilter "]"
 
+    firstFilter = ":first"
+
     matchComponent = wmlLegalTag |
-        propertyFilter
+        propertyFilter |
+        firstFilter
 
     matchPredicate = matchComponent+
 
