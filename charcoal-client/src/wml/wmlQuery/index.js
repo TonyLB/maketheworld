@@ -37,6 +37,13 @@ export class WMLQueryResult {
         }
     }
 
+    not(searchString) {
+        const excludeResults = new WMLQueryResult(this.wmlQuery, searchString)
+        const excludeStarts = excludeResults.nodes().map(({ start }) => (start))
+        this._nodes = this._nodes.filter(({ start }) => (!excludeStarts.includes(start)))
+        return this
+    }
+
     replaceInputRange(startIdx, endIdx, value) {
         this.wmlQuery.replaceInputRange(startIdx, endIdx, value)
     }

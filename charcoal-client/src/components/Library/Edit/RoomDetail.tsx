@@ -32,7 +32,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     const wmlQuery = useSelector(getWMLQuery(AssetId))
     const dispatch = useDispatch()
     const onChange = useCallback((newRender) => {
-        wmlQuery.search(`Room[key="${RoomId}"]`).render(newRender)
+        wmlQuery.search(`Room[key="${RoomId}"]`).not('Condition Room').not('Map Room').render(newRender)
         dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
     }, [dispatch, wmlQuery])
     const room = normalForm[RoomId || '']

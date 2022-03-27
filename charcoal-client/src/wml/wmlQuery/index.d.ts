@@ -5,13 +5,14 @@ declare class WMLQueryResult {
     constructor(WMLQuery, string);
     nodes: () => any[];
     source: string;
-    contents: (value?: string) => WMLQuery;
+    contents: (value?: string) => WMLQueryResult;
     contents: () => string;
-    prop: (key: string, value: string) => WMLQuery;
+    prop: (key: string, value: string) => WMLQueryResult;
     prop: (key: string) => string;
-    render: (value: RoomRenderItem[]) => WMLQuery;
+    render: (value: RoomRenderItem[]) => WMLQueryResult;
     render: () => RoomRenderItem[];
-    removeProp: (key: string) => WMLQuery;
+    removeProp: (key: string) => WMLQueryResult;
+    not: (search: string) => WMLQueryResult;
 }
 
 export interface WMLQueryUpdateReplace {
