@@ -214,5 +214,17 @@ describe('wmlQuery', () => {
         it('should correctly extract renders', () => {
             expect(renderQuery.search('Room[key="VORTEX"]').render()).toMatchSnapshot()
         })
+
+        it('should correctly update renders', () => {
+            expect(renderQuery.search('Room[key="VORTEX"]').render([
+                'Test Render Two: ',
+                {
+                    tag: 'Link',
+                    key: '456',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                }
+            ]).source).toMatchSnapshot()
+        })
     })
 })

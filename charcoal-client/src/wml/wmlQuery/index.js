@@ -112,7 +112,38 @@ export class WMLQueryResult {
 
     render(value) {
         if (value !== undefined) {
+            const renderContents = value.map((item) => {
+                if (typeof item === 'object') {
+                    return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
+                }
+                else {
+                    return item
+                }
+            })
+            this._nodes.forEach((node) => {
+                //
+                // Generate new contents, replacing current render elements with new
+                //
+                const nonRenderNodes = node.contents.filter(({ type, tag }) => (type === 'tag' && tag !== 'Link'))
 
+                const reApplyNonRenderContents = nonRenderNodes.map(({ start, end }) => (this.source.substring(start, end)))
+                const revisedContents = [
+                    ...renderContents,
+                    ...reApplyNonRenderContents
+                ].join("\n")
+                //
+                // Calculate the entire span being filled with contents
+                //
+                const { start, end } = (node.contents || []).reduce((previous, probeNode) => ({
+                    start: Math.min(probeNode.start, previous.start),
+                    end: Math.max(probeNode.end, previous.end)
+                }), { start: node.end, end: 0 })
+                if (end > 0) {
+                    this.replaceInputRange(start, end, revisedContents)
+                }
+            })
+            this.refresh()
+            return this
         }
         else {
             if (this._nodes.length && ['Room', 'Feature'].includes(this._nodes[0].tag)) {
@@ -122,6 +153,7 @@ export class WMLQueryResult {
                     ))
                     .map(renderFromNode(this.wmlQuery.normalize()))
             }
+            return []
         }
     }
 }

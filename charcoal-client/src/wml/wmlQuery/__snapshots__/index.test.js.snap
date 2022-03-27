@@ -13,3 +13,22 @@ Array [
   },
 ]
 `;
+
+exports[`wmlQuery render method should correctly update renders 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render Two: 
+<Link key=(456) to=(clockTower)>(clock tower)</Link>
+<Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test)>
+            </Room>
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    "
+`;
