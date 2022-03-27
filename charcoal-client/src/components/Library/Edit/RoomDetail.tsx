@@ -1,27 +1,25 @@
-import { FunctionComponent } from 'react'
-import { useSelector } from 'react-redux'
+import { FunctionComponent, useCallback } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import {
-    useParams,
-    useNavigate
+    useParams
 } from "react-router-dom"
 
 import {
-    Box,
-    List,
-    ListItem,
-    ListItemIcon,
-    ListItemText,
-    IconButton
+    Box
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { blue } from '@mui/material/colors'
 
-import { NormalRoom } from '../../../wml/normalize'
-import { getDefaultAppearances, getNormalized } from '../../../slices/personalAssets'
+import {
+    getDefaultAppearances,
+    getNormalized,
+    getWMLQuery,
+    setCurrentWML
+} from '../../../slices/personalAssets'
 
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
+
 
 interface RoomDetailProps {
 }
@@ -31,7 +29,16 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
-    const navigate = useNavigate()
+    const wmlQuery = useSelector(getWMLQuery(AssetId))
+    const dispatch = useDispatch()
+    const onChange = useCallback((newRender) => {
+        // console.log(`OnChange`)
+        // console.log(`start Source: ${wmlQuery.source}`)
+        // console.log(`newRender: ${JSON.stringify(newRender, null, 4)}`)
+        // wmlQuery.search(`!Condition !Map Room[key="${RoomId}"]`).render(newRender)
+        // console.log(`Updated Source: ${wmlQuery.source}`)
+        // dispatch(setCurrentWML(AssetId)(wmlQuery.source))
+    }, [dispatch, wmlQuery])
     const room = normalForm[RoomId || '']
     if (!room || room.tag !== 'Room') {
         return <Box />
@@ -67,6 +74,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                 <DescriptionEditor
                     inheritedRender={defaultAppearances[room.key]?.render}
                     render={aggregateRender}
+                    onChange={onChange}
                 />
             </Box>
         </Box>

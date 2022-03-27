@@ -1,5 +1,5 @@
-import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
-import { useSelector } from 'react-redux'
+import React, { FunctionComponent, useMemo, useState, useCallback, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import {
     useParams
 } from "react-router-dom"
@@ -38,11 +38,13 @@ import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkEle
 
 import { RoomRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
-import { getNormalized } from '../../../slices/personalAssets'
+import { getNormalized, setCurrentWML, getWMLQuery } from '../../../slices/personalAssets'
+import useDebouncedCallback from './useDebouncedCallback'
 
 interface DescriptionEditorProps {
     inheritedRender?: RoomRenderItem[];
     render: RoomRenderItem[];
+    onChange?: (items: RoomRenderItem[]) => void;
 }
 
 const descendantsFromRender = (normalForm: NormalForm) => (render: RoomRenderItem[]): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
@@ -103,16 +105,15 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem
     >
         {
             inheritedRender.map((item) => {
-                console.log(`Item: ${JSON.stringify(item, null, 4)}`)
                 if (typeof item === 'object') {
                     if (item.tag === 'Link') {
                         switch(item.targetTag) {
                             case 'Feature':
-                                return <DescriptionLinkFeatureChip tooltipTitle={`Feature: ${item.to}`} active={false}>
+                                return <DescriptionLinkFeatureChip key={item.key} tooltipTitle={`Feature: ${item.to}`} active={false}>
                                         {item.text}
                                     </DescriptionLinkFeatureChip>
                             case 'Action':
-                                return <DescriptionLinkActionChip tooltipTitle={`Action: ${item.to}`} active={false}>
+                                return <DescriptionLinkActionChip key={item.key} tooltipTitle={`Action: ${item.to}`} active={false}>
                                         {item.text}
                                     </DescriptionLinkActionChip>
                             default:
@@ -355,7 +356,7 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
         <LinkOffIcon />
     </Button>
 }
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render }) => {
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
@@ -390,8 +391,42 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
             }
         }
     }, [])
+
+    const saveToReduce = useCallback(() => {
+        const newRender = ((('children' in value[0] && value[0].children) || []) as (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[])
+            .filter((item) => (('type' in item && item.type) || ('text' in item && item.text)))
+            .reduce((previous, item) => {
+                if ('type' in item && ['featureLink', 'actionLink'].includes(item.type)) {
+                    return [
+                        ...previous,
+                        {
+                            tag: 'Link',
+                            targetTag: item.type === 'featureLink' ? 'Feature' : 'Action',
+                            key: item.key,
+                            to: item.to
+                        }
+                    ]
+                }
+                if ('text' in item) {
+                    return [
+                        ...previous,
+                        item.text
+                    ]
+                }
+                return previous
+            }, [] as RoomRenderItem[]) as RoomRenderItem[]
+        onChange(newRender)
+    }, [onChange, value])
+
+    const debouncedSave = useDebouncedCallback(saveToReduce)
+
+    const onChangeHandler = useCallback((value) => {
+        setValue(value)
+        debouncedSave()
+    }, [setValue, debouncedSave])
+
     return <React.Fragment>
-        <Slate editor={editor} value={value} onChange={value => { setValue(value) }}>
+        <Slate editor={editor} value={value} onChange={onChangeHandler}>
             <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} />
             <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
