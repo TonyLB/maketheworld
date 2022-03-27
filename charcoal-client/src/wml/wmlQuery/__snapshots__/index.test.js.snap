@@ -1,5 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`wmlQuery render method should (temporarily) ignore render updates on self-closed tags 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Feature key=(clockTower)>
+                Clocktower
+                test
+                on multiple lines
+            </Feature>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery render method should correctly extract renders 1`] = `
 Array [
   "Test Render:
@@ -22,8 +40,7 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
 <Link key=(456) to=(clockTower)>(clock tower)</Link>
 <Exit to=(Test)>test</Exit>
             </Room>
-            <Room key=(Test)>
-            </Room>
+            <Room key=(Test) />
             <Feature key=(clockTower)>
                 Clocktower
                 test

@@ -195,8 +195,7 @@ describe('wmlQuery', () => {
                 <Link key=(123) to=(clockTower)>Clock Tower</Link>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Room key=(Test)>
-            </Room>
+            <Room key=(Test) />
             <Feature key=(clockTower)>
                 Clocktower
                 test
@@ -217,6 +216,18 @@ describe('wmlQuery', () => {
 
         it('should correctly update renders', () => {
             expect(renderQuery.search('Room[key="VORTEX"]').render([
+                'Test Render Two: ',
+                {
+                    tag: 'Link',
+                    key: '456',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                }
+            ]).source).toMatchSnapshot()
+        })
+
+        it('should (temporarily) ignore render updates on self-closed tags', () => {
+            expect(renderQuery.search('Room[key="Test"]').render([
                 'Test Render Two: ',
                 {
                     tag: 'Link',
