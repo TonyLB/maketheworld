@@ -28,8 +28,7 @@ describe('wmlQuery selector', () => {
                 <Exit to=(Test)>test</Exit>
                 <Exit from=(Test)>vortex</Exit>
             </Room>
-            <Room key=(Test)>
-            </Room>
+            <Room key=(Test) />
             <Feature key=(clockTower)>
                 Clocktower
                 test
