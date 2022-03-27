@@ -330,4 +330,31 @@ describe('wmlQuery', () => {
             expect(removeQuery.search('Room[key="VORTEX"]').remove().source).toMatchSnapshot()
         })
     })
+
+    describe('children method', () => {
+        const childrenMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                Test Render:
+                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    Conditional Render
+                </Room>
+            </Condition>
+        </Asset>
+    `
+        let childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })
+        })    
+
+        it('should correctly aggregate child nodes', () => {
+            expect(childrenQuery.search('Room[key="VORTEX"]').children().nodes()).toMatchSnapshot()
+        })
+    })
 })
