@@ -196,6 +196,12 @@ describe('wmlQuery', () => {
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
+            <Room key=(multipleTest)>
+                Render One
+            </Room>
+            <Room key=(multipleTest)>
+                Render Two
+            </Room>
             <Feature key=(clockTower)>
                 Clocktower
                 test
@@ -235,6 +241,14 @@ describe('wmlQuery', () => {
                     to: 'clockTower',
                     text: '(clock tower)'
                 }
+            ]).source).toMatchSnapshot()
+        })
+
+        it('should correctly update multiple renders in a set', () => {
+            expect(renderQuery.search('Room[key="multipleTest"]').render([
+                `Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            `
             ]).source).toMatchSnapshot()
         })
     })
