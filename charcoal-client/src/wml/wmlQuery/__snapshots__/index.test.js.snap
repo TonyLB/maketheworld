@@ -1,5 +1,136 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`wmlQuery add method should correctly add filter tag matches 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 130,
+        "start": 126,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "end": 137,
+    "props": Object {
+      "to": Object {
+        "end": 125,
+        "start": 116,
+        "value": "Test",
+        "valueEnd": 124,
+        "valueStart": 120,
+      },
+    },
+    "start": 110,
+    "tag": "Exit",
+    "tagEnd": 115,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery add method should correctly add first filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 110,
+        "start": 83,
+        "type": "string",
+        "value": "First Room
+                ",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 130,
+            "start": 126,
+            "type": "string",
+            "value": "test",
+          },
+        ],
+        "end": 137,
+        "props": Object {
+          "to": Object {
+            "end": 125,
+            "start": 116,
+            "value": "Test",
+            "valueEnd": 124,
+            "valueStart": 120,
+          },
+        },
+        "start": 110,
+        "tag": "Exit",
+        "tagEnd": 115,
+        "type": "tag",
+      },
+    ],
+    "end": 157,
+    "props": Object {
+      "global": Object {
+        "end": 65,
+        "start": 59,
+        "value": true,
+      },
+      "key": Object {
+        "end": 58,
+        "start": 46,
+        "value": "VORTEX",
+        "valueEnd": 57,
+        "valueStart": 51,
+      },
+    },
+    "start": 40,
+    "tag": "Room",
+    "tagEnd": 45,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery add method should correctly add nested filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 267,
+        "start": 261,
+        "type": "string",
+        "value": "Nested",
+      },
+    ],
+    "end": 274,
+    "props": Object {},
+    "start": 255,
+    "tag": "Name",
+    "tagEnd": 260,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery add method should correctly add property filters 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "end": 189,
+    "props": Object {
+      "key": Object {
+        "end": 186,
+        "start": 176,
+        "value": "test",
+        "valueEnd": 185,
+        "valueStart": 181,
+      },
+    },
+    "start": 170,
+    "tag": "Room",
+    "tagEnd": 175,
+    "type": "tag",
+  },
+]
+`;
+
 exports[`wmlQuery children method should correctly aggregate child nodes 1`] = `
 Array [
   Object {

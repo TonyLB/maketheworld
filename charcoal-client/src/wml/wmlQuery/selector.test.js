@@ -80,4 +80,8 @@ describe('wmlQuery selector', () => {
     it('should properly chain complex predicates', () => {
         expect(assetQuery('Room[key="VORTEX"] Exit[to="Test"]')).toMatchSnapshot()
     })
+
+    it('should properly select :first filter', () => {
+        expect(assetQuery('Room Exit:first')).toMatchSnapshot()
+    })
 })

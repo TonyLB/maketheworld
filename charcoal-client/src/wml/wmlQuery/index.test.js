@@ -292,6 +292,48 @@ describe('wmlQuery', () => {
         })
     })
 
+    describe('add method', () => {
+        const addMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                First Room
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    Conditional Render
+                    <Exit from=(Test)>vortex</Exit>
+                </Room>
+            </Condition>
+        </Asset>
+    `
+        let addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+        })    
+
+        it('should correctly add filter tag matches', () => {
+            expect(addQuery.search('Room[key="VORTEX"]').not('Condition Room').add('Exit').nodes()).toMatchSnapshot()
+        })
+
+        it('should correctly add property filters', () => {
+            expect(addQuery.search('Room').not('Condition Room').add('[key="test"]').nodes()).toMatchSnapshot()
+        })
+
+        it('should correctly add first filters', () => {
+            expect(addQuery.search('Room').not('Condition Room').add(':first').nodes()).toMatchSnapshot()
+        })
+
+        it('should correctly add nested filters', () => {
+            expect(addQuery.search('Room').not('Condition Room').add('[key="nested"] Name').nodes()).toMatchSnapshot()
+        })
+    })
+
     describe('remove method', () => {
         const removeMatch = `
         <Asset key=(BASE)>

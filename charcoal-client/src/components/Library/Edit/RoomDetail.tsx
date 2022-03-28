@@ -1,11 +1,12 @@
-import { FunctionComponent, useCallback } from 'react'
+import { FunctionComponent, useCallback, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     useParams
 } from "react-router-dom"
 
 import {
-    Box
+    Box,
+    TextField
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import { blue } from '@mui/material/colors'
@@ -19,7 +20,7 @@ import {
 
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
-
+import useDebouncedCallback from './useDebouncedCallback'
 
 interface RoomDetailProps {
 }
@@ -36,20 +37,43 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
         dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
     }, [dispatch, wmlQuery])
     const room = normalForm[RoomId || '']
+    const aggregateName = (room && room.tag === 'Room' && room.appearances
+        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+        .map(({ name = '' }) => name)
+        .join('')) || ''
+    const [name, setName] = useState(aggregateName)
+    const aggregateRender = (room && room.tag === 'Room' && room.appearances
+        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+        .map(({ render = [] }) => render)
+        .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
+
+    const dispatchNameChange = useCallback((value) => {
+        const roomQuery = wmlQuery.search(`Room`).not('Condition Room').not('Map Room')
+        roomQuery.add(`[key="${RoomId}"] Name`)
+        if (roomQuery) {
+            roomQuery.remove()
+        }
+        if (name) {
+            wmlQuery.search(`Room`)
+                .not('Condition Room')
+                .not('Map Room')
+                .add(`[key="${RoomId}"]:first`)
+                .children()
+                .prepend(`<Name>${name}</Name>`)
+        }
+        dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
+    }, [dispatch, wmlQuery, name, RoomId])
+    const onChangeName = useDebouncedCallback(dispatchNameChange)
+    const changeName = useCallback((event) => {
+        setName(event.target.value)
+        onChangeName(event.target.value)
+    }, [setName])
     if (!room || room.tag !== 'Room') {
         return <Box />
     }
-    const aggregateName = room.appearances
-        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-        .map(({ name = '' }) => name)
-        .join('')
-    const aggregateRender = room.appearances
-        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-        .map(({ render = [] }) => render)
-        .reduce((previous, render) => ([ ...previous, ...render ]), [])
     return <Box sx={{ width: "100%" }}>
             <LibraryBanner
-                primary={`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}
+                primary={`${defaultAppearances[room.key]?.name || ''}${name}` || 'Untitled'}
                 secondary={room.key}
                 icon={<HomeIcon />}
                 breadCrumbProps={[{
@@ -61,11 +85,33 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                     label: assetKey || ''
                 },
                 {
-                    label: `${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'
+                    label: `${defaultAppearances[room.key]?.name || ''}${name}` || 'Untitled'
                 }]}
             />
 
-            <Box sx={{ marginLeft: '0.5em' }}>Name: {`${defaultAppearances[room.key]?.name || ''}${aggregateName}` || 'Untitled'}</Box>
+            <Box sx={{
+                marginLeft: '0.5em',
+                display: 'flex',
+                alignItems: 'center',
+            }}>
+                <Box
+                    sx={{
+                        height: "100%",
+                        background: 'lightgrey',
+                        verticalAlign: 'middle',
+                        display: 'inline'
+                    }}
+                >
+                    { defaultAppearances[room.key]?.name || '' }
+                </Box>
+                <TextField
+                    id="name"
+                    label="Name"
+                    size="small"
+                    value={name}
+                    onChange={changeName}
+                />
+            </Box>
             <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
                     inheritedRender={defaultAppearances[room.key]?.render}

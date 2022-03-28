@@ -4,6 +4,9 @@ import { Matcher } from 'ohm-js'
 declare class WMLQueryResult {
     constructor(WMLQuery, string);
     nodes: () => any[];
+    children: () => WMLQueryResult;
+    prepend: (source: string) => WMLQueryResult;
+    remove: () => WMLQueryResult;
     source: string;
     contents: (value?: string) => WMLQueryResult;
     contents: () => string;
@@ -13,6 +16,7 @@ declare class WMLQueryResult {
     render: () => RoomRenderItem[];
     removeProp: (key: string) => WMLQueryResult;
     not: (search: string) => WMLQueryResult;
+    add: (search: string) => WMLQueryResult;
 }
 
 export interface WMLQueryUpdateReplace {

@@ -23,14 +23,25 @@ const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, con
 export class WMLQueryResult {
     constructor(wmlQuery, search) {
         this.wmlQuery = wmlQuery
-        this.search = search
+        this.search = [{
+            search
+        }]
         this.refresh()
     }
 
     refresh() {
         const match = this.wmlQuery.matcher.match()
         if (match.succeeded()) {
-            this._nodes = wmlSelectorFactory(match)(this.search)
+            this._nodes = this.search.reduce((previous, { search, not }) => {
+                if (search) {
+                    return wmlSelectorFactory(match, { currentNodes: previous })(search)
+                }
+                if (not) {
+                    const excludeResults = new WMLQueryResult(this.wmlQuery, not)
+                    const excludeStarts = excludeResults.nodes().map(({ start }) => (start))
+                    return (previous || []).filter(({ start }) => (!excludeStarts.includes(start)))
+                }
+            }, undefined) || []
         }
         else {
             this._nodes = []
@@ -38,9 +49,24 @@ export class WMLQueryResult {
     }
 
     not(searchString) {
-        const excludeResults = new WMLQueryResult(this.wmlQuery, searchString)
-        const excludeStarts = excludeResults.nodes().map(({ start }) => (start))
-        this._nodes = this._nodes.filter(({ start }) => (!excludeStarts.includes(start)))
+        this.search = [
+            ...this.search,
+            {
+                not: searchString
+            }
+        ]
+        this.refresh()
+        return this
+    }
+
+    add(searchString) {
+        this.search = [
+            ...this.search,
+            {
+                search: searchString
+            }
+        ]
+        this.refresh()
         return this
     }
 

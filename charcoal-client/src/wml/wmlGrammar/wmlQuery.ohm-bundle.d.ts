@@ -18,6 +18,7 @@ export interface WMLQuerySelectorActionDict<T> extends ActionDict<T> {
   legalProperties?: (this: NonterminalNode, arg0: TerminalNode) => T;
   propertyEqualityFilter?: (this: NonterminalNode, arg0: IterationNode, arg1: NonterminalNode, arg2: IterationNode, arg3: TerminalNode, arg4: NonterminalNode, arg5: TerminalNode) => T;
   propertyFilter?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: TerminalNode) => T;
+  firstFilter?: (this: NonterminalNode, arg0: TerminalNode) => T;
   matchComponent?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   matchPredicate?: (this: NonterminalNode, arg0: IterationNode) => T;
   MatchAncestry?: (this: NonterminalNode, arg0: IterationNode) => T;

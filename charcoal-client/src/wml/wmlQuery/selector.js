@@ -30,6 +30,11 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
         propertyFilter(syntaxOne, filter, syntaxTwo) {
             return filter.parse()
         },
+        firstFilter(syntax) {
+            return {
+                matchType: 'first'
+            }
+        },
         _iter(...nodes) {
             return nodes.map((node) => (node.parse()))
         }    
@@ -37,27 +42,95 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
 
 const evaluateMatchPredicate = ({
     predicate,
-    node
+    node,
+    priorMatches = []
 }) => {
     const { tag, props } = node
-    return predicate.reduce((previous, component) => {
-        const { matchType } = component
-        switch(matchType) {
-            case 'tag':
-                if (tag === component.tag) {
-                    return previous
-                }
-                break
-            case 'property':
-                if (props[component.key]?.value === component.value) {
-                    return previous
-                }
-                break
-            default:
-                break
-        }
-        return false    
-    }, true)
+    const { matchType } = predicate
+    switch(matchType) {
+        case 'tag':
+            if (tag === predicate.tag) {
+                return true
+            }
+            break
+        case 'property':
+            if (props[predicate.key]?.value === predicate.value) {
+                return true
+            }
+            break
+        case 'first':
+            if (node.start === priorMatches[0]?.start) {
+                return true
+            }
+            break
+        default:
+            break
+    }
+    return false    
+}
+
+const mergeNodeMaps = (previous, argMap, options) => {
+    return Object.entries(argMap)
+        .reduce((accumulator, [key, values]) => ({
+            ...accumulator,
+            [key]: [
+                ...(accumulator[key] || []),
+                ...values
+            ]
+        }), previous)
+}
+
+const flattenNodeMap = (nodeMap) => {
+    return Object.values(nodeMap)
+        .reduce((previous, values) => ([ ...previous, ...values ]), [])
+        .sort(({ start: startA }, { start: startB }) => (startA - startB))
+}
+
+const nodeMapFromNode = (node, priorMatch) => ({
+    [priorMatch || node.start]: [node]
+})
+
+const checkSearchPrior = (props, options = {}) => {
+    //
+    // If you are in SearchPrior mode then you're still parsing a part
+    // of the tree that (while it might *contain* matches) was not a match
+    // on prior *matchers*.  Keep looking until you end up in a part
+    // of the tree that matched on previous macro-sweeps, then swith
+    // from SearchPrior to SearchCurrent selector mode (noting the node
+    // from which the prior match depends)
+    //
+    const { searchContents = null } = options
+    if (props.toNode().start in props.args.props.currentNodes) {
+        return props.search({
+            ...props.args.props,
+            selector: 'SearchCurrent',
+            priorMatch: props.source.startIdx
+        })
+    }
+    else {
+        return searchContents ? searchContents.search(props.args.props) : {}
+    }
+}
+
+const checkSearchCurrent = (props, options = {}) => {
+    //
+    // If you are in SearchCurrent mode then you're still parsing a part
+    // of the tree that (while it is a descendant of prior matches) is
+    // not a match on prior predicates in this matcher.  Keep looking
+    // until you end up in a part of the tree that matched on previous
+    // filtering sweeps, then switch from SearchCurrent to MatchCurrent
+    // selector mode in order to apply your current predicate
+    //
+    const { searchContents = null } = options
+    if (props.toNode().start in props.args.props.currentNodes) {
+        return props.search({
+            ...props.args.props,
+            selector: 'MatchCurrent'
+        })
+    }
+    else {
+        return searchContents ? searchContents.search(props.args.props) : {}
+    }
 }
 
 const wmlQuerySemantics = wmlGrammar.createSemantics()
@@ -138,73 +211,106 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             return this.sourceString
         }
     })
-    .addOperation("search(selector)", {
+    .addOperation("search(props)", {
         TagOpen(open, tag, props, close) {
-            const { matches } = this.args.selector
+            const { predicate, currentNodes, priorMatch } = this.args.props
             return {
-                tagMatch: matches.length > 0 &&
-                    evaluateMatchPredicate({
-                        predicate: matches[0],
-                        node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
+                tagMatch: evaluateMatchPredicate({
+                        predicate,
+                        node: {
+                            start: this.source.startIdx,
+                            tag: tag.toNode(),
+                            props: Object.assign({}, ...(props.toNode() || {}))
+                        },
+                        priorMatches: currentNodes[priorMatch] || []
                     })
             }
         },
-        TagSelfClosing(open, tag, props, close) {
-            if (this.args.selector.selector === 'MatchFirst') {
-                return [this.toNode()]
+        TagSelfClosing(open, tag, tagProps, close) {
+            const props = this.args.props
+            const node = this.toNode()
+            if (props.selector === 'MatchFirst') {
+                return nodeMapFromNode(node)
             }
-            const { matches } = this.args.selector
-            const tagMatch = matches.length === 1 &&
-                evaluateMatchPredicate({
-                    predicate: matches[0],
-                    node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
+            if (props.selector === 'SearchPrior') {
+                return checkSearchPrior(this)
+            }
+            if (props.selector === 'SearchCurrent') {
+                return checkSearchCurrent(this)
+            }
+            const { predicate, currentNodes, priorMatch } = props
+            const tagMatch = evaluateMatchPredicate({
+                    predicate,
+                    node: {
+                        start: this.source.startIdx,
+                        tag: tag.toNode(),
+                        props: Object.assign({}, ...(tagProps.toNode() || {}))
+                    },
+                    priorMatches: currentNodes[priorMatch] || []
                 })
             if (tagMatch) {
-                return [this.toNode()]
+                return nodeMapFromNode(node, priorMatch)
             }
             else {
-                return []
+                return {}
             }
         },
         TagExpression(open, contents, close) {
-            if (this.args.selector.selector === 'MatchFirst') {
-                return [this.toNode()]
+            const props = this.args.props
+            const node = this.toNode()
+            if (props.selector === 'MatchFirst') {
+                return nodeMapFromNode(node)
             }
-            const { tagMatch } = open.search(this.args.selector)
+            if (props.selector === 'SearchPrior') {
+                return checkSearchPrior(this, { searchContents: contents })
+            }
+            if (props.selector === 'SearchCurrent') {
+                return checkSearchCurrent(this, { searchContents: contents })
+            }
+            const { tagMatch } = open.search(props)
             if (tagMatch) {
-                const { matches, selector } = this.args.selector
-                if (matches.length > 1) {
-                    const remainingTags = matches.slice(1)
-                    return contents.search({ selector, matches: remainingTags })
-                }
-                else {
-                    return [this.toNode()]
-                }
+                return nodeMapFromNode(node, props.priorMatch)
             }
             else {
-                return contents.search(this.args.selector)
+                return contents.search(props)
             }
         },
         _iter(...contents) {
+            const props = this.args.props
             return contents.reduce((previous, child) => {
-                return [...previous, ...child.search(this.args.selector)]
-            }, [])
+                return mergeNodeMaps(previous, child.search(props))
+            }, {})
         },
         _terminal() {
-            return []
+            return {}
         }
     })
 
-export const wmlSelectorFactory = (schema) => (searchString) => {
+const debugNodeMap = (nodeMap) => (Object.assign({}, ...Object.entries(nodeMap).map(([key, values]) => ({ [key]: values.map(({ start }) => (start))}))))
+
+export const wmlSelectorFactory = (schema, options = {}) => (searchString) => {
+    const { currentNodes } = options
+    const startingNodes = currentNodes !== undefined
+        ? Object.assign({}, ...currentNodes.map((node) => ({ [node.start]: currentNodes })))
+        : wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
     if (searchString !== '') {
         const match = wmlQueryGrammar.match(searchString)
         if (!match.succeeded()) {
             return []
         }
         const selector = wmlSelectorSemantics(match).parse()
-        return wmlQuerySemantics(schema).search(selector)
+        return flattenNodeMap(selector.matches.reduce((previous, match) => {
+            const aggregateNodeMap = match.reduce((accumulator, predicate) => {
+                const returnValue = wmlQuerySemantics(schema).search({
+                    selector: 'SearchPrior',
+                    predicate,
+                    currentNodes: accumulator })
+                return returnValue
+            }, previous)
+            return Object.assign({}, ...Object.values(flattenNodeMap(aggregateNodeMap)).map((node) => nodeMapFromNode(node)))
+        }, startingNodes))
     }
     else {
-        return wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
+        return flattenNodeMap(startingNodes)
     }
 }

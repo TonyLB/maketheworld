@@ -331,6 +331,35 @@ Array [
 ]
 `;
 
+exports[`wmlQuery selector should properly select :first filter 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 199,
+        "start": 195,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "end": 206,
+    "props": Object {
+      "to": Object {
+        "end": 194,
+        "start": 185,
+        "value": "Test",
+        "valueEnd": 193,
+        "valueStart": 189,
+      },
+    },
+    "start": 179,
+    "tag": "Exit",
+    "tagEnd": 184,
+    "type": "tag",
+  },
+]
+`;
+
 exports[`wmlQuery selector should return a list for multiple matches 1`] = `
 Array [
   Object {
