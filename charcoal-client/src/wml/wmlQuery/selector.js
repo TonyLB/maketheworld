@@ -67,6 +67,27 @@ const evaluateMatchPredicate = ({
     }, true)
 }
 
+const mergeNodeMaps = (previous, argMap, options) => {
+    return Object.entries(argMap)
+        .reduce((accumulator, [key, values]) => ({
+            ...accumulator,
+            [key]: [
+                ...(accumulator[key] || []),
+                ...values
+            ]
+        }), previous)
+}
+
+const flattenNodeMap = (nodeMap) => {
+    return Object.values(nodeMap)
+        .reduce((previous, values) => ([ ...previous, ...values ]), [])
+        .sort(({ start: startA }, { start: startB }) => (startA - startB))
+}
+
+const nodeMapFromNode = (node, priorMatch) => ({
+    [priorMatch || node.start]: [node]
+})
+
 const wmlQuerySemantics = wmlGrammar.createSemantics()
     .addOperation("toNode", {
         TagOpen(open, tag, props, close) {
@@ -145,82 +166,137 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             return this.sourceString
         }
     })
-    .addOperation("search(selector)", {
+    .addOperation("search(props)", {
         TagOpen(open, tag, props, close) {
-            const { matches } = this.args.selector
+            const { matches } = this.args.props.selector
             return {
                 tagMatch: matches.length > 0 &&
                     evaluateMatchPredicate({
                         predicate: matches[0],
-                        node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
+                        node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) },
+                        priorMatches: this.args.props.currentNodes[this.args.priorMatch] || []
                     })
             }
         },
         TagSelfClosing(open, tag, props, close) {
-            if (this.args.selector.selector === 'MatchFirst') {
-                return [this.toNode()]
+            if (this.args.props.selector.selector === 'MatchFirst') {
+                return nodeMapFromNode(this.toNode())
             }
-            const { matches } = this.args.selector
+            const { matches } = this.args.props.selector
             const tagMatch = matches.length === 1 &&
                 evaluateMatchPredicate({
                     predicate: matches[0],
                     node: { tag: tag.toNode(), props: Object.assign({}, ...(props.toNode() || {})) }
                 })
             if (tagMatch) {
-                return [this.toNode()]
+                return nodeMapFromNode(this.toNode(), this.args.props.priorMatch)
             }
             else {
-                return []
+                return {}
             }
         },
         TagExpression(open, contents, close) {
-            if (this.args.selector.selector === 'MatchFirst') {
-                return [this.toNode()]
+            const props = this.args.props
+            const node = this.toNode()
+            if (props.selector.selector === 'MatchFirst') {
+                return nodeMapFromNode(node)
             }
-            const { tagMatch } = open.search(this.args.selector)
-            if (tagMatch) {
-                const { matches, selector } = this.args.selector
-                if (matches.length > 1) {
-                    const remainingTags = matches.slice(1)
-                    return contents.search({ selector, matches: remainingTags })
+            //
+            // If you are in SearchPrior mode then you're still parsing a part
+            // of the tree that (while it might *contain* matches) was not a match
+            // on prior *matchers*.  Keep looking until you end up in a part
+            // of the tree that matched on previous macro-sweeps, then swith
+            // from SearchPrior to SearchCurrent selector mode (noting the node
+            // from which the prior match depends)
+            //
+            if (props.selector.selector === 'SearchPrior') {
+                if (node.start in props.currentNodes) {
+                    return this.search({
+                        ...props,
+                        selector: {
+                            ...props.selector,
+                            selector: 'SearchCurrent'
+                        },
+                        priorMatch: node.start
+                    })
                 }
                 else {
-                    return [this.toNode()]
+                    return contents.search(props)
                 }
             }
+            //
+            // If you are in SearchPrior mode then you're still parsing a part
+            // of the tree that (while it might *contain* matches) was not a match
+            // on prior *matchers*.  Keep looking until you end up in a part
+            // of the tree that matched on previous macro-sweeps, then swith
+            // from SearchPrior to SearchCurrent selector mode (noting the node
+            // from which the prior match depends)
+            //
+            if (props.selector.selector === 'SearchCurrent') {
+                const comparisonStarts = props.currentNodes[props.priorMatch].map(({ start }) => (start))
+                if (comparisonStarts.includes(node.start)) {
+                    return this.search({
+                        ...props,
+                        selector: {
+                            ...props.selector,
+                            selector: 'MatchCurrent'
+                        }
+                    })
+                }
+                else {
+                    return contents.search(props)
+                }
+            }
+            const { tagMatch } = open.search(props)
+            if (tagMatch) {
+                return nodeMapFromNode(node, props.priorMatch)
+            }
             else {
-                return contents.search(this.args.selector)
+                return contents.search(props)
             }
         },
         _iter(...contents) {
-            const { matches } = this.args.selector
+            const props = this.args.props
+            const { matches } = props.selector
             if (matches.length > 0 && matches[0].find(({ matchType }) => (matchType === 'first'))) {
                 return contents.reduce((previous, child) => {
-                    if (previous.length) {
+                    if (Object.values(previous).length) {
                         return previous
                     }
-                    return [...previous, ...child.search(this.args.selector)]
-                }, [])
+                    return mergeNodeMaps(previous, child.search(props))
+                }, {})
             }
             return contents.reduce((previous, child) => {
-                return [...previous, ...child.search(this.args.selector)]
-            }, [])
+                return mergeNodeMaps(previous, child.search(props))
+            }, {})
         },
         _terminal() {
-            return []
+            return {}
         }
     })
 
 export const wmlSelectorFactory = (schema) => (searchString) => {
+    const startingNodes = wmlQuerySemantics(schema).search({ selector: { selector: 'MatchFirst' } })
     if (searchString !== '') {
         const match = wmlQueryGrammar.match(searchString)
         if (!match.succeeded()) {
             return []
         }
         const selector = wmlSelectorSemantics(match).parse()
-        return wmlQuerySemantics(schema).search(selector)
+        return flattenNodeMap(selector.matches.reduce((previous, match) => {
+            const aggregateNodeMap = match.reduce((accumulator, predicate) => {
+                const returnValue = wmlQuerySemantics(schema).search({
+                    selector: {
+                        selector: 'SearchPrior',
+                        matches: [[predicate]]
+                    },
+                    currentNodes: accumulator })
+                return returnValue
+            }, previous)
+            return Object.assign({}, ...Object.values(flattenNodeMap(aggregateNodeMap)).map(nodeMapFromNode))
+        }, startingNodes))
     }
     else {
-        return wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
+        return flattenNodeMap(startingNodes)
     }
 }
