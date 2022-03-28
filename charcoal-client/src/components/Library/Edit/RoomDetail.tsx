@@ -48,19 +48,21 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
         .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
 
     const dispatchNameChange = useCallback((value) => {
-        const roomQuery = wmlQuery.search(`Room[key="${RoomId}"] Name`).not('Condition Room Name').not('Map Room Name')
+        const roomQuery = wmlQuery.search(`Room`).not('Condition Room').not('Map Room')
+        roomQuery.add(`[key="${RoomId}"] Name`)
         if (roomQuery) {
             roomQuery.remove()
         }
-        console.log(`Pre-source: ${wmlQuery.source}`)
-        wmlQuery.search(`Room[key="${RoomId}"]:first`)
-            .not('Condition Room')
-            .not('Map Room')
-            .children()
-            .prepend(`<Name>${name}</Name>`)
-        console.log(`Post-source: ${wmlQuery.source}`)
+        if (name) {
+            wmlQuery.search(`Room`)
+                .not('Condition Room')
+                .not('Map Room')
+                .add(`[key="${RoomId}"]:first`)
+                .children()
+                .prepend(`<Name>${name}</Name>`)
+        }
         dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
-    }, [dispatch, wmlQuery])
+    }, [dispatch, wmlQuery, name, RoomId])
     const onChangeName = useDebouncedCallback(dispatchNameChange)
     const changeName = useCallback((event) => {
         setName(event.target.value)
