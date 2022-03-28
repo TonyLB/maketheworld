@@ -90,6 +90,49 @@ const nodeMapFromNode = (node, priorMatch) => ({
     [priorMatch || node.start]: [node]
 })
 
+const checkSearchPrior = (props, options = {}) => {
+    //
+    // If you are in SearchPrior mode then you're still parsing a part
+    // of the tree that (while it might *contain* matches) was not a match
+    // on prior *matchers*.  Keep looking until you end up in a part
+    // of the tree that matched on previous macro-sweeps, then swith
+    // from SearchPrior to SearchCurrent selector mode (noting the node
+    // from which the prior match depends)
+    //
+    const { searchContents = null } = options
+    if (props.toNode().start in props.args.props.currentNodes) {
+        return props.search({
+            ...props.args.props,
+            selector: 'SearchCurrent',
+            priorMatch: props.source.startIdx
+        })
+    }
+    else {
+        return searchContents ? searchContents.search(props.args.props) : {}
+    }
+}
+
+const checkSearchCurrent = (props, options = {}) => {
+    //
+    // If you are in SearchCurrent mode then you're still parsing a part
+    // of the tree that (while it is a descendant of prior matches) is
+    // not a match on prior predicates in this matcher.  Keep looking
+    // until you end up in a part of the tree that matched on previous
+    // filtering sweeps, then switch from SearchCurrent to MatchCurrent
+    // selector mode in order to apply your current predicate
+    //
+    const { searchContents = null } = options
+    if (props.toNode().start in props.args.props.currentNodes) {
+        return props.search({
+            ...props.args.props,
+            selector: 'MatchCurrent'
+        })
+    }
+    else {
+        return searchContents ? searchContents.search(props.args.props) : {}
+    }
+}
+
 const wmlQuerySemantics = wmlGrammar.createSemantics()
     .addOperation("toNode", {
         TagOpen(open, tag, props, close) {
@@ -189,45 +232,11 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             if (props.selector === 'MatchFirst') {
                 return nodeMapFromNode(node)
             }
-            //
-            // If you are in SearchPrior mode then you're still parsing a part
-            // of the tree that (while it might *contain* matches) was not a match
-            // on prior *matchers*.  Keep looking until you end up in a part
-            // of the tree that matched on previous macro-sweeps, then swith
-            // from SearchPrior to SearchCurrent selector mode (noting the node
-            // from which the prior match depends)
-            //
             if (props.selector === 'SearchPrior') {
-                if (node.start in props.currentNodes) {
-                    return this.search({
-                        ...props,
-                        selector: 'SearchCurrent',
-                        priorMatch: this.source.startIdx
-                    })
-                }
-                else {
-                    return {}
-                }
+                return checkSearchPrior(this)
             }
-            //
-            // If you are in SearchPrior mode then you're still parsing a part
-            // of the tree that (while it might *contain* matches) was not a match
-            // on prior *matchers*.  Keep looking until you end up in a part
-            // of the tree that matched on previous macro-sweeps, then swith
-            // from SearchPrior to SearchCurrent selector mode (noting the node
-            // from which the prior match depends)
-            //
             if (props.selector === 'SearchCurrent') {
-                const comparisonStarts = props.currentNodes[props.priorMatch].map(({ start }) => (start))
-                if (comparisonStarts.includes(node.start)) {
-                    return this.search({
-                        ...props,
-                        selector: 'MatchCurrent'
-                    })
-                }
-                else {
-                    return {}
-                }
+                return checkSearchCurrent(this)
             }
             const { predicate } = props
             const tagMatch = evaluateMatchPredicate({
@@ -252,45 +261,11 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             if (props.selector === 'MatchFirst') {
                 return nodeMapFromNode(node)
             }
-            //
-            // If you are in SearchPrior mode then you're still parsing a part
-            // of the tree that (while it might *contain* matches) was not a match
-            // on prior *matchers*.  Keep looking until you end up in a part
-            // of the tree that matched on previous macro-sweeps, then swith
-            // from SearchPrior to SearchCurrent selector mode (noting the node
-            // from which the prior match depends)
-            //
             if (props.selector === 'SearchPrior') {
-                if (node.start in props.currentNodes) {
-                    return this.search({
-                        ...props,
-                        selector: 'SearchCurrent',
-                        priorMatch: this.source.startIdx
-                    })
-                }
-                else {
-                    return contents.search(props)
-                }
+                return checkSearchPrior(this, { searchContents: contents })
             }
-            //
-            // If you are in SearchPrior mode then you're still parsing a part
-            // of the tree that (while it might *contain* matches) was not a match
-            // on prior *matchers*.  Keep looking until you end up in a part
-            // of the tree that matched on previous macro-sweeps, then swith
-            // from SearchPrior to SearchCurrent selector mode (noting the node
-            // from which the prior match depends)
-            //
             if (props.selector === 'SearchCurrent') {
-                const comparisonStarts = props.currentNodes[props.priorMatch].map(({ start }) => (start))
-                if (comparisonStarts.includes(node.start)) {
-                    return this.search({
-                        ...props,
-                        selector: 'MatchCurrent'
-                    })
-                }
-                else {
-                    return contents.search(props)
-                }
+                return checkSearchCurrent(this, { searchContents: contents })
             }
             const { tagMatch } = open.search(props)
             if (tagMatch) {
