@@ -286,6 +286,8 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         }
     })
 
+const debugNodeMap = (nodeMap) => (Object.assign({}, ...Object.entries(nodeMap).map(([key, values]) => ({ [key]: values.map(({ start }) => (start))}))))
+
 export const wmlSelectorFactory = (schema, options = {}) => (searchString) => {
     const { currentNodes } = options
     const startingNodes = currentNodes !== undefined
@@ -305,7 +307,7 @@ export const wmlSelectorFactory = (schema, options = {}) => (searchString) => {
                     currentNodes: accumulator })
                 return returnValue
             }, previous)
-            return Object.assign({}, ...Object.values(flattenNodeMap(aggregateNodeMap)).map(nodeMapFromNode))
+            return Object.assign({}, ...Object.values(flattenNodeMap(aggregateNodeMap)).map((node) => nodeMapFromNode(node)))
         }, startingNodes))
     }
     else {

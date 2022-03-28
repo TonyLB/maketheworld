@@ -88,6 +88,27 @@ Array [
 ]
 `;
 
+exports[`wmlQuery add method should correctly add nested filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 267,
+        "start": 261,
+        "type": "string",
+        "value": "Nested",
+      },
+    ],
+    "end": 274,
+    "props": Object {},
+    "start": 255,
+    "tag": "Name",
+    "tagEnd": 260,
+    "type": "tag",
+  },
+]
+`;
+
 exports[`wmlQuery add method should correctly add property filters 1`] = `
 Array [
   Object {

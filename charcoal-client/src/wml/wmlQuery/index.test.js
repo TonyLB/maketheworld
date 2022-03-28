@@ -300,6 +300,8 @@ describe('wmlQuery', () => {
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
             <Condition>
                 <Room key=(VORTEX) global>
                     Conditional Render
@@ -325,6 +327,10 @@ describe('wmlQuery', () => {
 
         it('should correctly add first filters', () => {
             expect(addQuery.search('Room').not('Condition Room').add(':first').nodes()).toMatchSnapshot()
+        })
+
+        it('should correctly add nested filters', () => {
+            expect(addQuery.search('Room').not('Condition Room').add('[key="nested"] Name').nodes()).toMatchSnapshot()
         })
     })
 
