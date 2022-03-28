@@ -213,7 +213,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
     })
     .addOperation("search(props)", {
         TagOpen(open, tag, props, close) {
-            const { predicate } = this.args.props
+            const { predicate, currentNodes, priorMatch } = this.args.props
             return {
                 tagMatch: evaluateMatchPredicate({
                         predicate,
@@ -222,7 +222,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                             tag: tag.toNode(),
                             props: Object.assign({}, ...(props.toNode() || {}))
                         },
-                        priorMatches: this.args.props.currentNodes[this.args.props.priorMatch] || []
+                        priorMatches: currentNodes[priorMatch] || []
                     })
             }
         },
@@ -238,7 +238,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             if (props.selector === 'SearchCurrent') {
                 return checkSearchCurrent(this)
             }
-            const { predicate } = props
+            const { predicate, currentNodes, priorMatch } = props
             const tagMatch = evaluateMatchPredicate({
                     predicate,
                     node: {
@@ -246,10 +246,10 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                         tag: tag.toNode(),
                         props: Object.assign({}, ...(tagProps.toNode() || {}))
                     },
-                    priorMatches: props.currentNodes[props.priorMatch] || []
+                    priorMatches: currentNodes[priorMatch] || []
                 })
             if (tagMatch) {
-                return nodeMapFromNode(node, props.priorMatch)
+                return nodeMapFromNode(node, priorMatch)
             }
             else {
                 return {}
@@ -286,8 +286,11 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
         }
     })
 
-export const wmlSelectorFactory = (schema) => (searchString) => {
-    const startingNodes = wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
+export const wmlSelectorFactory = (schema, options = {}) => (searchString) => {
+    const { currentNodes } = options
+    const startingNodes = currentNodes !== undefined
+        ? Object.assign({}, ...currentNodes.map((node) => ({ [node.start]: currentNodes })))
+        : wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
     if (searchString !== '') {
         const match = wmlQueryGrammar.match(searchString)
         if (!match.succeeded()) {

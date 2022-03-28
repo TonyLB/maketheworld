@@ -16,6 +16,7 @@ declare class WMLQueryResult {
     render: () => RoomRenderItem[];
     removeProp: (key: string) => WMLQueryResult;
     not: (search: string) => WMLQueryResult;
+    add: (search: string) => WMLQueryResult;
 }
 
 export interface WMLQueryUpdateReplace {
