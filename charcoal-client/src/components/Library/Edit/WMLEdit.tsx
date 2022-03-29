@@ -14,12 +14,9 @@ import { setCurrentWML, setDraftWML } from '../../../slices/personalAssets'
 import { CustomText } from './baseClasses'
 
 import LibraryBanner from './LibraryBanner'
+import { useLibraryAsset } from './LibraryAsset'
 
-interface WMLEditProps {
-    currentWML: string;
-    updateWML?: (value: string) => void;
-    AssetId: string;
-}
+interface WMLEditProps {}
 
 type SlateUnit = 'character' | 'word' | 'line' | 'block'
 type Decoration = Range & { error: boolean }
@@ -152,8 +149,8 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
     return indexToSlatePoint(wmlQuery, failurePosition)
 }
 
-export const WMLEdit: FunctionComponent<WMLEditProps> = ({ currentWML, updateWML = () => {}, AssetId }) => {
-    const [_, assetKey = 'Unknown'] = AssetId.split('#')
+export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
+    const { AssetId, assetKey, currentWML, updateWML } = useLibraryAsset()
     const dispatch = useDispatch()
     const onChange = (change: WMLQueryUpdate) => {
         const match = change.wmlQuery.matcher.match()
