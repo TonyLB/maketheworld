@@ -1,20 +1,22 @@
 import { MapTree } from './maps'
 import { NormalForm, NormalMap } from '../../../wml/normalize'
+import { AssetRoom } from '../../Library/Edit/LibraryAsset'
 
 interface NormalToTreeProps {
     MapId: string;
     normalForm: NormalForm;
+    rooms: Record<string, AssetRoom>
 }
 
-export const normalToTree = ({ MapId, normalForm }: NormalToTreeProps): MapTree => {
+export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): MapTree => {
     const map = (normalForm[MapId] || {}) as NormalMap
-    const rooms = (map.appearances || [])
+    const roomItems = (map.appearances || [])
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
         .reduce((previous, { rooms }) => ({
             ...previous, 
             ...rooms
         }), {}) as Record<string, { x: number; y: number }>
-    const tree: MapTree = Object.entries(rooms || {})
+    const tree: MapTree = Object.entries(roomItems || {})
         .reduce<MapTree>((previous, [key, { x = 0, y = 0 }], index) => {
             const room = normalForm[key]
             return [
@@ -23,7 +25,7 @@ export const normalToTree = ({ MapId, normalForm }: NormalToTreeProps): MapTree 
                     key,
                     item: {
                         type: 'ROOM',
-                        name: 'Test',
+                        name: rooms[key]?.name || 'Untitle',
                         x,
                         y,
                         roomId: key,

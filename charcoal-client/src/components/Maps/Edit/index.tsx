@@ -21,13 +21,13 @@ type MapEditProps = {
 
 export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    const { normalForm } = useLibraryAsset()
+    const { normalForm, rooms } = useLibraryAsset()
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(
         mapReducer,
-        normalToTree({ MapId: mapId || '', normalForm }),
+        normalToTree({ MapId: mapId || '', normalForm, rooms }),
         (tree) => ({ tree })
     )
 

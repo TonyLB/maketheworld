@@ -3,7 +3,7 @@ import { NormalForm } from '../../../wml/normalize'
 
 describe('normalToTree', () => {
     it('should convert empty cache to empty tree', () => {
-        expect(normalToTree({ MapId: '123', normalForm: {}})).toEqual([])
+        expect(normalToTree({ MapId: '123', normalForm: {}, rooms: {}})).toEqual([])
     })
 
     it('should convert rooms and exits to items', () => {
@@ -118,7 +118,7 @@ describe('normalToTree', () => {
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
+                    name: 'None',
                     contents: []
                 },
                 {
@@ -131,6 +131,22 @@ describe('normalToTree', () => {
             },          
         }
 
-        expect(normalToTree({ MapId: 'TestMap', normalForm: testNormalForm})).toMatchSnapshot()
+        const roomAssetFromName = (name: string) => ({
+            localName: '',
+            defaultName: name,
+            name: name,
+            localRender: [],
+            defaultRender: [],
+            render: []
+        })
+        expect(normalToTree({
+            MapId: 'TestMap',
+            normalForm: testNormalForm,
+            rooms: {
+                '123': roomAssetFromName('Vortex'),
+                '456': roomAssetFromName('Welcome Room'),
+                '789': roomAssetFromName('None')
+            }
+        })).toMatchSnapshot()
     })
 })
