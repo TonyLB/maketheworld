@@ -31,6 +31,7 @@ import { NormalAsset, NormalRoom } from '../../../wml/normalize'
 import WMLEdit from './WMLEdit'
 import RoomHeader from './RoomHeader'
 import RoomDetail from './RoomDetail'
+import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
@@ -99,6 +100,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
             <LibraryAsset assetKey={assetKey || ''}>
                 <Routes>
                     <Route path={'WML'} element={<WMLEdit />} />
+                    <Route path={'Map/:MapId'} element={<MapEdit />} />
                     <Route path={'Room/:RoomId'} element={<RoomDetail />} />
                     <Route path={''} element={<AssetEditForm />} />
                 </Routes>
