@@ -1,5 +1,4 @@
 import { FunctionComponent, useCallback, useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import {
     useParams
 } from "react-router-dom"
@@ -11,31 +10,21 @@ import {
 import HomeIcon from '@mui/icons-material/Home'
 import { blue } from '@mui/material/colors'
 
-import {
-    getDefaultAppearances,
-    getNormalized,
-    getWMLQuery,
-    setCurrentWML
-} from '../../../slices/personalAssets'
-
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import useDebouncedCallback from './useDebouncedCallback'
+import { useLibraryAsset } from './LibraryAsset'
 
 interface RoomDetailProps {
 }
 
 export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
-    const { AssetId: assetKey, RoomId } = useParams<{ RoomId: string, AssetId: string }>()
-    const AssetId = `ASSET#${assetKey}`
-    const normalForm = useSelector(getNormalized(AssetId))
-    const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
-    const wmlQuery = useSelector(getWMLQuery(AssetId))
-    const dispatch = useDispatch()
+    const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML } = useLibraryAsset()
+    const { RoomId } = useParams<{ RoomId: string }>()
     const onChange = useCallback((newRender) => {
         wmlQuery.search(`Room[key="${RoomId}"]`).not('Condition Room').not('Map Room').render(newRender)
-        dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
-    }, [dispatch, wmlQuery])
+        updateWML(wmlQuery.source)
+    }, [wmlQuery, updateWML])
     const room = normalForm[RoomId || '']
     const aggregateName = (room && room.tag === 'Room' && room.appearances
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
@@ -61,8 +50,8 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                 .children()
                 .prepend(`<Name>${name}</Name>`)
         }
-        dispatch(setCurrentWML(AssetId)({ value: wmlQuery.source }))
-    }, [dispatch, wmlQuery, name, RoomId])
+        updateWML(wmlQuery.source)
+    }, [updateWML, wmlQuery, name, RoomId])
     const onChangeName = useDebouncedCallback(dispatchNameChange)
     const changeName = useCallback((event) => {
         setName(event.target.value)

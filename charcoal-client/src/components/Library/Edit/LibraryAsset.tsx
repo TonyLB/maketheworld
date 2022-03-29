@@ -13,16 +13,38 @@
 //
 
 import React, { useContext, ReactChild, ReactChildren, FunctionComponent } from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+
+import {
+    addItem,
+    getStatus,
+    getCurrentWML,
+    getNormalized,
+    getWMLQuery,
+    getDefaultAppearances,
+    setCurrentWML
+} from '../../../slices/personalAssets'
+import { WMLQuery } from '../../../wml/wmlQuery'
+import { NormalForm, RoomAppearance } from '../../../wml/normalize'
 
 type LibraryAssetContextType = {
     assetKey: string;
     AssetId: string;
+    currentWML: string;
+    normalForm: NormalForm;
+    defaultAppearances: Record<string, RoomAppearance>;
+    wmlQuery: WMLQuery;
+    updateWML: (value: string) => void;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     assetKey: '',
-    AssetId: ''
+    AssetId: '',
+    currentWML: '',
+    normalForm: {},
+    defaultAppearances: {},
+    wmlQuery: new WMLQuery(''),
+    updateWML: () => {}
 })
 
 type LibraryAssetProps = {
@@ -33,10 +55,22 @@ type LibraryAssetProps = {
 export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children }) => {
 
     const AssetId = `ASSET#${assetKey}`
+    const currentWML = useSelector(getCurrentWML(AssetId))
+    const normalForm = useSelector(getNormalized(AssetId))
+    const wmlQuery = useSelector(getWMLQuery(AssetId))
+    const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
+    const dispatch = useDispatch()
+    const updateWML = (value: string) => { dispatch(setCurrentWML(AssetId)({ value })) }
+
     return (
         <LibraryAssetContext.Provider value={{
             assetKey,
             AssetId,
+            currentWML,
+            normalForm,
+            defaultAppearances,
+            wmlQuery,
+            updateWML
         }}>
             {children}
         </LibraryAssetContext.Provider>

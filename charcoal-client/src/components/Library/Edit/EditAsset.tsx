@@ -22,8 +22,6 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus,
-    getCurrentWML,
-    getNormalized,
     getWMLQuery,
     setCurrentWML
 } from '../../../slices/personalAssets'
@@ -39,12 +37,11 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 type AssetEditFormProps = {}
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { AssetId, assetKey } = useLibraryAsset()
-    const normalForm = useSelector(getNormalized(AssetId))
+    const { assetKey, normalForm } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
-    const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset
+    const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
@@ -89,20 +86,19 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const dispatch = useDispatch()
     useEffect(() => {
         if (assetKey) {
-            dispatch(addItem(AssetId))
+            dispatch(addItem(`ASSET#${assetKey}`))
             dispatch(heartbeat)
         }
     }, [dispatch, assetKey])
 
     const currentStatus = useSelector(getStatus(AssetId))
-    const currentWML = useSelector(getCurrentWML(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
 
     return (['FRESH', 'DIRTY'].includes(currentStatus || '') && wmlQuery)
         ? 
             <LibraryAsset assetKey={assetKey || ''}>
                 <Routes>
-                    <Route path={'WML'} element={<WMLEdit currentWML={currentWML} AssetId={AssetId} updateWML={ (value) => { dispatch(setCurrentWML(AssetId)({ value })) }} />} />
+                    <Route path={'WML'} element={<WMLEdit />} />
                     <Route path={'Room/:RoomId'} element={<RoomDetail />} />
                     <Route path={''} element={<AssetEditForm />} />
                 </Routes>
