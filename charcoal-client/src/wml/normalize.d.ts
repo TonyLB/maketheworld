@@ -88,7 +88,7 @@ export type NormalMap = {
     appearances: MapAppearance[];
 } & NormalBase
 
-type NormalExit = {
+export type NormalExit = {
     tag: 'Exit';
     to: string;
     from: string;
