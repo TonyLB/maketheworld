@@ -1,10 +1,8 @@
 import React, { FunctionComponent, useState, useReducer } from 'react'
 
-// import {
-//     useRouteMatch,
-//     useHistory,
-//     useParams
-// } from "react-router-dom"
+import {
+    useParams
+} from "react-router-dom"
 
 import useMapStyles from './useMapStyles'
 import MapArea from './Area'
@@ -15,143 +13,21 @@ import ToolSelect from './Area/ToolSelect'
 import ToolSelectContext from './Area/ToolSelectContext'
 import { MapReducer } from './reducer.d'
 import mapReducer from './reducer'
+import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
+import normalToTree from './normalToTree'
 
 type MapEditProps = {
 }
 
-// eslint-disable-next-line no-empty-pattern
-export const MapEdit: FunctionComponent<MapEditProps>= ({}) => {
+export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const localClasses = useMapStyles()
-    // const { url } = useRouteMatch()
-    // const history = useHistory()
-    // const { mapId }: { mapId: string } = useParams()
+    const { normalForm, rooms } = useLibraryAsset()
+    const { MapId: mapId } = useParams<{ MapId: string }>()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(
         mapReducer,
-        [{
-            key: 'One',
-            item: {
-                name: 'One',
-                type: 'GROUP',
-                visible: true,
-            },
-            children: []
-        },
-        {
-            key: 'Two',
-            item: {
-                name: 'Two',
-                type: 'GROUP',
-                visible: true,
-            },
-            children: []
-        },
-        {
-            key: 'Three',
-            item: {
-                name: 'Three',
-                type: 'GROUP',
-                visible: true,
-            },
-            children: [{
-                key: 'Three-A',
-                item: {
-                    name: 'Three-A',
-                    type: 'GROUP',
-                    visible: true,
-                },
-                children: [{
-                    key: 'One-A',
-                    item: {
-                        name: 'One-A',
-                        type: 'EXIT',
-                        fromRoomId: 'ABC',
-                        toRoomId: 'DEF',
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'One-B',
-                    item: {
-                        name: 'One-B',
-                        type: 'EXIT',
-                        fromRoomId: 'DEF',
-                        toRoomId: 'ABC',
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'One-C',
-                    item: {
-                        name: 'One-C',
-                        type: 'EXIT',
-                        fromRoomId: 'ABC',
-                        toRoomId: 'GHI',
-                        visible: true,
-                    },
-                    children: []
-                },
-                // {
-                //     key: 'One-D',
-                //     item: {
-                //         name: 'One-D',
-                //         type: 'EXIT',
-                //         fromRoomId: 'GHI',
-                //         toRoomId: 'ABC',
-                //         visible: true,
-                //     },
-                //     children: []
-                // },
-                {
-                    key: 'Three-A-i',
-                    item: {
-                        name: '3-A-1',
-                        type: 'ROOM',
-                        roomId: 'ABC',
-                        x: 0,
-                        y: 0,
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'Three-A-ii',
-                    item: {
-                        name: '3-A-2',
-                        type: 'ROOM',
-                        roomId: 'DEF',
-                        x: 100,
-                        y: 0,
-                        visible: true,
-                    },
-                    children: []
-                },
-                {
-                    key: 'Three-A-iii',
-                    item: {
-                        name: '3-A-3',
-                        type: 'ROOM',
-                        roomId: 'GHI',
-                        x: -100,
-                        y: 0,
-                        visible: true,
-                    },
-                    children: []
-                }]
-            },
-            {
-                key: 'Three-B',
-                item: {
-                    name: 'Three-B',
-                    type: 'GROUP',
-                    visible: true,
-                },
-                children: []
-            }]
-        }],
+        normalToTree({ MapId: mapId || '', normalForm, rooms }),
         (tree) => ({ tree })
     )
 

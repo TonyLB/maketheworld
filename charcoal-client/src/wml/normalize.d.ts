@@ -83,15 +83,16 @@ type MapAppearance = {
     rooms: Record<string, { x: number; y: number }>;
 } & BaseAppearance
 
-type NormalMap = {
+export type NormalMap = {
     tag: 'Map';
     appearances: MapAppearance[];
 } & NormalBase
 
-type NormalExit = {
+export type NormalExit = {
     tag: 'Exit';
     to: string;
     from: string;
+    appearances?: BaseAppearance[];
 } & NormalBase
 
 type FeatureAppearance = {

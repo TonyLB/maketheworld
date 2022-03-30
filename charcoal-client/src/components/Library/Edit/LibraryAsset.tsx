@@ -12,7 +12,7 @@
 //   - AssetId
 //
 
-import React, { useContext, ReactChild, ReactChildren, FunctionComponent } from 'react'
+import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -25,7 +25,7 @@ import {
     setCurrentWML
 } from '../../../slices/personalAssets'
 import { WMLQuery } from '../../../wml/wmlQuery'
-import { NormalForm, RoomAppearance } from '../../../wml/normalize'
+import { NormalForm, RoomAppearance, RoomRenderItem } from '../../../wml/normalize'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -35,6 +35,7 @@ type LibraryAssetContextType = {
     defaultAppearances: Record<string, RoomAppearance>;
     wmlQuery: WMLQuery;
     updateWML: (value: string) => void;
+    rooms: Record<string, AssetRoom>;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -44,12 +45,51 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     normalForm: {},
     defaultAppearances: {},
     wmlQuery: new WMLQuery(''),
-    updateWML: () => {}
+    updateWML: () => {},
+    rooms: {}
 })
 
 type LibraryAssetProps = {
     assetKey: string;
     children?: ReactChild | ReactChildren;
+}
+
+export type AssetRoom = {
+    localName: string;
+    localRender: RoomRenderItem[];
+    defaultName: string;
+    defaultRender?: RoomRenderItem[];
+    name: string;
+    render: RoomRenderItem[];
+}
+
+const assetRooms = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, RoomAppearance> }): Record<string, AssetRoom> => {
+    const roomNormals = Object.values(normalForm)
+        .filter(({ tag }) => (tag === 'Room'))
+
+    const roomReturns = roomNormals
+        .map((room) => {
+            const localName = (room && room.tag === 'Room' && room.appearances
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .map(({ name = '' }) => name)
+                .join('')) || ''
+            const localRender = (room && room.tag === 'Room' && room.appearances
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .map(({ render = [] }) => render)
+                .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
+            const defaultName = defaultAppearances[room.key]?.name || ''
+            const defaultRender = defaultAppearances[room.key]?.render
+            return { [room.key]: {
+                localName,
+                localRender,
+                defaultName,
+                defaultRender,
+                name: `${defaultName}${localName}`,
+                render: [...(defaultRender || []), ...localRender]
+            }}
+        })
+    
+    return Object.assign({}, ...roomReturns)
 }
 
 export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children }) => {
@@ -61,6 +101,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
     const dispatch = useDispatch()
     const updateWML = (value: string) => { dispatch(setCurrentWML(AssetId)({ value })) }
+    const rooms = useMemo<Record<string, AssetRoom>>(() => ( assetRooms({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
 
     return (
         <LibraryAssetContext.Provider value={{
@@ -70,7 +111,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             normalForm,
             defaultAppearances,
             wmlQuery,
-            updateWML
+            updateWML,
+            rooms
         }}>
             {children}
         </LibraryAssetContext.Provider>

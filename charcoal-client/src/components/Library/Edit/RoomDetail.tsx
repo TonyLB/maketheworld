@@ -19,22 +19,22 @@ interface RoomDetailProps {
 }
 
 export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
-    const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML } = useLibraryAsset()
+    const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML, rooms } = useLibraryAsset()
     const { RoomId } = useParams<{ RoomId: string }>()
     const onChange = useCallback((newRender) => {
         wmlQuery.search(`Room[key="${RoomId}"]`).not('Condition Room').not('Map Room').render(newRender)
         updateWML(wmlQuery.source)
     }, [wmlQuery, updateWML])
     const room = normalForm[RoomId || '']
-    const aggregateName = (room && room.tag === 'Room' && room.appearances
-        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-        .map(({ name = '' }) => name)
-        .join('')) || ''
-    const [name, setName] = useState(aggregateName)
-    const aggregateRender = (room && room.tag === 'Room' && room.appearances
-        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-        .map(({ render = [] }) => render)
-        .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
+    // const aggregateName = (room && room.tag === 'Room' && room.appearances
+    //     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+    //     .map(({ name = '' }) => name)
+    //     .join('')) || ''
+    const [name, setName] = useState(rooms[room.key]?.localName || '')
+    // const aggregateRender = (room && room.tag === 'Room' && room.appearances
+    //     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+    //     .map(({ render = [] }) => render)
+    //     .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
 
     const dispatchNameChange = useCallback((value) => {
         const roomQuery = wmlQuery.search(`Room`).not('Condition Room').not('Map Room')
@@ -62,7 +62,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     }
     return <Box sx={{ width: "100%" }}>
             <LibraryBanner
-                primary={`${defaultAppearances[room.key]?.name || ''}${name}` || 'Untitled'}
+                primary={rooms[room.key]?.name || 'Untitled'}
                 secondary={room.key}
                 icon={<HomeIcon />}
                 breadCrumbProps={[{
@@ -74,7 +74,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                     label: assetKey || ''
                 },
                 {
-                    label: `${defaultAppearances[room.key]?.name || ''}${name}` || 'Untitled'
+                    label: rooms[room.key]?.name || 'Untitled'
                 }]}
             />
 
@@ -91,7 +91,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                         display: 'inline'
                     }}
                 >
-                    { defaultAppearances[room.key]?.name || '' }
+                    { rooms[room.key]?.defaultName || '' }
                 </Box>
                 <TextField
                     id="name"
@@ -103,8 +103,8 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
             </Box>
             <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
-                    inheritedRender={defaultAppearances[room.key]?.render}
-                    render={aggregateRender}
+                    inheritedRender={rooms[room.key]?.defaultRender}
+                    render={rooms[room.key]?.localRender || []}
                     onChange={onChange}
                 />
             </Box>

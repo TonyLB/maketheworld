@@ -26,11 +26,13 @@ import {
     setCurrentWML
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom } from '../../../wml/normalize'
+import { NormalAsset, NormalRoom, NormalMap } from '../../../wml/normalize'
 
 import WMLEdit from './WMLEdit'
 import RoomHeader from './RoomHeader'
+import MapHeader from './MapHeader'
 import RoomDetail from './RoomDetail'
+import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 
@@ -41,6 +43,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
+    const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
@@ -61,13 +64,29 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         />
         <Box sx={{ marginLeft: '20px' }}>
             <List>
-                <ListSubheader>Rooms</ListSubheader>
-                { rooms.map((room) => (<RoomHeader
-                    key={room.key}
-                    room={room}
-                    AssetId={assetKey}
-                    onClick={() => { navigate(`Room/${room.key}`)}}
-                />))}
+                { maps.length
+                    ? <React.Fragment>
+                        <ListSubheader>Maps</ListSubheader>
+                        { maps.map((mapItem) => (<MapHeader
+                            key={mapItem.key}
+                            mapItem={mapItem}
+                            onClick={() => { navigate(`Map/${mapItem.key}`)}}
+                        />))}
+                    </React.Fragment>
+                    : null
+                }
+                { rooms.length
+                    ? <React.Fragment>
+                        <ListSubheader>Rooms</ListSubheader>
+                        { rooms.map((room) => (<RoomHeader
+                            key={room.key}
+                            room={room}
+                            AssetId={assetKey}
+                            onClick={() => { navigate(`Room/${room.key}`)}}
+                        />))}
+                    </React.Fragment>
+                    : null
+                }
             </List>
         </Box>
     </Box>
@@ -99,6 +118,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
             <LibraryAsset assetKey={assetKey || ''}>
                 <Routes>
                     <Route path={'WML'} element={<WMLEdit />} />
+                    <Route path={'Map/:MapId'} element={<MapEdit />} />
                     <Route path={'Room/:RoomId'} element={<RoomDetail />} />
                     <Route path={''} element={<AssetEditForm />} />
                 </Routes>
