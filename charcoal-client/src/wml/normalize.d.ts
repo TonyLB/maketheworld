@@ -137,6 +137,6 @@ export type NormalItem = NormalAsset |
 
 export type NormalForm = Record<string, NormalItem>
 
-export const normalize = (node: any, existingMap?: any, contextStack?: any) => NormalForm
+export const normalize = (node: any, existingMap?: any, contextStack?: any, location?: number[]) => NormalForm
 
 export default normalize

@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`normalToTree should convert empty cache to empty tree 1`] = `
+Array [
+  Object {
+    "children": Array [],
+    "item": Object {
+      "name": "Default",
+      "type": "GROUP",
+      "visible": true,
+    },
+    "key": "Default",
+  },
+]
+`;
+
+exports[`normalToTree should convert rooms and exits to items 1`] = `
+Array [
+  Object {
+    "children": Array [
+      Object {
+        "children": Array [],
+        "item": Object {
+          "fromRoomId": "456",
+          "name": "exit",
+          "toRoomId": "123",
+          "type": "EXIT",
+          "visible": true,
+        },
+        "key": "456#123",
+      },
+      Object {
+        "children": Array [],
+        "item": Object {
+          "fromRoomId": "456",
+          "name": "exit",
+          "toRoomId": "789",
+          "type": "EXIT",
+          "visible": true,
+        },
+        "key": "456#789",
+      },
+      Object {
+        "children": Array [],
+        "item": Object {
+          "name": "Vortex",
+          "roomId": "123",
+          "type": "ROOM",
+          "visible": true,
+          "x": 200,
+          "y": 150,
+        },
+        "key": "123",
+      },
+    ],
+    "item": Object {
+      "name": "Default",
+      "type": "GROUP",
+      "visible": true,
+    },
+    "key": "Default",
+  },
+]
+`;

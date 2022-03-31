@@ -96,7 +96,7 @@ export const dbEntries = (schema) => {
                         ...rest,
                         appearances: appearances
                             .map(mapContextStackToConditions)
-                            .map(({ contents, ...remainder }) => {
+                            .map(({ contents, location, ...remainder }) => {
                                 const exitContents = contents
                                     .filter(({ tag }) => (tag === 'Exit'))
                                 return {
@@ -119,7 +119,7 @@ export const dbEntries = (schema) => {
                         ...rest,
                         appearances: appearances
                             .map(mapContextStackToConditions)
-                            .map(({ contents, ...rest }) => (rest))
+                            .map(({ contents, location, ...rest }) => (rest))
                     }
                     return featureVal
                 case 'Variable':
