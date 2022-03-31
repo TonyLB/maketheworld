@@ -84,4 +84,13 @@ describe('wmlQuery selector', () => {
     it('should properly select :first filter', () => {
         expect(assetQuery('Room Exit:first')).toMatchSnapshot()
     })
+
+    it('should properly select one level :nthChild filter', () => {
+        expect(assetQuery('Asset:nthChild(1)')).toMatchSnapshot()
+    })
+
+    it('should properly select nested :nthChild filters', () => {
+        expect(assetQuery('Asset:nthChild(0):nthChild(2)')).toMatchSnapshot()
+    })
+
 })

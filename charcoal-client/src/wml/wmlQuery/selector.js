@@ -35,6 +35,13 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
                 matchType: 'first'
             }
         },
+        nthChildFilter(syntaxOne, indexString, syntaxTwo) {
+            const index = parseInt(indexString.sourceString)
+            return {
+                matchType: 'nthChild',
+                index
+            }
+        },
         _iter(...nodes) {
             return nodes.map((node) => (node.parse()))
         }    
@@ -60,6 +67,11 @@ const evaluateMatchPredicate = ({
             break
         case 'first':
             if (node.start === priorMatches[0]?.start) {
+                return true
+            }
+            break
+        case 'nthChild':
+            if (priorMatches.find(({ contents }) => (contents.length >= predicate.index && (contents[predicate.index].start === node.start)))) {
                 return true
             }
             break
