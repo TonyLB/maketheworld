@@ -360,6 +360,57 @@ Array [
 ]
 `;
 
+exports[`wmlQuery selector should properly select nested :nthChild filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 199,
+        "start": 195,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "end": 206,
+    "props": Object {
+      "to": Object {
+        "end": 194,
+        "start": 185,
+        "value": "Test",
+        "valueEnd": 193,
+        "valueStart": 189,
+      },
+    },
+    "start": 179,
+    "tag": "Exit",
+    "tagEnd": 184,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should properly select one level :nthChild filter 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "end": 306,
+    "props": Object {
+      "key": Object {
+        "end": 303,
+        "start": 293,
+        "value": "Test",
+        "valueEnd": 302,
+        "valueStart": 298,
+      },
+    },
+    "start": 287,
+    "tag": "Room",
+    "tagEnd": 292,
+    "type": "tag",
+  },
+]
+`;
+
 exports[`wmlQuery selector should return a list for multiple matches 1`] = `
 Array [
   Object {

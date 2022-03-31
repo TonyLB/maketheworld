@@ -25,9 +25,12 @@ WMLQuerySelector {
 
     firstFilter = ":first"
 
+    nthChildFilter = ":nthChild(" digit* ")"
+
     matchComponent = wmlLegalTag |
         propertyFilter |
-        firstFilter
+        firstFilter |
+        nthChildFilter
 
     matchPredicate = matchComponent+
 
