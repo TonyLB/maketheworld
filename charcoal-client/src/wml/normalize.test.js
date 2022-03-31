@@ -20,15 +20,7 @@ describe('WML normalize', () => {
                     name: 'Vortex',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                node: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    name: 'Vortex',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
         })
 
         it('should synthesize a key for condition tag', () => {
@@ -39,15 +31,7 @@ describe('WML normalize', () => {
                     if: 'true',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                node: {
-                    key: 'Condition-0',
-                    tag: 'Condition',
-                    if: 'true',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
         })
 
         it('should pass a global exit in a room wrapper, with synthetic key', () => {
@@ -59,16 +43,7 @@ describe('WML normalize', () => {
                     from: 'DEF',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'DEF', tag: 'Room' }],
-                node: {
-                    key: 'DEF#ABC',
-                    tag: 'Exit',
-                    to: 'ABC',
-                    from: 'DEF',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
         })
 
         it('should pass a local from exit at same level, with synthetic key', () => {
@@ -79,16 +54,7 @@ describe('WML normalize', () => {
                     to: 'DEF',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'ABC', tag: 'Room', index: 0 }],
-                node: {
-                    key: 'ABC#DEF',
-                    tag: 'Exit',
-                    to: 'DEF',
-                    from: 'ABC',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
             expect(transformNode(
                 [
                     { key: 'Test', tag: 'Asset', index: 0 },
@@ -100,20 +66,7 @@ describe('WML normalize', () => {
                     to: 'DEF',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [
-                    { key: 'Test', tag: 'Asset', index: 0 },
-                    { key: 'ABC', tag: 'Room', index: 0 },
-                    { key: 'Condition-0', tag: 'Condition', index: 0 }
-                ],
-                node: {
-                    key: 'ABC#DEF',
-                    tag: 'Exit',
-                    to: 'DEF',
-                    from: 'ABC',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
         })
 
         it('should pass a local to exit in a sibling room wrapper, with synthetic key', () => {
@@ -124,16 +77,7 @@ describe('WML normalize', () => {
                     from: 'DEF',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'DEF', tag: 'Room' }],
-                node: {
-                    key: 'DEF#ABC',
-                    tag: 'Exit',
-                    from: 'DEF',
-                    to: 'ABC',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
             expect(transformNode(
                 [
                     { key: 'Test', tag: 'Asset', index: 0 },
@@ -145,20 +89,7 @@ describe('WML normalize', () => {
                     from: 'DEF',
                     contents: []
                 }
-            )).toEqual({
-                contextStack: [
-                    { key: 'Test', tag: 'Asset', index: 0 },
-                    { key: 'DEF', tag: 'Room' },
-                    { key: 'Condition-0', tag: 'Condition' }
-                ],
-                node: {
-                    key: 'DEF#ABC',
-                    tag: 'Exit',
-                    from: 'DEF',
-                    to: 'ABC',
-                    contents: []
-                }
-            })
+            )).toMatchSnapshot()
         })
 
     })
@@ -235,23 +166,7 @@ describe('WML normalize', () => {
                     render: ['Vortex!'],
                     contents: []
                 }
-            })).toEqual({
-                ...testMap,
-                ABC: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    appearances: [{
-                        contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                        name: 'Vortex',
-                        render: ['Vortex!'],
-                        contents: [{
-                            tag: 'Exit',
-                            key: 'ABC#DEF',
-                            index: 0
-                        }]
-                    }]    
-                }
-            })
+            })).toMatchSnapshot()
         })
 
         it('should add an element with differing contextStack', () => {
@@ -263,40 +178,7 @@ describe('WML normalize', () => {
                     render: ['Vortex!'],
                     contents: []
                 }
-            })).toEqual({
-                ...testMap,
-                ABC: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    appearances: [{
-                        contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                        name: 'Vortex',
-                        contents: [{
-                            tag: 'Exit',
-                            key: 'ABC#DEF',
-                            index: 0
-                        }]
-                    },
-                    {
-                        contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                        render: ['Vortex!'],
-                        contents: []
-                    }]
-                },
-                'Condition-0': {
-                    key: 'Condition-0',
-                    tag: 'Condition',
-                    if: 'true',
-                    appearances: [{
-                        contextStack: [{
-                            key: 'Test',
-                            tag: 'Asset',
-                            index: 0
-                        }],
-                        contents: [{ key: 'ABC', tag: 'Room', index: 1 }]
-                    }]    
-                }
-            })
+            })).toMatchSnapshot()
         })
 
         it('should add an element with unspecified indices in the context-stack', () => {
@@ -309,44 +191,7 @@ describe('WML normalize', () => {
                     from: 'DEF',
                     contents: []
                 }
-            })).toEqual({
-                ...testMap,
-                DEF: {
-                    key: 'DEF',
-                    tag: 'Room',
-                    appearances: [{
-                        contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                        contents: [{
-                            tag: 'Exit',
-                            key: 'DEF#ABC',
-                            index: 0
-                        }]
-                    }]
-                },
-                'DEF#ABC': {
-                    key: 'DEF#ABC',
-                    tag: 'Exit',
-                    to: 'ABC',
-                    from: 'DEF',
-                    appearances: [{
-                        contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }, { key: 'DEF', tag: 'Room', index: 0 }],
-                        contents: []
-                    }]                    
-                },
-                'Condition-0': {
-                    key: 'Condition-0',
-                    tag: 'Condition',
-                    if: 'true',
-                    appearances: [{
-                        contextStack: [{
-                            key: 'Test',
-                            tag: 'Asset',
-                            index: 0
-                        }],
-                        contents: [{ key: 'DEF', tag: 'Room', index: 0 }]
-                    }]    
-                }
-            })
+            })).toMatchSnapshot()
         })
     })
 
@@ -374,30 +219,7 @@ describe('WML normalize', () => {
             fileName: 'test.wml',
             // zone: 'Canon',
             contents: []
-        })).toEqual({
-            TESS: {
-                key: 'TESS',
-                tag: 'Character',
-                zone: 'Library',
-                fileName: 'test.wml',
-                fileURL: 'testIcon.png',
-                Name: 'Tess',
-                Pronouns: {
-                    subjective: 'she',
-                    objective: 'her',
-                    possessive: 'her',
-                    adjective: 'hers',
-                    reflexive: 'herself'
-                },
-                FirstImpression: 'Frumpy Goth',
-                OneCoolThing: 'Fuchsia eyes',
-                Outfit: 'A battered hoodie trimmed with lace',
-                appearances: [{
-                    contextStack: [],
-                    contents: []
-                }]
-            }
-        })
+        })).toMatchSnapshot()
     })
 
     it('should normalize every needed tag', () => {
@@ -467,199 +289,7 @@ describe('WML normalize', () => {
                 key: 'toggleActive',
                 src: 'active = !active'
             }]
-        })).toEqual({
-            Test: {
-                key: 'Test',
-                tag: 'Asset',
-                appearances: [{
-                    contextStack: [],
-                    contents: [{
-                        key: 'Import-0',
-                        tag: 'Import',
-                        index: 0
-                    },
-                    {
-                        key: '123',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: '456',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'TestMap',
-                        tag: 'Map',
-                        index: 0
-                    },
-                    {
-                        key: 'clockTower',
-                        tag: 'Feature',
-                        index: 1
-                    },
-                    {
-                        key: 'active',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'inactive',
-                        tag: 'Computed',
-                        index: 0
-                    },
-                    {
-                        key: 'toggleActive',
-                        tag: 'Action',
-                        index: 0
-                    }]
-                }]
-            },
-            'Import-0': {
-                key: 'Import-0',
-                tag: 'Import',
-                from: 'BASE',
-                mapping: {
-                    power: { key: 'basePower', type: 'Variable' },
-                    overview: { key: 'overview', type: 'Room' }
-                },
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{ key: 'power', tag: 'Variable', index: 0 }, { key: 'overview', tag: 'Room', index: 0 }],
-                    props: {}
-                }]
-            },
-            'power': {
-                key: 'power',
-                tag: 'Variable',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Import-0', tag: 'Import', index: 0 }],
-                    contents: []
-                }]
-            },
-            'overview': {
-                key: 'overview',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Import-0', tag: 'Import', index: 0 }],
-                    contents: []
-                }]
-            },
-            '123': {
-                key: '123',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
-                    contents: [{
-                        key: 'clockTower',
-                        tag: 'Feature',
-                        index: 0
-                    }]
-                },
-                {
-                    contextStack: [
-                        { key: 'Test', tag: 'Asset', index: 0 },
-                        { key: 'TestMap', tag: 'Map', index: 0 }
-                    ],
-                    contents: []
-                }]
-            },
-            ImageTest: {
-                tag: 'Image',
-                key: 'ImageTest',
-                fileURL: 'https://test.com/imageTest.png',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
-                    contents: []
-                }]
-            },
-            TestMap: {
-                tag: 'Map',
-                key: 'TestMap',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    rooms: {
-                        '123': {
-                            x: 200,
-                            y: 150
-                        }
-                    },
-                    contents: [{
-                        tag: 'Image',
-                        key: 'ImageTest',
-                        index: 0
-                    },
-                    {
-                        tag: 'Room',
-                        key: '123',
-                        index: 1
-                    }]
-                }]
-            },
-            '456#123': {
-                key: '456#123',
-                tag: 'Exit',
-                to: '123',
-                from: '456',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '456', tag: 'Room', index: 0 }],
-                    contents: []
-                }]
-            },
-            '456': {
-                key: '456',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{ key: '456#123', tag: 'Exit', index: 0 }]
-                }]
-            },
-            clockTower: {
-                key: 'clockTower',
-                tag: 'Feature',
-                name: 'Clock Tower',
-                appearances: [{
-                    contextStack: [
-                        { key: 'Test', tag: 'Asset', index: 0 },
-                        { key: '123', tag: 'Room', index: 0 }
-                    ],
-                    contents: []
-                },
-                {
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: []
-                }]
-            },
-            active: {
-                key: 'active',
-                tag: 'Variable',
-                default: 'true',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: []
-                }]
-            },
-            inactive: {
-                key: 'inactive',
-                tag: 'Computed',
-                src: '!active',
-                dependencies: ['active'],
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: []
-                }]
-            },
-            toggleActive: {
-                key: 'toggleActive',
-                tag: 'Action',
-                src: 'active = !active',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: []
-                }]
-            },
-        })
+        })).toMatchSnapshot()
     })
     
     it('should create wrapping elements for exits where needed', () => {
@@ -675,52 +305,7 @@ describe('WML normalize', () => {
                     from: '456'
                 }]
             }]
-        })).toEqual({
-            Test: {
-                key: 'Test',
-                tag: 'Asset',
-                appearances: [{
-                    contextStack: [],
-                    contents: [{
-                        key: '123',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: '456',
-                        tag: 'Room',
-                        index: 0
-                    }]
-                }]
-            },
-            '123': {
-                key: '123',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
-                    contents: []
-                }]
-            },
-            '456#123': {
-                key: '456#123',
-                tag: 'Exit',
-                to: '123',
-                from: '456',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '456', tag: 'Room', index: 0 }],
-                    contents: []
-                }]
-            },
-            '456': {
-                key: '456',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{ key: '456#123', tag: 'Exit', index: 0 }]
-                }]
-            }
-        })
+        })).toMatchSnapshot()
     })
 
     it('should normalize exits into their parent room where needed', () => {
@@ -747,67 +332,7 @@ describe('WML normalize', () => {
                 key: '456',
                 name: 'Welcome',
             }]
-        })).toEqual({
-            Test: {
-                key: 'Test',
-                tag: 'Asset',
-                appearances: [{
-                    contextStack: [],
-                    contents: [{
-                        key: '123',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: '456',
-                        tag: 'Room',
-                        index: 0
-                    }]
-                }]
-            },
-            '123': {
-                key: '123',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
-                    contents: [
-                        { key: '123#456', tag: 'Exit', index: 0 }
-                    ]
-                }]
-            },
-            '123#456': {
-                key: '123#456',
-                tag: 'Exit',
-                to: '456',
-                from: '123',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '123', tag: 'Room', index: 0 }],
-                    contents: []
-                }]
-            },
-            '456': {
-                key: '456',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Welcome',
-                    contents: [
-                        { key: '456#123', tag: 'Exit', index: 0 }
-                    ]
-                }]
-            },
-            '456#123': {
-                key: '456#123',
-                tag:'Exit',
-                to: '123',
-                from: '456',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0}, { key: '456', tag: 'Room', index: 0 }],
-                    contents: []
-                }]
-            }
-        })
+        })).toMatchSnapshot()
     })
 
     it('should accumulate multiple appearances of the same key', () => {
@@ -834,54 +359,7 @@ describe('WML normalize', () => {
                     render: ['Vortex!']
                 }]
             }]
-        })).toEqual({
-            Test: {
-                key: 'Test',
-                tag: 'Asset',
-                appearances: [{
-                    contextStack: [],
-                    contents: [{
-                        key: '123',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'Condition-0',
-                        tag: 'Condition',
-                        index: 0
-                    }]
-                }]
-            },
-            '123': {
-                key: '123',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
-                    render: ['Hello, world!'],
-                    contents: []
-                },
-                {
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    render: ['Vortex!'],
-                    contents: []
-                }]
-            },
-            'Condition-0': {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'true',
-                dependencies: [],
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{
-                        key: '123',
-                        tag: 'Room',
-                        index: 1
-                    }]
-                }]
-            }
-        })
+        })).toMatchSnapshot()
     })
 
     it('should denormalize condition dependencies into contextStack', () => {
@@ -909,68 +387,7 @@ describe('WML normalize', () => {
                 key: 'strong',
                 default: 'false'
             }]
-        })).toEqual({
-            Test: {
-                key: 'Test',
-                tag: 'Asset',
-                appearances: [{
-                    contextStack: [],
-                    contents: [{
-                        key: '123',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'Condition-0',
-                        tag: 'Condition',
-                        index: 0
-                    },
-                    {
-                        key: 'strong',
-                        tag: 'Variable',
-                        index: 0
-                    }]
-                }]
-            },
-            '123': {
-                key: '123',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
-                    render: ['Hello, world!'],
-                    contents: []
-                },
-                {
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    render: ['Vortex!'],
-                    contents: []
-                }]
-            },
-            'Condition-0': {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'strong',
-                dependencies: ['strong'],
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{
-                        key: '123',
-                        tag: 'Room',
-                        index: 1
-                    }]
-                }]
-            },
-            strong: {
-                key: 'strong',
-                tag: 'Variable',
-                default: 'false',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: []
-                }]
-            }
-        })
+        })).toMatchSnapshot()
     })
 
     it('should throw an error on mismatched key use', () => {
