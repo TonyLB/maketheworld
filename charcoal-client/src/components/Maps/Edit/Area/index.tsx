@@ -13,13 +13,14 @@ type MapAreaProps = {
     fileURL?: string;
     tree: MapTree;
     dispatch: MapDispatch;
+    onStabilize?: () => void;
 }
 
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
 
-export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch, onStabilize = () => {} }) => {
     // const localClasses = useMapStyles()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
@@ -38,7 +39,10 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatc
         mapDispatch({
             type: 'SETCALLBACKS',
             callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) },
-            stabilityCallback: () => { mapDispatch({ type: 'STABILIZE' })}
+            stabilityCallback: () => {
+                mapDispatch({ type: 'STABILIZE' })
+                onStabilize()
+            }
         })
     }, [mapDispatch])
     useEffect(() => {

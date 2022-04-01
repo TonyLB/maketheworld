@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useReducer } from 'react'
+import React, { FunctionComponent, useState, useReducer, useCallback } from 'react'
 
 import {
     useParams
@@ -30,6 +30,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         normalToTree({ MapId: mapId || '', normalForm, rooms }),
         (tree) => ({ tree })
     )
+    const onStabilize = useCallback(() => {
+        console.log(`Stabilized: Tree: ${JSON.stringify(tree, null, 4)}`)
+    }, [tree])
 
     return <ToolSelectContext.Provider value={toolSelected}>
         <div className={localClasses.grid}>
@@ -37,7 +40,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                     <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
                 </div>
-                <MapArea tree={tree} dispatch={dispatch}/>
+                <MapArea tree={tree} dispatch={dispatch} onStabilize={onStabilize} />
             </div>
             <div className={localClasses.sidebar} >
                 <MapLayers tree={tree} dispatch={dispatch} />
