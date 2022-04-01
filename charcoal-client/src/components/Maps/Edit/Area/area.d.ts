@@ -1,5 +1,5 @@
 import { MapTree, VisibleMapItems } from '../maps'
-import { SimNode } from '../MapDThree/treeToSimulation'
+import { SimNode } from '../MapDThree/baseClasses'
 import { MapDThree } from '../MapDThree'
 
 export type MapAreaReducerActionTypes = 'TICK' | 'UPDATETREE' | 'SETCALLBACKS' | 'SETNODE' | 'STARTDRAG' | 'ENDDRAG' | 'STABILIZE'

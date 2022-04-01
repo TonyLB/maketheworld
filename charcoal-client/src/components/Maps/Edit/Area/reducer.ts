@@ -3,7 +3,7 @@ import {
     VisibleMapItems,
     MapItem
 } from '../maps'
-import { SimNode } from '../MapDThree'
+import { SimNode } from '../MapDThree/baseClasses'
 import { MapAreaReducer, MapAreaReducerState } from './area'
 import produce from 'immer'
 import { recursiveUpdate } from '../../../DraggableTree'

@@ -4,7 +4,8 @@ import React, { FunctionComponent, useReducer, useEffect, useState } from 'react
 import {
     MapTree
 } from '../maps'
-import MapDThree, { SimNode } from '../MapDThree'
+import MapDThree from '../MapDThree'
+import { SimNode } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible } from './reducer'
 import { MapDispatch } from '../reducer.d'
