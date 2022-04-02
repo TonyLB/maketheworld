@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals'
+import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 
 jest.mock('./MapDThreeIterator.tsx')
 import MapDThreeIteratorRaw from './MapDThreeIterator'
