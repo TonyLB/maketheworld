@@ -5,7 +5,7 @@ import {
     MapTree
 } from '../maps'
 import MapDThree from '../MapDThree'
-import { SimNode } from '../MapDThree/baseClasses'
+import { SimNode, SimCallback } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible } from './reducer'
 import { MapDispatch } from '../reducer.d'
@@ -14,7 +14,7 @@ type MapAreaProps = {
     fileURL?: string;
     tree: MapTree;
     dispatch: MapDispatch;
-    onStabilize?: () => void;
+    onStabilize?: SimCallback;
 }
 
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
@@ -40,9 +40,9 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatc
         mapDispatch({
             type: 'SETCALLBACKS',
             callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) },
-            stabilityCallback: () => {
+            stabilityCallback: (value: SimNode[]) => {
                 mapDispatch({ type: 'STABILIZE' })
-                onStabilize()
+                onStabilize(value)
             }
         })
     }, [mapDispatch])

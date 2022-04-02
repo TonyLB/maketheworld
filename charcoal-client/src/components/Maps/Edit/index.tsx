@@ -30,9 +30,9 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         normalToTree({ MapId: mapId || '', normalForm, rooms }),
         (tree) => ({ tree })
     )
-    const onStabilize = useCallback(() => {
-        console.log(`Stabilized: Tree: ${JSON.stringify(tree, null, 4)}`)
-    }, [tree])
+    const onStabilize = useCallback((values) => {
+        console.log(`Stabilized: Tree: ${JSON.stringify(values, null, 4)}`)
+    }, [])
 
     return <ToolSelectContext.Provider value={toolSelected}>
         <div className={localClasses.grid}>
