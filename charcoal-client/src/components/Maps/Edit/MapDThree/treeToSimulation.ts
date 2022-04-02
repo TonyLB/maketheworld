@@ -1,38 +1,6 @@
-import {
-    SimulationNodeDatum,
-    SimulationLinkDatum
-} from 'd3-force';
-// import { Link } from 'react-router-dom';
-// import { NestedTreeEntry } from '../../../DraggableTree/interfaces';
 import { MapTree, MapTreeEntry } from '../maps'
 
-//
-// STEP 1: Edit SimNode so that it carries a boolean saying whether (for a given simulation) the
-// node is fixed or moving
-//
-
-//
-// STEP 5: Remove zLevel and all lockThreshold code
-//
-export type SimNode = SimulationNodeDatum & {
-    id: string;
-    zLevel?: number;
-    cascadeNode: boolean;
-    roomId: string;
-    visible: boolean;
-}
-type NodeRecord = Record<string, SimNode>
-type LinkRecord = {
-    id: string,
-    source: string,
-    target: string,
-    visible?: boolean
-}[]
-type SimulationReturn = {
-    key: string,
-    nodes: SimNode[],
-    links: SimulationLinkDatum<SimNode>[]
-}
+import { SimNode, NodeRecord, LinkRecord, SimulationReturn } from './baseClasses'
 
 const simulationNodes = (treeEntry: MapTreeEntry): NodeRecord => {
     const { children = [], key, item } = treeEntry

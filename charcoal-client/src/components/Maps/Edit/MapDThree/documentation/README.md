@@ -38,3 +38,6 @@ iterator stabilizes on a resting state
 
 ## Behaviors
 
+### Expected tree format
+
+Tree format is passed in NestedTree format from the [**DraggableTree**](../../../../DraggableTree/documentation/README.md) component.
