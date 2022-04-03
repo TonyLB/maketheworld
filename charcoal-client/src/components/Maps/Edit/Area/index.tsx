@@ -4,7 +4,8 @@ import React, { FunctionComponent, useReducer, useEffect, useState } from 'react
 import {
     MapTree
 } from '../maps'
-import MapDThree, { SimNode } from '../MapDThree'
+import MapDThree from '../MapDThree'
+import { SimNode, SimCallback } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible } from './reducer'
 import { MapDispatch } from '../reducer.d'
@@ -13,13 +14,14 @@ type MapAreaProps = {
     fileURL?: string;
     tree: MapTree;
     dispatch: MapDispatch;
+    onStabilize?: SimCallback;
 }
 
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
 
-export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch, onStabilize = () => {} }) => {
     // const localClasses = useMapStyles()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
@@ -38,7 +40,10 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatc
         mapDispatch({
             type: 'SETCALLBACKS',
             callback: (nodes: SimNode[]) => { mapDispatch({ type: 'TICK', nodes }) },
-            stabilityCallback: () => { mapDispatch({ type: 'STABILIZE' })}
+            stabilityCallback: (value: SimNode[]) => {
+                mapDispatch({ type: 'STABILIZE' })
+                onStabilize(value)
+            }
         })
     }, [mapDispatch])
     useEffect(() => {

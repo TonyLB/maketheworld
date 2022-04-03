@@ -1,5 +1,6 @@
 import { produce } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
+import { objectEntryMap } from '../lib/objects'
 
 export class WMLNormalizeError extends Error {
     constructor(message) {
@@ -227,6 +228,43 @@ export const transformNode = (contextStack, node) => {
 }
 
 //
+// postProcessAppearance parses through elements after all of the normal structure has been
+// created, and updates appearanes where necessary (e.g. to include locations in the rooms
+// denormalization of Map nodes)
+//
+export const postProcessAppearance = (normalForm, key, index) => {
+    const node = normalForm[key]
+    if (!node) {
+        return normalForm
+    }
+    if (node.tag === 'Map') {
+        if (index >= node.appearances.length) {
+            return normalForm
+        }
+        const appearance = node.appearances[index]
+        const { rooms, contents } = appearance
+        const revisedRooms = objectEntryMap(rooms, (roomKey, roomPosition) => {
+            const roomContentItem = contents.find(({ key }) => (key === roomKey))
+            if (roomContentItem) {
+                const roomAppearance = normalForm[roomKey]?.appearances?.[roomContentItem.index]
+                if (roomAppearance) {
+                    const { location } = roomAppearance
+                    return {
+                        ...roomPosition,
+                        location
+                    }
+                }
+            }
+            return roomPosition
+        })
+        return produce(normalForm, (draftNormalForm) => {
+            draftNormalForm[key].appearances[index].rooms = revisedRooms
+        })
+    }
+    return normalForm
+}
+
+//
 // mergeElements tracks how to add an element into the normalized structure, given the contextStack in
 // which it is encountered.
 //
@@ -397,7 +435,12 @@ export const normalize = (node, existingMap = {}, contextStack = [], location = 
         }
     ]
     const secondPassMap = (contents || []).reduce((previous, node, index) => (normalize(node, previous, updatedContextStack, [...location, index])), firstPassMap)
-    return secondPassMap
+    const thirdPassMap = Object.entries(secondPassMap)
+        .reduce((previous, [key, normalItem]) => (
+            normalItem.appearances
+                .reduce((accumulator, _, index) => (postProcessAppearance(accumulator, key, index)), previous)
+        ), secondPassMap)
+    return thirdPassMap
 }
 
 export default normalize

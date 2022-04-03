@@ -1,6 +1,7 @@
 import normalize, {
     NormalizeTagMismatchError,
     transformNode,
+    postProcessAppearance,
     clearGeneratedKeys,
     addElement
 } from './normalize.js'
@@ -92,6 +93,76 @@ describe('WML normalize', () => {
             )).toMatchSnapshot()
         })
 
+    })
+
+    describe('postProcessAppearance', () => {
+        it('should aggregate locations into Map rooms', () => {
+            const testNormalForm = {
+                TestAsset: {
+                    key: 'TestAsset',
+                    tag: 'Asset',
+                    appearances: [{
+                        contextStack: [],
+                        contents: [{
+                            key: 'TestMap',
+                            tag: 'Map'
+                        }],
+                        location: [0]
+                    }]
+                },
+                TestMap: {
+                    key: 'TestMap',
+                    tag: 'Map',
+                    appearances: [{
+                        contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }],
+                        contents: [{
+                            key: 'welcomeRoom',
+                            tag: 'Room',
+                            index: 0
+                        },
+                        {
+                            key: 'VORTEX',
+                            tag: 'Room',
+                            index: 0
+                        }],
+                        rooms: {
+                            welcomeRoom: {
+                                x: 0,
+                                y: 100
+                            },
+                            VORTEX: {
+                                x: 0,
+                                y: 0
+                            }
+                        },
+                        location: [0, 0]
+                    }]
+                },
+                welcomeRoom: {
+                    key: 'welcomeRoom',
+                    tag: 'Room',
+                    appearances: [{
+                        contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                        contents: [],
+                        x: 0,
+                        y: 100,
+                        location: [0, 0, 0]
+                    }]
+                },
+                VORTEX: {
+                    key: 'VORTEX',
+                    tag: 'Room',
+                    appearances: [{
+                        contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
+                        contents: [],
+                        x: 0,
+                        y: 0,
+                        location: [0, 0, 1]
+                    }]
+                }
+            }
+            expect(postProcessAppearance(testNormalForm, 'TestMap', 0)).toMatchSnapshot()
+        })
     })
 
     describe('addElement', () => {

@@ -4,7 +4,7 @@ import {
     forceSimulation
 } from 'd3-force'
 
-import { SimNode } from './treeToSimulation'
+import { SimNode } from './baseClasses'
 import cascadeForce from './cascadeForce'
 import exitSeekerForce, { SeekerForceFunction } from './exitSeekerForce'
 
