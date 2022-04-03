@@ -77,7 +77,7 @@ export type NormalImport = {
 type NormalImage = {
     tag: 'Image';
     fileURL?: string;
-    appearances: BaseAppearance;
+    appearances: BaseAppearance[];
 } & NormalBase
 
 type MapAppearanceRoom = {
