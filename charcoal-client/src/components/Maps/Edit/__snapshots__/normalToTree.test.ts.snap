@@ -43,6 +43,11 @@ Array [
       Object {
         "children": Array [],
         "item": Object {
+          "location": Array [
+            0,
+            0,
+            0,
+          ],
           "name": "Vortex",
           "roomId": "123",
           "type": "ROOM",

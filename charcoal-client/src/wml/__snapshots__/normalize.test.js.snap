@@ -351,6 +351,136 @@ Object {
 }
 `;
 
+exports[`WML normalize postProcessAppearance should aggregate locations into Map rooms 1`] = `
+Object {
+  "TestAsset": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "key": "TestMap",
+            "tag": "Map",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "key": "TestAsset",
+    "tag": "Asset",
+  },
+  "TestMap": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "welcomeRoom",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "VORTEX",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "rooms": Object {
+          "VORTEX": Object {
+            "location": Array [
+              0,
+              0,
+              1,
+            ],
+            "x": 0,
+            "y": 0,
+          },
+          "welcomeRoom": Object {
+            "location": Array [
+              0,
+              0,
+              0,
+            ],
+            "x": 0,
+            "y": 100,
+          },
+        },
+      },
+    ],
+    "key": "TestMap",
+    "tag": "Map",
+  },
+  "VORTEX": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "TestMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          1,
+        ],
+        "x": 0,
+        "y": 0,
+      },
+    ],
+    "key": "VORTEX",
+    "tag": "Room",
+  },
+  "welcomeRoom": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "TestAsset",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "TestMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+        "x": 0,
+        "y": 100,
+      },
+    ],
+    "key": "welcomeRoom",
+    "tag": "Room",
+  },
+}
+`;
+
 exports[`WML normalize should accumulate multiple appearances of the same key 1`] = `
 Object {
   "123": Object {
@@ -972,6 +1102,11 @@ Object {
         ],
         "rooms": Object {
           "123": Object {
+            "location": Array [
+              0,
+              2,
+              1,
+            ],
             "x": 200,
             "y": 150,
           },

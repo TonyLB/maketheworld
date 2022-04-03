@@ -46,7 +46,13 @@ const testSchema = {
             x: "300",
             y: "200",
             contents: []
-        }]
+        }],
+        rooms: {
+            '123': {
+                x: 300,
+                y: 200
+            }
+        }
     },
     {
         tag: 'Condition',

@@ -23,6 +23,10 @@ export const objectMap = (obj: Record<string, any>, transform: (value: any) => a
     .map(([key, value]) => ({ [key]: transform(value) }))
     .reduce(reduceAssignToObject, {})
 
+export const objectEntryMap = (obj: Record<string, any>, transform: (key: any, value: any) => any) => Object.entries(obj)
+    .map(([key, value]) => ({ [key]: transform(key, value) }))
+    .reduce(reduceAssignToObject, {})
+
 export const reduceArrayToObject = (previous: Record<string, any>, [key, value]: [string, any]) => ({ ...previous, [key]: value })
 
 //

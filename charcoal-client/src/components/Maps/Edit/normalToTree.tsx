@@ -16,7 +16,7 @@ export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): M
         .reduce((previous, { rooms }) => ({
             ...previous, 
             ...rooms
-        }), {}) as Record<string, { x: number; y: number }>
+        }), {}) as Record<string, { x: number; y: number; location: number[] }>
     const exitPairs = Object.values(normalForm || {})
         .filter(({ tag }) => (tag === 'Exit'))
         .map((item) => (item as NormalExit))
@@ -45,15 +45,15 @@ export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): M
             })))
         ]), [] as MapTree)
     const tree: MapTree = Object.entries(roomItems || {})
-        .reduce<MapTree>((previous, [key, { x = 0, y = 0 }], index) => {
-            const room = normalForm[key]
+        .reduce<MapTree>((previous, [key, { x = 0, y = 0, location }], index) => {
             return [
                 ...previous,
                 {
                     key,
                     item: {
                         type: 'ROOM',
-                        name: rooms[key]?.name || 'Untitle',
+                        name: rooms[key]?.name || 'Untitled',
+                        location,
                         x,
                         y,
                         roomId: key,

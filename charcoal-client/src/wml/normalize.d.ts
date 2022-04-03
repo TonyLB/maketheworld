@@ -21,6 +21,7 @@ type NormalReference = {
 type BaseAppearance = {
     contextStack: NormalReference[];
     contents: NormalReference[];
+    location?: number[];
 }
 
 type NormalBase = {
@@ -79,8 +80,14 @@ type NormalImage = {
     appearances: BaseAppearance;
 } & NormalBase
 
+type MapAppearanceRoom = {
+    x: number;
+    y: number;
+    location: number[];
+}
+
 type MapAppearance = {
-    rooms: Record<string, { x: number; y: number }>;
+    rooms: Record<string, MapAppearanceRoom>;
 } & BaseAppearance
 
 export type NormalMap = {

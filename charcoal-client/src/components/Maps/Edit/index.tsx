@@ -32,6 +32,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     )
     const onStabilize = useCallback((values) => {
         console.log(`Stabilized: Tree: ${JSON.stringify(values, null, 4)}`)
+        console.log(`Rooms: ${JSON.stringify(normalForm[mapId || ''], null, 4)}`)
     }, [])
 
     return <ToolSelectContext.Provider value={toolSelected}>
