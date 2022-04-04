@@ -17,7 +17,7 @@ export const iterateOneSSM = ({
     if (focusSSM && focusSSM.desiredState !== focusSSM.currentState) {
         const executionPath = dijkstra({
             startKey: focusSSM.currentState,
-            endKey: focusSSM.desiredState,
+            endKeys: [focusSSM.desiredState],
             template: focusSSM.template
         })
         if (executionPath.length > 0) {
