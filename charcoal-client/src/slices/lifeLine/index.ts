@@ -24,7 +24,7 @@ export const {
 } = singleSSM<LifeLineNodes, {}>({
     name: 'lifeLine',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'CONNECTED',
+    initialSSMDesired: ['CONNECTED'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5,

@@ -91,7 +91,7 @@ interface LibraryProps {
 export const Library: FunctionComponent<LibraryProps> = () => {
     const dispatch = useDispatch()
     useEffect(() => {
-        dispatch(setIntent('CONNECTED'))
+        dispatch(setIntent(['CONNECTED']))
         dispatch(heartbeat)
     }, [])
     const [selectedPersonalIndex, setSelectedPersonalIndex] = React.useState<undefined | number>()

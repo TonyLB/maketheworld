@@ -17,7 +17,7 @@ export const {
 } = singleSSM<EphemeraNodes, PublicSelectorType>({
     name: 'ephemera',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'CONNECTED',
+    initialSSMDesired: ['CONNECTED'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

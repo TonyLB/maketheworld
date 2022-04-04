@@ -19,7 +19,7 @@ export const {
 } = multipleSSM<ActiveCharacterNodes, PublicSelectors>({
     name: 'activeCharacters',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'CONNECTED',
+    initialSSMDesired: ['CONNECTED'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

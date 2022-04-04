@@ -20,7 +20,7 @@ export const {
 } = singleSSM<Library, LibrarySelectors>({
     name: 'library',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'INACTIVE',
+    initialSSMDesired: ['INACTIVE'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

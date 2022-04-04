@@ -20,7 +20,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'FRESH',
+    initialSSMDesired: ['FRESH', 'DIRTY'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5
