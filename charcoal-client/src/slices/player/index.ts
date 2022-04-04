@@ -24,7 +24,7 @@ export const {
 } = singleSSM<PlayerNodes, PlayerSelectors>({
     name: 'player',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'CONNECTED',
+    initialSSMDesired: ['CONNECTED'],
     initialData: {
         internalData: {
             incrementalBackoff: 0.5

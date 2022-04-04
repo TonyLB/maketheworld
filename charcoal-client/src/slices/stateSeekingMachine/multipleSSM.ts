@@ -46,7 +46,7 @@ type resultPublicSelector<D> = {
 type multipleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType> = {
     name: string;
     initialSSMState: keyof Nodes;
-    initialSSMDesired: keyof Nodes;
+    initialSSMDesired: (keyof Nodes)[];
     initialData: InferredDataTypeAggregateFromNodes<Nodes>;
     sliceSelector: (state: any) => multipleSSMSlice<Nodes>;
     publicReducers?: Record<string, multipleSSMPublicReducer<Nodes, any>>;
@@ -109,9 +109,9 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
             byId: {}
         } as multipleSSMSlice<Nodes>,
         reducers: {
-            setIntent(state, action: PayloadAction<{ key: string; intent: keyof Nodes }>) {
+            setIntent(state, action: PayloadAction<{ key: string; intent: (keyof Nodes)[] }>) {
                 if (state.byId[action.payload.key]) {
-                    state.byId[action.payload.key].meta.desiredState = castDraft(action.payload.intent)
+                    state.byId[action.payload.key].meta.desiredStates = castDraft(action.payload.intent)
                 }
             },
             addItem(state, action: PayloadAction<string>) {
@@ -124,7 +124,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                         publicData: initialData.publicData,
                         meta: {
                             currentState: castDraft(initialSSMState),
-                            desiredState: castDraft(initialSSMDesired),
+                            desiredStates: castDraft(initialSSMDesired),
                             inProgress: null
                         }
                     } as unknown as multipleSSMItem<Nodes>)
@@ -179,13 +179,13 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         const machinesCast = Object.entries(byId) as [string, multipleSSMItem<Nodes>][]
         machinesCast
             .filter(([key, value]) => (value))
-            .filter(([key, { meta: { currentState, desiredState } }]) => (desiredState !== currentState))
+            .filter(([key, { meta: { currentState, desiredStates } }]) => (!desiredStates.includes(currentState)))
             .forEach(([key]) => {
                 const getSSMData = (state: any) => {
                     const currentData = sliceSelector(state).byId[key]
-                    const { currentState, desiredState, inProgress } = currentData.meta
+                    const { currentState, desiredStates, inProgress } = currentData.meta
                     const { internalData, publicData } = currentData
-                    return { currentState, desiredState, internalData, publicData, inProgress, template }
+                    return { currentState, desiredStates, internalData, publicData, inProgress, template }
                 }
                 dispatch(iterateOneSSM({
                     getSSMData,
@@ -215,12 +215,12 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         return undefined
     }
 
-    const getIntent = (key: string): Selector<keyof Nodes | undefined> => (state) => {
+    const getIntent = (key: string): Selector<(keyof Nodes)[]> => (state) => {
         const focus = sliceSelector(state).byId[key]
         if (focus) {
-            return focus.meta.desiredState
+            return focus.meta.desiredStates
         }
-        return undefined
+        return []
     }
 
     type SelectorAggregate = {
@@ -228,7 +228,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
     }
     const selectors: SelectorAggregate & {
         getStatus: (key: string) => Selector<keyof Nodes | undefined>;
-        getIntent: (key: string) => Selector<keyof Nodes | undefined>;
+        getIntent: (key: string) => Selector<(keyof Nodes)[]>;
     } = {
         ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
             .reduce((previous, [name, selector]) => ({

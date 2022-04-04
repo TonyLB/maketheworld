@@ -23,7 +23,7 @@ export const {
 } = multipleSSM<CharacterEditNodes, PublicSelectors>({
     name: 'characterEdit',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: 'PARSED',
+    initialSSMDesired: ['PARSED'],
     initialData: {
         internalData: {},
         publicData: {
@@ -110,7 +110,7 @@ export const saveCharacter = (key: string): ThunkAction<void, RootState, unknown
     const characterEdit = getCharacterEditByKey(key)(state)
     const status = getStatus(key)(state)
     const intent = getIntent(key)(state)
-    if (characterEdit && status === 'PARSED' && intent === 'PARSED') {
+    if (characterEdit && status === 'PARSED' && intent.includes('PARSED')) {
         dispatch(characterEditSlice.actions.internalStateChange({
             key,
             newState: 'INITIATESAVE',

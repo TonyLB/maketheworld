@@ -141,7 +141,7 @@ export interface IStateSeekingMachineAbstract<K extends string, I extends ISSMDa
     key: string;
     template: T;
     currentState: K;
-    desiredState: K;
+    desiredStates: K[];
     data: ISSMDataLayout<I, D>;
 }
 
@@ -187,6 +187,6 @@ export type TestSSM = IStateSeekingMachineAbstract<testKeys, TestInternal, TestD
 
 export type ssmMeta<K> = {
     currentState: K;
-    desiredState: K;
+    desiredStates: K[];
     inProgress: K | null;
 }

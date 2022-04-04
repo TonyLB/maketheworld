@@ -28,7 +28,7 @@ type resultPublicSelector<D> = {
 type singleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType> = {
     name: string;
     initialSSMState: keyof Nodes;
-    initialSSMDesired: keyof Nodes;
+    initialSSMDesired: (keyof Nodes)[];
     initialData: InferredDataTypeAggregateFromNodes<Nodes>;
     sliceSelector: (state: any) => singleSSMSlice<Nodes>;
     publicReducers?: Record<string, singleSSMPublicReducer<Nodes, any>>;
@@ -72,13 +72,13 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
             ...initialData,
             meta: {
                 currentState: initialSSMState,
-                desiredState: initialSSMDesired,
+                desiredStates: initialSSMDesired,
                 inProgress: null
             }
         } as singleSSMSlice<Nodes>,
         reducers: {
-            setIntent(state, action: PayloadAction<keyof Nodes>) {
-                state.meta.desiredState = castDraft(action.payload)
+            setIntent(state, action: PayloadAction<(keyof Nodes)[]>) {
+                state.meta.desiredStates = castDraft(action.payload)
             },
             internalStateChange(
                 state,
@@ -112,13 +112,13 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
     const { internalStateChange } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
         const sliceData = sliceSelector(getState())
-        const { currentState, desiredState } = sliceData.meta
-        if (desiredState !== currentState) {
+        const { currentState, desiredStates } = sliceData.meta
+        if (!desiredStates.includes(currentState)) {
             const getSSMData = (state: any) => {
                 const currentData = sliceSelector(state)
-                const { currentState, desiredState, inProgress } = currentData.meta
+                const { currentState, desiredStates, inProgress } = currentData.meta
                 const { internalData, publicData } = currentData
-                return { currentState, desiredState, internalData, publicData, inProgress, template }
+                return { currentState, desiredStates, internalData, publicData, inProgress, template }
             }
             dispatch(iterateOneSSM({
                 getSSMData,
@@ -136,8 +136,8 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         return sliceSelector(state).meta.currentState
     }
 
-    const getIntent = (state: any): keyof Nodes => {
-        return sliceSelector(state).meta.desiredState
+    const getIntent = (state: any): (keyof Nodes)[] => {
+        return sliceSelector(state).meta.desiredStates
     }
 
     type SelectorAggregate = {
@@ -145,7 +145,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
     }
     const selectors: SelectorAggregate & {
         getStatus: Selector<keyof Nodes>;
-        getIntent: Selector<keyof Nodes>;
+        getIntent: Selector<(keyof Nodes)[]>;
     } = {
         ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
             .reduce((previous, [name, selector]) => ({

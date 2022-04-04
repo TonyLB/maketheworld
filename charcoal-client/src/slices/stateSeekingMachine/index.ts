@@ -14,10 +14,10 @@ export const iterateOneSSM = ({
     actions: Record<string, any>;
 }) => (dispatch: any, getState: any) => {
     const focusSSM = getSSMData(getState())
-    if (focusSSM && focusSSM.desiredState !== focusSSM.currentState) {
+    if (focusSSM && !focusSSM.desiredStates.includes(focusSSM.currentState)) {
         const executionPath = dijkstra({
             startKey: focusSSM.currentState,
-            endKeys: [focusSSM.desiredState],
+            endKeys: focusSSM.desiredStates,
             template: focusSSM.template
         })
         if (executionPath.length > 0) {
