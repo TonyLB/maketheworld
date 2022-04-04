@@ -32,7 +32,7 @@ const possibleIntents = <Nodes extends ISSMData>(
 }
 
 export const dijkstra = <Nodes extends ISSMData>(
-    { startKey, endKey, template }: { startKey: StringKeys<Nodes>, endKey: StringKeys<Nodes>, template: TemplateFromNodes<Nodes> }
+    { startKey, endKeys, template }: { startKey: StringKeys<Nodes>, endKeys: StringKeys<Nodes>[], template: TemplateFromNodes<Nodes> }
 ): (StringKeys<Nodes>)[] => {
     type K = StringKeys<Nodes>
     const nodes: Record<K, IDijkstraNode<K>> = Object.keys(template.states)
@@ -46,9 +46,12 @@ export const dijkstra = <Nodes extends ISSMData>(
             }
         }), {}) as Record<K, IDijkstraNode<K>>
     nodes[startKey].distance = 0
+    const minEndKeysDistance = (nodes: Record<K, IDijkstraNode<K>>) => (
+        endKeys.reduce<number>((previous: number, endKey: K) => (Math.min(previous, nodes[endKey]?.distance || Infinity)), Infinity)
+    )
     let current = nodes[startKey]
     let breakout = 0
-    while(nodes[endKey].distance === Infinity && breakout < 100) {
+    while(minEndKeysDistance(nodes) === Infinity && breakout < 100) {
         breakout++
         const newDistance = current.distance + 1
         const currentKey = current.key
@@ -76,17 +79,24 @@ export const dijkstra = <Nodes extends ISSMData>(
         }
         current = next
     }
-    if (nodes[endKey].distance === Infinity) {
+    if (minEndKeysDistance(nodes) === Infinity) {
         return []
     }
     else {
-        let returnValue: K[] = [endKey]
-        current = nodes[endKey]
-        while(current.previous !== startKey && breakout < 10) {
-            returnValue = [current.previous, ...returnValue]
-            current = nodes[current.previous]
+        const minDistance = minEndKeysDistance(nodes)
+        const foundKey: K | undefined = endKeys.reduceRight<K | undefined>((previous, endKey) => ((nodes[endKey].distance === minDistance) ? endKey : previous), undefined)
+        if (foundKey === undefined) {
+            return []
         }
-        return returnValue
+        else {
+            let returnValue: K[] = [foundKey]
+            current = nodes[foundKey]
+            while(current.previous !== startKey && breakout < 10) {
+                returnValue = [current.previous, ...returnValue]
+                current = nodes[current.previous]
+            }
+            return returnValue
+        }
     }
 }
 
