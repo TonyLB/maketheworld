@@ -55,6 +55,15 @@ export type ISSMHoldState<K, I extends ISSMData, D extends ISSMData> = ISSMHoldN
     next: K;
 }
 
+export interface ISSMRedirectNode {
+    stateType: 'REDIRECT';
+}
+
+export type ISSMRedirectState<K> = ISSMRedirectNode & {
+    newIntent: Array<K>;
+    choices: Array<K>;
+}
+
 //
 // Map each type to its inferred internal and public data types
 //
@@ -123,7 +132,7 @@ export type TemplateFromNodes<Nodes extends Record<string, any>> = {
     states: GraphFromNodes<Nodes>;
 }
 
-export type ISSMPotentialState<K, I extends ISSMData, D extends ISSMData> = ISSMChoiceState<K> | ISSMAttemptState<K, I, D> | ISSMHoldState<K, I, D>
+export type ISSMPotentialState<K, I extends ISSMData, D extends ISSMData> = ISSMChoiceState<K> | ISSMAttemptState<K, I, D> | ISSMHoldState<K, I, D> | ISSMRedirectState<K>
 
 export type PotentialStateFromNodes<Nodes extends Record<string, any>> = ISSMPotentialState<
     keyof Nodes,

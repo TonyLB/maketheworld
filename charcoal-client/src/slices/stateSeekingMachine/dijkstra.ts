@@ -20,6 +20,7 @@ const possibleIntents = <Nodes extends ISSMData>(
     node: PotentialStateFromNodes<Nodes>
 ): Array<keyof Nodes> => {
     switch(node.stateType) {
+        case 'REDIRECT':
         case 'CHOICE':
             return node.choices
         case 'HOLD':
