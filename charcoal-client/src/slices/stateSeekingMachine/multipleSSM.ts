@@ -172,7 +172,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         [name]: publicAction((slice.actions as any)[`core${name}`])
     }), {}) as Record<string, wrappedPublicReducer<any>>
 
-    const { internalStateChange } = slice.actions
+    const { internalStateChange, setIntent } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
         const sliceData = sliceSelector(getState())
         const { byId = {} } = sliceData
@@ -194,6 +194,9 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                             inProgress: keyof Nodes,
                             data: InferredDataTypeAggregateFromNodes<Nodes>
                         }) => (internalStateChange({ key, newState, inProgress, data })),
+                    internalIntentChange: ({ newIntent }: {
+                            newIntent: (keyof Nodes)[]
+                        }) => (setIntent({ key, intent: newIntent })),
                     actions: {
                         ...slice.actions,
                         ...(Object.entries(publicActions)

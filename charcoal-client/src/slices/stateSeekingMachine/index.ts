@@ -3,6 +3,7 @@ import { heartbeat } from './ssmHeartbeat'
 
 export const iterateOneSSM = ({
     internalStateChange,
+    internalIntentChange,
     getSSMData,
     actions
 }: {
@@ -10,19 +11,23 @@ export const iterateOneSSM = ({
     // TODO: Figure out how to type-constrain these function arguments
     //
     internalStateChange: any;
+    internalIntentChange: any;
     getSSMData: any;
     actions: Record<string, any>;
 }) => (dispatch: any, getState: any) => {
     const focusSSM = getSSMData(getState())
     if (focusSSM && !focusSSM.desiredStates.includes(focusSSM.currentState)) {
+        const currentStep = focusSSM.template.states[focusSSM.currentState]
+        if (currentStep.stateType === 'REDIRECT') {
+            dispatch(internalIntentChange({ newIntent: currentStep.newIntent }))
+        }
         const executionPath = dijkstra({
             startKey: focusSSM.currentState,
-            endKeys: focusSSM.desiredStates,
+            endKeys: currentStep.stateType === 'REDIRECT' ? currentStep.newIntent : focusSSM.desiredStates,
             template: focusSSM.template
         })
         if (executionPath.length > 0) {
-            const currentStep = focusSSM.template.states[focusSSM.currentState]
-            if (['HOLD', 'CHOICE'].includes(currentStep.stateType)) {
+            if (['REDIRECT', 'HOLD', 'CHOICE'].includes(currentStep.stateType)) {
                 if (currentStep.stateType === 'HOLD') {
                     const conditionalResult = currentStep.condition({
                         internalData: focusSSM.internalData,

@@ -109,7 +109,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
         }
     })
 
-    const { internalStateChange } = slice.actions
+    const { internalStateChange, setIntent } = slice.actions
     const iterateAllSSMs = (dispatch: any, getState: any) => {
         const sliceData = sliceSelector(getState())
         const { currentState, desiredStates } = sliceData.meta
@@ -127,6 +127,7 @@ export const singleSSM = <Nodes extends Record<string, any>, PublicSelectorsType
                         inProgress: keyof Nodes,
                         data: InferredDataTypeAggregateFromNodes<Nodes>
                     }) => (internalStateChange({ newState, inProgress, data })),
+                internalIntentChange: ({ newIntent }: { newIntent: (keyof Nodes)[] }) => (setIntent(newIntent)),
                 actions: slice.actions
             }))
         }
