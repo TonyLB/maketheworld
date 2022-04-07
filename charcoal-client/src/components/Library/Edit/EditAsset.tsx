@@ -105,7 +105,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
     const dispatch = useDispatch()
     useEffect(() => {
         if (assetKey) {
-            dispatch(addItem(`ASSET#${assetKey}`))
+            dispatch(addItem({ key: `ASSET#${assetKey}` }))
             dispatch(heartbeat)
         }
     }, [dispatch, assetKey])

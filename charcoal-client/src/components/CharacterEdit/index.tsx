@@ -25,7 +25,7 @@ export const CharacterEdit: FunctionComponent<CharacterEditProps> = ({}) => {
     const dispatch = useDispatch()
     useEffect(() => {
         if (CharacterKey && CharacterKey !== 'New') {
-            dispatch(addItem(CharacterKey))
+            dispatch(addItem({ key: CharacterKey }))
             dispatch(heartbeat)
         }
     }, [dispatch, CharacterKey])
