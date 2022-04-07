@@ -114,16 +114,17 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
                     state.byId[action.payload.key].meta.desiredStates = castDraft(action.payload.intent)
                 }
             },
-            addItem(state, action: PayloadAction<string>) {
-                if (!state.byId[action.payload]) {
-                    state.byId[action.payload] = castDraft({
+            addItem(state, action: PayloadAction<{ key: string; options?: { initialState?: keyof Nodes } }>) {
+                if (!state.byId[action.payload.key]) {
+                    console.log(`Starting state: ${action.payload.options?.initialState || initialSSMState}`)
+                    state.byId[action.payload.key] = castDraft({
                         internalData: {
                             ...(initialData.internalData || {}),
-                            id: action.payload
+                            id: action.payload.key
                         },
                         publicData: initialData.publicData,
                         meta: {
-                            currentState: castDraft(initialSSMState),
+                            currentState: castDraft(action.payload.options?.initialState || initialSSMState),
                             desiredStates: castDraft(initialSSMDesired),
                             inProgress: null
                         }

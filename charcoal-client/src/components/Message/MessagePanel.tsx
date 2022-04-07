@@ -16,7 +16,7 @@ export const MessagePanel: FunctionComponent<{}> = () => {
     const { CharacterId, info: { Name = '???' } = {} } = useActiveCharacter()
     useAutoPin({ href: `/Character/${CharacterId}/Play`, label: `Play: ${Name}`})
     useEffect(() => {
-        dispatch(addItem(CharacterId))
+        dispatch(addItem({ key: CharacterId }))
         dispatch(heartbeat)
     }, [dispatch, CharacterId])
     const handleInput = useCallback(({ entry, mode }) => {

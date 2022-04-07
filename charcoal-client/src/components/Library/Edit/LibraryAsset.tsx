@@ -16,8 +16,6 @@ import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMem
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
-    addItem,
-    getStatus,
     getCurrentWML,
     getNormalized,
     getWMLQuery,
