@@ -16,14 +16,15 @@ export const iterateOneSSM = ({
     actions: Record<string, any>;
 }) => (dispatch: any, getState: any) => {
     const focusSSM = getSSMData(getState())
-    if (focusSSM && !focusSSM.desiredStates.includes(focusSSM.currentState)) {
-        const currentStep = focusSSM.template.states[focusSSM.currentState]
-        if (currentStep.stateType === 'REDIRECT') {
-            dispatch(internalIntentChange({ newIntent: currentStep.newIntent }))
-        }
+    const currentStep = focusSSM.template.states[focusSSM.currentState]
+    if (currentStep.stateType === 'REDIRECT') {
+        dispatch(internalIntentChange({ newIntent: currentStep.newIntent }))
+    }
+    const desiredStates = currentStep.stateType === 'REDIRECT' ? currentStep.newIntent : focusSSM.desiredStates
+    if (focusSSM && !desiredStates.includes(focusSSM.currentState)) {
         const executionPath = dijkstra({
             startKey: focusSSM.currentState,
-            endKeys: currentStep.stateType === 'REDIRECT' ? currentStep.newIntent : focusSSM.desiredStates,
+            endKeys: desiredStates,
             template: focusSSM.template
         })
         if (executionPath.length > 0) {

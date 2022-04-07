@@ -123,7 +123,9 @@ export type GraphFromNodes<Nodes extends Record<string, any>> = {
                 >
                 : Nodes[Node] extends ISSMChoiceNode
                     ? ISSMChoiceState<keyof Nodes>
-                    : never
+                    : Nodes[Node] extends ISSMRedirectNode
+                        ? ISSMRedirectState<keyof Nodes>
+                        : never
 }
 
 export type TemplateFromNodes<Nodes extends Record<string, any>> = {
@@ -154,45 +156,45 @@ export interface IStateSeekingMachineAbstract<K extends string, I extends ISSMDa
     data: ISSMDataLayout<I, D>;
 }
 
-export type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
-export class TestInternal {}
-export class TestData {
-    valOne: string = ''
-    valTwo: string = ''
-}
+// export type testKeys = 'INITIAL' | 'CONNECTING' | 'CONNECTED'
+// export class TestInternal {}
+// export class TestData {
+//     valOne: string = ''
+//     valTwo: string = ''
+// }
 
-export type ITestState = ISSMPotentialState<testKeys, TestInternal, TestData>
+// export type ITestState = ISSMPotentialState<testKeys, TestInternal, TestData>
 
-export interface ITestSSM extends ISSMTemplateAbstract<testKeys, TestInternal, TestData> {
-    ssmType: 'Test'
-}
+// export interface ITestSSM extends ISSMTemplateAbstract<testKeys, TestInternal, TestData> {
+//     ssmType: 'Test'
+// }
 
-export class TestTemplate implements ITestSSM {
-    ssmType: 'Test' = 'Test'
-    initialState: testKeys = 'INITIAL'
-    initialData: ISSMDataLayout<TestInternal, TestData> = {
-        internalData: new TestInternal,
-        publicData: new TestData()
-    }
-    states: Record<testKeys, ITestState> = {
-        INITIAL: {
-            stateType: 'CHOICE',
-            choices: ['CONNECTING']
-        },
-        CONNECTING: {
-            stateType: 'ATTEMPT',
-            action: jest.fn(),
-            resolve: 'CONNECTED',
-            reject: 'INITIAL'
-        },
-        CONNECTED: {
-            stateType: 'CHOICE',
-            choices: []
-        }
-    }
-}
+// export class TestTemplate implements ITestSSM {
+//     ssmType: 'Test' = 'Test'
+//     initialState: testKeys = 'INITIAL'
+//     initialData: ISSMDataLayout<TestInternal, TestData> = {
+//         internalData: new TestInternal,
+//         publicData: new TestData()
+//     }
+//     states: Record<testKeys, ITestState> = {
+//         INITIAL: {
+//             stateType: 'CHOICE',
+//             choices: ['CONNECTING']
+//         },
+//         CONNECTING: {
+//             stateType: 'ATTEMPT',
+//             action: jest.fn(),
+//             resolve: 'CONNECTED',
+//             reject: 'INITIAL'
+//         },
+//         CONNECTED: {
+//             stateType: 'CHOICE',
+//             choices: []
+//         }
+//     }
+// }
 
-export type TestSSM = IStateSeekingMachineAbstract<testKeys, TestInternal, TestData, TestTemplate>
+// export type TestSSM = IStateSeekingMachineAbstract<testKeys, TestInternal, TestData, TestTemplate>
 
 export type ssmMeta<K> = {
     currentState: K;
