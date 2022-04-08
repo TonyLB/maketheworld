@@ -232,7 +232,7 @@ const executeAction = (request) => {
     return { statusCode: 200, body: JSON.stringify({}) }
 }
 
-const upload = async ({ fileName, connectionId, requestId, uploadRequestId }) => {
+const upload = async ({ fileName, tag, connectionId, requestId, uploadRequestId }) => {
     const PlayerName = await getPlayerByConnectionId(connectionId)
     if (PlayerName) {
         const { Payload } = await lambdaClient.send(new InvokeCommand({
@@ -242,6 +242,7 @@ const upload = async ({ fileName, connectionId, requestId, uploadRequestId }) =>
                 message: 'upload',
                 PlayerName,
                 fileName,
+                tag,
                 RequestId: uploadRequestId
             }))
         }))
@@ -484,6 +485,7 @@ export const handler = async (event, context) => {
         case 'upload':
             const returnVal = await upload({
                 fileName: request.fileName,
+                tag: request.tag,
                 connectionId,
                 requestId: request.RequestId,
                 uploadRequestId: request.uploadRequestId

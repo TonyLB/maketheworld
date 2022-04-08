@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { AssetKey } from '/opt/utilities/types.js'
 

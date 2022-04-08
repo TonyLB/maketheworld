@@ -1,11 +1,12 @@
 import { PersonalAssetsNodes } from './baseClasses'
-import { multipleSSM, multipleSSMSlice } from '../stateSeekingMachine/multipleSSM'
+import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
     getFetchURL,
     fetchAction,
     fetchDefaultsAction,
-    saveAction,
+    getSaveURL,
+    saveWML,
     clearAction,
     backoffAction
 } from './index.api'
@@ -97,22 +98,33 @@ export const {
             },
             FRESH: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'DIRTY']
+                choices: ['CLEAR', 'DIRTY', 'NEEDSAVE']
             },
             DIRTY: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'SAVE']
+                choices: ['CLEAR', 'NEEDSAVE']
+            },
+            NEEDSAVE: {
+                stateType: 'REDIRECT',
+                newIntent: ['DIRTY', 'FRESH'],
+                choices: ['GETSAVEURL']
+            },
+            GETSAVEURL: {
+                stateType: 'ATTEMPT',
+                action: getSaveURL,
+                resolve: 'SAVE',
+                reject: 'SAVEBACKOFF'
             },
             SAVE: {
                 stateType: 'ATTEMPT',
-                action: saveAction,
+                action: saveWML,
                 resolve: 'FRESH',
                 reject: 'SAVEBACKOFF'
             },
             SAVEBACKOFF: {
                 stateType: 'ATTEMPT',
                 action: backoffAction,
-                resolve: 'SAVE',
+                resolve: 'GETSAVEURL',
                 reject: 'SAVEERROR'
             },
             SAVEERROR: {
@@ -129,10 +141,10 @@ export const {
     }
 })
 
-export const { addItem } = personalAssetsSlice.actions
+export const { addItem, setIntent } = personalAssetsSlice.actions
 export const {
     setCurrentWML,
-    setDraftWML
+    setDraftWML,
 } = publicActions
 export const {
     getStatus,

@@ -26,7 +26,7 @@ export const importedAssetIds = async (importMap) => {
             return {}
         }
         const fetchPromises = Object.entries(importMap)
-            .map(([key, { asset, scopedId }]) => (fetchScopeMap({ key, asset, scopedId })))
+            .map(([key, { asset, scopedId }]) => (fetchScopeMap({ key, asset, scopedId: scopedId.key })))
         const promiseReturns = await Promise.all(fetchPromises)
         return Object.assign({}, ...promiseReturns)
     }

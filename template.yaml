@@ -328,9 +328,9 @@ Resources:
               ProjectionType: ALL
           - IndexName: ScopedIdIndex
             KeySchema:
-              - AttributeName: DataCategory
-                KeyType: HASH
               - AttributeName: scopedId
+                KeyType: HASH
+              - AttributeName: DataCategory
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL

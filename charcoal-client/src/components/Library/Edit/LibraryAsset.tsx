@@ -12,7 +12,7 @@
 //   - AssetId
 //
 
-import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMemo } from 'react'
+import React, { useContext, ReactChild, ReactChildren, FunctionComponent, useMemo, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -20,8 +20,10 @@ import {
     getNormalized,
     getWMLQuery,
     getDefaultAppearances,
-    setCurrentWML
+    setCurrentWML,
+    setIntent
 } from '../../../slices/personalAssets'
+import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
 import { NormalForm, RoomAppearance, RoomRenderItem } from '../../../wml/normalize'
 
@@ -34,6 +36,7 @@ type LibraryAssetContextType = {
     wmlQuery: WMLQuery;
     updateWML: (value: string) => void;
     rooms: Record<string, AssetRoom>;
+    save: () => void;
 }
 
 const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
@@ -44,7 +47,8 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     defaultAppearances: {},
     wmlQuery: new WMLQuery(''),
     updateWML: () => {},
-    rooms: {}
+    rooms: {},
+    save: () => {}
 })
 
 type LibraryAssetProps = {
@@ -100,6 +104,10 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const dispatch = useDispatch()
     const updateWML = (value: string) => { dispatch(setCurrentWML(AssetId)({ value })) }
     const rooms = useMemo<Record<string, AssetRoom>>(() => ( assetRooms({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
+    const save = useCallback(() => {
+        dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
+        dispatch(heartbeat)
+    }, [dispatch, AssetId])
 
     return (
         <LibraryAssetContext.Provider value={{
@@ -110,7 +118,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             defaultAppearances,
             wmlQuery,
             updateWML,
-            rooms
+            rooms,
+            save
         }}>
             {children}
         </LibraryAssetContext.Provider>

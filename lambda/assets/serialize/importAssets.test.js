@@ -16,8 +16,8 @@ describe('importedAssetIds', () => {
             importTree: {}
         })
         const output = await importedAssetIds({
-            VORTEX: { asset: 'BASE', scopedId: 'VORTEX' },
-            Welcome: { asset: 'BASE', scopedId: 'Welcome' }
+            VORTEX: { asset: 'BASE', scopedId: { key: 'VORTEX' } },
+            Welcome: { asset: 'BASE', scopedId: { key: 'Welcome' } }
         })
         expect(output).toEqual({
             scopeMap: {
@@ -51,8 +51,8 @@ describe('importedAssetIds', () => {
             }
         })
         const output = await importedAssetIds({
-            VORTEX: { asset: 'BASE', scopedId: 'VORTEX' },
-            Welcome: { asset: 'LayerA', scopedId: 'Welcome' }
+            VORTEX: { asset: 'BASE', scopedId: { key: 'VORTEX' } },
+            Welcome: { asset: 'LayerA', scopedId: { key: 'Welcome' } }
         })
         expect(output).toEqual({
             scopeMap: {
