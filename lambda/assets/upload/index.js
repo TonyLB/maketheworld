@@ -71,6 +71,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         }
                     }, {})
                 const importTree = await scopeMap.importAssetIds(importMap || {})
+                scopeMap.translateNormalForm(normalized)
 
                 await Promise.all([
                     dbRegister({

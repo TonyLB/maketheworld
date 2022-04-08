@@ -36,6 +36,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
                 }
             }, {})
         const importTree = await scopeMap.importAssetIds(importMap || {})
+        scopeMap.translateNormalForm(normalized)
         await Promise.all([
             dbRegister({
                 fileName,
