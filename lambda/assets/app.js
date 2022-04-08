@@ -98,6 +98,7 @@ export const handler = async (event, context) => {
             return await createUploadLink({ s3Client })({
                 PlayerName: event.PlayerName,
                 fileName: event.fileName,
+                tag: event.tag,
                 RequestId: event.RequestId
             })
         case 'fetch':

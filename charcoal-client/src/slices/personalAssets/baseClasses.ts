@@ -1,10 +1,12 @@
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { RoomAppearance } from '../../wml/normalize'
 
 export interface PersonalAssetsInternal {
     id?: string;
     incrementalBackoff: number;
     fetchURL?: string;
+    saveURL?: string;
+    uploadRequestId?: string;
 }
 
 export interface PersonalAssetsPublic {
@@ -31,6 +33,8 @@ export interface PersonalAssetsNodes {
     FETCHERROR: ISSMChoiceNode;
     FRESH: ISSMChoiceNode;
     DIRTY: ISSMChoiceNode;
+    NEEDSAVE: ISSMRedirectNode;
+    GETSAVEURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVEBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVEERROR: ISSMChoiceNode;

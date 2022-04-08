@@ -1,7 +1,9 @@
+import { v4 as uuidv4 } from 'uuid'
 import { WMLQuery } from '../../wml/wmlQuery'
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
 import {
     socketDispatchPromise,
+    apiDispatchPromise,
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
@@ -60,7 +62,34 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
     }
 }
 
-export const saveAction: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
+export const getSaveURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
+    if (id) {
+        const uploadRequestId = uuidv4()
+        const assetKey = id?.split('#').slice(1).join('#')
+        const { url } = await dispatch(socketDispatchPromise('upload')({
+            fileName: `${assetKey}.wml`,
+            tag: 'Asset',
+            uploadRequestId
+        }))
+    
+        return { internalData: { saveURL: url, uploadRequestId } }    
+    }
+    throw new Error()
+}
+
+export const saveWML: PersonalAssetsAction = ({
+    internalData: {
+        saveURL,
+        uploadRequestId
+    },
+    publicData: {
+        currentWML
+    }
+}) => async (dispatch, getState) => {
+    if (!currentWML || !saveURL || !uploadRequestId) {
+        throw new Error()
+    }
+    await apiDispatchPromise(saveURL, uploadRequestId)(currentWML)
     return {}
 }
 

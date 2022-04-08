@@ -116,7 +116,6 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
             },
             addItem(state, action: PayloadAction<{ key: string; options?: { initialState?: keyof Nodes } }>) {
                 if (!state.byId[action.payload.key]) {
-                    console.log(`Starting state: ${action.payload.options?.initialState || initialSSMState}`)
                     state.byId[action.payload.key] = castDraft({
                         internalData: {
                             ...(initialData.internalData || {}),
@@ -180,7 +179,6 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         const machinesCast = Object.entries(byId) as [string, multipleSSMItem<Nodes>][]
         machinesCast
             .filter(([key, value]) => (value))
-            .filter(([key, { meta: { currentState, desiredStates } }]) => (!desiredStates.includes(currentState)))
             .forEach(([key]) => {
                 const getSSMData = (state: any) => {
                     const currentData = sliceSelector(state).byId[key]

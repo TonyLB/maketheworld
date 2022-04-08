@@ -8,7 +8,8 @@ import {
     ListItemButton,
     ListItemText,
     ListItemIcon,
-    ListSubheader
+    ListSubheader,
+    Button
 } from '@mui/material'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import {
@@ -39,7 +40,7 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 type AssetEditFormProps = {}
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { assetKey, normalForm } = useLibraryAsset()
+    const { assetKey, normalForm, save } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -89,6 +90,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 }
             </List>
         </Box>
+        <Button onClick={save}>Save</Button>
     </Box>
 }
 

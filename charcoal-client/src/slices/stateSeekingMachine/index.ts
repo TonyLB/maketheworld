@@ -16,8 +16,10 @@ export const iterateOneSSM = ({
     actions: Record<string, any>;
 }) => (dispatch: any, getState: any) => {
     const focusSSM = getSSMData(getState())
+    console.log(`Iterating from ${focusSSM.currentState}`)
     const currentStep = focusSSM.template.states[focusSSM.currentState]
     if (currentStep.stateType === 'REDIRECT') {
+        console.log(`Redirecting: ${JSON.stringify(currentStep.newIntent, null, 4)}`)
         dispatch(internalIntentChange({ newIntent: currentStep.newIntent }))
     }
     const desiredStates = currentStep.stateType === 'REDIRECT' ? currentStep.newIntent : focusSSM.desiredStates
