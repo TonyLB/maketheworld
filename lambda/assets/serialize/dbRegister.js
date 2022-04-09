@@ -109,7 +109,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                         return `${prefix}#${key}`
                     }
                     if (scopeMap[key]) {
-                        return `${prefix}#${scopeMap[key]}`
+                        return scopeMap[key]
                     }
                     console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
                     return `${prefix}#${uuidv4()}`
@@ -121,7 +121,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
     if (character && character.key) {
         await Promise.all([
             assetDB.putItem({
-                AssetId: `CHARACTER#${scopeMap[character.key]}`,
+                AssetId: scopeMap[character.key],
                 DataCategory: 'Meta::Character',
                 fileName,
                 translateFile,
