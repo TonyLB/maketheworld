@@ -1,5 +1,6 @@
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import { v4 as uuidv4 } from 'uuid'
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile } from "../serialize/translateFile.js"
@@ -27,6 +28,38 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
         getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
         assetDB.putItem({
             AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
+            DataCategory: `PLAYER#${PlayerName}`,
+            RequestId
+        })
+    ])
+    return presignedOutput
+}
+
+export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, fileExtension, RequestId }) => {
+    if (!['jpg', 'jpeg', 'jpe', 'png'].includes(fileExtension)) {
+        return null
+    }
+    let contentType = 'image/png'
+    switch(fileExtension) {
+        case 'jpg':
+        case 'jpe':
+        case 'jpeg':
+            contentType = 'image/jpeg'
+            break
+        case 'gif':
+            contentType = 'image/gif'
+            break
+    }
+    const fileName = `${uuidv4()}.${fileExtension}`
+    const putCommand = new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `upload/images/${PlayerName}/${fileName}`,
+        ContentType: contentType
+    })
+    const [presignedOutput] = await Promise.all([
+        getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
+        assetDB.putItem({
+            AssetId: `UPLOAD#images/${PlayerName}/${fileName}`,
             DataCategory: `PLAYER#${PlayerName}`,
             RequestId
         })
