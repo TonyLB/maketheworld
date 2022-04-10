@@ -6,7 +6,7 @@ import { instantiateAsset } from './cache/instantiate/index.js'
 import { healAsset } from "./selfHealing/index.js"
 import { healPlayers } from "/opt/utilities/selfHealing/index.js"
 
-import { handleUpload, createUploadLink } from './upload/index.js'
+import { handleUpload, createUploadLink, createUploadImageLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'
 import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
@@ -99,6 +99,12 @@ export const handler = async (event, context) => {
                 PlayerName: event.PlayerName,
                 fileName: event.fileName,
                 tag: event.tag,
+                RequestId: event.RequestId
+            })
+        case 'uploadImage':
+            return await createUploadImageLink({ s3Client })({
+                PlayerName: event.PlayerName,
+                fileExtension: event.fileExtension,
                 RequestId: event.RequestId
             })
         case 'fetch':
