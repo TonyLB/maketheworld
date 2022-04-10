@@ -416,7 +416,8 @@ describe('WML normalize', () => {
             },
             {
                 tag: 'Room',
-                key: '123',
+                key: 'VORTEX',
+                global: true,
                 name: 'Vortex',
                 contents: [{
                     tag: 'Exit',
@@ -431,7 +432,7 @@ describe('WML normalize', () => {
                 tag: 'Map',
                 key: 'TestMap',
                 rooms: {
-                    '123': {
+                    'VORTEX': {
                         x: 200,
                         y: 150
                     }
@@ -443,7 +444,7 @@ describe('WML normalize', () => {
                 },
                 {
                     tag: 'Room',
-                    key: '123'
+                    key: 'VORTEX'
                 }]
             },
             {
@@ -479,7 +480,7 @@ describe('WML normalize', () => {
                         index: 0
                     },
                     {
-                        key: '123',
+                        key: 'VORTEX',
                         tag: 'Room',
                         index: 0
                     },
@@ -545,8 +546,9 @@ describe('WML normalize', () => {
                     contents: []
                 }]
             },
-            '123': {
-                key: '123',
+            'VORTEX': {
+                key: 'VORTEX',
+                global: true,
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
@@ -580,7 +582,7 @@ describe('WML normalize', () => {
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
                     rooms: {
-                        '123': {
+                        'VORTEX': {
                             x: 200,
                             y: 150
                         }
@@ -592,15 +594,15 @@ describe('WML normalize', () => {
                     },
                     {
                         tag: 'Room',
-                        key: '123',
+                        key: 'VORTEX',
                         index: 1
                     }]
                 }]
             },
-            '456#123': {
-                key: '456#123',
+            '456#VORTEX': {
+                key: '456#VORTEX',
                 tag: 'Exit',
-                to: '123',
+                to: 'VORTEX',
                 from: '456',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: '456', tag: 'Room', index: 0 }],
@@ -612,7 +614,7 @@ describe('WML normalize', () => {
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    contents: [{ key: '456#123', tag: 'Exit', index: 0 }]
+                    contents: [{ key: '456#VORTEX', tag: 'Exit', index: 0 }]
                 }]
             },
             clockTower: {
@@ -622,7 +624,7 @@ describe('WML normalize', () => {
                 appearances: [{
                     contextStack: [
                         { key: 'Test', tag: 'Asset', index: 0 },
-                        { key: '123', tag: 'Room', index: 0 }
+                        { key: 'VORTEX', tag: 'Room', index: 0 }
                     ],
                     contents: []
                 },

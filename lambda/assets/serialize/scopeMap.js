@@ -39,7 +39,7 @@ export class ScopeMap extends Object {
         Object.values(normalForm)
             .filter(({ tag }) => (['Room', 'Feature', 'Map', 'Character'].includes(tag)))
             .filter(({ key }) => (!(key in this.scopeMap)))
-            .forEach(({ tag, key, isGlobal }) => {
+            .forEach(({ tag, key, global: isGlobal }) => {
                 let prefix = ''
                 switch(tag) {
                     case 'Character':

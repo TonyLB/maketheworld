@@ -50,7 +50,7 @@ describe('localizeDBEntries', () => {
         VORTEX: {
             key: 'VORTEX',
             tag: 'Room',
-            isGlobal: true,
+            global: true,
             appearances: [{
                 ...topLevelAppearance,
                 name: 'Vortex',

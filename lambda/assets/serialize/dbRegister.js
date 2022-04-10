@@ -84,7 +84,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                         return 'delete'
                     }
                     if (!current || (JSON.stringify(current) !== JSON.stringify(incoming))) {
-                        const { tag, key, isGlobal, ...rest } = incoming
+                        const { tag, key, global, ...rest } = incoming
                         return {
                             scopedId: key,
                             ...rest
@@ -93,7 +93,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
 
                     return 'ignore'
                 },
-                extractKey: ({ tag, isGlobal, key }) => {
+                extractKey: ({ tag, global: isGlobal, key }) => {
                     let prefix = ''
                     switch(tag) {
                         case 'Feature':
@@ -109,7 +109,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                         return `${prefix}#${key}`
                     }
                     if (scopeMap[key]) {
-                        return `${prefix}#${scopeMap[key]}`
+                        return scopeMap[key]
                     }
                     console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
                     return `${prefix}#${uuidv4()}`
@@ -121,7 +121,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
     if (character && character.key) {
         await Promise.all([
             assetDB.putItem({
-                AssetId: `CHARACTER#${scopeMap[character.key]}`,
+                AssetId: scopeMap[character.key],
                 DataCategory: 'Meta::Character',
                 fileName,
                 translateFile,

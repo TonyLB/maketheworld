@@ -25,7 +25,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
                 return {
                     ...previous,
                     ...(Object.entries(mapping)
-                        .reduce((previous, [key, { key: scopedId }]) => ({
+                        .reduce((previous, [key, scopedId]) => ({
                             ...previous,
                             [key]: {
                                 scopedId,
@@ -36,6 +36,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
                 }
             }, {})
         const importTree = await scopeMap.importAssetIds(importMap || {})
+        scopeMap.translateNormalForm(normalized)
         await Promise.all([
             dbRegister({
                 fileName,

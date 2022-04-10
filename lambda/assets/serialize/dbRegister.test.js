@@ -13,7 +13,7 @@ describe('dbRegister', () => {
         await dbRegister({
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
-            scopeMap: { TESS: '12345' },
+            scopeMap: { TESS: 'CHARACTER#12345' },
             assets: {
                 TESS: {
                     tag: 'Character',
@@ -63,9 +63,7 @@ describe('dbRegister', () => {
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
             scopeMap: {
-                Welcome: '12345',
-                power: 'ABC',
-                togglePower: 'DEF'
+                Welcome: 'ROOM#12345'
             },
             assets: {
                 TEST: {
@@ -181,9 +179,7 @@ describe('dbRegister', () => {
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
             scopeMap: {
-                Welcome: '12345',
-                power: 'ABC',
-                togglePower: 'DEF'
+                Welcome: 'ROOM#12345'
             },
             assets: {
                 TEST: {
@@ -266,9 +262,7 @@ describe('dbRegister', () => {
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
             scopeMap: {
-                Welcome: '12345',
-                power: 'ABC',
-                togglePower: 'DEF'
+                Welcome: 'ROOM#12345'
             },
             assets: {
                 TEST: {
@@ -353,9 +347,7 @@ describe('dbRegister', () => {
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
             scopeMap: {
-                Welcome: '12345',
-                power: 'ABC',
-                togglePower: 'DEF'
+                Welcome: 'ROOM#12345'
             },
             assets: {
                 TEST: {
