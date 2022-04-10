@@ -71,8 +71,11 @@ const pullProperties = (node) => {
             'key',
         ]
         switch(node.tag) {
+            case 'Room':
+                pullTags.push('isGlobal')
+                break
             case 'Feature':
-                pullTags.push('name')
+                pullTags.push('name', 'isGlobal')
                 break
             case 'Exit':
                 pullTags = [...pullTags, 'to', 'from', 'name']
