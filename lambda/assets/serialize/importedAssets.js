@@ -17,7 +17,6 @@ export const importedAssetIds = async (importMap) => {
                 return {}
             }
             const { AssetId } = Items[0]
-            // const translatedAssetId = splitType(AssetId || '')[1]
             if (AssetId) {
                 return {
                     [key]: AssetId
