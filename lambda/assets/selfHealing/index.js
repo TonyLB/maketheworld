@@ -25,7 +25,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
                 return {
                     ...previous,
                     ...(Object.entries(mapping)
-                        .reduce((previous, [key, { key: scopedId }]) => ({
+                        .reduce((previous, [key, scopedId]) => ({
                             ...previous,
                             [key]: {
                                 scopedId,

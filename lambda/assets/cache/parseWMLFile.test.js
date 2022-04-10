@@ -86,16 +86,15 @@ describe('parseWMLFile', () => {
             ABC: {
                 key: 'ABC',
                 tag: 'Room',
+                global: false,
                 appearances: [{
                     ...topLevelAppearance,
-                    global: false,
                     name: 'Vortex',
                     render: []
                 },
                 {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                     errors: [],
-                    global: false,
                     props: {},
                     render: ['The lights are on '],
                     contents: []

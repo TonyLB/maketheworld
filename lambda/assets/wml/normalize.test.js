@@ -417,7 +417,7 @@ describe('WML normalize', () => {
             {
                 tag: 'Room',
                 key: 'VORTEX',
-                isGlobal: true,
+                global: true,
                 name: 'Vortex',
                 contents: [{
                     tag: 'Exit',
@@ -548,7 +548,7 @@ describe('WML normalize', () => {
             },
             'VORTEX': {
                 key: 'VORTEX',
-                isGlobal: true,
+                global: true,
                 tag: 'Room',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],

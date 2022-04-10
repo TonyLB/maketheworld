@@ -84,7 +84,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                         return 'delete'
                     }
                     if (!current || (JSON.stringify(current) !== JSON.stringify(incoming))) {
-                        const { tag, key, isGlobal, ...rest } = incoming
+                        const { tag, key, global, ...rest } = incoming
                         return {
                             scopedId: key,
                             ...rest
@@ -93,7 +93,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
 
                     return 'ignore'
                 },
-                extractKey: ({ tag, isGlobal, key }) => {
+                extractKey: ({ tag, global: isGlobal, key }) => {
                     let prefix = ''
                     switch(tag) {
                         case 'Feature':
