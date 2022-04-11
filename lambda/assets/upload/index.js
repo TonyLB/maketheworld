@@ -35,7 +35,7 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
     return presignedOutput
 }
 
-export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, fileExtension, RequestId }) => {
+export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, fileExtension, tag = 'Character', RequestId }) => {
     if (!['jpg', 'jpeg', 'jpe', 'png'].includes(fileExtension)) {
         return null
     }
@@ -53,13 +53,13 @@ export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, file
     const fileName = `${uuidv4()}.${fileExtension}`
     const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET,
-        Key: `upload/images/${PlayerName}/${fileName}`,
+        Key: `upload/images/${PlayerName}/${tag}s/${fileName}`,
         ContentType: contentType
     })
     const [presignedOutput] = await Promise.all([
         getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
         assetDB.putItem({
-            AssetId: `UPLOAD#images/${PlayerName}/${fileName}`,
+            AssetId: `UPLOAD#images/${PlayerName}/${tag}s/${fileName}`,
             DataCategory: `PLAYER#${PlayerName}`,
             RequestId
         })
