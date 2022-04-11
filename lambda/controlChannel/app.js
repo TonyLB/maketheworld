@@ -256,6 +256,30 @@ const upload = async ({ fileName, tag, connectionId, requestId, uploadRequestId 
     return null
 }
 
+const uploadImage = async ({ fileExtension, tag, connectionId, requestId, uploadRequestId }) => {
+    const PlayerName = await getPlayerByConnectionId(connectionId)
+    if (PlayerName) {
+        const { Payload } = await lambdaClient.send(new InvokeCommand({
+            FunctionName: process.env.ASSETS_SERVICE,
+            InvocationType: 'RequestResponse',
+            Payload: new TextEncoder().encode(JSON.stringify({
+                message: 'uploadImage',
+                PlayerName,
+                fileExtension,
+                tag,
+                RequestId: uploadRequestId
+            }))
+        }))
+        const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ messageType: "UploadImageURL", RequestId: requestId, url })
+        }
+    
+    }
+    return null
+}
+
 export const fetchLibrary = async (RequestId) => {
     const Items = await assetDB.query({
         IndexName: 'ZoneIndex',
@@ -492,6 +516,18 @@ export const handler = async (event, context) => {
             })
             if (returnVal) {
                 return returnVal
+            }
+            break
+        case 'uploadImage':
+            const imageReturnVal = await uploadImage({
+                fileExtension: request.fileExtension,
+                tag: request.tag,
+                connectionId,
+                requestId: request.RequestId,
+                uploadRequestId: request.uploadRequestId
+            })
+            if (imageReturnVal) {
+                return imageReturnVal
             }
             break
         case 'fetch':

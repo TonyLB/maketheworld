@@ -105,6 +105,7 @@ export const handler = async (event, context) => {
             return await createUploadImageLink({ s3Client })({
                 PlayerName: event.PlayerName,
                 fileExtension: event.fileExtension,
+                tag: event.tag,
                 RequestId: event.RequestId
             })
         case 'fetch':
