@@ -1,6 +1,10 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
+import path from 'path'
+import sharp from "sharp"
+
+import { streamToBuffer } from '/opt/utilities/stream.js'
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile } from "../serialize/translateFile.js"
@@ -67,12 +71,57 @@ export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, file
     return presignedOutput
 }
 
+export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
+    const fileName = path.parse(key).name
+
+    const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
+        Bucket: bucket,
+        Key: key
+    }))
+    const contents = await streamToBuffer(contentStream)
+
+    try {
+        const imageBuffer = await sharp(contents)
+            .resize({ width: 800, heigh: 600, fit: sharp.strategy.fill })
+            .toFormat('png')
+            .toBuffer()
+        await s3Client.send(new PutObjectCommand({
+            Bucket: bucket,
+            Key: `images/${fileName}.png`,
+            Body: imageBuffer
+        }))
+        await Promise.all([
+            uploadResponse({
+                uploadId: key,
+                messageType: 'Success',
+                operation: 'Upload'
+            })
+        ])
+
+    }
+    catch {
+        await uploadResponse({
+            uploadId: objectNameItems.join('/'),
+            messageType: 'Error',
+            operation: 'Upload'
+        })
+    }
+    await s3Client.send(new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key
+    }))  
+    return {}
+}
+
 export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`
         : ''
 
+    if (objectNameItems[0] === 'images') {
+        return handleImageUpload({ s3Client })({ bucket, key })
+    }
     const assetWorkspace = await getAssets(s3Client, key)
 
     if (assetWorkspace.isMatched()) {
@@ -154,7 +203,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
         await s3Client.send(new DeleteObjectCommand({
             Bucket: bucket,
             Key: key
-        }))    
+        }))  
     }
     catch {}
     return {}
