@@ -1,6 +1,9 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
+import sharp from "sharp"
+
+import { streamToBuffer } from '/opt/utilities/stream.js'
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile } from "../serialize/translateFile.js"
@@ -67,12 +70,32 @@ export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, file
     return presignedOutput
 }
 
+export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
+    const objectNameItems = key.split('/').slice(1)
+    const objectPrefix = objectNameItems.length > 1
+        ? `${objectNameItems.slice(0, -1).join('/')}/`
+        : ''
+
+    const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
+        Bucket: bucket,
+        Key: key
+    }))
+    const contents = await streamToBuffer(contentStream)
+    
+    const { format, size, width, height, space } = await sharp(contents).metadata()
+    console.log(`MetaData: ${JSON.stringify({ format, size, width, height, space }, null, 4)}`)
+    return {}
+}
+
 export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`
         : ''
 
+    if (objectNameItems[0] === 'images') {
+        return handleImageUpload({ s3Client })({ bucket, key })
+    }
     const assetWorkspace = await getAssets(s3Client, key)
 
     if (assetWorkspace.isMatched()) {
