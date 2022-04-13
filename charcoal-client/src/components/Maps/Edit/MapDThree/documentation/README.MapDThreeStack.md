@@ -39,9 +39,9 @@ of nodes within the Stack as they animate
     }
 
     interface MapDThreeStackProps {
-        layers: MapTree[];
-        onStabilize: (outputLayers: MapDThreeLayerOutput[]) => void;
-        onTick: (outputLayers: MapDThreeLayerOutput[]) => void;
+        layers: SimulationReturn[];
+        onStabilize?: (outputLayers: MapDThreeLayerOutput[]) => void;
+        onTick?: (outputLayers: MapDThreeLayerOutput[]) => void;
     }
 
     const mapD3Stack = new MapDThreeStack({
@@ -57,11 +57,11 @@ of nodes within the Stack as they animate
 
 ### Expected layer format
 
-Layers are passed in MapTree format from the [**MapTree**](./README.md) component.
+Layers are passed in SimulationReturn format from the [**MapTree**](./README.md) component. [ TEMPORARY MEASURE DURING ITERATION ]
 
 ### Methods
 
-***update***(layers: MapTree[]): Updates the semantic structure of the Stack.  Does **not** change
+***update***(layers: SimulationReturn[]): Updates the semantic structure of the Stack.  Does **not** change
 the position of any node in a layer that was already in that layer.  Can set default positions on
 nodes newly added to a layer.  Sets the first active layer of the Stack to the first layer that
 receives meaningful changes.
