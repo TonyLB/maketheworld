@@ -23,12 +23,12 @@ export class MapDThreeStack extends Object {
     onTick: SimCallback = () => {}
 
     constructor(props: MapDThreeStackProps) {
+        super(props)
         const {
             layers,
             onStabilize,
             onTick
         } = props
-        super(props)
         this.layers = layers.map(({ key, nodes, links }, index) => {
             const newMap = new MapDThreeIterator(key, nodes, links, index > 0 ? () => (this.layers[index-1].nodes) : () => [])
             newMap.setCallbacks(this.cascade(index).bind(this), this.checkStability.bind(this))
@@ -242,3 +242,5 @@ export class MapDThreeStack extends Object {
         }
     }
 }
+
+export default MapDThreeStack

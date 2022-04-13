@@ -1,14 +1,14 @@
 import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 
-jest.mock('./MapDThreeIterator.tsx')
-import MapDThreeIteratorRaw from './MapDThreeIterator'
+jest.mock('./MapDThreeStack.ts')
+import MapDThreeStackRaw from './MapDThreeStack'
 import { MapDThree } from '.'
 jest.mock('./treeToSimulation')
 import treeToSimulationRaw from './treeToSimulation'
 
 import { mockFunction, mockClass } from '../../../../lib/jestHelpers'
 const treeToSimulation = mockFunction(treeToSimulationRaw)
-const MapDThreeIterator = mockClass(MapDThreeIteratorRaw)
+const MapDThreeStack = mockClass(MapDThreeStackRaw)
 
 describe('MapDThree', () => {
     beforeEach(() => {
@@ -16,8 +16,8 @@ describe('MapDThree', () => {
         jest.resetAllMocks()
     })
 
-    it('should initialize layers on construction', () => {
-        treeToSimulation.mockReturnValue([{
+    it('should initialize stack on construction', () => {
+        const simulationLayers = [{
             key: 'Two',
             nodes: [{
                 id: 'Two-A',
@@ -56,7 +56,8 @@ describe('MapDThree', () => {
                 visible: true
             }],
             links: []
-        }])
+        }]
+        treeToSimulation.mockReturnValue(simulationLayers)
         //
         // TODO: Reconfigure MapDThreeIterator to be more of a black-box, with getter
         // functions that can be overwritten for testing (instead of MapDThree directly
@@ -65,40 +66,10 @@ describe('MapDThree', () => {
         // jest.spyOn(MapDThreeIterator.prototype, 'nodes', 'get').mockReturnValue([])
         const testMapDThree = new MapDThree({ tree: [] })
         expect(treeToSimulation).toHaveBeenCalledWith([])
-        expect(MapDThreeIterator).toHaveBeenCalledTimes(2)
-        expect(MapDThreeIterator).toHaveBeenCalledWith("Two", [{
-            id: 'Two-A',
-            roomId: 'GHI',
-            cascadeNode: false,
-            x: 300,
-            y: 300,
-            visible: true
-        }], [], expect.any(Function))
-        expect(MapDThreeIterator).toHaveBeenCalledWith("One", [{
-                id: 'Two-A',
-                roomId: 'GHI',
-                cascadeNode: true,
-                x: 300,
-                y: 300,
-                visible: true
-            },
-            {
-                id: 'One-B',
-                roomId: 'DEF',
-                cascadeNode: false,
-                x: 300,
-                y: 200,
-                visible: true
-            },
-            {
-                id: 'One-A',
-                roomId: 'ABC',
-                cascadeNode: false,
-                x: 200,
-                y: 200,
-                visible: true
-            }], [], expect.any(Function)
-        )
+        expect(MapDThreeStack).toHaveBeenCalledTimes(2)
+        expect(MapDThreeStack).toHaveBeenCalledWith({ layers: [] })
+        expect(MapDThreeStack).toHaveBeenCalledWith({ layers: simulationLayers })
+
         // expect(testMapDThree.nodes).toEqual([])
     })
 })
