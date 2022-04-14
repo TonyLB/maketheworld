@@ -1,13 +1,8 @@
 
 import { MapTree } from '../maps'
-import {
-    SimulationLinkDatum,
-    Simulation,
-} from 'd3-force'
 
 import { SimCallback, SimNode } from './baseClasses'
 
-import MapDThreeIterator from './MapDThreeIterator'
 import MapDThreeStack from './MapDThreeStack'
 import treeToSimulation from './treeToSimulation'
 import ExitDragD3Layer from './exitDragSimulation'
@@ -19,7 +14,7 @@ import ExitDragD3Layer from './exitDragSimulation'
 //    * If a two-way link, reject only rooms that the focus room has both an exit to and an entry from
 //
 const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean = false): string[] => {
-    const currentExits = mapDThree.layers.reduce<Record<string, { from: boolean; to: boolean }>>((previous, layer) => {
+    const currentExits = mapDThree.stack.layers.reduce<Record<string, { from: boolean; to: boolean }>>((previous, layer) => {
         //
         // Add to the current accumulator the rooms that the focus room has an exit TO in this layer
         //
@@ -71,7 +66,6 @@ const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean =
 }
 
 export class MapDThree extends Object {
-    layers: MapDThreeIterator[] = []
     stack: MapDThreeStack = new MapDThreeStack({ layers: [] })
     exitDragLayer?: ExitDragD3Layer
     stable: boolean = true
