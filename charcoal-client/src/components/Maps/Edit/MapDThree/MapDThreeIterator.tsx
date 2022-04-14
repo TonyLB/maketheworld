@@ -17,36 +17,42 @@ import cascadeForce from './cascadeForce'
 
 export class MapDThreeIterator extends Object {
     key: string = ''
-    nodes: MapNodes = []
-    links: MapLinks = []
+    _nodes: MapNodes = []
+    _links: MapLinks = []
     simulation: Simulation<SimNode, SimulationLinkDatum<SimNode>>
     stable: boolean = true
     callback: SimCallback = () => {}
     onStability: SimCallback = () => {}
     get boundingForce() {
-        return boundingForceFactory(this.nodes)
+        return boundingForceFactory(this._nodes)
     }
     get gridInfluenceForce() {
-        return gridInfluenceForceFactory(this.nodes, 50)
+        return gridInfluenceForceFactory(this._nodes, 50)
     }
     get forceFlexLink() {
         //
         // TODO: When we refactor to stop storing links by internal ID and store roomID, this will need to be changed.
         //
-        const nodesById = this.nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.id]: node }), {})
+        const nodesById = this._nodes.reduce<Record<string, SimNode>>((previous, node) => ({ ...previous, [node.id]: node }), {})
         return forceFlexLink(
-                this.links
+                this._links
                     .map(({ source, target, ...rest }) => ({ source: source as string, target: target as string, ...rest }))
                     .filter(({ source, target }) => (nodesById[source]?.cascadeNode === false || nodesById[target]?.cascadeNode === false)),
-                this.nodes
+                this._nodes
             ).minDistance(70).maxDistance(180).id(({ id }: { id: string }) => (id))
+    }
+    get nodes() {
+        return this._nodes
+    }
+    get links() {
+        return this._links
     }
     constructor(key: string, nodes: MapNodes, links: MapLinks, getCascadeNodes?: () => MapNodes) {
         super()
         this.key = key
-        this.nodes = nodes
-        this.links = links
-        this.simulation = forceSimulation(this.nodes)
+        this._nodes = nodes
+        this._links = links
+        this.simulation = forceSimulation(this._nodes)
         this.simulation
             .alphaDecay(0.15)
 
@@ -61,11 +67,11 @@ export class MapDThreeIterator extends Object {
             .force("collision", forceCollide(40).iterations(3))
 
         this.simulation.on('tick', () => {
-            this.callback?.(this.nodes)
+            this.callback?.(this._nodes)
         })
         this.simulation.on('end', () => {
             this.stable = true
-            this.onStability?.(this.nodes)
+            this.onStability?.(this._nodes)
         })
     }
     //
@@ -76,7 +82,7 @@ export class MapDThreeIterator extends Object {
     update(nodes: MapNodes, links: MapLinks, forceRestart: boolean = false, getCascadeNodes?: () => MapNodes): boolean {
         const nodesFound: Record<string, boolean> = this.nodes.reduce<Record<string, boolean>>((previous, node) => ({ ...previous, [node.roomId]: false }), {})
         type NestedLinkMap = Record<string, Record<string, boolean>>
-        const linksFound: NestedLinkMap = this.links.reduce<NestedLinkMap>((previous, { source, target }) => {
+        const linksFound: NestedLinkMap = this._links.reduce<NestedLinkMap>((previous, { source, target }) => {
             const sourceId = typeof source === "string" ? source : (source as SimNode).id
             const targetId = typeof target === "string" ? target : (target as SimNode).id
             if (sourceId && targetId) {
@@ -90,7 +96,7 @@ export class MapDThreeIterator extends Object {
             }
             return previous
         }, {})
-        this.links = links
+        this._links = links
         let anyDifference: boolean = false
 
         nodes.forEach((node) => {
@@ -123,10 +129,10 @@ export class MapDThreeIterator extends Object {
         anyDifference = anyDifference || (Object.values(linksFound).filter((links) => (Object.values(links).filter((found) => (!found)))).length > 0)
 
         this.simulation.nodes(nodes)
-        this.nodes = nodes
+        this._nodes = nodes
         if (anyDifference || forceRestart) {
             if (getCascadeNodes) {
-                this.simulation.force("cascade", cascadeForce(getCascadeNodes, this.nodes).id(({ roomId }) => roomId))
+                this.simulation.force("cascade", cascadeForce(getCascadeNodes, this._nodes).id(({ roomId }) => roomId))
             }
             this.simulation
                 .force("boundingBox", this.boundingForce)
@@ -150,7 +156,7 @@ export class MapDThreeIterator extends Object {
         this.stable = false
     }
     dragNode({ roomId, x, y }: { roomId: string, x: number, y: number }) {
-        this.simulation?.nodes(this.nodes)
+        this.simulation?.nodes(this._nodes)
             .alpha(1)
             .force("draggingForceX", forceX<SimNode>()
                 .x(x)
