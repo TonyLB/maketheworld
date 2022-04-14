@@ -92,7 +92,7 @@ export class MapDThreeStack extends Object {
             // Find where (if at all) this layer is positioned in current data
             //
 
-            const previousIndex = previousLayersByKey[incomingLayer.key].index
+            const previousIndex = previousLayersByKey[incomingLayer.key]?.index
 
             //
             // Map existing positions (where known) onto incoming nodes
@@ -127,7 +127,7 @@ export class MapDThreeStack extends Object {
                 if (previousIndex !== index) {
                     forceRestart = true
                 }
-                const layerUpdateResult = layerToUpdate.update(currentNodes, incomingLayer.links, forceRestart, previous.layers.length > 0 ? () => previous.layers[previous.layers.length-1].nodes : () => [])
+                const layerUpdateResult = layerToUpdate.update(currentNodes, incomingLayer.links, forceRestart, previous.layers.length > 0 ? () => previous.layers[previous.layers.length-1].nodes : () => []) ?? false
                 forceRestart = forceRestart || layerUpdateResult
 
                 return {
