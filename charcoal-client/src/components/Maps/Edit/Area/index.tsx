@@ -7,7 +7,7 @@ import {
 import MapDThree from '../MapDThree'
 import { SimNode, SimCallback } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
-import mapAreaReducer, { treeToVisible } from './reducer'
+import mapAreaReducer, { treeToVisible, treeToMapLayers } from './reducer'
 import { MapDispatch } from '../reducer.d'
 
 type MapAreaProps = {
@@ -26,14 +26,15 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatc
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
     const [{ rooms, exits }, mapDispatch] = useReducer(mapAreaReducer, tree, (tree: MapTree) => {
+        const { rooms, exits } = treeToVisible(tree)
         const mapD3 = new MapDThree({
-            tree,
+            roomLayers: treeToMapLayers(tree),
+            exits: exits.map(({ name, toRoomId, fromRoomId }) => ({ key: name, to: toRoomId, from: fromRoomId, visible: true })),
             onExitDrag: setExitDrag,
             onAddExit: (fromRoomId, toRoomId, double) => {
                 dispatch({ type: 'addExit', fromRoomId, toRoomId, double })
             }
         })
-        const { rooms, exits } = treeToVisible(tree)
         return { mapD3, rooms, exits, tree }
     })
     useEffect(() => {

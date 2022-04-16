@@ -26,7 +26,7 @@ whole stabilizes on a resting state
 
 ```js
     const mapD3 = new MapDThree({
-            tree,
+            layers,
             onExitDrag: setExitDrag,
             onAddExit: (fromRoomId, toRoomId, double) => {
                 dispatch({ type: 'addExit', fromRoomId, toRoomId, double })
@@ -38,8 +38,32 @@ whole stabilizes on a resting state
 
 ## Behaviors
 
-### Expected tree format
+### Expected arguments
 
-Tree format is passed in NestedTree format from the [**DraggableTree**](../../../../DraggableTree/documentation/README.md) component.
+```ts
+    interface MapLayerRoom {
+        roomId: string;
+        x: number;
+        y: number;
+    }
 
-( Is it?  It looks like it's passed in MapTree format, from maps.d.ts )
+    interface MapLayer {
+        //
+        // Records rooms by roomId
+        //
+        rooms: Record<string, MapLayerRoom>;
+        //
+        // And separately (for easy update) records their visibility
+        //
+        roomVisibility: Record<string, boolean>;
+    }
+
+    interface MapDThreeProps {
+        roomLayers: MapLayer[];
+        exits: { to: string; from: string; visible: boolean; }[];
+        onStability?: SimCallback;
+        onTick?: SimCallback;
+        onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
+        onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
+    }
+```

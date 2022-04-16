@@ -3,11 +3,8 @@ import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 jest.mock('./MapDThreeStack.ts')
 import MapDThreeStackRaw from './MapDThreeStack'
 import { MapDThree } from '.'
-jest.mock('./treeToSimulation')
-import treeToSimulationRaw from './treeToSimulation'
 
-import { mockFunction, mockClass } from '../../../../lib/jestHelpers'
-const treeToSimulation = mockFunction(treeToSimulationRaw)
+import { mockClass } from '../../../../lib/jestHelpers'
 const MapDThreeStack = mockClass(MapDThreeStackRaw)
 
 describe('MapDThree', () => {
@@ -17,59 +14,45 @@ describe('MapDThree', () => {
     })
 
     it('should initialize stack on construction', () => {
-        const simulationLayers = [{
+
+        const testMapDThree = new MapDThree({ roomLayers: [{
             key: 'Two',
-            nodes: [{
-                id: 'Two-A',
-                roomId: 'GHI',
-                cascadeNode: false,
-                x: 300,
-                y: 300,
-                visible: true
-            }],
-            links: []
+            rooms: {
+                GHI: {
+                    id: 'Two-A',
+                    roomId: 'GHI',
+                    x: 300,
+                    y: 300
+                }
+            },
+            roomVisibility: {
+                GHI: true
+            }
         },
         {
             key: 'One',
-            nodes: [{
-                id: 'Two-A',
-                roomId: 'GHI',
-                cascadeNode: true,
-                x: 300,
-                y: 300,
-                visible: true
+            rooms: {
+                DEF: {
+                    id: 'One-B',
+                    roomId: 'DEF',
+                    x: 300,
+                    y: 200
+                },
+                ABC: {
+                    id: 'One-A',
+                    roomId: 'ABC',
+                    x: 200,
+                    y: 200
+                }
             },
-            {
-                id: 'One-B',
-                roomId: 'DEF',
-                cascadeNode: false,
-                x: 300,
-                y: 200,
-                visible: true
-            },
-            {
-                id: 'One-A',
-                roomId: 'ABC',
-                cascadeNode: false,
-                x: 200,
-                y: 200,
-                visible: true
-            }],
-            links: []
-        }]
-        treeToSimulation.mockReturnValue(simulationLayers)
-        //
-        // TODO: Reconfigure MapDThreeIterator to be more of a black-box, with getter
-        // functions that can be overwritten for testing (instead of MapDThree directly
-        // reading and writing its properties, in untestable ways)
-        //
-        // jest.spyOn(MapDThreeIterator.prototype, 'nodes', 'get').mockReturnValue([])
-        const testMapDThree = new MapDThree({ tree: [] })
-        expect(treeToSimulation).toHaveBeenCalledWith([])
+            roomVisibility: {
+                DEF: true,
+                ABC: true
+            }
+        }], exits: [] })
         expect(MapDThreeStack).toHaveBeenCalledTimes(2)
-        expect(MapDThreeStack).toHaveBeenCalledWith({ layers: [] })
-        expect(MapDThreeStack).toHaveBeenCalledWith({ layers: simulationLayers })
+        expect(MapDThreeStack.mock.calls[0]).toEqual([{ layers: [] }])
+        expect(MapDThreeStack.mock.calls[1]).toMatchSnapshot()
 
-        // expect(testMapDThree.nodes).toEqual([])
     })
 })
