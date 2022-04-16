@@ -51,6 +51,9 @@ export class MapDThreeStack extends Object {
         }
         return []
     }
+    get links(): MapLinks {
+        return this.layers.reduce<MapLinks>((previous, { links }) => ([ ...previous, ...links ]), [] as MapLinks)
+    }
     setCallbacks({ onTick, onStability }: { onTick?: SimCallback, onStability?: SimCallback }) {
         if (onStability) {
             this.onStability = onStability

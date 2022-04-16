@@ -7,6 +7,8 @@ import MapDThreeStack from './MapDThreeStack'
 import treeToSimulation from './treeToSimulation'
 import ExitDragD3Layer from './exitDragSimulation'
 
+import { produce } from 'immer'
+
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
 // operation can make them:
@@ -14,55 +16,26 @@ import ExitDragD3Layer from './exitDragSimulation'
 //    * If a two-way link, reject only rooms that the focus room has both an exit to and an entry from
 //
 const getInvalidExits = (mapDThree: MapDThree, roomId: string, double: boolean = false): string[] => {
-    const currentExits = mapDThree.stack.layers.reduce<Record<string, { from: boolean; to: boolean }>>((previous, layer) => {
-        //
-        // Add to the current accumulator the rooms that the focus room has an exit TO in this layer
-        //
-        const fromFocusRoom = layer.links
-            .filter(({ source }) => {
-                const matchNode = mapDThree.nodes.find(({ id }) => (id === source))
-                return matchNode && matchNode.roomId === roomId
-            })
-            .map(({ target }) => {
-                const matchNode = mapDThree.nodes.find(({ id }) => (id === target))
-                return matchNode ? matchNode.roomId as string : ''
-            })
-            .filter((value) => value)
-            .reduce<Record<string, { from: boolean; to: boolean }>>(
-                (accumulator, targetRoomId) => ({ ...accumulator, [targetRoomId]: { to: accumulator[targetRoomId]?.to ?? false, from : true } }),
-                previous
-            )
-        if (double) {
-            //
-            // Add to the current accumulator the rooms that the focus room has an entry FROM in this layer
-            //
-            const alsoToFocusRoom = layer.links
-                .filter(({ target }) => {
-                    const matchNode = mapDThree.nodes.find(({ id }) => (id === target))
-                    return matchNode && matchNode.roomId === roomId
-                })
-                .map(({ source }) => {
-                    const matchNode = mapDThree.nodes.find(({ id }) => (id === source))
-                    return matchNode ? matchNode.roomId as string : ''
-                })
-                .filter((value) => value)
-                .reduce<Record<string, { from: boolean; to: boolean }>>(
-                    (accumulator, targetRoomId) => ({ ...accumulator, [targetRoomId]: { from: accumulator[targetRoomId]?.from ?? false, to : true } }),
-                    fromFocusRoom
-                )
-            return alsoToFocusRoom
-        }
-        else {
-            return fromFocusRoom
-        }
-    }, {})
-    //
-    // Use the aggregate data to make a decision
-    //
+    const currentExits = mapDThree.stack.links.reduce<Record<string, { from: boolean; to: boolean }>>(
+        (previous, { source, target }) => (produce(previous, (draft) => {
+            if (source === roomId) {
+                draft[target as string] = {
+                    to: true,
+                    from: draft[target as string]?.from || false
+                }
+            }
+            if (target === roomId) {
+                draft[source as string] = {
+                    from: true,
+                    to: draft[source as string]?.to || false
+                }
+            }
+        })), {} as Record<string, { from: boolean; to: boolean }>)
+
     if (double) {
         return [ ...Object.entries(currentExits).filter(([_, { to, from }]) => (to && from)).map(([key]) => key), roomId ]
     }
-    return [ ...Object.keys(currentExits), roomId ]
+    return [ ...Object.entries(currentExits).filter(([_, { to }]) => (to)).map(([key]) => key), roomId ]
 }
 
 export class MapDThree extends Object {
