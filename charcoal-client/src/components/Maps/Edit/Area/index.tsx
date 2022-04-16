@@ -2,10 +2,11 @@ import React, { FunctionComponent, useReducer, useEffect, useState } from 'react
 
 // import useMapStyles from '../useMapStyles'
 import {
-    MapTree
+    MapTree,
+    MapTreeEntry
 } from '../maps'
 import MapDThree from '../MapDThree'
-import { SimNode, SimCallback } from '../MapDThree/baseClasses'
+import { SimNode, SimCallback, MapLayer, MapLayerRoom } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
 import mapAreaReducer, { treeToVisible } from './reducer'
 import { MapDispatch } from '../reducer.d'
@@ -21,19 +22,50 @@ const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGEl
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
 
+const simulationNodes = (treeEntry: MapTreeEntry): Record<string, MapLayerRoom> => {
+    const { children = [], key, item } = treeEntry
+    const childrenNodes = children.reduceRight<MapLayer[]>((previous: Record<string, MapLayerRoom>, child: MapTreeEntry) => ({
+        ...previous,
+        ...simulationNodes(child)
+    }), {})
+    if (item.type === 'ROOM') {
+        return {
+            ...childrenNodes,
+            [item.roomId]: {
+                id: key,
+                roomId: item.roomId,
+                x: item.x,
+                y: item.y,
+            }
+        }
+    }
+    else {
+        return childrenNodes
+    }
+}
+
+const treeToMapLayers = (tree: MapTree): MapLayer[] => {
+    return tree.map((treeEntry) => ({
+        key: treeEntry.key,
+        rooms: simulationNodes(treeEntry),
+        roomVisibility: {}
+    }))
+}
+
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch, onStabilize = () => {} }) => {
     // const localClasses = useMapStyles()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
     const [{ rooms, exits }, mapDispatch] = useReducer(mapAreaReducer, tree, (tree: MapTree) => {
+        const { rooms, exits } = treeToVisible(tree)
         const mapD3 = new MapDThree({
-            tree,
+            roomLayers: treeToMapLayers(tree),
+            exits: exits.map(({ name, toRoomId, fromRoomId }) => ({ key: name, to: toRoomId, from: fromRoomId, visible: true })),
             onExitDrag: setExitDrag,
             onAddExit: (fromRoomId, toRoomId, double) => {
                 dispatch({ type: 'addExit', fromRoomId, toRoomId, double })
             }
         })
-        const { rooms, exits } = treeToVisible(tree)
         return { mapD3, rooms, exits, tree }
     })
     useEffect(() => {

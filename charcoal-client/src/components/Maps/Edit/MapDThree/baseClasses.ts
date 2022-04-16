@@ -29,12 +29,14 @@ export type MapNodes = SimNode[]
 export type MapLinks = SimulationLinkDatum<SimulationNodeDatum>[]
 
 export interface MapLayerRoom {
+    id: string;
     roomId: string;
     x: number;
     y: number;
 }
 
 export interface MapLayer {
+    key: string;
     rooms: Record<string, MapLayerRoom>;
     roomVisibility: Record<string, boolean>;
 }

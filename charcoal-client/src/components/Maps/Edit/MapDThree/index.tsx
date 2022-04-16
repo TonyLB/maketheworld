@@ -5,26 +5,13 @@ import {
 
 import { MapTree } from '../maps'
 
-import { SimCallback, SimNode, SimulationReturn } from './baseClasses'
+import { SimCallback, SimNode, SimulationReturn, MapLayer, MapLayerRoom } from './baseClasses'
 
 import MapDThreeStack from './MapDThreeStack'
 import treeToSimulation from './treeToSimulation'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
-
-interface MapLayerRoom {
-    id: string;
-    roomId: string;
-    x: number;
-    y: number;
-}
-
-interface MapLayer {
-    key: string;
-    rooms: Record<string, MapLayerRoom>;
-    roomVisibility: Record<string, boolean>;
-}
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
