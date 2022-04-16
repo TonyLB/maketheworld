@@ -1,9 +1,10 @@
 import {
     MapTree,
     VisibleMapItems,
-    MapItem
+    MapItem,
+    MapTreeEntry,
 } from '../maps'
-import { SimNode } from '../MapDThree/baseClasses'
+import { SimNode, MapLayer, MapLayerRoom } from '../MapDThree/baseClasses'
 import { MapAreaReducer, MapAreaReducerState } from './area'
 import produce from 'immer'
 import { recursiveUpdate } from '../../../DraggableTree'
@@ -34,6 +35,68 @@ export const treeToVisible = (tree: MapTree, zLevel?: number): VisibleMapItems =
                 return mergeVisibleMapItems(previous, childResult)
         }
     }, { rooms: [], exits: [] })
+}
+
+const simulationNodes = (treeEntry: MapTreeEntry): Record<string, MapLayerRoom> => {
+    const { children = [], key, item } = treeEntry
+    const childrenNodes = children.reduceRight<MapLayer[]>((previous: Record<string, MapLayerRoom>, child: MapTreeEntry) => ({
+        ...previous,
+        ...simulationNodes(child)
+    }), {})
+    if (item.type === 'ROOM') {
+        return {
+            ...childrenNodes,
+            [item.roomId]: {
+                id: key,
+                roomId: item.roomId,
+                x: item.x,
+                y: item.y,
+            }
+        }
+    }
+    else {
+        return childrenNodes
+    }
+}
+
+type ExitRecord = { to: string; from: string; visible: boolean; }[];
+
+const simulationExits = (treeEntry: MapTreeEntry): ExitRecord => {
+    const { children = [], key, item } = treeEntry
+    const childrenNodes = children.reduceRight<ExitRecord>((previous: ExitRecord, child: MapTreeEntry) => ([
+        ...previous,
+        ...simulationExits(child)
+    ]), [])
+    if (item.type === 'EXIT') {
+        return [
+            ...childrenNodes,
+            {
+                id: key,
+                from: item.fromRoomId,
+                to: item.toRoomId,
+                visible: item.visible
+            }
+        ]
+    }
+    else {
+        return childrenNodes
+    }
+    
+}
+
+export const treeToMapLayers = (tree: MapTree): MapLayer[] => {
+    return tree.map((treeEntry) => ({
+        key: treeEntry.key,
+        rooms: simulationNodes(treeEntry),
+        roomVisibility: {}
+    }))
+}
+
+export const treeToExits = (tree: MapTree): { to: string; from: string; visible: boolean; }[] => {
+    return tree.reduce<ExitRecord>((previous, treeEntry) => ([
+        ...previous,
+        ...simulationExits(treeEntry)
+    ]), [] as ExitRecord)
 }
 
 export const mapAreaReducer: MapAreaReducer = (state, action) => {
@@ -69,18 +132,10 @@ export const mapAreaReducer: MapAreaReducer = (state, action) => {
     }
     switch(action.type) {
         case 'UPDATETREE':
-            //
-            // TODO: Diff trees to figure out what the lockThreshold should be, given what (if anything) has
-            // changed about what layers different elements are on (movement within layers means no change
-            // to the D3 map, pretty sure ... which will be important to lift node positioning state up without
-            // creating an infinite loop of updates causing node iterations causing updates)
-            //
-            // Alternately:  Instead of a lockThreshold, run one D3 simulation per layer, with earlier layers
-            // cascading their changes forward to fixed nodes in the simulations of later layers.  Then each
-            // simulation can stabilize independently (although earlier layers will almost certainly stabilize
-            // first, as they won't keep having their alpha reset by cascading updates)
-            //
-            state.mapD3.update(action.tree)
+            state.mapD3.update({
+                roomLayers: treeToMapLayers(action.tree),
+                exits: treeToExits(action.tree)
+            })
             return returnVal({ ...state, ...treeToVisible(action.tree), tree: action.tree }, state.mapD3.nodes)
         case 'TICK':
             return returnVal(state, action.nodes)

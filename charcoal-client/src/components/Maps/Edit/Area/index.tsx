@@ -2,13 +2,12 @@ import React, { FunctionComponent, useReducer, useEffect, useState } from 'react
 
 // import useMapStyles from '../useMapStyles'
 import {
-    MapTree,
-    MapTreeEntry
+    MapTree
 } from '../maps'
 import MapDThree from '../MapDThree'
-import { SimNode, SimCallback, MapLayer, MapLayerRoom } from '../MapDThree/baseClasses'
+import { SimNode, SimCallback } from '../MapDThree/baseClasses'
 import MapDisplay from './MapDisplay'
-import mapAreaReducer, { treeToVisible } from './reducer'
+import mapAreaReducer, { treeToVisible, treeToMapLayers } from './reducer'
 import { MapDispatch } from '../reducer.d'
 
 type MapAreaProps = {
@@ -20,36 +19,6 @@ type MapAreaProps = {
 
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
-}
-
-const simulationNodes = (treeEntry: MapTreeEntry): Record<string, MapLayerRoom> => {
-    const { children = [], key, item } = treeEntry
-    const childrenNodes = children.reduceRight<MapLayer[]>((previous: Record<string, MapLayerRoom>, child: MapTreeEntry) => ({
-        ...previous,
-        ...simulationNodes(child)
-    }), {})
-    if (item.type === 'ROOM') {
-        return {
-            ...childrenNodes,
-            [item.roomId]: {
-                id: key,
-                roomId: item.roomId,
-                x: item.x,
-                y: item.y,
-            }
-        }
-    }
-    else {
-        return childrenNodes
-    }
-}
-
-const treeToMapLayers = (tree: MapTree): MapLayer[] => {
-    return tree.map((treeEntry) => ({
-        key: treeEntry.key,
-        rooms: simulationNodes(treeEntry),
-        roomVisibility: {}
-    }))
 }
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch, onStabilize = () => {} }) => {

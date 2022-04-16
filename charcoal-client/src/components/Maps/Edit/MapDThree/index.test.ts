@@ -3,7 +3,6 @@ import { jest, beforeEach, describe, it, expect } from '@jest/globals'
 jest.mock('./MapDThreeStack.ts')
 import MapDThreeStackRaw from './MapDThreeStack'
 import { MapDThree } from '.'
-jest.mock('./treeToSimulation')
 
 import { mockClass } from '../../../../lib/jestHelpers'
 const MapDThreeStack = mockClass(MapDThreeStackRaw)
