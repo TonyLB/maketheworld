@@ -48,7 +48,13 @@ whole stabilizes on a resting state
     }
 
     interface MapLayer {
+        //
+        // Records rooms by roomId
+        //
         rooms: Record<string, MapLayerRoom>;
+        //
+        // And separately (for easy update) records their visibility
+        //
         roomVisibility: Record<string, boolean>;
     }
 

@@ -1,13 +1,30 @@
 
+import {
+    SimulationLinkDatum
+} from 'd3-force'
+
 import { MapTree } from '../maps'
 
-import { SimCallback, SimNode } from './baseClasses'
+import { SimCallback, SimNode, SimulationReturn } from './baseClasses'
 
 import MapDThreeStack from './MapDThreeStack'
 import treeToSimulation from './treeToSimulation'
 import ExitDragD3Layer from './exitDragSimulation'
 
 import { produce } from 'immer'
+
+interface MapLayerRoom {
+    id: string;
+    roomId: string;
+    x: number;
+    y: number;
+}
+
+interface MapLayer {
+    key: string;
+    rooms: Record<string, MapLayerRoom>;
+    roomVisibility: Record<string, boolean>;
+}
 
 //
 // Check through the current links in the map and compile a list of rooms that are already as linked as this
@@ -46,15 +63,58 @@ export class MapDThree extends Object {
     onTick: SimCallback = () => {}
     onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void
     onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
-    constructor({ tree, onStability, onTick, onExitDrag, onAddExit }: {
-        tree: MapTree,
+    constructor({ roomLayers, exits, onStability, onTick, onExitDrag, onAddExit }: {
+        roomLayers: MapLayer[];
+        exits: { to: string; from: string; visible: boolean; }[];
         onStability?: SimCallback,
         onTick?: SimCallback,
         onExitDrag?: (dragTarget: { sourceRoomId: string, x: number, y: number }) => void,
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const layers = treeToSimulation(tree)
+        const keyByRoomId = roomLayers.reduce<Record<string, string>>((previous, { rooms }) => (
+            Object.values(rooms).reduce<Record<string, string>>((accumulator, { id, roomId }) => ({ ...accumulator, [roomId]: id }), previous)
+        ), {})
+        const links = exits
+            .filter(({ to, from }) => (keyByRoomId[to] && keyByRoomId[from]))
+            .map(({ to, from }, index) => ({
+                id: `${index}`,
+                source: keyByRoomId[from],
+                target: keyByRoomId[to],
+                visible: true
+            } as SimulationLinkDatum<SimNode>))
+        const { layers } = roomLayers.reduce<{ layers: SimulationReturn[], previousRooms: Record<string, MapLayerRoom & { visible: boolean }>}>((previous, roomLayer) => {
+            return {
+                layers: [
+                    ...previous.layers,
+                    {
+                        key: roomLayer.key,
+                        nodes: [
+                            ...Object.values(previous.previousRooms).map((room) => ({
+                                ...room,
+                                cascadeNode: true
+                            })),
+                            ...Object.values(roomLayer.rooms).map((room) => ({
+                                ...room,
+                                cascadeNode: false,
+                                visible: roomLayer.roomVisibility[room.roomId] || false
+                            }))
+                        ] as SimNode[],
+                        links
+                    }
+                ],
+                previousRooms: {
+                    ...previous.previousRooms,
+                    ...Object.entries(roomLayer.rooms).reduce((previous, [key, value]) => ({
+                        ...previous,
+                        [key]: {
+                            ...value,
+                            visible: roomLayer.roomVisibility[key] || false
+                        }
+                    }), {})
+                }
+            }
+        }, { layers: [] as SimulationReturn[], previousRooms: {} as Record<string, MapLayerRoom & { visible: boolean }> })
         this.stack = new MapDThreeStack({
             layers,
             onTick,
