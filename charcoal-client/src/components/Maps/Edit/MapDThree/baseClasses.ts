@@ -27,3 +27,14 @@ export type SimCallback = (nodes: SimNode[]) => void
 
 export type MapNodes = SimNode[]
 export type MapLinks = SimulationLinkDatum<SimulationNodeDatum>[]
+
+export interface MapLayerRoom {
+    roomId: string;
+    x: number;
+    y: number;
+}
+
+export interface MapLayer {
+    rooms: Record<string, MapLayerRoom>;
+    roomVisibility: Record<string, boolean>;
+}
