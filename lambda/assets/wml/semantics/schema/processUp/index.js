@@ -117,8 +117,11 @@ export const liftUntagged = (label, { separator = '', allString = false } = {}) 
 
 export const liftContents = (label, { separator = '', allString = false, exclude = [] } = {}) => ({ contents = [], ...rest }) => {
     const aggregationReducer = ({ listItems, currentItem, contents }, item) => {
-        if (typeof currentItem === 'string' && typeof item === 'string') {
-            return { listItems, contents, currentItem: [currentItem, item].join(separator) }
+        if (currentItem?.tag === 'String' && item?.tag === 'String') {
+            return { listItems, contents, currentItem: {
+                tag: 'String',
+                value: [currentItem.value, item.value].join(separator)
+            } }
         }
         else {
             if (exclude.includes(item.tag)) {

@@ -37,6 +37,8 @@ const processTagProps = (tag, props) => ({
         }), {})
 })
 
+const replaceWhiteSpace = (value) => (value.replace(/\s+/g, ' '))
+
 export const schema = {
     //
     // TODO: Parse out string-internal white-space as needed
@@ -46,6 +48,12 @@ export const schema = {
     },
     stringText(node) {
         return this.sourceString
+    },
+    DescriptionTextContents(node) {
+        return {
+            tag: 'String',
+            value: replaceWhiteSpace(this.sourceString).trim()
+        }
     },
     legalKey(node) {
         return this.sourceString
@@ -192,7 +200,7 @@ export const schema = {
             liftLiteralProps(['display', 'x', 'y']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
-            liftContents('render', { exclude: ['Exit', 'Feature'] }),
+            liftDescription
         ])(node.schema())
     },
     ExitExpression(node) {
