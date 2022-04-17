@@ -87,6 +87,12 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     }
 
     return renderList.map(({ EphemeraId, CharacterId, mapValuesOnly = false }) => {
+        const mapRenderFormats = (renderItem) => {
+            if (renderItem?.tag === 'String') {
+                return renderItem.value
+            }
+            return renderItem
+        }
         const [objectType] = splitType(EphemeraId)
         const { assets, meta, itemsByAsset } = extractRenderArguments({ EphemeraId, CharacterId })
         switch(objectType) {
@@ -111,7 +117,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                                 ...(mapValuesOnly
                                     ? {}
                                     : {
-                                        render: [ ...previousRender, ...(render || []) ],
+                                        render: [ ...previousRender, ...(render || []).map(mapRenderFormats) ],
                                         features: [ ...previousFeatures, ...(features || []) ]
                                     }
                                 )
@@ -138,7 +144,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                         return appearances
                             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
                             .reduce(({ render: previousRender, features: previousFeatures, name: previousName }, { render, features }) => ({
-                                render: [ ...previousRender, ...(render || []) ],
+                                render: [ ...previousRender, ...(render || []).map(mapRenderFormats) ],
                                 features: [ ...previousFeatures, ...(features || []) ],
                                 name: previousName
                             }), { ...previous, name: [ ...previous.name, name ] })
