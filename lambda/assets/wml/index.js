@@ -2,6 +2,7 @@ import { produce } from 'immer'
 
 import { compileCode } from './compileCode.js'
 import { schema } from './semantics/schema/index.js'
+import { prettyPrint, prettyPrintShouldNest } from './semantics/schema/prettyPrint.js'
 import { wmlProcessDown, assignExitContext } from './semantics/schema/processDown/index.js'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
@@ -14,7 +15,7 @@ export const wmlSemantics = wmlGrammar.createSemantics()
         string(node) {
             return this.sourceString
         },
-        EmbeddedJSExpression(open, contents, close) {
+        embeddedJSExpression(open, contents, close) {
             try {
                 const evaluation = compileCode(`return (${contents.sourceString})`)({
                     name: 'world'
@@ -34,6 +35,8 @@ export const wmlSemantics = wmlGrammar.createSemantics()
         }
     })
     .addOperation('schema', schema)
+    .addOperation('prettyPrintShouldNest(depth)', prettyPrintShouldNest)
+    .addOperation('prettyPrint(depth)', prettyPrint)
 
 const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
 
@@ -96,7 +99,7 @@ export const dbEntries = (schema) => {
                         ...rest,
                         appearances: appearances
                             .map(mapContextStackToConditions)
-                            .map(({ contents, ...remainder }) => {
+                            .map(({ contents, location, ...remainder }) => {
                                 const exitContents = contents
                                     .filter(({ tag }) => (tag === 'Exit'))
                                 return {
@@ -119,7 +122,7 @@ export const dbEntries = (schema) => {
                         ...rest,
                         appearances: appearances
                             .map(mapContextStackToConditions)
-                            .map(({ contents, ...rest }) => (rest))
+                            .map(({ contents, location, ...rest }) => (rest))
                     }
                     return featureVal
                 case 'Variable':

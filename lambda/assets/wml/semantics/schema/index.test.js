@@ -11,8 +11,10 @@ describe('WML semantic schema', () => {
                 </Import>
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
-                    Vortex
-                    <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
+                    <Description>
+                        Vortex
+                        <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
+                    </Description>
                     <Exit from=(DEF)>vortex</Exit>
                 </Room>
                 <Condition if={open}>
@@ -163,7 +165,7 @@ describe('WML semantic schema', () => {
             <Story key=(Test) instance fileName="test">
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
-                    Vortex
+                    <Description>Vortex</Description>
                 </Room>
             </Story>
         `)
@@ -181,7 +183,7 @@ describe('WML semantic schema', () => {
                 name: 'Vortex',
                 global: false,
                 render: [
-                    'Vortex '
+                    'Vortex'
                 ],
                 props: {},
                 contents: []
@@ -193,12 +195,14 @@ describe('WML semantic schema', () => {
         const match = wmlGrammar.match(`
             <Story key=(Test) instance fileName="test">
                 <Feature key=(clockTower)>
-                    A clock-tower of weathered grey stone looms over the area.
+                    <Description>
+                        A clock-tower of weathered grey stone looms over the area.
+                    </Description>
                 </Feature>
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
                     <Feature key=(clockTower) />
-                    Vortex
+                    <Description>Vortex</Description>
                 </Room>
             </Story>
         `)
@@ -224,7 +228,7 @@ describe('WML semantic schema', () => {
                 name: 'Vortex',
                 global: false,
                 render: [
-                    'Vortex '
+                    'Vortex'
                 ],
                 props: {},
                 contents: [{

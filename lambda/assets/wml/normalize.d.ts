@@ -21,20 +21,30 @@ type NormalReference = {
 type BaseAppearance = {
     contextStack: NormalReference[];
     contents: NormalReference[];
+    location?: number[];
 }
 
 type NormalBase = {
     key: string;
 }
 
-type NormalAsset = {
-    tag: 'Asset',
-    Story?: boolean,
-    instance?: boolean,
+export type NormalAsset = {
+    tag: 'Asset';
+    Story?: boolean;
+    instance?: boolean;
     appearances: BaseAppearance[];
 } & NormalBase
 
-type RoomRenderItem = {
+export type NormalCharacter = {
+    type: 'Character';
+    Name: string;
+    Pronouns: any;
+    FirstImpression: string;
+    OneCoolThing: string;
+    Outfit: string;
+} & NormalBase
+
+export type RoomRenderItem = {
     tag: 'Link';
     targetTag: 'Feature' | 'Action';
     key: string;
@@ -47,7 +57,7 @@ export type RoomAppearance = {
     render?: RoomRenderItem[];
 } & BaseAppearance
 
-type NormalRoom = {
+export type NormalRoom = {
     tag: 'Room';
     appearances: RoomAppearance[];
 } & NormalBase
@@ -57,7 +67,7 @@ type NormalImportMapping = {
     type: string;
 }
 
-type NormalImport = {
+export type NormalImport = {
     tag: 'Import';
     from: string;
     mapping: Record<string, NormalImportMapping>;
@@ -67,29 +77,36 @@ type NormalImport = {
 type NormalImage = {
     tag: 'Image';
     fileURL?: string;
-    appearances: BaseAppearance;
+    appearances: BaseAppearance[];
 } & NormalBase
 
+type MapAppearanceRoom = {
+    x: number;
+    y: number;
+    location: number[];
+}
+
 type MapAppearance = {
-    rooms: Record<string, { x: number; y: number }>;
+    rooms: Record<string, MapAppearanceRoom>;
 } & BaseAppearance
 
-type NormalMap = {
+export type NormalMap = {
     tag: 'Map';
     appearances: MapAppearance[];
 } & NormalBase
 
-type NormalExit = {
+export type NormalExit = {
     tag: 'Exit';
     to: string;
     from: string;
+    appearances?: BaseAppearance[];
 } & NormalBase
 
 type FeatureAppearance = {
     render?: RoomRenderItem[];
 } & BaseAppearance
 
-type NormalFeature = {
+export type NormalFeature = {
     tag: 'Feature';
     name: string;
     appearances: BaseAppearance[];
@@ -126,3 +143,7 @@ export type NormalItem = NormalAsset |
     NormalAction
 
 export type NormalForm = Record<string, NormalItem>
+
+export const normalize = (node: any, existingMap?: any, contextStack?: any, location?: number[]) => NormalForm
+
+export default normalize

@@ -1,5 +1,6 @@
 import { produce } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
+import { objectEntryMap } from '../lib/objects.js'
 
 export class WMLNormalizeError extends Error {
     constructor(message) {
@@ -71,11 +72,8 @@ const pullProperties = (node) => {
             'key',
         ]
         switch(node.tag) {
-            case 'Room':
-                pullTags.push('global')
-                break
             case 'Feature':
-                pullTags.push('name', 'global')
+                pullTags.push('name')
                 break
             case 'Exit':
                 pullTags = [...pullTags, 'to', 'from', 'name']
@@ -230,10 +228,47 @@ export const transformNode = (contextStack, node) => {
 }
 
 //
+// postProcessAppearance parses through elements after all of the normal structure has been
+// created, and updates appearanes where necessary (e.g. to include locations in the rooms
+// denormalization of Map nodes)
+//
+export const postProcessAppearance = (normalForm, key, index) => {
+    const node = normalForm[key]
+    if (!node) {
+        return normalForm
+    }
+    if (node.tag === 'Map') {
+        if (index >= node.appearances.length) {
+            return normalForm
+        }
+        const appearance = node.appearances[index]
+        const { rooms, contents } = appearance
+        const revisedRooms = objectEntryMap(rooms, (roomKey, roomPosition) => {
+            const roomContentItem = contents.find(({ key }) => (key === roomKey))
+            if (roomContentItem) {
+                const roomAppearance = normalForm[roomKey]?.appearances?.[roomContentItem.index]
+                if (roomAppearance) {
+                    const { location } = roomAppearance
+                    return {
+                        ...roomPosition,
+                        location
+                    }
+                }
+            }
+            return roomPosition
+        })
+        return produce(normalForm, (draftNormalForm) => {
+            draftNormalForm[key].appearances[index].rooms = revisedRooms
+        })
+    }
+    return normalForm
+}
+
+//
 // mergeElements tracks how to add an element into the normalized structure, given the contextStack in
 // which it is encountered.
 //
-const mergeElements = (previous, contextStack, node) => {
+const mergeElements = ({ previous, contextStack, node, location }) => {
     const deepEqual = (listA, listB) => {
         return JSON.stringify(listA) === JSON.stringify(listB)
     }
@@ -269,7 +304,8 @@ const mergeElements = (previous, contextStack, node) => {
                     contents: [
                         ...(currentAppearance.contents || []),
                         ...(incomingAppearance.contents || [])
-                    ]
+                    ],
+                    location
                 }
             ]
         }
@@ -285,6 +321,7 @@ const mergeElements = (previous, contextStack, node) => {
                 ...previous.appearances,
                 {
                     contextStack,
+                    location,
                     ...incomingAppearance
                 }
             ]
@@ -292,7 +329,7 @@ const mergeElements = (previous, contextStack, node) => {
     }
 }
 
-export const addElement = (existingMap = {}, { contextStack = [], node }) => {
+export const addElement = (existingMap = {}, { contextStack = [], node, location }) => {
     const { key } = node
     const { contextFilledMap, filledContext } = contextStack.reduce((previous, { key, tag, index }) => {
         if (index !== undefined) {
@@ -333,7 +370,7 @@ export const addElement = (existingMap = {}, { contextStack = [], node }) => {
             // with a same-level sibling, or add a new appearance
             //
             const priorAppearances = draftMap[key].appearances.length
-            draftMap[key] = mergeElements(draftMap[key], filledContext, node)
+            draftMap[key] = mergeElements({ previous: draftMap[key], contextStack: filledContext, node, location })
             if (draftMap[key].appearances.length === priorAppearances) {
                 merged = true
             }
@@ -348,6 +385,7 @@ export const addElement = (existingMap = {}, { contextStack = [], node }) => {
                 ...topLevel,
                 appearances: [{
                     contextStack: filledContext,
+                    location,
                     ...appearance
                 }]
             }
@@ -371,7 +409,7 @@ export const addElement = (existingMap = {}, { contextStack = [], node }) => {
     })
 }
 
-export const normalize = (node, existingMap = {}, contextStack = []) => {
+export const normalize = (node, existingMap = {}, contextStack = [], location = [0]) => {
     const { contextStack: transformedContext, node: transformedNode } = transformNode(contextStack, node)
     const { topLevel: { key, tag, ...topLevelRest }, appearance: { contents } } = pullProperties(transformedNode)
     if (!key || !tag) {
@@ -381,6 +419,7 @@ export const normalize = (node, existingMap = {}, contextStack = []) => {
         existingMap,
         {
             contextStack: transformedContext,
+            location,
             node: {
                 ...transformedNode,
                 contents: []
@@ -395,8 +434,13 @@ export const normalize = (node, existingMap = {}, contextStack = []) => {
             index: (firstPassMap[key]?.appearances || []).length - 1
         }
     ]
-    const secondPassMap = (contents || []).reduce((previous, node) => (normalize(node, previous, updatedContextStack)), firstPassMap)
-    return secondPassMap
+    const secondPassMap = (contents || []).reduce((previous, node, index) => (normalize(node, previous, updatedContextStack, [...location, index])), firstPassMap)
+    const thirdPassMap = Object.entries(secondPassMap)
+        .reduce((previous, [key, normalItem]) => (
+            normalItem.appearances
+                .reduce((accumulator, _, index) => (postProcessAppearance(accumulator, key, index)), previous)
+        ), secondPassMap)
+    return thirdPassMap
 }
 
 export default normalize

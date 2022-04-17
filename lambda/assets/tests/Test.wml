@@ -3,23 +3,27 @@
     <Action key=(togglePower) src={power = !power} />
     <Layer key=(123)>
         <Room key=(345)>
-            Hello, world!
-            <Link key=(powerSwitch) to=(togglePower)>power</Link>
+            <Description>
+                Hello, world!
+                <Link key=(powerSwitch) to=(togglePower)>power</Link>
+            </Description>
             <Name>Welcome Area</Name>
             <Exit to=(VORTEX)>vortex</Exit>
             <Exit from=(VORTEX)>welcome</Exit>
         </Room>
         <Room global key=(VORTEX)>
             <Name>Vortex</Name>
-            A swirling pool of flickering energy, thick enough to stand on,
-            but not exactly comfortingly solid. There's a murmuring sound
-            of rustling leaves.  Doorways leading from this place stand
-            equidistant around you.
+            <Description>
+                A swirling pool of flickering energy, thick enough to stand on,
+                but not exactly comfortingly solid. There's a murmuring sound
+                of rustling leaves.  Doorways leading from this place stand
+                equidistant around you.
+            </Description>
         </Room>
     </Layer>
     <Condition if={true}>
         <Room global key=(VORTEX)>
-            Alternate
+            <Description>Alternate</Description>
         </Room>
     </Condition>
 </Asset>

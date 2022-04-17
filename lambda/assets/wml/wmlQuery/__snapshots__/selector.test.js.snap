@@ -1,0 +1,709 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`wmlQuery selector should correctly select ancestor chain 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 86,
+        "start": 82,
+        "type": "string",
+        "value": "Tess",
+      },
+    ],
+    "end": 93,
+    "props": Object {},
+    "start": 76,
+    "tag": "Name",
+    "tagEnd": 81,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should correctly select leaf node 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 86,
+        "start": 82,
+        "type": "string",
+        "value": "Tess",
+      },
+    ],
+    "end": 93,
+    "props": Object {},
+    "start": 76,
+    "tag": "Name",
+    "tagEnd": 81,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should correctly select root node 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "end": 86,
+            "start": 82,
+            "type": "string",
+            "value": "Tess",
+          },
+        ],
+        "end": 93,
+        "props": Object {},
+        "start": 76,
+        "tag": "Name",
+        "tagEnd": 81,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [],
+        "end": 301,
+        "props": Object {
+          "adjective": Object {
+            "end": 240,
+            "start": 224,
+            "value": "hers",
+            "valueEnd": 239,
+            "valueStart": 235,
+          },
+          "object": Object {
+            "end": 174,
+            "start": 162,
+            "value": "her",
+            "valueEnd": 173,
+            "valueStart": 170,
+          },
+          "possessive": Object {
+            "end": 207,
+            "start": 191,
+            "value": "her",
+            "valueEnd": 206,
+            "valueStart": 203,
+          },
+          "reflexive": Object {
+            "end": 276,
+            "start": 257,
+            "value": "herself",
+            "valueEnd": 275,
+            "valueStart": 268,
+          },
+          "subject": Object {
+            "end": 145,
+            "start": 132,
+            "value": "she",
+            "valueEnd": 144,
+            "valueStart": 141,
+          },
+        },
+        "start": 106,
+        "tag": "Pronouns",
+        "tagEnd": 115,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 342,
+            "start": 331,
+            "type": "string",
+            "value": "Frumpy Goth",
+          },
+        ],
+        "end": 360,
+        "props": Object {},
+        "start": 314,
+        "tag": "FirstImpression",
+        "tagEnd": 330,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 399,
+            "start": 387,
+            "type": "string",
+            "value": "Fuchsia eyes",
+          },
+        ],
+        "end": 414,
+        "props": Object {},
+        "start": 373,
+        "tag": "OneCoolThing",
+        "tagEnd": 386,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 517,
+            "start": 435,
+            "type": "string",
+            "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+          },
+        ],
+        "end": 526,
+        "props": Object {},
+        "start": 427,
+        "tag": "Outfit",
+        "tagEnd": 434,
+        "type": "tag",
+      },
+    ],
+    "end": 547,
+    "props": Object {
+      "fileName": Object {
+        "end": 46,
+        "start": 31,
+        "value": "Tess",
+        "valueEnd": 45,
+        "valueStart": 41,
+      },
+      "key": Object {
+        "end": 30,
+        "start": 20,
+        "value": "TESS",
+        "valueEnd": 29,
+        "valueStart": 25,
+      },
+      "player": Object {
+        "end": 62,
+        "start": 47,
+        "value": "TonyLB",
+        "valueEnd": 61,
+        "valueStart": 55,
+      },
+    },
+    "start": 9,
+    "tag": "Character",
+    "tagEnd": 19,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should correctly subset by property 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "end": 150,
+            "start": 117,
+            "type": "string",
+            "value": "Test Render:
+                    ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "end": 193,
+                "start": 182,
+                "type": "string",
+                "value": "Clock Tower",
+              },
+            ],
+            "end": 200,
+            "props": Object {
+              "key": Object {
+                "end": 165,
+                "start": 156,
+                "value": "123",
+                "valueEnd": 164,
+                "valueStart": 161,
+              },
+              "to": Object {
+                "end": 181,
+                "start": 166,
+                "value": "clockTower",
+                "valueEnd": 180,
+                "valueStart": 170,
+              },
+            },
+            "start": 150,
+            "tag": "Link",
+            "tagEnd": 155,
+            "type": "tag",
+          },
+        ],
+        "end": 231,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 268,
+            "start": 264,
+            "type": "string",
+            "value": "test",
+          },
+        ],
+        "end": 275,
+        "props": Object {
+          "to": Object {
+            "end": 263,
+            "start": 254,
+            "value": "Test",
+            "valueEnd": 262,
+            "valueStart": 258,
+          },
+        },
+        "start": 248,
+        "tag": "Exit",
+        "tagEnd": 253,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 316,
+            "start": 310,
+            "type": "string",
+            "value": "vortex",
+          },
+        ],
+        "end": 323,
+        "props": Object {
+          "from": Object {
+            "end": 309,
+            "start": 298,
+            "value": "Test",
+            "valueEnd": 308,
+            "valueStart": 304,
+          },
+        },
+        "start": 292,
+        "tag": "Exit",
+        "tagEnd": 297,
+        "type": "tag",
+      },
+    ],
+    "end": 343,
+    "props": Object {
+      "global": Object {
+        "end": 65,
+        "start": 59,
+        "value": true,
+      },
+      "key": Object {
+        "end": 58,
+        "start": 46,
+        "value": "VORTEX",
+        "valueEnd": 57,
+        "valueStart": 51,
+      },
+    },
+    "start": 40,
+    "tag": "Room",
+    "tagEnd": 45,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should properly chain complex predicates 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 268,
+        "start": 264,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "end": 275,
+    "props": Object {
+      "to": Object {
+        "end": 263,
+        "start": 254,
+        "value": "Test",
+        "valueEnd": 262,
+        "valueStart": 258,
+      },
+    },
+    "start": 248,
+    "tag": "Exit",
+    "tagEnd": 253,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should properly select :first filter 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 268,
+        "start": 264,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "end": 275,
+    "props": Object {
+      "to": Object {
+        "end": 263,
+        "start": 254,
+        "value": "Test",
+        "valueEnd": 262,
+        "valueStart": 258,
+      },
+    },
+    "start": 248,
+    "tag": "Exit",
+    "tagEnd": 253,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should properly select nested :nthChild filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 316,
+        "start": 310,
+        "type": "string",
+        "value": "vortex",
+      },
+    ],
+    "end": 323,
+    "props": Object {
+      "from": Object {
+        "end": 309,
+        "start": 298,
+        "value": "Test",
+        "valueEnd": 308,
+        "valueStart": 304,
+      },
+    },
+    "start": 292,
+    "tag": "Exit",
+    "tagEnd": 297,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should properly select one level :nthChild filter 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "end": 375,
+    "props": Object {
+      "key": Object {
+        "end": 372,
+        "start": 362,
+        "value": "Test",
+        "valueEnd": 371,
+        "valueStart": 367,
+      },
+    },
+    "start": 356,
+    "tag": "Room",
+    "tagEnd": 361,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should return a list for multiple matches 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "end": 150,
+            "start": 117,
+            "type": "string",
+            "value": "Test Render:
+                    ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "end": 193,
+                "start": 182,
+                "type": "string",
+                "value": "Clock Tower",
+              },
+            ],
+            "end": 200,
+            "props": Object {
+              "key": Object {
+                "end": 165,
+                "start": 156,
+                "value": "123",
+                "valueEnd": 164,
+                "valueStart": 161,
+              },
+              "to": Object {
+                "end": 181,
+                "start": 166,
+                "value": "clockTower",
+                "valueEnd": 180,
+                "valueStart": 170,
+              },
+            },
+            "start": 150,
+            "tag": "Link",
+            "tagEnd": 155,
+            "type": "tag",
+          },
+        ],
+        "end": 231,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 268,
+            "start": 264,
+            "type": "string",
+            "value": "test",
+          },
+        ],
+        "end": 275,
+        "props": Object {
+          "to": Object {
+            "end": 263,
+            "start": 254,
+            "value": "Test",
+            "valueEnd": 262,
+            "valueStart": 258,
+          },
+        },
+        "start": 248,
+        "tag": "Exit",
+        "tagEnd": 253,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 316,
+            "start": 310,
+            "type": "string",
+            "value": "vortex",
+          },
+        ],
+        "end": 323,
+        "props": Object {
+          "from": Object {
+            "end": 309,
+            "start": 298,
+            "value": "Test",
+            "valueEnd": 308,
+            "valueStart": 304,
+          },
+        },
+        "start": 292,
+        "tag": "Exit",
+        "tagEnd": 297,
+        "type": "tag",
+      },
+    ],
+    "end": 343,
+    "props": Object {
+      "global": Object {
+        "end": 65,
+        "start": 59,
+        "value": true,
+      },
+      "key": Object {
+        "end": 58,
+        "start": 46,
+        "value": "VORTEX",
+        "valueEnd": 57,
+        "valueStart": 51,
+      },
+    },
+    "start": 40,
+    "tag": "Room",
+    "tagEnd": 45,
+    "type": "tag",
+  },
+  Object {
+    "contents": Array [],
+    "end": 375,
+    "props": Object {
+      "key": Object {
+        "end": 372,
+        "start": 362,
+        "value": "Test",
+        "valueEnd": 371,
+        "valueStart": 367,
+      },
+    },
+    "start": 356,
+    "tag": "Room",
+    "tagEnd": 361,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery selector should select root node when passed empty string 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "end": 86,
+            "start": 82,
+            "type": "string",
+            "value": "Tess",
+          },
+        ],
+        "end": 93,
+        "props": Object {},
+        "start": 76,
+        "tag": "Name",
+        "tagEnd": 81,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [],
+        "end": 301,
+        "props": Object {
+          "adjective": Object {
+            "end": 240,
+            "start": 224,
+            "value": "hers",
+            "valueEnd": 239,
+            "valueStart": 235,
+          },
+          "object": Object {
+            "end": 174,
+            "start": 162,
+            "value": "her",
+            "valueEnd": 173,
+            "valueStart": 170,
+          },
+          "possessive": Object {
+            "end": 207,
+            "start": 191,
+            "value": "her",
+            "valueEnd": 206,
+            "valueStart": 203,
+          },
+          "reflexive": Object {
+            "end": 276,
+            "start": 257,
+            "value": "herself",
+            "valueEnd": 275,
+            "valueStart": 268,
+          },
+          "subject": Object {
+            "end": 145,
+            "start": 132,
+            "value": "she",
+            "valueEnd": 144,
+            "valueStart": 141,
+          },
+        },
+        "start": 106,
+        "tag": "Pronouns",
+        "tagEnd": 115,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 342,
+            "start": 331,
+            "type": "string",
+            "value": "Frumpy Goth",
+          },
+        ],
+        "end": 360,
+        "props": Object {},
+        "start": 314,
+        "tag": "FirstImpression",
+        "tagEnd": 330,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 399,
+            "start": 387,
+            "type": "string",
+            "value": "Fuchsia eyes",
+          },
+        ],
+        "end": 414,
+        "props": Object {},
+        "start": 373,
+        "tag": "OneCoolThing",
+        "tagEnd": 386,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 517,
+            "start": 435,
+            "type": "string",
+            "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+          },
+        ],
+        "end": 526,
+        "props": Object {},
+        "start": 427,
+        "tag": "Outfit",
+        "tagEnd": 434,
+        "type": "tag",
+      },
+    ],
+    "end": 547,
+    "props": Object {
+      "fileName": Object {
+        "end": 46,
+        "start": 31,
+        "value": "Tess",
+        "valueEnd": 45,
+        "valueStart": 41,
+      },
+      "key": Object {
+        "end": 30,
+        "start": 20,
+        "value": "TESS",
+        "valueEnd": 29,
+        "valueStart": 25,
+      },
+      "player": Object {
+        "end": 62,
+        "start": 47,
+        "value": "TonyLB",
+        "valueEnd": 61,
+        "valueStart": 55,
+      },
+    },
+    "start": 9,
+    "tag": "Character",
+    "tagEnd": 19,
+    "type": "tag",
+  },
+]
+`;

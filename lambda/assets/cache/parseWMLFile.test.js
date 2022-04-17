@@ -23,7 +23,9 @@ describe('parseWMLFile', () => {
                 <Condition if={active}>
                     <Depend on=(active) />
                     <Room key=(ABC)>
-                        The lights are on
+                        <Description>
+                            The lights are on
+                        </Description>
                     </Room>
                 </Condition>
                 <Variable key=(powered) default={false} />
@@ -42,103 +44,6 @@ describe('parseWMLFile', () => {
             errors: [],
             props: {}
         }
-        expect(parseOutput).toEqual({
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'Condition-0',
-                        tag: 'Condition',
-                        index: 0
-                    },
-                    {
-                        key: 'powered',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'switchedOn',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'active',
-                        tag: 'Computed',
-                        index: 0
-                    },
-                    {
-                        key: 'toggleSwitch',
-                        tag: 'Action',
-                        index: 0
-                    }]
-                }]
-            },
-            ABC: {
-                key: 'ABC',
-                tag: 'Room',
-                global: false,
-                appearances: [{
-                    ...topLevelAppearance,
-                    name: 'Vortex',
-                    render: []
-                },
-                {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    errors: [],
-                    props: {},
-                    render: ['The lights are on '],
-                    contents: []
-                }]
-            },
-            powered: {
-                key: 'powered',
-                tag: 'Variable',
-                default: 'false',
-                appearances: [topLevelAppearance]
-            },
-            switchedOn: {
-                key: 'switchedOn',
-                tag: 'Variable',
-                default: 'true',
-                appearances: [topLevelAppearance]
-            },
-            active: {
-                key: 'active',
-                tag: 'Computed',
-                src: 'powered && switchedOn',
-                dependencies: ['switchedOn', 'powered'],
-                appearances: [topLevelAppearance]
-            },
-            toggleSwitch: {
-                key: 'toggleSwitch',
-                tag: 'Action',
-                src: 'switchedOn = !switchedOn',
-                appearances: [topLevelAppearance]
-            },
-            ['Condition-0']: {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'active',
-                dependencies: ['active'],
-                appearances: [{
-                    ...topLevelAppearance,
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 1
-                    }]
-                }]
-            }
-        })
+        expect(parseOutput).toMatchSnapshot()
     })
 })

@@ -1,5 +1,6 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
+jest.mock('sharp', () => ({}))
 jest.mock('../serialize/s3Assets.js')
 import { getAssets } from '../serialize/s3Assets.js'
 jest.mock('../serialize/importedAssets.js')
