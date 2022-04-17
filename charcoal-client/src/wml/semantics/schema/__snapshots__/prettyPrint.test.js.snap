@@ -9,6 +9,19 @@ exports[`WML semantic prettyPrint should indent nested elements 1`] = `
 </Asset>"
 `;
 
+exports[`WML semantic prettyPrint should nest props on very long tags 1`] = `
+"<Character key=(Tess) fileName=\\"Tess\\" player=\\"testy\\" zone=\\"Library\\">
+    <Name>Tess</Name>
+    <Pronouns
+        subject=\\"ridiculously long pronoun\\"
+        object=\\"ridiculously long pronoun\\"
+        possessive=\\"ridiculously long pronoun\\"
+        adjective=\\"ridiculously long pronoun\\"
+        reflexive=\\"ridiculously long pronoun\\"
+    />
+</Character>"
+`;
+
 exports[`WML semantic prettyPrint should remove previous whitespace 1`] = `
 "<Asset key=(Test) fileName=\\"test\\">
     <Room key=(ABC)>
