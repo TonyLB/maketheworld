@@ -142,6 +142,29 @@ describe('wmlQuery', () => {
         expect(onChangeMock).toHaveBeenCalledTimes(0)
     })
 
+    it('should correctly remove and update boolean prop', () => {
+        const booleanPropsMatch = `
+            <Asset key=(BASE)>
+                <Room key=(VORTEX) global>
+                </Room>
+                <Room key=(Test) />
+            </Asset>
+        `
+        let booleanQuery = new WMLQuery(booleanPropsMatch, { onChange: onChangeMock })
+        expect(booleanQuery.search('Room[key="VORTEX"]').removeProp('global').source).toMatchSnapshot()
+        expect(booleanQuery.search('Room[key="Test"]').prop('global', true, { type: 'boolean' }).source).toMatchSnapshot()
+    })
+
+    it('should correctly remove and update expression prop', () => {
+        const expressionPropsMatch = `
+            <Asset key=(BASE)>
+                <Condition if={true}></Condition>
+            </Asset>
+        `
+        let expressionQuery = new WMLQuery(expressionPropsMatch, { onChange: onChangeMock })
+        expect(expressionQuery.search('Condition').prop('if', 'false', { type: 'expression' }).source).toMatchSnapshot()
+    })
+
     it('should return empty array contents on failed match', () => {
         expect(wmlQuery.search('Name Outfit').contents()).toEqual([])
     })
