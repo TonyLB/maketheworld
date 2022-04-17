@@ -30,7 +30,7 @@ export const prettyPrintShouldNest = {
     },
     _terminal() {
         const depth = this.args.depth
-        const returnValue = ((depth * 4 + this.sourceString.length) > 80) || (this.sourceString.search('\n') !== -1)
+        const returnValue = ((depth * 4 + replaceLineBreaks(this.sourceString).length) > 80) || (this.sourceString.search('\n') !== -1)
         return returnValue ? 'Nest' : 'None'
     },
     TextContents(item) {
@@ -40,10 +40,10 @@ export const prettyPrintShouldNest = {
     },
     TagSelfClosing(open, tag, props, close) {
         const depth = this.args.depth
-        if ((depth * 4 + this.sourceString.length) > 80) {
+        if ((depth * 4 + replaceLineBreaks(this.sourceString).length) > 80) {
             return 'Nest'
         }
-        return 'Tag'
+        return shouldNestOr('Tag', props.prettyPrintShouldNest(depth))
     },
     TagExpression(open, contents, close) {
         const depth = this.args.depth
@@ -53,7 +53,18 @@ export const prettyPrintShouldNest = {
         }
         return shouldNestOr((removeLineBreaks(this.sourceString) + depth * 4 > 80) ? 'Nest' : 'Tag', contentsNesting)
     },
-    
+    tagArgumentQuoted(key, eq, value) {
+        return 'None'
+    },
+    tagBooleanArgument(item, spacer) {
+        return 'None'
+    },
+    TagArgumentKey(key, eq, value, close) {
+        return 'None'
+    },
+    TagArgumentBracketed(key, eq, value, close) {
+        return value.sourceString.search('\n') !== -1 ? 'Nest' : 'None'
+    }
 }
 
 export const prettyPrint = {
