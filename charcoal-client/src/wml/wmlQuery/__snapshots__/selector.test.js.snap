@@ -193,93 +193,103 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 112,
-        "start": 83,
-        "type": "string",
-        "value": "Test Render:
-                ",
-      },
-      Object {
         "contents": Array [
           Object {
-            "end": 155,
-            "start": 144,
+            "end": 150,
+            "start": 117,
             "type": "string",
-            "value": "Clock Tower",
+            "value": "Test Render:
+                    ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "end": 193,
+                "start": 182,
+                "type": "string",
+                "value": "Clock Tower",
+              },
+            ],
+            "end": 200,
+            "props": Object {
+              "key": Object {
+                "end": 165,
+                "start": 156,
+                "value": "123",
+                "valueEnd": 164,
+                "valueStart": 161,
+              },
+              "to": Object {
+                "end": 181,
+                "start": 166,
+                "value": "clockTower",
+                "valueEnd": 180,
+                "valueStart": 170,
+              },
+            },
+            "start": 150,
+            "tag": "Link",
+            "tagEnd": 155,
+            "type": "tag",
           },
         ],
-        "end": 162,
-        "props": Object {
-          "key": Object {
-            "end": 127,
-            "start": 118,
-            "value": "123",
-            "valueEnd": 126,
-            "valueStart": 123,
-          },
-          "to": Object {
-            "end": 143,
-            "start": 128,
-            "value": "clockTower",
-            "valueEnd": 142,
-            "valueStart": 132,
-          },
-        },
-        "start": 112,
-        "tag": "Link",
-        "tagEnd": 117,
+        "end": 231,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
         "type": "tag",
       },
       Object {
         "contents": Array [
           Object {
-            "end": 199,
-            "start": 195,
+            "end": 268,
+            "start": 264,
             "type": "string",
             "value": "test",
           },
         ],
-        "end": 206,
+        "end": 275,
         "props": Object {
           "to": Object {
-            "end": 194,
-            "start": 185,
+            "end": 263,
+            "start": 254,
             "value": "Test",
-            "valueEnd": 193,
-            "valueStart": 189,
+            "valueEnd": 262,
+            "valueStart": 258,
           },
         },
-        "start": 179,
+        "start": 248,
         "tag": "Exit",
-        "tagEnd": 184,
+        "tagEnd": 253,
         "type": "tag",
       },
       Object {
         "contents": Array [
           Object {
-            "end": 247,
-            "start": 241,
+            "end": 316,
+            "start": 310,
             "type": "string",
             "value": "vortex",
           },
         ],
-        "end": 254,
+        "end": 323,
         "props": Object {
           "from": Object {
-            "end": 240,
-            "start": 229,
+            "end": 309,
+            "start": 298,
             "value": "Test",
-            "valueEnd": 239,
-            "valueStart": 235,
+            "valueEnd": 308,
+            "valueStart": 304,
           },
         },
-        "start": 223,
+        "start": 292,
         "tag": "Exit",
-        "tagEnd": 228,
+        "tagEnd": 297,
         "type": "tag",
       },
     ],
-    "end": 274,
+    "end": 343,
     "props": Object {
       "global": Object {
         "end": 65,
@@ -307,25 +317,25 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 199,
-        "start": 195,
+        "end": 268,
+        "start": 264,
         "type": "string",
         "value": "test",
       },
     ],
-    "end": 206,
+    "end": 275,
     "props": Object {
       "to": Object {
-        "end": 194,
-        "start": 185,
+        "end": 263,
+        "start": 254,
         "value": "Test",
-        "valueEnd": 193,
-        "valueStart": 189,
+        "valueEnd": 262,
+        "valueStart": 258,
       },
     },
-    "start": 179,
+    "start": 248,
     "tag": "Exit",
-    "tagEnd": 184,
+    "tagEnd": 253,
     "type": "tag",
   },
 ]
@@ -336,25 +346,25 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 199,
-        "start": 195,
+        "end": 268,
+        "start": 264,
         "type": "string",
         "value": "test",
       },
     ],
-    "end": 206,
+    "end": 275,
     "props": Object {
       "to": Object {
-        "end": 194,
-        "start": 185,
+        "end": 263,
+        "start": 254,
         "value": "Test",
-        "valueEnd": 193,
-        "valueStart": 189,
+        "valueEnd": 262,
+        "valueStart": 258,
       },
     },
-    "start": 179,
+    "start": 248,
     "tag": "Exit",
-    "tagEnd": 184,
+    "tagEnd": 253,
     "type": "tag",
   },
 ]
@@ -365,25 +375,25 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 199,
-        "start": 195,
+        "end": 316,
+        "start": 310,
         "type": "string",
-        "value": "test",
+        "value": "vortex",
       },
     ],
-    "end": 206,
+    "end": 323,
     "props": Object {
-      "to": Object {
-        "end": 194,
-        "start": 185,
+      "from": Object {
+        "end": 309,
+        "start": 298,
         "value": "Test",
-        "valueEnd": 193,
-        "valueStart": 189,
+        "valueEnd": 308,
+        "valueStart": 304,
       },
     },
-    "start": 179,
+    "start": 292,
     "tag": "Exit",
-    "tagEnd": 184,
+    "tagEnd": 297,
     "type": "tag",
   },
 ]
@@ -393,19 +403,19 @@ exports[`wmlQuery selector should properly select one level :nthChild filter 1`]
 Array [
   Object {
     "contents": Array [],
-    "end": 306,
+    "end": 375,
     "props": Object {
       "key": Object {
-        "end": 303,
-        "start": 293,
+        "end": 372,
+        "start": 362,
         "value": "Test",
-        "valueEnd": 302,
-        "valueStart": 298,
+        "valueEnd": 371,
+        "valueStart": 367,
       },
     },
-    "start": 287,
+    "start": 356,
     "tag": "Room",
-    "tagEnd": 292,
+    "tagEnd": 361,
     "type": "tag",
   },
 ]
@@ -416,93 +426,103 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 112,
-        "start": 83,
-        "type": "string",
-        "value": "Test Render:
-                ",
-      },
-      Object {
         "contents": Array [
           Object {
-            "end": 155,
-            "start": 144,
+            "end": 150,
+            "start": 117,
             "type": "string",
-            "value": "Clock Tower",
+            "value": "Test Render:
+                    ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "end": 193,
+                "start": 182,
+                "type": "string",
+                "value": "Clock Tower",
+              },
+            ],
+            "end": 200,
+            "props": Object {
+              "key": Object {
+                "end": 165,
+                "start": 156,
+                "value": "123",
+                "valueEnd": 164,
+                "valueStart": 161,
+              },
+              "to": Object {
+                "end": 181,
+                "start": 166,
+                "value": "clockTower",
+                "valueEnd": 180,
+                "valueStart": 170,
+              },
+            },
+            "start": 150,
+            "tag": "Link",
+            "tagEnd": 155,
+            "type": "tag",
           },
         ],
-        "end": 162,
-        "props": Object {
-          "key": Object {
-            "end": 127,
-            "start": 118,
-            "value": "123",
-            "valueEnd": 126,
-            "valueStart": 123,
-          },
-          "to": Object {
-            "end": 143,
-            "start": 128,
-            "value": "clockTower",
-            "valueEnd": 142,
-            "valueStart": 132,
-          },
-        },
-        "start": 112,
-        "tag": "Link",
-        "tagEnd": 117,
+        "end": 231,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
         "type": "tag",
       },
       Object {
         "contents": Array [
           Object {
-            "end": 199,
-            "start": 195,
+            "end": 268,
+            "start": 264,
             "type": "string",
             "value": "test",
           },
         ],
-        "end": 206,
+        "end": 275,
         "props": Object {
           "to": Object {
-            "end": 194,
-            "start": 185,
+            "end": 263,
+            "start": 254,
             "value": "Test",
-            "valueEnd": 193,
-            "valueStart": 189,
+            "valueEnd": 262,
+            "valueStart": 258,
           },
         },
-        "start": 179,
+        "start": 248,
         "tag": "Exit",
-        "tagEnd": 184,
+        "tagEnd": 253,
         "type": "tag",
       },
       Object {
         "contents": Array [
           Object {
-            "end": 247,
-            "start": 241,
+            "end": 316,
+            "start": 310,
             "type": "string",
             "value": "vortex",
           },
         ],
-        "end": 254,
+        "end": 323,
         "props": Object {
           "from": Object {
-            "end": 240,
-            "start": 229,
+            "end": 309,
+            "start": 298,
             "value": "Test",
-            "valueEnd": 239,
-            "valueStart": 235,
+            "valueEnd": 308,
+            "valueStart": 304,
           },
         },
-        "start": 223,
+        "start": 292,
         "tag": "Exit",
-        "tagEnd": 228,
+        "tagEnd": 297,
         "type": "tag",
       },
     ],
-    "end": 274,
+    "end": 343,
     "props": Object {
       "global": Object {
         "end": 65,
@@ -524,19 +544,19 @@ Array [
   },
   Object {
     "contents": Array [],
-    "end": 306,
+    "end": 375,
     "props": Object {
       "key": Object {
-        "end": 303,
-        "start": 293,
+        "end": 372,
+        "start": 362,
         "value": "Test",
-        "valueEnd": 302,
-        "valueStart": 298,
+        "valueEnd": 371,
+        "valueStart": 367,
       },
     },
-    "start": 287,
+    "start": 356,
     "tag": "Room",
-    "tagEnd": 292,
+    "tagEnd": 361,
     "type": "tag",
   },
 ]

@@ -5,25 +5,25 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 130,
-        "start": 126,
+        "end": 195,
+        "start": 191,
         "type": "string",
         "value": "test",
       },
     ],
-    "end": 137,
+    "end": 202,
     "props": Object {
       "to": Object {
-        "end": 125,
-        "start": 116,
+        "end": 190,
+        "start": 181,
         "value": "Test",
-        "valueEnd": 124,
-        "valueStart": 120,
+        "valueEnd": 189,
+        "valueStart": 185,
       },
     },
-    "start": 110,
+    "start": 175,
     "tag": "Exit",
-    "tagEnd": 115,
+    "tagEnd": 180,
     "type": "tag",
   },
 ]
@@ -34,38 +34,48 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 110,
-        "start": 83,
-        "type": "string",
-        "value": "First Room
+        "contents": Array [
+          Object {
+            "end": 144,
+            "start": 117,
+            "type": "string",
+            "value": "First Room
                 ",
+          },
+        ],
+        "end": 158,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
+        "type": "tag",
       },
       Object {
         "contents": Array [
           Object {
-            "end": 130,
-            "start": 126,
+            "end": 195,
+            "start": 191,
             "type": "string",
             "value": "test",
           },
         ],
-        "end": 137,
+        "end": 202,
         "props": Object {
           "to": Object {
-            "end": 125,
-            "start": 116,
+            "end": 190,
+            "start": 181,
             "value": "Test",
-            "valueEnd": 124,
-            "valueStart": 120,
+            "valueEnd": 189,
+            "valueStart": 185,
           },
         },
-        "start": 110,
+        "start": 175,
         "tag": "Exit",
-        "tagEnd": 115,
+        "tagEnd": 180,
         "type": "tag",
       },
     ],
-    "end": 157,
+    "end": 222,
     "props": Object {
       "global": Object {
         "end": 65,
@@ -93,17 +103,17 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 267,
-        "start": 261,
+        "end": 332,
+        "start": 326,
         "type": "string",
         "value": "Nested",
       },
     ],
-    "end": 274,
+    "end": 339,
     "props": Object {},
-    "start": 255,
+    "start": 320,
     "tag": "Name",
-    "tagEnd": 260,
+    "tagEnd": 325,
     "type": "tag",
   },
 ]
@@ -113,19 +123,19 @@ exports[`wmlQuery add method should correctly add property filters 1`] = `
 Array [
   Object {
     "contents": Array [],
-    "end": 189,
+    "end": 254,
     "props": Object {
       "key": Object {
-        "end": 186,
-        "start": 176,
+        "end": 251,
+        "start": 241,
         "value": "test",
-        "valueEnd": 185,
-        "valueStart": 181,
+        "valueEnd": 250,
+        "valueStart": 246,
       },
     },
-    "start": 170,
+    "start": 235,
     "tag": "Room",
-    "tagEnd": 175,
+    "tagEnd": 240,
     "type": "tag",
   },
 ]
@@ -134,73 +144,93 @@ Array [
 exports[`wmlQuery children method should correctly aggregate child nodes 1`] = `
 Array [
   Object {
-    "end": 112,
-    "start": 83,
-    "type": "string",
-    "value": "Test Render:
-                ",
-  },
-  Object {
     "contents": Array [
       Object {
-        "end": 155,
-        "start": 144,
+        "end": 150,
+        "start": 117,
         "type": "string",
-        "value": "Clock Tower",
+        "value": "Test Render:
+                    ",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 193,
+            "start": 182,
+            "type": "string",
+            "value": "Clock Tower",
+          },
+        ],
+        "end": 200,
+        "props": Object {
+          "key": Object {
+            "end": 165,
+            "start": 156,
+            "value": "123",
+            "valueEnd": 164,
+            "valueStart": 161,
+          },
+          "to": Object {
+            "end": 181,
+            "start": 166,
+            "value": "clockTower",
+            "valueEnd": 180,
+            "valueStart": 170,
+          },
+        },
+        "start": 150,
+        "tag": "Link",
+        "tagEnd": 155,
+        "type": "tag",
       },
     ],
-    "end": 162,
-    "props": Object {
-      "key": Object {
-        "end": 127,
-        "start": 118,
-        "value": "123",
-        "valueEnd": 126,
-        "valueStart": 123,
-      },
-      "to": Object {
-        "end": 143,
-        "start": 128,
-        "value": "clockTower",
-        "valueEnd": 142,
-        "valueStart": 132,
-      },
-    },
-    "start": 112,
-    "tag": "Link",
-    "tagEnd": 117,
+    "end": 231,
+    "props": Object {},
+    "start": 83,
+    "tag": "Description",
+    "tagEnd": 95,
     "type": "tag",
   },
   Object {
     "contents": Array [
       Object {
-        "end": 199,
-        "start": 195,
+        "end": 268,
+        "start": 264,
         "type": "string",
         "value": "test",
       },
     ],
-    "end": 206,
+    "end": 275,
     "props": Object {
       "to": Object {
-        "end": 194,
-        "start": 185,
+        "end": 263,
+        "start": 254,
         "value": "Test",
-        "valueEnd": 193,
-        "valueStart": 189,
+        "valueEnd": 262,
+        "valueStart": 258,
       },
     },
-    "start": 179,
+    "start": 248,
     "tag": "Exit",
-    "tagEnd": 184,
+    "tagEnd": 253,
     "type": "tag",
   },
   Object {
-    "end": 349,
-    "start": 314,
-    "type": "string",
-    "value": "Conditional Render
-                ",
+    "contents": Array [
+      Object {
+        "end": 460,
+        "start": 421,
+        "type": "string",
+        "value": "Conditional Render
+                    ",
+      },
+    ],
+    "end": 474,
+    "props": Object {},
+    "start": 383,
+    "tag": "Description",
+    "tagEnd": 395,
+    "type": "tag",
   },
 ]
 `;
@@ -210,69 +240,79 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 112,
-        "start": 83,
-        "type": "string",
-        "value": "Test Render:
-                ",
-      },
-      Object {
         "contents": Array [
           Object {
-            "end": 155,
-            "start": 144,
+            "end": 150,
+            "start": 117,
             "type": "string",
-            "value": "Clock Tower",
+            "value": "Test Render:
+                    ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "end": 193,
+                "start": 182,
+                "type": "string",
+                "value": "Clock Tower",
+              },
+            ],
+            "end": 200,
+            "props": Object {
+              "key": Object {
+                "end": 165,
+                "start": 156,
+                "value": "123",
+                "valueEnd": 164,
+                "valueStart": 161,
+              },
+              "to": Object {
+                "end": 181,
+                "start": 166,
+                "value": "clockTower",
+                "valueEnd": 180,
+                "valueStart": 170,
+              },
+            },
+            "start": 150,
+            "tag": "Link",
+            "tagEnd": 155,
+            "type": "tag",
           },
         ],
-        "end": 162,
-        "props": Object {
-          "key": Object {
-            "end": 127,
-            "start": 118,
-            "value": "123",
-            "valueEnd": 126,
-            "valueStart": 123,
-          },
-          "to": Object {
-            "end": 143,
-            "start": 128,
-            "value": "clockTower",
-            "valueEnd": 142,
-            "valueStart": 132,
-          },
-        },
-        "start": 112,
-        "tag": "Link",
-        "tagEnd": 117,
+        "end": 231,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
         "type": "tag",
       },
       Object {
         "contents": Array [
           Object {
-            "end": 199,
-            "start": 195,
+            "end": 268,
+            "start": 264,
             "type": "string",
             "value": "test",
           },
         ],
-        "end": 206,
+        "end": 275,
         "props": Object {
           "to": Object {
-            "end": 194,
-            "start": 185,
+            "end": 263,
+            "start": 254,
             "value": "Test",
-            "valueEnd": 193,
-            "valueStart": 189,
+            "valueEnd": 262,
+            "valueStart": 258,
           },
         },
-        "start": 179,
+        "start": 248,
         "tag": "Exit",
-        "tagEnd": 184,
+        "tagEnd": 253,
         "type": "tag",
       },
     ],
-    "end": 226,
+    "end": 295,
     "props": Object {
       "global": Object {
         "end": 65,
@@ -299,13 +339,17 @@ exports[`wmlQuery prepend method should correctly aggregate child nodes 1`] = `
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                <Name>Vortex</Name>Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Name>Vortex</Name><Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Condition>
                 <Room key=(VORTEX) global>
-                    Conditional Render
+                    <Description>
+                        Conditional Render
+                    </Description>
                 </Room>
             </Condition>
         </Asset>
@@ -321,15 +365,21 @@ exports[`wmlQuery remove method should correctly remove nodes from source 1`] = 
             </Condition>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>
+                    Render One
+                </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>
+                    Render Two
+                </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
         </Asset>
     "
@@ -339,8 +389,10 @@ exports[`wmlQuery render method should (temporarily) ignore render updates on se
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
@@ -359,36 +411,24 @@ exports[`wmlQuery render method should (temporarily) ignore render updates on se
     "
 `;
 
-exports[`wmlQuery render method should correctly extract renders 1`] = `
-Array [
-  "Test Render:
-                ",
-  Object {
-    "key": "123",
-    "tag": "Link",
-    "targetTag": "Feature",
-    "text": "Clock Tower",
-    "to": "clockTower",
-  },
-]
-`;
+exports[`wmlQuery render method should correctly extract renders 1`] = `Array []`;
 
 exports[`wmlQuery render method should correctly update multiple renders in a set 1`] = `
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Much, much, longer render
-                Like, seriously, it's insane how much longer this render is
+                Render One
             </Room>
             <Room key=(multipleTest)>
-                Much, much, longer render
-                Like, seriously, it's insane how much longer this render is
+                Render Two
             </Room>
             <Feature key=(clockTower)>
                 Clocktower
@@ -403,9 +443,11 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render Two: 
-<Link key=(456) to=(clockTower)>(clock tower)</Link>
-<Exit to=(Test)>test</Exit>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
             <Room key=(multipleTest)>

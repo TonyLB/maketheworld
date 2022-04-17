@@ -155,6 +155,23 @@ export const liftContents = (label, { separator = '', allString = false, exclude
     
 }
 
+export const liftDescription = ({ contents = [], ...rest }) => {
+
+    const render = contents
+        .filter(({ tag }) => (tag === 'Description'))
+        .reduce((previous, { render }) => ([
+            ...previous,
+            ...render
+        ]), [])
+        
+    return {
+        contents: contents.filter(({ tag }) => (tag !== 'Description')),
+        ...rest,
+        render
+    }
+    
+}
+
 export const liftUseTags = ({ contents = [], ...rest}) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Use'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Use'))

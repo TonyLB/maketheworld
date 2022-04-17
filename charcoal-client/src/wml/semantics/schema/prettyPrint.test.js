@@ -13,8 +13,10 @@ describe('WML semantic prettyPrint', () => {
             <Asset key=(Test) fileName="test">
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
-                    Multi-line
-                    description
+                    <Description>
+                        Multi-line
+                        description
+                    </Description>
                 </Room>
                 <Room key=(VORTEX) global />
             </Asset>`)
