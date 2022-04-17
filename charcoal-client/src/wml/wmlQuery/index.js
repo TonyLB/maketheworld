@@ -105,8 +105,9 @@ export class WMLQueryResult {
         return this
     }
 
-    prop(key, value) {
+    prop(key, value, options = { type: 'literal' }) {
         if (value !== undefined) {
+            const { type } = options
             this._nodes.forEach((node) => {
                 if (node.props[key]) {
                     const { valueStart, valueEnd } = node.props[key]
@@ -117,7 +118,12 @@ export class WMLQueryResult {
                 else {
                     const insertAfter = Object.values(node.props || {})
                         .reduce((previous, { end }) => (Math.max(previous, end)), node.tagEnd)
-                    this.replaceInputRange(insertAfter, insertAfter, ` ${key}="${value}"`)
+                    const newProp = type === 'boolean'
+                        ? `${key}`
+                        : type === 'expression'
+                            ? `${key}={${value}}`
+                            : `${key}="${value}"`
+                    this.replaceInputRange(insertAfter, insertAfter, ` ${newProp}`)
                 }
             })
             this.refresh()

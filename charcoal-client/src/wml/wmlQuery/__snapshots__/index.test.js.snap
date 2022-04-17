@@ -422,3 +422,31 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
         </Asset>
     "
 `;
+
+exports[`wmlQuery should correctly remove and update boolean prop 1`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 2`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) global />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update expression prop 1`] = `
+"
+            <Asset key=(BASE)>
+                <Condition if={false}></Condition>
+            </Asset>
+        "
+`;
