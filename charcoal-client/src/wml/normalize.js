@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
-import { objectEntryMap } from '../lib/objects'
+import { objectEntryMap } from '../lib/objects.js'
 
 export class WMLNormalizeError extends Error {
     constructor(message) {
