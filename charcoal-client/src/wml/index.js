@@ -2,6 +2,7 @@ import { produce } from 'immer'
 
 import { compileCode } from './compileCode.js'
 import { schema } from './semantics/schema/index.js'
+import { prettyPrint, prettyPrintShouldNest } from './semantics/schema/prettyPrint.js'
 import { wmlProcessDown, assignExitContext } from './semantics/schema/processDown/index.js'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
@@ -34,6 +35,8 @@ export const wmlSemantics = wmlGrammar.createSemantics()
         }
     })
     .addOperation('schema', schema)
+    .addOperation('prettyPrintShouldNest(depth)', prettyPrintShouldNest)
+    .addOperation('prettyPrint(depth)', prettyPrint)
 
 const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
 
