@@ -45,7 +45,10 @@ describe('render', () => {
                             if: 'foo',
                             dependencies: ['foo']
                         }],
-                        render: ['Test One. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test One. '
+                        }],
                         exits: []
                     }]
                 }
@@ -95,7 +98,10 @@ describe('render', () => {
                             if: 'foo',
                             dependencies: ['foo']
                         }],
-                        render: ['Test One. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test One. '
+                        }],
                         exits: []
                     }]
                 }
@@ -203,7 +209,10 @@ describe('render', () => {
                     DataCategory: 'ASSET#BASE',
                     name: 'Clock Tower',
                     appearances: [{
-                        render: ['A cheery clock-tower of pale yellow stone.']
+                        render: [{
+                            tag: 'String',
+                            value: 'A cheery clock-tower of pale yellow stone.'
+                        }]
                     }]
                 }
             ]
@@ -472,7 +481,10 @@ describe('render', () => {
                             if: 'foo',
                             dependencies: ['foo']
                         }],
-                        render: ['Test One. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test One. '
+                        }],
                         exits: []
                     }]
                 }
@@ -485,7 +497,10 @@ describe('render', () => {
                             if: 'baz',
                             dependencies: ['baz']
                         }],
-                        render: ['Test Two. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test Two. '
+                        }],
                         exits: []
                     }]
                 },
@@ -496,7 +511,10 @@ describe('render', () => {
                             if: 'bar',
                             dependencies: ['bar']
                         }],
-                        render: ['Test Three. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test Three. '
+                        }],
                         exits: []
                     }]
                 }
