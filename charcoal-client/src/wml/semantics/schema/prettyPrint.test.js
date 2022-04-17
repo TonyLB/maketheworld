@@ -46,6 +46,9 @@ describe('WML semantic prettyPrint', () => {
                 <Action key=(test) src={
                     multiLine()
                     expressions()
+                    if (true) {
+                        withPreservedIndents()
+                    }
                 } />
             </Asset>`)
         expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()

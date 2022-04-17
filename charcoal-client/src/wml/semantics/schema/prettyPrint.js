@@ -62,7 +62,7 @@ export const prettyPrintShouldNest = {
     TagArgumentKey(key, eq, value, close) {
         return 'None'
     },
-    TagArgumentBracketed(key, eq, value, close) {
+    tagArgumentBracketed(key, eq, value, close) {
         return value.sourceString.search('\n') !== -1 ? 'Nest' : 'None'
     }
 }
@@ -83,7 +83,13 @@ export const prettyPrint = {
         }
         return `${replaceLineBreaks(this.sourceString)}`
     },
-    TagArgument(item) {
+    tagArgumentQuoted(key, eq, value) {
+        return this.sourceString
+    },
+    tagBooleanArgument(item, space) {
+        return this.sourceString
+    },
+    TagArgumentKey(key, eq, value, close) {
         return this.sourceString
     },
     string(item) {
@@ -101,6 +107,29 @@ export const prettyPrint = {
         }
         else {
             return `${replaceLineBreaks(open.sourceString)}${contents.prettyPrint(0).join('')}${close.sourceString}`
+        }
+    },
+    tagArgumentBracketed(key, eq, value, close) {
+        const depth = this.args.depth
+        if (this.prettyPrintShouldNest(depth) === 'Nest') {
+            const indents = value
+                .sourceString.split('\n')
+                .filter((line) => (line.trimLeft()))
+                .map((line) => {
+                    return line.length - line.trimLeft().length
+                })
+            const searchIndent = indents
+                .reduce((previous, indent) => (Math.min(previous, indent)), Infinity)
+            const minimumIndent = searchIndent === Infinity ? 0 : searchIndent
+            const newIndent = makeIndent(depth + 1)
+            const newValue = value.sourceString
+                .split('\n')
+                .map((line) => (line.slice(minimumIndent)))
+                .join(`\n${newIndent}`)
+            return `${key.sourceString}${eq.sourceString}${newValue.trimRight()}\n${makeIndent(depth)}${close.sourceString}`
+        }
+        else {
+            return this.sourceString
         }
     }
 }

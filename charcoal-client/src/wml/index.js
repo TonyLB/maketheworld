@@ -15,7 +15,7 @@ export const wmlSemantics = wmlGrammar.createSemantics()
         string(node) {
             return this.sourceString
         },
-        EmbeddedJSExpression(open, contents, close) {
+        embeddedJSExpression(open, contents, close) {
             try {
                 const evaluation = compileCode(`return (${contents.sourceString})`)({
                     name: 'world'

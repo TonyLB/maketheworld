@@ -17,6 +17,9 @@ exports[`WML semantic prettyPrint should nest props on multiline expression 1`] 
         src={
             multiLine()
             expressions()
+            if (true) {
+                withPreservedIndents()
+            }
         }
     />
 </Asset>"
