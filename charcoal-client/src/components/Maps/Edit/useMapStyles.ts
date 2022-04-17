@@ -23,16 +23,11 @@ export const useMapStyles = makeStyles((theme: Theme) => ({
         height: '100%',
         display: 'grid',
         justifyContent: "stretch",
-        gridTemplateAreas: `"content"`,
-        gridTemplateColumns: "1fr",
-        gridTemplateRows: "1fr",
-        '@media (orientation: landscape) and (min-width: 1500px)': {
-            gridTemplateAreas: `
-                "content sidebar"
-            `,
-            gridTemplateColumns: "1fr 400px",
-            gridTemplateRows: "1fr"
-        }
+        gridTemplateAreas: `
+            "content sidebar"
+        `,
+        gridTemplateColumns: "1fr 400px",
+        gridTemplateRows: "1fr"
     },
     tabs: {
         gridArea: "tabs",
