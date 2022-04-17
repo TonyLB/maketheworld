@@ -18,4 +18,18 @@ describe('WML semantic prettyPrint', () => {
             </Asset>`)
         expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()
     })
+    it('should nest props on very long tags', () => {
+        const match = wmlGrammar.match(`
+            <Character key=(Tess) fileName="Tess" player="testy" zone="Library">
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="ridiculously long pronoun"
+                    object="ridiculously long pronoun"
+                    possessive="ridiculously long pronoun"
+                    adjective="ridiculously long pronoun"
+                    reflexive="ridiculously long pronoun"
+                />
+            </Character>`)
+        expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()
+    })
 })

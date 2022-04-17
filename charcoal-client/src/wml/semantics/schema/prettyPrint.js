@@ -1,7 +1,7 @@
 const makeIndent = (depth) => (new Array(depth).fill(`    `).join(''))
 
-const removeLineBreaks = (value) => (value.replace(/\n\s*/, ''))
-const replaceLineBreaks = (value) => (value.replace(/\n\s*/, ' '))
+const removeLineBreaks = (value) => (value.replace(/\n\s*/g, ''))
+const replaceLineBreaks = (value) => (value.replace(/\n\s*/g, ' '))
 
 //
 // Returns three possible values:
@@ -30,7 +30,7 @@ export const prettyPrintShouldNest = {
     },
     _terminal() {
         const depth = this.args.depth
-        const returnValue = ((depth * 4 + item.sourceString.length) > 80) || (item.sourceString.search('\n') !== -1)
+        const returnValue = ((depth * 4 + this.sourceString.length) > 80) || (this.sourceString.search('\n') !== -1)
         return returnValue ? 'Nest' : 'None'
     },
     TextContents(item) {
@@ -39,6 +39,10 @@ export const prettyPrintShouldNest = {
         return returnValue ? 'Nest' : 'None'
     },
     TagSelfClosing(open, tag, props, close) {
+        const depth = this.args.depth
+        if ((depth * 4 + this.sourceString.length) > 80) {
+            return 'Nest'
+        }
         return 'Tag'
     },
     TagExpression(open, contents, close) {
@@ -61,28 +65,31 @@ export const prettyPrint = {
         return this.sourceString
     },
     TagSelfClosing(open, tag, props, close) {
-        //
-        // TODO: Accept argument to handle differently in order to
-        // embed tag inside description text
-        //
         const depth = this.args.depth
-        return `${this.sourceString}`
+        const tagNesting = this.prettyPrintShouldNest(depth)
+        if (tagNesting === 'Nest') {
+            return `${open.sourceString}${tag.sourceString}\n${makeIndent(depth + 1)}${props.prettyPrint(depth+1).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`
+        }
+        return `${replaceLineBreaks(this.sourceString)}`
+    },
+    TagArgument(item) {
+        return this.sourceString
+    },
+    string(item) {
+        const depth = this.args.depth
+        return `${replaceLineBreaks(this.sourceString).trim()}`
     },
     TextContents(item) {
         const depth = this.args.depth
         return `${replaceLineBreaks(this.sourceString).trim()}`
     },
     TagExpression(open, contents, close) {
-        //
-        // TODO: Accept argument to handle differently in order to
-        // embed tag inside description text
-        //
         const depth = this.args.depth
         if (this.prettyPrintShouldNest(depth) === 'Nest') {
-            return `${open.sourceString}\n${makeIndent(depth + 1)}${contents.prettyPrint(depth + 1).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`
+            return `${replaceLineBreaks(open.sourceString)}\n${makeIndent(depth + 1)}${contents.prettyPrint(depth + 1).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`
         }
         else {
-            return `${open.sourceString}${contents.prettyPrint(0).join('')}${close.sourceString}`
+            return `${replaceLineBreaks(open.sourceString)}${contents.prettyPrint(0).join('')}${close.sourceString}`
         }
     }
 }
