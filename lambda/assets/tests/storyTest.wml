@@ -4,7 +4,7 @@
         <Use key=(power) type="Variable" />
     </Import>
     <Room key=(secretRoom)>
-        It's a secret room!
+        <Description>It's a secret room!</Description>
         <Exit from=(welcomeRoom)>secret</Exit>
         <Exit to=(welcomeRoom)>out</Exit>
     </Room>

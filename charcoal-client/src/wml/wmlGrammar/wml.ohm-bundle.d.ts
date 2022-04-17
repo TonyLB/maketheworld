@@ -40,6 +40,8 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   RoomContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   FeatureExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   FeatureContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  DescriptionExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  DescriptionContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   LiteralNameExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   NameExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   LiteralValueTag?: (this: NonterminalNode, arg0: NonterminalNode) => T;

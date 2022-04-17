@@ -1,0 +1,237 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`parseWMLFile should return parsed output 1`] = `
+Object {
+  "ABC": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "global": false,
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "Vortex",
+        "props": Object {},
+        "render": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "global": false,
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "props": Object {},
+        "render": Array [
+          "The lights are on ",
+        ],
+      },
+    ],
+    "key": "ABC",
+    "tag": "Room",
+  },
+  "Condition-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "ABC",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          1,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [
+      "active",
+    ],
+    "if": "active",
+    "key": "Condition-0",
+    "tag": "Condition",
+  },
+  "active": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          4,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [
+      "switchedOn",
+      "powered",
+    ],
+    "key": "active",
+    "src": "powered && switchedOn",
+    "tag": "Computed",
+  },
+  "powered": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+        ],
+        "props": Object {},
+      },
+    ],
+    "default": "false",
+    "key": "powered",
+    "tag": "Variable",
+  },
+  "switchedOn": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          3,
+        ],
+        "props": Object {},
+      },
+    ],
+    "default": "true",
+    "key": "switchedOn",
+    "tag": "Variable",
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "ABC",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "powered",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "switchedOn",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "active",
+            "tag": "Computed",
+          },
+          Object {
+            "index": 0,
+            "key": "toggleSwitch",
+            "tag": "Action",
+          },
+        ],
+        "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "fileName": "test",
+    "key": "test",
+    "player": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "toggleSwitch": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          5,
+        ],
+        "props": Object {},
+      },
+    ],
+    "key": "toggleSwitch",
+    "src": "switchedOn = !switchedOn",
+    "tag": "Action",
+  },
+}
+`;

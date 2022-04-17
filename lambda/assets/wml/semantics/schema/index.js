@@ -9,6 +9,7 @@ import {
     liftLiteralTags,
     liftUntagged,
     liftContents,
+    liftDescription,
     liftUseTags,
     liftDependencyTags,
     liftRoomLocations,
@@ -40,7 +41,7 @@ export const schema = {
     //
     // TODO: Parse out string-internal white-space as needed
     //
-    JSExpression(node) {
+    jsExpression(node) {
         return this.sourceString
     },
     stringText(node) {
@@ -64,7 +65,7 @@ export const schema = {
             key: key.schema()
         }
     },
-    TagArgumentBracketed(argument, openBracket, expression, closeBracket) {
+    tagArgumentBracketed(argument, openBracket, expression, closeBracket) {
         return {
             argument: argument.sourceString,
             expression: expression.schema()
@@ -157,7 +158,7 @@ export const schema = {
             liftLiteralProps(['display']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
-            liftContents('render'),
+            liftDescription,
         ])(node.schema())
     },
     RoomExpression(node) {
@@ -170,7 +171,15 @@ export const schema = {
             liftLiteralProps(['display']),
             liftBooleanProps(['global']),
             liftLiteralTags({ Name: 'name' }),
-            liftContents('render', { exclude: ['Exit', 'Feature'] }),
+            liftDescription,
+        ])(node.schema())
+    },
+    DescriptionExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
+            liftLiteralProps(['display']),
+            liftContents('render'),
         ])(node.schema())
     },
     MapRoomExpression(node) {

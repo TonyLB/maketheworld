@@ -83,18 +83,20 @@ WorldMarkupLangage {
 
     MapRoomExpression = TagExpression<"Room", "key", ("display" | "x" | "y"), none, "global", RoomContents>
             | TagSelfClosing<"Room", "key", ("display" | "x" | "y"), none, "global">
-    RoomExpression = TagExpression<"Room", "key", "display", none, "global", RoomContents>
+    RoomExpression = TagExpression<"Room", "key", none, none, "global", RoomContents>
             | TagSelfClosing<"Room", "key", "display", none, "global">
-    RoomContents = TextContents
+    RoomContents = DescriptionExpression
             | NameExpression
             | ExitExpression
             | FeatureExpression
-            | LinkExpression
 
-    FeatureExpression = TagExpression<"Feature", "key", "display", none, "global", FeatureContents>
+    FeatureExpression = TagExpression<"Feature", "key", none, none, "global", FeatureContents>
             | TagSelfClosing<"Feature", "key", "display", none, "global">
-    FeatureContents = TextContents
+    FeatureContents = DescriptionExpression
             | NameExpression
+
+    DescriptionExpression = TagExpression<"Description", none, "display", none, ("spaceBefore" | "spaceAfter"), DescriptionContents>
+    DescriptionContents = TextContents
             | LinkExpression
 
     LiteralNameExpression = LiteralValueTag<"Name">

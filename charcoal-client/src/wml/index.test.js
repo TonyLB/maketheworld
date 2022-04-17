@@ -264,7 +264,7 @@ describe('WML validateSchema', () => {
             <Asset key=(Test) fileName="test">
                 <Room key=(ABC)>
                     <Name>Vortex</Name>
-                    Vortex
+                    <Description>Vortex</Description>
                     <Exit from=(DEF)>vortex</Exit>
                 </Room>
                 <Room key=(DEF)>
@@ -280,7 +280,7 @@ describe('WML validateSchema', () => {
         const match = wmlGrammar.match(`
             <Asset key=(Test) fileName="test">
                 <Room key=(ABC)>
-                    Vortex
+                    <Description>Vortex</Description>
                 </Room>
                 <Variable key=(ABC) default={"Vortex"} />
             </Asset>
@@ -292,7 +292,7 @@ describe('WML validateSchema', () => {
         const match = wmlGrammar.match(`
             <Asset key=(Test) fileName="test">
                 <Room key=(ABC)>
-                    Vortex
+                    <Description>Vortex</Description>
                     <Exit to=(DEF)>welcome</Exit>
                 </Room>
             </Asset>

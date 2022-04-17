@@ -1,16 +1,22 @@
-import { NormalForm } from '../normalize';
+import { NormalForm, RoomRenderItem } from '../normalize';
 import { Matcher } from 'ohm-js'
 
 declare class WMLQueryResult {
     constructor(WMLQuery, string);
     nodes: () => any[];
+    children: () => WMLQueryResult;
+    prepend: (source: string) => WMLQueryResult;
+    remove: () => WMLQueryResult;
     source: string;
-    contents: (value?: string) => WMLQuery;
+    contents: (value?: string) => WMLQueryResult;
     contents: () => string;
-    prop: (key: string, value: string) => WMLQuery;
+    prop: (key: string, value: string, options?: { type: 'literal' | 'expression' | 'boolean'; }) => WMLQueryResult;
     prop: (key: string) => string;
-    removeProp: (key: string) => WMLQuery;
-
+    render: (value: RoomRenderItem[]) => WMLQueryResult;
+    render: () => RoomRenderItem[];
+    removeProp: (key: string) => WMLQueryResult;
+    not: (search: string) => WMLQueryResult;
+    add: (search: string) => WMLQueryResult;
 }
 
 export interface WMLQueryUpdateReplace {

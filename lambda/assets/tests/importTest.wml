@@ -15,7 +15,7 @@
     } />
     <Feature key=(lightSwitch)>
         <Name>Light switch</Name>
-        A small panel with a single switch
+        <Description>A small panel with a single switch</Description>
     </Feature>
     <Map key=(importTestMap)>
         <Image key=(testImage) fileURL="https://musique.opus-31.fr/images/aaa.png" />
@@ -23,8 +23,10 @@
         <Room key=(VORTEX) x="0" y="100" />
     </Map>
     <Room key=(welcomeRoom)>
-        <Link key=(switchLink) to=(lightSwitch)>[Light Switch]</Link>
-        <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
+        <Description>
+            <Link key=(switchLink) to=(lightSwitch)>[Light Switch]</Link>
+            <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
+        </Description>
         <Feature key=(lightSwitch) />
     </Room>
     <Condition if={active}>
@@ -33,7 +35,9 @@
             <Room key=(welcomeRoom) x="50" y="0" />
         </Map>
         <Room key=(welcomeRoom)>
-            It's a welcome area, with bright lighting and pastel walls.
+            <Description>
+                It's a welcome area, with bright lighting and pastel walls.
+            </Description>
         </Room>
     </Condition>
 </Asset>

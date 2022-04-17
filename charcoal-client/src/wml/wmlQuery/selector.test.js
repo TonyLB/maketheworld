@@ -23,16 +23,20 @@ describe('wmlQuery selector', () => {
     const assetMatch = wmlGrammar.match(`
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
                 <Exit from=(Test)>vortex</Exit>
             </Room>
             <Room key=(Test) />
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
         </Asset>
     `)

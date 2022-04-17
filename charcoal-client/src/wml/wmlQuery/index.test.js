@@ -214,8 +214,10 @@ describe('wmlQuery', () => {
         const renderMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
@@ -280,26 +282,36 @@ describe('wmlQuery', () => {
         const notMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Condition>
                 <Room key=(VORTEX) global>
-                    Conditional Render
+                    <Description>
+                        Conditional Render
+                    </Description>
                 </Room>
             </Condition>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>
+                    Render One
+                </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>
+                    Render Two
+                </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
         </Asset>
     `
@@ -319,7 +331,9 @@ describe('wmlQuery', () => {
         const addMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                First Room
+                <Description>
+                    First Room
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(test) />
@@ -327,7 +341,9 @@ describe('wmlQuery', () => {
             <Room key=(nested)><Name>Nested</Name></Room>
             <Condition>
                 <Room key=(VORTEX) global>
-                    Conditional Render
+                    <Description>
+                        Conditional Render
+                    </Description>
                     <Exit from=(Test)>vortex</Exit>
                 </Room>
             </Condition>
@@ -361,26 +377,36 @@ describe('wmlQuery', () => {
         const removeMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Condition>
                 <Room key=(VORTEX) global>
-                    Conditional Render
+                    <Description>
+                        Conditional Render
+                    </Description>
                 </Room>
             </Condition>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>
+                    Render One
+                </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>
+                    Render Two
+                </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
         </Asset>
     `
@@ -400,13 +426,17 @@ describe('wmlQuery', () => {
         const childrenMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Condition>
                 <Room key=(VORTEX) global>
-                    Conditional Render
+                    <Description>
+                        Conditional Render
+                    </Description>
                 </Room>
             </Condition>
         </Asset>
@@ -427,13 +457,17 @@ describe('wmlQuery', () => {
         const prependMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                Test Render:
-                <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Condition>
                 <Room key=(VORTEX) global>
-                    Conditional Render
+                    <Description>
+                        Conditional Render
+                    </Description>
                 </Room>
             </Condition>
         </Asset>
