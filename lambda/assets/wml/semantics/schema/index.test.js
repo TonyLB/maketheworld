@@ -34,95 +34,7 @@ describe('WML semantic schema', () => {
             </Asset>
         `)
         const schema = wmlSemantics(match).schema()
-        expect(schema).toEqual({
-            key: 'Test',
-            tag: 'Asset',
-            fileName: 'test',
-            props: {},
-            contents: [{
-                tag: 'Import',
-                from: 'BASE',
-                mapping: {
-                    power: { key: 'basePower', type: 'Variable' },
-                    overview: { key: 'overview', type: 'Room' }
-                },
-                contents: [],
-                props: {}
-            },
-            {
-                key: 'ABC',
-                tag: 'Room',
-                name: 'Vortex',
-                global: false,
-                render: [
-                    'Vortex ',
-                    {
-                        tag: 'Link',
-                        key: 'switchToggle',
-                        text: '(toggle)',
-                        to: 'toggleOpen',
-                        props: {},
-                        contents: []
-                    }
-                ],
-                props: {},
-                contents: [{
-                    tag: 'Exit',
-                    from: 'DEF',
-                    name: 'vortex',
-                    props: {},
-                    contents: []
-                }]
-            },
-            {
-                tag: 'Condition',
-                if: 'open',
-                dependencies: ['open'],
-                props: {},
-                contents: [{
-                    key: 'ABC',
-                    tag: 'Room',
-                    global: false,
-                    render: [],
-                    props: {},
-                    contents: [{
-                        tag: 'Exit',
-                        to: 'DEF',
-                        name: 'welcome',
-                        props: {},
-                        contents: []
-                    }]
-                }]
-            },
-            {
-                key: 'DEF',
-                tag: 'Room',
-                name: 'Welcome',
-                global: false,
-                props: {},
-                render: [],
-                contents: []
-            },
-            {
-                key: 'open',
-                tag: 'Variable',
-                default: 'false',
-                props: {}
-            },
-            {
-                key: 'toggleOpen',
-                tag: 'Action',
-                src: 'open = !open',
-                props: {}
-            },
-            {
-                key: 'closed',
-                tag: 'Computed',
-                dependencies: ['open'],
-                src: '!open',
-                props: {}
-            }]
-        })
+        expect(schema).toMatchSnapshot()
     })
 
     it('should parse a character element', () => {
@@ -140,24 +52,7 @@ describe('WML semantic schema', () => {
             </Character>
         `)
         const schema = wmlSemantics(match).schema()
-        expect(schema).toEqual({
-            key: 'Tess',
-            tag: 'Character',
-            fileName: 'Tess',
-            player: "testy",
-            zone: 'Library',
-            Name: 'Tess',
-            Pronouns: {
-                subject: 'she',
-                object: 'her',
-                possessive: 'her',
-                adjective: 'hers',
-                reflexive: 'herself'
-            },
-            fileURL: 'testIcon.png',
-            props: {},
-            contents: []
-        })
+        expect(schema).toMatchSnapshot()
     })
 
     it('should parse a story element', () => {
@@ -170,25 +65,7 @@ describe('WML semantic schema', () => {
             </Story>
         `)
         const schema = wmlSemantics(match).schema()
-        expect(schema).toEqual({
-            key: 'Test',
-            tag: 'Asset',
-            fileName: 'test',
-            Story: true,
-            instance: true,
-            props: {},
-            contents: [{
-                key: 'ABC',
-                tag: 'Room',
-                name: 'Vortex',
-                global: false,
-                render: [
-                    'Vortex'
-                ],
-                props: {},
-                contents: []
-            }]
-        })
+        expect(schema).toMatchSnapshot()
     })
 
     it('should parse feature elements', () => {
@@ -207,40 +84,7 @@ describe('WML semantic schema', () => {
             </Story>
         `)
         const schema = wmlSemantics(match).schema()
-        expect(schema).toEqual({
-            key: 'Test',
-            tag: 'Asset',
-            fileName: 'test',
-            Story: true,
-            instance: true,
-            props: {},
-            contents: [{
-                key: 'clockTower',
-                tag: 'Feature',
-                global: false,
-                props: {},
-                contents: [],
-                render: ['A clock-tower of weathered grey stone looms over the area. ']
-            },
-            {
-                key: 'ABC',
-                tag: 'Room',
-                name: 'Vortex',
-                global: false,
-                render: [
-                    'Vortex'
-                ],
-                props: {},
-                contents: [{
-                    key: 'clockTower',
-                    tag: 'Feature',
-                    global: false,
-                    props: {},
-                    contents: [],
-                    render: []
-                }]
-            }]
-        })
+        expect(schema).toMatchSnapshot()
     })
 
     it('should parse map elements', () => {
@@ -254,40 +98,6 @@ describe('WML semantic schema', () => {
             </Story>
         `)
         const schema = wmlSemantics(match).schema()
-        expect(schema).toEqual({
-            key: 'Test',
-            tag: 'Asset',
-            fileName: 'test',
-            Story: true,
-            instance: true,
-            props: {},
-            contents: [{
-                key: 'TestMap',
-                tag: 'Map',
-                name: 'Test Map',
-                props: {},
-                rooms: {
-                    ABC: {
-                        x: 200,
-                        y: 150
-                    }
-                },
-                contents: [{
-                    key: 'ImageTest',
-                    tag: 'Image',
-                    fileURL: 'https://test.com/imageTest.png',
-                    props: {},
-                    contents: []
-                },
-                {
-                    key: 'ABC',
-                    tag: 'Room',
-                    global: false,
-                    render: [],
-                    props: {},
-                    contents: []
-                }]
-            }]
-        })
+        expect(schema).toMatchSnapshot()
     })
 })
