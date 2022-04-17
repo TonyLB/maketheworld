@@ -40,7 +40,7 @@ export const schema = {
     //
     // TODO: Parse out string-internal white-space as needed
     //
-    JSExpression(node) {
+    jsExpression(node) {
         return this.sourceString
     },
     stringText(node) {
@@ -64,7 +64,7 @@ export const schema = {
             key: key.schema()
         }
     },
-    TagArgumentBracketed(argument, openBracket, expression, closeBracket) {
+    tagArgumentBracketed(argument, openBracket, expression, closeBracket) {
         return {
             argument: argument.sourceString,
             expression: expression.schema()

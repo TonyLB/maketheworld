@@ -199,7 +199,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 valueEnd: value.source.endIdx
             }}
         },
-        TagArgumentBracketed(key, equal, value, close) {
+        tagArgumentBracketed(key, equal, value, close) {
             return { [key.toNode()]: {
                 value: value.sourceString,
                 start: this.source.startIdx,

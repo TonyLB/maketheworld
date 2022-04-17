@@ -103,7 +103,7 @@ WorldMarkupLangage {
     LiteralValueTag<label> = TagExpression<label, none, none, none, none, string>
 
     ValueTag<label> = TagExpression<label, none, none, none, none, TextContents>
-    TextContents = string | EmbeddedJSExpression
+    TextContents = string | embeddedJSExpression
 
     //
     // The following define the ways in which tags can be structured
@@ -118,17 +118,17 @@ WorldMarkupLangage {
     TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* ">"
     TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = TagArgumentKey<tagKeyArgs> | TagLiteralArgument<tagLiteralArgs> | TagProgramArgument<tagProgramArgs> | tagBooleanArgument<tagBooleanArgs>
     TagLiteralArgument<tagLiteralArgs> = tagArgumentQuoted<tagLiteralArgs>
-    TagProgramArgument<tagProgramArgs> = tagArgumentQuoted<tagProgramArgs> | TagArgumentBracketed<tagProgramArgs>
+    TagProgramArgument<tagProgramArgs> = tagArgumentQuoted<tagProgramArgs> | tagArgumentBracketed<tagProgramArgs>
     tagBooleanArgument<tagBooleanArgs> = tagBooleanArgs &(space | ">" | "/>")
     tagArgumentQuoted<tagLegalArgs> = tagLegalArgs "=\"" tagArgValueQuoted
     TagArgumentKey<tagLegalArgs> = #(tagLegalArgs "=(") legalKey ")"
-    TagArgumentBracketed<tagLegalArgs> = #(tagLegalArgs "={") JSExpression* "}"
+    tagArgumentBracketed<tagLegalArgs> = tagLegalArgs "={" jsExpression* "}"
     tagArgValueQuoted = ("\\\"" | ~"\"" any)* "\""
     TagClose<tag> = "</" tag ">"
     none = ~">" ">"
 
     //
-    // EmbeddedJSExpression parses from the starting open bracket through to the
+    // embeddedJSExpression parses from the starting open bracket through to the
     //   *MATCHING* close bracket, using a subset of JS syntax that concentrates
     //   on all the ways that JS could let you mess up that matching (quotes,
     //   nesting, and template literals figuring high on the list)
@@ -140,20 +140,20 @@ WorldMarkupLangage {
     // such pre-processing emerges, look into how to optimize compiling and executing
     // very large Ohm schemata.
     //
-    EmbeddedJSExpression = "{" JSExpression* "}"
-    JSExpression = EmbeddedJSExpression
-                    | JSDoubleQuotedString
-                    | JSSingleQuotedString
-                    | JSTemplateString
-                    | JSText
-    JSDoubleQuotedString = "\"" JSNoDoubleQuote* "\""
-    JSNoDoubleQuote = "\\\"" | (~"\"" any)
-    JSSingleQuotedString = "\'" JSNoSingleQuote* "\'"
-    JSNoSingleQuote = "\\\'" | (~"\'" any)
-    JSTemplateString = "`" (JSNoBackQuote | JSTemplateEvaluation )* "`"
-    JSTemplateEvaluation = "${" JSExpression "}"
-    JSNoBackQuote = "\\`" | (~("`" | "${") any)
-    JSText = ("\\{" | "\\\"" | "\\'" | "\\`" | "\\}" | (~("{" | "\"" | "\'" | "`" | "}") any))+
+    embeddedJSExpression = "{" jsExpression* "}"
+    jsExpression = embeddedJSExpression
+                    | jsDoubleQuotedString
+                    | jsSingleQuotedString
+                    | jsTemplateString
+                    | jsText
+    jsDoubleQuotedString = "\"" jsNoDoubleQuote* "\""
+    jsNoDoubleQuote = "\\\"" | (~"\"" any)
+    jsSingleQuotedString = "\'" jsNoSingleQuote* "\'"
+    jsNoSingleQuote = "\\\'" | (~"\'" any)
+    jsTemplateString = "`" (jsNoBackQuote | jsTemplateEvaluation )* "`"
+    jsTemplateEvaluation = "${" jsExpression "}"
+    jsNoBackQuote = "\\`" | (~("`" | "${") any)
+    jsText = ("\\{" | "\\\"" | "\\'" | "\\`" | "\\}" | (~("{" | "\"" | "\'" | "`" | "}") any))+
 
     // Override Ohm's built-in definition of space.  Cribbed from es5.ohm
     space := whitespace | lineTerminator | comment

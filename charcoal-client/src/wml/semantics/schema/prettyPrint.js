@@ -30,7 +30,7 @@ export const prettyPrintShouldNest = {
     },
     _terminal() {
         const depth = this.args.depth
-        const returnValue = ((depth * 4 + this.sourceString.length) > 80) || (this.sourceString.search('\n') !== -1)
+        const returnValue = ((depth * 4 + replaceLineBreaks(this.sourceString).length) > 80) || (this.sourceString.search('\n') !== -1)
         return returnValue ? 'Nest' : 'None'
     },
     TextContents(item) {
@@ -40,10 +40,10 @@ export const prettyPrintShouldNest = {
     },
     TagSelfClosing(open, tag, props, close) {
         const depth = this.args.depth
-        if ((depth * 4 + this.sourceString.length) > 80) {
+        if ((depth * 4 + replaceLineBreaks(this.sourceString).length) > 80) {
             return 'Nest'
         }
-        return 'Tag'
+        return shouldNestOr('Tag', props.prettyPrintShouldNest(depth))
     },
     TagExpression(open, contents, close) {
         const depth = this.args.depth
@@ -53,7 +53,18 @@ export const prettyPrintShouldNest = {
         }
         return shouldNestOr((removeLineBreaks(this.sourceString) + depth * 4 > 80) ? 'Nest' : 'Tag', contentsNesting)
     },
-    
+    tagArgumentQuoted(key, eq, value) {
+        return 'None'
+    },
+    tagBooleanArgument(item, spacer) {
+        return 'None'
+    },
+    TagArgumentKey(key, eq, value, close) {
+        return 'None'
+    },
+    tagArgumentBracketed(key, eq, value, close) {
+        return value.sourceString.search('\n') !== -1 ? 'Nest' : 'None'
+    }
 }
 
 export const prettyPrint = {
@@ -72,7 +83,13 @@ export const prettyPrint = {
         }
         return `${replaceLineBreaks(this.sourceString)}`
     },
-    TagArgument(item) {
+    tagArgumentQuoted(key, eq, value) {
+        return this.sourceString
+    },
+    tagBooleanArgument(item, space) {
+        return this.sourceString
+    },
+    TagArgumentKey(key, eq, value, close) {
         return this.sourceString
     },
     string(item) {
@@ -90,6 +107,29 @@ export const prettyPrint = {
         }
         else {
             return `${replaceLineBreaks(open.sourceString)}${contents.prettyPrint(0).join('')}${close.sourceString}`
+        }
+    },
+    tagArgumentBracketed(key, eq, value, close) {
+        const depth = this.args.depth
+        if (this.prettyPrintShouldNest(depth) === 'Nest') {
+            const indents = value
+                .sourceString.split('\n')
+                .filter((line) => (line.trimLeft()))
+                .map((line) => {
+                    return line.length - line.trimLeft().length
+                })
+            const searchIndent = indents
+                .reduce((previous, indent) => (Math.min(previous, indent)), Infinity)
+            const minimumIndent = searchIndent === Infinity ? 0 : searchIndent
+            const newIndent = makeIndent(depth + 1)
+            const newValue = value.sourceString
+                .split('\n')
+                .map((line) => (line.slice(minimumIndent)))
+                .join(`\n${newIndent}`)
+            return `${key.sourceString}${eq.sourceString}${newValue.trimRight()}\n${makeIndent(depth)}${close.sourceString}`
+        }
+        else {
+            return this.sourceString
         }
     }
 }
