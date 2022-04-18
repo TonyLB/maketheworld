@@ -154,24 +154,24 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 props: Object.assign({}, ...(props.toNode() || {})),
             }
         },
-        TagSelfClosing(open, tag, props, close) {
+        TagSelfClosing(open, tag, props, close, spacer) {
             return {
                 type: 'tag',
                 tag: tag.toNode(),
-                tagEnd: tag.source.endIdx,
+                tagEnd: tag.source.endIdx - spacer.sourceString.length,
                 props: Object.assign({}, ...(props.toNode() || {})),
                 contents: [],
                 start: this.source.startIdx,
-                end: this.source.endIdx
+                end: this.source.endIdx - spacer.sourceString.length
             }
         },
-        TagExpression(open, contents, close) {
+        TagExpression(open, contents, close, spacer) {
             return {
                 ...open.toNode(),
                 type: 'tag',
                 contents: contents.toNode(),
                 start: this.source.startIdx,
-                end: this.source.endIdx
+                end: this.source.endIdx - spacer.sourceString.length
             }
         },
         tagBooleanArgument(key, spacing) {
@@ -238,7 +238,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                     })
             }
         },
-        TagSelfClosing(open, tag, tagProps, close) {
+        TagSelfClosing(open, tag, tagProps, close, spacer) {
             const props = this.args.props
             const node = this.toNode()
             if (props.selector === 'MatchFirst') {
@@ -267,7 +267,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 return {}
             }
         },
-        TagExpression(open, contents, close) {
+        TagExpression(open, contents, close, spacer) {
             const props = this.args.props
             const node = this.toNode()
             if (props.selector === 'MatchFirst') {

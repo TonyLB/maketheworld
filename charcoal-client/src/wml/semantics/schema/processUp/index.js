@@ -115,12 +115,14 @@ export const liftUntagged = (label, { separator = '', allString = false } = {}) 
     
 }
 
-export const liftContents = (label, { separator = '', allString = false, exclude = [] } = {}) => ({ contents = [], ...rest }) => {
+export const liftContents = (label, { separator = '', allString = false, exclude = [] } = {}) => ({ contents = [], spaceBefore = false, spaceAfter = false, ...rest }) => {
     const aggregationReducer = ({ listItems, currentItem, contents }, item) => {
         if (currentItem?.tag === 'String' && item?.tag === 'String') {
             return { listItems, contents, currentItem: {
                 tag: 'String',
-                value: [currentItem.value, item.value].join(separator)
+                value: [currentItem.value, item.value].join(currentItem.spaceAfter ? ' ' : ''),
+                spaceBefore: currentItem.spaceBefore,
+                spaceAfter: item.spaceAfter
             } }
         }
         else {
@@ -139,7 +141,10 @@ export const liftContents = (label, { separator = '', allString = false, exclude
                     ...listItems,
                     ...(currentItem ? [currentItem] : [])
                 ],
-                currentItem: item,
+                currentItem: {
+                    ...item,
+                    spaceBefore: currentItem ? currentItem.spaceAfter : spaceBefore
+                },
                 contents
             }
         }
@@ -148,7 +153,12 @@ export const liftContents = (label, { separator = '', allString = false, exclude
     const { listItems, currentItem, contents: newContents } = contents.reduce(aggregationReducer, { listItems: [], contents: [] })
     const aggregatedValue = [
         ...listItems,
-        ...(currentItem ? [currentItem] : [])
+        ...(currentItem
+            ? [{
+                ...currentItem,
+                spaceAfter
+            }]
+            : [])
     ]
     return {
         contents: newContents,
@@ -156,6 +166,21 @@ export const liftContents = (label, { separator = '', allString = false, exclude
         [label]: allString ? aggregatedValue[0] : aggregatedValue
     }
     
+}
+
+export const recordSpacer = (spacer) => (node) => {
+    return {
+        ...node,
+        spaceAfter: spacer.length > 0
+    }
+}
+
+export const defaultSpacerProps = (node) => {
+    return {
+        spaceBefore: false,
+        spaceAfter: false,
+        ...node
+    }
 }
 
 export const liftDescription = ({ contents = [], ...rest }) => {

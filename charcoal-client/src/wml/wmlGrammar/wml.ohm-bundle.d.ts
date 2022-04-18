@@ -48,12 +48,12 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   ValueTag?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   DescriptionTextContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   TextContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
-  TagExpression?: (this: NonterminalNode, arg0: NonterminalNode, arg1: IterationNode, arg2: NonterminalNode) => T;
+  TagExpression?: (this: NonterminalNode, arg0: NonterminalNode, arg1: IterationNode, arg2: NonterminalNode, arg3: IterationNode) => T;
   string?: (this: NonterminalNode, arg0: IterationNode) => T;
   stringText?: (this: NonterminalNode, arg0: IterationNode) => T;
   legalKey?: (this: NonterminalNode, arg0: IterationNode) => T;
   spaceCompressor?: (this: NonterminalNode, arg0: IterationNode) => T;
-  TagSelfClosing?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode) => T;
+  TagSelfClosing?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode, arg4: IterationNode) => T;
   TagOpen?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode) => T;
   TagArgument?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   TagLiteralArgument?: (this: NonterminalNode, arg0: NonterminalNode) => T;
@@ -63,7 +63,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   TagArgumentKey?: (this: NonterminalNode, arg0: Node, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode) => T;
   tagArgumentBracketed?: (this: NonterminalNode, arg0: Node, arg1: TerminalNode, arg2: IterationNode, arg3: TerminalNode) => T;
   tagArgValueQuoted?: (this: NonterminalNode, arg0: IterationNode, arg1: TerminalNode) => T;
-  TagClose?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: TerminalNode) => T;
+  tagClose?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: TerminalNode) => T;
   none?: (this: NonterminalNode, arg0: TerminalNode) => T;
   embeddedJSExpression?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode) => T;
   jsExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;

@@ -18,7 +18,8 @@ import {
     confirmKeyProps,
     confirmExpressionProps,
     confirmLiteralProps,
-    discardContents
+    discardContents,
+    defaultSpacerProps
 } from './processUp/index.js'
 
 const fileNameValidator = ({ fileName = '' }) => (fileName?.match?.(/^[\w\d-_]+$/) ? [] : [`FileName property of Asset must be composed exclusively of letters, numbers, '-' and '_'`])
@@ -50,9 +51,11 @@ export const schema = {
         return this.sourceString
     },
     DescriptionTextContents(node) {
+        const spaceAfter = Boolean(this.sourceString.match(/\s$/))
         return {
             tag: 'String',
-            value: replaceWhiteSpace(this.sourceString).trim()
+            value: replaceWhiteSpace(this.sourceString).trim(),
+            spaceAfter
         }
     },
     legalKey(node) {
@@ -94,16 +97,17 @@ export const schema = {
     TagOpen(open, tag, props, close) {
         return processTagProps(tag, props)
     },
-    TagSelfClosing(open, tag, props, close) {
+    TagSelfClosing(open, tag, props, close, spacer) {
         return {
             ...processTagProps(tag, props),
             contents: []
         }
     },
-    TagExpression(open, contents, close) {
+    TagExpression(open, contents, close, spacer) {
         return {
             ...open.schema(),
-            contents: contents.children.map(item => item.schema())
+            contents: contents.children.map(item => item.schema()),
+            ...(spacer.sourceString.length > 0 ? { spaceAfter: true } : {})
         }
     },
     VariableExpression(node) {
@@ -216,7 +220,8 @@ export const schema = {
             // desourceTag,
             validate(confirmKeyProps(['key', 'to'])),
             liftKeyProps(['key', 'to']),
-            liftUntagged('text', { allString: true })
+            liftUntagged('text', { allString: true }),
+            defaultSpacerProps
         ])(node.schema())
     },
     LayerExpression(node) {
