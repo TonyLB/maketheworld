@@ -49,6 +49,8 @@ Object {
         "props": Object {},
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "The lights are on",
           },

@@ -1,5 +1,104 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`WML semantic schema should derive spaceBefore and spaceAfter properties from whitespace in description 1`] = `
+Object {
+  "Story": true,
+  "contents": Array [
+    Object {
+      "contents": Array [],
+      "display": undefined,
+      "global": false,
+      "key": "stone",
+      "props": Object {},
+      "render": Array [],
+      "tag": "Feature",
+    },
+    Object {
+      "contents": Array [],
+      "display": undefined,
+      "global": false,
+      "key": "clockTower",
+      "props": Object {},
+      "render": Array [
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": "A clock-tower of weathered grey-",
+        },
+        Object {
+          "contents": Array [],
+          "key": "towerStone",
+          "props": Object {},
+          "spaceAfter": true,
+          "spaceBefore": false,
+          "tag": "Link",
+          "text": "stone",
+          "to": "stone",
+        },
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": true,
+          "tag": "String",
+          "value": "looms over the area.",
+        },
+      ],
+      "tag": "Feature",
+    },
+    Object {
+      "contents": Array [
+        Object {
+          "contents": Array [],
+          "display": undefined,
+          "global": false,
+          "key": "clockTower",
+          "props": Object {},
+          "render": Array [],
+          "tag": "Feature",
+        },
+      ],
+      "display": undefined,
+      "global": false,
+      "key": "ABC",
+      "props": Object {},
+      "render": Array [
+        Object {
+          "spaceAfter": true,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": "A spinning tumble of wreckage, surrounding a",
+        },
+        Object {
+          "contents": Array [],
+          "key": "vortexClockTower",
+          "props": Object {},
+          "spaceAfter": false,
+          "spaceBefore": true,
+          "tag": "Link",
+          "text": "clock tower",
+          "to": "clockTower",
+        },
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": ".",
+        },
+      ],
+      "tag": "Room",
+    },
+  ],
+  "description": undefined,
+  "fileName": "test",
+  "instance": true,
+  "key": "Test",
+  "player": undefined,
+  "props": Object {},
+  "tag": "Asset",
+  "zone": undefined,
+}
+`;
+
 exports[`WML semantic schema should parse a character element 1`] = `
 Object {
   "Name": "Tess",
@@ -34,6 +133,8 @@ Object {
       "props": Object {},
       "render": Array [
         Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
           "tag": "String",
           "value": "Vortex",
         },
@@ -90,6 +191,8 @@ Object {
       "props": Object {},
       "render": Array [
         Object {
+          "spaceAfter": true,
+          "spaceBefore": false,
           "tag": "String",
           "value": "Vortex",
         },
@@ -97,6 +200,8 @@ Object {
           "contents": Array [],
           "key": "switchToggle",
           "props": Object {},
+          "spaceAfter": false,
+          "spaceBefore": true,
           "tag": "Link",
           "text": "(toggle)",
           "to": "toggleOpen",
@@ -187,6 +292,8 @@ Object {
       "props": Object {},
       "render": Array [
         Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
           "tag": "String",
           "value": "A clock-tower of weathered grey stone looms over the area.",
         },
@@ -212,6 +319,8 @@ Object {
       "props": Object {},
       "render": Array [
         Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
           "tag": "String",
           "value": "Vortex",
         },

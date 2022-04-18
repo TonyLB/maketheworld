@@ -8,7 +8,7 @@ WorldMarkupLangage {
             | StoryExpression
             | CharacterExpression
 
-    CharacterExpression = TagExpression<"Character", "key", ("player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents>
+    CharacterExpression = TagExpression<"Character", "key", ("player" | "fileName" | "zone" | "subFolder"), none, none, CharacterLegalContents, none>
     CharacterLegalContents = ImageExpression
             | LiteralNameExpression
             | PronounsExpression
@@ -16,12 +16,12 @@ WorldMarkupLangage {
             | LiteralValueTag<"Outfit">
             | LiteralValueTag<"FirstImpression">
 
-    PronounsExpression = TagExpression<"Pronouns", none, ("subject" | "object" | "possessive" | "adjective" | "reflexive"), none, none, none>
-            | TagSelfClosing<"Pronouns", none, ("subject" | "object" | "possessive" | "adjective" | "reflexive"), none, none>
+    PronounsExpression = TagExpression<"Pronouns", none, ("subject" | "object" | "possessive" | "adjective" | "reflexive"), none, none, none, none>
+            | TagSelfClosing<"Pronouns", none, ("subject" | "object" | "possessive" | "adjective" | "reflexive"), none, none, none>
 
-    StoryExpression = TagExpression<"Story", "key", ("fileName" | "zone" | "subFolder" | "player"), none, "instance", AssetLegalContents>
+    StoryExpression = TagExpression<"Story", "key", ("fileName" | "zone" | "subFolder" | "player"), none, "instance", AssetLegalContents, none>
 
-    AssetExpression = TagExpression<"Asset", "key", ("fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents>
+    AssetExpression = TagExpression<"Asset", "key", ("fileName" | "zone" | "subFolder" | "player"), none, none, AssetLegalContents, none>
     AssetLegalContents = ImportExpression
             | VariableExpression
             | ComputedExpression
@@ -35,33 +35,33 @@ WorldMarkupLangage {
             | LiteralNameExpression
             | string
 
-    MapExpression = TagExpression<"Map", "key", none, none, none, MapLegalContents>
+    MapExpression = TagExpression<"Map", "key", none, none, none, MapLegalContents, none>
     MapLegalContents = MapRoomExpression
             | NameExpression
             | ImageExpression
 
-    ImageExpression = TagExpression<"Image", "key", "fileURL", none, none, none>
-            | TagSelfClosing<"Image", "key", "fileURL", none, none>
+    ImageExpression = TagExpression<"Image", "key", "fileURL", none, none, none, none>
+            | TagSelfClosing<"Image", "key", "fileURL", none, none, none>
 
-    ImportExpression = TagExpression<"Import", "from", none, none, none, ImportLegalContents>
+    ImportExpression = TagExpression<"Import", "from", none, none, none, ImportLegalContents, none>
     ImportLegalContents = UseExpression
 
-    UseExpression = TagExpression<"Use", ("key" | "as"), "type", none, none, none>
-            | TagSelfClosing<"Use", ("key" | "as"), "type", none, none>
+    UseExpression = TagExpression<"Use", ("key" | "as"), "type", none, none, none, none>
+            | TagSelfClosing<"Use", ("key" | "as"), "type", none, none, none>
 
-    DependencyExpression = TagExpression<"Depend", "on", none, none, none, none>
-            | TagSelfClosing<"Depend", "on", none, none, none>
+    DependencyExpression = TagExpression<"Depend", "on", none, none, none, none, none>
+            | TagSelfClosing<"Depend", "on", none, none, none, none>
 
-    VariableExpression = TagExpression<"Variable", "key", none, "default", none, none>
-            | TagSelfClosing<"Variable", "key", none, "default", none>
+    VariableExpression = TagExpression<"Variable", "key", none, "default", none, none, none>
+            | TagSelfClosing<"Variable", "key", none, "default", none, none>
 
-    ComputedExpression = TagExpression<"Computed", "key", none, "src", none, DependencyExpression>
-            | TagSelfClosing<"Computed", "key", none, "src", none>
+    ComputedExpression = TagExpression<"Computed", "key", none, "src", none, DependencyExpression, none>
+            | TagSelfClosing<"Computed", "key", none, "src", none, none>
 
-    ActionExpression = TagExpression<"Action", "key", none, "src", none, none>
-            | TagSelfClosing<"Action", "key", none, "src", none>
+    ActionExpression = TagExpression<"Action", "key", none, "src", none, none, none>
+            | TagSelfClosing<"Action", "key", none, "src", none, none>
 
-    ConditionExpression = TagExpression<"Condition", none, none, "if", none, ConditionLegalContents>
+    ConditionExpression = TagExpression<"Condition", none, none, "if", none, ConditionLegalContents, none>
     ConditionLegalContents = RoomExpression
             | MapExpression
             | ConditionExpression
@@ -71,40 +71,40 @@ WorldMarkupLangage {
             | FeatureExpression
             | DependencyExpression
 
-    LayerExpression = TagExpression<"Layer", "key", none, none, none, LayerLegalContents>
+    LayerExpression = TagExpression<"Layer", "key", none, none, none, LayerLegalContents, none>
     LayerLegalContents = RoomExpression
             | ConditionExpression
             | ExitExpression
 
-    ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, none, string>
-            | TagSelfClosing<"Exit", ("key" | "to" | "from"), none, none, none>
+    ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, none, string, none>
+            | TagSelfClosing<"Exit", ("key" | "to" | "from"), none, none, none, none>
 
-    LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, none, string>
+    LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, none, string, spaceCompressor>
 
-    MapRoomExpression = TagExpression<"Room", "key", ("display" | "x" | "y"), none, "global", RoomContents>
-            | TagSelfClosing<"Room", "key", ("display" | "x" | "y"), none, "global">
-    RoomExpression = TagExpression<"Room", "key", none, none, "global", RoomContents>
-            | TagSelfClosing<"Room", "key", "display", none, "global">
+    MapRoomExpression = TagExpression<"Room", "key", ("display" | "x" | "y"), none, "global", RoomContents, none>
+            | TagSelfClosing<"Room", "key", ("display" | "x" | "y"), none, "global", none>
+    RoomExpression = TagExpression<"Room", "key", none, none, "global", RoomContents, none>
+            | TagSelfClosing<"Room", "key", "display", none, "global", none>
     RoomContents = DescriptionExpression
             | NameExpression
             | ExitExpression
             | FeatureExpression
 
-    FeatureExpression = TagExpression<"Feature", "key", none, none, "global", FeatureContents>
-            | TagSelfClosing<"Feature", "key", "display", none, "global">
+    FeatureExpression = TagExpression<"Feature", "key", none, none, "global", FeatureContents, none>
+            | TagSelfClosing<"Feature", "key", "display", none, "global", none>
     FeatureContents = DescriptionExpression
             | NameExpression
 
-    DescriptionExpression = TagExpression<"Description", none, "display", none, ("spaceBefore" | "spaceAfter"), DescriptionContents>
+    DescriptionExpression = TagExpression<"Description", none, "display", none, ("spaceBefore" | "spaceAfter"), DescriptionContents, none>
     DescriptionContents = DescriptionTextContents
             | LinkExpression
 
     LiteralNameExpression = LiteralValueTag<"Name">
     NameExpression = ValueTag<"Name">
 
-    LiteralValueTag<label> = TagExpression<label, none, none, none, none, string>
+    LiteralValueTag<label> = TagExpression<label, none, none, none, none, string, none>
 
-    ValueTag<label> = TagExpression<label, none, none, none, none, TextContents>
+    ValueTag<label> = TagExpression<label, none, none, none, none, TextContents, none>
     DescriptionTextContents = string
     TextContents = string | embeddedJSExpression
 
@@ -112,12 +112,12 @@ WorldMarkupLangage {
     // The following define the ways in which tags can be structured
     //
 
-    TagExpression<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, LegalContents> = TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> LegalContents* TagClose<tag>
+    TagExpression<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, LegalContents, endSpace> = TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> LegalContents* tagClose<tag> #(endSpace)?
     string = (stringText | spaceCompressor)+
     stringText = (~("<" | "{" | space) any | "\\<" | "\\{")+
     legalKey = (letter | digit | "-" | "_")*
     spaceCompressor = (space)+
-    TagSelfClosing<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* "/>"
+    TagSelfClosing<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, endSpace> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* "/>" #(endSpace)?
     TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* ">"
     TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = TagArgumentKey<tagKeyArgs> | TagLiteralArgument<tagLiteralArgs> | TagProgramArgument<tagProgramArgs> | tagBooleanArgument<tagBooleanArgs>
     TagLiteralArgument<tagLiteralArgs> = tagArgumentQuoted<tagLiteralArgs>
@@ -127,7 +127,7 @@ WorldMarkupLangage {
     TagArgumentKey<tagLegalArgs> = #(tagLegalArgs "=(") legalKey ")"
     tagArgumentBracketed<tagLegalArgs> = tagLegalArgs "={" jsExpression* "}"
     tagArgValueQuoted = ("\\\"" | ~"\"" any)* "\""
-    TagClose<tag> = "</" tag ">"
+    tagClose<tag> = "</" tag ">"
     none = ~">" ">"
 
     //

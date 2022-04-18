@@ -38,14 +38,14 @@ export const prettyPrintShouldNest = {
         const returnValue = ((depth * 4 + item.sourceString.length) > 80) || (item.sourceString.search('\n') !== -1)
         return returnValue ? 'Nest' : 'None'
     },
-    TagSelfClosing(open, tag, props, close) {
+    TagSelfClosing(open, tag, props, close, spacer) {
         const depth = this.args.depth
         if ((depth * 4 + replaceLineBreaks(this.sourceString).length) > 80) {
             return 'Nest'
         }
         return shouldNestOr('Tag', props.prettyPrintShouldNest(depth))
     },
-    TagExpression(open, contents, close) {
+    TagExpression(open, contents, close, spacer) {
         const depth = this.args.depth
         const contentsNesting = contents.prettyPrintShouldNest(depth + 1)
         if (contentsNesting === 'Tag') {
@@ -75,7 +75,7 @@ export const prettyPrint = {
     _terminal() {
         return this.sourceString
     },
-    TagSelfClosing(open, tag, props, close) {
+    TagSelfClosing(open, tag, props, close, spacer) {
         const depth = this.args.depth
         const tagNesting = this.prettyPrintShouldNest(depth)
         if (tagNesting === 'Nest') {
@@ -100,7 +100,7 @@ export const prettyPrint = {
         const depth = this.args.depth
         return `${replaceLineBreaks(this.sourceString).trim()}`
     },
-    TagExpression(open, contents, close) {
+    TagExpression(open, contents, close, spacer) {
         const depth = this.args.depth
         if (this.prettyPrintShouldNest(depth) === 'Nest') {
             return `${replaceLineBreaks(open.sourceString)}\n${makeIndent(depth + 1)}${contents.prettyPrint(depth + 1).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`

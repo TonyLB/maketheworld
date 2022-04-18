@@ -30,7 +30,7 @@ export const wmlSemantics = wmlGrammar.createSemantics()
         _iter(...nodes) {
             return nodes.map((node) => (node.eval())).join('')
         },
-        TagExpression(open, contents, close) {
+        TagExpression(open, contents, close, spacer) {
             return `${open.sourceString}${contents.eval()}${close.sourceString}`
         }
     })
