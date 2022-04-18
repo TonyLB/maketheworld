@@ -5,7 +5,7 @@ describe('WML semantic prettyPrint', () => {
 
     it('should indent nested elements', () => {
         const match = wmlGrammar.match(`<Asset key=(Test) fileName="test"><Room key=(ABC)><Name>Vortex</Name></Room><Room key=(VORTEX) global /></Asset>`)
-        expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
     it('should remove previous whitespace', () => {
@@ -20,7 +20,7 @@ describe('WML semantic prettyPrint', () => {
                 </Room>
                 <Room key=(VORTEX) global />
             </Asset>`)
-        expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
     it('should nest props on very long tags', () => {
@@ -35,7 +35,7 @@ describe('WML semantic prettyPrint', () => {
                     reflexive="ridiculously long pronoun"
                 />
             </Character>`)
-        expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
     it('should nest props on multiline expression', () => {
@@ -53,7 +53,31 @@ describe('WML semantic prettyPrint', () => {
                     }
                 } />
             </Asset>`)
-        expect(wmlSemantics(match).prettyPrint(0)).toMatchSnapshot()
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+    })
+
+    it('should word wrap descriptions', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Feature key=(clockTower)>
+                    <Description>
+                        An old stone clock tower
+                    </Description>
+                </Feature>
+                <Room key=(Test)>
+                    <Description>
+                        First we need a short first section
+                        <Link key=(testOne) to=(clockTower)>clockTower</Link>
+                        then a long enough second section that it will start testing the
+                        word-wrap functionality at eighty characters, which is actually
+                        quite a long line indeed, eighty characters is a lot more than
+                        you might think<Link key=(testTwo) to=(clockTower)>clockTower</Link>and
+                        then a third section also snuggled up to the link, to test that
+                        wrapping functionality doesn't separate no-space connections.
+                    </Description>
+                </Room>
+            </Asset>`)
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
 })

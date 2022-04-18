@@ -69,17 +69,17 @@ export const prettyPrintShouldNest = {
 
 export const prettyPrint = {
     _iter(...nodes) {
-        const depth = this.args.depth
-        return nodes.map((node) => (node.prettyPrint(depth)))
+        const { depth, options } = this.args
+        return nodes.map((node) => (node.prettyPrintWithOptions(depth, options)))
     },
     _terminal() {
         return this.sourceString
     },
     TagSelfClosing(open, tag, props, close, spacer) {
-        const depth = this.args.depth
+        const { depth, options } = this.args
         const tagNesting = this.prettyPrintShouldNest(depth)
         if (tagNesting === 'Nest') {
-            return `${open.sourceString}${tag.sourceString}\n${makeIndent(depth + 1)}${props.prettyPrint(depth+1).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`
+            return `${open.sourceString}${tag.sourceString}\n${makeIndent(depth + 1)}${props.prettyPrintWithOptions(depth+1, options).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`
         }
         return `${replaceLineBreaks(this.sourceString)}`
     },
@@ -93,21 +93,54 @@ export const prettyPrint = {
         return this.sourceString
     },
     string(item) {
-        const depth = this.args.depth
+        const { noTrim } = this.args.options
         return `${replaceLineBreaks(this.sourceString).trim()}`
     },
     TextContents(item) {
-        const depth = this.args.depth
+        const { noTrim } = this.args.options
         return `${replaceLineBreaks(this.sourceString).trim()}`
     },
     TagExpression(open, contents, close, spacer) {
-        const depth = this.args.depth
+        const { depth, options } = this.args
+        const { noTrim } = options || {}
         if (this.prettyPrintShouldNest(depth) === 'Nest') {
-            return `${replaceLineBreaks(open.sourceString)}\n${makeIndent(depth + 1)}${contents.prettyPrint(depth + 1).join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}`
+            let wrappedContents = []
+            if (options.wordWrap) {
+                const preWrappedContents = contents.prettyPrintWithOptions(depth + 1, { ...options, wordWrap: false, noTrim: true })
+                const { items, currentItem } = preWrappedContents.reduce(({ items, currentItem }, item) => {
+                    if (currentItem !== undefined) {
+                        return {
+                            items: [
+                                ...items,
+                                currentItem.trim()
+                            ],
+                            currentItem: item
+                        }
+                    }
+                    else {
+                        return {
+                            items,
+                            currentItem: item
+                        }
+                    }
+                }, { items: [] })
+                wrappedContents = [
+                    ...items,
+                    currentItem.trim()
+                ]
+            }
+            else {
+                wrappedContents = contents.prettyPrintWithOptions(depth + 1, { ...options, wordWrap: false, noTrim: false })
+            }
+            return `${replaceLineBreaks(open.sourceString)}\n${makeIndent(depth + 1)}${wrappedContents.join(`\n${makeIndent(depth + 1)}`)}\n${makeIndent(depth)}${close.sourceString}${ noTrim ? spacer.sourceString : ''}`
         }
         else {
-            return `${replaceLineBreaks(open.sourceString)}${contents.prettyPrint(0).join('')}${close.sourceString}`
+            return `${replaceLineBreaks(open.sourceString)}${contents.prettyPrintWithOptions(0, { ...options, wordWrap: false, noTrim: false }).join('')}${close.sourceString}${ noTrim ? spacer.sourceString : ''}`
         }
+    },
+    DescriptionExpression(node) {
+        const { depth, options } = this.args
+        return node.prettyPrintWithOptions(depth, { ...options, wordWrap: true })
     },
     tagArgumentBracketed(key, eq, value, close) {
         const depth = this.args.depth

@@ -36,7 +36,12 @@ export const wmlSemantics = wmlGrammar.createSemantics()
     })
     .addOperation('schema', schema)
     .addOperation('prettyPrintShouldNest(depth)', prettyPrintShouldNest)
-    .addOperation('prettyPrint(depth)', prettyPrint)
+    .addOperation('prettyPrintWithOptions(depth, options)', prettyPrint)
+    .addAttribute('prettyPrint', {
+        WMLFileContents(item) {
+            return this.prettyPrintWithOptions(0, {})
+        }
+    })
 
 const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
 
