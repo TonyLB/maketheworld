@@ -49,3 +49,30 @@ exports[`WML semantic prettyPrint should remove previous whitespace 1`] = `
     <Room key=(VORTEX) global />
 </Asset>"
 `;
+
+exports[`WML semantic prettyPrint should word wrap descriptions 1`] = `
+"<Asset key=(Test) fileName=\\"test\\">
+    <Feature key=(clockTower)>
+        <Description>
+            An old stone clock tower
+        </Description>
+    </Feature>
+    <Room key=(Test)>
+        <Description>
+            A short first section
+            <Link key=(testOne) to=(clockTower)>clockTower</Link>
+            then a long enough second section that it will start testing the
+            word-wrap functionality at eighty characters, which is actually
+            quite a long line indeed, eighty characters is a lot more than you
+            might think<Link key=(testTwo) to=(clockTower)>clockTower</Link>and
+            then a third section also snuggled up to the link, to test that
+            wrapping functionality doesn't separate no-space connections. Then a
+            section with two<Link key=(testTwo) to=(clockTower)>
+                clockTower
+            </Link><Link key=(testTwo) to=(clockTower)>
+                clockTower
+            </Link>tags directly adjacent.
+        </Description>
+    </Room>
+</Asset>"
+`;
