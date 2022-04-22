@@ -50,7 +50,10 @@ export type RoomRenderItem = {
     key: string;
     to: string;
     text?: string;
-} | string
+} | {
+    tag: 'String';
+    value: string;
+}
 
 export type RoomAppearance = {
     name?: string;

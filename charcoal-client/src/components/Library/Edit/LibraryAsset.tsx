@@ -102,7 +102,11 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const wmlQuery = useSelector(getWMLQuery(AssetId))
     const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
     const dispatch = useDispatch()
-    const updateWML = (value: string) => { dispatch(setCurrentWML(AssetId)({ value })) }
+    const updateWML = (value: string) => {
+        // console.log(`Value: ${value}`)
+        // const wmlQuery = new WMLQuery(value)
+        dispatch(setCurrentWML(AssetId)({ value }))
+    }
     const rooms = useMemo<Record<string, AssetRoom>>(() => ( assetRooms({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
     const save = useCallback(() => {
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))

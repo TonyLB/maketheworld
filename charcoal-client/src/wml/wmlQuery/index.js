@@ -175,25 +175,16 @@ export class WMLQueryResult {
     render(value) {
         if (value !== undefined) {
             const renderContents = value.map((item) => {
-                if (typeof item === 'object') {
-                    return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
-                }
-                else {
-                    return item
+                switch(item.tag) {
+                    case 'Link':
+                        return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
+                    case 'String':
+                        return item.value
                 }
             })
+            const revisedContents = renderContents.join("\n")
             let offset = 0
             this._nodes.forEach((node) => {
-                //
-                // Generate new contents, replacing current render elements with new
-                //
-                const nonRenderNodes = node.contents.filter(({ type, tag }) => (type === 'tag' && tag !== 'Link'))
-
-                const reApplyNonRenderContents = nonRenderNodes.map(({ start, end }) => (this.source.substring(start, end)))
-                const revisedContents = [
-                    ...renderContents,
-                    ...reApplyNonRenderContents
-                ].join("\n")
                 //
                 // Calculate the entire span being filled with contents
                 //
@@ -220,6 +211,12 @@ export class WMLQueryResult {
             return []
         }
     }
+
+    prettyPrint() {
+        this.wmlQuery.prettyPrint()
+        this.refresh()
+        return this
+    }
 }
 
 export class WMLQuery {
@@ -244,6 +241,11 @@ export class WMLQuery {
     normalize() {
         const schema = validatedSchema(this.matcher.match())
         return normalize(schema)
+    }
+    prettyPrint() {
+        const prettyPrinted = this.matcher.match().prettyPrint
+        this.matcher.setInput(prettyPrinted)
+        return this
     }
     replaceInputRange(startIdx, endIdx, str) {
         this.matcher.replaceInputRange(startIdx, endIdx, str)

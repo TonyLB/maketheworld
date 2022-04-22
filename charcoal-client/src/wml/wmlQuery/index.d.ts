@@ -17,6 +17,7 @@ declare class WMLQueryResult {
     removeProp: (key: string) => WMLQueryResult;
     not: (search: string) => WMLQueryResult;
     add: (search: string) => WMLQueryResult;
+    prettyPrint: () => WMLQueryResult;
 }
 
 export interface WMLQueryUpdateReplace {
@@ -47,4 +48,5 @@ export class WMLQuery {
     normalize: () => NormalForm;
     replaceInputRange: (startIdx: number, endIdx: number, str: string) => void;
     search: (string) => WMLQueryResult;
+    prettyPrint: () => WMLQuery;
 }

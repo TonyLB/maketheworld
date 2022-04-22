@@ -38,7 +38,7 @@ import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkEle
 
 import { RoomRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
-import { getNormalized, setCurrentWML, getWMLQuery } from '../../../slices/personalAssets'
+import { getNormalized } from '../../../slices/personalAssets'
 import useDebouncedCallback from './useDebouncedCallback'
 
 interface DescriptionEditorProps {
@@ -50,8 +50,8 @@ interface DescriptionEditorProps {
 const descendantsFromRender = (normalForm: NormalForm) => (render: RoomRenderItem[]): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
     if (render.length > 0) {
         return render.map((item) => {
-            if (typeof item === 'object') {
-                if (item.tag === 'Link') {
+            switch(item.tag) {
+                case 'Link':
                     const targetTag = normalForm[item.to]?.tag || 'Action'
                     return {
                         type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
@@ -61,9 +61,9 @@ const descendantsFromRender = (normalForm: NormalForm) => (render: RoomRenderIte
                             text: item.text || ''
                         }]
                     } as CustomActionLinkElement | CustomFeatureLinkElement
-                }
+                case 'String':
+                    return { text: item.value } as CustomText
             }
-            return { text: item as string } as CustomText
         })
     }
     return []
@@ -99,14 +99,15 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
+    console.log(`Inherited Render: ${JSON.stringify(inheritedRender, null, 4)}`)
     return <span
         contentEditable={false}
         style={{ background: 'lightgrey' }}
     >
         {
             inheritedRender.map((item) => {
-                if (typeof item === 'object') {
-                    if (item.tag === 'Link') {
+                switch(item.tag) {
+                    case 'Link':
                         switch(item.targetTag) {
                             case 'Feature':
                                 return <DescriptionLinkFeatureChip key={item.key} tooltipTitle={`Feature: ${item.to}`} active={false}>
@@ -119,9 +120,9 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem
                             default:
                                 return null
                         }
-                    }
+                    case 'String':
+                        return item.value
                 }
-                return item as string
             })
         }
     </span>
@@ -414,7 +415,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                 if ('text' in item) {
                     return [
                         ...previous,
-                        item.text
+                        {
+                            tag: 'String',
+                            value: item.text
+                        }
                     ]
                 }
                 return previous

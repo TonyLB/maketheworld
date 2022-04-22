@@ -127,7 +127,7 @@ const tagSubListWrap = ({ prepend = '', subList, depth }) => {
             }
         }
         else {
-            const prettyPrint = node.prettyPrintWithOptions(depth, { wordWrap: false, noTrim: false })
+            const prettyPrint = last.prettyPrintWithOptions(depth, { wordWrap: false, noTrim: false })
             if (prettyPrint.search('\n') !== -1) {
                 throw new Error()
             }

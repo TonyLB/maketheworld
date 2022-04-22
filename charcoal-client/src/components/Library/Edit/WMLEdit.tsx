@@ -10,7 +10,7 @@ import {
 
 import { WMLQuery, WMLQueryUpdate } from '../../../wml/wmlQuery'
 import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
-import { setCurrentWML, setDraftWML } from '../../../slices/personalAssets'
+import { setDraftWML } from '../../../slices/personalAssets'
 import { CustomText } from './baseClasses'
 
 import LibraryBanner from './LibraryBanner'
