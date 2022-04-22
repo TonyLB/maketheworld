@@ -142,13 +142,13 @@ const tagSubListWrap = ({ prepend = '', subList, depth }) => {
             }
         }
     }
-    // try {
+    try {
         //
         // First, try to fit everything on a single line
         //
         return assembleSingleLine({ prepend, subList, depth })
-    // }
-    // catch {}
+    }
+    catch {}
     //
     // If that fails, check whether the prepend value is wrappable, and if so peel the
     // last token off of it onto a separate line and try again
@@ -185,7 +185,14 @@ const tagSubListWrap = ({ prepend = '', subList, depth }) => {
     const outputLines = assemble.split(/\n/)
     const { last, previous } = lastItem(outputLines)
     return {
-        lines: previous,
+        //
+        // Need to remove the nested indents applied by the pretty print functionality, in order
+        // to pass back to the wrapping procedure (which will re-apply them)
+        //
+        lines: [
+            previous[0],
+            ...previous.slice(1).map((line) => (line.slice((depth * 4))))
+        ],
         prepend: last
     }
 }

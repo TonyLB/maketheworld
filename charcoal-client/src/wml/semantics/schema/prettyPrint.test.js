@@ -74,6 +74,8 @@ describe('WML semantic prettyPrint', () => {
                         you might think<Link key=(testTwo) to=(clockTower)>clockTower</Link>and
                         then a third section also snuggled up to the link, to test that
                         wrapping functionality doesn't separate no-space connections.
+                        Then a section with two<Link key=(testTwo) to=(clockTower)>clockTower</Link><Link key=(testTwo) to=(clockTower)>clockTower</Link>tags
+                        directly adjacent.
                     </Description>
                 </Room>
             </Asset>`)
