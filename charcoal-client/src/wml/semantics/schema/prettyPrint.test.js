@@ -66,7 +66,7 @@ describe('WML semantic prettyPrint', () => {
                 </Feature>
                 <Room key=(Test)>
                     <Description>
-                        First we need a short first section
+                        A short first section
                         <Link key=(testOne) to=(clockTower)>clockTower</Link>
                         then a long enough second section that it will start testing the
                         word-wrap functionality at eighty characters, which is actually

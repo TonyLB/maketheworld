@@ -59,11 +59,14 @@ exports[`WML semantic prettyPrint should word wrap descriptions 1`] = `
     </Feature>
     <Room key=(Test)>
         <Description>
-            First we need a short first section
+            A short first section
             <Link key=(testOne) to=(clockTower)>clockTower</Link>
-            then a long enough second section that it will start testing the word-wrap functionality at eighty characters, which is actually quite a long line indeed, eighty characters is a lot more than you might think
-            <Link key=(testTwo) to=(clockTower)>clockTower</Link>
-            and then a third section also snuggled up to the link, to test that wrapping functionality doesn't separate no-space connections.
+            then a long enough second section that it will start testing the
+            word-wrap functionality at eighty characters, which is actually
+            quite a long line indeed, eighty characters is a lot more than you
+            might think<Link key=(testTwo) to=(clockTower)>clockTower</Link>and then
+            a third section also snuggled up to the link, to test that wrapping
+            functionality doesn't separate no-space connections.
         </Description>
     </Room>
 </Asset>"
