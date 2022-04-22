@@ -75,7 +75,7 @@ function * wordWrap({ prepend = '', value, depth }) {
     let firstToken = true
     for (const token of tokens) {
         const lineLocation = depth * 4 + currentItem.length
-        if ((lineLocation + token.length + 1) > 80) {
+        if (!firstToken && (lineLocation + token.length + 1) > 80) {
             yield currentItem
             currentItem = token
         }
@@ -117,7 +117,6 @@ const tagSubListWrap = ({ prepend = '', subList, depth }) => {
             //
             const tokens = schema.value.split(/\s+/)
             if (assemble.length + tokens[0].length > 80) {
-                console.log(`Couldn't quite wrap: ${assemble}${tokens[0]}`)
                 throw new Error()
             }
             const wrappedList = [...wordWrap({ prepend: assemble, value: schema.value, depth })]
@@ -274,7 +273,7 @@ export const prettyPrint = {
                         // Figure out how to process the running tag sub list before proceeding
                         // to process the tag
                         //
-                        const { lines: linesToYield, prepend: newPrepend } = tagSubListWrap({ prepend, subList: runningTagSubList, depth })
+                        const { lines: linesToYield, prepend: newPrepend } = tagSubListWrap({ prepend, subList: runningTagSubList, depth: depth + 1 })
                         yield * linesToYield
                         prepend = newPrepend
                         runningTagSubList = []
