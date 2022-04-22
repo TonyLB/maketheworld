@@ -22,7 +22,7 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML, rooms } = useLibraryAsset()
     const { RoomId } = useParams<{ RoomId: string }>()
     const onChange = useCallback((newRender) => {
-        wmlQuery.search(`Room[key="${RoomId}"]`).not('Condition Room').not('Map Room').render(newRender)
+        wmlQuery.search(`Room[key="${RoomId}"]`).not('Condition Room').not('Map Room').add(' Description').render(newRender)
         updateWML(wmlQuery.source)
     }, [wmlQuery, updateWML])
     const room = normalForm[RoomId || '']

@@ -23,8 +23,7 @@ import useAutoPin from '../../../slices/UI/navigationTabs/useAutoPin'
 import {
     addItem,
     getStatus,
-    getWMLQuery,
-    setCurrentWML
+    getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalAsset, NormalRoom, NormalMap } from '../../../wml/normalize'
