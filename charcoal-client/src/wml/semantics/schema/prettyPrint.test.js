@@ -82,4 +82,23 @@ describe('WML semantic prettyPrint', () => {
         expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
+    it('should preserve whitespace around tags', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Feature key=(clockTower)>
+                    <Description>
+                        An old stone clock tower
+                    </Description>
+                </Feature>
+                <Room key=(Test)>
+                    <Description>
+                        One <Link key=(testOne) to=(clockTower)>clockTower</Link> two.
+                        Three<Link key=(testOne) to=(clockTower)>clockTower</Link>four.
+                        Five <Link key=(testOne) to=(clockTower)>clockTower</Link> <Link key=(testOne) to=(clockTower)>clockTower</Link> six.
+                    </Description>
+                </Room>
+            </Asset>`)
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+    })
+
 })

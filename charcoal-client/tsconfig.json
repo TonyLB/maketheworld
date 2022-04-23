@@ -8,6 +8,7 @@
       "es2015.collection",
       "es2015.iterable"
     ],
+    "downlevelIteration": true,
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,

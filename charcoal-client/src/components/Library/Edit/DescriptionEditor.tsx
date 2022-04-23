@@ -47,24 +47,38 @@ interface DescriptionEditorProps {
     onChange?: (items: RoomRenderItem[]) => void;
 }
 
+const descendantsTranslate = function * (normalForm: NormalForm, renderItems: RoomRenderItem[]) {
+    for (const item of renderItems) {
+        switch(item.tag) {
+            case 'Link':
+                const targetTag = normalForm[item.to]?.tag || 'Action'
+                if (item.spaceBefore) {
+                    yield {
+                        text: ' '
+                    } as CustomText
+                }
+                yield {
+                    type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
+                    to: item.to,
+                    key: item.key,
+                    children: [{
+                        text: item.text || ''
+                    }]
+                } as CustomActionLinkElement | CustomFeatureLinkElement
+                break
+            case 'String':
+                yield { text: `${item.spaceBefore ? ' ' : '' }${item.value}` } as CustomText
+        }
+    }
+}
+
 const descendantsFromRender = (normalForm: NormalForm) => (render: RoomRenderItem[]): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
     if (render.length > 0) {
-        return render.map((item) => {
-            switch(item.tag) {
-                case 'Link':
-                    const targetTag = normalForm[item.to]?.tag || 'Action'
-                    return {
-                        type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
-                        to: item.to,
-                        key: item.key,
-                        children: [{
-                            text: item.text || ''
-                        }]
-                    } as CustomActionLinkElement | CustomFeatureLinkElement
-                case 'String':
-                    return { text: item.value } as CustomText
-            }
-        })
+        let returnValue = [] as (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[]
+        for (const item of descendantsTranslate(normalForm, render)) {
+            returnValue.push(item)
+        }
+        return returnValue
     }
     return []
 }
@@ -99,7 +113,6 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    console.log(`Inherited Render: ${JSON.stringify(inheritedRender, null, 4)}`)
     return <span
         contentEditable={false}
         style={{ background: 'lightgrey' }}
