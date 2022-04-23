@@ -153,6 +153,7 @@ describe('wmlQuery', () => {
         let booleanQuery = new WMLQuery(booleanPropsMatch, { onChange: onChangeMock })
         expect(booleanQuery.search('Room[key="VORTEX"]').removeProp('global').source).toMatchSnapshot()
         expect(booleanQuery.search('Room[key="Test"]').prop('global', true, { type: 'boolean' }).source).toMatchSnapshot()
+        expect(booleanQuery.search('Room[key="Test"]').prop('global', false, { type: 'boolean' }).source).toMatchSnapshot()
     })
 
     it('should correctly remove and update expression prop', () => {

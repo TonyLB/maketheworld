@@ -110,20 +110,30 @@ export class WMLQueryResult {
             const { type } = options
             this._nodes.forEach((node) => {
                 if (node.props[key]) {
-                    const { valueStart, valueEnd } = node.props[key]
-                    if (valueEnd) {
-                        this.replaceInputRange(valueStart, valueEnd, value)
+                    if (type === 'boolean') {
+                        if (value === false) {
+                            const { start, end } = node.props[key]
+                            if (end) {
+                                this.replaceInputRange(start-1, end, '')
+                            }
+                        }
+                    }
+                    else {
+                        const { valueStart, valueEnd } = node.props[key]
+                        if (valueEnd) {
+                            this.replaceInputRange(valueStart, valueEnd, value)
+                        }
                     }
                 }
                 else {
                     const insertAfter = Object.values(node.props || {})
                         .reduce((previous, { end }) => (Math.max(previous, end)), node.tagEnd)
                     const newProp = type === 'boolean'
-                        ? `${key}`
+                        ? value ? ` ${key}` : ''
                         : type === 'expression'
-                            ? `${key}={${value}}`
-                            : `${key}="${value}"`
-                    this.replaceInputRange(insertAfter, insertAfter, ` ${newProp}`)
+                            ? ` ${key}={${value}}`
+                            : ` ${key}="${value}"`
+                    this.replaceInputRange(insertAfter, insertAfter, newProp)
                 }
             })
             this.refresh()
