@@ -257,8 +257,11 @@ export const prettyPrint = {
             for (const item of itemList) {
                 const tag = item.schema().tag
                 const prettyItem = item.prettyPrintWithOptions(depth + 1, { ...options, wordWrap: false, noTrim: true })
-                const itemMustNest = item.prettyPrintShouldNest(depth + 1) === 'Nest'
-                const spaceBefore = Boolean((prepend || '').match(/\s$/))
+                const { last: lastSubTag } = lastItem(runningTagSubList)
+                const spaceBefore = Boolean(lastSubTag
+                    ? (lastSubTag.prettyPrintWithOptions(depth + 1, { ...options, noTrim: true }).match(/\s$/))
+                    : (prepend || '').match(/\s$/)
+                )
                 const spaceAfter = Boolean(prettyItem.match(/\s$/))
                 //
                 // First, check whether a running sublist of tags is being considered.  If so, evaluate
@@ -293,16 +296,11 @@ export const prettyPrint = {
                 }
                 else {
                     if (spaceBefore) {
-                    // if (itemMustNest) {
                         const nestedLines = prettyItem.split(/\n\s*/)
                         const { previous: deliverableLines, last: currentLine } = lastItem(nestedLines)
                         yield prepend.trim()
                         yield * deliverableLines
-                        prepend = `${currentLine.trim()}${ (currentLine.trim() && spaceAfter) ? ' ' : ''}`
-                    // }
-                    // else {
-                    //     prepend = `${prepend.trim()}${ spaceBefore ? ' ' : ''}${prettyItem.trim()}${ spaceAfter ? ' ' : ''}`
-                    // }
+                        prepend = `${currentLine.trim()}${(currentLine.trim() && spaceAfter) ? ' ' : ''}`
                     }
                     else {
                         runningTagSubList = [...runningTagSubList, item]

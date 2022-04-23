@@ -49,11 +49,9 @@ exports[`WML semantic prettyPrint should preserve whitespace around tags 1`] = `
         <Description>
             One
             <Link key=(testOne) to=(clockTower)>clockTower</Link> two.
-            Three<Link key=(testOne) to=(clockTower)>clockTower</Link>four. Five<Link key=(testOne) to=(clockTower)>
-                clockTower
-            </Link><Link key=(testOne) to=(clockTower)>
-                clockTower
-            </Link>six.
+            Three<Link key=(testOne) to=(clockTower)>clockTower</Link>four. Five
+            <Link key=(testOne) to=(clockTower)>clockTower</Link>
+            <Link key=(testOne) to=(clockTower)>clockTower</Link> six.
         </Description>
     </Room>
 </Asset>"
