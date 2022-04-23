@@ -1,7 +1,7 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
-import { validatedSchema } from '../index.js'
+import { validatedSchema, wmlSemantics } from '../index.js'
 import { normalize } from '../normalize.js'
 
 const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, contents = [] }) => {
@@ -243,7 +243,7 @@ export class WMLQuery {
         return normalize(schema)
     }
     prettyPrint() {
-        const prettyPrinted = this.matcher.match().prettyPrint
+        const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
         this.matcher.setInput(prettyPrinted)
         return this
     }
