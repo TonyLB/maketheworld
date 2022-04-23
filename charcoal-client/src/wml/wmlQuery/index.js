@@ -182,7 +182,7 @@ export class WMLQueryResult {
                         return item.value
                 }
             })
-            const revisedContents = renderContents.join("\n")
+            const revisedContents = renderContents.join("")
             let offset = 0
             this._nodes.forEach((node) => {
                 //
