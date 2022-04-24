@@ -187,17 +187,22 @@ export const defaultSpacerProps = (node) => {
 
 export const liftDescription = ({ contents = [], ...rest }) => {
 
-    const render = contents
+    const descriptionList = contents
         .filter(({ tag }) => (tag === 'Description'))
+    const render = descriptionList
         .reduce((previous, { render }) => ([
             ...previous,
             ...render
         ]), [])
-        
+    const spaceBefore = (descriptionList.length > 0) && descriptionList[0].spaceBefore
+    const spaceAfter = (descriptionList.length > 0) && descriptionList.slice(-1)[0].spaceAfter
+
     return {
         contents: contents.filter(({ tag }) => (tag !== 'Description')),
         ...rest,
-        render
+        render,
+        spaceBefore,
+        spaceAfter
     }
     
 }
