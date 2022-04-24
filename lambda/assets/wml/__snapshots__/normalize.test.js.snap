@@ -38,6 +38,8 @@ Object {
         "location": undefined,
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "Vortex!",
           },
@@ -137,6 +139,8 @@ Object {
         "name": "Vortex",
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "Vortex!",
           },
@@ -507,6 +511,8 @@ Object {
         "name": "Vortex",
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "Hello, world!",
           },
@@ -533,6 +539,8 @@ Object {
         ],
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "Vortex!",
           },
@@ -718,6 +726,8 @@ Object {
         "name": "Vortex",
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "Hello, world!",
           },
@@ -744,6 +754,8 @@ Object {
         ],
         "render": Array [
           Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
             "tag": "String",
             "value": "Vortex!",
           },
