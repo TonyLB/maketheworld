@@ -22,7 +22,16 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
     const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML, rooms } = useLibraryAsset()
     const { RoomId } = useParams<{ RoomId: string }>()
     const onChange = useCallback((newRender) => {
-        wmlQuery.search(`Room[key="${RoomId}"]`).not('Condition Room').not('Map Room').add(' Description').render(newRender)
+        let spaceBefore = newRender.length > 0 && newRender[0].tag === 'String' && newRender[0].value.search(/^\s+/) !== -1
+        let spaceAfter = newRender.length > 0 && newRender[newRender.length - 1].tag === 'String' && newRender[newRender.length - 1].value.search(/\s+$/) !== -1
+        wmlQuery
+            .search(`Room[key="${RoomId}"]`)
+            .not('Condition Room')
+            .not('Map Room')
+            .add('Description')
+            .prop('spaceBefore', spaceBefore, { type: 'boolean' })
+            .prop('spaceAfter', spaceAfter, { type: 'boolean' })
+            .render(newRender)
         updateWML(wmlQuery.source)
     }, [wmlQuery, updateWML])
     const room = normalForm[RoomId || '']
@@ -105,6 +114,8 @@ export const RoomDetail: FunctionComponent<RoomDetailProps> = () => {
                 <DescriptionEditor
                     inheritedRender={rooms[room.key]?.defaultRender}
                     render={rooms[room.key]?.localRender || []}
+                    spaceBefore={rooms[room.key]?.spaceBefore}
+                    spaceAfter={rooms[room.key]?.spaceAfter}
                     onChange={onChange}
                 />
             </Box>

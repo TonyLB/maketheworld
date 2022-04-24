@@ -63,6 +63,8 @@ export type AssetRoom = {
     defaultRender?: RoomRenderItem[];
     name: string;
     render: RoomRenderItem[];
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
 }
 
 const assetRooms = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, RoomAppearance> }): Record<string, AssetRoom> => {
@@ -75,10 +77,27 @@ const assetRooms = ({ normalForm, defaultAppearances }: { normalForm: NormalForm
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ name = '' }) => name)
                 .join('')) || ''
+            const countRenderAppearances = (room && room.tag === 'Room')
+                ? room.appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .length
+                : 0
             const localRender = (room && room.tag === 'Room' && room.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ render = [] }) => render)
                 .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
+            const spaceBefore = countRenderAppearances
+                ? (room && room.tag === 'Room' && room.appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .map(({ spaceBefore = false }) => spaceBefore)
+                    .reduce((previous, spaceBefore) => (previous || spaceBefore), false))  || false
+                : undefined
+            const spaceAfter = countRenderAppearances
+                ? (room && room.tag === 'Room' && room.appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .map(({ spaceAfter = false }) => spaceAfter)
+                    .reduce((previous, spaceAfter) => (previous || spaceAfter), false))  || false
+                : undefined
             const defaultName = defaultAppearances[room.key]?.name || ''
             const defaultRender = defaultAppearances[room.key]?.render
             return { [room.key]: {
@@ -86,6 +105,8 @@ const assetRooms = ({ normalForm, defaultAppearances }: { normalForm: NormalForm
                 localRender,
                 defaultName,
                 defaultRender,
+                spaceBefore,
+                spaceAfter,
                 name: `${defaultName}${localName}`,
                 render: [...(defaultRender || []), ...localRender]
             }}

@@ -44,6 +44,8 @@ import useDebouncedCallback from './useDebouncedCallback'
 interface DescriptionEditorProps {
     inheritedRender?: RoomRenderItem[];
     render: RoomRenderItem[];
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
     onChange?: (items: RoomRenderItem[]) => void;
 }
 
@@ -72,11 +74,21 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Ro
     }
 }
 
-const descendantsFromRender = (normalForm: NormalForm) => (render: RoomRenderItem[]): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
+const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore, spaceAfter }: { render: RoomRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
     if (render.length > 0) {
         let returnValue = [] as (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[]
+        if (spaceBefore) {
+            returnValue.push({
+                text: ' '
+            } as CustomText)
+        }
         for (const item of descendantsTranslate(normalForm, render)) {
             returnValue.push(item)
+        }
+        if (spaceAfter) {
+            returnValue.push({
+                text: ' '
+            } as CustomText)
         }
         return returnValue
     }
@@ -370,14 +382,14 @@ const RemoveLinkButton: FunctionComponent<RemoveLinkButtonProps> = () => {
         <LinkOffIcon />
     </Button>
 }
-export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, onChange = () => {} }) => {
+export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ inheritedRender = [], render, spaceBefore = false, spaceAfter = false, onChange = () => {} }) => {
     const editor = useMemo(() => withInlines(withHistory(withReact(createEditor()))), [])
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
     const [value, setValue] = useState<Descendant[]>([{
             type: 'description',
-            children: descendantsFromRender(normalForm)(render)
+            children: descendantsFromRender(normalForm)({ render, spaceBefore, spaceAfter })
         }])
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender])
