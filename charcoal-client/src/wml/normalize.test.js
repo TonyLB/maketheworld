@@ -234,7 +234,10 @@ describe('WML normalize', () => {
                 node: {
                     key: 'ABC',
                     tag: 'Room',
-                    render: ['Vortex!'],
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!'
+                    }],
                     contents: []
                 }
             })).toMatchSnapshot()
@@ -246,7 +249,10 @@ describe('WML normalize', () => {
                 node: {
                     key: 'ABC',
                     tag: 'Room',
-                    render: ['Vortex!'],
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!'
+                    }],
                     contents: []
                 }
             })).toMatchSnapshot()
@@ -418,7 +424,10 @@ describe('WML normalize', () => {
             {
                 tag: 'Room',
                 key: '123',
-                render: ['Hello, world!']
+                render: [{
+                    tag: 'String',
+                    value: 'Hello, world!'
+                }]
             },
             {
                 tag: 'Condition',
@@ -427,7 +436,10 @@ describe('WML normalize', () => {
                 contents: [{
                     tag: 'Room',
                     key: '123',
-                    render: ['Vortex!']
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!'
+                    }]
                 }]
             }]
         })).toMatchSnapshot()
@@ -441,7 +453,10 @@ describe('WML normalize', () => {
                 tag: 'Room',
                 key: '123',
                 name: 'Vortex',
-                render: ['Hello, world!']
+                render: [{
+                    tag: 'String',
+                    value: 'Hello, world!'
+                }]
             },
             {
                 tag: 'Condition',
@@ -450,7 +465,10 @@ describe('WML normalize', () => {
                 contents: [{
                     tag: 'Room',
                     key: '123',
-                    render: ['Vortex!']
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!'
+                    }]
                 }]
             },
             {
@@ -470,7 +488,10 @@ describe('WML normalize', () => {
                     tag: 'Room',
                     key: 'ABC',
                     name: 'Vortex',
-                    render: ['Hello, world!']
+                    render: [{
+                        tag: 'String',
+                        value: 'Hello, world!'
+                    }]
                 },
                 {
                     tag: 'Variable',
