@@ -1,7 +1,7 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
-import { validatedSchema } from '../index.js'
+import { validatedSchema, wmlSemantics } from '../index.js'
 import { normalize } from '../normalize.js'
 
 const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, contents = [] }) => {
@@ -110,20 +110,30 @@ export class WMLQueryResult {
             const { type } = options
             this._nodes.forEach((node) => {
                 if (node.props[key]) {
-                    const { valueStart, valueEnd } = node.props[key]
-                    if (valueEnd) {
-                        this.replaceInputRange(valueStart, valueEnd, value)
+                    if (type === 'boolean') {
+                        if (value === false) {
+                            const { start, end } = node.props[key]
+                            if (end) {
+                                this.replaceInputRange(start-1, end, '')
+                            }
+                        }
+                    }
+                    else {
+                        const { valueStart, valueEnd } = node.props[key]
+                        if (valueEnd) {
+                            this.replaceInputRange(valueStart, valueEnd, value)
+                        }
                     }
                 }
                 else {
                     const insertAfter = Object.values(node.props || {})
                         .reduce((previous, { end }) => (Math.max(previous, end)), node.tagEnd)
                     const newProp = type === 'boolean'
-                        ? `${key}`
+                        ? value ? ` ${key}` : ''
                         : type === 'expression'
-                            ? `${key}={${value}}`
-                            : `${key}="${value}"`
-                    this.replaceInputRange(insertAfter, insertAfter, ` ${newProp}`)
+                            ? ` ${key}={${value}}`
+                            : ` ${key}="${value}"`
+                    this.replaceInputRange(insertAfter, insertAfter, newProp)
                 }
             })
             this.refresh()
@@ -175,25 +185,16 @@ export class WMLQueryResult {
     render(value) {
         if (value !== undefined) {
             const renderContents = value.map((item) => {
-                if (typeof item === 'object') {
-                    return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
-                }
-                else {
-                    return item
+                switch(item.tag) {
+                    case 'Link':
+                        return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
+                    case 'String':
+                        return item.value
                 }
             })
+            const revisedContents = renderContents.join("")
             let offset = 0
             this._nodes.forEach((node) => {
-                //
-                // Generate new contents, replacing current render elements with new
-                //
-                const nonRenderNodes = node.contents.filter(({ type, tag }) => (type === 'tag' && tag !== 'Link'))
-
-                const reApplyNonRenderContents = nonRenderNodes.map(({ start, end }) => (this.source.substring(start, end)))
-                const revisedContents = [
-                    ...renderContents,
-                    ...reApplyNonRenderContents
-                ].join("\n")
                 //
                 // Calculate the entire span being filled with contents
                 //
@@ -220,6 +221,12 @@ export class WMLQueryResult {
             return []
         }
     }
+
+    prettyPrint() {
+        this.wmlQuery.prettyPrint()
+        this.refresh()
+        return this
+    }
 }
 
 export class WMLQuery {
@@ -244,6 +251,11 @@ export class WMLQuery {
     normalize() {
         const schema = validatedSchema(this.matcher.match())
         return normalize(schema)
+    }
+    prettyPrint() {
+        const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
+        this.matcher.setInput(prettyPrinted)
+        return this
     }
     replaceInputRange(startIdx, endIdx, str) {
         this.matcher.replaceInputRange(startIdx, endIdx, str)

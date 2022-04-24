@@ -234,7 +234,12 @@ describe('WML normalize', () => {
                 node: {
                     key: 'ABC',
                     tag: 'Room',
-                    render: ['Vortex!'],
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!',
+                        spaceBefore: false,
+                        spaceAfter: false
+                    }],
                     contents: []
                 }
             })).toMatchSnapshot()
@@ -246,7 +251,12 @@ describe('WML normalize', () => {
                 node: {
                     key: 'ABC',
                     tag: 'Room',
-                    render: ['Vortex!'],
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!',
+                        spaceBefore: false,
+                        spaceAfter: false
+                    }],
                     contents: []
                 }
             })).toMatchSnapshot()
@@ -418,7 +428,12 @@ describe('WML normalize', () => {
             {
                 tag: 'Room',
                 key: '123',
-                render: ['Hello, world!']
+                render: [{
+                    tag: 'String',
+                    value: 'Hello, world!',
+                    spaceBefore: false,
+                    spaceAfter: false
+                }]
             },
             {
                 tag: 'Condition',
@@ -427,7 +442,12 @@ describe('WML normalize', () => {
                 contents: [{
                     tag: 'Room',
                     key: '123',
-                    render: ['Vortex!']
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!',
+                        spaceBefore: false,
+                        spaceAfter: false
+                    }]
                 }]
             }]
         })).toMatchSnapshot()
@@ -441,7 +461,12 @@ describe('WML normalize', () => {
                 tag: 'Room',
                 key: '123',
                 name: 'Vortex',
-                render: ['Hello, world!']
+                render: [{
+                    tag: 'String',
+                    value: 'Hello, world!',
+                    spaceBefore: false,
+                    spaceAfter: false
+                }]
             },
             {
                 tag: 'Condition',
@@ -450,7 +475,12 @@ describe('WML normalize', () => {
                 contents: [{
                     tag: 'Room',
                     key: '123',
-                    render: ['Vortex!']
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!',
+                        spaceBefore: false,
+                        spaceAfter: false
+                    }]
                 }]
             },
             {
@@ -470,7 +500,12 @@ describe('WML normalize', () => {
                     tag: 'Room',
                     key: 'ABC',
                     name: 'Vortex',
-                    render: ['Hello, world!']
+                    render: [{
+                        tag: 'String',
+                        value: 'Hello, world!',
+                        spaceBefore: false,
+                        spaceAfter: false
+                    }]
                 },
                 {
                     tag: 'Variable',

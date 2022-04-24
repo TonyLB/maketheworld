@@ -19,15 +19,7 @@ describe('importedAssetIds', () => {
             VORTEX: { asset: 'BASE', scopedId: { key: 'VORTEX' } },
             Welcome: { asset: 'BASE', scopedId: { key: 'Welcome' } }
         })
-        expect(output).toEqual({
-            scopeMap: {
-                VORTEX: 'VORTEX',
-                Welcome: '12345'
-            },
-            importTree: {
-                BASE: {}
-            }
-        })
+        expect(output).toMatchSnapshot()
     })
 
     it('should nest import trees of dependencies', async () => {
@@ -54,18 +46,7 @@ describe('importedAssetIds', () => {
             VORTEX: { asset: 'BASE', scopedId: { key: 'VORTEX' } },
             Welcome: { asset: 'LayerA', scopedId: { key: 'Welcome' } }
         })
-        expect(output).toEqual({
-            scopeMap: {
-                VORTEX: 'VORTEX',
-                Welcome: '12345'
-            },
-            importTree: {
-                BASE: {},
-                LayerA: {
-                    BASE: {}
-                }
-            }
-        })
+        expect(output).toMatchSnapshot()
     })
 
 })

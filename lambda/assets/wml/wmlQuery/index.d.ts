@@ -10,13 +10,14 @@ declare class WMLQueryResult {
     source: string;
     contents: (value?: string) => WMLQueryResult;
     contents: () => string;
-    prop: (key: string, value: string, options?: { type: 'literal' | 'expression' | 'boolean'; }) => WMLQueryResult;
+    prop: (key: string, value: string | boolean, options?: { type: 'literal' | 'expression' | 'boolean'; }) => WMLQueryResult;
     prop: (key: string) => string;
     render: (value: RoomRenderItem[]) => WMLQueryResult;
     render: () => RoomRenderItem[];
     removeProp: (key: string) => WMLQueryResult;
     not: (search: string) => WMLQueryResult;
     add: (search: string) => WMLQueryResult;
+    prettyPrint: () => WMLQueryResult;
 }
 
 export interface WMLQueryUpdateReplace {
@@ -47,4 +48,5 @@ export class WMLQuery {
     normalize: () => NormalForm;
     replaceInputRange: (startIdx: number, endIdx: number, str: string) => void;
     search: (string) => WMLQueryResult;
+    prettyPrint: () => WMLQuery;
 }

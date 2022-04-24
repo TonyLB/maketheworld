@@ -76,7 +76,12 @@ each other in that same order.
         toAction: string;
     }
 
-    type DescriptionRenderItem = string | DescriptionFeatureLink | DescriptionActionLink
+    type DescriptionString = {
+        tag: 'String';
+        value: string;
+    }
+
+    type DescriptionRenderItem = DescriptionString | DescriptionFeatureLink | DescriptionActionLink
 ```
 
 ***Room Appearance Format***

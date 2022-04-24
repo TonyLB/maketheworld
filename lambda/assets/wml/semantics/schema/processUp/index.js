@@ -115,7 +115,7 @@ export const liftUntagged = (label, { separator = '', allString = false } = {}) 
     
 }
 
-export const liftContents = (label, { separator = '', allString = false, exclude = [] } = {}) => ({ contents = [], spaceBefore = false, spaceAfter = false, ...rest }) => {
+export const liftContents = (label, { separator = '', allString = false, exclude = [] } = {}) => ({ contents = [], spaceBefore, spaceAfter, ...rest }) => {
     const aggregationReducer = ({ listItems, currentItem, contents }, item) => {
         if (currentItem?.tag === 'String' && item?.tag === 'String') {
             return { listItems, contents, currentItem: {
@@ -143,7 +143,7 @@ export const liftContents = (label, { separator = '', allString = false, exclude
                 ],
                 currentItem: {
                     ...item,
-                    spaceBefore: currentItem ? currentItem.spaceAfter : spaceBefore
+                    spaceBefore: currentItem ? currentItem.spaceAfter : (spaceBefore ?? false)
                 },
                 contents
             }
@@ -156,12 +156,14 @@ export const liftContents = (label, { separator = '', allString = false, exclude
         ...(currentItem
             ? [{
                 ...currentItem,
-                spaceAfter
+                spaceAfter: spaceAfter ?? false
             }]
             : [])
     ]
     return {
         contents: newContents,
+        spaceBefore,
+        spaceAfter,
         ...rest,
         [label]: allString ? aggregatedValue[0] : aggregatedValue
     }
@@ -185,17 +187,22 @@ export const defaultSpacerProps = (node) => {
 
 export const liftDescription = ({ contents = [], ...rest }) => {
 
-    const render = contents
+    const descriptionList = contents
         .filter(({ tag }) => (tag === 'Description'))
+    const render = descriptionList
         .reduce((previous, { render }) => ([
             ...previous,
             ...render
         ]), [])
-        
+    const spaceBefore = (descriptionList.length > 0) && descriptionList[0].spaceBefore
+    const spaceAfter = (descriptionList.length > 0) && descriptionList.slice(-1)[0].spaceAfter
+
     return {
         contents: contents.filter(({ tag }) => (tag !== 'Description')),
         ...rest,
-        render
+        render,
+        spaceBefore,
+        spaceAfter
     }
     
 }

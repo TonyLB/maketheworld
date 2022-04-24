@@ -11,6 +11,7 @@ WMLQuerySelector {
         "Condition" |
         "Layer" |
         "Exit" |
+        "Description" |
         "Room"
 
     stringText = (~("<" | "{" | "\"") any | "\\<" | "\\{" | "\\\"")+
