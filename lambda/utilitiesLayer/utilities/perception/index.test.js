@@ -61,18 +61,7 @@ describe('render', () => {
                 CharacterId: 'QRS'
             }]
         })
-        expect(output).toEqual([{
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'QRS',
-            Characters: [],
-            Description: ['Test One. '],
-            EphemeraId: 'ROOM#MNO',
-            RoomId: 'MNO',
-            Name: "",
-            Exits: [],
-            Features: []
-        }])
+        expect(output).toMatchSnapshot()
         expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], {})
     })
 
@@ -115,20 +104,65 @@ describe('render', () => {
                 }],
                 assetMeta: testAssets
         })
-        expect(output).toEqual([{
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'QRS',
-            Characters: [],
-            Description: ['Test One. '],
-            EphemeraId: 'ROOM#MNO',
-            RoomId: 'MNO',
-            Name: "",
-            Exits: [],
-            Features: []
-        }])
+        expect(output).toMatchSnapshot()
         expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
 
+    })
+
+    it('should render spacing around tags', async () => {
+        const testAssets = Object.entries(resultStateFactory())
+            .reduce((previous, [key, value]) => ({
+                ...previous,
+                [key]: { State: value }
+            }), {})
+        getGlobalAssets.mockResolvedValue(['BASE'])
+        getStateByAsset.mockImplementation(async (assets) => {
+            return assets.reduce((previous, asset) => ({
+                ...previous,
+                [asset]: testAssets[asset] || {}
+            }), {})
+        })
+        getItemMeta.mockResolvedValue({
+            ['ROOM#MNO']: [
+                {
+                    DataCategory: 'ASSET#BASE',
+                    appearances: [{
+                        render: [{
+                            tag: 'String',
+                            value: 'Test',
+                            spaceAfter: true
+                        },
+                        {
+                            tag: 'Link',
+                            key: 'testOne',
+                            spaceBefore: true,
+                            spaceAfter: true
+                        },
+                        {
+                            tag: 'Link',
+                            key: 'testTwo',
+                            spaceBefore: true,
+                            spaceAfter: false
+                        },
+                        {
+                            tag: 'String',
+                            value: '-attached',
+                            spaceBefore: false
+                        }],
+                        exits: []
+                    }]
+                }
+            ]
+        })
+        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        const output = await render({
+                renderList: [{
+                    EphemeraId: 'ROOM#MNO',
+                    CharacterId: 'QRS'
+                }],
+                assetMeta: testAssets
+        })
+        expect(output).toMatchSnapshot()
     })
 
     it('should render when mapValueOnly set true', async () => {
@@ -173,19 +207,7 @@ describe('render', () => {
                 }],
                 assetMeta: testAssets
         })
-        expect(output).toEqual([{
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'QRS',
-            EphemeraId: 'ROOM#MNO',
-            RoomId: 'MNO',
-            Name: "Test One. Test Two. ",
-            Exits: [{
-                Name: 'vortex',
-                RoomId: 'VORTEX',
-                Visibility: "Public"
-            }],
-        }])
+        expect(output).toMatchSnapshot()
         expect(getStateByAsset).toHaveBeenCalledWith(
             ['BASE', 'LayerA'],
             testAssets
@@ -299,31 +321,7 @@ describe('render', () => {
             }],
             assetMeta: mapAssets
         })
-        expect(output).toEqual([{
-            type: 'Map',
-            CharacterId: 'QRS',
-            EphemeraId: 'MAP#MNO',
-            MapId: 'MNO',
-            Name: "Grand Bazaar",
-            fileURL: 'test.png',
-            rooms: {
-                ['BASE#fountainSquare']: {
-                    x: 0,
-                    y: 100,
-                    EphemeraId: 'ROOM#XYZ',
-                    name: ['Fountain Square'],
-                    exits: [{
-                        to: 'BASE#library',
-                        name: 'library'
-                    }]
-                },
-                ['BASE#library']: {
-                    EphemeraId: 'ROOM#Library',
-                    x: 0,
-                    y: -100
-                }
-            }
-        }])
+        expect(output).toMatchSnapshot()
         expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], mapAssets)
 
     })
@@ -384,7 +382,10 @@ describe('render', () => {
                             if: 'foo',
                             dependencies: ['foo']
                         }],
-                        render: ['Test One. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test One. '
+                        }],
                         exits: []
                     }]
                 }
@@ -397,7 +398,10 @@ describe('render', () => {
                             if: 'baz',
                             dependencies: ['baz']
                         }],
-                        render: ['Test Two. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test Two. '
+                        }],
                         exits: []
                     }]
                 },
@@ -408,7 +412,10 @@ describe('render', () => {
                             if: 'bar',
                             dependencies: ['bar']
                         }],
-                        render: ['Test Three. '],
+                        render: [{
+                            tag: 'String',
+                            value: 'Test Three. '
+                        }],
                         exits: []
                     }]
                 }
@@ -427,30 +434,7 @@ describe('render', () => {
             }],
             assetMeta: { BASE: testAssets.BASE }
         })
-        expect(output).toEqual([{
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'XYZ',
-            Characters: [],
-            Description: ['Test One. '],
-            EphemeraId: 'ROOM#MNO',
-            RoomId: 'MNO',
-            Name: "",
-            Exits: [],
-            Features: []
-        },
-        {
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'QRS',
-            Characters: [],
-            Description: ['Test Two. '],
-            EphemeraId: 'ROOM#TUV',
-            RoomId: 'TUV',
-            Name: "",
-            Exits: [],
-            Features: []
-        }])
+        expect(output).toMatchSnapshot()
 
         expect(getStateByAsset).toHaveBeenCalledWith(
             ['BASE', 'LayerB'],
@@ -539,30 +523,7 @@ describe('render', () => {
                     }
                 }
         })
-        expect(output).toEqual([{
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'XYZ',
-            Characters: [],
-            Description: ['Test One. '],
-            EphemeraId: 'ROOM#MNO',
-            RoomId: 'MNO',
-            Name: "",
-            Exits: [],
-            Features: []
-        },
-        {
-            tag: 'Room',
-            Ancestry: '',
-            CharacterId: 'QRS',
-            Characters: [],
-            Description: ['Test Two. '],
-            EphemeraId: 'ROOM#TUV',
-            RoomId: 'TUV',
-            Name: "",
-            Exits: [],
-            Features: []
-        }])
+        expect(output).toMatchSnapshot()
 
         expect(getGlobalAssets).toHaveBeenCalledWith(['BASE'])
         expect(getCharacterAssets).toHaveBeenCalledWith(['XYZ', 'QRS'], { QRS: ['LayerB'] })

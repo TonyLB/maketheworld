@@ -91,7 +91,52 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             if (renderItem?.tag === 'String') {
                 return renderItem.value
             }
-            return renderItem
+            const { spaceAfter, spaceBefore, ...rest } = renderItem || {}
+            return rest
+        }
+        const joinRenderItems = function * (render = []) {
+            if (render.length > 0) {
+                let currentItem = render[0]
+                if (currentItem.spaceBefore) {
+                    if (currentItem.tag === 'String') {
+                        currentItem.value = ` ${currentItem.value}`
+                    }
+                    else {
+                        yield {
+                            tag: 'String',
+                            value: ' '
+                        }
+                    }
+                }
+                for (const renderItem of render.slice(1)) {
+                    const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
+                    if (spaceBetween && currentItem.tag === 'String') {
+                        yield {
+                            ...currentItem,
+                            value: `${currentItem.value.trim()} `
+                        }
+                    }
+                    else {
+                        yield currentItem
+                    }
+                    if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag !== 'String') {
+                        yield {
+                            tag: 'String',
+                            value: ' '
+                        }
+                    }
+                    if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag === 'String') {
+                        currentItem = {
+                            ...renderItem,
+                            value: ` ${renderItem.value.trimLeft()}`
+                        }
+                    }
+                    else {
+                        currentItem = renderItem
+                    }
+                }
+                yield currentItem
+            }
         }
         const [objectType] = splitType(EphemeraId)
         const { assets, meta, itemsByAsset } = extractRenderArguments({ EphemeraId, CharacterId })
@@ -117,7 +162,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                                 ...(mapValuesOnly
                                     ? {}
                                     : {
-                                        render: [ ...previousRender, ...(render || []).map(mapRenderFormats) ],
+                                        render: [ ...previousRender, ...[...joinRenderItems(render)].map(mapRenderFormats) ],
                                         features: [ ...previousFeatures, ...(features || []) ]
                                     }
                                 )
