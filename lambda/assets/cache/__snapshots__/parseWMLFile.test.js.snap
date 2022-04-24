@@ -23,6 +23,8 @@ Object {
         "name": "Vortex",
         "props": Object {},
         "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
       Object {
         "contents": Array [],
@@ -55,6 +57,8 @@ Object {
             "value": "The lights are on",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
     "key": "ABC",

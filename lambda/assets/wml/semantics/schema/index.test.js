@@ -122,4 +122,24 @@ describe('WML semantic schema', () => {
         const schema = wmlSemantics(match).schema()
         expect(schema).toMatchSnapshot()
     })
+
+    it('should percolate description spaceBefore and spaceAfter up hierarchy', () => {
+        const match = wmlGrammar.match(`
+            <Story key=(Test) instance fileName="test">
+                <Feature key=(clockTower)>
+                    <Description spaceBefore spaceAfter>
+                        A clock-tower of weathered grey stone looms over the area.
+                    </Description>
+                </Feature>
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    <Feature key=(clockTower) />
+                    <Description spaceBefore spaceAfter>Vortex</Description>
+                </Room>
+            </Story>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toMatchSnapshot()
+    })
+
 })

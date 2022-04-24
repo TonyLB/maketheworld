@@ -192,6 +192,7 @@ export const schema = {
             validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
             liftLiteralProps(['display']),
             liftContents('render'),
+            liftBooleanProps(['spaceBefore', 'spaceAfter']),
         ])(node.schema())
     },
     MapRoomExpression(node) {

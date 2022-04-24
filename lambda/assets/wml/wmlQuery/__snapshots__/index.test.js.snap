@@ -485,6 +485,16 @@ exports[`wmlQuery should correctly remove and update boolean prop 2`] = `
         "
 `;
 
+exports[`wmlQuery should correctly remove and update boolean prop 3`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) />
+            </Asset>
+        "
+`;
+
 exports[`wmlQuery should correctly remove and update expression prop 1`] = `
 "
             <Asset key=(BASE)>

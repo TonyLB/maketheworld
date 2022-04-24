@@ -3,6 +3,7 @@ type TagType = 'Asset' |
     'Character' |
     'Import' |
     'Condition' |
+    'Description' |
     'Room' |
     'Feature' |
     'Image' |
@@ -50,11 +51,29 @@ export type RoomRenderItem = {
     key: string;
     to: string;
     text?: string;
-} | string
+    spaceBefore?: boolean;
+} | {
+    tag: 'String';
+    value: string;
+    spaceBefore?: boolean;
+}
 
+export type NormalDescription = {
+    type: 'Description';
+    render?: RoomRenderItem[];
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
+} & NormalBase
+
+//
+// TODO: Refactor room appearance entirely, to take better advantage of
+// the new WML Description tag
+//
 export type RoomAppearance = {
     name?: string;
     render?: RoomRenderItem[];
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
 } & BaseAppearance
 
 export type NormalRoom = {

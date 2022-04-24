@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`importedAssetIds should nest import trees of dependencies 1`] = `
+Object {
+  "importTree": Object {
+    "BASE": Object {},
+    "LayerA": Object {
+      "BASE": Object {},
+    },
+  },
+  "scopeMap": Object {
+    "VORTEX": "ROOM#VORTEX",
+    "Welcome": "ROOM#12345",
+  },
+}
+`;
+
+exports[`importedAssetIds should return scopedIds and aggregate of import trees for dependencies 1`] = `
+Object {
+  "importTree": Object {
+    "BASE": Object {},
+  },
+  "scopeMap": Object {
+    "VORTEX": "ROOM#VORTEX",
+    "Welcome": "ROOM#12345",
+  },
+}
+`;
