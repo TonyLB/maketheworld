@@ -185,7 +185,10 @@ describe('Asset cache mergeEntries', () => {
                     errors: [],
                     global: false,
                     props: {},
-                    render: ['The lights are on '],
+                    render: [{
+                        tag: 'String',
+                        value: 'The lights are on '
+                    }],
                     contents: []
                 }]
             },
@@ -222,7 +225,10 @@ describe('Asset cache mergeEntries', () => {
                         dependencies: ['active'],
                         if: 'active'
                     }],
-                    render: ['The lights are on ']
+                    render: [{
+                        tag: 'String',
+                        value: 'The lights are on '
+                    }]
                 }
                 ]
             }],
@@ -277,7 +283,10 @@ describe('Asset cache mergeEntries', () => {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                     errors: [],
                     props: {},
-                    render: ['The lights are on '],
+                    render: [{
+                        tag: 'String',
+                        value: 'The lights are on '
+                    }],
                     contents: []
                 }]
             },
@@ -333,7 +342,10 @@ describe('Asset cache mergeEntries', () => {
                         dependencies: [],
                         if: 'true'
                     }],
-                    render: ['The lights are on '],
+                    render: [{
+                        tag: 'String',
+                        value: 'The lights are on '
+                    }],
                 }]
             },
             {
