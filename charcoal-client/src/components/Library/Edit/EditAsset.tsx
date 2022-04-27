@@ -26,12 +26,14 @@ import {
     getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap } from '../../../wml/normalize'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature } from '../../../wml/normalize'
 
 import WMLEdit from './WMLEdit'
 import RoomHeader from './RoomHeader'
+import FeatureHeader from './FeatureHeader'
 import MapHeader from './MapHeader'
 import RoomDetail from './RoomDetail'
+import FeatureDetail from './FeatureDetail'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
@@ -43,6 +45,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
+    const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     return <Box sx={{ width: "100%" }}>
@@ -87,6 +90,18 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     </React.Fragment>
                     : null
                 }
+                { features.length
+                    ? <React.Fragment>
+                        <ListSubheader>Features</ListSubheader>
+                        { features.map((feature) => (<FeatureHeader
+                            key={feature.key}
+                            feature={feature}
+                            AssetId={assetKey}
+                            onClick={() => { navigate(`Feature/${feature.key}`)}}
+                        />))}
+                    </React.Fragment>
+                    : null
+                }
             </List>
         </Box>
         <Button onClick={save}>Save</Button>
@@ -121,6 +136,7 @@ export const EditAsset: FunctionComponent<EditAssetProps> = () => {
                     <Route path={'WML'} element={<WMLEdit />} />
                     <Route path={'Map/:MapId'} element={<MapEdit />} />
                     <Route path={'Room/:RoomId'} element={<RoomDetail />} />
+                    <Route path={'Feature/:FeatureId'} element={<FeatureDetail />} />
                     <Route path={''} element={<AssetEditForm />} />
                 </Routes>
             </LibraryAsset>
