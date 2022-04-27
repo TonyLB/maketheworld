@@ -122,13 +122,16 @@ export type NormalExit = {
 } & NormalBase
 
 type FeatureAppearance = {
+    name?: string;
     render?: RoomRenderItem[];
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
 } & BaseAppearance
 
 export type NormalFeature = {
     tag: 'Feature';
     name: string;
-    appearances: BaseAppearance[];
+    appearances: FeatureAppearance[];
 } & NormalBase
 
 type NormalVariable = {

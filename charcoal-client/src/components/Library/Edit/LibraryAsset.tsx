@@ -25,7 +25,7 @@ import {
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
-import { NormalForm, RoomAppearance, RoomRenderItem } from '../../../wml/normalize'
+import { NormalForm, NormalRoom, NormalFeature, RoomAppearance, RoomRenderItem } from '../../../wml/normalize'
 
 type LibraryAssetContextType = {
     assetKey: string;
@@ -36,6 +36,7 @@ type LibraryAssetContextType = {
     wmlQuery: WMLQuery;
     updateWML: (value: string) => void;
     rooms: Record<string, AssetRoom>;
+    features: Record<string, AssetFeature>;
     save: () => void;
 }
 
@@ -48,6 +49,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     wmlQuery: new WMLQuery(''),
     updateWML: () => {},
     rooms: {},
+    features: {},
     save: () => {}
 })
 
@@ -67,40 +69,49 @@ export type AssetRoom = {
     spaceAfter?: boolean;
 }
 
-const assetRooms = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, RoomAppearance> }): Record<string, AssetRoom> => {
-    const roomNormals = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Room'))
+export type AssetFeature = {
+    localName: string;
+    localRender: RoomRenderItem[];
+    defaultName: string;
+    defaultRender?: RoomRenderItem[];
+    name: string;
+    render: RoomRenderItem[];
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
+}
 
-    const roomReturns = roomNormals
-        .map((room) => {
-            const localName = (room && room.tag === 'Room' && room.appearances
+const assetComponents = (tag: 'Room' | 'Feature') => ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, RoomAppearance> }): Record<string, AssetRoom> => {
+    const componentNormals = Object.values(normalForm)
+        .filter(({ tag: checkTag }) => (checkTag === tag)) as (NormalRoom | NormalFeature)[]
+
+    const roomReturns = componentNormals
+        .map((component) => {
+            const localName = (component.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ name = '' }) => name)
                 .join('')) || ''
-            const countRenderAppearances = (room && room.tag === 'Room')
-                ? room.appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-                    .length
-                : 0
-            const localRender = (room && room.tag === 'Room' && room.appearances
+            const countRenderAppearances = component.appearances
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .length
+            const localRender = component.appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                 .map(({ render = [] }) => render)
-                .reduce((previous, render) => ([ ...previous, ...render ]), []))  || []
+                .reduce((previous, render) => ([ ...previous, ...render ]), [])
             const spaceBefore = countRenderAppearances
-                ? (room && room.tag === 'Room' && room.appearances
+                ? component.appearances
                     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                     .map(({ spaceBefore = false }) => spaceBefore)
-                    .reduce((previous, spaceBefore) => (previous || spaceBefore), false))  || false
+                    .reduce((previous, spaceBefore) => (previous || spaceBefore), false)
                 : undefined
             const spaceAfter = countRenderAppearances
-                ? (room && room.tag === 'Room' && room.appearances
+                ? component.appearances
                     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                     .map(({ spaceAfter = false }) => spaceAfter)
-                    .reduce((previous, spaceAfter) => (previous || spaceAfter), false))  || false
+                    .reduce((previous, spaceAfter) => (previous || spaceAfter), false)
                 : undefined
-            const defaultName = defaultAppearances[room.key]?.name || ''
-            const defaultRender = defaultAppearances[room.key]?.render
-            return { [room.key]: {
+            const defaultName = defaultAppearances[component.key]?.name || ''
+            const defaultRender = defaultAppearances[component.key]?.render
+            return { [component.key]: {
                 localName,
                 localRender,
                 defaultName,
@@ -128,7 +139,8 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
         const prettyPrinted = wmlQuery.prettyPrint().source
         dispatch(setCurrentWML(AssetId)({ value: prettyPrinted }))
     }
-    const rooms = useMemo<Record<string, AssetRoom>>(() => ( assetRooms({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
+    const rooms = useMemo<Record<string, AssetRoom>>(() => ( assetComponents('Room')({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
+    const features = useMemo<Record<string, AssetFeature>>(() => ( assetComponents('Feature')({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
     const save = useCallback(() => {
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
         dispatch(heartbeat)
@@ -144,6 +156,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             wmlQuery,
             updateWML,
             rooms,
+            features,
             save
         }}>
             {children}
