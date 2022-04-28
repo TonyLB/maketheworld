@@ -18,6 +18,80 @@ const evaluateConditionalList = (asset, list = [], state) => {
     return true
 }
 
+const mapRenderFormats = (renderItem) => {
+    if (renderItem?.tag === 'String') {
+        return renderItem.value
+    }
+    const { spaceAfter, spaceBefore, ...rest } = renderItem || {}
+    return rest
+}
+
+const joinRenderItems = function * (render = []) {
+    if (render.length > 0) {
+        let currentItem = render[0]
+        if (currentItem.spaceBefore) {
+            if (currentItem.tag === 'String') {
+                currentItem.value = ` ${currentItem.value}`
+            }
+            else {
+                yield {
+                    tag: 'String',
+                    value: ' '
+                }
+            }
+        }
+        for (const renderItem of render.slice(1)) {
+            const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
+            if (spaceBetween && currentItem.tag === 'String') {
+                yield {
+                    ...currentItem,
+                    value: `${currentItem.value.trim()} `
+                }
+            }
+            else {
+                yield currentItem
+            }
+            if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag !== 'String') {
+                yield {
+                    tag: 'String',
+                    value: ' '
+                }
+            }
+            if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag === 'String') {
+                currentItem = {
+                    ...renderItem,
+                    value: ` ${renderItem.value.trimLeft()}`
+                }
+            }
+            else {
+                currentItem = renderItem
+            }
+        }
+        yield currentItem
+    }
+}
+
+const aggregateComponentRender = (assets, itemsByAsset, assetStateById, mapValuesOnly) => (
+    assets.reduce((previous, AssetId) => {
+        const { appearances = [] } = itemsByAsset[AssetId]
+        const state = assetStateById[splitType(AssetId)[1]]?.State || {}
+        return appearances
+            .filter(({ name, exits }) => (!mapValuesOnly || ((name || []).length > 0 || (exits || []).length > 0)))
+            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
+            .reduce(({ render: previousRender, name: previousName, exits: previousExits, features: previousFeatures }, { render, name, exits, features }) => ({
+                name: [ ...previousName, ...(name || []) ],
+                exits: [ ...previousExits, ...(exits || []) ],
+                ...(mapValuesOnly
+                    ? {}
+                    : {
+                        render: [ ...previousRender, ...[...joinRenderItems(render)].map(mapRenderFormats) ],
+                        features: [ ...previousFeatures, ...(features || []) ]
+                    }
+                )
+            }), previous)
+    }, { render: [], name: [], exits: [], features: [] })
+)
+
 export const renderItems = async (renderList, existingStatesByAsset = {}, priorAssetLists = {}) => {
     const itemsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
     const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
@@ -87,57 +161,6 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     }
 
     return renderList.map(({ EphemeraId, CharacterId, mapValuesOnly = false }) => {
-        const mapRenderFormats = (renderItem) => {
-            if (renderItem?.tag === 'String') {
-                return renderItem.value
-            }
-            const { spaceAfter, spaceBefore, ...rest } = renderItem || {}
-            return rest
-        }
-        const joinRenderItems = function * (render = []) {
-            if (render.length > 0) {
-                let currentItem = render[0]
-                if (currentItem.spaceBefore) {
-                    if (currentItem.tag === 'String') {
-                        currentItem.value = ` ${currentItem.value}`
-                    }
-                    else {
-                        yield {
-                            tag: 'String',
-                            value: ' '
-                        }
-                    }
-                }
-                for (const renderItem of render.slice(1)) {
-                    const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
-                    if (spaceBetween && currentItem.tag === 'String') {
-                        yield {
-                            ...currentItem,
-                            value: `${currentItem.value.trim()} `
-                        }
-                    }
-                    else {
-                        yield currentItem
-                    }
-                    if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag !== 'String') {
-                        yield {
-                            tag: 'String',
-                            value: ' '
-                        }
-                    }
-                    if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag === 'String') {
-                        currentItem = {
-                            ...renderItem,
-                            value: ` ${renderItem.value.trimLeft()}`
-                        }
-                    }
-                    else {
-                        currentItem = renderItem
-                    }
-                }
-                yield currentItem
-            }
-        }
         const [objectType] = splitType(EphemeraId)
         const { assets, meta, itemsByAsset } = extractRenderArguments({ EphemeraId, CharacterId })
         switch(objectType) {
@@ -150,27 +173,10 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     fileURL: meta.fileURL
                 }
             case 'ROOM':
-                const { render: roomRender, name: roomName, exits: roomExits, features: roomFeatures } = assets.reduce((previous, AssetId) => {
-                        const { appearances = [] } = itemsByAsset[AssetId]
-                        const state = assetStateById[splitType(AssetId)[1]]?.State || {}
-                        return appearances
-                            .filter(({ name, exits }) => (!mapValuesOnly || ((name || []).length > 0 || (exits || []).length > 0)))
-                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                            .reduce(({ render: previousRender, name: previousName, exits: previousExits, features: previousFeatures }, { render, name, exits, features }) => ({
-                                name: [ ...previousName, ...(name || []) ],
-                                exits: [ ...previousExits, ...(exits || []) ],
-                                ...(mapValuesOnly
-                                    ? {}
-                                    : {
-                                        render: [ ...previousRender, ...[...joinRenderItems(render)].map(mapRenderFormats) ],
-                                        features: [ ...previousFeatures, ...(features || []) ]
-                                    }
-                                )
-                            }), previous)
-                    }, { render: [], name: [], exits: [], features: [] })
-                    //
-                    // TODO: Evaluate expressions before inserting them
-                    //
+                const { render: roomRender, name: roomName, exits: roomExits, features: roomFeatures } = aggregateComponentRender(assets, itemsByAsset, assetStateById, mapValuesOnly)
+                //
+                // TODO: Evaluate expressions before inserting them
+                //
                 return {
                     EphemeraId,
                     CharacterId,
@@ -183,20 +189,10 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 }
 
             case 'FEATURE':
-                const { render: featureRender, name: featureName, features: featureFeatures } = assets.reduce((previous, AssetId) => {
-                        const { appearances = [], name } = itemsByAsset[AssetId]
-                        const state = assetStateById[splitType(AssetId)[1]]?.State || {}
-                        return appearances
-                            .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-                            .reduce(({ render: previousRender, features: previousFeatures, name: previousName }, { render, features }) => ({
-                                render: [ ...previousRender, ...(render || []).map(mapRenderFormats) ],
-                                features: [ ...previousFeatures, ...(features || []) ],
-                                name: previousName
-                            }), { ...previous, name: [ ...previous.name, name ] })
-                    }, { render: [], name: [], features: [] })
-                    //
-                    // TODO: Evaluate expressions before inserting them
-                    //
+                const { render: featureRender, name: featureName, features: featureFeatures } = aggregateComponentRender(assets, itemsByAsset, assetStateById, mapValuesOnly)
+                //
+                // TODO: Evaluate expressions before inserting them
+                //
                 return {
                     EphemeraId,
                     CharacterId,

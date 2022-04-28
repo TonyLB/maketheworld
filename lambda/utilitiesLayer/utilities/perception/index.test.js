@@ -229,8 +229,8 @@ describe('render', () => {
             ['FEATURE#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
-                    name: 'Clock Tower',
                     appearances: [{
+                        name: 'Clock Tower',
                         render: [{
                             tag: 'String',
                             value: 'A cheery clock-tower of pale yellow stone.'
