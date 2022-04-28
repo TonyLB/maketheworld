@@ -112,7 +112,7 @@ describe('displayRenders', () => {
         expect(publishMessage).toHaveBeenCalledWith({
             MessageId: 'MESSAGE#UUID',
             CreatedTime: 1000000000000,
-            DisplayProtocol: 'FeatureMessage',
+            DisplayProtocol: 'FeatureDescription',
             Targets: ['CHARACTER#TESS'],
             Description: ['A cheery clock-tower of pale yellow stone.'],
             FeatureId: 'MNO',
