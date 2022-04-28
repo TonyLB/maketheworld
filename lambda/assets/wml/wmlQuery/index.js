@@ -82,6 +82,34 @@ export class WMLQueryResult {
         return this._nodes || []
     }
 
+    addElement(source, options) {
+        const { position = 'after' } = options || {}
+        this._nodes.forEach(({ type, tag, tagEnd, end, contents = [] }) => {
+            if (type !== 'tag') {
+                return
+            }
+            const selfClosed = this.wmlQuery.source.slice(end - 2, end) === '/>'
+            let insertPosition
+            if (selfClosed) {
+                //
+                // Unwrap the self-closed tag into an explicit one before trying
+                // to insert content
+                //
+                const trimmedPrepend = this.wmlQuery.source.slice(0, end - 2).trimEnd()
+                this.wmlQuery.replaceInputRange(0, end, `${trimmedPrepend}></${tag}>`)
+                insertPosition = trimmedPrepend.length + 1
+            }
+            else {
+                insertPosition = position === 'before'
+                    ? contents.reduce((previous, { start }) => (Math.min(previous, start)), Infinity)
+                    : contents.reduce((previous, { end }) => (Math.max(previous, end)), -Infinity)
+                insertPosition = (insertPosition === Infinity || insertPosition === -Infinity) ? end : insertPosition
+            }
+            this.wmlQuery.replaceInputRange(insertPosition, insertPosition, source)
+        })
+        return this
+    }
+
     remove() {
         let offset = 0
         this._nodes.forEach(({ start, end }) => {

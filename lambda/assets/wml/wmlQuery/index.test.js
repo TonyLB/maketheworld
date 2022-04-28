@@ -423,6 +423,44 @@ describe('wmlQuery', () => {
         })
     })
 
+    describe('add method', () => {
+        const addMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+        </Asset>
+    `
+        let addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+        })    
+
+        it('should correctly add node', () => {
+            expect(addQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>').source).toMatchSnapshot()
+        })
+
+        it('should correctly add node before contents', () => {
+            expect(addQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>', { position: 'before' }).source).toMatchSnapshot()
+        })
+
+        it('should correctly add node to self-closing tag', () => {
+            expect(addQuery.search('Room[key="Test"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
+        })
+    })
+
     describe('children method', () => {
         const childrenMatch = `
         <Asset key=(BASE)>
