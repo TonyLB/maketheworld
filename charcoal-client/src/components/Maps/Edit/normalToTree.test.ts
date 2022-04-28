@@ -143,6 +143,7 @@ describe('normalToTree', () => {
         }
 
         const roomAssetFromName = (name: string) => ({
+            tag: 'Room',
             localName: '',
             defaultName: name,
             name: name,

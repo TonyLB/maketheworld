@@ -15,54 +15,57 @@ import DescriptionEditor from './DescriptionEditor'
 import useDebouncedCallback from './useDebouncedCallback'
 import { useLibraryAsset } from './LibraryAsset'
 
-interface FeatureDetailProps {
+interface WMLComponentDetailProps {
 }
 
-export const FeatureDetail: FunctionComponent<FeatureDetailProps> = () => {
-    const { assetKey, normalForm, defaultAppearances, wmlQuery, updateWML, features } = useLibraryAsset()
-    const { FeatureId } = useParams<{ FeatureId: string }>()
+export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = () => {
+    const { assetKey, normalForm, wmlQuery, updateWML, components } = useLibraryAsset()
+    const { ComponentId } = useParams<{ ComponentId: string }>()
+    const component = normalForm[ComponentId || '']
+    const { tag } = component || {}
     const onChange = useCallback((newRender) => {
         let spaceBefore = newRender.length > 0 && newRender[0].tag === 'String' && newRender[0].value.search(/^\s+/) !== -1
         let spaceAfter = newRender.length > 0 && newRender[newRender.length - 1].tag === 'String' && newRender[newRender.length - 1].value.search(/\s+$/) !== -1
         wmlQuery
-            .search(`Feature[key="${FeatureId}"]`)
-            .not('Condition Feature')
+            .search(`${tag}[key="${ComponentId}"]`)
+            .not(`Condition ${tag}`)
+            .not(`Map ${tag}`)
             .add('Description')
             .prop('spaceBefore', spaceBefore, { type: 'boolean' })
             .prop('spaceAfter', spaceAfter, { type: 'boolean' })
             .render(newRender)
         updateWML(wmlQuery.source)
-    }, [wmlQuery, updateWML])
-    const feature = normalForm[FeatureId || '']
-    const [name, setName] = useState(features[feature.key]?.localName || '')
+    }, [wmlQuery, tag, updateWML])
+    const [name, setName] = useState(components[component.key]?.localName || '')
 
     const dispatchNameChange = useCallback((value) => {
-        const roomQuery = wmlQuery.search(`Feature`).not('Condition Feature')
-        roomQuery.add(`[key="${FeatureId}"] Name`)
-        if (roomQuery) {
-            roomQuery.remove()
+        const componentQuery = wmlQuery.search(tag).not(`Condition ${tag}`).not(`Map ${tag}`)
+        componentQuery.add(`[key="${ComponentId}"] Name`)
+        if (componentQuery) {
+            componentQuery.remove()
         }
         if (name) {
-            wmlQuery.search(`Feature`)
-                .not('Condition Feature')
-                .add(`[key="${FeatureId}"]:first`)
+            wmlQuery.search(tag)
+                .not(`Condition ${tag}`)
+                .not(`Map ${tag}`)
+                .add(`[key="${ComponentId}"]:first`)
                 .children()
                 .prepend(`<Name>${name}</Name>`)
         }
         updateWML(wmlQuery.source)
-    }, [updateWML, wmlQuery, name, FeatureId])
+    }, [updateWML, wmlQuery, name, tag, ComponentId])
     const onChangeName = useDebouncedCallback(dispatchNameChange)
     const changeName = useCallback((event) => {
         setName(event.target.value)
         onChangeName(event.target.value)
     }, [setName])
-    if (!feature || feature.tag !== 'Feature') {
+    if (!component) {
         return <Box />
     }
     return <Box sx={{ width: "100%" }}>
             <LibraryBanner
-                primary={features[feature.key]?.name || 'Untitled'}
-                secondary={feature.key}
+                primary={components[component.key]?.name || 'Untitled'}
+                secondary={component.key}
                 icon={<HomeIcon />}
                 breadCrumbProps={[{
                     href: '/Library',
@@ -73,7 +76,7 @@ export const FeatureDetail: FunctionComponent<FeatureDetailProps> = () => {
                     label: assetKey || ''
                 },
                 {
-                    label: features[feature.key]?.name || 'Untitled'
+                    label: components[component.key]?.name || 'Untitled'
                 }]}
             />
 
@@ -90,7 +93,7 @@ export const FeatureDetail: FunctionComponent<FeatureDetailProps> = () => {
                         display: 'inline'
                     }}
                 >
-                    { features[feature.key]?.defaultName || '' }
+                    { components[component.key]?.defaultName || '' }
                 </Box>
                 <TextField
                     id="name"
@@ -102,14 +105,14 @@ export const FeatureDetail: FunctionComponent<FeatureDetailProps> = () => {
             </Box>
             <Box sx={{ border: `2px solid ${blue[500]}`, borderRadius: '0.5em' }}>
                 <DescriptionEditor
-                    inheritedRender={features[feature.key]?.defaultRender}
-                    render={features[feature.key]?.localRender || []}
-                    spaceBefore={features[feature.key]?.spaceBefore}
-                    spaceAfter={features[feature.key]?.spaceAfter}
+                    inheritedRender={components[component.key]?.defaultRender}
+                    render={components[component.key]?.localRender || []}
+                    spaceBefore={components[component.key]?.spaceBefore}
+                    spaceAfter={components[component.key]?.spaceAfter}
                     onChange={onChange}
                 />
             </Box>
         </Box>
 }
 
-export default FeatureDetail
+export default WMLComponentDetail
