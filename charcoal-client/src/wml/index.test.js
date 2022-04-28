@@ -140,9 +140,9 @@ describe('WML dbEntries', () => {
             },
             clockTower: {
                 tag: 'Feature',
-                name: 'Clock Tower',
                 appearances: [{
                     conditions: [],
+                    name: 'Clock Tower',
                     render: ['A clock-tower of weathered grey stone looms over the area. ']
                 }]
             },
