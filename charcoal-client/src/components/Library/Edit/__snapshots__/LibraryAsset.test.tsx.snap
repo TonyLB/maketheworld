@@ -1,0 +1,522 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LibraryAsset context provider should provide currentWML 1`] = `
+"
+<Asset key=(Test) fileName=\\"test\\">
+    <Import from=(BASE)>
+        <Use key=(basePower) type=\\"Variable\\" as=(power) />
+        <Use key=(DEF) type=\\"Room\\" />
+    </Import>
+    <Feature key=(clockTower)>
+        <Description>
+            A worn stone clock tower.
+        </Description>
+    </Feature>
+    <Room key=(ABC)>
+        <Name>Vortex</Name>
+        <Description>
+            Vortex
+            <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
+        </Description>
+        <Exit from=(DEF)>vortex</Exit>
+    </Room>
+    <Condition if={open}>
+        <Depend on=(open) />
+        <Room key=(ABC)>
+            <Exit to=(DEF)>welcome</Exit>
+        </Room>
+    </Condition>
+    <Room key=(DEF)>
+        <Name>Welcome</Name>
+    </Room>
+    <Variable key=(open) default={false} />
+    <Action key=(toggleOpen) src={open = !open} />
+</Asset>
+"
+`;
+
+exports[`LibraryAsset context provider should provide features 1`] = `
+<div>
+  <div>
+    <div>
+      <span />
+      <span>
+        String
+      </span>
+      <span>
+        A worn stone clock tower.
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`LibraryAsset context provider should provide normalForm 1`] = `
+"{
+    \\"Test\\": {
+        \\"tag\\": \\"Asset\\",
+        \\"key\\": \\"Test\\",
+        \\"fileName\\": \\"test\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [],
+                \\"location\\": [
+                    0
+                ],
+                \\"contents\\": [
+                    {
+                        \\"key\\": \\"Import-0\\",
+                        \\"tag\\": \\"Import\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"clockTower\\",
+                        \\"tag\\": \\"Feature\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"ABC\\",
+                        \\"tag\\": \\"Room\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"DEF\\",
+                        \\"tag\\": \\"Room\\",
+                        \\"index\\": 1
+                    },
+                    {
+                        \\"key\\": \\"Condition-0\\",
+                        \\"tag\\": \\"Condition\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"open\\",
+                        \\"tag\\": \\"Variable\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"toggleOpen\\",
+                        \\"tag\\": \\"Action\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    },
+    \\"Import-0\\": {
+        \\"key\\": \\"Import-0\\",
+        \\"tag\\": \\"Import\\",
+        \\"from\\": \\"BASE\\",
+        \\"mapping\\": {
+            \\"power\\": {
+                \\"key\\": \\"basePower\\",
+                \\"type\\": \\"Variable\\"
+            },
+            \\"DEF\\": {
+                \\"key\\": \\"DEF\\",
+                \\"type\\": \\"Room\\"
+            }
+        },
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    0
+                ],
+                \\"contents\\": [
+                    {
+                        \\"key\\": \\"power\\",
+                        \\"tag\\": \\"Variable\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"DEF\\",
+                        \\"tag\\": \\"Room\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    },
+    \\"power\\": {
+        \\"key\\": \\"power\\",
+        \\"tag\\": \\"Variable\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"Import-0\\",
+                        \\"tag\\": \\"Import\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    0,
+                    0
+                ],
+                \\"contents\\": []
+            }
+        ]
+    },
+    \\"DEF\\": {
+        \\"key\\": \\"DEF\\",
+        \\"tag\\": \\"Room\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"Import-0\\",
+                        \\"tag\\": \\"Import\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    0,
+                    1
+                ],
+                \\"contents\\": []
+            },
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    4
+                ],
+                \\"contents\\": [
+                    {
+                        \\"key\\": \\"DEF#ABC\\",
+                        \\"tag\\": \\"Exit\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"errors\\": [],
+                \\"global\\": false,
+                \\"props\\": {},
+                \\"name\\": \\"Welcome\\",
+                \\"render\\": [],
+                \\"spaceBefore\\": false,
+                \\"spaceAfter\\": false
+            }
+        ]
+    },
+    \\"clockTower\\": {
+        \\"tag\\": \\"Feature\\",
+        \\"key\\": \\"clockTower\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    1
+                ],
+                \\"contents\\": [],
+                \\"errors\\": [],
+                \\"global\\": false,
+                \\"props\\": {},
+                \\"render\\": [
+                    {
+                        \\"tag\\": \\"String\\",
+                        \\"value\\": \\"A worn stone clock tower.\\",
+                        \\"spaceAfter\\": false,
+                        \\"spaceBefore\\": false
+                    }
+                ],
+                \\"spaceBefore\\": false,
+                \\"spaceAfter\\": false
+            }
+        ]
+    },
+    \\"ABC\\": {
+        \\"tag\\": \\"Room\\",
+        \\"key\\": \\"ABC\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    2
+                ],
+                \\"contents\\": [],
+                \\"errors\\": [],
+                \\"global\\": false,
+                \\"props\\": {},
+                \\"name\\": \\"Vortex\\",
+                \\"render\\": [
+                    {
+                        \\"tag\\": \\"String\\",
+                        \\"value\\": \\"Vortex\\",
+                        \\"spaceAfter\\": true,
+                        \\"spaceBefore\\": false
+                    },
+                    {
+                        \\"spaceBefore\\": true,
+                        \\"spaceAfter\\": false,
+                        \\"contents\\": [],
+                        \\"tag\\": \\"Link\\",
+                        \\"key\\": \\"switchToggle\\",
+                        \\"to\\": \\"toggleOpen\\",
+                        \\"props\\": {},
+                        \\"text\\": \\"(toggle)\\"
+                    }
+                ],
+                \\"spaceBefore\\": false,
+                \\"spaceAfter\\": false
+            },
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"Condition-0\\",
+                        \\"tag\\": \\"Condition\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    3,
+                    0
+                ],
+                \\"contents\\": [
+                    {
+                        \\"key\\": \\"ABC#DEF\\",
+                        \\"tag\\": \\"Exit\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"errors\\": [],
+                \\"global\\": false,
+                \\"props\\": {},
+                \\"render\\": [],
+                \\"spaceBefore\\": false,
+                \\"spaceAfter\\": false
+            }
+        ]
+    },
+    \\"DEF#ABC\\": {
+        \\"tag\\": \\"Exit\\",
+        \\"key\\": \\"DEF#ABC\\",
+        \\"name\\": \\"vortex\\",
+        \\"to\\": \\"ABC\\",
+        \\"from\\": \\"DEF\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"DEF\\",
+                        \\"tag\\": \\"Room\\",
+                        \\"index\\": 1
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    2,
+                    0
+                ],
+                \\"contents\\": [],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    },
+    \\"Condition-0\\": {
+        \\"key\\": \\"Condition-0\\",
+        \\"tag\\": \\"Condition\\",
+        \\"if\\": \\"open\\",
+        \\"dependencies\\": [
+            \\"open\\"
+        ],
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    3
+                ],
+                \\"contents\\": [
+                    {
+                        \\"key\\": \\"ABC\\",
+                        \\"tag\\": \\"Room\\",
+                        \\"index\\": 1
+                    }
+                ],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    },
+    \\"ABC#DEF\\": {
+        \\"tag\\": \\"Exit\\",
+        \\"key\\": \\"ABC#DEF\\",
+        \\"name\\": \\"welcome\\",
+        \\"to\\": \\"DEF\\",
+        \\"from\\": \\"ABC\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"Condition-0\\",
+                        \\"tag\\": \\"Condition\\",
+                        \\"index\\": 0
+                    },
+                    {
+                        \\"key\\": \\"ABC\\",
+                        \\"tag\\": \\"Room\\",
+                        \\"index\\": 1
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    3,
+                    0,
+                    0
+                ],
+                \\"contents\\": [],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    },
+    \\"open\\": {
+        \\"tag\\": \\"Variable\\",
+        \\"default\\": \\"false\\",
+        \\"key\\": \\"open\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    5
+                ],
+                \\"contents\\": [],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    },
+    \\"toggleOpen\\": {
+        \\"tag\\": \\"Action\\",
+        \\"src\\": \\"open = !open\\",
+        \\"key\\": \\"toggleOpen\\",
+        \\"appearances\\": [
+            {
+                \\"contextStack\\": [
+                    {
+                        \\"key\\": \\"Test\\",
+                        \\"tag\\": \\"Asset\\",
+                        \\"index\\": 0
+                    }
+                ],
+                \\"location\\": [
+                    0,
+                    6
+                ],
+                \\"contents\\": [],
+                \\"errors\\": [],
+                \\"props\\": {}
+            }
+        ]
+    }
+}"
+`;
+
+exports[`LibraryAsset context provider should provide rooms 1`] = `
+<div>
+  <div>
+    <div>
+      <span>
+        Welcome
+      </span>
+      <span>
+        String
+      </span>
+      <span>
+        A welcome area
+      </span>
+    </div>
+    <div>
+      <span>
+        Vortex
+      </span>
+      <span>
+        String
+      </span>
+      <span>
+        Vortex
+      </span>
+      <span>
+        Link
+      </span>
+      <span>
+        switchToggle
+      </span>
+    </div>
+  </div>
+</div>
+`;
