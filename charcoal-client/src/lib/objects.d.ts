@@ -10,6 +10,7 @@ export type Entries<T> = {
 }[keyof T][]
 
 type ObjectMap = Record<string, any>
+type ConstrainedMap<T> = Record<string, T>
 
 export const reduceAssignToObject = (previous: Record<string, any>, item: Record<string, any>) => ObjectMap
 
@@ -19,4 +20,4 @@ export const objectEntryMap = (obj: Record<string, any>, transform: (key: any, v
 
 export const reduceArrayToObject = (previous: Record<string, any>, [key, value]: [string, any]) => ObjectMap
 
-export const objectFilter = (obj: Record<string, any>, condition: (value: any) => boolean) => ObjectMap
+export const objectFilter: <T>(obj: ConstrainedMap<T>, condition: (value: T) => boolean) => ConstrainedMap<T>
