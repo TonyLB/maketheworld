@@ -1,12 +1,12 @@
 import { MapTree } from './maps'
 import { NormalForm, NormalMap, NormalExit } from '../../../wml/normalize'
-import { AssetRoom } from '../../Library/Edit/LibraryAsset'
+import { AssetComponent } from '../../Library/Edit/LibraryAsset'
 import { unique } from '../../../lib/lists'
 
 interface NormalToTreeProps {
     MapId: string;
     normalForm: NormalForm;
-    rooms: Record<string, AssetRoom>
+    rooms: Record<string, AssetComponent>
 }
 
 export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): MapTree => {

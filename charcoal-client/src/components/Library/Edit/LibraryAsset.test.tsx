@@ -2,7 +2,7 @@ import { render } from '@testing-library/react'
 import React from 'react'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
-import LibraryAsset, { useLibraryAsset, AssetRoom, AssetFeature } from './LibraryAsset'
+import LibraryAsset, { useLibraryAsset, AssetComponent } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
 
@@ -105,7 +105,7 @@ describe('LibraryAsset context provider', () => {
     })
 
     it('should provide rooms', ()=>{
-        const RoomComponent = ({ value }: { value: AssetRoom }) => {
+        const RoomComponent = ({ value }: { value: AssetComponent }) => {
             const { name, render } = value
             return <div>
                 <span>{name}</span>
@@ -141,7 +141,7 @@ describe('LibraryAsset context provider', () => {
     })
 
     it('should provide features', ()=>{
-        const FeatureComponent = ({ value }: { value: AssetFeature }) => {
+        const FeatureComponent = ({ value }: { value: AssetComponent }) => {
             const { name, render } = value
             return <div>
                 <span>{name}</span>
