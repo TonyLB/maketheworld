@@ -1,4 +1,4 @@
-import { NormalForm, RoomRenderItem } from '../normalize';
+import { NormalForm, ComponentRenderItem } from '../normalize';
 import { Matcher } from 'ohm-js'
 
 declare class WMLQueryResult {
@@ -12,8 +12,8 @@ declare class WMLQueryResult {
     contents: () => string;
     prop: (key: string, value: string | boolean, options?: { type: 'literal' | 'expression' | 'boolean'; }) => WMLQueryResult;
     prop: (key: string) => string;
-    render: (value: RoomRenderItem[]) => WMLQueryResult;
-    render: () => RoomRenderItem[];
+    render: (value: ComponentRenderItem[]) => WMLQueryResult;
+    render: () => ComponentRenderItem[];
     removeProp: (key: string) => WMLQueryResult;
     not: (search: string) => WMLQueryResult;
     add: (search: string) => WMLQueryResult;
