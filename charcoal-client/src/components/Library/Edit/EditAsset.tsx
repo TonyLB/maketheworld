@@ -29,8 +29,7 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { NormalAsset, NormalRoom, NormalMap, NormalFeature } from '../../../wml/normalize'
 
 import WMLEdit from './WMLEdit'
-import RoomHeader from './RoomHeader'
-import FeatureHeader from './FeatureHeader'
+import WMLComponentHeader from './WMLComponentHeader'
 import MapHeader from './MapHeader'
 import RoomDetail from './RoomDetail'
 import FeatureDetail from './FeatureDetail'
@@ -81,9 +80,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 { rooms.length
                     ? <React.Fragment>
                         <ListSubheader>Rooms</ListSubheader>
-                        { rooms.map((room) => (<RoomHeader
+                        { rooms.map((room) => (<WMLComponentHeader
                             key={room.key}
-                            room={room}
+                            component={room}
                             AssetId={assetKey}
                             onClick={() => { navigate(`Room/${room.key}`)}}
                         />))}
@@ -93,9 +92,9 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 { features.length
                     ? <React.Fragment>
                         <ListSubheader>Features</ListSubheader>
-                        { features.map((feature) => (<FeatureHeader
+                        { features.map((feature) => (<WMLComponentHeader
                             key={feature.key}
-                            feature={feature}
+                            component={feature}
                             AssetId={assetKey}
                             onClick={() => { navigate(`Feature/${feature.key}`)}}
                         />))}

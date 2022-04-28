@@ -71,17 +71,18 @@ export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseA
     name?: string;
 }
 
-export type NormalRoom = {
+export type NormalComponent = {
+    tag: 'Room' | 'Feature';
+    appearances: ComponentAppearance[];
+} & NormalBase
+
+export type NormalRoom = NormalComponent & {
     tag: 'Room';
-    appearances: ComponentAppearance[];
-} & NormalBase
+}
 
-export type NormalFeature = {
+export type NormalFeature = NormalComponent & {
     tag: 'Feature';
-    appearances: ComponentAppearance[];
-} & NormalBase
-
-export type NormalComponent = NormalRoom | NormalFeature
+}
 
 type NormalImportMapping = {
     key: string;
