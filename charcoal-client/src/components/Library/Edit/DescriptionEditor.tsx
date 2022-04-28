@@ -36,20 +36,20 @@ import LinkOffIcon from '@mui/icons-material/LinkOff'
 
 import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkElement, CustomText } from './baseClasses'
 
-import { RoomRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
+import { ComponentRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
 import useDebouncedCallback from './useDebouncedCallback'
 
 interface DescriptionEditorProps {
-    inheritedRender?: RoomRenderItem[];
-    render: RoomRenderItem[];
+    inheritedRender?: ComponentRenderItem[];
+    render: ComponentRenderItem[];
     spaceBefore?: boolean;
     spaceAfter?: boolean;
-    onChange?: (items: RoomRenderItem[]) => void;
+    onChange?: (items: ComponentRenderItem[]) => void;
 }
 
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: RoomRenderItem[]) {
+const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]) {
     for (const item of renderItems) {
         switch(item.tag) {
             case 'Link':
@@ -74,7 +74,7 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Ro
     }
 }
 
-const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore, spaceAfter }: { render: RoomRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
+const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore, spaceAfter }: { render: ComponentRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
     if (render.length > 0) {
         let returnValue = [] as (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[]
         if (spaceBefore) {
@@ -123,7 +123,7 @@ const InlineChromiumBugfix = () => (
     </Box>
 )
 
-const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem[] }> = ({ inheritedRender=[] }) => {
+const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender=[] }) => {
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
@@ -155,7 +155,7 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: RoomRenderItem
     </span>
 }
 
-const Element: FunctionComponent<RenderElementProps & { inheritedRender?: RoomRenderItem[] }> = ({ inheritedRender, ...props }) => {
+const Element: FunctionComponent<RenderElementProps & { inheritedRender?: ComponentRenderItem[] }> = ({ inheritedRender, ...props }) => {
     const { attributes, children, element } = props
     switch(element.type) {
         case 'featureLink':
@@ -250,7 +250,7 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
                 <ListSubheader>
                     Features
                 </ListSubheader>
-                { features.map(({ key, name }) => (
+                { features.map(({ key }) => (
                     <ListItemButton
                         key={key}
                         onClick={() => {
@@ -265,7 +265,7 @@ const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose }) => {
                         }}
                     >
                         <ListItemText>
-                            {name}
+                            {key}
                         </ListItemText>
                     </ListItemButton>
                 ))}
@@ -449,7 +449,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                     ]
                 }
                 return previous
-            }, [] as RoomRenderItem[]) as RoomRenderItem[]
+            }, [] as ComponentRenderItem[]) as ComponentRenderItem[]
         onChange(newRender)
     }, [onChange, value])
 

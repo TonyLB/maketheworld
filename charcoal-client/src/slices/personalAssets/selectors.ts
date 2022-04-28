@@ -2,13 +2,13 @@ import { createSelector } from '@reduxjs/toolkit';
 
 import { PersonalAssetsNodes, PersonalAssetsPublic,  } from './baseClasses'
 import { WMLQuery, WMLQueryUpdate } from '../../wml/wmlQuery'
-import { NormalForm, RoomAppearance } from '../../wml/normalize'
+import { NormalForm, ComponentAppearance } from '../../wml/normalize'
 
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getNormalized: (state: PersonalAssetsPublic) => NormalForm;
     getWMLQuery: (state: PersonalAssetsPublic) => WMLQuery;
-    getDefaultAppearances: (state: PersonalAssetsPublic) => Record<string, RoomAppearance>
+    getDefaultAppearances: (state: PersonalAssetsPublic) => Record<string, ComponentAppearance>
 }
 
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
