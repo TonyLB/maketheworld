@@ -1202,10 +1202,10 @@ Object {
           0,
           3,
         ],
+        "name": "Clock Tower",
       },
     ],
     "key": "clockTower",
-    "name": "Clock Tower",
     "tag": "Feature",
   },
   "inactive": Object {

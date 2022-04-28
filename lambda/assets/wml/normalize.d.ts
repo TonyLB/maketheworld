@@ -45,7 +45,7 @@ export type NormalCharacter = {
     Outfit: string;
 } & NormalBase
 
-export type RoomRenderItem = {
+export type ComponentRenderItem = {
     tag: 'Link';
     targetTag: 'Feature' | 'Action';
     key: string;
@@ -58,28 +58,31 @@ export type RoomRenderItem = {
     spaceBefore?: boolean;
 }
 
-export type NormalDescription = {
+export type NormalDescriptionPayload = {
     type: 'Description';
-    render?: RoomRenderItem[];
+    render?: ComponentRenderItem[];
     spaceBefore?: boolean;
     spaceAfter?: boolean;
-} & NormalBase
+}
 
-//
-// TODO: Refactor room appearance entirely, to take better advantage of
-// the new WML Description tag
-//
-export type RoomAppearance = {
+export type NormalDescription = NormalDescriptionPayload & NormalBase
+
+export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance & {
     name?: string;
-    render?: RoomRenderItem[];
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
-} & BaseAppearance
+}
 
-export type NormalRoom = {
-    tag: 'Room';
-    appearances: RoomAppearance[];
+export type NormalComponent = {
+    tag: 'Room' | 'Feature';
+    appearances: ComponentAppearance[];
 } & NormalBase
+
+export type NormalRoom = NormalComponent & {
+    tag: 'Room';
+}
+
+export type NormalFeature = NormalComponent & {
+    tag: 'Feature';
+}
 
 type NormalImportMapping = {
     key: string;
@@ -121,16 +124,6 @@ export type NormalExit = {
     appearances?: BaseAppearance[];
 } & NormalBase
 
-type FeatureAppearance = {
-    render?: RoomRenderItem[];
-} & BaseAppearance
-
-export type NormalFeature = {
-    tag: 'Feature';
-    name: string;
-    appearances: BaseAppearance[];
-} & NormalBase
-
 type NormalVariable = {
     tag: 'Variable';
     default: string;
@@ -151,12 +144,11 @@ type NormalAction = {
 } & NormalBase
 
 export type NormalItem = NormalAsset |
-    NormalRoom |
+    NormalComponent |
     NormalImport |
     NormalImage |
     NormalMap |
     NormalExit |
-    NormalFeature |
     NormalVariable |
     NormalComputed |
     NormalAction

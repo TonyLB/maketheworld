@@ -165,7 +165,7 @@ export const schema = {
             // desourceTag,
             validate(confirmRequiredProps(['key'])),
             validate(confirmKeyProps(['key'])),
-            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Feature"`])),
             liftKeyProps(['key']),
             liftLiteralProps(['display']),
             liftBooleanProps(['global']),
@@ -189,7 +189,7 @@ export const schema = {
     DescriptionExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
-            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Room"`])),
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Description"`])),
             liftLiteralProps(['display']),
             liftContents('render'),
             liftBooleanProps(['spaceBefore', 'spaceAfter']),

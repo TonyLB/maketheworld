@@ -9,7 +9,7 @@ export const deliverRenders = async ({
     RequestId,
     options: {
         roomProtocol = 'RoomUpdate',
-        featureProtocol = 'FeatureMessage',
+        featureProtocol = 'FeatureDescription',
         characterProtocol = 'CharacterDescription'
     } = {}
 }) => {
