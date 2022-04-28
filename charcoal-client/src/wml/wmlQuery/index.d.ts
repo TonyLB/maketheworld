@@ -6,6 +6,7 @@ declare class WMLQueryResult {
     nodes: () => any[];
     children: () => WMLQueryResult;
     prepend: (source: string) => WMLQueryResult;
+    addElement: (source: string, options: { position: 'before' | 'after' }) => WMLQueryResult;
     remove: () => WMLQueryResult;
     source: string;
     contents: (value?: string) => WMLQueryResult;
