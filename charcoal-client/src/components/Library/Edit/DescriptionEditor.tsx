@@ -92,7 +92,9 @@ const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore
         }
         return returnValue
     }
-    return []
+    return [{
+        text: ''
+    } as CustomText]
 }
 
 const withInlines = (editor: Editor) => {
