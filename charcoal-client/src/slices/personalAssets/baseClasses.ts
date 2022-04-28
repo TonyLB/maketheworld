@@ -1,5 +1,5 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
-import { RoomAppearance } from '../../wml/normalize'
+import { ComponentAppearance } from '../../wml/normalize'
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -13,7 +13,7 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
-    defaultAppearances: Record<string, RoomAppearance>;
+    defaultAppearances: Record<string, ComponentAppearance>;
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>

@@ -25,14 +25,14 @@ import {
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
-import { NormalForm, NormalRoom, NormalFeature, RoomAppearance, RoomRenderItem } from '../../../wml/normalize'
+import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem } from '../../../wml/normalize'
 
 type LibraryAssetContextType = {
     assetKey: string;
     AssetId: string;
     currentWML: string;
     normalForm: NormalForm;
-    defaultAppearances: Record<string, RoomAppearance>;
+    defaultAppearances: Record<string, ComponentAppearance>;
     wmlQuery: WMLQuery;
     updateWML: (value: string) => void;
     rooms: Record<string, AssetRoom>;
@@ -60,29 +60,29 @@ type LibraryAssetProps = {
 
 export type AssetRoom = {
     localName: string;
-    localRender: RoomRenderItem[];
+    localRender: ComponentRenderItem[];
     defaultName: string;
-    defaultRender?: RoomRenderItem[];
+    defaultRender?: ComponentRenderItem[];
     name: string;
-    render: RoomRenderItem[];
+    render: ComponentRenderItem[];
     spaceBefore?: boolean;
     spaceAfter?: boolean;
 }
 
 export type AssetFeature = {
     localName: string;
-    localRender: RoomRenderItem[];
+    localRender: ComponentRenderItem[];
     defaultName: string;
-    defaultRender?: RoomRenderItem[];
+    defaultRender?: ComponentRenderItem[];
     name: string;
-    render: RoomRenderItem[];
+    render: ComponentRenderItem[];
     spaceBefore?: boolean;
     spaceAfter?: boolean;
 }
 
-const assetComponents = (tag: 'Room' | 'Feature') => ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, RoomAppearance> }): Record<string, AssetRoom> => {
+const assetComponents = (tag: 'Room' | 'Feature') => ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, ComponentAppearance> }): Record<string, AssetRoom> => {
     const componentNormals = Object.values(normalForm)
-        .filter(({ tag: checkTag }) => (checkTag === tag)) as (NormalRoom | NormalFeature)[]
+        .filter(({ tag: checkTag }) => (checkTag === tag)) as NormalComponent[]
 
     const roomReturns = componentNormals
         .map((component) => {

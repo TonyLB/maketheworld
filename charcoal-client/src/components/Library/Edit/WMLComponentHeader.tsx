@@ -8,18 +8,18 @@ import {
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 
-import { NormalFeature } from '../../../wml/normalize'
+import { NormalComponent } from '../../../wml/normalize'
 import { getDefaultAppearances } from '../../../slices/personalAssets'
 
-interface FeatureHeaderProps {
-    feature: NormalFeature;
+interface WMLComponentHeaderProps {
+    component: NormalComponent;
     AssetId: string;
     onClick: () => void;
 }
 
-export const FeatureHeader: FunctionComponent<FeatureHeaderProps> = ({ feature, AssetId, onClick }) => {
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ component, AssetId, onClick }) => {
     const defaultAppearances = useSelector(getDefaultAppearances(`ASSET#${AssetId}`))
-    const aggregateName = feature.appearances
+    const aggregateName = component.appearances
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
         .map(({ name = '' }) => name)
         .join('')
@@ -27,8 +27,8 @@ export const FeatureHeader: FunctionComponent<FeatureHeaderProps> = ({ feature, 
         <ListItemIcon>
             <HomeIcon />
         </ListItemIcon>
-        <ListItemText primary={`${defaultAppearances[feature.key]?.name || ''}${aggregateName}` || 'Untitled'} secondary={feature.key} />
+        <ListItemText primary={`${defaultAppearances[component.key]?.name || ''}${aggregateName}` || 'Untitled'} secondary={component.key} />
     </ListItemButton>
 }
 
-export default FeatureHeader
+export default WMLComponentHeader
