@@ -237,6 +237,7 @@ export const prettyPrint = {
         return `${replaceLineBreaks(this.sourceString).trim()}`
     },
     TagExpression(open, contents, close, spacer) {
+        const selfClosingTags = ['Pronouns', 'Image', 'Use', 'Depend', 'Variable', 'Computed', 'Action', 'Exit', 'Room', 'Feature']
         const { depth, options } = this.args
         const tagListWrap = function * (itemList) {
             //
@@ -318,6 +319,9 @@ export const prettyPrint = {
             }
         }
         const { noTrim, forceNest } = options || {}
+        if (contents.children.length === 0 && selfClosingTags.includes(open.schema().tag))  {
+            return `${open.sourceString.slice(0, -1).trimEnd()} />`
+        }
         if (forceNest || (this.prettyPrintShouldNest(depth) === 'Nest')) {
             let wrappedContents = []
             if (options.wordWrap) {

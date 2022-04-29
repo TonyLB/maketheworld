@@ -101,4 +101,16 @@ describe('WML semantic prettyPrint', () => {
         expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
+    it('should convert empty tag to self-closing', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Feature key=(clockTower)>
+                    <Name></Name>
+                </Feature>
+                <Room key=(Test)>
+                </Room>
+            </Asset>`)
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+    })
+
 })

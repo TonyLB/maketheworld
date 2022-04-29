@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`WML semantic prettyPrint should convert empty tag to self-closing 1`] = `
+"<Asset key=(Test) fileName=\\"test\\">
+    <Feature key=(clockTower)>
+        <Name></Name>
+    </Feature>
+    <Room key=(Test) />
+</Asset>"
+`;
+
 exports[`WML semantic prettyPrint should indent nested elements 1`] = `
 "<Asset key=(Test) fileName=\\"test\\">
     <Room key=(ABC)>
