@@ -374,6 +374,49 @@ describe('wmlQuery', () => {
         })
     })
 
+    describe('extend method', () => {
+        const filterMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    First Room
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                    <Exit from=(Test)>vortex</Exit>
+                </Room>
+            </Condition>
+        </Asset>
+    `
+        let baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
+        })    
+
+        it('should correctly update base query from filter extension', () => {
+            const firstResult = baseQuery.search('Room[key="VORTEX"]').not('Condition Room')
+            firstResult.extend().add('Exit').remove()
+            expect(firstResult.source).toMatchSnapshot()
+        })
+
+        it('should not impact base search on extension', () => {
+            const firstResult = baseQuery.search('Room[key="VORTEX"]')
+            firstResult.extend().add('Exit')
+            expect(firstResult.remove().source).toMatchSnapshot()
+        })
+
+    })
+
     describe('remove method', () => {
         const removeMatch = `
         <Asset key=(BASE)>
@@ -423,7 +466,7 @@ describe('wmlQuery', () => {
         })
     })
 
-    describe('add method', () => {
+    describe('addElement method', () => {
         const addMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>

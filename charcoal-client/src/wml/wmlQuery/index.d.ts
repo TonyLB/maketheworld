@@ -2,8 +2,9 @@ import { NormalForm, ComponentRenderItem } from '../normalize';
 import { Matcher } from 'ohm-js'
 
 declare class WMLQueryResult {
-    constructor(WMLQuery, string);
+    constructor(WMLQuery, { search: string, extendsResult: WMLQueryResult });
     clone: () => WMLQueryResult;
+    extend: () => WMLQueryResult;
     nodes: () => any[];
     children: () => WMLQueryResult;
     prepend: (source: string) => WMLQueryResult;
