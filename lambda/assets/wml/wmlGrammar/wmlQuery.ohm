@@ -12,7 +12,8 @@ WMLQuerySelector {
         "Layer" |
         "Exit" |
         "Description" |
-        "Room"
+        "Room" |
+        "Map"
 
     stringText = (~("<" | "{" | "\"") any | "\\<" | "\\{" | "\\\"")+
 
