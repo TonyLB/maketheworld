@@ -100,7 +100,7 @@ WorldMarkupLangage {
             | LinkExpression
 
     LiteralNameExpression = LiteralValueTag<"Name">
-    NameExpression = ValueTag<"Name">
+    NameExpression = TagExpression<"Name", none, none, none, ("spaceBefore" | "spaceAfter"), TextContents, none>
 
     LiteralValueTag<label> = TagExpression<label, none, none, none, none, string, none>
 
