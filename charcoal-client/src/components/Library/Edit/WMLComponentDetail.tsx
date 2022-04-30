@@ -26,15 +26,25 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const onChange = useCallback((newRender) => {
         let spaceBefore = newRender.length > 0 && newRender[0].tag === 'String' && newRender[0].value.search(/^\s+/) !== -1
         let spaceAfter = newRender.length > 0 && newRender[newRender.length - 1].tag === 'String' && newRender[newRender.length - 1].value.search(/\s+$/) !== -1
-        wmlQuery
+        const componentsQuery = wmlQuery
             .search(`${tag}[key="${ComponentId}"]`)
             .not(`Condition ${tag}`)
             .not(`Map ${tag}`)
-            .add('Description')
-            .prop('spaceBefore', spaceBefore, { type: 'boolean' })
-            .prop('spaceAfter', spaceAfter, { type: 'boolean' })
-            .render(newRender)
-        updateWML(wmlQuery.source)
+        componentsQuery
+            .filter('Description')
+            .remove()
+        if (newRender.length > 0) {
+            componentsQuery
+                .filter(':first')
+                .addElement(`<Description></Description>`, { position: 'before' })
+            componentsQuery
+                .filter('Description')
+                .prop('spaceBefore', spaceBefore, { type: 'boolean' })
+                .prop('spaceAfter', spaceAfter, { type: 'boolean' })
+                .render(newRender)
+
+        }
+        updateWML(componentsQuery.source)
     }, [wmlQuery, tag, updateWML])
     const [name, setName] = useState(components[component.key]?.localName || '')
 

@@ -82,6 +82,10 @@ export class WMLQueryResult {
         return this._nodes || []
     }
 
+    get count() {
+        return (this._nodes || []).count
+    }
+
     addElement(source, options) {
         const { position = 'after' } = options || {}
         this._nodes.forEach(({ type, tag, tagEnd, end, contents = [] }) => {
@@ -255,6 +259,20 @@ export class WMLQueryResult {
         this.refresh()
         return this
     }
+
+    clone() {
+        const newQuery = this.wmlQuery.clone()
+        const newQueryResult = newQuery.search('')
+        newQueryResult.search = this.search
+        newQueryResult.refresh()
+        return newQueryResult
+    }
+
+    filter(searchString) {
+        const newQueryResult = this.clone()
+        newQueryResult.add(searchString)
+        return newQueryResult
+    }
 }
 
 export class WMLQuery {
@@ -299,4 +317,9 @@ export class WMLQuery {
     search(searchString) {
         return new WMLQueryResult(this, searchString)
     }
+
+    clone() {
+        return new WMLQuery(this.source)
+    }
+
 }
