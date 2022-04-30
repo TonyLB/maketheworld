@@ -81,6 +81,20 @@ export const liftLiteralTags = (tagsMap) => ({ contents = [], ...rest}) => {
     }
 }
 
+export const liftNameTags = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Name'))
+    const unliftedItems = contents.filter(({ tag }) => (tag !== 'Name'))
+    const tagOutcomes = tagsToLift.reduce((previous, { spaceBefore, spaceAfter, contents }) => ({
+        ...previous,
+        name: `${spaceBefore ? ' ' : ''}${contents.filter((value) => (value)).join(' ').trim()}${spaceAfter ? ' ' : ''}`
+    }), {})
+    return {
+        contents: unliftedItems,
+        ...rest,
+        ...tagOutcomes
+    }
+}
+
 export const liftUntagged = (label, { separator = '', allString = false } = {}) => ({ contents = [], ...rest }) => {
     const itemsToLift = contents.filter(({ tag }) => (!tag))
     const unliftedTags = contents.filter(({ tag }) => (tag))

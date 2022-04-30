@@ -52,8 +52,7 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
     const [name, setName] = useState(components[component.key]?.localName || '')
 
     const dispatchNameChange = useCallback((value) => {
-        const componentQuery = wmlQuery.search(tag).not(`Condition ${tag}`).not(`Map ${tag}`)
-        componentQuery.add(`[key="${ComponentId}"] Name`)
+        const componentQuery = wmlQuery.search(tag).not(`Condition ${tag}`).not(`Map ${tag}`).add(`[key="${ComponentId}"] Name`)
         if (componentQuery) {
             componentQuery.remove()
         }
