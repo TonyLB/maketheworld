@@ -58,14 +58,27 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             componentQuery.remove()
         }
         if (name) {
-            wmlQuery.search(tag)
+            const spaceBefore = name.search(/^\s+/) !== -1
+            const spaceAfter = name.search(/\s+$/) !== -1
+            const spacingProps = [
+                ...(spaceBefore ? ['spaceBefore'] : []),
+                ...(spaceAfter ? ['spaceAfter'] : []),
+            ]
+            const componentsQuery = wmlQuery.search(tag)
                 .not(`Condition ${tag}`)
                 .not(`Map ${tag}`)
-                .add(`[key="${ComponentId}"]:first`)
-                .children()
-                .prepend(`<Name>${name}</Name>`)
+            componentsQuery
+                .extend()
+                .add('Name')
+                .remove()
+            if (name) {
+                componentsQuery
+                    .extend()
+                    .add(':first')
+                    .addElement(`<Name${ spacingProps.length ? ` ${spacingProps.join(' ')} ` : ''}>${name.trim()}</Name>`, { position: 'after' })
+            }
         }
-        updateWML(wmlQuery.source)
+        updateWML(componentQuery.source)
     }, [updateWML, wmlQuery, name, tag, ComponentId])
     const onChangeName = useDebouncedCallback(dispatchNameChange)
     const changeName = useCallback((event) => {
