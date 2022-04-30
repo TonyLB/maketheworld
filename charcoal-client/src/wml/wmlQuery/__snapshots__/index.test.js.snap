@@ -375,6 +375,51 @@ exports[`wmlQuery extend method should not impact base search on extension 1`] =
     "
 `;
 
+exports[`wmlQuery not method should correctly chain multiple not operations 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                </Room>
+                <Room key=(Test)>
+                    <Name>Test</Name>
+                </Room>
+            </Condition>
+            <Map>
+                <Room key=(Test) x=\\"100\\" y=\\"100\\" />
+            </Map>
+            
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery not method should correctly remove nodes from result-set 1`] = `
 Array [
   Object {

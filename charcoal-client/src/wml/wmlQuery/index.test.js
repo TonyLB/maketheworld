@@ -310,7 +310,13 @@ describe('wmlQuery', () => {
                         Conditional Render
                     </Description>
                 </Room>
+                <Room key=(Test)>
+                    <Name>Test</Name>
+                </Room>
             </Condition>
+            <Map>
+                <Room key=(Test) x="100" y="100" />
+            </Map>
             <Room key=(Test) />
             <Room key=(multipleTest)>
                 <Description>
@@ -340,6 +346,10 @@ describe('wmlQuery', () => {
 
         it('should correctly remove nodes from result-set', () => {
             expect(notQuery.search('Room[key="VORTEX"]').not('Condition Room').nodes()).toMatchSnapshot()
+        })
+
+        it('should correctly chain multiple not operations', () => {
+            expect(notQuery.search('Room[key="Test"]').not('Condition Room').not('Map Room').remove().source).toMatchSnapshot()
         })
     })
 
