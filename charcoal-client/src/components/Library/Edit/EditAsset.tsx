@@ -32,6 +32,7 @@ import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
 import MapHeader from './MapHeader'
 import WMLComponentDetail from './WMLComponentDetail'
+import AddWMLComponent from './AddWMLComponent'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
@@ -85,6 +86,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             AssetId={assetKey}
                             onClick={() => { navigate(`Room/${room.key}`)}}
                         />))}
+                        <AddWMLComponent type="Room" AssetId={`ASSET#${assetKey}`} />
                     </React.Fragment>
                     : null
                 }
@@ -97,6 +99,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             AssetId={assetKey}
                             onClick={() => { navigate(`Feature/${feature.key}`)}}
                         />))}
+                        <AddWMLComponent type="Feature" AssetId={`ASSET#${assetKey}`} />
                     </React.Fragment>
                     : null
                 }
