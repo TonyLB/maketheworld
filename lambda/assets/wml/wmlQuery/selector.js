@@ -151,6 +151,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             return {
                 tag: tag.toNode(),
                 tagEnd: tag.source.endIdx,
+                contentsStart: this.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
             }
         },
@@ -158,7 +159,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             return {
                 type: 'tag',
                 tag: tag.toNode(),
-                tagEnd: tag.source.endIdx - spacer.sourceString.length,
+                tagEnd: tag.source.endIdx,
                 props: Object.assign({}, ...(props.toNode() || {})),
                 contents: [],
                 start: this.source.startIdx,
@@ -171,6 +172,7 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 type: 'tag',
                 contents: contents.toNode(),
                 start: this.source.startIdx,
+                contentsEnd: close.source.startIdx,
                 end: this.source.endIdx - spacer.sourceString.length
             }
         },

@@ -2,7 +2,9 @@ import { NormalForm, ComponentRenderItem } from '../normalize';
 import { Matcher } from 'ohm-js'
 
 declare class WMLQueryResult {
-    constructor(WMLQuery, string);
+    constructor(WMLQuery, { search: string, extendsResult: WMLQueryResult });
+    clone: () => WMLQueryResult;
+    extend: () => WMLQueryResult;
     nodes: () => any[];
     children: () => WMLQueryResult;
     prepend: (source: string) => WMLQueryResult;
@@ -18,6 +20,7 @@ declare class WMLQueryResult {
     removeProp: (key: string) => WMLQueryResult;
     not: (search: string) => WMLQueryResult;
     add: (search: string) => WMLQueryResult;
+    filter: (search: string) => WMLQueryResult;
     prettyPrint: () => WMLQueryResult;
 }
 
@@ -43,6 +46,7 @@ type WMLQueryOptions = {
 
 export class WMLQuery {
     constructor(string, options?: WMLQueryOptions);
+    clone: () => WMLQuery;
     matcher: Matcher;
     source: string;
     setInput: (string) => void;
