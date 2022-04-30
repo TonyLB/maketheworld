@@ -15,6 +15,7 @@ import {
     liftRoomLocations,
     liftImageFileURL,
     liftPronounTags,
+    liftNameTags,
     confirmKeyProps,
     confirmExpressionProps,
     confirmLiteralProps,
@@ -169,7 +170,7 @@ export const schema = {
             liftKeyProps(['key']),
             liftLiteralProps(['display']),
             liftBooleanProps(['global']),
-            liftLiteralTags({ Name: 'name' }),
+            liftNameTags,
             liftDescription,
         ])(node.schema())
     },
@@ -182,8 +183,16 @@ export const schema = {
             liftKeyProps(['key']),
             liftLiteralProps(['display']),
             liftBooleanProps(['global']),
-            liftLiteralTags({ Name: 'name' }),
+            liftNameTags,
             liftDescription,
+        ])(node.schema())
+    },
+    NameExpression(node) {
+        return wmlProcessUpNonRecursive([
+            // desourceTag,
+            validate(({ display = 'replace' }) => (['replace', 'after', 'before'].includes(display) ? [] : [`"${display}" is not a valid value for property 'display' in Description"`])),
+            liftLiteralProps(['display']),
+            liftBooleanProps(['spaceBefore', 'spaceAfter']),
         ])(node.schema())
     },
     DescriptionExpression(node) {
@@ -204,7 +213,7 @@ export const schema = {
             liftKeyProps(['key']),
             liftLiteralProps(['display', 'x', 'y']),
             liftBooleanProps(['global']),
-            liftLiteralTags({ Name: 'name' }),
+            liftNameTags,
             liftDescription
         ])(node.schema())
     },
