@@ -11,6 +11,8 @@ Array [
         "value": "test",
       },
     ],
+    "contentsEnd": 195,
+    "contentsStart": 191,
     "end": 202,
     "props": Object {
       "to": Object {
@@ -43,6 +45,8 @@ Array [
                 ",
           },
         ],
+        "contentsEnd": 144,
+        "contentsStart": 96,
         "end": 158,
         "props": Object {},
         "start": 83,
@@ -59,6 +63,8 @@ Array [
             "value": "test",
           },
         ],
+        "contentsEnd": 195,
+        "contentsStart": 191,
         "end": 202,
         "props": Object {
           "to": Object {
@@ -75,6 +81,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 215,
+    "contentsStart": 66,
     "end": 222,
     "props": Object {
       "global": Object {
@@ -109,6 +117,8 @@ Array [
         "value": "Nested",
       },
     ],
+    "contentsEnd": 332,
+    "contentsStart": 326,
     "end": 339,
     "props": Object {},
     "start": 320,
@@ -157,6 +167,7 @@ exports[`wmlQuery addElement method should correctly add node 1`] = `
                     Render One
                 </Description>
             </Room>
+            <Room key=(emptyTest)></Room>
         </Asset>
     "
 `;
@@ -177,6 +188,28 @@ exports[`wmlQuery addElement method should correctly add node before contents 1`
                     Render One
                 </Description>
             </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery addElement method should correctly add node to empty tag 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)><Name>Test</Name></Room>
         </Asset>
     "
 `;
@@ -197,6 +230,7 @@ exports[`wmlQuery addElement method should correctly add node to self-closing ta
                     Render One
                 </Description>
             </Room>
+            <Room key=(emptyTest)></Room>
         </Asset>
     "
 `;
@@ -221,6 +255,8 @@ Array [
             "value": "Clock Tower",
           },
         ],
+        "contentsEnd": 193,
+        "contentsStart": 182,
         "end": 200,
         "props": Object {
           "key": Object {
@@ -244,6 +280,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 217,
+    "contentsStart": 96,
     "end": 231,
     "props": Object {},
     "start": 83,
@@ -260,6 +298,8 @@ Array [
         "value": "test",
       },
     ],
+    "contentsEnd": 268,
+    "contentsStart": 264,
     "end": 275,
     "props": Object {
       "to": Object {
@@ -285,6 +325,8 @@ Array [
                     ",
       },
     ],
+    "contentsEnd": 460,
+    "contentsStart": 396,
     "end": 474,
     "props": Object {},
     "start": 383,
@@ -355,6 +397,8 @@ Array [
                 "value": "Clock Tower",
               },
             ],
+            "contentsEnd": 193,
+            "contentsStart": 182,
             "end": 200,
             "props": Object {
               "key": Object {
@@ -378,6 +422,8 @@ Array [
             "type": "tag",
           },
         ],
+        "contentsEnd": 217,
+        "contentsStart": 96,
         "end": 231,
         "props": Object {},
         "start": 83,
@@ -394,6 +440,8 @@ Array [
             "value": "test",
           },
         ],
+        "contentsEnd": 268,
+        "contentsStart": 264,
         "end": 275,
         "props": Object {
           "to": Object {
@@ -410,6 +458,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 288,
+    "contentsStart": 66,
     "end": 295,
     "props": Object {
       "global": Object {
@@ -495,21 +545,77 @@ exports[`wmlQuery render method should (temporarily) ignore render updates on se
             </Room>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>
+                    Render One
+                </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>
+                    Render Two
+                </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
         </Asset>
     "
 `;
 
-exports[`wmlQuery render method should correctly extract renders 1`] = `Array []`;
+exports[`wmlQuery render method should correctly extract renders 1`] = `
+Array [
+  "Test Render:
+                    ",
+  Object {
+    "key": "123",
+    "tag": "Link",
+    "targetTag": "Feature",
+    "text": "Clock Tower",
+    "to": "clockTower",
+  },
+]
+`;
+
+exports[`wmlQuery render method should correctly update an empty description 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
+        </Asset>
+    "
+`;
 
 exports[`wmlQuery render method should correctly update multiple renders in a set 1`] = `
 "
@@ -523,16 +629,25 @@ exports[`wmlQuery render method should correctly update multiple renders in a se
             </Room>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
         </Asset>
     "
 `;
@@ -541,24 +656,30 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                <Description>
-                    Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
-                </Description>
+                <Description>Test Render Two: <Link key=(456) to=(clockTower)>(clock tower)</Link></Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>
+                    Render One
+                </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>
+                    Render Two
+                </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
         </Asset>
     "
 `;

@@ -45,6 +45,8 @@ describe('wmlQuery', () => {
                 start: 126,
                 end: 130
             }],
+            contentsStart: 126,
+            contentsEnd: 130,
             start: 120,
             end: 137
         }])
@@ -223,16 +225,25 @@ describe('wmlQuery', () => {
             </Room>
             <Room key=(Test) />
             <Room key=(multipleTest)>
-                Render One
+                <Description>
+                    Render One
+                </Description>
             </Room>
             <Room key=(multipleTest)>
-                Render Two
+                <Description>
+                    Render Two
+                </Description>
             </Room>
             <Feature key=(clockTower)>
-                Clocktower
-                test
-                on multiple lines
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
             </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
         </Asset>
     `
         let renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
@@ -243,12 +254,12 @@ describe('wmlQuery', () => {
         })    
 
         it('should correctly extract renders', () => {
-            expect(renderQuery.search('Room[key="VORTEX"]').render()).toMatchSnapshot()
+            expect(renderQuery.search('Room[key="VORTEX"] Description').render()).toMatchSnapshot()
         })
 
         it('should correctly update renders', () => {
-            expect(renderQuery.search('Room[key="VORTEX"]').render([
-                'Test Render Two: ',
+            expect(renderQuery.search('Room[key="VORTEX"] Description').render([
+                { tag: 'String', value: 'Test Render Two: ' },
                 {
                     tag: 'Link',
                     key: '456',
@@ -259,8 +270,8 @@ describe('wmlQuery', () => {
         })
 
         it('should (temporarily) ignore render updates on self-closed tags', () => {
-            expect(renderQuery.search('Room[key="Test"]').render([
-                'Test Render Two: ',
+            expect(renderQuery.search('Room[key="Test"] Description').render([
+                { tag: 'String', value: 'Test Render Two: ' },
                 {
                     tag: 'Link',
                     key: '456',
@@ -271,11 +282,15 @@ describe('wmlQuery', () => {
         })
 
         it('should correctly update multiple renders in a set', () => {
-            expect(renderQuery.search('Room[key="multipleTest"]').render([
-                `Much, much, longer render
+            expect(renderQuery.search('Room[key="multipleTest"] Description').render([{
+                tag: 'String',
+                value: `Much, much, longer render
                 Like, seriously, it's insane how much longer this render is
-            `
-            ]).source).toMatchSnapshot()
+            `}]).source).toMatchSnapshot()
+        })
+
+        it('should correctly update an empty description', () => {
+            expect(renderQuery.search('Room[key="emptyTest"] Description').render(['Test']).source).toMatchSnapshot()
         })
     })
 
@@ -482,6 +497,7 @@ describe('wmlQuery', () => {
                     Render One
                 </Description>
             </Room>
+            <Room key=(emptyTest)></Room>
         </Asset>
     `
         let addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
@@ -501,6 +517,10 @@ describe('wmlQuery', () => {
 
         it('should correctly add node to self-closing tag', () => {
             expect(addQuery.search('Room[key="Test"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
+        })
+
+        it('should correctly add node to empty tag', () => {
+            expect(addQuery.search('Room[key="emptyTest"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
         })
     })
 

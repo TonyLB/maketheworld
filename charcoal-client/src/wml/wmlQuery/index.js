@@ -97,7 +97,7 @@ export class WMLQueryResult {
 
     addElement(source, options) {
         const { position = 'after' } = options || {}
-        this._nodes.forEach(({ type, tag, tagEnd, end, contents = [] }) => {
+        this._nodes.forEach(({ type, tag, tagEnd, contentsStart, end, contents = [] }) => {
             if (type !== 'tag') {
                 return
             }
@@ -116,7 +116,7 @@ export class WMLQueryResult {
                 insertPosition = position === 'before'
                     ? contents.reduce((previous, { start }) => (Math.min(previous, start)), Infinity)
                     : contents.reduce((previous, { end }) => (Math.max(previous, end)), -Infinity)
-                insertPosition = (insertPosition === Infinity || insertPosition === -Infinity) ? end : insertPosition
+                insertPosition = (insertPosition === Infinity || insertPosition === -Infinity) ? contentsStart : insertPosition
             }
             this.wmlQuery.replaceInputRange(insertPosition, insertPosition, source)
         })
@@ -235,24 +235,15 @@ export class WMLQueryResult {
             })
             const revisedContents = renderContents.join("")
             let offset = 0
-            this._nodes.forEach((node) => {
-                //
-                // Calculate the entire span being filled with contents
-                //
-                const { start, end } = (node.contents || []).reduce((previous, probeNode) => ({
-                    start: Math.min(probeNode.start, previous.start),
-                    end: Math.max(probeNode.end, previous.end)
-                }), { start: node.end, end: 0 })
-                if (end > 0) {
-                    this.replaceInputRange(start+offset, end+offset, revisedContents)
-                    offset += revisedContents.length - (end - start)
-                }
+            this._nodes.forEach(({ contentsStart, contentsEnd }) => {
+                this.replaceInputRange(contentsStart+offset, contentsEnd+offset, revisedContents)
+                offset += revisedContents.length - (contentsEnd - contentsStart)
             })
             this.refresh()
             return this
         }
         else {
-            if (this._nodes.length && ['Room', 'Feature'].includes(this._nodes[0].tag)) {
+            if (this._nodes.length && ['Description'].includes(this._nodes[0].tag)) {
                 return (this._nodes[0].contents || [])
                     .filter(({ tag, type }) => (
                         type === 'string' || tag === 'Link'
@@ -303,12 +294,19 @@ export class WMLQuery {
         })
     }
     normalize() {
-        const schema = validatedSchema(this.matcher.match())
-        return normalize(schema)
+        if (this.matcher.match().succeeded()) {
+            const schema = validatedSchema(this.matcher.match())
+            return normalize(schema)    
+        }
+        else {
+            return {}
+        }
     }
     prettyPrint() {
-        const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
-        this.matcher.setInput(prettyPrinted)
+        if (this.matcher.match().succeeded()) {
+            const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
+            this.matcher.setInput(prettyPrinted)
+        }
         return this
     }
     replaceInputRange(startIdx, endIdx, str) {

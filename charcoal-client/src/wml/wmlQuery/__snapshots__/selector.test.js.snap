@@ -11,6 +11,8 @@ Array [
         "value": "Tess",
       },
     ],
+    "contentsEnd": 86,
+    "contentsStart": 82,
     "end": 93,
     "props": Object {},
     "start": 76,
@@ -32,6 +34,8 @@ Array [
         "value": "Tess",
       },
     ],
+    "contentsEnd": 86,
+    "contentsStart": 82,
     "end": 93,
     "props": Object {},
     "start": 76,
@@ -55,6 +59,8 @@ Array [
             "value": "Tess",
           },
         ],
+        "contentsEnd": 86,
+        "contentsStart": 82,
         "end": 93,
         "props": Object {},
         "start": 76,
@@ -64,6 +70,8 @@ Array [
       },
       Object {
         "contents": Array [],
+        "contentsEnd": 290,
+        "contentsStart": 290,
         "end": 301,
         "props": Object {
           "adjective": Object {
@@ -116,6 +124,8 @@ Array [
             "value": "Frumpy Goth",
           },
         ],
+        "contentsEnd": 342,
+        "contentsStart": 331,
         "end": 360,
         "props": Object {},
         "start": 314,
@@ -132,6 +142,8 @@ Array [
             "value": "Fuchsia eyes",
           },
         ],
+        "contentsEnd": 399,
+        "contentsStart": 387,
         "end": 414,
         "props": Object {},
         "start": 373,
@@ -148,6 +160,8 @@ Array [
             "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
           },
         ],
+        "contentsEnd": 517,
+        "contentsStart": 435,
         "end": 526,
         "props": Object {},
         "start": 427,
@@ -156,6 +170,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 535,
+    "contentsStart": 63,
     "end": 547,
     "props": Object {
       "fileName": Object {
@@ -210,6 +226,8 @@ Array [
                 "value": "Clock Tower",
               },
             ],
+            "contentsEnd": 193,
+            "contentsStart": 182,
             "end": 200,
             "props": Object {
               "key": Object {
@@ -233,6 +251,8 @@ Array [
             "type": "tag",
           },
         ],
+        "contentsEnd": 217,
+        "contentsStart": 96,
         "end": 231,
         "props": Object {},
         "start": 83,
@@ -249,6 +269,8 @@ Array [
             "value": "test",
           },
         ],
+        "contentsEnd": 268,
+        "contentsStart": 264,
         "end": 275,
         "props": Object {
           "to": Object {
@@ -273,6 +295,8 @@ Array [
             "value": "vortex",
           },
         ],
+        "contentsEnd": 316,
+        "contentsStart": 310,
         "end": 323,
         "props": Object {
           "from": Object {
@@ -289,6 +313,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 336,
+    "contentsStart": 66,
     "end": 343,
     "props": Object {
       "global": Object {
@@ -323,6 +349,8 @@ Array [
         "value": "test",
       },
     ],
+    "contentsEnd": 268,
+    "contentsStart": 264,
     "end": 275,
     "props": Object {
       "to": Object {
@@ -352,6 +380,8 @@ Array [
         "value": "test",
       },
     ],
+    "contentsEnd": 268,
+    "contentsStart": 264,
     "end": 275,
     "props": Object {
       "to": Object {
@@ -381,6 +411,8 @@ Array [
         "value": "vortex",
       },
     ],
+    "contentsEnd": 316,
+    "contentsStart": 310,
     "end": 323,
     "props": Object {
       "from": Object {
@@ -443,6 +475,8 @@ Array [
                 "value": "Clock Tower",
               },
             ],
+            "contentsEnd": 193,
+            "contentsStart": 182,
             "end": 200,
             "props": Object {
               "key": Object {
@@ -466,6 +500,8 @@ Array [
             "type": "tag",
           },
         ],
+        "contentsEnd": 217,
+        "contentsStart": 96,
         "end": 231,
         "props": Object {},
         "start": 83,
@@ -482,6 +518,8 @@ Array [
             "value": "test",
           },
         ],
+        "contentsEnd": 268,
+        "contentsStart": 264,
         "end": 275,
         "props": Object {
           "to": Object {
@@ -506,6 +544,8 @@ Array [
             "value": "vortex",
           },
         ],
+        "contentsEnd": 316,
+        "contentsStart": 310,
         "end": 323,
         "props": Object {
           "from": Object {
@@ -522,6 +562,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 336,
+    "contentsStart": 66,
     "end": 343,
     "props": Object {
       "global": Object {
@@ -575,6 +617,8 @@ Array [
             "value": "Tess",
           },
         ],
+        "contentsEnd": 86,
+        "contentsStart": 82,
         "end": 93,
         "props": Object {},
         "start": 76,
@@ -584,6 +628,8 @@ Array [
       },
       Object {
         "contents": Array [],
+        "contentsEnd": 290,
+        "contentsStart": 290,
         "end": 301,
         "props": Object {
           "adjective": Object {
@@ -636,6 +682,8 @@ Array [
             "value": "Frumpy Goth",
           },
         ],
+        "contentsEnd": 342,
+        "contentsStart": 331,
         "end": 360,
         "props": Object {},
         "start": 314,
@@ -652,6 +700,8 @@ Array [
             "value": "Fuchsia eyes",
           },
         ],
+        "contentsEnd": 399,
+        "contentsStart": 387,
         "end": 414,
         "props": Object {},
         "start": 373,
@@ -668,6 +718,8 @@ Array [
             "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
           },
         ],
+        "contentsEnd": 517,
+        "contentsStart": 435,
         "end": 526,
         "props": Object {},
         "start": 427,
@@ -676,6 +728,8 @@ Array [
         "type": "tag",
       },
     ],
+    "contentsEnd": 535,
+    "contentsStart": 63,
     "end": 547,
     "props": Object {
       "fileName": Object {

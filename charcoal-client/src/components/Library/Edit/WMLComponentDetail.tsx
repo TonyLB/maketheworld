@@ -31,14 +31,17 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
             .not(`Condition ${tag}`)
             .not(`Map ${tag}`)
         componentsQuery
-            .filter('Description')
+            .extend()
+            .add('Description')
             .remove()
         if (newRender.length > 0) {
             componentsQuery
-                .filter(':first')
-                .addElement(`<Description></Description>`, { position: 'before' })
+                .extend()
+                .add(':first')
+                .addElement(`<Description></Description>`, { position: 'after' })
             componentsQuery
-                .filter('Description')
+                .extend()
+                .add('Description')
                 .prop('spaceBefore', spaceBefore, { type: 'boolean' })
                 .prop('spaceAfter', spaceAfter, { type: 'boolean' })
                 .render(newRender)
