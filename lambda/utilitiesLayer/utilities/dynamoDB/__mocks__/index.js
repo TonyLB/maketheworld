@@ -5,6 +5,7 @@ const dbMock = () => ({
     batchGetItem: jest.fn(),
     query: jest.fn(),
     update: jest.fn(),
+    optimisticUpdate: jest.fn(),
     putItem: jest.fn(),
     getItem: jest.fn()
 })

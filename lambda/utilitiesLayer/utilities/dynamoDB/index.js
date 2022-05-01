@@ -11,8 +11,12 @@ import {
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
+import { produce } from 'immer'
+
 import { asyncSuppressExceptions } from '../errors.js'
+import { DEVELOPER_MODE } from '../constants.js'
 import { abstractQuery } from './query.js'
+import delayPromise from "./delayPromise.js"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -94,8 +98,7 @@ export const mergeIntoDataRange = async ({
     //
     const TableName = table === 'assets' ? assetsTable : ephemeraTable
     if ((DataCategory === undefined ? 0 : 1) + (AssetId === undefined ? 0 : 1) + (EphemeraId === undefined ? 0 : 1) > 1) {
-        console.log(`ERROR: mergeIntoDataRange accepts only one of 'DataCategory', 'EphemeraId', and 'AssetId' search terms`)
-        return;
+        return
     }
     const keyLabel = table === 'assets'
         ? AssetId ? 'DataCategory' : 'AssetId'
@@ -258,6 +261,172 @@ export const abstractUpdate = (table) => async (props) => {
     }, catchException)
 }
 
+//
+// optimisticUpdate fetches the current state of the keys you intend to update,
+// and then runs that record through a change procedure (per Immer) to change
+// their values.  If the reducer causes some changes, then the update attempts
+// to update the DB record ... conditional on all of those values still being
+// the same they were when they were first fetched.  Otherwise, it knows that
+// it is in a potential deadlock condition with other updates, and so pauses for
+// incremental backoff, and tries again (fetching and reducing from scratch)
+// until such time as either (a) the reducer causes no changes or (b) it succeeds
+// in completing a cycle without any other process side-effecting the same fields.
+//
+export const abstractOptimisticUpdate = (table) => async (props) => {
+    const {
+        key: {
+            AssetId,
+            EphemeraId,
+            MessageId,
+            DataCategory    
+        },
+        updateKeys,
+        updateReducer,
+        ExpressionAttributeNames,
+        ReturnValues,
+        maxRetries = 5,
+        catchException = () => ({})
+    } = props
+    if (!updateKeys) {
+        return {}
+    }
+    const Key = marshall({
+        AssetId,
+        EphemeraId,
+        MessageId,
+        DataCategory
+    }, { removeUndefinedValues: true })
+    let retries = 0
+    let exponentialBackoff = 100
+    let returnValue = {}
+    let completed = false
+    while(!completed && retries <= maxRetries) {
+        completed = true
+        const state = await abstractGetItem(table)({
+            AssetId,
+            EphemeraId,
+            MessageId,
+            DataCategory,
+            ProjectionFields: updateKeys,
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+        })
+        const newState = produce(state, updateReducer)
+        if (newState === state) {
+            returnValue = state
+            break
+        }
+        try {
+            if (Object.keys(state).length) {
+                //
+                // Updating an existing record
+                //
+                const { ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = produce({
+                        ExpressionAttributeValues: {},
+                        setExpressions: [],
+                        removeExpressions: [],
+                        conditionExpressions: []
+                    }, (draft) => {
+                    updateKeys.forEach((key, index) => {
+                        if (key in state && state[key] !== undefined) {
+                            if (newState[key] === undefined) {
+                                //
+                                // Remove existing item
+                                //
+                                draft.removeExpressions.push(`${key}`)
+                            }
+                            if (key in newState && newState[key] !== undefined && newState[key] !== state[key]) {
+                                //
+                                // Update existing item to new value
+                                //
+                                draft.ExpressionAttributeValues[`:Old${index}`] = state[key]
+                                draft.ExpressionAttributeValues[`:New${index}`] = newState[key]
+                                draft.setExpressions.push(`${key} = :New${index}`)
+                                draft.conditionExpressions.push(`${key} = :Old${index}`)
+                            }
+                        }
+                        else {
+                            draft.conditionExpressions.push(`attribute_not_exists(${key})`)
+                            if (key in newState && newState[key] !== undefined) {
+                                //
+                                // Add new item
+                                //
+                                draft.ExpressionAttributeValues[`:New${index}`] = newState[key]
+                                draft.setExpressions.push(`${key} = :New${index}`)
+                            }
+                        }
+                    })
+                })
+                const UpdateExpression = [
+                    setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
+                    removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
+                ].filter((value) => (value)).join(' ')
+                if (!UpdateExpression) {
+                    returnValue = state
+                    break
+                }
+                const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
+                    TableName: table,
+                    Key,
+                    UpdateExpression,
+                    ...(conditionExpressions.length ? {
+                        ConditionExpression: conditionExpressions.join(' AND ')
+                    } : {}),
+                    ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                    ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
+                    ReturnValues
+                }))
+                returnValue = unmarshall(Attributes)
+                break
+            }
+            else {
+                //
+                // Putting a new record
+                //
+                await dbClient.send(new PutItemCommand({
+                    TableName: table,
+                    Item: marshall({
+                        ...newState,
+                        AssetId,
+                        EphemeraId,
+                        MessageId,
+                        DataCategory
+                    }, { removeUndefinedValues: true }),
+                    ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
+                    ConditionExpression: "attribute_not_exists(DataCategory)"
+                }))
+            }
+            returnValue = {
+                ...newState,
+                AssetId,
+                EphemeraId,
+                MessageId,
+                DataCategory
+            }
+        }
+        catch (err) {
+            if (err.code === 'ConditionalCheckFailedException') {
+                await delayPromise(exponentialBackoff)
+                exponentialBackoff = exponentialBackoff * 2
+                retries++
+                completed = false
+            }
+            else {
+                if (DEVELOPER_MODE) {
+                    throw err
+                }
+                else {
+                    returnValue = catchException(err)
+                }
+            }
+        }
+    }
+    //
+    // TODO: Create custom error type to throw when the optimisticUpdate fails
+    // entirely
+    //
+    return returnValue
+}
+
 const abstractPutItem = (table) => async (item) => {
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
@@ -281,6 +450,7 @@ const dbHandlerFactory = (table) => ({
     batchGetItem: abstractBatchGet(table),
     query: abstractQuery(dbClient, table),
     update: abstractUpdate(table),
+    optimisticUpdate: abstractOptimisticUpdate(table),
     putItem: abstractPutItem(table),
     deleteItem: abstractDeleteItem(table)
 })
