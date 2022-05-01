@@ -115,7 +115,7 @@ WorldMarkupLangage {
     TagExpression<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, LegalContents, endSpace> = TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> LegalContents* tagClose<tag> #(endSpace)?
     string = (stringText | spaceCompressor)+
     stringText = (~("<" | "{" | space) any | "\\<" | "\\{")+
-    legalKey = (letter | digit | "-" | "_")*
+    legalKey = (letter | digit | "_")+
     spaceCompressor = (space)+
     TagSelfClosing<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs, endSpace> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* "/>" #(endSpace)?
     TagOpen<tag, tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs> = "<" tag TagArgument<tagKeyArgs, tagLiteralArgs, tagProgramArgs, tagBooleanArgs>* ">"
