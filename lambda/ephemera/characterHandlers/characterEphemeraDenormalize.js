@@ -17,43 +17,50 @@ export const characterEphemeraDenormalize = async ({
     isInactive,
     returnValues
 }) => {
-    //
-    // TODO: Temporarily default Color to result from slicing CharacterId.
-    //
     const CharacterId = splitType(EphemeraId)[1]
-    const setString = [
-        ...(isActive ? ['activeCharacters.#characterId = :character'] : []),
-        ...(isInactive ? ['inactiveCharacters.#characterId = :character'] : [])
-    ].join(', ')
-    const removeString = [
-        ...(isActive ? [] : ['activeCharacters.#characterId']),
-        ...(isInactive ? [] : ['inactiveCharacters.#characterId'])
-    ].join(', ')
-    const UpdateExpression = [
-        ...(setString ? [`SET ${setString}`] : []),
-        ...(removeString ? [`REMOVE ${removeString}`] : [])
-    ].join(' ')
 
-    return await ephemeraDB.update({
-        EphemeraId: RoomKey(RoomId),
-        DataCategory: 'Meta::Room',
-        UpdateExpression,
-        ConditionExpression: "attribute_exists(activeCharacters) AND attribute_exists(inactiveCharacters)",
-        ExpressionAttributeNames: { "#characterId": EphemeraId },
-        ...((isActive || isInactive)
-            ? {
-                ExpressionAttributeValues: {
-                    ':character': {
-                        EphemeraId,
-                        Name,
-                        Color: Color || defaultColorFromCharacterId(CharacterId),
-                        fileURL: fileURL,
-                        ConnectionIds
-                    }
+    return await ephemeraDB.optimisticUpdate({
+        key: {
+            EphemeraId: RoomKey(RoomId),
+            DataCategory: 'Meta::Room'
+        },
+        updateKeys: ['activeCharacters', 'inactiveCharacters'],
+        updateReducer: (draft) => {
+            if (draft.activeCharacters === undefined) {
+                draft.activeCharacters = {}
+            }
+            if (draft.inactiveCharacters === undefined) {
+                draft.inactiveCharacters = {}
+            }
+            if (isActive) {
+                draft.activeCharacters[EphemeraId] = {
+                    EphemeraId,
+                    Name,
+                    Color: Color || defaultColorFromCharacterId(CharacterId),
+                    fileURL: fileURL,
+                    ConnectionIds
                 }
-            } 
-            : {}
-        ),
+            }
+            else {
+                if (EphemeraId in draft.activeCharacters) {
+                    draft.activeCharacters[EphemeraId] = undefined
+                }
+            }
+            if (isInactive) {
+                draft.inactiveCharacters[EphemeraId] = {
+                    EphemeraId,
+                    Name,
+                    Color: Color || defaultColorFromCharacterId(CharacterId),
+                    fileURL: fileURL,
+                    ConnectionIds
+                }
+            }
+            else {
+                if (EphemeraId in draft.inactiveCharacters) {
+                    draft.inactiveCharacters[EphemeraId] = undefined
+                }
+            }
+        },
         ...(returnValues ? { ReturnValues: 'ALL_NEW' } : {})
     })
 }
