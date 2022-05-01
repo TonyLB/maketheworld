@@ -1,6 +1,6 @@
 <Asset key=(ImportTest) fileName="importTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
     <Import from=(TEST)>
-        <Use key=(345) type="Room" as=(welcomeRoom) />
+        <Use key=(a345) type="Room" as=(welcomeRoom) />
         <Use key=(VORTEX) type="Room" />
         <Use key=(power) type="Variable" />
     </Import>

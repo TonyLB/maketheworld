@@ -1,8 +1,8 @@
 <Asset key=(TEST) fileName="wmlTest" zone="Canon">
     <Variable key=(power) default={true} />
     <Action key=(togglePower) src={power = !power} />
-    <Layer key=(123)>
-        <Room key=(345)>
+    <Layer key=(a123)>
+        <Room key=(a345)>
             <Description>
                 Hello, world!
                 <Link key=(powerSwitch) to=(togglePower)>power</Link>

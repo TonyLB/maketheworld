@@ -59,7 +59,7 @@ export const schema = {
             spaceAfter
         }
     },
-    legalKey(node) {
+    legalKey(prefix, node) {
         return this.sourceString
     },
     spaceCompressor(node) {
