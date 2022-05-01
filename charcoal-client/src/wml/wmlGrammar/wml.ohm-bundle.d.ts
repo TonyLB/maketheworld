@@ -51,7 +51,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   TagExpression?: (this: NonterminalNode, arg0: NonterminalNode, arg1: IterationNode, arg2: NonterminalNode, arg3: IterationNode) => T;
   string?: (this: NonterminalNode, arg0: IterationNode) => T;
   stringText?: (this: NonterminalNode, arg0: IterationNode) => T;
-  legalKey?: (this: NonterminalNode, arg0: IterationNode) => T;
+  legalKey?: (this: NonterminalNode, arg0: NonterminalNode, arg1: IterationNode) => T;
   spaceCompressor?: (this: NonterminalNode, arg0: IterationNode) => T;
   TagSelfClosing?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode, arg4: IterationNode) => T;
   TagOpen?: (this: NonterminalNode, arg0: TerminalNode, arg1: Node, arg2: IterationNode, arg3: TerminalNode) => T;

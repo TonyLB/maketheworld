@@ -219,7 +219,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -300,7 +300,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -448,7 +448,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -497,7 +497,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -540,7 +540,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -571,7 +571,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(123) to=(clockTower)>Clock Tower</Link>
+                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>

@@ -26,8 +26,8 @@ export const AddWMLComponent: FunctionComponent<WMLComponentHeaderProps> = ({ ty
         if (key in normalForm) {
             return `"${key}" is already used in this asset`
         }
-        if (key.search(/^[\w\d\_]*$/) === -1) {
-            return `Keys must be made of up letters, digits, and the "_" character`
+        if (key.length && (key.search(/^\w[\w\d\_]*$/) === -1)) {
+            return `Keys must start with a letter and be made of up letters, digits, and the "_" character`
         }
         return ''
     }, [key, normalForm])
@@ -58,7 +58,7 @@ export const AddWMLComponent: FunctionComponent<WMLComponentHeaderProps> = ({ ty
                         setEnteringKey(false)
                         setKey('')
                     } }>Add</Button>
-                    <Button variant="outlined" onClick={() => { setEnteringKey(false) }}>Cancel</Button>
+                    <Button variant="outlined" disabled={Boolean(errorMessage) || (key.length === 0)} onClick={() => { setEnteringKey(false) }}>Cancel</Button>
                 </React.Fragment>
         }
     </React.Fragment>
