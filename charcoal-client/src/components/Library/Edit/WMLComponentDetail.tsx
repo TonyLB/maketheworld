@@ -63,9 +63,12 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                 ...(spaceBefore ? ['spaceBefore'] : []),
                 ...(spaceAfter ? ['spaceAfter'] : []),
             ]
-            const componentsQuery = wmlQuery.search(tag)
+            const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
                 .not(`Condition ${tag}`)
                 .not(`Map ${tag}`)
+            if (tag === 'Feature') {
+                componentsQuery.not(`Room Feature`)
+            }
             componentsQuery
                 .extend()
                 .add('Name')

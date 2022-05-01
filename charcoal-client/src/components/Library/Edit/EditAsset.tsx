@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect, useMemo } from 'react'
+import React, { FunctionComponent, useEffect, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
@@ -32,6 +32,7 @@ import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'
 import MapHeader from './MapHeader'
 import WMLComponentDetail from './WMLComponentDetail'
+import AddWMLComponent from './AddWMLComponent'
 import MapEdit from '../../Maps/Edit'
 import LibraryBanner from './LibraryBanner'
 import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
@@ -39,13 +40,17 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 type AssetEditFormProps = {}
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { assetKey, normalForm, save } = useLibraryAsset()
+    const { assetKey, normalForm, wmlQuery, updateWML, save } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
     const features = useMemo<NormalFeature[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Feature')) as NormalFeature[]), [normalForm])
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
+    const addAsset = useCallback((tag: string) => (componentId: string) => {
+        wmlQuery.search('Asset').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
+        updateWML(wmlQuery.source)
+    }, [wmlQuery])
     return <Box sx={{ width: "100%" }}>
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
@@ -85,6 +90,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             AssetId={assetKey}
                             onClick={() => { navigate(`Room/${room.key}`)}}
                         />))}
+                        <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
                     </React.Fragment>
                     : null
                 }
@@ -97,6 +103,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                             AssetId={assetKey}
                             onClick={() => { navigate(`Feature/${feature.key}`)}}
                         />))}
+                        <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
                     </React.Fragment>
                     : null
                 }

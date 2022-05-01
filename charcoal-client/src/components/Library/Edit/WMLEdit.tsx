@@ -222,7 +222,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         setValue(newValue)
     }, [value])
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
-    return <Box sx={{ height: "100%", width: "100%" }}>
+    return <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
         <LibraryBanner
             primary="Edit World Markup Language"
             secondary={assetKey}
@@ -238,7 +238,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
                 label: 'Edit WML'
             }]}
         />
-        <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em" }}>
+        <Box sx={{ margin: "0.25em", padding: "0.5em",  border: "1px solid", borderRadius: "0.5em", display: "flex", flexGrow: 1, overflow: "auto" }}>
             <Slate
                 editor={editor}
                 value={value}
@@ -248,6 +248,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
                     {...({ spellCheck: "false" } as any)}
                     decorate={decorate}
                     renderLeaf={renderLeaf}
+                    style={{ overflow: "visible" }}
                 />
             </Slate>
         </Box>
