@@ -11,6 +11,13 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
             }
             return returnValue
         },
+        MatchGroup(open, matches, close) {
+            const returnValue = [{
+                matchType: 'group',
+                ancestry: matches.parse().matches
+            }]
+            return returnValue
+        },
         matchComponent(match) {
             return match.parse()
         },
@@ -302,6 +309,29 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
 
 const debugNodeMap = (nodeMap) => (Object.assign({}, ...Object.entries(nodeMap).map(([key, values]) => ({ [key]: values.map(({ start }) => (start))}))))
 
+const wmlSelectorRecurse = (matches, options = {}) => {
+    const { currentNodes, schema } = options
+    const startingNodes = currentNodes !== undefined
+        ? currentNodes
+        : wmlQuerySemantics(schema).search({ selector: 'MatchFirst' })
+    return flattenNodeMap(matches.reduce((previous, match) => {
+        const aggregateNodeMap = match.reduce((accumulator, predicate) => {
+            switch(predicate.matchType) {
+                case 'group':
+                    const recurse = Object.assign({}, ...wmlSelectorRecurse(predicate.ancestry, { currentNodes: accumulator, schema }).map((node) => (nodeMapFromNode(node))))
+                    return recurse
+                default:
+                    const returnValue = wmlQuerySemantics(schema).search({
+                        selector: 'SearchPrior',
+                        predicate,
+                        currentNodes: accumulator })
+                    return returnValue
+            }
+        }, previous)
+        return Object.assign({}, ...Object.values(flattenNodeMap(aggregateNodeMap)).map((node) => nodeMapFromNode(node)))
+    }, startingNodes))
+}
+
 export const wmlSelectorFactory = (schema, options = {}) => (searchString) => {
     const { currentNodes } = options
     const startingNodes = currentNodes !== undefined
@@ -313,16 +343,7 @@ export const wmlSelectorFactory = (schema, options = {}) => (searchString) => {
             return []
         }
         const selector = wmlSelectorSemantics(match).parse()
-        return flattenNodeMap(selector.matches.reduce((previous, match) => {
-            const aggregateNodeMap = match.reduce((accumulator, predicate) => {
-                const returnValue = wmlQuerySemantics(schema).search({
-                    selector: 'SearchPrior',
-                    predicate,
-                    currentNodes: accumulator })
-                return returnValue
-            }, previous)
-            return Object.assign({}, ...Object.values(flattenNodeMap(aggregateNodeMap)).map((node) => nodeMapFromNode(node)))
-        }, startingNodes))
+        return wmlSelectorRecurse(selector.matches, { currentNodes: startingNodes, schema })
     }
     else {
         return flattenNodeMap(startingNodes)

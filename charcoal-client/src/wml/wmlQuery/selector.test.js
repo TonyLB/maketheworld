@@ -97,4 +97,8 @@ describe('wmlQuery selector', () => {
         expect(assetQuery('Asset:nthChild(0):nthChild(2)')).toMatchSnapshot()
     })
 
+    it('should properly select grouped operators', () => {
+        expect(assetQuery('(Asset Room) Description')).toMatchSnapshot()
+    })
+
 })
