@@ -11,6 +11,18 @@ export const wmlSelectorSemantics = wmlQueryGrammar.createSemantics()
             }
             return returnValue
         },
+        MatchOrClause(comma, match) {
+            return match.parse()
+        },
+        MatchOr(first, remainder) {
+            return [[{
+                matchType: 'or',
+                matches: [
+                    first.parse(),
+                    ...remainder.parse()
+                ]
+            }]]
+        },
         MatchGroup(open, matches, close) {
             const returnValue = [{
                 matchType: 'group',
@@ -320,6 +332,8 @@ const wmlSelectorRecurse = (matches, options = {}) => {
                 case 'group':
                     const recurse = Object.assign({}, ...wmlSelectorRecurse(predicate.ancestry, { currentNodes: accumulator, schema }).map((node) => (nodeMapFromNode(node))))
                     return recurse
+                case 'or':
+                    return predicate.matches.reduce((previous, match) => (Object.assign(previous, ...wmlSelectorRecurse(match, { currentNodes: accumulator, schema }).map((node) => (nodeMapFromNode(node))))), {})
                 default:
                     const returnValue = wmlQuerySemantics(schema).search({
                         selector: 'SearchPrior',
