@@ -48,7 +48,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
     const maps = useMemo<NormalMap[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Map')) as NormalMap[]), [normalForm])
     const asset = Object.values(normalForm || {}).find(({ tag }) => (['Asset', 'Story'].includes(tag))) as NormalAsset | undefined
     const addAsset = useCallback((tag: string) => (componentId: string) => {
-        wmlQuery.search('Asset').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
+        wmlQuery.search('Asset, Story').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
         updateWML(wmlQuery.source)
     }, [wmlQuery])
     return <Box sx={{ width: "100%" }}>
@@ -81,32 +81,28 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     </React.Fragment>
                     : null
                 }
+                <ListSubheader>Rooms</ListSubheader>
                 { rooms.length
-                    ? <React.Fragment>
-                        <ListSubheader>Rooms</ListSubheader>
-                        { rooms.map((room) => (<WMLComponentHeader
+                    ? rooms.map((room) => (<WMLComponentHeader
                             key={room.key}
                             component={room}
                             AssetId={assetKey}
                             onClick={() => { navigate(`Room/${room.key}`)}}
-                        />))}
-                        <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
-                    </React.Fragment>
+                        />))
                     : null
                 }
+                <AddWMLComponent type="Room" onAdd={addAsset('Room')} />
+                <ListSubheader>Features</ListSubheader>
                 { features.length
-                    ? <React.Fragment>
-                        <ListSubheader>Features</ListSubheader>
-                        { features.map((feature) => (<WMLComponentHeader
+                    ? features.map((feature) => (<WMLComponentHeader
                             key={feature.key}
                             component={feature}
                             AssetId={assetKey}
                             onClick={() => { navigate(`Feature/${feature.key}`)}}
-                        />))}
-                        <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
-                    </React.Fragment>
+                        />))
                     : null
                 }
+                <AddWMLComponent type="Feature" onAdd={addAsset('Feature')} />
             </List>
         </Box>
         <Button onClick={save}>Save</Button>
