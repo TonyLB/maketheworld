@@ -101,4 +101,11 @@ describe('wmlQuery selector', () => {
         expect(assetQuery('(Asset Room) Description')).toMatchSnapshot()
     })
 
+    it('should properly select boolean or', () => {
+        expect(assetQuery('Asset (Room, Feature) Description')).toMatchSnapshot()
+    })
+
+    it('should properly select boolean or of chained selectors', () => {
+        expect(assetQuery('Room Exit, Feature Description')).toMatchSnapshot()
+    })
 })

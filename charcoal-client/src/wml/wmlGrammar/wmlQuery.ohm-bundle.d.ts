@@ -22,9 +22,12 @@ export interface WMLQuerySelectorActionDict<T> extends ActionDict<T> {
   nthChildFilter?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode) => T;
   matchComponent?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   matchPredicate?: (this: NonterminalNode, arg0: IterationNode) => T;
-  MatchItem?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  MatchFlatItem?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  MatchFlatList?: (this: NonterminalNode, arg0: IterationNode) => T;
   MatchGroup?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: TerminalNode) => T;
-  MatchAncestry?: (this: NonterminalNode, arg0: IterationNode) => T;
+  MatchOr?: (this: NonterminalNode, arg0: NonterminalNode, arg1: IterationNode) => T;
+  MatchOrClause?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode) => T;
+  MatchAncestry?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   whitespace_verticalTab?: (this: NonterminalNode, arg0: TerminalNode) => T;
   whitespace_formFeed?: (this: NonterminalNode, arg0: TerminalNode) => T;
   whitespace_noBreakSpace?: (this: NonterminalNode, arg0: TerminalNode) => T;

@@ -37,12 +37,19 @@ WMLQuerySelector {
 
     matchPredicate = matchComponent+
 
-    MatchItem = matchPredicate |
+    MatchFlatItem = matchPredicate |
         MatchGroup
+
+    MatchFlatList = MatchFlatItem+
 
     MatchGroup = "(" MatchAncestry ")"
 
-    MatchAncestry = MatchItem+
+    MatchOr = MatchFlatList MatchOrClause+
+
+    MatchOrClause = "," MatchFlatList
+
+    MatchAncestry = MatchOr |
+        MatchFlatList
 
     whitespace = "\t"
         | "\x0B"    -- verticalTab
