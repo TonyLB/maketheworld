@@ -1,6 +1,6 @@
 <Story key=(StoryTest) instance fileName="storyTest" zone="Personal" subFolder="TonyLB/" player="TonyLB">
     <Import from=(TEST)>
-        <Use key=(345) as=(welcomeRoom) type="Room" />
+        <Use key=(a345) as=(welcomeRoom) type="Room" />
         <Use key=(power) type="Variable" />
     </Import>
     <Room key=(secretRoom)>
