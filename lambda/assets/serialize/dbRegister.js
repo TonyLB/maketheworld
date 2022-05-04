@@ -14,6 +14,12 @@ const tagRenderLink = (normalForm) => (renderItem) => {
     return renderItem
 }
 
+const denormalizeExits = (normalForm) => (contents) => {
+    const exitTags = contents.filter(({ tag }) => (tag === 'Exit'))
+    const exits = exitTags.map(({ key }) => (normalForm[key]))
+    return exits.map(({ name, to }) => ({ name, to }))
+}
+
 const itemRegistry = (normalForm) => (item) => {
     const { tag, name, key, global: isGlobal, appearances = [] } = item
     switch(tag) {
@@ -32,7 +38,7 @@ const itemRegistry = (normalForm) => (item) => {
                     .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
                     .filter(({ contents= [], render = [], name = '' }) => (contents.length > 0 || render.length > 0 || name))
                     .map(({ contents, render, name }) => ({
-                        contents,
+                        exits: denormalizeExits(normalForm)(contents),
                         render: render.map(tagRenderLink(normalForm)),
                         name
                     }))
