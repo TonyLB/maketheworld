@@ -41,6 +41,29 @@ Object {
 }
 `;
 
+exports[`dbRegister should save exits in default appearance for Rooms 1`] = `
+Object {
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": undefined,
+  "defaultExits": Array [
+    Object {
+      "from": "Entry",
+      "name": "welcome",
+      "to": "Welcome",
+    },
+  ],
+  "description": undefined,
+  "fileName": "test.wml",
+  "importTree": undefined,
+  "instance": undefined,
+  "name": "Test",
+  "player": undefined,
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
+
 exports[`dbRegister should save meta only for instanced Story type 1`] = `
 Object {
   "AssetId": "ASSET#TEST",

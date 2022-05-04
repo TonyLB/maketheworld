@@ -63,6 +63,10 @@ const itemRegistry = (normalForm) => (item) => {
 export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap, assets }) => {
     const asset = Object.values(assets).find(({ tag }) => (['Asset'].includes(tag)))
     if (asset && asset.key) {
+        const defaultExits = Object.values(assets)
+            .filter(({ tag }) => (tag === 'Exit'))
+            .filter(({ appearances }) => (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))))
+            .map(({ name, to, from }) => ({ name, to, from }))
         await Promise.all([
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
@@ -76,7 +80,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 description: asset.description,
                 player: asset.player,
                 zone: asset.zone,
-                defaultExits: []
+                defaultExits
             }),
             mergeIntoDataRange({
                 table: 'assets',

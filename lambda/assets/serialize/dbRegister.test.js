@@ -475,7 +475,12 @@ describe('dbRegister', () => {
                         contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                         contents: [],
                         render: ['Should not render'],
-                        name: 'Should not'
+                        name: 'Should not',
+                        contents: [{
+                            tag: 'Exit',
+                            key: 'Welcome#Entry',
+                            index: 0
+                        }]
                     }]
                 },
                 Entry: {
@@ -505,9 +510,25 @@ describe('dbRegister', () => {
                         ],
                         contents: []
                     }]
+                },
+                ['Welcome#Entry']: {
+                    tag: 'Exit',
+                    key: 'Welcome#Entry',
+                    from: 'Welcome',
+                    to: 'Entry',
+                    name: 'entry',
+                    appearances: [{
+                        contextStack: [
+                            { key: 'TEST', tag: 'Asset', index: 0 },
+                            { key: 'Condition-0', tag: 'Condition', index: 0 },
+                            { key: 'Welcome', tag: 'Room', index: 0 },
+                        ],
+                        contents: []
+                    }]
                 }
             }
         })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'assets',
             search: { DataCategory: 'ASSET#TEST' },
