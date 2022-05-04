@@ -452,7 +452,7 @@ describe('dbRegister', () => {
                         }
                     ],
                     name: 'Test',
-                    contents: []
+                    exits: []
                 }]
             },
             {
@@ -461,6 +461,126 @@ describe('dbRegister', () => {
                 defaultAppearances: [{
                     name: 'TestFeature',
                     render: ['Test feature render']
+                }]
+            }],
+            mergeFunction: expect.any(Function),
+            extractKey: expect.any(Function)
+        })
+    })
+
+    it('should save exits in default appearance for Rooms', async () => {
+        await dbRegister({
+            fileName: 'test.wml',
+            translateFile: 'test.translate.json',
+            scopeMap: {
+                Welcome: 'ROOM#12345'
+            },
+            assets: {
+                TEST: {
+                    tag: 'Asset',
+                    key: 'TEST',
+                    name: 'Test',
+                    zone: 'Library',
+                    appearances: [{
+                        contextStack: [],
+                        contents: [{
+                            tag: 'Condition',
+                            key: 'Condition-0',
+                            index: 0
+                        },
+                        {
+                            tag: 'Room',
+                            key: 'Welcome',
+                            index: 0
+                        },
+                        {
+                            tag: 'Room',
+                            key: 'Entry',
+                            index: 0
+                        }]
+                    }]
+                },
+                ['Condition-0']: {
+                    tag: 'Condition',
+                    key: 'Condition-0',
+                    if: 'false',
+                    appearances: [{
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
+                        contents: [{
+                            tag: 'Room',
+                            key: 'Welcome',
+                            index: 1
+                        }]
+                    }]
+                },
+                Welcome: {
+                    tag: 'Room',
+                    key: 'Welcome',
+                    appearances: [{
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
+                        contents: [],
+                        render: ['Test render!'],
+                        name: 'Test'
+                    },
+                    {
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                        contents: [],
+                        render: ['Should not render'],
+                        name: 'Should not'
+                    }]
+                },
+                Entry: {
+                    tag: 'Room',
+                    key: 'Entry',
+                    appearances: [{
+                        contextStack: [{ key: 'TEST', tag: 'Asset', index: 0 }],
+                        contents: [{
+                            tag: 'Exit',
+                            key: 'Entry#Welcome',
+                            index: 0
+                        }],
+                        render: ['Entry render!'],
+                        name: 'Entry'
+                    }]
+                },
+                ['Entry#Welcome']: {
+                    tag: 'Exit',
+                    key: 'Entry#Welcome',
+                    from: 'Entry',
+                    to: 'Welcome',
+                    name: 'welcome',
+                    appearances: [{
+                        contextStack: [
+                            { key: 'TEST', tag: 'Asset', index: 0 },
+                            { key: 'Entry', tag: 'Room', index: 0 },
+                        ],
+                        contents: []
+                    }]
+                }
+            }
+        })
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'assets',
+            search: { DataCategory: 'ASSET#TEST' },
+            items: [{
+                tag: 'Room',
+                key: 'Welcome',
+                defaultAppearances: [{
+                    render: ['Test render!'],
+                    name: 'Test',
+                    exits: []
+                }]
+            },
+            {
+                tag: 'Room',
+                key: 'Entry',
+                defaultAppearances: [{
+                    render: ['Entry render!'],
+                    name: 'Entry',
+                    exits: [{
+                        name: 'welcome',
+                        to: 'Welcome'
+                    }]
                 }]
             }],
             mergeFunction: expect.any(Function),
