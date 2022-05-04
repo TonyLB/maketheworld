@@ -16,7 +16,7 @@ to fetch and calculate.
 
 ---
 
-- Front-end clients need to see something for imported rooms and features.
+- Front-end clients need to see some inherited starting point for imported rooms, features, and maps.
 
 ---
 
@@ -28,7 +28,8 @@ to fetch and calculate.
     await fetchImportDefaults({
         LayerA: {
             welcomeRoom: 'layerAWelcomeRoom',
-            hallway: 'hallway'
+            hallway: 'hallway',
+            township: 'township'
         },
         LayerB: {
             walkway: 'outsideWalkway'
@@ -53,15 +54,21 @@ to fetch and calculate.
 | ASSET#LayerA | Meta::Asset | { BASE: {} } |
 | ASSET#LayerB | Meta::Asset | { test: { BASE: {} } |
 
-*Room adjacency list entries*
+*Component adjacency list entries*
 
-| AssetId | DataCategory | scopedId | appearances |
+| AssetId | DataCategory | scopedId | defaultAppearances |
 | --- | --- | --- | --- |
 | ROOM#123 | ASSET#LayerA | layerAWelcomeRoom | [{ render: [': test addition'] }] |
-| ROOM#345 | ASSET#LayerA | hallway | [] |
-| ROOM#123 | ASSET#BASE | baseWelcome | [{ render: ['Test description'] }]
-| ROOM#345 | ASSET#BASE | passage | [{ name: 'passage', render: ['Test'] }]
+| ROOM#345 | ASSET#LayerA | hallway | [{ exits: [{ name: 'welcome', to: 'layerAWelcomeRoom' }]}] |
+| ROOM#123 | ASSET#BASE | baseWelcome | [{ render: \['Test description'\] }]
+| ROOM#345 | ASSET#BASE | passage | [{ name: 'passage', render: \['Test'\] }]
 | ROOM#567 | ASSET#LayerB | outsideWalkway | [{ name: "Widow's walk" }]
+
+*Map adjacency list entries*
+
+| AssetId | DataCategory | scopedId | defaultAppearances |
+| --- | --- | --- | --- |
+| MAP#ABC | ASSET#LayerA | township | [{<br />rooms: { layerAWelcomeRoom: { x: 0, y: 0 }}, hallway: { ... } },<br />exits: [{ name: 'welcome', to: 'layerAWelcomeRoom', from: 'hallway' }]<br />}] |
 
 ### Output
 

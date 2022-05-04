@@ -51,11 +51,11 @@ the Asset DynamoDB table
 
 *Item records*
 
-| AssetId | DataCategory | scopedId |
-| --- | --- | --- |
-| ROOM#VORTEX | ASSET#ImportTest | VORTEX |
-| FEATURE#Bookshelves | ASSET#ImportTest | Bookshelves |
-| MAP#Central | ASSET#ImportTest | downtownMap |
+| AssetId | DataCategory | scopedId | defaultAppearances |
+| --- | --- | --- | --- |
+| ROOM#VORTEX | ASSET#ImportTest | VORTEX | [{ render: [': test addition'], exits: [{ name: 'welcome', to: 'layerAWelcomeRoom' }] }]
+| FEATURE#Bookshelves | ASSET#ImportTest | Bookshelves | [{ name: 'Bookshelves' }]
+| MAP#Central | ASSET#ImportTest | downtownMap | [{ rooms: { VORTEX: { x: 0, y: 0 } }, exits: [{ name: 'vortex', from: 'welcome', to: 'VORTEX' }] }]
 
 ---
 
