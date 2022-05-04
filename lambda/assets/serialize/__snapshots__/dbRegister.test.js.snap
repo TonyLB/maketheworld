@@ -1,0 +1,116 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`dbRegister should put a single element for a Character file 1`] = `
+Object {
+  "AssetId": "CHARACTER#12345",
+  "DataCategory": "Meta::Character",
+  "FirstImpression": "Frumpy Goth",
+  "Name": "Tess",
+  "OneCoolThing": "Fuchsia eyes",
+  "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+  "Pronouns": Object {
+    "adjective": "hers",
+    "object": "her",
+    "possessive": "her",
+    "reflexive": "herself",
+    "subject": "she",
+  },
+  "fileName": "test.wml",
+  "fileURL": "testIcon.png",
+  "player": "TEST",
+  "scopedId": "TESS",
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save correct default appearance for Rooms and Features 1`] = `
+Object {
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": undefined,
+  "defaultExits": Array [],
+  "description": undefined,
+  "fileName": "test.wml",
+  "importTree": undefined,
+  "instance": undefined,
+  "name": "Test",
+  "player": undefined,
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save exits in default appearance for Rooms 1`] = `
+Object {
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": undefined,
+  "defaultExits": Array [
+    Object {
+      "from": "Entry",
+      "name": "welcome",
+      "to": "Welcome",
+    },
+  ],
+  "description": undefined,
+  "fileName": "test.wml",
+  "importTree": undefined,
+  "instance": undefined,
+  "name": "Test",
+  "player": undefined,
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save meta only for instanced Story type 1`] = `
+Object {
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": true,
+  "defaultExits": Array [],
+  "description": undefined,
+  "fileName": "test.wml",
+  "importTree": undefined,
+  "instance": true,
+  "name": "Test",
+  "player": undefined,
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save meta, rooms for Asset type 1`] = `
+Object {
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": undefined,
+  "defaultExits": Array [],
+  "description": undefined,
+  "fileName": "test.wml",
+  "importTree": undefined,
+  "instance": undefined,
+  "name": "Test",
+  "player": undefined,
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
+
+exports[`dbRegister should save meta, rooms for Story type 1`] = `
+Object {
+  "AssetId": "ASSET#TEST",
+  "DataCategory": "Meta::Asset",
+  "Story": true,
+  "defaultExits": Array [],
+  "description": undefined,
+  "fileName": "test.wml",
+  "importTree": undefined,
+  "instance": undefined,
+  "name": "Test",
+  "player": undefined,
+  "translateFile": "test.translate.json",
+  "zone": "Library",
+}
+`;
