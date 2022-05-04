@@ -35,27 +35,7 @@ describe('dbRegister', () => {
                 }
             }
         })
-        expect(assetDB.putItem).toHaveBeenCalledWith({
-            AssetId: 'CHARACTER#12345',
-            DataCategory: 'Meta::Character',
-            zone: 'Library',
-            fileName: 'test.wml',
-            translateFile: 'test.translate.json',
-            scopedId: 'TESS',
-            player: 'TEST',
-            fileURL: 'testIcon.png',
-            Name: 'Tess',
-            Pronouns: {
-                subject: 'she',
-                object: 'her',
-                possessive: 'her',
-                adjective: 'hers',
-                reflexive: 'herself'
-            },
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.'
-        })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta, rooms for Asset type', async () => {
@@ -144,14 +124,7 @@ describe('dbRegister', () => {
                 }
             }
         })
-        expect(assetDB.putItem).toHaveBeenCalledWith({
-            AssetId: 'ASSET#TEST',
-            DataCategory: 'Meta::Asset',
-            fileName: 'test.wml',
-            translateFile: 'test.translate.json',
-            name: 'Test',
-            zone: 'Library'
-        })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'assets',
             search: { DataCategory: 'ASSET#TEST' },
@@ -235,15 +208,7 @@ describe('dbRegister', () => {
                 }
             }
         })
-        expect(assetDB.putItem).toHaveBeenCalledWith({
-            AssetId: 'ASSET#TEST',
-            DataCategory: 'Meta::Asset',
-            Story: true,
-            fileName: 'test.wml',
-            translateFile: 'test.translate.json',
-            name: 'Test',
-            zone: 'Library'
-        })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'assets',
             search: { DataCategory: 'ASSET#TEST' },
@@ -319,16 +284,7 @@ describe('dbRegister', () => {
                 }
             }
         })
-        expect(assetDB.putItem).toHaveBeenCalledWith({
-            AssetId: 'ASSET#TEST',
-            DataCategory: 'Meta::Asset',
-            Story: true,
-            instance: true,
-            fileName: 'test.wml',
-            translateFile: 'test.translate.json',
-            name: 'Test',
-            zone: 'Library'
-        })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'assets',
             search: { DataCategory: 'ASSET#TEST' },
@@ -427,14 +383,7 @@ describe('dbRegister', () => {
                 }
             }
         })
-        expect(assetDB.putItem).toHaveBeenCalledWith({
-            AssetId: 'ASSET#TEST',
-            DataCategory: 'Meta::Asset',
-            fileName: 'test.wml',
-            translateFile: 'test.translate.json',
-            name: 'Test',
-            zone: 'Library'
-        })
+        expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'assets',
             search: { DataCategory: 'ASSET#TEST' },

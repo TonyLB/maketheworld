@@ -45,9 +45,9 @@ the Asset DynamoDB table
 
 *Meta::Asset record*
 
-| AssetId | DataCategory | fileName | translateFile | name | zone |
-| --- | --- | --- | --- | --- | --- |
-| ASSET#ImportTest | Meta::Asset | Player/Test/Assets/ImportTest.wml | Player/Test/Assets/ImportTest.translate.json | ImportTest | Personal |
+| AssetId | DataCategory | fileName | translateFile | name | zone | defaultExits |
+| --- | --- | --- | --- | --- | --- | --- |
+| ASSET#ImportTest | Meta::Asset | Player/Test/Assets/ImportTest.wml | Player/Test/Assets/ImportTest.translate.json | ImportTest | Personal | [{ name: 'welcome', from: 'VORTEX', to: 'layerAWelcomeRoom' }] |
 
 *Item records*
 

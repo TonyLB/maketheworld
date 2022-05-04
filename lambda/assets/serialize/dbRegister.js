@@ -75,7 +75,8 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 name: asset.name,
                 description: asset.description,
                 player: asset.player,
-                zone: asset.zone
+                zone: asset.zone,
+                defaultExits: []
             }),
             mergeIntoDataRange({
                 table: 'assets',
