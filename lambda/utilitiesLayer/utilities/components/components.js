@@ -64,6 +64,7 @@ export const componentAppearanceReduce = (...renderList) => {
     }))
     return {
         ...joinedList,
+        name: joinedList.name.join(''),
         render: [...joinRenderItems(joinedList.render)]
     }
 }

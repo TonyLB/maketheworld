@@ -125,32 +125,25 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     fileURL: meta.fileURL
                 }
             case 'ROOM':
-                const { render: roomRender, name: roomName, exits: roomExits, features: roomFeatures } = aggregateComponentRender(assets, itemsByAsset, assetStateById, mapValuesOnly)
-                //
-                // TODO: Evaluate expressions before inserting them
-                //
-                return {
-                    EphemeraId,
-                    CharacterId,
-                    mapValuesOnly,
-                    render: roomRender,
-                    name: roomName.join(''),
-                    exits: roomExits,
-                    features: roomFeatures,
-                    characters: Object.values((meta ?? {}).activeCharacters || {})
-                }
-
             case 'FEATURE':
-                const { render: featureRender, name: featureName, features: featureFeatures } = aggregateComponentRender(assets, itemsByAsset, assetStateById, mapValuesOnly)
+                const { render, name, exits, features } = aggregateComponentRender(assets, itemsByAsset, assetStateById, mapValuesOnly)
                 //
                 // TODO: Evaluate expressions before inserting them
                 //
                 return {
                     EphemeraId,
                     CharacterId,
-                    render: featureRender,
-                    name: featureName.join(''),
-                    features: featureFeatures
+                    render,
+                    name,
+                    features,
+                    ...(objectType === 'ROOM'
+                        ? {
+                            mapValuesOnly,
+                            exits,
+                            characters: Object.values((meta ?? {}).activeCharacters || {})        
+                        }
+                        : {}
+                    )
                 }
 
             case 'MAP':
