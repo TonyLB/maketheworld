@@ -77,11 +77,14 @@ List all exits defined in the asset, that are not conditioned on any expression
 
 ***defaultNames***
 
-Lists names for all rooms in the asset, where the room appearance in which the name is
+Lists names for all components in the asset, where the component appearance in which the name is
 defined is not conditioned on any expression
 
 ```ts
-    type DefaultName = string
+    type DefaultName = {
+        tag: 'Room' | 'Feature';
+        name: string;
+    }
 
     type DefaultNames = Record<string, DefaultName>
 ```
