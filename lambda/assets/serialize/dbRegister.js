@@ -82,6 +82,19 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
             .filter(({ tag }) => (tag === 'Exit'))
             .filter(({ appearances }) => (appearances.find(noConditionContext)))
             .map(({ name, to, from }) => ({ name, to, from }))
+        const defaultNames = Object.values(assets)
+            .filter(({ tag }) => (['Room', 'Feature'].includes(tag)))
+            .map(({ tag, key, appearances }) => ({
+                tag,
+                key,
+                name: appearances
+                    .filter(noConditionContext)
+                    .map(({ name = '' }) => name)
+                    .join('')
+            }))
+            .filter(({ name }) => (Boolean(name)))
+            .map(({ tag, key, name }) => ({ [key]: { tag, name } }))
+            .reduce((previous, entry) => (Object.assign(previous, entry)), {})
         await Promise.all([
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
@@ -95,7 +108,8 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 description: asset.description,
                 player: asset.player,
                 zone: asset.zone,
-                defaultExits
+                defaultExits,
+                defaultNames
             }),
             mergeIntoDataRange({
                 table: 'assets',
