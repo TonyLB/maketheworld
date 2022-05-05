@@ -85,7 +85,9 @@ describe('dbRegister', () => {
                     key: 'Village',
                     appearances: [{
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
-                        contents: []
+                        rooms: {
+                            Welcome: { x: 0, y: 100 }
+                        }
                     }]
                 },
                 Welcome: {
@@ -130,7 +132,12 @@ describe('dbRegister', () => {
             search: { DataCategory: 'ASSET#TEST' },
             items: [{
                 tag: 'Map',
-                key: 'Village'
+                key: 'Village',
+                defaultAppearances: [{
+                    rooms: {
+                        Welcome: { x: 0, y: 100 }
+                    }
+                }]
             },
             {
                 tag: 'Room',

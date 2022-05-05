@@ -24,9 +24,13 @@ const itemRegistry = (normalForm) => (item) => {
     const { tag, name, key, global: isGlobal, appearances = [] } = item
     switch(tag) {
         case 'Map':
+            const mapDefaultAppearances = appearances
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .map(({ rooms }) => ({ rooms }))
             return {
                 tag,
                 key,
+                defaultAppearances: mapDefaultAppearances
             }
         case 'Room':
             return {
