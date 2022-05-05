@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { AssetKey } from '/opt/utilities/types.js'
+import { objectMap } from '../lib/objects.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -26,7 +27,7 @@ const itemRegistry = (normalForm) => (item) => {
         case 'Map':
             const mapDefaultAppearances = appearances
                 .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-                .map(({ rooms }) => ({ rooms }))
+                .map(({ rooms }) => ({ rooms: objectMap(rooms, ({ location, ...rest }) => (rest)) }))
             return {
                 tag,
                 key,
