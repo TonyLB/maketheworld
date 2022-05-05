@@ -1,3 +1,4 @@
+import { componentAppearanceReduce } from '../components/components.js'
 import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
 import { splitType, AssetKey, RoomKey } from '../types.js'
 
@@ -26,69 +27,20 @@ const mapRenderFormats = (renderItem) => {
     return rest
 }
 
-const joinRenderItems = function * (render = []) {
-    if (render.length > 0) {
-        let currentItem = render[0]
-        if (currentItem.spaceBefore) {
-            if (currentItem.tag === 'String') {
-                currentItem.value = ` ${currentItem.value}`
-            }
-            else {
-                yield {
-                    tag: 'String',
-                    value: ' '
-                }
-            }
-        }
-        for (const renderItem of render.slice(1)) {
-            const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
-            if (spaceBetween && currentItem.tag === 'String') {
-                yield {
-                    ...currentItem,
-                    value: `${currentItem.value.trim()} `
-                }
-            }
-            else {
-                yield currentItem
-            }
-            if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag !== 'String') {
-                yield {
-                    tag: 'String',
-                    value: ' '
-                }
-            }
-            if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag === 'String') {
-                currentItem = {
-                    ...renderItem,
-                    value: ` ${renderItem.value.trimLeft()}`
-                }
-            }
-            else {
-                currentItem = renderItem
-            }
-        }
-        yield currentItem
-    }
-}
-
 const aggregateComponentRender = (assets, itemsByAsset, assetStateById, mapValuesOnly) => (
     assets.reduce((previous, AssetId) => {
         const { appearances = [] } = itemsByAsset[AssetId]
         const state = assetStateById[splitType(AssetId)[1]]?.State || {}
-        return appearances
+        const joinedRender = appearances
             .filter(({ name, exits }) => (!mapValuesOnly || ((name || []).length > 0 || (exits || []).length > 0)))
             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
-            .reduce(({ render: previousRender, name: previousName, exits: previousExits, features: previousFeatures }, { render, name, exits, features }) => ({
-                name: [ ...previousName, ...(name || []) ],
-                exits: [ ...previousExits, ...(exits || []) ],
-                ...(mapValuesOnly
-                    ? {}
-                    : {
-                        render: [ ...previousRender, ...[...joinRenderItems(render)].map(mapRenderFormats) ],
-                        features: [ ...previousFeatures, ...(features || []) ]
-                    }
-                )
-            }), previous)
+            .reduce(componentAppearanceReduce, previous)
+        return mapValuesOnly
+            ? { name: joinedRender.name, exits: joinedRender.exits }
+            : {
+                ...joinedRender,
+                render: joinedRender.render.map(mapRenderFormats)
+            }
     }, { render: [], name: [], exits: [], features: [] })
 )
 
