@@ -45,9 +45,9 @@ the Asset DynamoDB table
 
 *Meta::Asset record*
 
-| AssetId | DataCategory | fileName | translateFile | name | zone | defaultExits |
-| --- | --- | --- | --- | --- | --- | --- |
-| ASSET#ImportTest | Meta::Asset | Player/Test/Assets/ImportTest.wml | Player/Test/Assets/ImportTest.translate.json | ImportTest | Personal | [{ name: 'welcome', from: 'VORTEX', to: 'layerAWelcomeRoom' }] |
+| AssetId | DataCategory | fileName | translateFile | name | zone | defaultExits | defaultNames |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ASSET#ImportTest | Meta::Asset | Player/Test/Assets/ImportTest.wml | Player/Test/Assets/ImportTest.translate.json | ImportTest | Personal | [{ name: 'welcome', from: 'VORTEX', to: 'layerAWelcomeRoom' }] | { Welcome: 'Welcome', ... } |
 
 *Item records*
 
@@ -59,6 +59,35 @@ the Asset DynamoDB table
 
 ---
 
+### Meta::Asset record data types
+
+***defaultExits***
+
+List all exits defined in the asset, that are not conditioned on any expression
+
+```ts
+    type DefaultExit = {
+        name: string;
+        to: string;
+        from: string;
+    }
+
+    type DefaultExits = DefaultExit[]
+```
+
+***defaultNames***
+
+Lists names for all rooms in the asset, where the room appearance in which the name is
+defined is not conditioned on any expression
+
+```ts
+    type DefaultName = string
+
+    type DefaultNames = Record<string, DefaultName>
+```
+
+---
+
 ### Merge Function
 
 The merge function will change the existing data to match the data passed to it:
@@ -66,3 +95,14 @@ The merge function will change the existing data to match the data passed to it:
 - If an entry exists in the current database, but not the incoming data, the function will remove that entry
 - If an entry exists in both the current database and the incoming data, with different values, the function will update that entry
 - If no entry exists in the current database, but one exists in the incoming data, the function will add that entry
+
+---
+
+### Importing Default values from ancestors
+
+During registry of an asset, the values for **defaultAppearance** of any imported Maps should be fetched from the imported asset.
+Similarly, **defaultNames** and **defaultExits** should be imported for each import-ancestor of that asset.  That information
+is enough to create a picture, for each map in the asset, of what changes (rooms, and their names ... exits between rooms already
+counted in the map) are introduced in *this particular layer* (as opposed to being inherited).  Those new map elements should
+be denormalized into the **defaultAppearance** of the map in the asset being registered (to provide a base for other assets to
+import *this* one, and add yet more layers).
