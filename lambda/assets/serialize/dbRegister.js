@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
 import { AssetKey } from '/opt/utilities/types.js'
-import { objectMap } from '../lib/objects.js'
+import { componentAppearanceReduce } from '/opt/utilities/components/components.js'
+import { objectEntryMap } from '../lib/objects.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -21,13 +22,22 @@ const denormalizeExits = (normalForm) => (contents) => {
     return exits.map(({ name, to }) => ({ name, to }))
 }
 
+const noConditionContext = ({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition')))
+
 const itemRegistry = (normalForm) => (item) => {
     const { tag, name, key, global: isGlobal, appearances = [] } = item
     switch(tag) {
         case 'Map':
             const mapDefaultAppearances = appearances
-                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-                .map(({ rooms }) => ({ rooms: objectMap(rooms, ({ location, ...rest }) => (rest)) }))
+                .filter(noConditionContext)
+                .map(({ rooms }) => ({
+                    rooms: objectEntryMap(rooms, (key, { location, ...rest }) => ({
+                        ...rest,
+                        name: (normalForm[key]?.appearances || [])
+                            .filter(noConditionContext)
+                            .reduce(componentAppearanceReduce, { name: '' }).name
+                    }))
+                }))
             return {
                 tag,
                 key,
@@ -40,9 +50,9 @@ const itemRegistry = (normalForm) => (item) => {
                 isGlobal,
                 key,
                 defaultAppearances: appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .filter(noConditionContext)
                     .filter(({ contents= [], render = [], name = '' }) => (contents.length > 0 || render.length > 0 || name))
-                    .map(({ contents, render, name }) => ({
+                    .map(({ contents = [], render = [], name = '' }) => ({
                         exits: denormalizeExits(normalForm)(contents),
                         render: render.map(tagRenderLink(normalForm)),
                         name
@@ -55,7 +65,7 @@ const itemRegistry = (normalForm) => (item) => {
                 isGlobal,
                 key,
                 defaultAppearances: appearances
-                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                    .filter(noConditionContext)
                     .filter(({ render = [], name = '' }) => (render.length > 0 || name))
                     .map(({ render, name }) => ({
                         render: render.map(tagRenderLink(normalForm)),
@@ -70,7 +80,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
     if (asset && asset.key) {
         const defaultExits = Object.values(assets)
             .filter(({ tag }) => (tag === 'Exit'))
-            .filter(({ appearances }) => (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))))
+            .filter(({ appearances }) => (appearances.find(noConditionContext)))
             .map(({ name, to, from }) => ({ name, to, from }))
         await Promise.all([
             assetDB.putItem({

@@ -94,6 +94,7 @@ describe('dbRegister', () => {
                     tag: 'Room',
                     key: 'Welcome',
                     appearances: [{
+                        name: 'Welcome',
                         contextStack: [{ tag: 'Asset', key: 'TEST', index: 0 }],
                         contents: []
                     }]
@@ -127,31 +128,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'assets',
-            search: { DataCategory: 'ASSET#TEST' },
-            items: [{
-                tag: 'Map',
-                key: 'Village',
-                defaultAppearances: [{
-                    rooms: {
-                        Welcome: { x: 0, y: 100 }
-                    }
-                }]
-            },
-            {
-                tag: 'Room',
-                key: 'Welcome',
-                defaultAppearances: []
-            },
-            {
-                tag: 'Feature',
-                key: 'clockTower',
-                defaultAppearances: []
-            }],
-            mergeFunction: expect.any(Function),
-            extractKey: expect.any(Function)
-        })
+        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta, rooms for Story type', async () => {
@@ -216,17 +193,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'assets',
-            search: { DataCategory: 'ASSET#TEST' },
-            items: [{
-                tag: 'Room',
-                key: 'Welcome',
-                defaultAppearances: []
-            }],
-            mergeFunction: expect.any(Function),
-            extractKey: expect.any(Function)
-        })
+        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save meta only for instanced Story type', async () => {
@@ -292,13 +259,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'assets',
-            search: { DataCategory: 'ASSET#TEST' },
-            items: [],
-            mergeFunction: expect.any(Function),
-            extractKey: expect.any(Function)
-        })
+        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
     })
 
     //
@@ -391,37 +352,7 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'assets',
-            search: { DataCategory: 'ASSET#TEST' },
-            items: [{
-                tag: 'Room',
-                key: 'Welcome',
-                defaultAppearances: [{
-                    render: [
-                        'Test render!',
-                        {
-                            tag: 'Link',
-                            to: 'clockTower',
-                            text: '(clock tower)',
-                            targetTag: 'Feature'
-                        }
-                    ],
-                    name: 'Test',
-                    exits: []
-                }]
-            },
-            {
-                tag: 'Feature',
-                key: 'clockTower',
-                defaultAppearances: [{
-                    name: 'TestFeature',
-                    render: ['Test feature render']
-                }]
-            }],
-            mergeFunction: expect.any(Function),
-            extractKey: expect.any(Function)
-        })
+        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
     })
 
     it('should save exits in default appearance for Rooms', async () => {
@@ -536,32 +467,6 @@ describe('dbRegister', () => {
             }
         })
         expect(assetDB.putItem.mock.calls[0][0]).toMatchSnapshot()
-        expect(mergeIntoDataRange).toHaveBeenCalledWith({
-            table: 'assets',
-            search: { DataCategory: 'ASSET#TEST' },
-            items: [{
-                tag: 'Room',
-                key: 'Welcome',
-                defaultAppearances: [{
-                    render: ['Test render!'],
-                    name: 'Test',
-                    exits: []
-                }]
-            },
-            {
-                tag: 'Room',
-                key: 'Entry',
-                defaultAppearances: [{
-                    render: ['Entry render!'],
-                    name: 'Entry',
-                    exits: [{
-                        name: 'welcome',
-                        to: 'Welcome'
-                    }]
-                }]
-            }],
-            mergeFunction: expect.any(Function),
-            extractKey: expect.any(Function)
-        })
+        expect(mergeIntoDataRange.mock.calls[0][0]).toMatchSnapshot()
     })
 })
