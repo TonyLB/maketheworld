@@ -43,6 +43,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
                 translateFile: asset.instance ? undefined : translateName,
                 importTree,
                 scopeMap: scopeMap.serialize(),
+                namespaceMap: scopeMap.namespaceMap,
                 assets: normalized
             }),
             ...(asset.instance

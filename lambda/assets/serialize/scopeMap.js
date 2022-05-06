@@ -14,11 +14,12 @@ export class ScopeMap extends Object {
     }
 
     async importAssetIds(importMap) {
-        const { importTree, scopeMap: importedIds } = await importedAssetIds(importMap || {})
+        const { importTree, namespaceMap, scopeMap: importedIds } = await importedAssetIds(importMap || {})
         this.scopeMap = {
             ...this.scopeMap,
             ...importedIds
         }
+        this.namespaceMap = namespaceMap
         return importTree
     }
 

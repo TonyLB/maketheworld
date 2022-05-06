@@ -75,7 +75,7 @@ const itemRegistry = (normalForm) => (item) => {
     }
 }
 
-export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap, assets }) => {
+export const dbRegister = async ({ fileName, translateFile, importTree, namespaceMap, scopeMap, assets }) => {
     const asset = Object.values(assets).find(({ tag }) => (['Asset'].includes(tag)))
     if (asset && asset.key) {
         const defaultExits = Object.values(assets)
@@ -104,6 +104,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, scopeMap
                 fileName,
                 translateFile,
                 importTree,
+                namespaceMap,
                 name: asset.name,
                 description: asset.description,
                 player: asset.player,

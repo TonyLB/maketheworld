@@ -59,7 +59,8 @@ describe('moveAsset', () => {
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'VORTEX'
-            }
+            },
+            namespaceMap: { VORTEX: 'BASE#VORTEX' }
         })
         putTranslateFile.mockResolvedValue({})
         await moveAsset({ s3Client: { send: jest.fn() } })({
@@ -93,6 +94,7 @@ describe('moveAsset', () => {
                 VORTEX: 'VORTEX',
                 test: '123'
             },
+            namespaceMap: { VORTEX: 'BASE#VORTEX' },
             translateFile: 'Library/Test.translate.json'
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
