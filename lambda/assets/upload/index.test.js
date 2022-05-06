@@ -47,7 +47,8 @@ describe('handleUpload', () => {
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'VORTEX'
-            }
+            },
+            namespaceMap: { VORTEX: 'BASE#VORTEX' }
         })
         putTranslateFile.mockResolvedValue({})
         await handleUpload({ s3Client: { send: jest.fn() } })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
@@ -86,6 +87,7 @@ describe('handleUpload', () => {
                 VORTEX: 'VORTEX',
                 test: '123',
             },
+            namespaceMap: { VORTEX: 'BASE#VORTEX' },
             translateFile: 'Personal/Test.translate.json'
         })
         expect(uploadResponse).toHaveBeenCalledWith({

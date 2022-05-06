@@ -69,6 +69,7 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                 translateFile: `${toPath}${fileName}.translate.json`,
                 importTree,
                 scopeMap: scopeMap.serialize(),
+                namespaceMap: scopeMap.namespaceMap,
                 assets: normalized
             })
             await s3Client.send(new DeleteObjectCommand({

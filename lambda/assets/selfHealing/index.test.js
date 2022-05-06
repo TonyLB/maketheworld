@@ -46,7 +46,8 @@ describe('healAsset', () => {
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'VORTEX'
-            }
+            },
+            namespaceMap: { VORTEX: 'BASE#VORTEX' }
         })
         putTranslateFile.mockResolvedValue({})
         await healAsset(
@@ -79,6 +80,7 @@ describe('healAsset', () => {
                 VORTEX: 'VORTEX',
                 test: '123'
             },
+            namespaceMap: { VORTEX: 'BASE#VORTEX' },
             translateFile: 'Personal/healTest.translate.json'
         })
     })

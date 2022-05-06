@@ -33,24 +33,42 @@ export const importedAssetIds = async (importMap) => {
     const getImportTree = async () => {
         const assetsToFetch = [...(new Set(Object.values(importMap).map(({ asset }) => (asset))))]
         const fetchAssetImportTree = async (asset) => {
-            const { importTree = {} } = await assetDB.getItem({
+            const { importTree = {}, namespaceMap = {} } = await assetDB.getItem({
                 AssetId: `ASSET#${asset}`,
                 DataCategory: 'Meta::Asset',
-                ProjectionFields: ['importTree']
+                ProjectionFields: ['importTree', 'namespaceMap']
             })
-            return { [asset]: importTree }
+            return {
+                importTree: { [asset]: importTree },
+                namespaceMap: { [asset]: namespaceMap }
+            }
         }
         const fetchPromises = assetsToFetch.
             map((asset) => (fetchAssetImportTree(asset)))
         
         const promiseReturns = await Promise.all(fetchPromises)
-        return Object.assign({}, ...promiseReturns)
+        const importTree = Object.assign({}, ...promiseReturns.map(({ importTree }) => (importTree)))
+        const namespaceMapByAssetId = Object.assign({}, ...promiseReturns.map(({ namespaceMap }) => (namespaceMap)))
+        const namespaceMap = Object.assign({}, ...Object.entries(importMap)
+            .map(([toKey, { asset: assetId, scopedId: { key: fromKey } }]) => {
+                if (namespaceMapByAssetId[assetId]?.[fromKey]) {
+                    return { [toKey]: namespaceMapByAssetId[assetId][fromKey] }
+                }
+                else {
+                    return { [toKey]: `${assetId}#${fromKey}`}
+                }
+            }))
+        return {
+            importTree,
+            namespaceMap
+        }
     }
 
-    const [ scopeMap, importTree ] = await Promise.all([ getScopeMap(), getImportTree() ])
+    const [ scopeMap, { importTree, namespaceMap } ] = await Promise.all([ getScopeMap(), getImportTree() ])
     return {
         scopeMap,
-        importTree
+        importTree,
+        namespaceMap
     }
 }
 
