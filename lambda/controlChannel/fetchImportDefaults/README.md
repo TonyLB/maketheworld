@@ -49,10 +49,10 @@ to fetch and calculate.
 
 *Meta::Asset entries*
 
-| AssetId | DataCategory | importTree |
-| --- | --- | --- |
-| ASSET#LayerA | Meta::Asset | { BASE: {} } |
-| ASSET#LayerB | Meta::Asset | { test: { BASE: {} } |
+| AssetId | DataCategory | importTree | namespaceMap |
+| --- | --- | --- | --- |
+| ASSET#LayerA | Meta::Asset | { BASE: {} } | { hallway: 'BASE#passage', layerAWelcomeRoom: 'BASE#baseWelcome' } |
+| ASSET#LayerB | Meta::Asset | { test: { BASE: {} } | {} |
 
 *Component adjacency list entries*
 
@@ -60,7 +60,7 @@ to fetch and calculate.
 | --- | --- | --- | --- |
 | ROOM#123 | ASSET#LayerA | layerAWelcomeRoom | [{ render: [': test addition'] }] |
 | ROOM#345 | ASSET#LayerA | hallway | [{ exits: [{ name: 'welcome', to: 'layerAWelcomeRoom' }]}] |
-| ROOM#123 | ASSET#BASE | baseWelcome | [{ render: \['Test description'\] }]
+| ROOM#123 | ASSET#BASE | baseWelcome | [{ name: 'Welcome room', render: \['Test description'\] }]
 | ROOM#345 | ASSET#BASE | passage | [{ name: 'passage', render: \['Test'\] }]
 | ROOM#567 | ASSET#LayerB | outsideWalkway | [{ name: "Widow's walk" }]
 
@@ -68,7 +68,7 @@ to fetch and calculate.
 
 | AssetId | DataCategory | scopedId | defaultAppearances |
 | --- | --- | --- | --- |
-| MAP#ABC | ASSET#LayerA | township | [{<br />rooms: { layerAWelcomeRoom: { x: 0, y: 0 }}, hallway: { ... } },<br />exits: [{ name: 'welcome', to: 'layerAWelcomeRoom', from: 'hallway' }]<br />}] |
+| MAP#ABC | ASSET#LayerA | township | [{<br />rooms: { layerAWelcomeRoom: { x: 0, y: 0, name: 'Welcome room' }} },<br />exits: [{ name: 'welcome', to: 'layerAWelcomeRoom', from: 'hallway' }]<br />}] |
 
 ### Output
 
@@ -85,6 +85,40 @@ to fetch and calculate.
         },
         walkway: {
             name: "Widow's walk"
+        },
+        township: {
+            inherited: {
+                LayerA: {
+                    rooms: {
+                        welcomeRoom: { x: 100, y: 100, name: 'Welcome room' },
+                        'LayerA#closet': { x: 0: y: 100, name: 'Closet' }
+                    },
+                    exits: [{
+                        name: 'welcome',
+                        to: 'welcomeRoom',
+                        from: 'LayerA#closet',
+                    },
+                    {
+                        name: 'closet',
+                        to: 'LayerA#closet',
+                        from: 'welcomeRoom'
+                    }]
+                }
+            },
+            rooms: {
+                welcomeRoom: { x: 0, y: 0, name: 'Welcome room' },
+                hallway: { x: 0, y: -100, name: 'passage' }
+            },
+            exits: [{
+                name: 'welcome',
+                to: 'welcomeRoom',
+                from: 'hallway'
+            },
+            {
+                name: 'hallway',
+                to: 'hallway',
+                from: 'LayerA#closet'
+            }]
         }
     }
 ```
