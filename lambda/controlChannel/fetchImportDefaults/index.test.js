@@ -155,18 +155,6 @@ describe('fetchImportDefaults', () => {
             LayerA: { BASE: {} },
             LayerB: { test: { BASE: {} }}
         })
-        const queryArgs = (scopedId, assetId) => ({
-            IndexName: 'ScopedIdIndex',
-            scopedId,
-            KeyConditionExpression: 'DataCategory = :dc',
-            ExpressionAttributeValues: {
-                ':dc': `ASSET#${assetId}`
-            },
-            ProjectionFields: ['AssetId', 'defaultAppearances']
-        })
-        expect(assetDB.query).toHaveBeenCalledWith(queryArgs('layerAWelcomeRoom', 'LayerA'))
-        expect(assetDB.query).toHaveBeenCalledWith(queryArgs('hallway', 'LayerA'))
-        expect(assetDB.query).toHaveBeenCalledWith(queryArgs('outsideWalkway', 'LayerB'))
         expect(assetDB.batchGetItem).toHaveBeenCalledWith({
             Items: [{
                 AssetId: 'ROOM#123',

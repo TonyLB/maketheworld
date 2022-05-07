@@ -57,12 +57,7 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
         Items: neededImports,
         ProjectionFields: ['AssetId', 'DataCategory', 'defaultAppearances']
     })
-    //
-    // Now that you have all possible defaultAppearances, parse through the list
-    // in sortedImports order, reducing as you go, in order to create the
-    // final aggregate defaultAppearances
-    //
-    const ancestryDefaultAppearances = [...sortedImports, topLevelAssetId]
+    const ancestryDefaultAppearances = sortedImports
         .reduce((previous, importAssetId) => {
             const itemsForThisAsset = batchGetImports
                 .filter(({ DataCategory }) => (DataCategory === `ASSET#${importAssetId}`))
