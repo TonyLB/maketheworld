@@ -26,7 +26,8 @@ describe('healAsset', () => {
             schema: schemaMock,
             normalize: normalizeMock,
             contents: jest.fn().mockReturnValue('Test'),
-            isMatched: jest.fn().mockReturnValue(true)
+            isMatched: jest.fn().mockReturnValue(true),
+            assetId: 'Test'
         })
         normalizeMock.mockReturnValue({
             'Import-0': {
@@ -39,15 +40,20 @@ describe('healAsset', () => {
         })
         getTranslateFile.mockResolvedValue({
             scopeMap: {
-                test: '123'
+                test: 'ROOM#123'
             }
         })
         importedAssetIds.mockResolvedValue({
             importTree: ['BASE'],
             scopeMap: {
-                VORTEX: 'VORTEX'
+                VORTEX: 'ROOM#VORTEX'
             },
-            namespaceMap: { VORTEX: 'BASE#VORTEX' }
+            namespaceMap: {
+                VORTEX: {
+                    key: 'BASE#VORTEX',
+                    assetId: 'ROOM#VORTEX'
+                }
+            }
         })
         putTranslateFile.mockResolvedValue({})
         await healAsset(
@@ -62,8 +68,8 @@ describe('healAsset', () => {
             importTree: ['BASE'],
             name: 'Personal/healTest.translate.json',
             scopeMap: {
-                VORTEX: 'VORTEX',
-                test: '123'
+                VORTEX: 'ROOM#VORTEX',
+                test: 'ROOM#123'
             }
         })
         expect(dbRegister).toHaveBeenCalledWith({
@@ -77,10 +83,19 @@ describe('healAsset', () => {
             fileName: 'Personal/healTest.wml',
             importTree: ['BASE'],
             scopeMap: {
-                VORTEX: 'VORTEX',
-                test: '123'
+                VORTEX: 'ROOM#VORTEX',
+                test: 'ROOM#123'
             },
-            namespaceMap: { VORTEX: 'BASE#VORTEX' },
+            namespaceMap: {
+                VORTEX: {
+                    key: 'BASE#VORTEX',
+                    assetId: 'ROOM#VORTEX'
+                },
+                test: {
+                    key: 'TestAsset#test',
+                    assetId: 'ROOM#123'
+                }
+            },
             translateFile: 'Personal/healTest.translate.json'
         })
     })

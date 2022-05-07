@@ -162,6 +162,12 @@ describe('ScopeMap class', () => {
                 clockTower: 'FEATURE#ABCDEF',
                 Village: 'MAP#XYZ'
             })
+            testScope.namespaceMap = {
+                VORTEX: { key: 'Test#VORTEX', assetId: 'ROOM#VORTEX' },
+                Welcome: { key: 'Test#Welcome', assetId: 'ROOM#123456' },
+                clockTower: { key: 'Test#clockTower', assetId: 'FEATURE#ABCDEF' },
+                Village: { key: 'Test#Village', assetId: 'MAP#XYZ' }
+            }
             expect(testScope.translateNormalForm(testNormalForm)).toEqual({
                 ...testNormalForm,
                 'VORTEX#Welcome': {
@@ -196,6 +202,9 @@ describe('ScopeMap class', () => {
             const testScope = new ScopeMap({
                 VORTEX: 'ROOM#VORTEX'
             })
+            testScope.namespaceMap = {
+                VORTEX: { key: 'Test#VORTEX', assetId: 'ROOM#VORTEX' }
+            }
             expect(testScope.translateNormalForm(testNormalForm)).toEqual({
                 ...testNormalForm,
                 'VORTEX#Welcome': {
@@ -320,6 +329,11 @@ describe('ScopeMap class', () => {
                 testOne: 'FEATURE#TESTONE',
                 testThree: 'FEATURE#TESTTHREE'
             })
+            testScope.namespaceMap = {
+                VORTEX: { key: 'Test#VORTEX', assetId: 'ROOM#VORTEX' },
+                testOne: { key: 'Test#testOne', assetId: 'FEATURE#TESTONE' },
+                testThree: { key: 'Somewhere#testThree', assetId: 'FEATURE#TESTTHREE' }
+            }
             expect(testScope.translateNormalForm(linksNormalForm)).toEqual({
                 ...linksNormalForm,
                 VORTEX: {

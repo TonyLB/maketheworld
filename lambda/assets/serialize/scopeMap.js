@@ -61,6 +61,23 @@ export class ScopeMap extends Object {
                 this.scopeMap[key] = newEphemeraId
             })
 
+        //
+        // Update the namespaceMap for any items that are created in the context of this
+        // asset
+        //
+        const asset = Object.values(normalForm).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+        const assetKey = (asset && asset.key) || 'UNKNOWN'
+
+        this.namespaceMap = Object.entries(this.scopeMap)
+            .filter(([key, value]) => (!(key in (this.namespaceMap || {}))))
+            .reduce((previous, [key, value]) => ({
+                ...previous,
+                [key]: {
+                    key: `${assetKey}#${key}`,
+                    assetId: value
+                }
+            }), this.namespaceMap)
+
         const { key: AssetId } = Object.values(normalForm).find(({ tag }) => (tag === 'Asset')) || {}
         return Object.values(normalForm)
             .filter(({ tag }) => (['Room', 'Feature', 'Exit', 'Map'].includes(tag)))

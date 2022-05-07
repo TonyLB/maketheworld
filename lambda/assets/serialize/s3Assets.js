@@ -7,7 +7,7 @@ import { splitType } from "/opt/utilities/types.js"
 
 const { S3_BUCKET } = process.env;
 
-class AssetWorkspace {
+export class AssetWorkspace {
     constructor(contents) {
         this.wmlQuery = new WMLQuery(contents)
     }
@@ -32,6 +32,12 @@ class AssetWorkspace {
     }
     normalize() {
         return this.wmlQuery.normalize()
+    }
+
+    get assetId() {
+        const asset = Object.values(this.normalize()).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+        const assetKey = (asset && asset.key) || 'UNKNOWN'
+        return assetKey
     }
 }
 

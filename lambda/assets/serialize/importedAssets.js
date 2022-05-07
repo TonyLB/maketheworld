@@ -49,18 +49,20 @@ export const importedAssetIds = async (importMap) => {
         const promiseReturns = await Promise.all(fetchPromises)
         const importTree = Object.assign({}, ...promiseReturns.map(({ importTree }) => (importTree)))
         const namespaceMapByAssetId = Object.assign({}, ...promiseReturns.map(({ namespaceMap }) => (namespaceMap)))
-        const namespaceMap = Object.assign({}, ...Object.entries(importMap)
-            .map(([toKey, { asset: assetId, scopedId: { key: fromKey } }]) => {
-                if (namespaceMapByAssetId[assetId]?.[fromKey]) {
-                    return { [toKey]: namespaceMapByAssetId[assetId][fromKey] }
-                }
-                else {
-                    return { [toKey]: {
-                        key: `${assetId}#${fromKey}`,
-                        assetId: scopeMap[fromKey]
-                    } }
-                }
-            }))
+        const namespaceMap = Object.assign({}, 
+            ...Object.entries(importMap)
+                .map(([toKey, { asset: assetId, scopedId: { key: fromKey } }]) => {
+                    if (namespaceMapByAssetId[assetId]?.[fromKey]) {
+                        return { [toKey]: namespaceMapByAssetId[assetId][fromKey] }
+                    }
+                    else {
+                        return { [toKey]: {
+                            key: `${assetId}#${fromKey}`,
+                            assetId: scopeMap[fromKey]
+                        } }
+                    }
+                }),
+        )
         return {
             importTree,
             namespaceMap
