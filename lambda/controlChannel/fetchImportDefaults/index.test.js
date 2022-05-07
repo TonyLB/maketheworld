@@ -3,77 +3,7 @@ import { jest, describe, it, expect } from '@jest/globals'
 import { assetDB } from '/opt/utilities/dynamoDB/index.js'
 import { sortImportTree } from '/opt/utilities/executeCode/sortImportTree.js'
 
-import fetchImportDefaults, { getTranslateMapsFromAssetInfoReducer } from './index.js'
-
-describe('getTranslateMapsFromAssetInfoReducer', () => {
-    it('should create mapping tables correctly', () => {
-        const importAssets = {
-            LayerA: {
-                welcomeRoom: 'layerAWelcomeRoom',
-                hallway: 'hallway'
-            },
-            LayerB: {
-                walkway: 'outsideWalkway'
-            }
-        }
-        const assetInfo = [{
-            assetId: 'LayerA',
-            assetInfo: {
-                layerAWelcomeRoom: {
-                    AssetId: 'ROOM#123',
-                    defaultAppearances: [{
-                        contents: [],
-                        render: [': test addition']
-                    }]            
-                },
-                hallway: {
-                    AssetId: 'ROOM#345',
-                    defaultAppearances: []
-                }
-            }
-        },
-        {
-            assetId: 'LayerB',
-            assetInfo: {
-                outsideWalkway: {
-                    AssetId: 'ROOM#567',
-                    defaultAppearances: [{
-                        contents: [],
-                        name: "Widow's walk"
-                    }]
-                }
-            }
-        }]
-        const initialValue = {
-            itemIdByLocalId: {},
-            localIdsByItemId: {},
-            finalDefaultAppearanceByLocalId: {}
-        }
-        expect(assetInfo.reduce(getTranslateMapsFromAssetInfoReducer(importAssets), initialValue)).toEqual({
-            itemIdByLocalId: {
-                welcomeRoom: 'ROOM#123',
-                hallway: 'ROOM#345',
-                walkway: 'ROOM#567'
-            },
-            localIdsByItemId: {
-                ['ROOM#123']: ['welcomeRoom'],
-                ['ROOM#345']: ['hallway'],
-                ['ROOM#567']: ['walkway']
-            },
-            finalDefaultAppearanceByLocalId: {
-                welcomeRoom: [{
-                    contents: [],
-                    render: [': test addition']
-                }],
-                hallway: [],
-                walkway: [{
-                    contents: [],
-                    name: "Widow's walk"
-                }]
-            }
-        })
-    })
-})
+import fetchImportDefaults from './index.js'
 
 describe('fetchImportDefaults', () => {
     beforeEach(() => {
@@ -155,6 +85,7 @@ describe('fetchImportDefaults', () => {
                     }]
             }
         })
+
         assetDB.batchGetItem.mockResolvedValue([{
             AssetId: 'ROOM#123',
             DataCategory: 'ASSET#BASE',
@@ -171,6 +102,32 @@ describe('fetchImportDefaults', () => {
                 name: 'passage',
                 render: ['Test']
             }]
+        },
+        {
+            AssetId: 'ROOM#567',
+            DataCategory: 'ASSET#test',
+            defaultAppearances: [{
+                contents: [],
+                name: "Widow's walk"
+            }]
+        },
+        {
+            AssetId: 'ROOM#123',
+            DataCategory: 'ASSET#LayerA',
+            defaultAppearances: [{
+                contents: [],
+                render: [': test addition']
+            }]
+        },
+        {
+            AssetId: 'ROOM#345',
+            DataCategory: 'ASSET#LayerA',
+            defaultAppearances: []            
+        },
+        {
+            AssetId: 'ROOM#567',
+            DataCategory: 'ASSET#LayerB',
+            defaultAppearances: []            
         }])
         const output = await fetchImportDefaults({
             importsByAssetId: {
