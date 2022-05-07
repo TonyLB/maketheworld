@@ -87,13 +87,28 @@ describe('fetchImportDefaults', () => {
                 case 'ASSET#LayerA':
                     return {
                         AssetId: 'ASSET#LayerA',
-                        importTree: { BASE: {} }
+                        importTree: { BASE: {} },
+                        namespaceMap: { layerAWelcomeRoom: 'BASE#welcome', hallway: 'BASE#passage' }
                     }
                 case 'ASSET#LayerB':
                     return {
                         AssetId: 'ASSET#LayerA',
-                        importTree: { test: { BASE: {} } }
+                        importTree: { test: { BASE: {} } },
+                        namespaceMap: { outsideWalkway: 'test#outsideWalkway' }
                     }
+                case 'ASSET#Final':
+                    return {
+                        AssetId: 'ASSET#LayerA',
+                        importTree: {
+                            LayerA: { BASE: {} },
+                            LayerB: { test: { BASE: {} } }
+                        },
+                        namespaceMap: {
+                            welcomeRoom: 'BASE#welcome',
+                            hallway: 'BASE#passage',
+                            walkway: 'test#outsideWalkway'
+                        }
+                    }                    
             }
         })
         sortImportTree.mockImplementation((tree) => {
@@ -153,23 +168,26 @@ describe('fetchImportDefaults', () => {
             }]
         }])
         const output = await fetchImportDefaults({
-            LayerA: {
-                welcomeRoom: 'layerAWelcomeRoom',
-                hallway: 'hallway'
+            importsByAssetId: {
+                LayerA: {
+                    welcomeRoom: 'layerAWelcomeRoom',
+                    hallway: 'hallway'
+                },
+                LayerB: {
+                    walkway: 'outsideWalkway'
+                }
             },
-            LayerB: {
-                walkway: 'outsideWalkway'
-            }
+            assetId: 'Final'
         })
         expect(assetDB.getItem).toHaveBeenCalledWith({
             AssetId: 'ASSET#LayerA',
             DataCategory: 'Meta::Asset',
-            ProjectionFields: ['importTree']
+            ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
         })
         expect(assetDB.getItem).toHaveBeenCalledWith({
             AssetId: 'ASSET#LayerB',
             DataCategory: 'Meta::Asset',
-            ProjectionFields: ['importTree']
+            ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
         })
         expect(sortImportTree).toHaveBeenCalledWith({
             LayerA: { BASE: {} },
@@ -198,11 +216,19 @@ describe('fetchImportDefaults', () => {
             },
             {
                 AssetId: 'ROOM#567',
-                DataCategory: `ASSET#BASE`
+                DataCategory: `ASSET#test`
+            },
+            {
+                AssetId: 'ROOM#123',
+                DataCategory: `ASSET#LayerA`
+            },
+            {
+                AssetId: 'ROOM#345',
+                DataCategory: `ASSET#LayerA`
             },
             {
                 AssetId: 'ROOM#567',
-                DataCategory: `ASSET#test`
+                DataCategory: `ASSET#LayerB`
             }],
             ProjectionFields: ['AssetId', 'DataCategory', 'defaultAppearances']
         })

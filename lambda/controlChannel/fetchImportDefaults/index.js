@@ -1,17 +1,26 @@
 import { sortImportTree } from '/opt/utilities/executeCode/sortImportTree.js'
 import { unique } from '/opt/utilities/lists.js'
+import { splitType } from '/opt/utilities/types.js'
 import { objectMap } from '/opt/utilities/objects.js'
 import { assetDB } from '/opt/utilities/dynamoDB/index.js'
 
-const importTreeByAssetId = async (assetId) => {
-    const { importTree = {} } = await assetDB.getItem({
+const importMetaByAssetId = async (assetId) => {
+    const { importTree = {}, namespaceMap = {}, defaultNames = {}, defaultExits = [] } = await assetDB.getItem({
         AssetId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
-        ProjectionFields: ['importTree']
+        ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
     })
-    return { [assetId]: importTree }
+    return { [assetId]: { importTree, namespaceMap, defaultNames, defaultExits } }
 }
 
+//
+// TODO:  Refactor algorithm to figure out ScopedIds from a single query against
+// the top-level importing asset:  All of the imported fields should have
+// top-level adjacency-list entries, so there is no reason to spawn off
+// queries in a parallelized loop in this way.  The value of fetching the
+// defaultAppearance from the *direct* import is obsoleted by the fact that
+// we're batchGetting defaultAppearance from *all* imports.
+//
 const getAssetInfoByScopedId = (assetId) => async (scopedId) => {
     const [{ AssetId, defaultAppearances = [] } = {}] = await assetDB.query({
         IndexName: 'ScopedIdIndex',
@@ -32,7 +41,9 @@ const getAssetInfoByScopedId = (assetId) => async (scopedId) => {
 //
 // Note that, because you can import the same global item from different
 // assets under different pseudonyms, the mapping *back* is technically
-// not one-to-one (although it's hard to imagine a use-case)
+// not one-to-one (although it's hard to imagine a use-case for
+// double-importing and it's probably a good thing to validate against
+// it eventually)
 //
 export const getTranslateMapsFromAssetInfoReducer = (importsByAssetId) => (priorTranslateMaps, { assetId, assetInfo }) => {
     const localImportMapping = importsByAssetId[assetId] || {}
@@ -95,13 +106,14 @@ export const getTranslateMapsFromAssetInfoReducer = (importsByAssetId) => (prior
     }
 }
 
-export const fetchImportDefaults = async (importsByAssetId) => {
+export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelAssetId }) => {
     
-    const [importMapFetch, assetLookups] = await Promise.all([
+    const [topLevelMetaFetch, importMetaFetch, assetLookups] = await Promise.all([
+        importMetaByAssetId(topLevelAssetId),
         //
         // Get importTree maps to find ancestor assets to search in
         //
-        Promise.all(Object.keys(importsByAssetId).map((assetId) => (importTreeByAssetId(assetId)))),
+        Promise.all(Object.keys(importsByAssetId).map((assetId) => (importMetaByAssetId(assetId)))),
         //
         // Query direct-imports to get the globalized AssetId (as well as the defaultAppearances,
         // as long as we're querying a record)
@@ -112,7 +124,9 @@ export const fetchImportDefaults = async (importsByAssetId) => {
             return { assetId, assetInfo: Object.assign({}, ...assetInfoByScopedId) }
         }))
     ])
-    const importTree = Object.assign({}, ...importMapFetch)
+    const topLevelMeta = topLevelMetaFetch[topLevelAssetId]
+    const importMeta = Object.assign({}, ...importMetaFetch)
+    const importTree = objectMap(importMeta, ({ importTree }) => (importTree))
     const sortedImports = sortImportTree(importTree)
 
     const {
@@ -126,24 +140,28 @@ export const fetchImportDefaults = async (importsByAssetId) => {
     })
     //
     // Create a list for each imported Asset of the ancestors for that particular asset,
-    // and then create a cross-product of all the globalized IDs (for items that have
-    // globalized IDs, i.e. Rooms and Features) multiplied by all of the ancestor Assets
-    // that might have information about them
+    // and then create a cross-product of all the globalized IDs (for Maps and Components)
+    // multiplied by all of the ancestor Assets that might have information about them
     //
-    const allPossibleImports = Object.entries(importTree)
-        .map(([assetId, ancestryTree]) => {
-            const localSortedImports = sortImportTree(ancestryTree)
-            const assetsToBatchGet = unique(Object.keys(importsByAssetId[assetId] || {}).map((localId) => (itemIdByLocalId[localId])))
-            const crossProduct = localSortedImports.reduce((previous, dcAsset) => ([
-                ...previous,
-                ...assetsToBatchGet.map((AssetId) => ({ DataCategory: `ASSET#${dcAsset}`, AssetId }))
-            ]), [])
-            return crossProduct
-        })
-        .reduce((previous, batch) => ([...previous, ...batch]), [])
+    const localIdByNamespaceKey = Object.entries(topLevelMeta.namespaceMap || {}).reduce((previous, [key, value]) => ({ ...previous, [value]: key }), {})
+    const importedByTopLevel = (assetId) => (namespaceKey) => {
+        
+        if (splitType(namespaceKey)[0] === assetId) {
+            return true
+        }
+        return Boolean(Object.values(importMeta[assetId]?.namespaceMap || {}).find((value) => (value === namespaceKey)))
+    }
+    const neededImports = sortedImports
+        .map((assetId) => (
+            Object.values(topLevelMeta.namespaceMap)
+                .filter((importedByTopLevel(assetId)))
+                .map((namespaceKey) => (itemIdByLocalId[localIdByNamespaceKey[namespaceKey]]))
+                .map((itemId) => ({ DataCategory: `ASSET#${assetId}`, AssetId: itemId }))
+        ))
+        .reduce((previous, list) => ([...previous, ...list]), [])
 
     const batchGetImports = await assetDB.batchGetItem({
-        Items: allPossibleImports,
+        Items: neededImports,
         ProjectionFields: ['AssetId', 'DataCategory', 'defaultAppearances']
     })
     //
