@@ -60,6 +60,13 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
         Items: neededImports,
         ProjectionFields: ['AssetId', 'DataCategory', 'defaultAppearances']
     })
+    //
+    // TODO:  Treat components (Room, Feature, etc.) separately from Maps.  For Maps, keep a running
+    // tally of aggregated defaultNames and defaultExits.  At each asset, compare to check whether there
+    // are new exits that must be added to the map layer, or if there is data for the Map itself in the
+    // asset.  In either case, append a new inherited-layer to the list.  Deliver the inherited layers
+    // instead of accumulated names and renders.
+    //
     const ancestryDefaultAppearances = sortedImports
         .reduce((previous, importAssetId) => {
             const itemsForThisAsset = batchGetImports

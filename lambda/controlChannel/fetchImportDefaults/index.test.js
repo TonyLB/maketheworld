@@ -57,34 +57,6 @@ describe('fetchImportDefaults', () => {
                 return ['BASE', 'test']
             }
         })
-        assetDB.query.mockImplementation(({ scopedId }) => {
-            switch(scopedId) {
-                case 'layerAWelcomeRoom':
-                    return [{
-                        AssetId: 'ROOM#123',
-                        scopedId: 'layerAWelcomeRoom',
-                        defaultAppearances: [{
-                            contents: [],
-                            render: [': test addition']
-                        }]            
-                    }]
-                case 'hallway':
-                    return [{
-                        AssetId: 'ROOM#345',
-                        scopedId: 'hallway',
-                        defaultAppearances: []
-                    }]
-                case 'outsideWalkway':
-                    return [{
-                        AssetId: 'ROOM#567',
-                        scopedId: 'outsideWalkway',
-                        defaultAppearances: [{
-                            contents: [],
-                            name: "Widow's walk"
-                        }]
-                    }]
-            }
-        })
 
         assetDB.batchGetItem.mockResolvedValue([{
             AssetId: 'ROOM#123',
@@ -122,7 +94,7 @@ describe('fetchImportDefaults', () => {
         {
             AssetId: 'ROOM#345',
             DataCategory: 'ASSET#LayerA',
-            defaultAppearances: []            
+            defaultAppearances: []
         },
         {
             AssetId: 'ROOM#567',
@@ -192,6 +164,174 @@ describe('fetchImportDefaults', () => {
             },
             walkway: {
                 name: "Widow's walk"
+            }
+        })
+    })
+
+    //
+    // TODO: Create unit test for Map inheritance, which should be treated differently
+    // from component inheritance (see index.js file comments)
+    //
+
+    it('should create successive inherited layers for imported maps', async () => {
+        assetDB.getItem.mockImplementation(({ AssetId }) => {
+            switch(AssetId) {
+                case 'ASSET#BASE':
+                    return {
+                        AssetId: 'ASSET#BASE',
+                        importTree: {},
+                        namespaceMap: {
+                            welcome: { key: 'BASE#welcome', assetId: 'ROOM#123' },
+                            passage: { key: 'BASE#passage', assetId: 'ROOM#345' },
+                            house: { key: 'BASE#house', assetId: 'MAP#XYZ' }
+                        },
+                        defaultNames: {
+                            welcome: { name: 'First', tag: 'Room' },
+                            passage: { name: 'A', tag: 'Room' }
+                        },
+                        defaultExits: [{
+                            name: 'passage',
+                            from: 'welcome',
+                            to: 'passage'
+                        }]
+                    }
+                case 'ASSET#LayerA':
+                    return {
+                        AssetId: 'ASSET#LayerA',
+                        importTree: { BASE: {} },
+                        namespaceMap: {
+                            layerAWelcomeRoom: { key: 'BASE#welcome', assetId: 'ROOM#123' },
+                            hallway: { key: 'BASE#passage', assetId: 'ROOM#345' },
+                            house: { key: 'BASE#house', assetId: 'MAP#XYZ' }
+                        },
+                        defaultNames: {
+                            layerAWelcomeRoom: { name: 'Second', tag: 'Room' },
+                            hallway: { name: 'B', tag: 'Room' }
+                        },
+                        defaultExits: [{
+                            name: 'welcome',
+                            from: 'hallway',
+                            to: 'layerAWelcomeRoom'
+                        }]
+                    }
+                case 'ASSET#Final':
+                    return {
+                        AssetId: 'ASSET#Final',
+                        importTree: {
+                            LayerA: { BASE: {} }
+                        },
+                        namespaceMap: {
+                            welcomeRoom: { key: 'BASE#welcome', assetId: 'ROOM#123' },
+                            house: { key: 'BASE#house', assetId: 'MAP#XYZ' }
+                        },
+                        defaultNames: {},
+                        defaultExits: []
+                    }                    
+            }
+        })
+        sortImportTree.mockImplementation((tree) => {
+            if (tree.LayerA) {
+                return ['BASE', 'LayerA']
+            }
+            if (tree.BASE) {
+                return ['BASE']
+            }
+        })
+
+        assetDB.batchGetItem.mockResolvedValue([{
+            AssetId: 'ROOM#123',
+            DataCategory: 'ASSET#BASE',
+            defaultAppearances: [{
+                contents: [],
+                name: 'First',
+                render: ['Test description']
+            }]
+        },
+        {
+            AssetId: 'ROOM#123',
+            DataCategory: 'ASSET#LayerA',
+            defaultAppearances: [{
+                contents: [],
+                name: 'Second',
+                render: [': test addition']
+            }]
+        },
+        {
+            AssetId: 'MAP#XYZ',
+            DataCategory: 'ASSET#BASE',
+            defaultAppearances: [{
+                rooms: {
+                    welcome: {
+                        x: 0,
+                        y: 0
+                    }
+                }
+            }]
+        },
+        {
+            AssetId: 'MAP#XYZ',
+            DataCategory: 'ASSET#LayerA',
+            defaultAppearances: [{
+                rooms: {
+                    layerAWelcome: {
+                        x: 100,
+                        y: 0
+                    },
+                    hallway: {
+                        x: -100,
+                        y: 0
+                    }
+                }
+            }]
+        }])
+        const output = await fetchImportDefaults({
+            importsByAssetId: {
+                LayerA: {
+                    welcomeRoom: 'layerAWelcomeRoom',
+                    house: 'house'
+                }
+            },
+            assetId: 'Final'
+        })
+        expect(output).toEqual({
+            welcomeRoom: {
+                name: 'FirstSecond',
+                render: ['Test description', ': test addition']
+            },
+            house: {
+                layers: [{
+                    rooms: {
+                        welcomeRoom: {
+                            name: 'First',
+                            x: 0,
+                            y: 0
+                        }
+                    },
+                    exits: [{
+                        name: 'passage',
+                        to: 'BASE#passage',
+                        from: 'welcomeRoom'
+                    }]
+                },
+                {
+                    rooms: {
+                        welcomeRoom: {
+                            name: 'FirstSecond',
+                            x: 100,
+                            y: 0
+                        },
+                        'BASE#passage': {
+                            name: 'AB',
+                            x: -100,
+                            y: 0
+                        }
+                    },
+                    exits: [{
+                        name: 'welcome',
+                        to: 'welcomeRoom',
+                        from: 'BASE#passage'
+                    }]
+                }]
             }
         })
     })
