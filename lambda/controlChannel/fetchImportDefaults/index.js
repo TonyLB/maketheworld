@@ -1,8 +1,8 @@
 import { sortImportTree } from '/opt/utilities/executeCode/sortImportTree.js'
-import { unique } from '/opt/utilities/lists.js'
 import { splitType } from '/opt/utilities/types.js'
 import { objectMap } from '/opt/utilities/objects.js'
 import { assetDB } from '/opt/utilities/dynamoDB/index.js'
+import { componentAppearanceReduce } from '/opt/utilities/components/components.js'
 
 const importMetaByAssetId = async (assetId) => {
     const { importTree = {}, namespaceMap = {}, defaultNames = {}, defaultExits = [] } = await assetDB.getItem({
@@ -16,6 +16,9 @@ const importMetaByAssetId = async (assetId) => {
 export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelAssetId }) => {
     
     const [topLevelMetaFetch, importMetaFetch] = await Promise.all([
+        //
+        // Get meta data from the asset you're fetching defaults for
+        //
         importMetaByAssetId(topLevelAssetId),
         //
         // Get importTree maps to find ancestor assets to search in
@@ -34,8 +37,8 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
 
     //
     // Create a list for each imported Asset of the ancestors for that particular asset,
-    // and then create a cross-product of all the globalized IDs (for Maps and Components)
-    // multiplied by all of the ancestor Assets that might have information about them
+    // and then create a list of all asset-item pairs that are part of the import tree
+    // for the values actually imported
     //
     const importedByTopLevel = (assetId) => ({ key: namespaceKey }) => {
         
@@ -73,14 +76,8 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
             }, previous)
         }, {})
     const reduceAppearances = (defaultAppearances) => (
-        defaultAppearances
-            .reduce((accumulator, { name = '', render = [], contents = [] }) => ({
-                ...accumulator,
-                name: `${accumulator.name}${name}`,
-                render: [...accumulator.render, ...render],
-                contents: [...accumulator.contents, ...contents]
-            }), { name: '', render: [], contents: [] })
-        )
+        defaultAppearances.reduce(componentAppearanceReduce, { name: '', render: [], contents: [] })
+    )
     const filterAppearances = ({ name, render = [], contents = [] }) => ({
         ...(name ? { name } : {}),
         ...(render.length ? { render } : {}),
