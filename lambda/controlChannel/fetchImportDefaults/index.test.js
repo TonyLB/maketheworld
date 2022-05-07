@@ -88,13 +88,18 @@ describe('fetchImportDefaults', () => {
                     return {
                         AssetId: 'ASSET#LayerA',
                         importTree: { BASE: {} },
-                        namespaceMap: { layerAWelcomeRoom: 'BASE#welcome', hallway: 'BASE#passage' }
+                        namespaceMap: {
+                            layerAWelcomeRoom: { key: 'BASE#welcome', assetId: 'ROOM#123' },
+                            hallway: { key: 'BASE#passage', assetId: 'ROOM#345' }
+                        }
                     }
                 case 'ASSET#LayerB':
                     return {
                         AssetId: 'ASSET#LayerA',
                         importTree: { test: { BASE: {} } },
-                        namespaceMap: { outsideWalkway: 'test#outsideWalkway' }
+                        namespaceMap: {
+                            outsideWalkway: { key: 'test#outsideWalkway', assetId: 'ROOM#567' }
+                        }
                     }
                 case 'ASSET#Final':
                     return {
@@ -104,9 +109,9 @@ describe('fetchImportDefaults', () => {
                             LayerB: { test: { BASE: {} } }
                         },
                         namespaceMap: {
-                            welcomeRoom: 'BASE#welcome',
-                            hallway: 'BASE#passage',
-                            walkway: 'test#outsideWalkway'
+                            welcomeRoom: { key: 'BASE#welcome', assetId: 'ROOM#123' },
+                            hallway: { key: 'BASE#passage', assetId: 'ROOM#345' },
+                            walkway: { key: 'test#outsideWalkway', assetId: 'ROOM#567' }
                         }
                     }                    
             }

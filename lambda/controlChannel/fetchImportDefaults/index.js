@@ -143,20 +143,18 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
     // and then create a cross-product of all the globalized IDs (for Maps and Components)
     // multiplied by all of the ancestor Assets that might have information about them
     //
-    const localIdByNamespaceKey = Object.entries(topLevelMeta.namespaceMap || {}).reduce((previous, [key, value]) => ({ ...previous, [value]: key }), {})
-    const importedByTopLevel = (assetId) => (namespaceKey) => {
+    const importedByTopLevel = (assetId) => ({ key: namespaceKey }) => {
         
         if (splitType(namespaceKey)[0] === assetId) {
             return true
         }
-        return Boolean(Object.values(importMeta[assetId]?.namespaceMap || {}).find((value) => (value === namespaceKey)))
+        return Boolean(Object.values(importMeta[assetId]?.namespaceMap || {}).find(({ key }) => (key === namespaceKey)))
     }
     const neededImports = sortedImports
         .map((assetId) => (
             Object.values(topLevelMeta.namespaceMap)
-                .filter((importedByTopLevel(assetId)))
-                .map((namespaceKey) => (itemIdByLocalId[localIdByNamespaceKey[namespaceKey]]))
-                .map((itemId) => ({ DataCategory: `ASSET#${assetId}`, AssetId: itemId }))
+                .filter(importedByTopLevel(assetId))
+                .map(({ assetId: itemId }) => ({ DataCategory: `ASSET#${assetId}`, AssetId: itemId }))
         ))
         .reduce((previous, list) => ([...previous, ...list]), [])
 

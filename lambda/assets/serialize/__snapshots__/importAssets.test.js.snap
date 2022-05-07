@@ -9,8 +9,14 @@ Object {
     },
   },
   "namespaceMap": Object {
-    "VORTEX": "BASE#VORTEX",
-    "Welcome": "LayerA#Welcome",
+    "VORTEX": Object {
+      "assetId": "ROOM#VORTEX",
+      "key": "BASE#VORTEX",
+    },
+    "Welcome": Object {
+      "assetId": "ROOM#12345",
+      "key": "LayerA#Welcome",
+    },
   },
   "scopeMap": Object {
     "VORTEX": "ROOM#VORTEX",
@@ -25,8 +31,14 @@ Object {
     "BASE": Object {},
   },
   "namespaceMap": Object {
-    "VORTEX": "BASE#VORTEX",
-    "Welcome": "BASE#Welcome",
+    "VORTEX": Object {
+      "assetId": "ROOM#VORTEX",
+      "key": "BASE#VORTEX",
+    },
+    "Welcome": Object {
+      "assetId": "ROOM#12345",
+      "key": "BASE#Welcome",
+    },
   },
   "scopeMap": Object {
     "VORTEX": "ROOM#VORTEX",
