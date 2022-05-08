@@ -106,7 +106,7 @@ export class MapDThree extends Object {
         onAddExit?: (fromRoomId: string, toRoomId: string, double: boolean) => void
     }) {
         super()
-        const layers = argumentParse({ roomLayers, exits })
+        const layers = argumentParse({ roomLayers: [...roomLayers].reverse(), exits })
         this.stack = new MapDThreeStack({
             layers,
             onTick,
@@ -136,7 +136,7 @@ export class MapDThree extends Object {
         roomLayers: MapLayer[];
         exits: { to: string; from: string; visible: boolean; }[];
     } ): void {
-        const stackArguments = argumentParse(props)
+        const stackArguments = argumentParse({ roomLayers: [...props.roomLayers].reverse(), exits: props.exits })
         this.stack.update(stackArguments)
 
         this.stack.checkStability()

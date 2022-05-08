@@ -48,7 +48,6 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
             })))
         ]), [] as MapTree)
     const inheritedRooms: Record<string, any> = Object.assign({}, ...inheritedAppearances.map(({ rooms }: { rooms: any }) => (rooms)))
-    console.log(`Inherited Rooms: ${JSON.stringify(inheritedRooms, null, 4)}`)
     const roomCheck = { ...roomItems, ...inheritedRooms }
     const inheritedExitItems: MapTree = inheritedExits
         .filter(({ from, to }) => ((from in roomCheck) && (to in roomCheck)))
@@ -104,7 +103,6 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
                 }
             ]
         }, inheritedExitItems)
-    console.log(`InheritedTree: ${JSON.stringify(inheritedTree, null, 4)}`)
 
     return [{
         key: 'Default',
