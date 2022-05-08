@@ -9,7 +9,7 @@ export interface PersonalAssetsInternal {
     uploadRequestId?: string;
 }
 
-type AncestryExit = {
+export type InheritedExit = {
     to: string;
     from: string;
     name: string;
@@ -20,7 +20,7 @@ export interface PersonalAssetsPublic {
     currentWML?: string;
     draftWML?: string;
     defaultAppearances: Record<string, ComponentAppearance>;
-    aggregateExits: AncestryExit[]
+    inheritedExits: InheritedExit[]
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>

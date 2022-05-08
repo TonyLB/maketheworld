@@ -60,7 +60,7 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
     return {
         publicData: {
             defaultAppearances: importDefaults.components,
-            aggregateExits: importDefaults.aggregateExits
+            inheritedExits: importDefaults.aggregateExits
         }
     }
 }

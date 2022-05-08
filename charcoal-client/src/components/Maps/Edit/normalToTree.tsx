@@ -2,14 +2,16 @@ import { MapTree } from './maps'
 import { NormalForm, NormalMap, NormalExit } from '../../../wml/normalize'
 import { AssetComponent } from '../../Library/Edit/LibraryAsset'
 import { unique } from '../../../lib/lists'
+import { InheritedExit } from '../../../slices/personalAssets/baseClasses'
 
 interface NormalToTreeProps {
     MapId: string;
     normalForm: NormalForm;
-    rooms: Record<string, AssetComponent>
+    rooms: Record<string, AssetComponent>;
+    inheritedExits: InheritedExit[];
 }
 
-export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): MapTree => {
+export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits }: NormalToTreeProps): MapTree => {
     const map = (normalForm[MapId] || {}) as NormalMap
     const roomItems = (map.appearances || [])
         .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
@@ -44,6 +46,18 @@ export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): M
                 children: []
             })))
         ]), [] as MapTree)
+    const inheritedExitItems: MapTree = inheritedExits
+        .map(({ from, to, name }) => ({
+                key: `${from}#${to}`,
+                item: {
+                    name: 'exit',
+                    type: 'EXIT' as "EXIT",
+                    fromRoomId: from,
+                    toRoomId: to,
+                    visible: true
+                },
+                children: []
+        }))
     const tree: MapTree = Object.entries(roomItems || {})
         .reduce<MapTree>((previous, [key, { x = 0, y = 0, location }], index) => {
             return [
@@ -71,6 +85,15 @@ export const normalToTree = ({ MapId, normalForm, rooms }: NormalToTreeProps): M
             visible: true
         },
         children: tree
+    },
+    {
+        key: 'Inherited',
+        item: {
+            type: 'GROUP',
+            name: 'Inherited',
+            visible: true
+        },
+        children: inheritedExitItems
     }]
 }
 

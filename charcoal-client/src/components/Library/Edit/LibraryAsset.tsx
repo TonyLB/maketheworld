@@ -20,12 +20,14 @@ import {
     getNormalized,
     getWMLQuery,
     getDefaultAppearances,
+    getInheritedExits,
     setCurrentWML,
     setIntent
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
 import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem } from '../../../wml/normalize'
+import { InheritedExit } from '../../../slices/personalAssets/baseClasses'
 import { objectFilter } from '../../../lib/objects'
 
 type LibraryAssetContextType = {
@@ -38,6 +40,7 @@ type LibraryAssetContextType = {
     updateWML: (value: string) => void;
     components: Record<string, AssetComponent>;
     rooms: Record<string, AssetComponent>;
+    inheritedExits: InheritedExit[];
     features: Record<string, AssetComponent>;
     save: () => void;
 }
@@ -52,6 +55,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     updateWML: () => {},
     components: {},
     rooms: {},
+    inheritedExits: [],
     features: {},
     save: () => {}
 })
@@ -126,6 +130,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const normalForm = useSelector(getNormalized(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))
     const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
+    const inheritedExits = useSelector(getInheritedExits(AssetId))
     const dispatch = useDispatch()
     const updateWML = (value: string) => {
         const wmlQuery = new WMLQuery(value)
@@ -147,6 +152,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             currentWML,
             normalForm,
             defaultAppearances,
+            inheritedExits,
             wmlQuery,
             updateWML,
             components,

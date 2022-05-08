@@ -3,7 +3,7 @@ import { NormalForm } from '../../../wml/normalize'
 
 describe('normalToTree', () => {
     it('should convert empty cache to empty tree', () => {
-        expect(normalToTree({ MapId: '123', normalForm: {}, rooms: {}})).toMatchSnapshot()
+        expect(normalToTree({ MapId: '123', normalForm: {}, rooms: {}, inheritedExits: []})).toMatchSnapshot()
     })
 
     it('should convert rooms and exits to items', () => {
@@ -158,7 +158,8 @@ describe('normalToTree', () => {
                 '123': roomAssetFromName('Vortex'),
                 '456': roomAssetFromName('Welcome Room'),
                 '789': roomAssetFromName('None')
-            }
+            },
+            inheritedExits: []
         })).toMatchSnapshot()
     })
 })
