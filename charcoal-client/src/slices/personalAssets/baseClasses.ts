@@ -9,11 +9,18 @@ export interface PersonalAssetsInternal {
     uploadRequestId?: string;
 }
 
+type AncestryExit = {
+    to: string;
+    from: string;
+    name: string;
+}
+
 export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
     defaultAppearances: Record<string, ComponentAppearance>;
+    aggregateExits: AncestryExit[]
 }
 
 export type PersonalAssetsRecord = ISSMDataLayout<PersonalAssetsInternal, PersonalAssetsPublic>

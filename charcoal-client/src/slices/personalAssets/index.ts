@@ -27,7 +27,8 @@ export const {
             incrementalBackoff: 0.5
         },
         publicData: {
-            defaultAppearances: {}
+            defaultAppearances: {},
+            aggregateExits: []
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -43,7 +44,8 @@ export const {
                 incrementalBackoff: 0.5
             },
             publicData: {
-                defaultAppearances: {}
+                defaultAppearances: {},
+                aggregateExits: []
             }
         },
         states: {
