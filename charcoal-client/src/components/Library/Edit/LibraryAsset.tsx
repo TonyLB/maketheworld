@@ -27,7 +27,7 @@ import {
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
 import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem } from '../../../wml/normalize'
-import { InheritedExit } from '../../../slices/personalAssets/baseClasses'
+import { InheritedExit, InheritedComponent } from '../../../slices/personalAssets/inheritedData'
 import { objectFilter } from '../../../lib/objects'
 
 type LibraryAssetContextType = {
@@ -35,7 +35,7 @@ type LibraryAssetContextType = {
     AssetId: string;
     currentWML: string;
     normalForm: NormalForm;
-    defaultAppearances: Record<string, ComponentAppearance>;
+    defaultAppearances: Record<string, InheritedComponent>;
     wmlQuery: WMLQuery;
     updateWML: (value: string) => void;
     components: Record<string, AssetComponent>;
@@ -77,7 +77,7 @@ export type AssetComponent = {
     spaceAfter?: boolean;
 }
 
-const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, ComponentAppearance> }): Record<string, AssetComponent> => {
+const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, InheritedComponent> }): Record<string, AssetComponent> => {
     const componentNormals = Object.values(normalForm) as NormalComponent[]
 
     const roomReturns = componentNormals

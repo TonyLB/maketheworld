@@ -71,8 +71,10 @@ export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseA
     name?: string;
 }
 
+type ComponentTypes = 'Room' | 'Feature'
+
 export type NormalComponent = {
-    tag: 'Room' | 'Feature';
+    tag: ComponentTypes;
     appearances: ComponentAppearance[];
 } & NormalBase
 
@@ -156,5 +158,7 @@ export type NormalItem = NormalAsset |
 export type NormalForm = Record<string, NormalItem>
 
 export const normalize = (node: any, existingMap?: any, contextStack?: any, location?: number[]) => NormalForm
+
+export function isNormalExit(arg: NormalItem): arg is NormalExit
 
 export default normalize

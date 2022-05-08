@@ -183,13 +183,16 @@ describe('fetchImportDefaults', () => {
         })
         expect(output).toEqual({
             welcomeRoom: {
+                type: 'Component',
                 render: ['Test description', ': test addition']
             },
             hallway: {
+                type: 'Component',
                 name: 'passage',
                 render: ['Test']
             },
             walkway: {
+                type: 'Component',
                 name: "Widow's walk"
             }
         })
@@ -322,10 +325,12 @@ describe('fetchImportDefaults', () => {
         })
         expect(output).toEqual({
             welcomeRoom: {
+                type: 'Component',
                 name: 'FirstSecond',
                 render: ['Test description', ': test addition']
             },
             house: {
+                type: 'Map',
                 layers: [{
                     rooms: {
                         welcomeRoom: {

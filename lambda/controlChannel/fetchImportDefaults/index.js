@@ -230,8 +230,17 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
     const lastImportAssetId = sortedImports.length ? sortedImports.slice(-1)[0] : ''
     return {
         components: Object.assign({},
-            objectMap(objectMap(ancestryDefaultComponentAppearances, reduceAppearances), filterAppearances),
-            objectMap(ancestryDefaultMapAppearances, (value) => ({ layers: value }))
+            objectMap(
+                objectMap(
+                    objectMap(
+                        ancestryDefaultComponentAppearances,
+                        reduceAppearances
+                    ),
+                    filterAppearances
+                ),
+                ((value) => ({ type: 'Component', ...value }))
+            ),
+            objectMap(ancestryDefaultMapAppearances, (value) => ({ type: 'Map', layers: value }))
         ),
         aggregateExits: lastImportAssetId ? aggregatesByAssetId[lastImportAssetId]?.exits || [] : []
     }
