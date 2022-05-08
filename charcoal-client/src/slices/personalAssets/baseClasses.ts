@@ -1,5 +1,6 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { ComponentAppearance } from '../../wml/normalize'
+import { InheritedExit } from './inheritedData';
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -7,12 +8,6 @@ export interface PersonalAssetsInternal {
     fetchURL?: string;
     saveURL?: string;
     uploadRequestId?: string;
-}
-
-export type InheritedExit = {
-    to: string;
-    from: string;
-    name: string;
 }
 
 export interface PersonalAssetsPublic {

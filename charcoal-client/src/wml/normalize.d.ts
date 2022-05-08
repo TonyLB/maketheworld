@@ -71,8 +71,10 @@ export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseA
     name?: string;
 }
 
+type ComponentTypes = 'Room' | 'Feature'
+
 export type NormalComponent = {
-    tag: 'Room' | 'Feature';
+    tag: ComponentTypes;
     appearances: ComponentAppearance[];
 } & NormalBase
 

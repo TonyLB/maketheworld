@@ -2,7 +2,7 @@ import { MapTree } from './maps'
 import { NormalForm, NormalMap, NormalExit } from '../../../wml/normalize'
 import { AssetComponent } from '../../Library/Edit/LibraryAsset'
 import { unique } from '../../../lib/lists'
-import { InheritedExit } from '../../../slices/personalAssets/baseClasses'
+import { InheritedExit } from '../../../slices/personalAssets/inheritedData'
 
 interface NormalToTreeProps {
     MapId: string;

@@ -1,6 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 
-import { PersonalAssetsNodes, PersonalAssetsPublic, InheritedExit } from './baseClasses'
+import { PersonalAssetsNodes, PersonalAssetsPublic } from './baseClasses'
+import { InheritedExit } from './inheritedData'
 import { WMLQuery, WMLQueryUpdate } from '../../wml/wmlQuery'
 import { NormalForm, ComponentAppearance } from '../../wml/normalize'
 
