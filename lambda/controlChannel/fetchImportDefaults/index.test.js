@@ -175,6 +175,7 @@ describe('fetchImportDefaults', () => {
 
     it('should create successive inherited layers for imported maps', async () => {
         assetDB.getItem.mockImplementation(({ AssetId }) => {
+            console.log(`Fetching: ${AssetId}`)
             switch(AssetId) {
                 case 'ASSET#BASE':
                     return {

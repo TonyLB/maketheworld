@@ -14,21 +14,28 @@ const importMetaByAssetId = async (assetId) => {
 }
 
 export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelAssetId }) => {
-    
-    const [topLevelMetaFetch, importMetaFetch] = await Promise.all([
-        //
-        // Get meta data from the asset you're fetching defaults for
-        //
-        importMetaByAssetId(topLevelAssetId),
-        //
-        // Get importTree maps to find ancestor assets to search in
-        //
-        Promise.all(Object.keys(importsByAssetId).map((assetId) => (importMetaByAssetId(assetId)))),
-    ])
+
+    //
+    // Get meta data from the asset you're fetching defaults for
+    //
+    const topLevelMetaFetch = await importMetaByAssetId(topLevelAssetId)
     const topLevelMeta = topLevelMetaFetch[topLevelAssetId]
-    const importMeta = Object.assign({}, ...importMetaFetch)
-    const importTree = objectMap(importMeta, ({ importTree }) => (importTree))
-    const sortedImports = sortImportTree(importTree)
+
+    //
+    // Query all the direct imports to assemble an import tree (which may not match with the
+    // importTree currently stored in the DB, if importsByAssetId is being passed from an asset
+    // that has been edited in the client but not yet saved) and then follow up by querying any
+    // ancestor dependencies that are not top level imports.
+    //
+
+    const directImportMetaFetch = await Promise.all(Object.keys(importsByAssetId).map((assetId) => (importMetaByAssetId(assetId))))
+    const directImportMeta = Object.assign({}, ...directImportMetaFetch)
+    const directImportTree = objectMap(directImportMeta, ({ importTree }) => (importTree))
+    const sortedImports = sortImportTree(directImportTree)
+    const ancestorLookupsNeeded = sortedImports.filter((importId) => (!Object.keys(importsByAssetId).includes(importId)))
+    const ancestorImportMetaFetch = await Promise.all(ancestorLookupsNeeded.map((assetId) => (importMetaByAssetId(assetId))))
+    const importMeta = Object.assign(directImportMeta, ...ancestorImportMetaFetch)
+
     const localIdsByItemId = Object.entries(topLevelMeta?.namespaceMap || {})
         .reduce((previous, [key, { assetId }]) => ({
             ...previous,
@@ -97,11 +104,11 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
         ...(contents.length ? { contents } : {})
     })
 
-    const ancestryDefaultMapAppearances = sortedImports
+    const { mapAppearances: ancestryDefaultMapAppearances } = sortedImports
         //
         // TODO:  Extend this reduce to maintain three running aggregates rather than one:
         //    * mapAppearances:  As currently being aggregated
-        //    * aggregateNamesByTranslatedId:  A record keyed by translatedId, with the
+        //    * aggregateNames:  A record keyed by translatedId, with the
         //      current aggregated Names for each item.  Update at each new importAssetId
         //      by mapping and aggregating importMeta[importAssetId]?.defaultNames
         //    * aggregateExits: A list of unique exits, with to and from keyed by translatedId.
@@ -109,25 +116,26 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
         //      importMeta[importAssetId]?.defaultExits
         //
         .reduce((previous, importAssetId) => {
-            console.log(JSON.stringify(importMeta[importAssetId]?.namespaceMap, null, 4))
+            console.log(`NamespaceMap (${importAssetId}): ${JSON.stringify(importMeta[importAssetId]?.namespaceMap, null, 4)}`)
             const itemsForThisAsset = batchGetImports
                 .filter(({ DataCategory }) => (DataCategory === `ASSET#${importAssetId}`))
                 .filter(({ AssetId }) => (splitType(AssetId)[0] === 'MAP'))
             return itemsForThisAsset.reduce((accumulator, { AssetId, defaultAppearances }) => {
-                console.log(JSON.stringify(defaultAppearances, null, 4))
                 const translateId = (importedId) => {
-                    console.log(`Translating: ${importedId}`)
-                    const namespaceKey = importMeta[importAssetId]?.namespaceMap?.[importedId]?.key
-                    console.log(`Namespace Key: ${namespaceKey}`)
-                    console.log(`localIdsByNamespaceKey: ${JSON.stringify(localIdsByNamespaceKey, null, 4)}`)
-                    if (namespaceKey) {
-                        if (localIdsByNamespaceKey[namespaceKey]) {
-                            return localIdsByNamespaceKey[namespaceKey]
-                        }
-                        return namespaceKey
+                    const namespaceKey = importMeta[importAssetId]?.namespaceMap?.[importedId]?.key || `${importAssetId}#${importedId}`
+                    if (localIdsByNamespaceKey[namespaceKey]) {
+                        return localIdsByNamespaceKey[namespaceKey]
                     }
-                    return `${importAssetId}#${importedId}`
+                    return namespaceKey
                 }
+                const newDefaultNames = Object.entries(importMeta[importAssetId]?.defaultNames || {})
+                    .reduce((innerAccumulator, [key, value]) => {
+                        const translatedKey = translateId(key)
+                        return {
+                            ...innerAccumulator,
+                            [translatedKey]: [innerAccumulator[translatedKey] || '', value.name || ''].join('')
+                        }
+                    }, accumulator.aggregateNames)
                 const newMapLayer = {
                     //
                     // TODO: Exits should include:
@@ -141,22 +149,30 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                         Object.entries(rooms)
                             .reduce((previous, [key, value]) => ({
                                 ...previous,
-                                [translateId(key)]: value
+                                [translateId(key)]: {
+                                    ...value,
+                                    name: newDefaultNames[translateId(key)]
+                                }
                             }), {})
                     )))
                 }
                 console.log(JSON.stringify(localIdsByItemId, null, 4))
                 const localIds = localIdsByItemId[AssetId] || []
                 console.log(JSON.stringify(localIds, null, 4))
-                return localIds.reduce((innerAccumulator, localId) => ({
+                const newMapAppearances = localIds.reduce((innerAccumulator, localId) => ({
                     ...innerAccumulator,
                     [localId]: [
                         ...(innerAccumulator[localId] || []),
                         newMapLayer
-                    ]
-                }), accumulator)
+                    ]    
+                }), accumulator.mapAppearances)
+
+                return {
+                    mapAppearances: newMapAppearances,
+                    aggregateNames: newDefaultNames
+                }
             }, previous)
-        }, {})
+        }, { mapAppearances: {}, aggregateNames: {}, aggregateExits: {} })
     return Object.assign({},
         objectMap(objectMap(ancestryDefaultComponentAppearances, reduceAppearances), filterAppearances),
         objectMap(ancestryDefaultMapAppearances, (value) => ({ layers: value }))
