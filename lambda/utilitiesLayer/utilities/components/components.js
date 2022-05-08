@@ -1,3 +1,5 @@
+import { splitType } from '../types.js'
+
 const joinRenderItems = function * (render = []) {
     if (render.length > 0) {
         let currentItem = render[0]
@@ -68,3 +70,7 @@ export const componentAppearanceReduce = (...renderList) => {
         render: [...joinRenderItems(joinedList.render)]
     }
 }
+
+export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
+
+export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(key)[0]))

@@ -273,7 +273,7 @@ describe('fetchImportDefaults', () => {
             DataCategory: 'ASSET#LayerA',
             defaultAppearances: [{
                 rooms: {
-                    layerAWelcome: {
+                    layerAWelcomeRoom: {
                         x: 100,
                         y: 0
                     },
@@ -307,11 +307,7 @@ describe('fetchImportDefaults', () => {
                             y: 0
                         }
                     },
-                    exits: [{
-                        name: 'passage',
-                        to: 'BASE#passage',
-                        from: 'welcomeRoom'
-                    }]
+                    exits: []
                 },
                 {
                     rooms: {
@@ -327,6 +323,11 @@ describe('fetchImportDefaults', () => {
                         }
                     },
                     exits: [{
+                        name: 'passage',
+                        to: 'BASE#passage',
+                        from: 'welcomeRoom'
+                    },
+                    {
                         name: 'welcome',
                         to: 'welcomeRoom',
                         from: 'BASE#passage'
