@@ -20,3 +20,5 @@ export const objectEntryMap = (obj: Record<string, any>, transform: (key: any, v
 export const reduceArrayToObject = (previous: Record<string, any>, [key, value]: [string, any]) => ObjectMap
 
 export const objectFilter = (obj: Record<string, any>, condition: (value: any) => boolean) => ObjectMap
+
+export const objectEntryFilter = (obj: Record<string, any>, condition: (key: string, value: any) => boolean) => ObjectMap

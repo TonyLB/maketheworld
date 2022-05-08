@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid"
 import { splitType } from '/opt/utilities/types.js'
 import { importedAssetIds } from "./importedAssets.js"
 import { getTranslateFile } from "./translateFile.js"
+import { objectEntryFilter } from '../lib/objects.js'
 
 export class ScopeMap extends Object {
     constructor(incomingMap) {
@@ -67,6 +68,11 @@ export class ScopeMap extends Object {
         //
         const asset = Object.values(normalForm).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
         const assetKey = (asset && asset.key) || 'UNKNOWN'
+
+        //
+        // Remove any scopeMap items that are not used in the normalForm
+        //
+        this.scopeMap = objectEntryFilter(this.scopeMap, (key) => (key in normalForm))
 
         this.namespaceMap = Object.entries(this.scopeMap)
             .filter(([key, value]) => (!(key in (this.namespaceMap || {}))))
