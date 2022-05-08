@@ -239,7 +239,7 @@ export const postProcessAppearance = (normalForm, key, index) => {
             return normalForm
         }
         const appearance = node.appearances[index]
-        const { rooms, contents } = appearance
+        const { rooms = {}, contents = [] } = appearance
         const revisedRooms = objectEntryMap(rooms, (roomKey, roomPosition) => {
             const roomContentItem = contents.find(({ key }) => (key === roomKey))
             if (roomContentItem) {

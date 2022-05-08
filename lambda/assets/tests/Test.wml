@@ -26,4 +26,8 @@
             <Description>Alternate</Description>
         </Room>
     </Condition>
+    <Map key=(testMap)>
+        <Image key=(testImage) fileURL="https://musique.opus-31.fr/images/aaa.png" />
+        <Room key=(VORTEX) x="0" y="100" />
+    </Map>
 </Asset>
