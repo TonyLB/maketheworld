@@ -93,20 +93,20 @@ local scopedId keys are mapped to global UUID internal DB keys.
 
 ### *S3 Meta-Data*
 
-- fileName
-- translateFile
-- player
-- zone
+- fileName: The fully qualified filename at which the WML data for the asset is stored in S3
+- translateFile: The fully qualified filename at which the translation JSON file for the asset is stored in S3
+- player: The internal ID of the player (if any) for whom this is a personal asset
+- zone:  The zone ('Personal', 'Library', or 'Canon') in which the asset is stored and published.
 
 ### *Namespace Meta-Data*
 
-- importTree
+- importTree:  importTree is a nested map.  Each key at the top level represents the owning asset importing values from the asset named in the key.  The *value* stored under that key is, itself, a nested tree of what imports that named asset makes, and so on down the entire tree.
 - namespaceMap
 
 ### *Asset Denormalizations*
 
-- defaultNames
-- defaultExits
+- defaultNames: A mapping from internal scopedId for components to the name (if any) that would be defined for that component in this asset if all conditions return false
+- defaultExits: A mapping of all exits defined in this asset if all conditions return false
 
 ---
 
@@ -121,7 +121,7 @@ local scopedId keys are mapped to global UUID internal DB keys.
 
 - AssetId
 - DataCategory
-- scopedId
+- scopedId:  The key used internally within the asset to refer to this component
 
 ### *Component Denormalization*
 
