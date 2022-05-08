@@ -128,7 +128,7 @@ describe('fetchImportDefaults', () => {
             DataCategory: 'ASSET#LayerB',
             defaultAppearances: []            
         }])
-        const output = await fetchImportDefaults({
+        const { components: output } = await fetchImportDefaults({
             importsByAssetId: {
                 LayerA: {
                     welcomeRoom: 'layerAWelcomeRoom',
@@ -311,7 +311,7 @@ describe('fetchImportDefaults', () => {
                 }
             }]
         }])
-        const output = await fetchImportDefaults({
+        const { components: output } = await fetchImportDefaults({
             importsByAssetId: {
                 LayerA: {
                     welcomeRoom: 'layerAWelcomeRoom',

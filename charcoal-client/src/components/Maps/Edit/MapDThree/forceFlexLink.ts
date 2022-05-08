@@ -108,30 +108,32 @@ class ForceFlexLink <L extends { source: string, target: string }, N extends Sim
             // within the links object structure and mutating through the link ... yuck!)
             //
             const source = this.nodes[link.source]
-            const sourceX = source?.x ?? 0, sourceY = source?.y ?? 0, sourceVx = source?.vx ?? 0, sourceVy = source?.vy ?? 0
             const target = this.nodes[link.target]
-            const targetX = target?.x ?? 0, targetY = target?.y ?? 0, targetVx = target?.vx ?? 0, targetVy = target?.vy ?? 0
-            let x = targetX + targetVx  - sourceX - sourceVx || jiggle();
-            let y = targetY + targetVy - sourceY - sourceVy || jiggle();
-            let l = Math.sqrt(x * x + y * y);
-            if (l < minDistance) {
-                l = (l - minDistance) / l * alpha * strength;
-            }
-            else {
-                if (l > maxDistance) {
-                    l = ((l - maxDistance) / (l - (maxDistance - minDistance))) * alpha * strength;
+            if (source && target) {
+                const sourceX = source?.x ?? 0, sourceY = source?.y ?? 0, sourceVx = source?.vx ?? 0, sourceVy = source?.vy ?? 0
+                const targetX = target?.x ?? 0, targetY = target?.y ?? 0, targetVx = target?.vx ?? 0, targetVy = target?.vy ?? 0
+                let x = targetX + targetVx  - sourceX - sourceVx || jiggle();
+                let y = targetY + targetVy - sourceY - sourceVy || jiggle();
+                let l = Math.sqrt(x * x + y * y);
+                if (l < minDistance) {
+                    l = (l - minDistance) / l * alpha * strength;
                 }
                 else {
-                    l = 0
+                    if (l > maxDistance) {
+                        l = ((l - maxDistance) / (l - (maxDistance - minDistance))) * alpha * strength;
+                    }
+                    else {
+                        l = 0
+                    }
                 }
+                x *= l
+                y *= l
+                target.vx = targetVx - x * bias
+                target.vy = targetVy - y * bias
+                
+                source.vx = sourceVx + x * (1 - bias)
+                source.vy = sourceVy + y * (1 - bias)
             }
-            x *= l
-            y *= l
-            target.vx = targetVx - x * bias
-            target.vy = targetVy - y * bias
-            
-            source.vx = sourceVx + x * (1 - bias)
-            source.vy = sourceVy + y * (1 - bias)
         })
     }
 }

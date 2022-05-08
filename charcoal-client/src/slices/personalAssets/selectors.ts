@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 
-import { PersonalAssetsNodes, PersonalAssetsPublic,  } from './baseClasses'
+import { PersonalAssetsNodes, PersonalAssetsPublic, InheritedExit } from './baseClasses'
 import { WMLQuery, WMLQueryUpdate } from '../../wml/wmlQuery'
 import { NormalForm, ComponentAppearance } from '../../wml/normalize'
 
@@ -9,6 +9,7 @@ export type PublicSelectors = {
     getNormalized: (state: PersonalAssetsPublic) => NormalForm;
     getWMLQuery: (state: PersonalAssetsPublic) => WMLQuery;
     getDefaultAppearances: (state: PersonalAssetsPublic) => Record<string, ComponentAppearance>
+    getInheritedExits: (state: PersonalAssetsPublic) => InheritedExit[]
 }
 
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
@@ -19,9 +20,12 @@ const getNormalized = createSelector(getWMLQuery, (wmlQuery) => (wmlQuery.normal
 
 const getDefaultAppearances = (state: PersonalAssetsPublic) => (state.defaultAppearances || {})
 
+const getInheritedExits = (state: PersonalAssetsPublic) => (state.inheritedExits || [])
+
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getWMLQuery,
     getNormalized,
-    getDefaultAppearances
+    getDefaultAppearances,
+    getInheritedExits
 }

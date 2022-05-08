@@ -11,6 +11,15 @@ Array [
     },
     "key": "Default",
   },
+  Object {
+    "children": Array [],
+    "item": Object {
+      "name": "Inherited",
+      "type": "GROUP",
+      "visible": true,
+    },
+    "key": "Inherited",
+  },
 ]
 `;
 
@@ -64,6 +73,15 @@ Array [
       "visible": true,
     },
     "key": "Default",
+  },
+  Object {
+    "children": Array [],
+    "item": Object {
+      "name": "Inherited",
+      "type": "GROUP",
+      "visible": true,
+    },
+    "key": "Inherited",
   },
 ]
 `;

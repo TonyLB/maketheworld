@@ -3,6 +3,7 @@
         <Use key=(a345) type="Room" as=(welcomeRoom) />
         <Use key=(VORTEX) type="Room" />
         <Use key=(power) type="Variable" />
+        <Use key=(testMap) type="Map" as=(importTestMap) />
     </Import>
     <Variable key=(switchUp) default={false} />
     <Computed key=(active) src={switchUp && power}>
@@ -18,9 +19,7 @@
         <Description>A small panel with a single switch</Description>
     </Feature>
     <Map key=(importTestMap)>
-        <Image key=(testImage) fileURL="https://musique.opus-31.fr/images/aaa.png" />
         <Room key=(welcomeRoom) x="0" y="0" />
-        <Room key=(VORTEX) x="0" y="100" />
     </Map>
     <Room key=(welcomeRoom)>
         <Description>
