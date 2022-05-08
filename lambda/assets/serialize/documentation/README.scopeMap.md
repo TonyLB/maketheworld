@@ -72,6 +72,15 @@ given a UUID mapping (which is merged into the existing scopeMap data)
 
 ---
 
+Throughout, ScopeMap records two types of mappings:
+- A scopeMap variable, which maps between local in-Asset names for components, and a global UUID used by the database for
+quick reference and storage
+- A namespaceMap variable, which maps between local in-Asset names for components, and a root name associated with a
+particular originating asset.  For instance, item welcomeRoom might map to a namespaceMap value with `key` property of
+'BASE#welcome', if the component was created in Asset BASE as key 'welcome', and then imported (either directly or
+through a chain of imports) by the operating asset under alias `welcomeRoom`.
 
+*Note*:  namespaceMap also stores the global UUID under the property 'assetId'.  Worth examining at some future point
+whether this information can be usefully combined, so as to be less repetitive.
 
 ---
