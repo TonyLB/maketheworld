@@ -106,7 +106,7 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
 
     const { mapAppearances: ancestryDefaultMapAppearances } = sortedImports
         //
-        // TODO:  Extend this reduce to maintain three running aggregates rather than one:
+        // TODO:  Extend this reduce to maintain four running aggregates:
         //    * mapAppearances:  As currently being aggregated
         //    * aggregateNames:  A record keyed by translatedId, with the
         //      current aggregated Names for each item.  Update at each new importAssetId
@@ -114,17 +114,23 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
         //    * aggregateExits: A list of unique exits, with to and from keyed by translatedId.
         //      Update at each new importAssetId by mapping and aggregating
         //      importMeta[importAssetId]?.defaultExits
+        //    * aggregateExitsIncluded: A list of the unique exits that have already
+        //      been included in previous layers (and therefore do not need to be included
+        //      again)
         //
         .reduce((previous, importAssetId) => {
-            console.log(`NamespaceMap (${importAssetId}): ${JSON.stringify(importMeta[importAssetId]?.namespaceMap, null, 4)}`)
             const itemsForThisAsset = batchGetImports
                 .filter(({ DataCategory }) => (DataCategory === `ASSET#${importAssetId}`))
                 .filter(({ AssetId }) => (splitType(AssetId)[0] === 'MAP'))
-            return itemsForThisAsset.reduce((accumulator, { AssetId, defaultAppearances }) => {
+            return itemsForThisAsset.reduce((accumulator, { AssetId, defaultAppearances = [] }) => {
+                //
+                // TODO:  Fix the assumption that localIdsByNamespaceKey is a one-to-one mapping (either
+                // by making translateId more capable, or by validating against many-to-one imports)
+                //
                 const translateId = (importedId) => {
                     const namespaceKey = importMeta[importAssetId]?.namespaceMap?.[importedId]?.key || `${importAssetId}#${importedId}`
                     if (localIdsByNamespaceKey[namespaceKey]) {
-                        return localIdsByNamespaceKey[namespaceKey]
+                        return localIdsByNamespaceKey[namespaceKey][0]
                     }
                     return namespaceKey
                 }
@@ -136,6 +142,30 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                             [translatedKey]: [innerAccumulator[translatedKey] || '', value.name || ''].join('')
                         }
                     }, accumulator.aggregateNames)
+                const newAggregateExits = [
+                    ...accumulator.aggregateExits,
+                    ...(importMeta[importAssetId]?.defaultExits || []).map(({ to, from, ...rest }) => ({
+                        to: translateId(to),
+                        from: translateId(from),
+                        ...rest
+                    }))
+                ]
+                const addedRooms = Object.assign({}, ...defaultAppearances.map(({ rooms = {} }) => (
+                    Object.entries(rooms)
+                        .reduce((previous, [key, value]) => ({
+                            ...previous,
+                            [translateId(key)]: {
+                                ...value,
+                                name: newDefaultNames[translateId(key)]
+                            }
+                        }), {})
+                )))
+                const newRooms = Object.assign(accumulator.aggregateRooms, addedRooms)
+                const addedExits = newAggregateExits
+                    .filter(({ to, from }) => ((to in newRooms) && (from in newRooms)))
+                    .filter(({ to, from }) => (
+                        !accumulator.aggregateExitsIncluded.find((check) => (check.to === to && check.from === from))
+                    ))
                 const newMapLayer = {
                     //
                     // TODO: Exits should include:
@@ -144,21 +174,10 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                     //      * Any exit to or from rooms newly added to the map, which corresponds to
                     //        rooms currently in the map
                     //
-                    exits: [],
-                    rooms: Object.assign({}, ...defaultAppearances.map(({ rooms = {} }) => (
-                        Object.entries(rooms)
-                            .reduce((previous, [key, value]) => ({
-                                ...previous,
-                                [translateId(key)]: {
-                                    ...value,
-                                    name: newDefaultNames[translateId(key)]
-                                }
-                            }), {})
-                    )))
+                    exits: addedExits,
+                    rooms: addedRooms
                 }
-                console.log(JSON.stringify(localIdsByItemId, null, 4))
                 const localIds = localIdsByItemId[AssetId] || []
-                console.log(JSON.stringify(localIds, null, 4))
                 const newMapAppearances = localIds.reduce((innerAccumulator, localId) => ({
                     ...innerAccumulator,
                     [localId]: [
@@ -169,10 +188,13 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
 
                 return {
                     mapAppearances: newMapAppearances,
-                    aggregateNames: newDefaultNames
+                    aggregateNames: newDefaultNames,
+                    aggregateExits: newAggregateExits,
+                    aggregateExitsIncluded: [ ...accumulator.aggregateExitsIncluded, ...addedExits ],
+                    aggregateRooms: newRooms
                 }
             }, previous)
-        }, { mapAppearances: {}, aggregateNames: {}, aggregateExits: {} })
+        }, { mapAppearances: {}, aggregateNames: {}, aggregateExits: [], aggregateExitsIncluded: [], aggregateRooms: {} })
     return Object.assign({},
         objectMap(objectMap(ancestryDefaultComponentAppearances, reduceAppearances), filterAppearances),
         objectMap(ancestryDefaultMapAppearances, (value) => ({ layers: value }))

@@ -14,6 +14,33 @@ describe('fetchImportDefaults', () => {
     it('should fetch importTree from assets and rooms from all ancestor imports', async () => {
         assetDB.getItem.mockImplementation(({ AssetId }) => {
             switch(AssetId) {
+                case 'ASSET#BASE':
+                    return {
+                        AssetId: 'ASSET#BASE',
+                        importTree: {},
+                        namespaceMap: {
+                            welcome: { key: 'BASE#welcome', assetId: 'ROOM#123' },
+                            passage: { key: 'BASE#passage', assetId: 'ROOM#345' },
+                            house: { key: 'BASE#house', assetId: 'MAP#XYZ' }
+                        },
+                        defaultNames: {
+                            welcome: { name: 'First', tag: 'Room' },
+                            passage: { name: 'A', tag: 'Room' }
+                        },
+                        defaultExits: [{
+                            name: 'passage',
+                            from: 'welcome',
+                            to: 'passage'
+                        }]
+                    }
+                case 'ASSET#test':
+                    return {
+                        AssetId: 'ASSET#test',
+                        importTree: {},
+                        namespaceMap: {},
+                        defaultNames: {},
+                        defaultExits: []
+                    }
                 case 'ASSET#LayerA':
                     return {
                         AssetId: 'ASSET#LayerA',
@@ -175,7 +202,6 @@ describe('fetchImportDefaults', () => {
 
     it('should create successive inherited layers for imported maps', async () => {
         assetDB.getItem.mockImplementation(({ AssetId }) => {
-            console.log(`Fetching: ${AssetId}`)
             switch(AssetId) {
                 case 'ASSET#BASE':
                     return {
