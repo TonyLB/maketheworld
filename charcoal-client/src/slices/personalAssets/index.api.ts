@@ -35,10 +35,12 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }
 
 type ImportsByAssets = Record<string, Record<string, string>>
 
-export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { currentWML } }) => async (dispatch) => {
+export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { currentWML }, internalData: { id } }) => async (dispatch) => {
     if (!currentWML) {
         throw new Error()
     }
+    const assetKey = id?.split('#').slice(1).join('#')
+
     const wmlQuery = new WMLQuery(currentWML)
     const normalized = wmlQuery.normalize()
     const importsByAssetId = Object.values(normalized)
@@ -53,7 +55,7 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
                 }), {})
         }), {} as ImportsByAssets)
 
-    const { importDefaults } = await dispatch(socketDispatchPromise('fetchImportDefaults')({ importsByAssetId }))
+    const { importDefaults } = await dispatch(socketDispatchPromise('fetchImportDefaults')({ importsByAssetId, assetId: assetKey }))
 
     return {
         publicData: {

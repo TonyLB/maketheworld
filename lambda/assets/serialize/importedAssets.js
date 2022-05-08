@@ -30,7 +30,7 @@ export const importedAssetIds = async (importMap) => {
         return Object.assign({}, ...promiseReturns)
     }
 
-    const getImportTree = async () => {
+    const getImportTree = async (scopeMap) => {
         const assetsToFetch = [...(new Set(Object.values(importMap).map(({ asset }) => (asset))))]
         const fetchAssetImportTree = async (asset) => {
             const { importTree = {}, namespaceMap = {} } = await assetDB.getItem({
@@ -49,22 +49,28 @@ export const importedAssetIds = async (importMap) => {
         const promiseReturns = await Promise.all(fetchPromises)
         const importTree = Object.assign({}, ...promiseReturns.map(({ importTree }) => (importTree)))
         const namespaceMapByAssetId = Object.assign({}, ...promiseReturns.map(({ namespaceMap }) => (namespaceMap)))
-        const namespaceMap = Object.assign({}, ...Object.entries(importMap)
-            .map(([toKey, { asset: assetId, scopedId: { key: fromKey } }]) => {
-                if (namespaceMapByAssetId[assetId]?.[fromKey]) {
-                    return { [toKey]: namespaceMapByAssetId[assetId][fromKey] }
-                }
-                else {
-                    return { [toKey]: `${assetId}#${fromKey}`}
-                }
-            }))
+        const namespaceMap = Object.assign({}, 
+            ...Object.entries(importMap)
+                .map(([toKey, { asset: assetId, scopedId: { key: fromKey } }]) => {
+                    if (namespaceMapByAssetId[assetId]?.[fromKey]) {
+                        return { [toKey]: namespaceMapByAssetId[assetId][fromKey] }
+                    }
+                    else {
+                        return { [toKey]: {
+                            key: `${assetId}#${fromKey}`,
+                            assetId: scopeMap[fromKey]
+                        } }
+                    }
+                }),
+        )
         return {
             importTree,
             namespaceMap
         }
     }
 
-    const [ scopeMap, { importTree, namespaceMap } ] = await Promise.all([ getScopeMap(), getImportTree() ])
+    const scopeMap = await getScopeMap()
+    const { importTree, namespaceMap } = await getImportTree(scopeMap)
     return {
         scopeMap,
         importTree,

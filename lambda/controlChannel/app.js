@@ -421,8 +421,11 @@ export const handler = async (event, context) => {
             }
         case 'fetchImportDefaults':
             let importDefaults = {}
-            if (request.importsByAssetId) {
-                importDefaults = await fetchImportDefaults(request.importsByAssetId)
+            if (request.importsByAssetId && request.assetId) {
+                importDefaults = await fetchImportDefaults({
+                    importsByAssetId: request.importsByAssetId,
+                    assetId: request.assetId
+                })
             }
             return {
                 statusCode: 200,

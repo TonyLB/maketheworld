@@ -40,15 +40,20 @@ describe('handleUpload', () => {
         })
         getTranslateFile.mockResolvedValue({
             scopeMap: {
-                test: '123'
+                test: 'ROOM#123'
             }
         })
         importedAssetIds.mockResolvedValue({
             importTree: ['BASE'],
             scopeMap: {
-                VORTEX: 'VORTEX'
+                VORTEX: 'ROOM#VORTEX'
             },
-            namespaceMap: { VORTEX: 'BASE#VORTEX' }
+            namespaceMap: {
+                VORTEX: {
+                    key: 'BASE#VORTEX',
+                    assetId: 'ROOM#VORTEX'
+                }
+            }
         })
         putTranslateFile.mockResolvedValue({})
         await handleUpload({ s3Client: { send: jest.fn() } })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
@@ -67,8 +72,8 @@ describe('handleUpload', () => {
                 name: 'Personal/Test.translate.json',
                 importTree: ['BASE'],
                 scopeMap: {
-                    test: '123',
-                    VORTEX: 'VORTEX'
+                    test: 'ROOM#123',
+                    VORTEX: 'ROOM#VORTEX'
                 }
             }
         )
@@ -84,10 +89,19 @@ describe('handleUpload', () => {
             fileName: 'Personal/Test.wml',
             importTree: ['BASE'],
             scopeMap: {
-                VORTEX: 'VORTEX',
-                test: '123',
+                VORTEX: 'ROOM#VORTEX',
+                test: 'ROOM#123',
             },
-            namespaceMap: { VORTEX: 'BASE#VORTEX' },
+            namespaceMap: {
+                VORTEX: {
+                    key: 'BASE#VORTEX',
+                    assetId: 'ROOM#VORTEX'
+                },
+                test: {
+                    assetId: 'ROOM#123',
+                    key: 'TestAsset#test'
+                }
+            },
             translateFile: 'Personal/Test.translate.json'
         })
         expect(uploadResponse).toHaveBeenCalledWith({
