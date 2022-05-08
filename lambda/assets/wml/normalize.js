@@ -440,4 +440,6 @@ export const normalize = (node, existingMap = {}, contextStack = [], location = 
     return thirdPassMap
 }
 
+export const isNormalExit = (arg) => (arg.tag === 'Exit')
+
 export default normalize

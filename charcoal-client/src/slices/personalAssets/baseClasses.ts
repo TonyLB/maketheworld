@@ -1,6 +1,6 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { ComponentAppearance } from '../../wml/normalize'
-import { InheritedExit } from './inheritedData';
+import { InheritedExit, InheritedComponent } from './inheritedData';
 
 export interface PersonalAssetsInternal {
     id?: string;
@@ -14,7 +14,7 @@ export interface PersonalAssetsPublic {
     originalWML?: string;
     currentWML?: string;
     draftWML?: string;
-    defaultAppearances: Record<string, ComponentAppearance>;
+    defaultAppearances: Record<string, InheritedComponent>;
     inheritedExits: InheritedExit[]
 }
 

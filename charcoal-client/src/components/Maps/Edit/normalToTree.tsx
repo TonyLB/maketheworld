@@ -1,15 +1,15 @@
 import { MapTree } from './maps'
-import { NormalForm, NormalMap, NormalExit } from '../../../wml/normalize'
+import { NormalForm, NormalMap, NormalExit, isNormalExit } from '../../../wml/normalize'
 import { AssetComponent } from '../../Library/Edit/LibraryAsset'
 import { unique } from '../../../lib/lists'
-import { InheritedExit } from '../../../slices/personalAssets/inheritedData'
+import { InheritedExit, InheritedMapLayer, InheritedMapLayerRoom } from '../../../slices/personalAssets/inheritedData'
 
 interface NormalToTreeProps {
     MapId: string;
     normalForm: NormalForm;
     rooms: Record<string, AssetComponent>;
     inheritedExits: InheritedExit[];
-    inheritedAppearances: any
+    inheritedAppearances: InheritedMapLayer[];
 }
 
 export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inheritedAppearances }: NormalToTreeProps): MapTree => {
@@ -21,8 +21,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
             ...rooms
         }), {}) as Record<string, { x: number; y: number; location: number[] }>
     const exitPairs = Object.values(normalForm || {})
-        .filter(({ tag }) => (tag === 'Exit'))
-        .map((item) => (item as NormalExit))
+        .filter(isNormalExit)
         .reduce<Record<string, string[]>>((previous, { to, from, appearances = [] }) => {
             if (appearances.find(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))) {
                 return {
@@ -47,7 +46,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
                 children: []
             })))
         ]), [] as MapTree)
-    const inheritedRooms: Record<string, any> = Object.assign({}, ...inheritedAppearances.map(({ rooms }: { rooms: any }) => (rooms)))
+    const inheritedRooms: Record<string, InheritedMapLayerRoom> = Object.assign({}, ...(inheritedAppearances.map(({ rooms }) => (rooms))))
     const roomCheck = { ...roomItems, ...inheritedRooms }
     const inheritedExitItems: MapTree = inheritedExits
         .filter(({ from, to }) => ((from in roomCheck) && (to in roomCheck)))
@@ -85,7 +84,7 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
             ]
         }, exitItems)
     const inheritedTree: MapTree = Object.entries(inheritedRooms || {})
-        .reduce<MapTree>((previous, [key, { x = 0, y = 0, location }], index) => {
+        .reduce<MapTree>((previous, [key, { x = 0, y = 0 }], index) => {
             return [
                 ...previous,
                 {
@@ -93,7 +92,6 @@ export const normalToTree = ({ MapId, normalForm, rooms, inheritedExits, inherit
                     item: {
                         type: 'ROOM',
                         name: rooms[key]?.name || 'Untitled',
-                        location,
                         x,
                         y,
                         roomId: key,
