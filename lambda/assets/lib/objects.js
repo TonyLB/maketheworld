@@ -35,3 +35,7 @@ export const reduceArrayToObject = (previous, [key, value]) => ({ ...previous, [
 export const objectFilter = (obj, condition) => Object.entries(obj)
     .filter(([_, value]) => (condition(value)))
     .reduce(reduceArrayToObject, {})
+
+export const objectEntryFilter = (obj, condition) => Object.entries(obj)
+    .filter(([key, value]) => (condition(key, value)))
+    .reduce(reduceArrayToObject, {})
