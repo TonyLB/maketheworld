@@ -20,9 +20,6 @@ const evaluateConditionalList = (asset, list = [], state) => {
 }
 
 const mapRenderFormats = (renderItem) => {
-    if (renderItem?.tag === 'String') {
-        return renderItem.value
-    }
     const { spaceAfter, spaceBefore, ...rest } = renderItem || {}
     return rest
 }

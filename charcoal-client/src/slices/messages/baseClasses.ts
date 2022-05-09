@@ -43,7 +43,12 @@ export type RoomDescribeLink = {
     text: string;
 } & RoomDescribeLinkPayload
 
-export type RoomDescribePortion = RoomDescribeLink | string;
+type RoomTextLink = {
+    tag: 'String';
+    value: string;
+}
+
+export type RoomDescribePortion = RoomDescribeLink | RoomTextLink;
 
 type RoomDescribeData = {
     Description: RoomDescribePortion[];

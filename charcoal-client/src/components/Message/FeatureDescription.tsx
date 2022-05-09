@@ -24,12 +24,11 @@ interface FeatureDescriptionProps {
 }
 
 const renderFeatureDescriptionItem = (item: RoomDescribePortion, index: number) => {
-    if (typeof item === 'string') {
-        return item
-    }
     switch(item.tag) {
         case 'Link':
             return <DescriptionLink link={item} key={index} />
+        case 'String':
+            return item.value
     }
 }
 
