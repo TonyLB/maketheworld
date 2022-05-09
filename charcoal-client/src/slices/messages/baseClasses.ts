@@ -8,9 +8,38 @@ export type SpacerMessage = {
     DisplayProtocol: 'SpacerMessage';
 } & MessageAddressing
 
+type TaggedText = {
+    tag: 'String';
+    value: string;
+}
+
+type TaggedActionLink = {
+    targetTag: 'Action';
+    toAssetId: string;
+    toAction: string;
+}
+
+type TaggedFeatureLink = {
+    targetTag: 'Feature';
+    toFeatureId: string;
+}
+
+type TaggedLinkPayload = TaggedActionLink | TaggedFeatureLink
+
+export type TaggedLink = {
+    tag: 'Link',
+    RoomId: string;
+    text: string;
+} & TaggedLinkPayload
+
+export type TaggedMessageContent = TaggedLink | TaggedText;
+
+export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
+export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
+
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing
 
 export type RoomExit = {
@@ -24,29 +53,8 @@ export type RoomCharacter = {
     CharacterId: string;
 }
 
-type RoomDescribeActionLink = {
-    targetTag: 'Action';
-    toAssetId: string;
-    toAction: string;
-}
-
-type RoomDescribeFeatureLink = {
-    targetTag: 'Feature';
-    toFeatureId: string;
-}
-
-type RoomDescribeLinkPayload = RoomDescribeActionLink | RoomDescribeFeatureLink
-
-export type RoomDescribeLink = {
-    tag: 'Link',
-    RoomId: string;
-    text: string;
-} & RoomDescribeLinkPayload
-
-export type RoomDescribePortion = RoomDescribeLink | string;
-
 type RoomDescribeData = {
-    Description: RoomDescribePortion[];
+    Description: TaggedMessageContent[];
     Name: string;
     RoomId: string;
     Exits: RoomExit[];
@@ -58,7 +66,7 @@ export type RoomDescription = {
 } & RoomDescribeData & MessageAddressing
 
 type FeatureDescribeData = {
-    Description: RoomDescribePortion[];
+    Description: TaggedMessageContent[];
     Name: string;
     FeatureId: string;
 }
@@ -95,17 +103,17 @@ type MessageCharacterInfo = {
 
 export type CharacterSpeech = {
     DisplayProtocol: 'SayMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type CharacterNarration = {
     DisplayProtocol: 'NarrateMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type OutOfCharacterMessage = {
     DisplayProtocol: 'OOCMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage

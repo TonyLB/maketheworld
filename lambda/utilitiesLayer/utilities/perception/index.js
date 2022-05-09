@@ -20,29 +20,27 @@ const evaluateConditionalList = (asset, list = [], state) => {
 }
 
 const mapRenderFormats = (renderItem) => {
-    if (renderItem?.tag === 'String') {
-        return renderItem.value
-    }
     const { spaceAfter, spaceBefore, ...rest } = renderItem || {}
     return rest
 }
 
-const aggregateComponentRender = (assets, itemsByAsset, assetStateById, mapValuesOnly) => (
-    assets.reduce((previous, AssetId) => {
+const aggregateComponentRender = (assets, itemsByAsset, assetStateById, mapValuesOnly) => {
+    const joinedRender = assets.reduce((previous, AssetId) => {
         const { appearances = [] } = itemsByAsset[AssetId]
         const state = assetStateById[splitType(AssetId)[1]]?.State || {}
-        const joinedRender = appearances
+        return appearances
             .filter(({ name, exits }) => (!mapValuesOnly || ((name || []).length > 0 || (exits || []).length > 0)))
             .filter(({ conditions }) => (evaluateConditionalList(AssetId, conditions, state)))
             .reduce(componentAppearanceReduce, previous)
-        return mapValuesOnly
-            ? { name: joinedRender.name, exits: joinedRender.exits }
-            : {
-                ...joinedRender,
-                render: joinedRender.render.map(mapRenderFormats)
-            }
     }, { render: [], name: [], exits: [], features: [] })
-)
+    return mapValuesOnly
+        ? { name: joinedRender.name, exits: joinedRender.exits }
+        : {
+            ...joinedRender,
+            render: joinedRender.render.map(mapRenderFormats)
+        }
+
+}
 
 export const renderItems = async (renderList, existingStatesByAsset = {}, priorAssetLists = {}) => {
     const itemsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]

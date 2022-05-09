@@ -162,7 +162,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
             Targets: [RoomKey(RoomId)],
             DisplayProtocol,
             CharacterId,
-            Message,
+            Message: [{ tag: 'String', value: Message }],
             Name,
             Color
         })

@@ -13,7 +13,7 @@ import FeatureIcon from '@mui/icons-material/Search'
 import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
-    RoomDescribePortion
+    TaggedMessageContent
 } from '../../slices/messages/baseClasses'
 
 import DescriptionLink from './DescriptionLink'
@@ -23,13 +23,12 @@ interface FeatureDescriptionProps {
     children?: ReactChild | ReactChildren;
 }
 
-const renderFeatureDescriptionItem = (item: RoomDescribePortion, index: number) => {
-    if (typeof item === 'string') {
-        return item
-    }
+const renderFeatureDescriptionItem = (item: TaggedMessageContent, index: number) => {
     switch(item.tag) {
         case 'Link':
             return <DescriptionLink link={item} key={index} />
+        case 'String':
+            return item.value
     }
 }
 

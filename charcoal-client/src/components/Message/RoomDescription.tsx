@@ -15,30 +15,16 @@ import HouseIcon from '@mui/icons-material/House'
 import MessageComponent from './MessageComponent'
 import {
     RoomDescription as RoomDescriptionType,
-    RoomDescribeLink,
     RoomHeader as RoomHeaderType,
-    RoomDescribePortion
 } from '../../slices/messages/baseClasses'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'
-import { socketDispatchPromise } from '../../slices/lifeLine'
-import { useActiveCharacter } from '../ActiveCharacter'
-import DescriptionLink from './DescriptionLink'
+import TaggedMessageContent from './TaggedMessageContent'
 
 interface RoomDescriptionProps {
     message: RoomDescriptionType | RoomHeaderType;
     children?: ReactChild | ReactChildren;
-}
-
-const renderRoomDescriptionItem = (item: RoomDescribePortion, index: number) => {
-    if (typeof item === 'string') {
-        return item
-    }
-    switch(item.tag) {
-        case 'Link':
-            return <DescriptionLink link={item} key={index} />
-    }
 }
 
 export const RoomDescription = ({ message }: RoomDescriptionProps) => {
@@ -68,7 +54,7 @@ export const RoomDescription = ({ message }: RoomDescriptionProps) => {
                     <Typography variant='h5' align='left'>
                         { Name }
                     </Typography>
-                    { Description.map(renderRoomDescriptionItem) }
+                    <TaggedMessageContent list={Description} />
                     <Divider />
                 </Box>
                 <Box css={css`

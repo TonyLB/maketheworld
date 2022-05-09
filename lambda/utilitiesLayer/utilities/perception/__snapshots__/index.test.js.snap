@@ -7,7 +7,10 @@ Array [
     "CharacterId": "XYZ",
     "Characters": Array [],
     "Description": Array [
-      "Test One. ",
+      Object {
+        "tag": "String",
+        "value": "Test One. ",
+      },
     ],
     "EphemeraId": "ROOM#MNO",
     "Exits": Array [],
@@ -21,7 +24,10 @@ Array [
     "CharacterId": "QRS",
     "Characters": Array [],
     "Description": Array [
-      "Test Two. ",
+      Object {
+        "tag": "String",
+        "value": "Test Two. ",
+      },
     ],
     "EphemeraId": "ROOM#TUV",
     "Exits": Array [],
@@ -40,7 +46,10 @@ Array [
     "CharacterId": "XYZ",
     "Characters": Array [],
     "Description": Array [
-      "Test One. ",
+      Object {
+        "tag": "String",
+        "value": "Test One. ",
+      },
     ],
     "EphemeraId": "ROOM#MNO",
     "Exits": Array [],
@@ -54,7 +63,10 @@ Array [
     "CharacterId": "QRS",
     "Characters": Array [],
     "Description": Array [
-      "Test Two. ",
+      Object {
+        "tag": "String",
+        "value": "Test Two. ",
+      },
     ],
     "EphemeraId": "ROOM#TUV",
     "Exits": Array [],
@@ -108,17 +120,26 @@ Array [
     "CharacterId": "QRS",
     "Characters": Array [],
     "Description": Array [
-      "Test ",
+      Object {
+        "tag": "String",
+        "value": "Test ",
+      },
       Object {
         "key": "testOne",
         "tag": "Link",
       },
-      " ",
+      Object {
+        "tag": "String",
+        "value": " ",
+      },
       Object {
         "key": "testTwo",
         "tag": "Link",
       },
-      "-attached",
+      Object {
+        "tag": "String",
+        "value": "-attached",
+      },
     ],
     "EphemeraId": "ROOM#MNO",
     "Exits": Array [],
@@ -157,7 +178,10 @@ Array [
     "CharacterId": "QRS",
     "Characters": Array [],
     "Description": Array [
-      "Test One. ",
+      Object {
+        "tag": "String",
+        "value": "Test One. ",
+      },
     ],
     "EphemeraId": "ROOM#MNO",
     "Exits": Array [],
@@ -176,7 +200,10 @@ Array [
     "CharacterId": "QRS",
     "Characters": Array [],
     "Description": Array [
-      "Test One. ",
+      Object {
+        "tag": "String",
+        "value": "Test One. ",
+      },
     ],
     "EphemeraId": "ROOM#MNO",
     "Exits": Array [],

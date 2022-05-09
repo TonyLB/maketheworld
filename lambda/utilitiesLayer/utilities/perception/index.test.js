@@ -250,7 +250,7 @@ describe('render', () => {
         expect(output).toEqual([{
             tag: 'Feature',
             CharacterId: 'QRS',
-            Description: ['A cheery clock-tower of pale yellow stone.'],
+            Description: [{ tag: 'String', value: 'A cheery clock-tower of pale yellow stone.' }],
             EphemeraId: 'FEATURE#MNO',
             FeatureId: 'MNO',
             Name: "Clock Tower",

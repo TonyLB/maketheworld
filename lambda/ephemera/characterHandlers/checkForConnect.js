@@ -22,7 +22,7 @@ export const checkForConnect = async ({ oldImage, newImage }) => {
                     CreatedTime: epochTime + 1,
                     Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
                     DisplayProtocol: "WorldMessage",
-                    Message: `${Name || 'Someone'} has connected.`
+                    Message: [{ tag: 'String', value: `${Name || 'Someone'} has connected.` }]
                 }),
                 publishMessage({
                     MessageId: `MESSAGE#${uuidv4()}`,
