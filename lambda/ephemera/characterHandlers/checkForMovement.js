@@ -18,7 +18,7 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
                     CreatedTime: epochTime - 1,
                     CharacterId,
                     RoomId: oldRoomId,
-                    Message: `${Name}${leaveMessage || ' has left.'}`
+                    Message: [{ tag: 'String', value: `${Name}${leaveMessage || ' has left.'}` }]
                 }))
                 : () => (Promise.resolve({}))
             const arrival = newRoomId
@@ -26,7 +26,7 @@ export const checkForMovement = async ({ oldImage, newImage }) => {
                     CreatedTime: epochTime + 1,
                     CharacterId,
                     RoomId: newRoomId,
-                    Message: `${Name}${enterMessage || ' has arrived.'}`
+                    Message: [{ tag: 'String', value: `${Name}${enterMessage || ' has arrived.'}` }]
                 }))
                 : () => (Promise.resolve({}))
             if (newRoomId) {

@@ -60,7 +60,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                         executeMessageQueue.push({
                             Targets: [RoomKey(RoomId)],
                             DisplayProtocol: 'WorldMessage',
-                            Message: message
+                            Message: [{ tag: 'String', value: message }]
                         })
                     }
                 }

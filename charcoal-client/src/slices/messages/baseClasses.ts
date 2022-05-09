@@ -39,7 +39,7 @@ export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => 
 
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing
 
 export type RoomExit = {

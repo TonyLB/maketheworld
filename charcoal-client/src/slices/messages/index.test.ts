@@ -24,7 +24,7 @@ describe('messages reducer', () => {
         ].map(([value, label]) => ({
             DisplayProtocol: 'WorldMessage',
             MessageId: label,
-            Message: 'Test',
+            Message: [{ tag: 'String', value: 'Test' }],
             CreatedTime: value,
             Target: 'Test'
         })) as WorldMessage[]
@@ -81,7 +81,7 @@ describe('messages reducer', () => {
         ].map(([value, label]) => ({
             DisplayProtocol: 'WorldMessage',
             MessageId: label,
-            Message: 'Test',
+            Message: [{ tag: 'String', value: 'Test' }],
             CreatedTime: value,
             Target: 'Test'
         })) as WorldMessage[]
@@ -94,14 +94,14 @@ describe('messages reducer', () => {
             expect(reducer({}, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
-                Message: 'Test message',
+                Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
                 Target: 'TESS'
             }]))).toEqual({
                 TESS: [{
                     DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
-                    Message: 'Test message',
+                    Message: [{ tag: 'String', value: 'Test message' }],
                     MessageId: 'Test',
                     Target: 'TESS'
                 }]
@@ -112,14 +112,14 @@ describe('messages reducer', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
-                Message: 'Test message',
+                Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
                 Target: 'MARCO'
             }]))).toEqual({
                 MARCO: [{
                     DisplayProtocol: 'WorldMessage',
                     CreatedTime: 1,
-                    Message: 'Test message',
+                    Message: [{ tag: 'String', value: 'Test message' }],
                     MessageId: 'Test',
                     Target: 'MARCO'
                 }],
@@ -131,14 +131,14 @@ describe('messages reducer', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
-                Message: 'Test message',
+                Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
                 Target: 'TESS'
             }]))).toEqual({
                 TESS: [{
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 1,
-                        Message: 'Test message',
+                        Message: [{ tag: 'String', value: 'Test message' }],
                         MessageId: 'Test',
                         Target: 'TESS'
                     },
@@ -151,7 +151,7 @@ describe('messages reducer', () => {
             expect(reducer(state, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 200000,
-                Message: 'Test message',
+                Message: [{ tag: 'String', value: 'Test message' }],
                 MessageId: 'Test',
                 Target: 'TESS'
             }]))).toEqual({
@@ -160,7 +160,7 @@ describe('messages reducer', () => {
                     {
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 200000,
-                        Message: 'Test message',
+                        Message: [{ tag: 'String', value: 'Test message' }],
                         MessageId: 'Test',
                         Target: 'TESS'
                     }
@@ -178,7 +178,7 @@ describe('messages reducer', () => {
         ].map(([value, label]) => ({
             DisplayProtocol: 'WorldMessage',
             MessageId: label,
-            Message: 'Test',
+            Message: [{ tag: 'String', value: 'Test message' }],
             CreatedTime: value,
             Target: 'Test'
         })) as WorldMessage[]

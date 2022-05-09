@@ -11,13 +11,13 @@ const testState = {
         TESS: [{
             DisplayProtocol: 'WorldMessage',
             MessageId: 'Test1',
-            Message: 'Test1',
+            Message: [{ tag: 'String', value: 'Test1' }],
             CreatedTime: 0,
             Target: 'TESS'
         }, {
             DisplayProtocol: 'WorldMessage',
             MessageId: 'Test2',
-            Message: 'Test2',
+            Message: [{ tag: 'String', value: 'Test2' }],
             CreatedTime: 1,
             Target: 'TESS'
         }]
@@ -33,13 +33,13 @@ describe('messages selectors', () => {
             expect(getMessages(testState).TESS).toEqual([{
                 DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test1',
-                Message: 'Test1',
+                Message: [{ tag: 'String', value: 'Test1' }],
                 CreatedTime: 0,
                 Target: 'TESS'
             }, {
                 DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test2',
-                Message: 'Test2',
+                Message: [{ tag: 'String', value: 'Test2' }],
                 CreatedTime: 1,
                 Target: 'TESS'
             }])
@@ -57,13 +57,13 @@ describe('messages selectors', () => {
             expect(Object.values(getMessages(testState))).toEqual([[{
                 DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test1',
-                Message: 'Test1',
+                Message: [{ tag: 'String', value: 'Test1' }],
                 CreatedTime: 0,
                 Target: 'TESS'
             }, {
                 DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test2',
-                Message: 'Test2',
+                Message: [{ tag: 'String', value: 'Test2' }],
                 CreatedTime: 1,
                 Target: 'TESS'
             }]])
@@ -73,13 +73,13 @@ describe('messages selectors', () => {
             expect(Object.entries(getMessages(testState))).toEqual([['TESS', [{
                 DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test1',
-                Message: 'Test1',
+                Message: [{ tag: 'String', value: 'Test1' }],
                 CreatedTime: 0,
                 Target: 'TESS'
             }, {
                 DisplayProtocol: 'WorldMessage',
                 MessageId: 'Test2',
-                Message: 'Test2',
+                Message: [{ tag: 'String', value: 'Test2' }],
                 CreatedTime: 1,
                 Target: 'TESS'
             }]]])
@@ -96,20 +96,20 @@ describe('messages selectors', () => {
                     CreatedTime: 1,
                     Target: 'TESS',
                     RoomId: 'TEST',
-                    Description: ['Test1'],
+                    Description: [{ tag: 'String', value: 'Test1' }],
                     Name: 'Test1',
                     Exits: [],
                     Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
-                    Message: 'Test2',
+                    Message: [{ tag: 'String', value: 'Test2' }],
                     CreatedTime: 2,
                     Target: 'TESS'
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test3',
-                    Message: 'Test3',
+                    Message: [{ tag: 'String', value: 'Test3' }],
                     CreatedTime: 3,
                     Target: 'TESS'
                 }, {
@@ -118,14 +118,14 @@ describe('messages selectors', () => {
                     CreatedTime: 4,
                     Target: 'TESS',
                     RoomId: 'TEST4',
-                    Description: ['Test4'],
+                    Description: [{ tag: 'String', value: 'Test4' }],
                     Name: 'Test4',
                     Exits: [],
                     Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test5',
-                    Message: 'Test5',
+                    Message: [{ tag: 'String', value: 'Test5' }],
                     CreatedTime: 5,
                     Target: 'TESS'
                 }],
@@ -135,14 +135,14 @@ describe('messages selectors', () => {
                     CreatedTime: 1,
                     Target: 'MARCO',
                     RoomId: 'TEST',
-                    Description: 'Test1',
+                    Description: [{ tag: 'String', value: 'Test1' }],
                     Name: 'Test1',
                     Exits: [],
                     Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test2',
-                    Message: 'Test2',
+                    Message: [{ tag: 'String', value: 'Test2' }],
                     CreatedTime: 2,
                     Target: 'MARCO'
                 }, {
@@ -151,14 +151,14 @@ describe('messages selectors', () => {
                     CreatedTime: 3,
                     Target: 'MARCO',
                     RoomId: 'TEST',
-                    Description: ['Test3'],
+                    Description: [{ tag: 'String', value: 'Test3' }],
                     Name: 'Test3',
                     Exits: [],
                     Characters: []
                 }, {
                     DisplayProtocol: 'WorldMessage',
                     MessageId: 'Test4',
-                    Message: 'Test4',
+                    Message: [{ tag: 'String', value: 'Test4' }],
                     CreatedTime: 4,
                     Target: 'MARCO'
                 }]
@@ -177,19 +177,19 @@ describe('messages selectors', () => {
                 Messages: [{
                         DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test2',
-                        Message: 'Test2',
+                        Message: [{ tag: 'String', value: 'Test2' }],
                         CreatedTime: 2,
                         Target: 'TESS'
                     }, {
                         DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test3',
-                        Message: 'Test3',
+                        Message: [{ tag: 'String', value: 'Test3' }],
                         CreatedTime: 3,
                         Target: 'TESS'
                     }, {
                         DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test5',
-                        Message: 'Test5',
+                        Message: [{ tag: 'String', value: 'Test5' }],
                         CreatedTime: 5,
                         Target: 'TESS'
                 }],
@@ -200,7 +200,7 @@ describe('messages selectors', () => {
                             CreatedTime: 1,
                             Target: 'TESS',
                             RoomId: 'TEST',
-                            Description: ['Test1'],
+                            Description: [{ tag: 'String', value: 'Test1' }],
                             Name: 'Test1',
                             Exits: [],
                             Characters: []
@@ -213,7 +213,7 @@ describe('messages selectors', () => {
                             CreatedTime: 4,
                             Target: 'TESS',
                             RoomId: 'TEST4',
-                            Description: ['Test4'],
+                            Description: [{ tag: 'String', value: 'Test4' }],
                             Name: 'Test4',
                             Exits: [],
                             Characters: []
@@ -228,13 +228,13 @@ describe('messages selectors', () => {
                 Messages: [{
                         DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test2',
-                        Message: 'Test2',
+                        Message: [{ tag: 'String', value: 'Test2' }],
                         CreatedTime: 2,
                         Target: 'MARCO'
                     }, {
                         DisplayProtocol: 'WorldMessage',
                         MessageId: 'Test4',
-                        Message: 'Test4',
+                        Message: [{ tag: 'String', value: 'Test4' }],
                         CreatedTime: 4,
                         Target: 'MARCO'
                 }],
@@ -245,7 +245,7 @@ describe('messages selectors', () => {
                             CreatedTime: 1,
                             Target: 'MARCO',
                             RoomId: 'TEST',
-                            Description: ['Test3'],
+                            Description: [{ tag: 'String', value: 'Test3' }],
                             Name: 'Test3',
                             Exits: [],
                             Characters: []

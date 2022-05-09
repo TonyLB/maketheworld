@@ -9,6 +9,7 @@ import {
 
 import MessageComponent from './MessageComponent'
 import { WorldMessage as WorldMessageType } from '../../slices/messages/baseClasses'
+import TaggedMessageContent from './TaggedMessageContent'
 
 interface WorldMessageProps {
     message: WorldMessageType;
@@ -30,12 +31,17 @@ const intersperseBrs = (entryList: string[]): ReactFragment => (
 )
 
 export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {
+    //
+    // TODO: Replace render here with the general utility function abstracted from RoomDescription
+    // component
+    //
+
     return <MessageComponent
             sx={{ paddingTop: "10px", paddingBottom: "10px", paddingRight: "25px", paddingLeft: "25px" }}
         >
             <Box sx={{ height: "100%" }}>
                 <Typography variant='body1' align='left'>
-                    { intersperseBrs((message.Message).split('\n')) }
+                    <TaggedMessageContent list={message.Message} />
                 </Typography>
             </Box>
         </MessageComponent>

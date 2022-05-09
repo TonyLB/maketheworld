@@ -159,7 +159,7 @@ describe('executeInAsset', () => {
         const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('here.message("Test Message")')
         expect(executeMessageQueue).toEqual([{
             DisplayProtocol: 'WorldMessage',
-            Message: 'Test Message',
+            Message: [{ tag: 'String', value: 'Test Message' }],
             Targets: ['ROOM#123456']
         }])
 

@@ -14,7 +14,7 @@ export const checkForDisconnect = async ({ oldImage, newImage }) => {
                 CreatedTime: Date.now(),
                 Targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
                 DisplayProtocol: "WorldMessage",
-                Message: `${Name || 'Someone'} has disconnected.`
+                Message: [{ tag: 'String', value: `${Name || 'Someone'} has disconnected.` }]
             })
         }
         const updateRoomEphemera = async () => {
