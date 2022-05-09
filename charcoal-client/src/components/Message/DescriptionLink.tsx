@@ -13,7 +13,7 @@ import {
 import { blue, grey } from '@mui/material/colors'
 
 import {
-    RoomDescribeLink
+    TaggedLink
 } from '../../slices/messages/baseClasses'
 
 import { socketDispatchPromise } from '../../slices/lifeLine'
@@ -87,7 +87,7 @@ export const DescriptionLinkFeatureChip: FunctionComponent<DescriptionLinkChipPr
 }
 
 interface DescriptionLinkProps {
-    link: RoomDescribeLink
+    link: TaggedLink
 }
 
 export const DescriptionLink = ({ link }: DescriptionLinkProps) => {

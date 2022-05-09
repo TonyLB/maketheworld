@@ -15,9 +15,9 @@ import HouseIcon from '@mui/icons-material/House'
 import MessageComponent from './MessageComponent'
 import {
     RoomDescription as RoomDescriptionType,
-    RoomDescribeLink,
+    TaggedLink,
     RoomHeader as RoomHeaderType,
-    RoomDescribePortion
+    TaggedMessageContent
 } from '../../slices/messages/baseClasses'
 
 import RoomExit from './RoomExit'
@@ -31,7 +31,7 @@ interface RoomDescriptionProps {
     children?: ReactChild | ReactChildren;
 }
 
-const renderRoomDescriptionItem = (item: RoomDescribePortion, index: number) => {
+const renderRoomDescriptionItem = (item: TaggedMessageContent, index: number) => {
     switch(item.tag) {
         case 'Link':
             return <DescriptionLink link={item} key={index} />
