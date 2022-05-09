@@ -13,6 +13,10 @@ type TaggedText = {
     value: string;
 }
 
+type TaggedLineBreak = {
+    tag: 'LineBreak';
+}
+
 type TaggedActionLink = {
     targetTag: 'Action';
     toAssetId: string;
@@ -32,10 +36,11 @@ export type TaggedLink = {
     text: string;
 } & TaggedLinkPayload
 
-export type TaggedMessageContent = TaggedLink | TaggedText;
+export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
 
 export const isTaggedLink = (item: TaggedMessageContent): item is TaggedLink => (item.tag === 'Link')
 export const isTaggedText = (item: TaggedMessageContent): item is TaggedText => (item.tag === 'String')
+export const isTaggedLineBreak = (item: TaggedMessageContent): item is TaggedLineBreak => (item.tag === 'LineBreak')
 
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
