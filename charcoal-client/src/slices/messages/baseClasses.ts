@@ -103,17 +103,17 @@ type MessageCharacterInfo = {
 
 export type CharacterSpeech = {
     DisplayProtocol: 'SayMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type CharacterNarration = {
     DisplayProtocol: 'NarrateMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type OutOfCharacterMessage = {
     DisplayProtocol: 'OOCMessage';
-    Message: string;
+    Message: TaggedMessageContent[];
 } & MessageAddressing & MessageCharacterInfo
 
 export type Message = SpacerMessage | WorldMessage | RoomDescription | RoomHeader | RoomUpdate | FeatureDescription | CharacterDescription | CharacterNarration | CharacterSpeech | OutOfCharacterMessage

@@ -7,6 +7,7 @@ import {
 
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
+import TaggedMessageContent from './TaggedMessageContent'
 
 import { CharacterSpeech } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
@@ -87,7 +88,7 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
                     {message.Name}
                 </Box>
                 <Typography variant='body1' align='left'>
-                    {message.Message}
+                    <TaggedMessageContent list={message.Message} />
                 </Typography>
             </SpeechBubble>
 

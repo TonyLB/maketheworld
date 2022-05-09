@@ -7,6 +7,7 @@ import {
 
 import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
+import TaggedMessageContent from './TaggedMessageContent'
 
 import { OutOfCharacterMessage } from '../../slices/messages/baseClasses'
 import MessageComponent from './MessageComponent'
@@ -92,7 +93,7 @@ export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, varian
                     {message.Name} (out of character)
                 </Box>
                 <Typography variant='body1' align='left'>
-                    {message.Message}
+                    <TaggedMessageContent list={message.Message} />
                 </Typography>
             </OOCBubble>
 
