@@ -1,44 +1,110 @@
 import { splitType } from '../types.js'
 
+//
+// TODO: Replace repeated direct assigns of spaceAfter and spaceBefore with a post-process
+// that goes through the list, picks the first spaceBefore, and last spaceAfter,
+// elevates them to record level (in TaggedContentJoined or some such) and then purges
+// all spaceBefore/spaceAfter from the list of joined arguments
+//
 const joinRenderItems = function * (render = []) {
     if (render.length > 0) {
         let currentItem = render[0]
         if (currentItem.spaceBefore) {
-            if (currentItem.tag === 'String') {
-                currentItem.value = ` ${currentItem.value}`
-            }
-            else {
-                yield {
-                    tag: 'String',
-                    value: ' '
-                }
+            switch(currentItem.tag) {
+                case 'String':
+                    currentItem.value = ` ${currentItem.value}`
+                    break
+                case 'Link':
+                    yield {
+                        tag: 'String',
+                        value: ' '
+                    }
+                    break
+                case 'LineBreak':
+                    break
             }
         }
         for (const renderItem of render.slice(1)) {
             const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
-            if (spaceBetween && currentItem.tag === 'String') {
-                yield {
-                    ...currentItem,
-                    value: `${currentItem.value.trim()} `
-                }
-            }
-            else {
-                yield currentItem
-            }
-            if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag !== 'String') {
-                yield {
-                    tag: 'String',
-                    value: ' '
-                }
-            }
-            if (spaceBetween && currentItem.tag !== 'String' && renderItem.tag === 'String') {
-                currentItem = {
-                    ...renderItem,
-                    value: ` ${renderItem.value.trimLeft()}`
-                }
-            }
-            else {
-                currentItem = renderItem
+            switch(renderItem.tag) {
+                case 'String':
+                    switch(currentItem.tag) {
+                        case 'String':
+                            currentItem.value = `${currentItem.value.trimEnd()}${spaceBetween ? ' ' : ''}${renderItem.value.trimLeft()}`
+                            currentItem.spaceAfter = renderItem.spaceAfter
+                            break
+                        case 'Link':
+                            yield {
+                                ...currentItem,
+                                spaceAfter: undefined
+                            }
+                            currentItem = {
+                                ...renderItem,
+                                value: `${spaceBetween ? ' ' : ''}${renderItem.value.trimLeft()}`,
+                                spaceBefore: undefined
+                            }
+                            break
+                        case 'LineBreak':
+                            yield {
+                                ...currentItem,
+                                value: currentItem.value.trimEnd(),
+                                spaceAfter: undefined
+                            }
+                            break
+                    }
+                    break
+                case 'Link':
+                    switch(currentItem.tag) {
+                        case 'String':
+                            yield {
+                                ...currentItem,
+                                value: `${currentItem.value.trimEnd()}${spaceBetween ? ' ' : ''}`,
+                                spaceAfter: undefined
+                            }
+                            currentItem = {
+                                ...renderItem,
+                                spaceBefore: undefined
+                            }
+                            break
+                        case 'Link':
+                            yield {
+                                ...currentItem,
+                                spaceAfter: undefined
+                            }
+                            if (spaceBetween) {
+                                yield {
+                                    tag: 'String',
+                                    value: ' '
+                                }
+                            }
+                            currentItem = {
+                                ...renderItem,
+                                spaceBefore: undefined
+                            }
+                            break
+                        case 'LineBreak':
+                            yield {
+                                ...currentItem,
+                                spaceAfter: undefined
+                            }
+                            currentItem = {
+                                ...renderItem,
+                                spaceBefore: undefined
+                            }
+                            break;
+                    }
+                    break
+                case 'LineBreak':
+                    yield {
+                        ...currentItem,
+                        value: currentItem.value.trim(),
+                        spaceAfter: undefined
+                    }
+                    currentItem = {
+                        ...renderItem,
+                        spaceBefore: undefined
+                    }
+                    break
             }
         }
         yield currentItem
@@ -63,7 +129,7 @@ export const componentAppearanceReduce = (...renderList) => {
             ...(previous.exits || []),
             ...(current.exits || [])
         ],
-    }))
+    }), { render: [], name: [], features: [], exits: [] })
     return {
         ...joinedList,
         name: joinedList.name.join(''),
