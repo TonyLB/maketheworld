@@ -71,10 +71,7 @@ describe('handleUpload', () => {
                 assetKey: 'TestAsset',
                 name: 'Personal/Test.translate.json',
                 importTree: ['BASE'],
-                scopeMap: {
-                    test: 'ROOM#123',
-                    VORTEX: 'ROOM#VORTEX'
-                }
+                scopeMap: {}
             }
         )
         expect(dbRegister).toHaveBeenCalledWith({
@@ -88,18 +85,11 @@ describe('handleUpload', () => {
             },
             fileName: 'Personal/Test.wml',
             importTree: ['BASE'],
-            scopeMap: {
-                VORTEX: 'ROOM#VORTEX',
-                test: 'ROOM#123',
-            },
+            scopeMap: {},
             namespaceMap: {
                 VORTEX: {
                     key: 'BASE#VORTEX',
                     assetId: 'ROOM#VORTEX'
-                },
-                test: {
-                    assetId: 'ROOM#123',
-                    key: 'TestAsset#test'
                 }
             },
             translateFile: 'Personal/Test.translate.json'
