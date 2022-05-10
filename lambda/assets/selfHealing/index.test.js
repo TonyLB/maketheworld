@@ -67,10 +67,7 @@ describe('healAsset', () => {
             assetKey: 'TestAsset',
             importTree: ['BASE'],
             name: 'Personal/healTest.translate.json',
-            scopeMap: {
-                VORTEX: 'ROOM#VORTEX',
-                test: 'ROOM#123'
-            }
+            scopeMap: {}
         })
         expect(dbRegister).toHaveBeenCalledWith({
             assets: {
@@ -82,18 +79,11 @@ describe('healAsset', () => {
             },
             fileName: 'Personal/healTest.wml',
             importTree: ['BASE'],
-            scopeMap: {
-                VORTEX: 'ROOM#VORTEX',
-                test: 'ROOM#123'
-            },
+            scopeMap: {},
             namespaceMap: {
                 VORTEX: {
                     key: 'BASE#VORTEX',
                     assetId: 'ROOM#VORTEX'
-                },
-                test: {
-                    key: 'TestAsset#test',
-                    assetId: 'ROOM#123'
                 }
             },
             translateFile: 'Personal/healTest.translate.json'

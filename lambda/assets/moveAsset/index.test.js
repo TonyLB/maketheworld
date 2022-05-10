@@ -92,7 +92,6 @@ describe('moveAsset', () => {
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'VORTEX',
-                test: '123'
             },
             namespaceMap: { VORTEX: 'BASE#VORTEX' },
             translateFile: 'Library/Test.translate.json'

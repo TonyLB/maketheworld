@@ -98,6 +98,9 @@ WorldMarkupLangage {
     DescriptionExpression = TagExpression<"Description", none, "display", none, ("spaceBefore" | "spaceAfter"), DescriptionContents, none>
     DescriptionContents = DescriptionTextContents
             | LinkExpression
+            | LineBreakExpression
+
+    LineBreakExpression = "<br" "/>"
 
     LiteralNameExpression = LiteralValueTag<"Name">
     NameExpression = TagExpression<"Name", none, none, none, ("spaceBefore" | "spaceAfter"), TextContents, none>

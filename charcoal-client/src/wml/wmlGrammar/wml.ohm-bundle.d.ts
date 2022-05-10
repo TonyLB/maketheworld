@@ -42,6 +42,7 @@ export interface WorldMarkupLangageActionDict<T> extends ActionDict<T> {
   FeatureContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   DescriptionExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   DescriptionContents?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  LineBreakExpression?: (this: NonterminalNode, arg0: TerminalNode, arg1: TerminalNode) => T;
   LiteralNameExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   NameExpression?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   LiteralValueTag?: (this: NonterminalNode, arg0: NonterminalNode) => T;

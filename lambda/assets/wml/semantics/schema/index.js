@@ -42,9 +42,6 @@ const processTagProps = (tag, props) => ({
 const replaceWhiteSpace = (value) => (value.replace(/\s+/g, ' '))
 
 export const schema = {
-    //
-    // TODO: Parse out string-internal white-space as needed
-    //
     jsExpression(node) {
         return this.sourceString
     },
@@ -57,6 +54,11 @@ export const schema = {
             tag: 'String',
             value: replaceWhiteSpace(this.sourceString).trim(),
             spaceAfter
+        }
+    },
+    LineBreakExpression(start, end) {
+        return {
+            tag: 'LineBreak'
         }
     },
     legalKey(prefix, node) {
