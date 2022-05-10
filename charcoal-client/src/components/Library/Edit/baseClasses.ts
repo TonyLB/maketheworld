@@ -24,15 +24,25 @@ export type CustomFeatureLinkElement = {
     children: CustomText[]
 }
 
+export type CustomParagraphContents = CustomText | CustomActionLinkElement | CustomFeatureLinkElement
+
+export type CustomParagraphElement = {
+    type: 'paragraph';
+    children: CustomParagraphContents[]
+}
+
 export type CustomDescriptionElement = {
     type: 'description';
-    children: (CustomText | CustomActionLinkElement | CustomFeatureLinkElement)[]
+    children: CustomParagraphElement[]
 }
 
 type CustomElement = CustomLineElement |
     CustomActionLinkElement |
     CustomFeatureLinkElement |
+    CustomParagraphElement |
     CustomDescriptionElement
+
+
 
 declare module 'slate' {
     interface CustomTypes {

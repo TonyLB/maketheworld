@@ -66,6 +66,9 @@ export const prettyPrintShouldNest = {
     },
     tagArgumentBracketed(key, eq, value, close) {
         return value.sourceString.search('\n') !== -1 ? 'Nest' : 'None'
+    },
+    LineBreakExpression(open, close) {
+        return 'Nest'
     }
 }
 
@@ -339,6 +342,9 @@ export const prettyPrint = {
     DescriptionExpression(node) {
         const { depth, options } = this.args
         return node.prettyPrintWithOptions(depth, { ...options, wordWrap: true })
+    },
+    LineBreakExpression(open, close) {
+        return `${replaceLineBreaks(this.sourceString).trim()}`
     },
     tagArgumentBracketed(key, eq, value, close) {
         const depth = this.args.depth
