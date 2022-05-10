@@ -7,17 +7,20 @@ interface TaggedMessageContentProps {
 }
 
 const TaggedMessageContent: FunctionComponent<TaggedMessageContentProps> = ({ list }) => {
-    return <React.Fragment>
-        {
-            list.map((item, index) => {
-                switch(item.tag) {
-                    case 'Link':
-                        return <DescriptionLink link={item} key={index} />
-                    case 'String':
-                        return item.value
-                }
-            })
+    const messages = list.map((item, index) => {
+        switch(item.tag) {
+            case 'Link':
+                return <DescriptionLink link={item} key={index} />
+            case 'String':
+                return item.value
+            case 'LineBreak':
+                return <br />
+            default:
+                return null
         }
+    })
+    return <React.Fragment>
+        { messages }
     </React.Fragment>
 }
 
