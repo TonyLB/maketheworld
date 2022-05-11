@@ -21,12 +21,12 @@ Amplify.configure(AuthConfig)
 
 const theme = createTheme();
 
-export const App = () => (
+export const App = ({ signOut }: { signOut: () => void }) => (
   <StyledEngineProvider injectFirst>
     <ThemeProvider theme={theme}>
       <Provider store={store}>
         <CssBaseline />
-        <AppController />
+        <AppController signOut={signOut} />
         {/* <Chat /> */}
       </Provider>
     </ThemeProvider>
