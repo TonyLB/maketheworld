@@ -21,7 +21,8 @@ import MapIcon from '@mui/icons-material/Explore'
 // TODO: Create a navigation path to the Help page
 //
 export const Home = ({
-    myCharacters = []
+    myCharacters = [],
+    signOut = () => {}
 }) => {
     const navigate = useNavigate()
 
@@ -104,14 +105,21 @@ export const Home = ({
                 },
                 {
                     icon: null,
-                    title: 'Archived Characters',
-                    href: '/Character/Archived'
+                    title: 'Logout',
+                    onClick: () => {
+                        signOut()
+                    }
                 }
-            ].map(({ icon, title, href }) => (
+            ].map(({ icon, title, href, onClick }) => (
                 <Grid key={title} item sm={3}>
                     <Card onClick={() => {
                         if (href) {
                             navigate(href)
+                        }
+                        else {
+                            if (onClick) {
+                                onClick()
+                            }
                         }
                     }}>
                         <CardHeader

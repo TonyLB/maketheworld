@@ -22,7 +22,7 @@ import MessagePanel from '../Message/MessagePanel'
 import WhoDrawer from '../WhoDrawer'
 import useStateSeekingMachines from '../useSSM'
 
-export const AppController = () => {
+export const AppController = ({ signOut }) => {
     useStateSeekingMachines()
     const myCharacters = useSelector(getMyCharacters)
     const { TextEntryLines, ShowNeighborhoodHeaders = true } = useSelector(getClientSettings)
@@ -42,7 +42,8 @@ export const AppController = () => {
         textEntryLines: TextEntryLines,
         showNeighborhoodHeaders: ShowNeighborhoodHeaders,
         onTextEntryChange: (value) => { dispatch(putClientSettings({ TextEntryLines: value })) },
-        onShowNeighborhoodChange: (value) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) }
+        onShowNeighborhoodChange: (value) => { dispatch(putClientSettings({ ShowNeighborhoodHeaders: value })) },
+        signOut
     }
 
     const feedbackMessage = useSelector(getFirstFeedback)
