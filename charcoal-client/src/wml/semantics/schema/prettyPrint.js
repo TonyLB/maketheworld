@@ -275,7 +275,8 @@ export const prettyPrint = {
                     const { last: lastNode, previous: previousNodes } = lastItem(runningTagSubList)
                     const schema = lastNode.schema()
                     const stringWithSpace = (schema.tag === 'String') && (schema.value.search(/\s/) !== -1)
-                    if (spaceBefore || stringWithSpace) {
+                    const lineBreak = (tag === 'LineBreak')
+                    if (spaceBefore || stringWithSpace || lineBreak) {
                         //
                         // Figure out how to process the running tag sub list before proceeding
                         // to process the tag
@@ -290,26 +291,32 @@ export const prettyPrint = {
                         continue
                     }
                 }
-                if (tag === 'String') {
-                    const wrapped = [...wordWrap({ value: prettyItem.trim(), prepend, depth: depth + 1 })]
-                    const { previous: items, last: currentItem } = lastItem(wrapped)
-                    if (items.length > 0) {
-                        yield * items
-                    }
-                    prepend = `${currentItem.trim()}${ spaceAfter ? ' ' : ''}`
-                }
-                else {
-                    if (spaceBefore) {
-                        const nestedLines = prettyItem.split(/\n\s*/)
-                        const { previous: deliverableLines, last: currentLine } = lastItem(nestedLines)
-                        yield prepend.trim()
-                        yield * deliverableLines
-                        prepend = `${currentLine.trim()}${(currentLine.trim() && spaceAfter) ? ' ' : ''}`
-                    }
-                    else {
-                        runningTagSubList = [...runningTagSubList, item]
-                        continue
-                    }
+                switch(tag) {
+                    case 'String':
+                        const wrapped = [...wordWrap({ value: prettyItem.trim(), prepend, depth: depth + 1 })]
+                        const { previous: items, last: currentItem } = lastItem(wrapped)
+                        if (items.length > 0) {
+                            yield * items
+                        }
+                        prepend = `${currentItem.trim()}${ spaceAfter ? ' ' : ''}`
+                        break
+                    case 'LineBreak':
+                        yield prepend
+                        yield '<br />'
+                        prepend = ''
+                        break
+                    default:
+                        if (spaceBefore) {
+                            const nestedLines = prettyItem.split(/\n\s*/)
+                            const { previous: deliverableLines, last: currentLine } = lastItem(nestedLines)
+                            yield prepend.trim()
+                            yield * deliverableLines
+                            prepend = `${currentLine.trim()}${(currentLine.trim() && spaceAfter) ? ' ' : ''}`
+                        }
+                        else {
+                            runningTagSubList = [...runningTagSubList, item]
+                            continue
+                        }
                 }
             }
             if (runningTagSubList.length) {

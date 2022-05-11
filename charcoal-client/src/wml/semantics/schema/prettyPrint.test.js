@@ -113,4 +113,21 @@ describe('WML semantic prettyPrint', () => {
         expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
     })
 
+    it('should place line breaks on a separate line', () => {
+        const match = wmlGrammar.match(`
+            <Asset key=(Test) fileName="test">
+                <Feature key=(clockTower)>
+                    <Description>
+                        An old stone clock tower
+                    </Description>
+                </Feature>
+                <Room key=(Test)>
+                    <Description>
+                        One<Link key=(testOne) to=(clockTower)>clockTower</Link><br /><Link key=(testOne) to=(clockTower)>clockTower</Link>two.
+                    </Description>
+                </Room>
+            </Asset>`)
+        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+    })
+
 })
