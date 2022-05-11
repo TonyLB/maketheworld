@@ -2,6 +2,7 @@ import React from 'react'
 import { Provider } from 'react-redux'
 import Amplify from 'aws-amplify'
 import { withAuthenticator } from '@aws-amplify/ui-react'
+import '@aws-amplify/ui-react/styles.css'
 import { CssBaseline } from '@mui/material'
 import { Theme } from '@mui/material/styles';
 import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles';
@@ -34,6 +35,7 @@ export const App = ({ signOut }: { signOut: () => void }) => (
 )
 
 export default (withAuthenticator as any)(App, {
+  signUpAttributes: ['email'],
   signUpConfig: {
     hiddenDefaults: ['phone_number']
   }

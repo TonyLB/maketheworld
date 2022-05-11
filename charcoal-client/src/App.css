@@ -1,3 +1,7 @@
+:root {
+  --amplify-components-button-primary-background-color: #1e88e5
+}
+
 .App {
   text-align: center;
 }
