@@ -116,11 +116,13 @@ describe('LibraryAsset context provider', () => {
                                 <span>String</span>
                                 <span>{ room.value }</span>
                             </React.Fragment>
-                        default: 
+                        case 'Link': 
                             return <React.Fragment key={index}>
                                 <span>Link</span>
                                 <span>{ room.key }</span>
                             </React.Fragment>
+                        default:
+                            return null
                     }
                 })}
             </div>
@@ -152,11 +154,13 @@ describe('LibraryAsset context provider', () => {
                                 <span>String</span>
                                 <span>{ room.value }</span>
                             </React.Fragment>
-                        default: 
+                        case 'Link': 
                             return <React.Fragment key={index}>
                                 <span>Link</span>
                                 <span>{ room.key }</span>
                             </React.Fragment>
+                        default:
+                            return null
                     }
                 })}
             </div>

@@ -56,6 +56,8 @@ export type ComponentRenderItem = {
     tag: 'String';
     value: string;
     spaceBefore?: boolean;
+} | {
+    tag: 'LineBreak';
 }
 
 export type NormalDescriptionPayload = {

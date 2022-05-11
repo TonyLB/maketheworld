@@ -34,7 +34,17 @@ import CloseIcon from '@mui/icons-material/Close'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 
-import { CustomDescriptionElement, CustomActionLinkElement, CustomFeatureLinkElement, CustomText } from './baseClasses'
+import {
+    CustomActionLinkElement,
+    CustomFeatureLinkElement,
+    CustomText,
+    CustomParagraphContents,
+    CustomParagraphElement,
+    isCustomLineBreak,
+    isCustomLink,
+    isCustomText,
+    isCustomFeatureLink
+} from './baseClasses'
 
 import { ComponentRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
@@ -49,7 +59,7 @@ interface DescriptionEditorProps {
     onChange?: (items: ComponentRenderItem[]) => void;
 }
 
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]) {
+const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
     for (const item of renderItems) {
         switch(item.tag) {
             case 'Link':
@@ -70,31 +80,52 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 break
             case 'String':
                 yield { text: `${item.spaceBefore ? ' ' : '' }${item.value}` } as CustomText
+                break
+            case 'LineBreak':
+                yield { type: 'lineBreak' }
         }
     }
 }
 
-const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore, spaceAfter }: { render: ComponentRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[] => {
+const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore, spaceAfter }: { render: ComponentRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): CustomParagraphElement[] => {
     if (render.length > 0) {
-        let returnValue = [] as (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[]
+        let returnValue = [] as CustomParagraphElement[]
+        let accumulator = [] as CustomParagraphContents[]
         if (spaceBefore) {
-            returnValue.push({
+            accumulator.push({
                 text: ' '
             } as CustomText)
         }
         for (const item of descendantsTranslate(normalForm, render)) {
-            returnValue.push(item)
+            if (isCustomLineBreak(item)) {
+                returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
+                accumulator = [{ text: ''} as CustomText]
+            }
+            else {
+                accumulator.push(item)
+            }
         }
         if (spaceAfter) {
-            returnValue.push({
+            accumulator.push({
                 text: ' '
             } as CustomText)
         }
-        return returnValue
+        return [
+            ...returnValue,
+            ...(accumulator.length > 0
+                ? [{
+                    type: "paragraph" as "paragraph",
+                    children: accumulator
+                }]
+                : [] as CustomParagraphElement[])
+        ]
     }
     return [{
-        text: ''
-    } as CustomText]
+        type: 'paragraph',
+        children: [{
+            text: ''
+        } as CustomText]
+    }]
 }
 
 const withInlines = (editor: Editor) => {
@@ -175,7 +206,14 @@ const Element: FunctionComponent<RenderElementProps & { inheritedRender?: Compon
                 </DescriptionLinkActionChip>
             </span>
         case 'description':
-            return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{children}</span>
+            const interspersedChildren = children.reduce((previous: any, item: any, index: number) => ([
+                ...previous,
+                ...((index > 0) ? [<br key={`line-break-${index}`} />] : []),
+                item
+            ]), [] as any[])
+            return <span {...attributes}><span contentEditable={false}><InheritedDescription inheritedRender={inheritedRender} /></span>{interspersedChildren}</span>
+        case 'paragraph':
+            return <span {...attributes} >{ children }</span>
         default: return (
             <p {...attributes}>
                 {children}
@@ -421,35 +459,38 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [])
 
     const saveToReduce = useCallback(() => {
-        const newRender = ((('children' in value[0] && value[0].children) || []) as (CustomActionLinkElement | CustomFeatureLinkElement | CustomText)[])
-            .filter((item) => (('type' in item && item.type) || ('text' in item && item.text)))
-            .reduce((previous, item) => {
-                if ('type' in item && ['featureLink', 'actionLink'].includes(item.type)) {
-                    return [
-                        ...previous,
-                        {
-                            tag: 'Link',
-                            targetTag: item.type === 'featureLink' ? 'Feature' : 'Action',
-                            key: item.key,
-                            to: item.to,
-                            text: item.children
-                                .filter((child) => ('text' in child))
-                                .map(({ text }) => (text))
-                                .join('')
+        const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
+            .reduce((accumulator, { children = [] }, index) => (
+                children
+                    .filter((item) => (!(isCustomText(item) && !item.text)))
+                    .reduce((previous, item) => {
+                        if (isCustomLink(item)) {
+                            return [
+                                ...previous,
+                                {
+                                    tag: 'Link',
+                                    targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
+                                    key: item.key,
+                                    to: item.to,
+                                    text: item.children
+                                        .filter((child) => ('text' in child))
+                                        .map(({ text }) => (text))
+                                        .join('')
+                                }
+                            ]
                         }
-                    ]
-                }
-                if ('text' in item) {
-                    return [
-                        ...previous,
-                        {
-                            tag: 'String',
-                            value: item.text
+                        if ('text' in item) {
+                            return [
+                                ...previous,
+                                {
+                                    tag: 'String',
+                                    value: item.text
+                                }
+                            ]
                         }
-                    ]
-                }
-                return previous
-            }, [] as ComponentRenderItem[]) as ComponentRenderItem[]
+                        return previous
+                    }, (index > 0) ? [...accumulator, { tag: 'LineBreak' }] : accumulator) as ComponentRenderItem[]
+            ), [] as ComponentRenderItem[])
         onChange(newRender)
     }, [onChange, value])
 
