@@ -237,6 +237,9 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
                 end: this.source.endIdx
             }
         },
+        LineBreakExpression(open, close) {
+            return this.sourceString
+        },
         _iter(...contents) {
             return contents.map((node) => (node.toNode()))
         },
@@ -307,6 +310,9 @@ const wmlQuerySemantics = wmlGrammar.createSemantics()
             else {
                 return contents.search(props)
             }
+        },
+        LineBreakExpression(open, close) {
+            return {}
         },
         _iter(...contents) {
             const props = this.args.props

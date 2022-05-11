@@ -39,7 +39,11 @@ import {
     CustomFeatureLinkElement,
     CustomText,
     CustomParagraphContents,
-    CustomParagraphElement
+    CustomParagraphElement,
+    isCustomLineBreak,
+    isCustomLink,
+    isCustomText,
+    isCustomFeatureLink
 } from './baseClasses'
 
 import { ComponentRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
@@ -55,7 +59,7 @@ interface DescriptionEditorProps {
     onChange?: (items: ComponentRenderItem[]) => void;
 }
 
-const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]) {
+const descendantsTranslate = function * (normalForm: NormalForm, renderItems: ComponentRenderItem[]): Generator<CustomParagraphContents> {
     for (const item of renderItems) {
         switch(item.tag) {
             case 'Link':
@@ -76,6 +80,9 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 break
             case 'String':
                 yield { text: `${item.spaceBefore ? ' ' : '' }${item.value}` } as CustomText
+                break
+            case 'LineBreak':
+                yield { type: 'lineBreak' }
         }
     }
 }
@@ -90,17 +97,28 @@ const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore
             } as CustomText)
         }
         for (const item of descendantsTranslate(normalForm, render)) {
-            accumulator.push(item)
+            if (isCustomLineBreak(item)) {
+                returnValue = [...returnValue, { type: 'paragraph', children: accumulator.length > 0 ? accumulator : [{ text: '' }] }]
+                accumulator = [{ text: ''} as CustomText]
+            }
+            else {
+                accumulator.push(item)
+            }
         }
         if (spaceAfter) {
             accumulator.push({
                 text: ' '
             } as CustomText)
         }
-        return [{
-            type: 'paragraph',
-            children: accumulator
-        }]
+        return [
+            ...returnValue,
+            ...(accumulator.length > 0
+                ? [{
+                    type: "paragraph" as "paragraph",
+                    children: accumulator
+                }]
+                : [] as CustomParagraphElement[])
+        ]
     }
     return [{
         type: 'paragraph',
@@ -444,14 +462,14 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
         const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
             .reduce((accumulator, { children = [] }, index) => (
                 children
-                    .filter((item) => (('type' in item && item.type) || ('text' in item && item.text)))
+                    .filter((item) => (!(isCustomText(item) && !item.text)))
                     .reduce((previous, item) => {
-                        if ('type' in item && ['featureLink', 'actionLink'].includes(item.type)) {
+                        if (isCustomLink(item)) {
                             return [
                                 ...previous,
                                 {
                                     tag: 'Link',
-                                    targetTag: item.type === 'featureLink' ? 'Feature' : 'Action',
+                                    targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
                                     key: item.key,
                                     to: item.to,
                                     text: item.children
