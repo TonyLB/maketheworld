@@ -89,5 +89,14 @@ export default (withAuthenticator as any)(App, {
         )
       }
     }
+  },
+  services: {
+    async validateCustomSignUp(formData: { acknowledgement: boolean }) {
+      if (!formData.acknowledgement) {
+        return {
+          acknowledgement: 'You must agree to abide by the Code of Conduct',
+        };
+      }
+    },
   }
 })
