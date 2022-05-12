@@ -1,11 +1,19 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Provider } from 'react-redux'
 import Amplify from 'aws-amplify'
-import { withAuthenticator } from '@aws-amplify/ui-react'
+import {
+  Authenticator,
+  withAuthenticator,
+  useAuthenticator,
+  CheckboxField
+} from '@aws-amplify/ui-react'
 import '@aws-amplify/ui-react/styles.css'
 import { CssBaseline } from '@mui/material'
 import { Theme } from '@mui/material/styles';
-import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material/styles'
+import Box from '@mui/material/Box'
+import { blue } from '@mui/material/colors'
+import CodeOfConductConsentDialog from './components/CodeOfConductConsent'
 
 import '@mui/styles'
 
@@ -38,5 +46,48 @@ export default (withAuthenticator as any)(App, {
   signUpAttributes: ['email'],
   signUpConfig: {
     hiddenDefaults: ['phone_number']
+  },
+  components: {
+    SignUp: {
+      FormFields() {
+        const { validationErrors } = useAuthenticator()
+        const [showingDialog, setShowingDialog] = useState(false)
+
+        return (
+          <React.Fragment>
+            <CodeOfConductConsentDialog
+              open={showingDialog}
+              onClose={ () => { setShowingDialog(false) } }
+            />
+            <Authenticator.SignUp.FormFields />
+
+            {/* Append & require Terms & Conditions field to sign up  */}
+            <CheckboxField
+              errorMessage={validationErrors.acknowledgement as string}
+              hasError={!!validationErrors.acknowledgement}
+              name="acknowledgement"
+              value="yes"
+              label={
+                <React.Fragment>
+                  I agree to abide by the&nbsp;
+                  <Box
+                    component='span'
+                    sx={{
+                      backgroundColor: blue[50]
+                    }}
+                    onClick={(event: any) => {
+                      event.preventDefault()
+                      setShowingDialog(true)
+                    }}
+                  >
+                    Code of Conduct
+                  </Box>
+                </React.Fragment>
+              }
+            />
+          </React.Fragment>
+        )
+      }
+    }
   }
 })

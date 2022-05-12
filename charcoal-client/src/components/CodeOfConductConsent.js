@@ -8,13 +8,13 @@ import {
     Button
 } from '@mui/material'
 
-export const CodeOfConductConsentDialog = ({ onConsent = () => {}, open=false }) => {
+export const CodeOfConductConsentDialog = ({ onClose = () => {}, open=false }) => {
     return <Dialog
             maxWidth="lg"
             open={open}
         >
             <DialogTitle sx={{ bgcolor: 'lightblue'}} >
-                <Typography align="center">Welcome to Make The World</Typography>
+                <Typography align="center">Code of Conduct</Typography>
             </DialogTitle>
             <DialogContent>
 
@@ -23,7 +23,7 @@ export const CodeOfConductConsentDialog = ({ onConsent = () => {}, open=false })
 
                 <ul>
                     <li>
-                        <b>Be compassionate.</b> There are real people on the other side of the screen, with real emotions, real challenges, and their real share of the world’s
+                        <b>Be compassionate.</b> There are real people on the other side of the screen, with real emotions, real challenges, and their real share of the world's
                         pain and suffering.            
                     </li>
                     <li>
@@ -43,11 +43,11 @@ export const CodeOfConductConsentDialog = ({ onConsent = () => {}, open=false })
                     </li>
                 </ul>
 
-                Ready to make a character? By clicking I CONSENT, you are acknowledging you have read and agree to the ground rules above. 
+                Ready to create an account? By checking the consent, you are acknowledging you have read and agree to the ground rules above. 
 
             </DialogContent>
 
-            <Button onClick={onConsent}>I CONSENT</Button>
+            <Button onClick={onClose}>Close</Button>
 
         </Dialog>
 }
