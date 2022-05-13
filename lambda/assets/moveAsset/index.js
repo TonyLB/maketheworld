@@ -11,38 +11,40 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
     return await asyncSuppressExceptions(async () => {
         const assetWorkspace = await getAssets(s3Client, `${fromPath}${fileName}.wml`)
         const checkAsset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character', 'Story'].includes(tag)))
+        const incomingTag = checkAsset.tag
 
         if (checkAsset) {
             const [zone, ...rest] = toPath.split('/')
-            const subFolder = rest.join('/')
-            assetWorkspace.wmlQuery.search('')
+            const subFolder = [...rest, incomingTag === 'Character' ? 'Characters' : 'Assets'].join('/')
+            assetWorkspace.wmlQuery.search('Asset, Character, Story')
                 .prop('zone', zone)
                 .prop('subFolder', subFolder)
 
             if (['Canon', 'Library'].includes(zone)) {
-                assetWorkspace.wmlQuery.search('').removeProp('player')
+                assetWorkspace.wmlQuery.search('Asset, Character, Story').removeProp('player')
             }
             if (zone === 'Personal') {
                 if (rest[0]) {
-                    assetWorkspace.wmlQuery.search('').prop('player', rest[0])
+                    assetWorkspace.wmlQuery.search('Asset, Character, Story').prop('player', rest[0])
                 }
             }
 
             const isScopedAsset = !checkAsset.instance
             const scopeMap = new ScopeMap({})
+            const finalKey = `${toPath}${incomingTag === 'Character' ? 'Characters' : 'Assets'}/${fileName}`
             if (isScopedAsset) {
                 await Promise.all([
                     scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}.translate.json` }),
                     s3Client.send(new CopyObjectCommand({
                         Bucket: S3_BUCKET,
                         CopySource: `${S3_BUCKET}/${fromPath}${fileName}.translate.json`,
-                        Key: `${toPath}${fileName}.translate.json`
+                        Key: `${finalKey}.translate.json`
                     }))
                 ])
             }
             await s3Client.send(new PutObjectCommand({
                 Bucket: S3_BUCKET,
-                Key: `${toPath}${fileName}.wml`,
+                Key: `${finalKey}.wml`,
                 Body: assetWorkspace.contents()
             }))
             const normalized = assetWorkspace.normalize()
@@ -53,7 +55,7 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                     return {
                         ...previous,
                         ...(Object.entries(mapping)
-                            .reduce((previous, [key, { key: scopedId }]) => ({
+                            .reduce((previous, [key, scopedId]) => ({
                                 ...previous,
                                 [key]: {
                                     scopedId,
@@ -65,8 +67,8 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
                 }, {})
             const importTree = await scopeMap.importAssetIds(importMap || {})
             await dbRegister({
-                fileName: `${toPath}${fileName}.wml`,
-                translateFile: `${toPath}${fileName}.translate.json`,
+                fileName: `${finalKey}.wml`,
+                translateFile: `${finalKey}.translate.json`,
                 importTree,
                 scopeMap: scopeMap.serialize(),
                 namespaceMap: scopeMap.namespaceMap,

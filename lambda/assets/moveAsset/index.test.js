@@ -70,17 +70,17 @@ describe('moveAsset', () => {
         })
         const matchS3 = { send: expect.any(Function) }
         expect(getAssets).toHaveBeenCalledWith(matchS3, "Personal/Test.wml")
-        expect(searchMock).toHaveBeenCalledWith('')
+        expect(searchMock).toHaveBeenCalledWith('Asset, Character, Story')
         expect(wmlPropMock).toHaveBeenCalledWith('zone', 'Library')
-        expect(wmlPropMock).toHaveBeenCalledWith('subFolder', '')
+        expect(wmlPropMock).toHaveBeenCalledWith('subFolder', '/Assets')
         expect(wmlRemovePropMock).toHaveBeenCalledWith('player')
         expect(getTranslateFile).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test.translate.json' })
         expect(CopyObjectCommand).toHaveBeenCalledWith({
             CopySource: 'undefined/Personal/Test.translate.json',
-            Key: 'Library/Test.translate.json'
+            Key: 'Library/Assets/Test.translate.json'
         })
         expect(PutObjectCommand).toHaveBeenCalledWith({
-            Key: 'Library/Test.wml',
+            Key: 'Library/Assets/Test.wml',
             Body: 'Test'
         })
         expect(dbRegister).toHaveBeenCalledWith({
@@ -88,13 +88,13 @@ describe('moveAsset', () => {
                 'Import-0': { tag: 'Import' },
                 Test: { tag: 'Asset' }
             },
-            fileName: 'Library/Test.wml',
+            fileName: 'Library/Assets/Test.wml',
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'VORTEX',
             },
             namespaceMap: { VORTEX: 'BASE#VORTEX' },
-            translateFile: 'Library/Test.translate.json'
+            translateFile: 'Library/Assets/Test.translate.json'
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
             Key: 'Personal/Test.wml'

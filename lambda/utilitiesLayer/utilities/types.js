@@ -9,4 +9,5 @@ export const splitType = (value) => {
 }
 
 export const AssetKey = (assetId) => (`ASSET#${assetId}`)
+export const CharacterKey = (characterId) => (`CHARACTER#${characterId}`)
 export const RoomKey = (roomId) => (`ROOM#${roomId}`)
