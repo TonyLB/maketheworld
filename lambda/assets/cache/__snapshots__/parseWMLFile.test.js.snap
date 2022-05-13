@@ -15,7 +15,6 @@ Object {
         ],
         "display": undefined,
         "errors": Array [],
-        "global": false,
         "location": Array [
           0,
           0,
@@ -42,7 +41,6 @@ Object {
         ],
         "display": undefined,
         "errors": Array [],
-        "global": false,
         "location": Array [
           0,
           1,
@@ -61,6 +59,7 @@ Object {
         "spaceBefore": false,
       },
     ],
+    "global": false,
     "key": "ABC",
     "tag": "Room",
   },

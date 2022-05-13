@@ -219,18 +219,19 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     }
                 ],
                 \\"errors\\": [],
-                \\"global\\": false,
                 \\"props\\": {},
                 \\"name\\": \\"Welcome\\",
                 \\"render\\": [],
                 \\"spaceBefore\\": false,
                 \\"spaceAfter\\": false
             }
-        ]
+        ],
+        \\"global\\": false
     },
     \\"clockTower\\": {
         \\"tag\\": \\"Feature\\",
         \\"key\\": \\"clockTower\\",
+        \\"global\\": false,
         \\"appearances\\": [
             {
                 \\"contextStack\\": [
@@ -246,7 +247,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 ],
                 \\"contents\\": [],
                 \\"errors\\": [],
-                \\"global\\": false,
                 \\"props\\": {},
                 \\"render\\": [
                     {
@@ -264,6 +264,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
     \\"ABC\\": {
         \\"tag\\": \\"Room\\",
         \\"key\\": \\"ABC\\",
+        \\"global\\": false,
         \\"appearances\\": [
             {
                 \\"contextStack\\": [
@@ -279,7 +280,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 ],
                 \\"contents\\": [],
                 \\"errors\\": [],
-                \\"global\\": false,
                 \\"props\\": {},
                 \\"name\\": \\"Vortex\\",
                 \\"render\\": [
@@ -329,7 +329,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                     }
                 ],
                 \\"errors\\": [],
-                \\"global\\": false,
                 \\"props\\": {},
                 \\"render\\": [],
                 \\"spaceBefore\\": false,

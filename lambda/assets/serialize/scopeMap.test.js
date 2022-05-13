@@ -80,11 +80,11 @@ describe('ScopeMap class', () => {
             VORTEX: {
                 key: 'VORTEX',
                 tag: 'Room',
+                global: true,
                 appearances: [{
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Village', tag: 'Map', index: 0 }],
                     errors: [],
                     props: {},
-                    global: false,
                     name: 'Vortex',
                     render: [],
                     contents: [
@@ -94,7 +94,6 @@ describe('ScopeMap class', () => {
                 {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
                     errors: [],
-                    global: false,
                     props: {},
                     render: ['The lights are on '],
                     contents: []
@@ -117,9 +116,9 @@ describe('ScopeMap class', () => {
             Welcome: {
                 key: 'Welcome',
                 tag: 'Room',
+                global: false,
                 appearances: [{
                     ...topLevelAppearance,
-                    global: false,
                     name: 'Welcome Area',
                     render: [],
                     contents: [
@@ -240,6 +239,53 @@ describe('ScopeMap class', () => {
             })
         })
 
+        it('should update unmapped global keys from key before translating', () => {
+            uuidv4.mockReturnValue('UUID')
+            const testScope = new ScopeMap({
+                Welcome: 'ROOM#123456',
+                clockTower: 'FEATURE#ABCDEF',
+                Village: 'MAP#XYZ'
+            })
+            testScope.namespaceMap = {
+                Welcome: { key: 'Test#Welcome', assetId: 'ROOM#123456' },
+                clockTower: { key: 'Test#clockTower', assetId: 'FEATURE#ABCDEF' },
+                Village: { key: 'Test#Village', assetId: 'MAP#XYZ' }
+            }
+            expect(testScope.translateNormalForm(testNormalForm)).toEqual({
+                ...testNormalForm,
+                'VORTEX#Welcome': {
+                    ...testNormalForm['VORTEX#Welcome'],
+                    toEphemeraId: '123456'
+                },
+                'Welcome#VORTEX': {
+                    ...testNormalForm['Welcome#VORTEX'],
+                    toEphemeraId: 'VORTEX'
+                },
+                Village: {
+                    ...testNormalForm.Village,
+                    EphemeraId: 'MAP#XYZ'
+                },
+                Welcome: {
+                    ...testNormalForm.Welcome,
+                    EphemeraId: 'ROOM#123456'
+                },
+                VORTEX: {
+                    ...testNormalForm.VORTEX,
+                    EphemeraId: 'ROOM#VORTEX'
+                },
+                clockTower: {
+                    ...testNormalForm.clockTower,
+                    EphemeraId: 'FEATURE#ABCDEF'
+                }
+            })
+            expect(testScope.serialize()).toEqual({
+                VORTEX: 'ROOM#VORTEX',
+                Welcome: 'ROOM#123456',
+                clockTower: 'FEATURE#ABCDEF',
+                Village: 'MAP#XYZ'
+            })
+        })
+
         it('should update embedded links', () => {
             const linksNormalForm = {
                 test: {
@@ -279,6 +325,7 @@ describe('ScopeMap class', () => {
                 },
                 'Import-0': {
                     key: 'Import-0',
+                    tag: 'Import',
                     from: 'Somewhere',
                     mapping: {
                         testThree: { key: 'testThree', type: 'Feature' }

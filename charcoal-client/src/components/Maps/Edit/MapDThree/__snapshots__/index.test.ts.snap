@@ -5,31 +5,9 @@ Array [
   Object {
     "layers": Array [
       Object {
-        "key": "Two",
-        "links": Array [],
-        "nodes": Array [
-          Object {
-            "cascadeNode": false,
-            "id": "Two-A",
-            "roomId": "GHI",
-            "visible": true,
-            "x": 300,
-            "y": 300,
-          },
-        ],
-      },
-      Object {
         "key": "One",
         "links": Array [],
         "nodes": Array [
-          Object {
-            "cascadeNode": true,
-            "id": "Two-A",
-            "roomId": "GHI",
-            "visible": true,
-            "x": 300,
-            "y": 300,
-          },
           Object {
             "cascadeNode": false,
             "id": "One-B",
@@ -45,6 +23,36 @@ Array [
             "visible": true,
             "x": 200,
             "y": 200,
+          },
+        ],
+      },
+      Object {
+        "key": "Two",
+        "links": Array [],
+        "nodes": Array [
+          Object {
+            "cascadeNode": true,
+            "id": "One-B",
+            "roomId": "DEF",
+            "visible": true,
+            "x": 300,
+            "y": 200,
+          },
+          Object {
+            "cascadeNode": true,
+            "id": "One-A",
+            "roomId": "ABC",
+            "visible": true,
+            "x": 200,
+            "y": 200,
+          },
+          Object {
+            "cascadeNode": false,
+            "id": "Two-A",
+            "roomId": "GHI",
+            "visible": true,
+            "x": 300,
+            "y": 300,
           },
         ],
       },

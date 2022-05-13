@@ -70,6 +70,7 @@ const pullProperties = (node) => {
         let pullTags = [
             'tag',
             'key',
+            'global'
         ]
         switch(node.tag) {
             case 'Exit':
@@ -111,6 +112,21 @@ const pullProperties = (node) => {
                             ...(previous.topLevel[key] ?? []),
                             ...value
                         ]
+                    }
+                }
+            }
+            //
+            // For boolean props, lift any true up above all falses
+            //
+            if (previous.topLevel === true) {
+                return previous
+            }
+            if (value === true) {
+                return {
+                    ...previous,
+                    topLevel: {
+                        ...previous.topLevel,
+                        [key]: true
                     }
                 }
             }

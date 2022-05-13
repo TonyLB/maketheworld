@@ -13,7 +13,7 @@ describe('dbRegister', () => {
         await dbRegister({
             fileName: 'test.wml',
             translateFile: 'test.translate.json',
-            scopeMap: { TESS: 'CHARACTER#12345' },
+            scopeMap: { TESS: '12345' },
             assets: {
                 TESS: {
                     tag: 'Character',

@@ -72,7 +72,12 @@ export class ScopeMap extends Object {
         //
         // Remove any scopeMap items that are not used in the normalForm
         //
-        this.scopeMap = objectEntryFilter(this.scopeMap, (key) => (key in normalForm))
+        this.scopeMap = objectEntryFilter(this.scopeMap, (key) => (
+            (key in normalForm) ||
+            (Object.values(normalForm)
+                .find(({ tag, mapping = {} }) => (tag === 'Import' && key in mapping))
+            )
+        ))
 
         this.namespaceMap = Object.entries(this.scopeMap)
             .filter(([key, value]) => (!(key in (this.namespaceMap || {}))))
