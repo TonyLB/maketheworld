@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
-import { AssetKey } from '/opt/utilities/types.js'
+import { AssetKey, CharacterKey } from '/opt/utilities/types.js'
 import { componentAppearanceReduce } from '/opt/utilities/components/components.js'
 import { objectEntryMap } from '../lib/objects.js'
 
@@ -162,7 +162,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, namespac
     if (character && character.key) {
         await Promise.all([
             assetDB.putItem({
-                AssetId: scopeMap[character.key],
+                AssetId: CharacterKey(scopeMap[character.key]),
                 DataCategory: 'Meta::Character',
                 fileName,
                 translateFile,
