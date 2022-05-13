@@ -24,7 +24,7 @@ const joinRenderItems = function * (render = []) {
                     break
             }
         }
-        for (const renderItem of render.slice(1)) {
+        for (const renderItem of (render.slice(1) || [])) {
             const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
             switch(renderItem.tag) {
                 case 'String':
@@ -47,8 +47,12 @@ const joinRenderItems = function * (render = []) {
                         case 'LineBreak':
                             yield {
                                 ...currentItem,
-                                value: currentItem.value.trimEnd(),
                                 spaceAfter: undefined
+                            }
+                            currentItem = {
+                                ...renderItem,
+                                value: renderItem.value.trimLeft(),
+                                spaceBefore: undefined
                             }
                             break
                     }
