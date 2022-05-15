@@ -100,10 +100,14 @@ export type NormalImport = {
     appearances: BaseAppearance[];
 } & NormalBase
 
+type ImageAppearance = {
+    display?: 'replace'
+} & BaseAppearance
+
 type NormalImage = {
     tag: 'Image';
     fileURL?: string;
-    appearances: BaseAppearance[];
+    appearances: ImageAppearance[];
 } & NormalBase
 
 type MapAppearanceRoom = {
@@ -112,7 +116,13 @@ type MapAppearanceRoom = {
     location: number[];
 }
 
+type MapAppearanceImage = {
+    fileURL: string;
+    display: 'replace';
+}
+
 type MapAppearance = {
+    images: MapAppearanceImage[];
     rooms: Record<string, MapAppearanceRoom>;
 } & BaseAppearance
 

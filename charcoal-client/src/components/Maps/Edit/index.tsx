@@ -31,6 +31,12 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits, inheritedAppearances: (defaultAppearances[mapId  || ''] as unknown as any)?.layers || [] }),
         (tree) => ({ tree })
     )
+
+    //
+    // TODO: Figure out how to extract fileURL from defaultAppearances and from normalForm (may involve updating normalForm to extract it out into
+    // appearances, first)
+    //
+    console.log(`normalForm: ${JSON.stringify(normalForm[mapId || ''], null, 4)}`)
     const onStabilize = useCallback((values) => {
         const normalMap = normalForm[mapId || '']
         if (normalMap?.tag === 'Map') {
@@ -74,7 +80,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                     <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
                 </div>
-                <MapArea tree={tree} dispatch={dispatch} onStabilize={onStabilize} />
+                <MapArea
+                    tree={tree}
+                    dispatch={dispatch}
+                    onStabilize={onStabilize}
+                />
             </div>
             <div className={localClasses.sidebar} >
                 <MapLayers tree={tree} dispatch={dispatch} />

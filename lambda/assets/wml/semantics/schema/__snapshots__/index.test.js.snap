@@ -386,6 +386,9 @@ Object {
           "tag": "Room",
         },
       ],
+      "images": Array [
+        "ImageTest",
+      ],
       "key": "TestMap",
       "name": "Test Map",
       "props": Object {},

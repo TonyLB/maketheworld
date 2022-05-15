@@ -13,6 +13,7 @@ import {
     liftUseTags,
     liftDependencyTags,
     liftRoomLocations,
+    liftMapImages,
     liftImageFileURL,
     liftPronounTags,
     liftNameTags,
@@ -160,7 +161,8 @@ export const schema = {
             validate(confirmKeyProps(['key'])),
             liftKeyProps(['key']),
             liftLiteralTags({ Name: 'name' }),
-            liftRoomLocations
+            liftRoomLocations,
+            liftMapImages
         ])(node.schema())
     },
     FeatureExpression(node) {
