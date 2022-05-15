@@ -457,5 +457,6 @@ export const normalize = (node, existingMap = {}, contextStack = [], location = 
 }
 
 export const isNormalExit = (arg) => (arg.tag === 'Exit')
+export const isNormalImage = (arg) => (arg.tag === 'Image')
 
 export default normalize

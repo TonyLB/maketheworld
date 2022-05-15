@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useReducer, useCallback } from 'react'
+import React, { FunctionComponent, useState, useReducer, useCallback, useMemo } from 'react'
 
 import {
     useParams
@@ -16,6 +16,7 @@ import mapReducer from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
 import { objectEntryMap, objectMap } from '../../../lib/objects'
+import { MapAppearance, isNormalImage } from '../../../wml/normalize'
 
 type MapEditProps = {
 }
@@ -33,10 +34,23 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     )
 
     //
-    // TODO: Figure out how to extract fileURL from defaultAppearances and from normalForm (may involve updating normalForm to extract it out into
-    // appearances, first)
+    // TODO: Figure out how to extract fileURL from defaultAppearances
     //
-    console.log(`normalForm: ${JSON.stringify(normalForm[mapId || ''], null, 4)}`)
+    const mapImages = useMemo<string[]>(() => {
+        const mapAppearances = (normalForm[mapId || '']?.appearances || []) as MapAppearance[]
+        const images = mapAppearances
+            .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+            .reduce<string[]>((previous, { images = [] }) => ([
+                ...previous,
+                ...(images
+                    .map((image) => (normalForm[image]))
+                    .filter(isNormalImage)
+                    .map(({ fileURL = '' }) => (fileURL))
+                    .filter((fileURL) => (fileURL))
+                )
+            ]), [] as string[])
+        return images
+    }, [normalForm, mapId])
     const onStabilize = useCallback((values) => {
         const normalMap = normalForm[mapId || '']
         if (normalMap?.tag === 'Map') {
@@ -81,6 +95,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                     <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
                 </div>
                 <MapArea
+                    fileURL={mapImages.length ? mapImages[0] : undefined}
                     tree={tree}
                     dispatch={dispatch}
                     onStabilize={onStabilize}

@@ -100,7 +100,7 @@ export type NormalImport = {
     appearances: BaseAppearance[];
 } & NormalBase
 
-type ImageAppearance = {
+export type ImageAppearance = {
     display?: 'replace'
 } & BaseAppearance
 
@@ -116,12 +116,9 @@ type MapAppearanceRoom = {
     location: number[];
 }
 
-type MapAppearanceImage = {
-    fileURL: string;
-    display: 'replace';
-}
+type MapAppearanceImage = string
 
-type MapAppearance = {
+export type MapAppearance = {
     images: MapAppearanceImage[];
     rooms: Record<string, MapAppearanceRoom>;
 } & BaseAppearance
@@ -172,5 +169,6 @@ export type NormalForm = Record<string, NormalItem>
 export const normalize = (node: any, existingMap?: any, contextStack?: any, location?: number[]) => NormalForm
 
 export function isNormalExit(arg: NormalItem): arg is NormalExit
+export function isNormalImage(arg: NormalItem): arg is NormalImage
 
 export default normalize
