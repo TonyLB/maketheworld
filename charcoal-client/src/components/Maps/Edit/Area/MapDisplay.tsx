@@ -2,6 +2,7 @@ import { FunctionComponent, useState, useRef, useEffect, useContext } from 'reac
 import AutoSizer from 'react-virtualized-auto-sizer'
 import { useGesture } from '@use-gesture/react'
 
+import { MAP_HEIGHT, MAP_WIDTH } from './constants'
 import useMapStyles from '../useMapStyles'
 import {
     MapRoom,
@@ -67,7 +68,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
     useEffect((): void => {
         const width: number = cacheWindowDetails.current.width
         const height: number = cacheWindowDetails.current.height
-        const midScalePoint = Math.min(height / 400, width / 600)
+        const midScalePoint = Math.min(height / MAP_HEIGHT, width / MAP_WIDTH)
         if (!scale){
             setScale(midScalePoint)
         }
@@ -86,14 +87,14 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             const newScale = Math.max(windowDetails.minScale, Math.min(windowDetails.maxScale, scale * Math.pow(2, -y / 1000)))
             setScale(newScale)
             if (scrollingWindowRef.current) {
-                const top = Math.max(0, (windowDetails.height - 400 * oldScale) / 2)
-                const left = Math.max(0, (windowDetails.width - 600 * oldScale) / 2)
+                const top = Math.max(0, (windowDetails.height - MAP_HEIGHT * oldScale) / 2)
+                const left = Math.max(0, (windowDetails.width - MAP_WIDTH * oldScale) / 2)
                 const divWidth = windowDetails.width / 2
                 const divHeight = windowDetails.height / 2
                 const scrollCenterX = (scrollingWindowRef.current.scrollLeft + left + divWidth) / oldScale
                 const scrollCenterY = (scrollingWindowRef.current.scrollTop + top + divHeight) / oldScale
-                const newTop = Math.max(0, (windowDetails.height - 400 * newScale) / 2)
-                const newLeft = Math.max(0, (windowDetails.width - 600 * newScale) / 2)
+                const newTop = Math.max(0, (windowDetails.height - MAP_HEIGHT * newScale) / 2)
+                const newLeft = Math.max(0, (windowDetails.width - MAP_WIDTH * newScale) / 2)
                 const scrollLeft = Math.max(0, scrollCenterX * newScale - (divWidth + newLeft))
                 const scrollTop = Math.max(0, scrollCenterY * newScale - (divHeight + newTop))
                 scrollingWindowRef.current.scrollTo(scrollLeft, scrollTop)
@@ -104,13 +105,13 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
     const roomsByRoomId = rooms.reduce<Record<string, MapRoom>>((previous, room) => ({ ...previous, [room.roomId]: room }), {})
     return <div ref={scrollingWindowRef} style={{ width: '100%', height: '100%', overflow: 'auto' }} ><AutoSizer {...bind()} >
         { ({ height, width }) => {
-            const midScalePoint = Math.min(height / 400, width / 600)
+            const midScalePoint = Math.min(height / MAP_HEIGHT, width / MAP_WIDTH)
             cacheWindowDetails.current = { width, height }
             const onClickScaled = (event: React.MouseEvent<SVGElement>) => {
                 if (toolSelected === 'AddRoom' && scale) {
                     const rect = event.currentTarget.getBoundingClientRect()
-                    const newClientX = (event.pageX - rect.left) / scale - 300
-                    const newClientY = (event.pageY - rect.top) / scale - 200
+                    const newClientX = (event.pageX - rect.left) / scale - (MAP_WIDTH / 2)
+                    const newClientY = (event.pageY - rect.top) / scale - (MAP_HEIGHT / 2)
                     onClick({ ...event, clientX: newClientX, clientY: newClientY })
                 }
             }
@@ -142,19 +143,19 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                     }, previous)
                 ), [])
-            return <div style={{ width: Math.max(width, 600 * scale), height: Math.max(height, 400 * scale), backgroundColor: "#aaaaaa" }} {...bind()}>
+            return <div style={{ width: Math.max(width, MAP_WIDTH * scale), height: Math.max(height, MAP_HEIGHT * scale), backgroundColor: "#aaaaaa" }} {...bind()}>
                 <div style={{
                     position: "absolute",
-                    width: 600* scale,
-                    height: 400 * scale,
+                    width: MAP_WIDTH * scale,
+                    height: MAP_HEIGHT * scale,
                     //
                     // TODO:  Compensate for border offsets in scrolling algorithm, above
                     //
-                    top: Math.max(0, (height - 400 * scale) / 2),
-                    left: Math.max(0, (width - 600 * scale) / 2),
+                    top: Math.max(0, (height - MAP_HEIGHT * scale) / 2),
+                    left: Math.max(0, (width - MAP_WIDTH * scale) / 2),
                     backgroundColor: "white"
                 }}>
-                    <svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
+                    <svg width="100%" height="100%" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
                         <defs>
                             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                                     refX='5' refY='5'>
@@ -181,25 +182,25 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 <path d='M10,1.3 V8.7 L2.4,5 Z' fill='#FFFFFF' />
                             </marker>
                             { fileURL &&
-                                <pattern id="backgroundImg" patternUnits="userSpaceOnUse" x="0" y="0" width="600" height="400">
-                                    <image xlinkHref={fileURL} width="600" height="400" />
+                                <pattern id="backgroundImg" patternUnits="userSpaceOnUse" x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT}>
+                                    <image xlinkHref={fileURL} width={MAP_WIDTH} height={MAP_HEIGHT} />
                                 </pattern>
                             }
                         </defs>
                         {
-                            fileURL && <path d="M0,0
-                                l0,400 l600,0 l0,-400 l-600,0"
+                            fileURL && <path d={`M0,0
+                                l0,${MAP_HEIGHT} l${MAP_WIDTH},0 l0,-${MAP_HEIGHT} l-${MAP_WIDTH},0`}
                             fill="url(#backgroundImg)" />
                         }
                         {
                             deduplicatedExits
                                 .map(({ fromRoomId, toRoomId, double }) => {
                                 const from = roomsByRoomId[fromRoomId]
-                                const fromX = from === undefined ? undefined : from.x + 300
-                                const fromY = from === undefined ? undefined : from.y + 200
+                                const fromX = from === undefined ? undefined : from.x + (MAP_WIDTH / 2)
+                                const fromY = from === undefined ? undefined : from.y + (MAP_HEIGHT / 2)
                                 const to = roomsByRoomId[toRoomId]
-                                const toX = to === undefined ? undefined : to.x + 300
-                                const toY = to === undefined ? undefined : to.y + 200
+                                const toX = to === undefined ? undefined : to.x + (MAP_WIDTH / 2)
+                                const toY = to === undefined ? undefined : to.y + (MAP_HEIGHT / 2)
                                 return <MapEdgeComponent
                                     key={`${fromRoomId}::${toRoomId}`}
                                     fromX={fromX}
@@ -216,10 +217,10 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                             decoratorExits
                                 .map(({ fromX, fromY, toX, toY, double}) => (
                                     <MapEdgeComponent
-                                        fromX={fromX + 300}
-                                        fromY={fromY + 200}
-                                        toX={toX + 300}
-                                        toY={toY + 200}
+                                        fromX={fromX + (MAP_WIDTH / 2)}
+                                        fromY={fromY + (MAP_HEIGHT / 2)}
+                                        toX={toX + (MAP_WIDTH / 2)}
+                                        toY={toY + (MAP_HEIGHT / 2)}
                                         decorator={true}
                                         double={double}
                                     />
@@ -232,8 +233,8 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                                 ...room,
                                 Name: room.name,
                                 PermanentId: room.roomId,
-                                x: room.x + 300,
-                                y: room.y + 200
+                                x: room.x + (MAP_WIDTH / 2),
+                                y: room.y + (MAP_HEIGHT / 2)
                             }))
                             .map(({
                                 PermanentId,
@@ -267,7 +268,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                         {
                             decoratorCircles.map(({ x, y }) => (
-                                <HighlightCircle x={x + 300} y={y + 200} />
+                                <HighlightCircle x={x + (MAP_HEIGHT / 2)} y={y + (MAP_WIDTH / 2)} />
                             ))
                         }
                     </svg>
