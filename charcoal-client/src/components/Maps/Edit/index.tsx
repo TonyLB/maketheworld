@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useReducer, useCallback } from 'react'
+import React, { FunctionComponent, useState, useReducer, useCallback, useMemo } from 'react'
 
 import {
     useParams
@@ -16,6 +16,7 @@ import mapReducer from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
 import { objectEntryMap, objectMap } from '../../../lib/objects'
+import { MapAppearance, isNormalImage } from '../../../wml/normalize'
 
 type MapEditProps = {
 }
@@ -31,6 +32,25 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits, inheritedAppearances: (defaultAppearances[mapId  || ''] as unknown as any)?.layers || [] }),
         (tree) => ({ tree })
     )
+
+    //
+    // TODO: Figure out how to extract fileURL from defaultAppearances
+    //
+    const mapImages = useMemo<string[]>(() => {
+        const mapAppearances = (normalForm[mapId || '']?.appearances || []) as MapAppearance[]
+        const images = mapAppearances
+            .filter(({ contextStack = [] }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+            .reduce<string[]>((previous, { images = [] }) => ([
+                ...previous,
+                ...(images
+                    .map((image) => (normalForm[image]))
+                    .filter(isNormalImage)
+                    .map(({ fileURL = '' }) => (fileURL))
+                    .filter((fileURL) => (fileURL))
+                )
+            ]), [] as string[])
+        return images
+    }, [normalForm, mapId])
     const onStabilize = useCallback((values) => {
         const normalMap = normalForm[mapId || '']
         if (normalMap?.tag === 'Map') {
@@ -74,7 +94,12 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                 <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                     <ToolSelect toolSelected={toolSelected} onChange={setToolSelected} />
                 </div>
-                <MapArea tree={tree} dispatch={dispatch} onStabilize={onStabilize} />
+                <MapArea
+                    fileURL={mapImages.length ? mapImages[0] : undefined}
+                    tree={tree}
+                    dispatch={dispatch}
+                    onStabilize={onStabilize}
+                />
             </div>
             <div className={localClasses.sidebar} >
                 <MapLayers tree={tree} dispatch={dispatch} />

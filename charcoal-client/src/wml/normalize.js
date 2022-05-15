@@ -89,7 +89,7 @@ const pullProperties = (node) => {
                 pullTags = [...pullTags, 'if', 'dependencies']
                 break
             case 'Image':
-                pullTags.push('fileURL')
+                pullTags = [...pullTags, 'fileURL', 'display']
                 break
             case 'Import':
                 pullTags = [...pullTags, 'mapping', 'from']
@@ -457,5 +457,6 @@ export const normalize = (node, existingMap = {}, contextStack = [], location = 
 }
 
 export const isNormalExit = (arg) => (arg.tag === 'Exit')
+export const isNormalImage = (arg) => (arg.tag === 'Image')
 
 export default normalize

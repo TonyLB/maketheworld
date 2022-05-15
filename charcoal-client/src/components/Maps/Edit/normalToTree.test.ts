@@ -41,6 +41,7 @@ describe('normalToTree', () => {
                 key: 'TestMap',
                 appearances: [{
                     contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    images: [],
                     rooms: {
                         '123': {
                             x: 200,

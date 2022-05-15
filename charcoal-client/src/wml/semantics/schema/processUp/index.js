@@ -266,6 +266,19 @@ export const liftRoomLocations = ({ contents = [], ...rest}) => {
     }
 }
 
+export const liftMapImages = ({ contents = [], ...rest}) => {
+    const tagsToLift = contents.filter(({ tag }) => (tag === 'Image'))
+    const images = tagsToLift.reduce((previous, { key }) => ([
+        ...previous,
+        key
+    ]), [])
+    return {
+        contents,
+        ...rest,
+        images
+    }
+}
+
 export const liftImageFileURL = ({ contents = [], ...rest }) => {
     const tagsToLift = contents.filter(({ tag }) => (tag === 'Image'))
     const unliftedItems = contents.filter(({ tag }) => (tag !== 'Image'))
