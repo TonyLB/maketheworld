@@ -268,7 +268,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                         {
                             decoratorCircles.map(({ x, y }) => (
-                                <HighlightCircle x={x + (MAP_HEIGHT / 2)} y={y + (MAP_WIDTH / 2)} />
+                                <HighlightCircle x={x + (MAP_WIDTH / 2)} y={y + (MAP_HEIGHT / 2)} />
                             ))
                         }
                     </svg>
