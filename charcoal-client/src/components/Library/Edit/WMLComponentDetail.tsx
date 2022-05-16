@@ -14,6 +14,7 @@ import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
 import useDebouncedCallback from './useDebouncedCallback'
 import { useLibraryAsset } from './LibraryAsset'
+import RoomExits from './RoomExits'
 
 interface WMLComponentDetailProps {
 }
@@ -140,6 +141,9 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                     onChange={onChange}
                 />
             </Box>
+            {
+                (tag === 'Room') && <RoomExits RoomId={ComponentId || ''} />
+            }
         </Box>
 }
 

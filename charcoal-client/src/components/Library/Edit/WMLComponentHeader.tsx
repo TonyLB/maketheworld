@@ -1,34 +1,37 @@
-import { FunctionComponent } from 'react'
-import { useSelector } from 'react-redux'
+import { FunctionComponent, useCallback } from 'react'
 
-import {
-    ListItemButton,
-    ListItemText,
-    ListItemIcon
-} from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 
-import { NormalComponent } from '../../../wml/normalize'
-import { getDefaultAppearances } from '../../../slices/personalAssets'
+import { isNormalComponent } from '../../../wml/normalize'
+import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 
 interface WMLComponentHeaderProps {
-    component: NormalComponent;
-    AssetId: string;
+    ItemId: string;
     onClick: () => void;
 }
 
-export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ component, AssetId, onClick }) => {
-    const defaultAppearances = useSelector(getDefaultAppearances(`ASSET#${AssetId}`))
-    const aggregateName = component.appearances
-        .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
-        .map(({ name = '' }) => name)
-        .join('')
-    return <ListItemButton onClick={onClick}>
-        <ListItemIcon>
-            <HomeIcon />
-        </ListItemIcon>
-        <ListItemText primary={`${defaultAppearances[component.key]?.name || ''}${aggregateName}` || 'Untitled'} secondary={component.key} />
-    </ListItemButton>
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick }) => {
+    const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem }) => {
+        if (isNormalComponent(item)) {
+            const aggregateName = item.appearances
+                .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Condition'))))
+                .map(({ name = '' }) => name)
+                .join('')
+            return `${defaultItem?.name || ''}${aggregateName}` || 'Untitled'
+
+        }
+        return ''
+    }
+    const primary = useCallback(primaryBase, [])
+    const secondaryBase: AssetDataHeaderRenderFunction = ({ item }) => (item.key)
+    const secondary = useCallback(secondaryBase, [])
+    return <AssetDataHeader
+        ItemId={ItemId}
+        icon={<HomeIcon />}
+        primary={primary}
+        secondary={secondary}
+        onClick={onClick}
+    />
 }
 
 export default WMLComponentHeader
