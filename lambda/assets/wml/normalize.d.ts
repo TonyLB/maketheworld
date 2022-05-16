@@ -19,7 +19,7 @@ type NormalReference = {
     index: number;
 }
 
-type BaseAppearance = {
+export type BaseAppearance = {
     contextStack: NormalReference[];
     contents: NormalReference[];
     location?: number[];
@@ -128,11 +128,16 @@ export type NormalMap = {
     appearances: MapAppearance[];
 } & NormalBase
 
+type ExitAppearance = {
+    name?: string;
+} & BaseAppearance
+
 export type NormalExit = {
     tag: 'Exit';
     to: string;
     from: string;
-    appearances?: BaseAppearance[];
+    name?: string;
+    appearances?: ExitAppearance[];
 } & NormalBase
 
 type NormalVariable = {
@@ -170,5 +175,6 @@ export const normalize = (node: any, existingMap?: any, contextStack?: any, loca
 
 export function isNormalExit(arg: NormalItem): arg is NormalExit
 export function isNormalImage(arg: NormalItem): arg is NormalImage
+export function isNormalComponent(arg: NormalItem): arg is NormalComponent
 
 export default normalize

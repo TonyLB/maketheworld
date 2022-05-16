@@ -13,12 +13,11 @@ import AddIcon from '@mui/icons-material/Add'
 
 import { useLibraryAsset } from './LibraryAsset'
 
-interface WMLComponentHeaderProps {
-    type: 'Room' | 'Feature';
+interface AddRoomExitProps {
     onAdd?: (key: string) => void;
 }
 
-export const AddWMLComponent: FunctionComponent<WMLComponentHeaderProps> = ({ type, onAdd = () => { }}) => {
+export const AddRoomExit: FunctionComponent<AddRoomExitProps> = ({ onAdd = () => { }}) => {
     const { normalForm } = useLibraryAsset()
     const [key, setKey] = useState<string>('')
     const [enteringKey, setEnteringKey] = useState<boolean>(false)
@@ -36,7 +35,7 @@ export const AddWMLComponent: FunctionComponent<WMLComponentHeaderProps> = ({ ty
             <AddIcon />
         </ListItemIcon>
         {
-            (enteringKey === false) && <ListItemText primary={`Add ${type}`} />
+            (enteringKey === false) && <ListItemText primary={`Add Exit`} />
         }
         {
             (enteringKey === true) &&
@@ -71,4 +70,4 @@ export const AddWMLComponent: FunctionComponent<WMLComponentHeaderProps> = ({ ty
         </ListItemButton>
 }
 
-export default AddWMLComponent
+export default AddRoomExit

@@ -26,7 +26,7 @@ import {
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
-import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem } from '../../../wml/normalize'
+import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit } from '../../../wml/normalize'
 import { InheritedExit, InheritedComponent } from '../../../slices/personalAssets/inheritedData'
 import { objectFilter } from '../../../lib/objects'
 
@@ -40,6 +40,7 @@ type LibraryAssetContextType = {
     updateWML: (value: string) => void;
     components: Record<string, AssetComponent>;
     rooms: Record<string, AssetComponent>;
+    exits: Record<string, NormalExit>;
     inheritedExits: InheritedExit[];
     features: Record<string, AssetComponent>;
     save: () => void;
@@ -55,6 +56,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
     updateWML: () => {},
     components: {},
     rooms: {},
+    exits: {},
     inheritedExits: [],
     features: {},
     save: () => {}
@@ -139,6 +141,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     }
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
+    const exits = useMemo<Record<string, NormalExit>>(() => ( objectFilter(normalForm, isNormalExit) ), [components])
     const features = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Feature')) ), [components])
     const save = useCallback(() => {
         dispatch(setIntent({ key: AssetId, intent: ['NEEDSAVE'] }))
@@ -157,6 +160,7 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
             updateWML,
             components,
             rooms,
+            exits,
             features,
             save
         }}>

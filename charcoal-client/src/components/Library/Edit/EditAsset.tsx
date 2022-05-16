@@ -40,7 +40,7 @@ import LibraryAsset, { useLibraryAsset } from './LibraryAsset'
 type AssetEditFormProps = {}
 
 const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
-    const { assetKey, normalForm, wmlQuery, updateWML, save } = useLibraryAsset()
+    const { normalForm, wmlQuery, updateWML, save } = useLibraryAsset()
     const navigate = useNavigate()
 
     const rooms = useMemo<NormalRoom[]>(() => (Object.values(normalForm || {}).filter(({ tag }) => (tag === 'Room')) as NormalRoom[]), [normalForm])
@@ -85,8 +85,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 { rooms.length
                     ? rooms.map((room) => (<WMLComponentHeader
                             key={room.key}
-                            component={room}
-                            AssetId={assetKey}
+                            ItemId={room.key}
                             onClick={() => { navigate(`Room/${room.key}`)}}
                         />))
                     : null
@@ -96,8 +95,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                 { features.length
                     ? features.map((feature) => (<WMLComponentHeader
                             key={feature.key}
-                            component={feature}
-                            AssetId={assetKey}
+                            ItemId={feature.key}
                             onClick={() => { navigate(`Feature/${feature.key}`)}}
                         />))
                     : null

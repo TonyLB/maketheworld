@@ -20,4 +20,4 @@ export const objectEntryMap = (obj: Record<string, any>, transform: (key: any, v
 
 export const reduceArrayToObject = (previous: Record<string, any>, [key, value]: [string, any]) => ObjectMap
 
-export const objectFilter: <T>(obj: ConstrainedMap<T>, condition: (value: T) => boolean) => ConstrainedMap<T>
+export const objectFilter: <T, V extends (value: T) => boolean>(obj: ConstrainedMap<T>, condition: V) => V extends ((value: T) => value is infer G) ? ConstrainedMap<G> : ConstrainedMap<T>
