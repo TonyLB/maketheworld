@@ -1,8 +1,8 @@
 import React, { FunctionComponent, useState, useEffect, useCallback } from 'react'
 import { useDispatch } from 'react-redux'
-import { Descendant, createEditor, Editor, Node, Range, Text, Point } from 'slate'
+import { Descendant, createEditor, Editor, Range, Point } from 'slate'
 import { withHistory } from 'slate-history'
-import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
+import { Slate, Editable, withReact } from 'slate-react'
 
 import {
     Box
@@ -11,7 +11,6 @@ import {
 import { WMLQuery, WMLQueryUpdate } from '../../../wml/wmlQuery'
 import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
 import { setDraftWML } from '../../../slices/personalAssets'
-import { CustomText } from './baseClasses'
 
 import LibraryBanner from './LibraryBanner'
 import { useLibraryAsset } from './LibraryAsset'
@@ -111,10 +110,7 @@ const Leaf = ({ attributes, children, leaf }: { attributes: any, children: any, 
 // }
 
 const decorateWithError = ({ editor, errorRange }: { editor: Editor; errorRange: Range | undefined }) => ([node, path]: [node: Descendant, path: number[]]): Decoration[] => {
-    if (errorRange === undefined) {
-        return []
-    }
-    if (Text.isText(node)) {
+    if (errorRange) {
         const intersection = Range.intersection(errorRange, Editor.range(editor, path))
 
         if (intersection == null) {
@@ -127,16 +123,7 @@ const decorateWithError = ({ editor, errorRange }: { editor: Editor; errorRange:
         }
         return [range]
     }
-    else {
-        return (node.children as CustomText[])
-            .reduce((previous: Decoration[], child: CustomText, index: number) => ([
-                ...previous,
-                ...decorateWithError({
-                    editor,
-                    errorRange
-                })([child, [...path, index]])
-            ]), [] as Decoration[])
-    }
+    return []
 }
 
 const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point | undefined => {
@@ -167,16 +154,16 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         if (wmlQuery.source !== currentWML) {
             wmlQuery.setInput(currentWML)
         }
-    }, [currentWML])
+    }, [currentWML, wmlQuery])
     const initialValue = wmlQueryToSlate(wmlQuery)
     const [debounceMoment, setDebounce] = useState<number>(Date.now())
-    let debounceTimeout: ReturnType<typeof setTimeout>
-    const debouncedUpdate = () => {
+    const [debounceTimeout, setDebounceTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
+    const debouncedUpdate = useCallback(() => {
         if (debounceTimeout) {
             clearTimeout(debounceTimeout)
         }
-        debounceTimeout = setTimeout(() => { setDebounce(Date.now()) }, 1000)
-    }
+        setDebounceTimeout(setTimeout(() => { setDebounce(Date.now()) }, 1000))
+    }, [debounceTimeout, setDebounceTimeout])
     const generateStatusMessage = useCallback(() => {
         if (wmlQuery) {
             const match = wmlQuery.matcher.match()
@@ -191,14 +178,15 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     const [errorPosition, setErrorPosition] = useState<Point | undefined>()
     const [value, setValue] = useState<Descendant[]>(initialValue)
     const [lastDebounceMoment, setLastDebounceMoment] = useState<number>(0)
+    const [editor] = useState(() => withHistory(withReact(createEditor())))
     useEffect(() => {
         if (debounceMoment !== lastDebounceMoment) {
-            setErrorPosition(generateErrorPosition(wmlQuery, value))
+            const newErrorPosition = generateErrorPosition(wmlQuery, value)
+            setErrorPosition(newErrorPosition)
             setStatusMessage(generateStatusMessage())
             setLastDebounceMoment(debounceMoment)
         }
-    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition])
-    const [editor] = useState(() => withHistory(withReact(createEditor() as ReactEditor)))
+    }, [debounceMoment, lastDebounceMoment, wmlQuery, value, setStatusMessage, generateStatusMessage, setErrorPosition, editor])
     const decorate = useCallback(
         ([node, path]) => {
             const endPosition = Editor.end(editor, [])
@@ -220,7 +208,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
             debouncedUpdate()
         }
         setValue(newValue)
-    }, [value])
+    }, [value, debouncedUpdate])
     const renderLeaf = useCallback(props => (<Leaf { ...props } />), [])
     return <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
         <LibraryBanner
@@ -252,9 +240,6 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
                 />
             </Slate>
         </Box>
-        {/* { currentWML }
-        <br/>
-        { JSON.stringify(wmlQuery?.source || '') } */}
         <Box>
             { statusMessage }
         </Box>
