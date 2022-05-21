@@ -24,7 +24,7 @@ interface RoomExitHeaderBaseProps {
 
 const RoomExitHeaderBase: FunctionComponent<RoomExitHeaderBaseProps> = ({ defaultName, toTarget, targetName, onChanged=() => {}, onDelete=() => {} }) => {
     const [name, setName] = useState<string>(defaultName)
-    const debouncedName = useDebounce(name, 1000)
+    const debouncedName = useDebounce(name, 500)
     useEffect(() => {
         if (debouncedName !== defaultName) {
             onChanged(debouncedName)

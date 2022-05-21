@@ -213,6 +213,25 @@ describe('wmlQuery', () => {
 
     })
 
+    it('should unwrap self-closing tag on contents update', () => {
+        const contentsMatch = `
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Exit to=(Test) />
+            </Room>
+        </Asset>
+    `
+        let contentsQuery = new WMLQuery(contentsMatch, { onChange: onChangeMock })
+
+        expect(contentsQuery.search('Room Exit').contents('test').source).toEqual(`
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+        </Asset>
+    `)
+    })
+
     describe('render method', () => {
         const renderMatch = `
         <Asset key=(BASE)>
