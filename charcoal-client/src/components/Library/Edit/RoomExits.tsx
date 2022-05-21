@@ -29,14 +29,14 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
         objectFilter(exits, ({ appearances }) => (Boolean((appearances || []).find(noConditionContext)))),
         ({ to, from }) => ((to === RoomId) || (from === RoomId))
     )
-    const onAddExit = useCallback((toTarget: boolean, target: string) => {
-        if (!rooms[target]) {
+    const onAddExit = useCallback(({ toTarget, targetId }: { toTarget: boolean, targetId: string }) => {
+        if (!rooms[targetId]) {
             return
         }
         const guessName = toTarget
-            ? guessExitName(rooms[target]?.name || '')
+            ? guessExitName(rooms[targetId]?.name || '')
             : guessExitName(rooms[RoomId]?.name || '')
-        const newElement = `<Exit ${toTarget ? 'to' : 'from'}=(${target})>${guessName}</Exit>`
+        const newElement = `<Exit ${toTarget ? 'to' : 'from'}=(${targetId})>${guessName}</Exit>`
         const updateQuery = wmlQuery
             .search(`Room[key="${RoomId}"]`)
             .not('Condition Room')
