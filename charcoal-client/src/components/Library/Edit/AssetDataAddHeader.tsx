@@ -32,6 +32,7 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
             setEnteringKey(true)
         }
     }, [enteringKey, setEnteringKey])
+    const fieldsRender = renderFields({ ...formState, onChange: setFormState })
 
     const contents = <React.Fragment>
         <ListItemIcon>
@@ -44,7 +45,7 @@ export const AssetDataAddHeader = <T extends Object>({ renderFields, onAdd = () 
             (enteringKey === true) &&
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                     <Box>
-                        { renderFields({ ...formState, onChange: setFormState })}
+                        { fieldsRender }
 
                         <Button sx={{ marginTop: '0.65em', marginRight: '0.25em' }} disabled={Boolean(errorMessage)} variant="contained" onClick={onClick}>Add</Button>
                         <Button sx={{ marginTop: '0.65em' }} variant="outlined" onClick={() => { setEnteringKey(false) }}>Cancel</Button>
