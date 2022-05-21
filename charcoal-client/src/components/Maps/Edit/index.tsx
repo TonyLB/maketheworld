@@ -88,6 +88,15 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         
     }, [normalForm, mapId, wmlQuery, updateWML])
 
+    const onAddExit = useCallback(({ to, from }: { to: string; from: string }) => {
+        const outgoingQuery = wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not("Condition Exit")
+        const incomingQuery = wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not("Condition Exit")
+        if (outgoingQuery.nodes().length === 0 && incomingQuery.nodes().length === 0) {
+            wmlQuery.search(`Room[key="${from}"]`).not("Condition Room").add(':first').addElement(`<Exit to=(${to}) />`, { position: 'after' })
+            updateWML(wmlQuery.source)
+        }
+    }, [wmlQuery, updateWML])
+
     return <ToolSelectContext.Provider value={toolSelected}>
         <div className={localClasses.grid}>
             <div className={localClasses.content} >
@@ -99,6 +108,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                     tree={tree}
                     dispatch={dispatch}
                     onStabilize={onStabilize}
+                    onAddExit={onAddExit}
                 />
             </div>
             <div className={localClasses.sidebar} >
