@@ -15,11 +15,7 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 
-import { NormalExit } from '../../../wml/normalize'
-
 import { useLibraryAsset } from './LibraryAsset'
-import { objectFilterEntries, objectEntryMap } from '../../../lib/objects'
-import { objectFilter } from '../../../lib/objects'
 
 interface AddRoomExitProps {
     RoomId: string;
