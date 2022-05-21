@@ -62,7 +62,7 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
                     Object.keys(exits)
                         .map((key) => (<RoomExitHeader key={key} ItemId={key} RoomId={RoomId} />))
                 }
-                <AddRoomExit onAdd={() => {}} />
+                <AddRoomExit RoomId={RoomId} onAdd={() => {}} />
             </Box>
         </Box>
     </Box>
