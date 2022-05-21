@@ -49,7 +49,7 @@ import {
 import { ComponentRenderItem, NormalForm, NormalFeature } from '../../../wml/normalize'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
-import useDebouncedCallback from './useDebouncedCallback'
+import useDebounce from '../../../hooks/useDebounce'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -427,10 +427,11 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const [value, setValue] = useState<Descendant[]>([{
-            type: 'description',
-            children: descendantsFromRender(normalForm)({ render, spaceBefore, spaceAfter })
-        }])
+    const defaultValue = useMemo<Descendant[]>(() => ([{
+        type: 'description',
+        children: descendantsFromRender(normalForm)({ render, spaceBefore, spaceAfter })
+    }]), [normalForm])
+    const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender])
     const renderLeaf = useCallback(props => <Leaf {...props} />, [])
@@ -458,7 +459,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
         }
     }, [])
 
-    const saveToReduce = useCallback(() => {
+    const saveToReduce = useCallback((value: Descendant[]) => {
         const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
             .reduce((accumulator, { children = [] }, index) => (
                 children
@@ -494,12 +495,16 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
         onChange(newRender)
     }, [onChange, value])
 
-    const debouncedSave = useDebouncedCallback(saveToReduce)
-
     const onChangeHandler = useCallback((value) => {
         setValue(value)
-        debouncedSave()
-    }, [setValue, debouncedSave])
+    }, [setValue])
+    
+    const debouncedValue = useDebounce(value, 1000)
+    useEffect(() => {
+        if (JSON.stringify(debouncedValue) !== JSON.stringify(defaultValue)) {
+            saveToReduce(debouncedValue)
+        }
+    }, [debouncedValue, defaultValue, saveToReduce])
 
     return <React.Fragment>
         <Slate editor={editor} value={value} onChange={onChangeHandler}>
