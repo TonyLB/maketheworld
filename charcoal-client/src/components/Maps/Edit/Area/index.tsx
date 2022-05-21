@@ -15,13 +15,14 @@ type MapAreaProps = {
     tree: MapTree;
     dispatch: MapDispatch;
     onStabilize?: SimCallback;
+    onAddExit?: (props: { from: string; to: string }) => void;
 }
 
 const backgroundOnClick = (dispatch: MapDispatch): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
     dispatch({ type: 'addRoom', x: clientX, y: clientY })
 }
 
-export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch, onStabilize = () => {} }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatch, onStabilize = () => {}, onAddExit = () => {} }) => {
     // const localClasses = useMapStyles()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
@@ -33,6 +34,10 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, tree, dispatc
             onExitDrag: setExitDrag,
             onAddExit: (fromRoomId, toRoomId, double) => {
                 dispatch({ type: 'addExit', fromRoomId, toRoomId, double })
+                onAddExit({ from: fromRoomId, to: toRoomId })
+                if (double) {
+                    onAddExit({ from: toRoomId, to: fromRoomId })
+                }
             }
         })
         return { mapD3, rooms, exits, tree }

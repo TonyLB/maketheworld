@@ -86,7 +86,7 @@ export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId,
                         : `${rooms[item.from]?.defaultName}${rooms[item.from]?.localName}`
                 }
                 toTarget={toTarget}
-                defaultName={item.name || defaultItem.name || ''}
+                defaultName={item?.name || defaultItem?.name || ''}
                 onChanged={saveName({ location })}
                 onDelete={onDelete({ to: item.to, from: item.from })}
             />
