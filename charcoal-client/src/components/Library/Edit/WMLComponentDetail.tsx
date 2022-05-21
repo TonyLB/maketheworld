@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useState } from 'react'
+import { FunctionComponent, useCallback, useEffect, useState, useMemo } from 'react'
 import {
     useParams
 } from "react-router-dom"
@@ -12,9 +12,9 @@ import { blue } from '@mui/material/colors'
 
 import LibraryBanner from './LibraryBanner'
 import DescriptionEditor from './DescriptionEditor'
-import useDebouncedCallback from './useDebouncedCallback'
 import { useLibraryAsset } from './LibraryAsset'
 import RoomExits from './RoomExits'
+import useDebounce from '../../../hooks/useDebounce'
 
 interface WMLComponentDetailProps {
 }
@@ -50,16 +50,17 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
         }
         updateWML(componentsQuery.source)
     }, [wmlQuery, tag, updateWML])
-    const [name, setName] = useState(components[component.key]?.localName || '')
+    const defaultName = useMemo(() => (components[component.key]?.localName || ''), [components, component.key])
+    const [name, setName] = useState(defaultName)
 
     const dispatchNameChange = useCallback((value) => {
         const componentQuery = wmlQuery.search(tag).not(`Condition ${tag}`).not(`Map ${tag}`).add(`[key="${ComponentId}"] Name`)
         if (componentQuery) {
             componentQuery.remove()
         }
-        if (name) {
-            const spaceBefore = name.search(/^\s+/) !== -1
-            const spaceAfter = name.search(/\s+$/) !== -1
+        if (value) {
+            const spaceBefore = value.search(/^\s+/) !== -1
+            const spaceAfter = value.search(/\s+$/) !== -1
             const spacingProps = [
                 ...(spaceBefore ? ['spaceBefore'] : []),
                 ...(spaceAfter ? ['spaceAfter'] : []),
@@ -74,20 +75,33 @@ export const WMLComponentDetail: FunctionComponent<WMLComponentDetailProps> = ()
                 .extend()
                 .add('Name')
                 .remove()
-            if (name) {
-                componentsQuery
-                    .extend()
-                    .add(':first')
-                    .addElement(`<Name${ spacingProps.length ? ` ${spacingProps.join(' ')} ` : ''}>${name.trim()}</Name>`, { position: 'after' })
+            componentsQuery
+                .extend()
+                .add(':first')
+                .addElement(`<Name${ spacingProps.length ? ` ${spacingProps.join(' ')} ` : ''}>${value.trim()}</Name>`, { position: 'after' })
+        }
+        else {
+            const componentsQuery = wmlQuery.search(`${tag}[key="${ComponentId}"]`)
+                .not(`Condition ${tag}`)
+                .not(`Map ${tag}`)
+            if (tag === 'Feature') {
+                componentsQuery.not(`Room Feature`)
             }
+            componentsQuery
+                .add('Name')
+                .remove()
         }
         updateWML(componentQuery.source)
-    }, [updateWML, wmlQuery, name, tag, ComponentId])
-    const onChangeName = useDebouncedCallback(dispatchNameChange)
+    }, [updateWML, wmlQuery, tag, ComponentId])
     const changeName = useCallback((event) => {
         setName(event.target.value)
-        onChangeName(event.target.value)
     }, [setName])
+    const debouncedName = useDebounce(name, 1000)
+    useEffect(() => {
+        if (debouncedName !== defaultName) {
+            dispatchNameChange(debouncedName)
+        }
+    }, [debouncedName, defaultName])
     if (!component) {
         return <Box />
     }
