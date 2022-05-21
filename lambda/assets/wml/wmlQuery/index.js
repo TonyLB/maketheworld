@@ -95,7 +95,29 @@ export class WMLQueryResult {
         return (this._nodes || []).count
     }
 
+    expand() {
+        let offset = 0
+        this._nodes.forEach(({ type, tag, end }) => {
+            if (type !== 'tag') {
+                return
+            }
+            const selfClosed = this.wmlQuery.source.slice(end + offset - 2, end + offset) === '/>'
+            if (selfClosed) {
+                //
+                // Unwrap the self-closed tag into an explicit one before trying
+                // to insert content
+                //
+                const trimmedPrepend = this.wmlQuery.source.slice(0, end + offset - 2).trimEnd()
+                const replaceValue = `${trimmedPrepend}></${tag}>`
+                this.wmlQuery.replaceInputRange(0, end + offset, replaceValue)
+                offset = replaceValue.length - end
+            }
+        })
+        this.refresh()
+    }
+
     addElement(source, options) {
+        this.expand()
         const { position = 'after' } = options || {}
         this._nodes.forEach(({ type, tag, tagEnd, contentsStart, end, contents = [] }) => {
             if (type !== 'tag') {
@@ -202,15 +224,12 @@ export class WMLQueryResult {
     }
 
     contents(value) {
+        this.expand()
         if (value !== undefined) {
-            this._nodes.forEach((node) => {
-                const { start, end } = (node.contents || []).reduce((previous, probeNode) => ({
-                    start: Math.min(probeNode.start, previous.start),
-                    end: Math.max(probeNode.end, previous.end)
-                }), { start: node.end, end: 0 })
-                if (end > 0) {
-                    this.replaceInputRange(start, end, value)
-                }
+            let offset = 0
+            this._nodes.forEach(({ contentsStart, contentsEnd }) => {
+                this.replaceInputRange(contentsStart + offset, contentsEnd + offset, value)
+                offset += contentsStart + value - contentsEnd
             })
             this.refresh()
             return this
