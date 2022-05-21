@@ -17,12 +17,35 @@ interface RoomExitsProps {
     RoomId: string;
 }
 
+const guessExitName = (roomName: string) => (
+    roomName.split(' ')
+        .map((token) => (token.toLowerCase()))
+        .filter((token) => (!['a', 'an', 'the'].includes(token)))[0] || 'unknown'
+)
+
 export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
-    const { assetKey, normalForm, wmlQuery, updateWML, components, exits } = useLibraryAsset()
+    const { wmlQuery, rooms, exits, updateWML } = useLibraryAsset()
     const relevantExits = objectFilter(
         objectFilter(exits, ({ appearances }) => (Boolean((appearances || []).find(noConditionContext)))),
         ({ to, from }) => ((to === RoomId) || (from === RoomId))
     )
+    const onAddExit = useCallback((toTarget: boolean, target: string) => {
+        if (!rooms[target]) {
+            return
+        }
+        const guessName = toTarget
+            ? guessExitName(rooms[target]?.name || '')
+            : guessExitName(rooms[RoomId]?.name || '')
+        const newElement = `<Exit ${toTarget ? 'to' : 'from'}=(${target})>${guessName}</Exit>`
+        const updateQuery = wmlQuery
+            .search(`Room[key="${RoomId}"]`)
+            .not('Condition Room')
+            .not('Map Room')
+            .add(':first')
+        updateQuery
+            .addElement(newElement, { position: 'after' })
+        updateWML(updateQuery.source)
+    }, [wmlQuery, rooms, RoomId, updateWML])
     return <Box sx={{
         display: 'flex',
         flexDirection: 'row',
@@ -59,10 +82,10 @@ export const RoomExits: FunctionComponent<RoomExitsProps> = ({ RoomId }) => {
                 width: "100%"
             }}>
                 {
-                    Object.keys(exits)
+                    Object.keys(relevantExits)
                         .map((key) => (<RoomExitHeader key={key} ItemId={key} RoomId={RoomId} />))
                 }
-                <AddRoomExit RoomId={RoomId} onAdd={() => {}} />
+                <AddRoomExit RoomId={RoomId} onAdd={onAddExit} />
             </Box>
         </Box>
     </Box>
