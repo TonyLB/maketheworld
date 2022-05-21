@@ -2,9 +2,11 @@ import React, { FunctionComponent, useCallback, useEffect, useState } from 'reac
 
 import {
     Box,
-    TextField
+    TextField,
+    IconButton
 } from '@mui/material'
 import ExitIcon from '@mui/icons-material/CallMade'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 import { isNormalExit } from '../../../wml/normalize'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
@@ -17,9 +19,10 @@ interface RoomExitHeaderBaseProps {
     toTarget: boolean;
     targetName: string;
     onChanged?: (value: string) => void;
+    onDelete?: () => void;
 }
 
-const RoomExitHeaderBase: FunctionComponent<RoomExitHeaderBaseProps> = ({ defaultName, toTarget, targetName, onChanged=() => {} }) => {
+const RoomExitHeaderBase: FunctionComponent<RoomExitHeaderBaseProps> = ({ defaultName, toTarget, targetName, onChanged=() => {}, onDelete=() => {} }) => {
     const [name, setName] = useState<string>(defaultName)
     const debouncedName = useDebounce(name, 1000)
     useEffect(() => {
@@ -43,6 +46,11 @@ const RoomExitHeaderBase: FunctionComponent<RoomExitHeaderBaseProps> = ({ defaul
             { (toTarget) ? 'TO' : 'FROM' }&nbsp;
             {targetName}
         </Box>
+        <Box>
+            <IconButton onClick={onDelete}>
+                <DeleteIcon />
+            </IconButton>
+        </Box>
     </Box>
 
 }
@@ -62,19 +70,25 @@ export const RoomExitHeader: FunctionComponent<RoomExitHeaderProps> = ({ ItemId,
             updateWML(exitQuery.source)    
         }
     }, [ItemId, RoomId, wmlQuery, updateWML])
+    const onDelete = useCallback(({ to, from }: { to: string; from: string }) => () => {
+        wmlQuery.search(`Room[key="${from}"] Exit[to="${to}"]`).not('Condition Exit').remove()
+        wmlQuery.search(`Room[key="${to}"] Exit[from="${from}"]`).not('Condition Exit').remove()
+        updateWML(wmlQuery.source)
+    }, [wmlQuery, updateWML])
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem, rooms }) => {
         if (isNormalExit(item)) {
-            const toTarget = Boolean(item.to === RoomId)
+            const toTarget = Boolean(item.from === RoomId)
             const location = (item.appearances?.filter(noConditionContext)?.[0]?.location) || []
             return <RoomExitHeaderBase
                 targetName={
                     toTarget
-                        ? `${rooms[item.from]?.defaultName}${rooms[item.from]?.localName}`
-                        : `${rooms[item.to]?.defaultName}${rooms[item.to]?.localName}`
+                        ? `${rooms[item.to]?.defaultName}${rooms[item.to]?.localName}`
+                        : `${rooms[item.from]?.defaultName}${rooms[item.from]?.localName}`
                 }
                 toTarget={toTarget}
                 defaultName={item.name || defaultItem.name || ''}
                 onChanged={saveName({ location })}
+                onDelete={onDelete({ to: item.to, from: item.from })}
             />
         }
         return ''
