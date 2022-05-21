@@ -215,8 +215,9 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                         }
                         {
                             decoratorExits
-                                .map(({ fromX, fromY, toX, toY, double}) => (
+                                .map(({ fromX, fromY, toX, toY, double}, index) => (
                                     <MapEdgeComponent
+                                        key={`edge${index}`}
                                         fromX={fromX + (MAP_WIDTH / 2)}
                                         fromY={fromY + (MAP_HEIGHT / 2)}
                                         toX={toX + (MAP_WIDTH / 2)}
@@ -267,8 +268,8 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                             ))
                         }
                         {
-                            decoratorCircles.map(({ x, y }) => (
-                                <HighlightCircle x={x + (MAP_WIDTH / 2)} y={y + (MAP_HEIGHT / 2)} />
+                            decoratorCircles.map(({ x, y }, index) => (
+                                <HighlightCircle key={`highlightCircle${index}`} x={x + (MAP_WIDTH / 2)} y={y + (MAP_HEIGHT / 2)} />
                             ))
                         }
                     </svg>
