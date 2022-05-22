@@ -1,6 +1,7 @@
 import { FunctionComponent, useCallback } from 'react'
 
 import HomeIcon from '@mui/icons-material/Home'
+import { SxProps } from '@mui/material'
 
 import { isNormalComponent } from '../../../wml/normalize'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
@@ -8,9 +9,11 @@ import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader
 interface WMLComponentHeaderProps {
     ItemId: string;
     onClick: () => void;
+    sx?: SxProps;
+    selected?: boolean;
 }
 
-export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick }) => {
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, sx, selected }) => {
     const primaryBase: AssetDataHeaderRenderFunction = ({ item, defaultItem }) => {
         if (isNormalComponent(item)) {
             const aggregateName = item.appearances
@@ -31,6 +34,8 @@ export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({
         primary={primary}
         secondary={secondary}
         onClick={onClick}
+        sx={sx}
+        selected={selected}
     />
 }
 

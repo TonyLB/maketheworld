@@ -14,11 +14,11 @@ type ConstrainedMap<T> = Record<string, T>
 
 export const reduceAssignToObject = (previous: Record<string, any>, item: Record<string, any>) => ObjectMap
 
-export const objectMap = (obj: Record<string, any>, transform: (value: any) => any) => ObjectMap
+export const objectMap: <T, M>(obj: ConstrainedMap<T>, transform: ((value: T) => M)) => ConstrainedMap<M>
 
-export const objectEntryMap = (obj: Record<string, any>, transform: (key: any, value: any) => any) => ObjectMap
+export const objectEntryMap: <T, M>(obj: ConstrainedMap<T>, transform: (key: string, value: T) => M) => ConstrainedMap<M>
 
-export const reduceArrayToObject = (previous: Record<string, any>, [key, value]: [string, any]) => ObjectMap
+export const reduceArrayToObject: (previous: ObjectMap, [key, value]: [string, any]) => ObjectMap
 
 export const objectFilter: <T, V extends (value: T) => boolean>(obj: ConstrainedMap<T>, condition: V) => V extends ((value: T) => value is infer G) ? ConstrainedMap<G> : ConstrainedMap<T>
 

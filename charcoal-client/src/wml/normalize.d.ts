@@ -176,5 +176,6 @@ export const normalize = (node: any, existingMap?: any, contextStack?: any, loca
 export function isNormalExit(arg: NormalItem): arg is NormalExit
 export function isNormalImage(arg: NormalItem): arg is NormalImage
 export function isNormalComponent(arg: NormalItem): arg is NormalComponent
+export function isNormalMap(arg: NormalItem): arg is NormalMap
 
 export default normalize

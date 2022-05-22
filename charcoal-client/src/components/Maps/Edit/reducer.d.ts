@@ -7,6 +7,8 @@ export type MapReducerAction = {
     tree: MapTree
 } | {
     type: 'addRoom';
+    key: string;
+    name: string;
     x: number;
     y: number;
 } | {
