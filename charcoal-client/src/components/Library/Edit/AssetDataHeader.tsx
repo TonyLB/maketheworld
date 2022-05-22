@@ -5,7 +5,8 @@ import {
     ListItemButton,
     ListItem,
     ListItemText,
-    ListItemIcon
+    ListItemIcon,
+    SxProps
 } from '@mui/material'
 
 import { NormalItem } from '../../../wml/normalize'
@@ -30,9 +31,11 @@ interface AssetDataHeaderProps {
     primary?: AssetDataHeaderRenderFunction;
     secondary?: AssetDataHeaderRenderFunction;
     onClick?: () => void;
+    sx?: SxProps;
+    selected?: boolean;
 }
 
-export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, primary, secondary, ItemId, onClick }) => {
+export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon, primary, secondary, ItemId, onClick, sx, selected }) => {
     const { normalForm, defaultAppearances, rooms } = useLibraryAsset()
 
     const props = {
@@ -45,7 +48,7 @@ export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon,
     const primaryOutput = primary?.(props) || null
     const secondaryOutput = secondary?.(props) || null
     if (onClick) {
-        return <ListItemButton onClick={onClick}>
+        return <ListItemButton onClick={onClick} sx={sx} selected={selected}>
             <ListItemIcon>
                 { icon }
             </ListItemIcon>
@@ -53,7 +56,7 @@ export const AssetDataHeader: FunctionComponent<AssetDataHeaderProps> = ({ icon,
         </ListItemButton>
     }
     else {
-        return <ListItem>
+        return <ListItem sx={sx}>
             <ListItemIcon>
                 { icon }
             </ListItemIcon>

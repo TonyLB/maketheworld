@@ -52,7 +52,7 @@ const TableOfContents: FunctionComponent<TableOfContentsProps> = ({ Characters =
             })
         }
     }
-    return <List component="nav" aria-label="main mailbox folders">
+    return <List component="nav" aria-label="main library assets">
         { (Assets.length > 0) && <ListSubheader>Assets</ListSubheader> }
         { Assets.map(({ AssetId }, index) => (
             <ListItemButton

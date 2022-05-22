@@ -459,5 +459,6 @@ export const normalize = (node, existingMap = {}, contextStack = [], location = 
 export const isNormalExit = (arg) => (arg.tag === 'Exit')
 export const isNormalImage = (arg) => (arg.tag === 'Image')
 export const isNormalComponent = (arg) => (['Room', 'Feature'].includes(arg.tag))
+export const isNormalMap = (arg) => (arg.tag === 'Map')
 
 export default normalize
