@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState, useReducer, useCallback, useMemo } from 'react'
+import React, { FunctionComponent, useState, useReducer, useCallback, useMemo, useEffect } from 'react'
 
 import {
     useParams
@@ -27,11 +27,20 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
+    const defaultTree = useMemo(() => (
+        normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits, inheritedAppearances: (defaultAppearances[mapId  || ''] as unknown as any)?.layers || [] })
+    ), [normalToTree, mapId, normalForm, rooms, inheritedExits, defaultAppearances])
     const [{ tree }, dispatch] = useReducer<MapReducer, MapTree>(
         mapReducer,
-        normalToTree({ MapId: mapId || '', normalForm, rooms, inheritedExits, inheritedAppearances: (defaultAppearances[mapId  || ''] as unknown as any)?.layers || [] }),
+        defaultTree,
         (tree) => ({ tree })
     )
+    useEffect(() => {
+        dispatch({
+            type: 'updateTree',
+            tree: defaultTree
+        })
+    }, [defaultTree, dispatch])
 
     //
     // TODO: Figure out how to extract fileURL from defaultAppearances
@@ -97,6 +106,11 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
         }
     }, [wmlQuery, updateWML])
 
+    const onAddRoom = useCallback(({ clientX, clientY, roomId }: { clientX: number; clientY: number; roomId: string }) => {
+        wmlQuery.search(`Map[key="${mapId}"]`).not('Condition Map').add(':first').addElement(`<Room key=(${roomId}) x="${clientX}" y="${clientY}" />`, { position: 'after' })
+        updateWML(wmlQuery.source)
+    }, [wmlQuery, updateWML])
+
     return <ToolSelectContext.Provider value={toolSelected}>
         <div className={localClasses.grid}>
             <div className={localClasses.content} >
@@ -109,6 +123,7 @@ export const MapEdit: FunctionComponent<MapEditProps>= () => {
                     dispatch={dispatch}
                     onStabilize={onStabilize}
                     onAddExit={onAddExit}
+                    onAddRoom={onAddRoom}
                 />
             </div>
             <div className={localClasses.sidebar} >

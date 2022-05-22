@@ -18,15 +18,10 @@ type MapAreaProps = {
     dispatch: MapDispatch;
     onStabilize?: SimCallback;
     onAddExit?: (props: { from: string; to: string }) => void;
-    onAddRoom?: (props: { from: string; to: string }) => void;
+    onAddRoom?: (props: { clientX: number; clientY: number; roomId: string }) => void;
 }
 
 const backgroundOnClick = ({ setDialogOpen, setClickPosition }: { setDialogOpen: (value: boolean) => void, setClickPosition: (value: { clientX: number, clientY: number }) => void }): React.MouseEventHandler<SVGElement> => ({ clientX, clientY }) => {
-    //
-    // TODO: Instead of immediately adding the room, raise an AddRoomDialog to find out which ID and name
-    //
-    // dispatch({ type: 'addRoom', x: clientX, y: clientY })
-
     setDialogOpen(true)
     setClickPosition({ clientX, clientY })
 }
@@ -40,17 +35,11 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
     onAddRoom = () => {}
 }) => {
 
-    //
-    // TODO: Add state for recording raised/lowered state of the dialog, state variables to record clientX and clientY
-    // from a background click (holding them until completion of the dialog) and some lifted variables to pass off
-    // key and name from inside the dialog itself.
-    //
-
     const { MapId: mapId } = useParams<{ MapId: string }>()
 
     const [exitDrag, setExitDrag] = useState<{ sourceRoomId: string; x: number; y: number }>({ sourceRoomId: '', x: 0, y: 0 })
     const [dialogOpen, setDialogOpen] = useState<boolean>(false)
-    const [clickPosition, setClickPosition ] = useState<{ clientX: Number, clientY: number } | null>(null)
+    const [clickPosition, setClickPosition ] = useState<{ clientX: number, clientY: number } | null>(null)
     const [addRoomId, setAddRoomId] = useState<string>('')
     const onCloseDialog = useCallback(() => {
         setDialogOpen(false)
@@ -73,6 +62,14 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
         })
         return { mapD3, rooms, exits, tree }
     })
+    const onSaveDialog = useCallback(() => {
+        if (clickPosition) {
+            onAddRoom({ ...clickPosition, roomId: addRoomId })
+        }
+        setDialogOpen(false)
+        setAddRoomId('')
+        setClickPosition(null)
+    }, [clickPosition, addRoomId, onAddRoom, mapDispatch])
     useEffect(() => {
         mapDispatch({
             type: 'SETCALLBACKS',
@@ -91,11 +88,18 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
     }, [tree, mapDispatch])
 
     const exitDragSourceRoom = exitDrag.sourceRoomId && rooms.find(({ roomId }) => (roomId === exitDrag.sourceRoomId))
-    const decoratorCircles = exitDragSourceRoom
-        ? [
-            { x: exitDragSourceRoom.x, y: exitDragSourceRoom.y },
-            { x: exitDrag.x, y: exitDrag.y }
-        ]: []
+    const decoratorCircles = [
+        ...(exitDragSourceRoom
+            ? [
+                { x: exitDragSourceRoom.x, y: exitDragSourceRoom.y },
+                { x: exitDrag.x, y: exitDrag.y }
+            ]: []
+        ),
+        ...(clickPosition
+            ? [ { x: clickPosition.clientX, y: clickPosition.clientY }]
+            : []
+        )
+    ]
     //
     // TODO: Derive double from the current toolSelect setting somewhere along the line
     //
@@ -108,6 +112,7 @@ export const MapArea: FunctionComponent<MapAreaProps>= ({
             roomId={addRoomId || ''}
             onChange={setAddRoomId}
             onClose={onCloseDialog}
+            onSave={onSaveDialog}
         />
         <MapDisplay
             fileURL={fileURL}

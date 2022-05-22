@@ -6,23 +6,13 @@ import {
     DialogContent,
     Typography,
     Button,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    List,
-    ListItemButton
+    List
 } from '@mui/material'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { isNormalMap, MapAppearance } from '../../../../wml/normalize'
+import { isNormalMap } from '../../../../wml/normalize'
 import { objectFilterEntries, objectMap } from '../../../../lib/objects'
 import WMLComponentHeader from '../../../Library/Edit/WMLComponentHeader'
 
-//
-// TODO: Use useLibraryAsset to pull room assets and compare them to the info
-// on the mapID passed into the Dialog, in order to decipher which rooms have
-// not yet been added
-//
 interface AddRoomDialog {
     open: boolean;
     onClose?: () => void;
