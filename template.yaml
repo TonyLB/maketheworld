@@ -631,17 +631,17 @@ Resources:
                 Stream: !GetAtt AssetTable.StreamArn
                 BatchSize: 100
                 StartingPosition: LATEST
-          # Events:
-          #   BucketEvent:
-          #     Type: S3
-          #     Properties:
-          #       Bucket: !Ref AssetBucket
-          #       Filter:
-          #         S3Key:
-          #           Rules:
-          #             - Name: prefix
-          #               Value: upload/
-          #       Events: s3:ObjectCreated:*
+          Events:
+            BucketEvent:
+              Type: S3
+              Properties:
+                Bucket: !Ref AssetBucket
+                Filter:
+                  S3Key:
+                    Rules:
+                      - Name: prefix
+                        Value: upload/
+                Events: s3:ObjectCreated:*
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:
