@@ -70,7 +70,7 @@ export const useMapStyles = makeStyles((theme: Theme) => ({
         fill: theme.palette.getContrastText(blue[50])
     },
     roomNode: {
-        fill: blue[50],
+        mixBlendMode: 'difference',
         touchAction: "none"
     },
     renderWrapper: {
