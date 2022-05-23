@@ -35,7 +35,8 @@ export const MapEdge = ({ fromX, fromY, toX, toY, decorator = false, double = tr
         {...(double ? { markerStart: `url(#${markerStart})` } : {})}
         style={{
             stroke,
-            strokeWidth
+            strokeWidth,
+            mixBlendMode: 'difference',
         }}
     />
     if (decorator) {
@@ -45,7 +46,7 @@ export const MapEdge = ({ fromX, fromY, toX, toY, decorator = false, double = tr
         </React.Fragment>
     }
     else {
-        return line('head', 'tail', '#000000', 1)
+        return line('head', 'tail', 'rgb(200, 255, 255)', 1)
     }
 }
 

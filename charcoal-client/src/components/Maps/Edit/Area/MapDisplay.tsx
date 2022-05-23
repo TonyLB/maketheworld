@@ -157,9 +157,17 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                 }}>
                     <svg width="100%" height="100%" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
                         <defs>
+                            <radialGradient id="Gradient1">
+                                <stop offset="70%" stop-color="rgba(200, 255, 255, 0.2)" />
+                                <stop offset="91%" stop-color="rgba(200, 255, 255, 1.0)" />
+                                <stop offset="94%" stop-color="rgba(200, 255, 255, 1.0)" />
+                                <stop offset="94%" stop-color="rgba(200, 255, 255, 0.0)" />
+                                <stop offset="97%" stop-color="rgba(200, 255, 255, 0.0)" />
+                                <stop offset="97%" stop-color="rgba(200, 255, 255, 1.0)" />
+                            </radialGradient>
                             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                                     refX='5' refY='5'>
-                                <path d='M0,0 V10 L10,5 Z' fill='#000000' />
+                                <path d='M0,0 V10 L10,5 Z' fill='rgb(200, 255, 255)' />
                             </marker>
                             <marker id='outlineHead' orient='auto' markerWidth='5' markerHeight='10'
                                     refX='2.5' refY='2.5'>
@@ -171,7 +179,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                             </marker>
                             <marker id='tail' orient='auto' markerWidth='10' markerHeight='20'
                                     refX='5' refY='5'>
-                                <path d='M10,0 V10 L0,5 Z' fill='#000000' />
+                                <path d='M10,0 V10 L0,5 Z' fill='rgb(200, 255, 255)' />
                             </marker>
                             <marker id='outlineTail' orient='auto' markerWidth='5' markerHeight='10'
                                     refX='2.5' refY='2.5'>

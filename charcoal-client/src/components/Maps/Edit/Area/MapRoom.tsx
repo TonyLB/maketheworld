@@ -53,6 +53,9 @@ export const MapRoom = ({
             cy={0}
             r={30}
             className={className}
+            style={{
+                fill: 'url(#Gradient1)'
+            }}
             {...rest}
         />
         <text
@@ -60,7 +63,11 @@ export const MapRoom = ({
                 fontFamily: "Roboto",
                 fontSize: "10px",
                 pointerEvents: "none",
-                userSelect: "none"
+                userSelect: "none",
+                stroke: "rgba(255, 255, 255, 0.3)",
+                strokeWidth: "1",
+                fill: "black",
+                paintOrder: "stroke fill"
             }}
             textAnchor="middle"
             x={0}
