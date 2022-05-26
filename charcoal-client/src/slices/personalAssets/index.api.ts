@@ -93,7 +93,8 @@ export const saveWML: PersonalAssetsAction = ({
     if (!currentWML || !saveURL || !uploadRequestId) {
         throw new Error()
     }
-    await apiDispatchPromise(saveURL, uploadRequestId)(currentWML)
+    const wmlQuery = new WMLQuery(currentWML)
+    await apiDispatchPromise(saveURL, uploadRequestId)(wmlQuery.search('Asset, Character').prop('zone', 'Personal').source)
     return {}
 }
 
