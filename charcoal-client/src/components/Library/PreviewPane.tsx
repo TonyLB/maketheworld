@@ -89,7 +89,8 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
     </Card>
 }
 
-const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, Name, fileURL }) => {
+const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL }) => {
+    const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
     const medium = useMediaQuery(theme.breakpoints.up('md'))
@@ -108,7 +109,12 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
             }
             action={
                 personal && 
-                    <IconButton aria-label="edit">
+                    <IconButton
+                        onClick={() => {
+                            navigate(`/Library/Edit/Character/${scopedId}/`)
+                        }}
+                        aria-label="edit"
+                    >
                         <EditIcon />
                     </IconButton>
             }

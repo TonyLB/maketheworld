@@ -36,10 +36,18 @@ export type NormalAsset = {
     appearances: BaseAppearance[];
 } & NormalBase
 
+export type NormalCharacterPronouns = {
+    subject: string;
+    object: string;
+    reflexive: string;
+    possessive: string;
+    adjective: string;
+}
+
 export type NormalCharacter = {
     type: 'Character';
     Name: string;
-    Pronouns: any;
+    Pronouns: NormalCharacterPronouns;
     FirstImpression: string;
     OneCoolThing: string;
     Outfit: string;

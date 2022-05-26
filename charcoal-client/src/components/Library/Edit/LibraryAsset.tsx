@@ -26,7 +26,7 @@ import {
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import { WMLQuery } from '../../../wml/wmlQuery'
-import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit } from '../../../wml/normalize'
+import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '../../../wml/normalize'
 import { InheritedExit, InheritedComponent } from '../../../slices/personalAssets/inheritedData'
 import { objectFilter } from '../../../lib/objects'
 
@@ -65,6 +65,7 @@ const LibraryAssetContext = React.createContext<LibraryAssetContextType>({
 type LibraryAssetProps = {
     assetKey: string;
     children?: ReactChild | ReactChildren;
+    character?: boolean;
 }
 
 export type AssetComponent = {
@@ -80,7 +81,7 @@ export type AssetComponent = {
 }
 
 const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, InheritedComponent> }): Record<string, AssetComponent> => {
-    const componentNormals = Object.values(normalForm) as NormalComponent[]
+    const componentNormals = Object.values(normalForm).filter((item) => (isNormalComponent(item))) as NormalComponent[]
 
     const roomReturns = componentNormals
         .map((component) => {
@@ -125,9 +126,9 @@ const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: Norma
     return Object.assign({}, ...roomReturns)
 }
 
-export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children }) => {
+export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, children, character }) => {
 
-    const AssetId = `ASSET#${assetKey}`
+    const AssetId = `${character ? 'CHARACTER' : 'ASSET'}#${assetKey}`
     const currentWML = useSelector(getCurrentWML(AssetId))
     const normalForm = useSelector(getNormalized(AssetId))
     const wmlQuery = useSelector(getWMLQuery(AssetId))

@@ -219,7 +219,7 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
                 label: 'Library'
             },
             {
-                href: `/Library/Edit/Asset/${assetKey}`,
+                href: `/Library/Edit/${ (AssetId.split('#')?.[0] || '') === 'CHARACTER' ? 'Character' : 'Asset' }/${assetKey}`,
                 label: assetKey || ''
             },
             {

@@ -43,6 +43,7 @@ import Library from '../Library'
 import EditAsset from '../Library/Edit/EditAsset'
 
 import { navigationTabs, navigationTabSelected } from '../../slices/UI/navigationTabs'
+import EditCharacter from '../Library/Edit/EditCharacter'
 
 
 const a11yProps = (index) => {
@@ -205,6 +206,7 @@ export const AppLayout = ({ whoPanel, homePanel, messagePanel, mapPanel, threadP
                         <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
                         <Route path="/Library/" element={<Library />} />
                         <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
+                        <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
                         <Route path="/Maps/*" element={<MapHome />} />
                         <Route path="/Help/" element={<HelpPage />} />
                         <Route path="/Who/" element={whoPanel} />
