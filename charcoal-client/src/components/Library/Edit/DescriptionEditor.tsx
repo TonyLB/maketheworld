@@ -460,6 +460,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     }, [])
 
     const saveToReduce = useCallback((value: Descendant[]) => {
+        console.log('Save to reduce')
         const newRender = ((('children' in value[0] && value[0].children) || []) as CustomParagraphElement[])
             .reduce((accumulator, { children = [] }, index) => (
                 children
@@ -501,7 +502,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     
     const debouncedValue = useDebounce(value, 1000)
     useEffect(() => {
-        if (JSON.stringify(debouncedValue) !== JSON.stringify(defaultValue)) {
+        if (JSON.stringify(debouncedValue, Object.keys(debouncedValue).sort()) !== JSON.stringify(defaultValue, Object.keys(defaultValue).sort())) {
             saveToReduce(debouncedValue)
         }
     }, [debouncedValue, defaultValue, saveToReduce])
