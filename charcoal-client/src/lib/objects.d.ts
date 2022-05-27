@@ -23,3 +23,5 @@ export const reduceArrayToObject: (previous: ObjectMap, [key, value]: [string, a
 export const objectFilter: <T, V extends (value: T) => boolean>(obj: ConstrainedMap<T>, condition: V) => V extends ((value: T) => value is infer G) ? ConstrainedMap<G> : ConstrainedMap<T>
 
 export const objectFilterEntries: <T, V extends (props: [string, T]) => boolean>(obj: ConstrainedMap<T>, condition: V) => ConstrainedMap<T>
+
+export const deepEqual: <T extends any>(objA: T, objB: T) => boolean
