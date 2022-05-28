@@ -36,7 +36,7 @@ type wrappedPublicReducer<D> = {
 }
 
 type multipleSSMPublicSelector<Nodes extends Record<string, any>, D> = {
-    (state: InferredPublicDataTypeAggregateFromNodes<Nodes>): D;
+    (state: InferredPublicDataTypeAggregateFromNodes<Nodes> & { key: string }): D;
 }
 
 type resultPublicSelector<D> = {
@@ -83,7 +83,7 @@ const wrapPublicSelector =
         const wrapper = (key: string) => (state: any): D | undefined => {
             const focus = sliceSelector(state).byId[key]
             if (focus) {
-                return select(focus.publicData)
+                return select({ key, ...focus.publicData })
             }
             return undefined
         }

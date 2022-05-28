@@ -8,6 +8,7 @@ import {
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { NormalImport } from '../../wml/normalize'
+import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -24,12 +25,15 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
     return { internalData: { fetchURL: url } }
 }
 
-export const fetchAction: PersonalAssetsAction = ({ internalData: { fetchURL } }) => async () => {
+export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async () => {
     if (!fetchURL) {
         throw new Error()
     }
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
+    if (id) {
+        wmlQueryFromCache({ key: id, value: assetWML })
+    }
     return { publicData: { originalWML: assetWML, currentWML: assetWML }}
 }
 

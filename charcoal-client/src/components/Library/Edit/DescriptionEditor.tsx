@@ -50,6 +50,7 @@ import { ComponentRenderItem, NormalForm, NormalFeature } from '../../../wml/nor
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
 import useDebounce from '../../../hooks/useDebounce'
+import { deepEqual } from '../../../lib/objects'
 
 interface DescriptionEditorProps {
     inheritedRender?: ComponentRenderItem[];
@@ -502,7 +503,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     
     const debouncedValue = useDebounce(value, 1000)
     useEffect(() => {
-        if (JSON.stringify(debouncedValue, Object.keys(debouncedValue).sort()) !== JSON.stringify(defaultValue, Object.keys(defaultValue).sort())) {
+        if (!deepEqual(debouncedValue, defaultValue)) {
             saveToReduce(debouncedValue)
         }
     }, [debouncedValue, defaultValue, saveToReduce])

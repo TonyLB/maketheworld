@@ -5,6 +5,9 @@ import configureStore from 'redux-mock-store'
 import LibraryAsset, { useLibraryAsset, AssetComponent } from './LibraryAsset'
 
 jest.mock('../../../cacheDB')
+jest.mock('../../../lib/wmlQueryCache')
+import { wmlQueryFromCache } from '../../../lib/wmlQueryCache'
+import { WMLQuery } from '../../../wml/wmlQuery'
 
 const mockStore = configureStore()
 const currentWML = `
@@ -70,6 +73,11 @@ describe('LibraryAsset context provider', () => {
 
     beforeEach(() => {
         store.clearActions()
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        // wmlQueryFromCache.mockReturnValue(
+        //     new WMLQuery(currentWML)
+        // )
     })
 
     it('should provide currentWML', () => {
