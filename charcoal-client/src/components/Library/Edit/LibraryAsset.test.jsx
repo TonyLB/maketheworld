@@ -75,9 +75,9 @@ describe('LibraryAsset context provider', () => {
         store.clearActions()
         jest.clearAllMocks()
         jest.resetAllMocks()
-        // wmlQueryFromCache.mockReturnValue(
-        //     new WMLQuery(currentWML)
-        // )
+        wmlQueryFromCache.mockReturnValue(
+            new WMLQuery(currentWML)
+        )
     })
 
     it('should provide currentWML', () => {
@@ -113,7 +113,7 @@ describe('LibraryAsset context provider', () => {
     })
 
     it('should provide rooms', ()=>{
-        const RoomComponent = ({ value }: { value: AssetComponent }) => {
+        const RoomComponent = ({ value }) => {
             const { name, render } = value
             return <div>
                 <span>{name}</span>
@@ -151,7 +151,7 @@ describe('LibraryAsset context provider', () => {
     })
 
     it('should provide features', ()=>{
-        const FeatureComponent = ({ value }: { value: AssetComponent }) => {
+        const FeatureComponent = ({ value }) => {
             const { name, render } = value
             return <div>
                 <span>{name}</span>
