@@ -39,3 +39,20 @@ export const objectFilter = (obj, condition) => Object.entries(obj)
 export const objectFilterEntries = (obj, condition) => Object.entries(obj)
     .filter(([key, value]) => (condition([key, value])))
     .reduce(reduceArrayToObject, {})
+
+export const deepEqual = (objA, objB) => {
+    if (objA === objB) {
+        return true
+    }
+    if (Array.isArray(objA) && Array.isArray(objB)) {
+        return (objA.length === objB.length) &&
+            objA.every((item, index) => (deepEqual(item, objB[index])))
+    }
+    if (typeof objA === 'object' && typeof objB === 'object') {
+        if (!deepEqual(Object.keys(objA).sort(), Object.keys(objB).sort())) {
+            return false
+        }
+        return Object.entries(objA).every(([key, value]) => (deepEqual(value, objB?.[key])))
+    }
+    return false
+}

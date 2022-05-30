@@ -51,7 +51,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
         wmlQuery.search('Asset, Story').addElement(`<${tag} key=(${componentId}) />`, { position: 'after' })
         updateWML(wmlQuery.source)
     }, [wmlQuery])
-    return <Box sx={{ width: "100%" }}>
+    return <Box sx={{ display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
         <LibraryBanner
             primary={asset?.key || 'Untitled'}
             secondary={asset?.Story ? 'Story' : 'Asset'}
@@ -68,7 +68,7 @@ const AssetEditForm: FunctionComponent<AssetEditFormProps> = () => {
                     label: asset?.key || 'Untitled'
             }]}
         />
-        <Box sx={{ marginLeft: '20px' }}>
+        <Box sx={{ display: 'flex', marginLeft: '20px', overflowY: 'auto', flexGrow: 1 }}>
             <List>
                 { maps.length
                     ? <React.Fragment>
