@@ -56,7 +56,6 @@ export type NormalCharacter = {
 export type ComponentRenderItem = {
     tag: 'Link';
     targetTag: 'Feature' | 'Action';
-    key: string;
     to: string;
     text?: string;
     spaceBefore?: boolean;
