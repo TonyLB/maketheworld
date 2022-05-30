@@ -25,7 +25,7 @@ describe('wmlQuery selector', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
                 <Exit from=(Test)>vortex</Exit>

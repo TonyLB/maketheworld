@@ -13,7 +13,7 @@ describe('WML semantic schema', () => {
                     <Name>Vortex</Name>
                     <Description>
                         Vortex
-                        <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
+                        <Link to=(toggleOpen)>(toggle)</Link>
                     </Description>
                     <Exit from=(DEF)>vortex</Exit>
                 </Room>
@@ -107,14 +107,14 @@ describe('WML semantic schema', () => {
                 <Feature key=(stone) />
                 <Feature key=(clockTower)>
                     <Description>
-                        A clock-tower of weathered grey-<Link key=(towerStone) to=(stone)>stone</Link> looms over the area.
+                        A clock-tower of weathered grey-<Link to=(stone)>stone</Link> looms over the area.
                     </Description>
                 </Feature>
                 <Room key=(ABC)>
                     <Feature key=(clockTower) />
                     <Description>
                         A spinning tumble of wreckage, surrounding a
-                        <Link key=(vortexClockTower) to=(clockTower)>clock tower</Link>.
+                        <Link to=(clockTower)>clock tower</Link>.
                     </Description>
                 </Room>
             </Story>

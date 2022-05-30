@@ -79,7 +79,7 @@ WorldMarkupLangage {
     ExitExpression = TagExpression<"Exit", ("key" | "to" | "from"), none, none, none, string, none>
             | TagSelfClosing<"Exit", ("key" | "to" | "from"), none, none, none, none>
 
-    LinkExpression = TagExpression<"Link", ("key" | "to"), none, none, none, string, spaceCompressor>
+    LinkExpression = TagExpression<"Link", "to", none, none, none, string, spaceCompressor>
 
     MapRoomExpression = TagExpression<"Room", "key", ("display" | "x" | "y"), none, "global", RoomContents, none>
             | TagSelfClosing<"Room", "key", ("display" | "x" | "y"), none, "global", none>

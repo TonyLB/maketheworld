@@ -238,7 +238,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -281,7 +281,6 @@ describe('wmlQuery', () => {
                 { tag: 'String', value: 'Test Render Two: ' },
                 {
                     tag: 'Link',
-                    key: '456',
                     to: 'clockTower',
                     text: '(clock tower)'
                 }
@@ -293,7 +292,6 @@ describe('wmlQuery', () => {
                 { tag: 'String', value: 'Test Render Two: ' },
                 {
                     tag: 'Link',
-                    key: '456',
                     to: 'clockTower',
                     text: '(clock tower)'
                 }
@@ -319,7 +317,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -467,7 +465,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -516,7 +514,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -559,7 +557,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -590,7 +588,7 @@ describe('wmlQuery', () => {
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
