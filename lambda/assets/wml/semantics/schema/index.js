@@ -232,8 +232,8 @@ export const schema = {
     LinkExpression(node) {
         return wmlProcessUpNonRecursive([
             // desourceTag,
-            validate(confirmKeyProps(['key', 'to'])),
-            liftKeyProps(['key', 'to']),
+            validate(confirmKeyProps(['to'])),
+            liftKeyProps(['to']),
             liftUntagged('text', { allString: true }),
             defaultSpacerProps
         ])(node.schema())

@@ -30,7 +30,6 @@ Object {
         },
         Object {
           "contents": Array [],
-          "key": "towerStone",
           "props": Object {},
           "spaceAfter": true,
           "spaceBefore": false,
@@ -76,7 +75,6 @@ Object {
         },
         Object {
           "contents": Array [],
-          "key": "vortexClockTower",
           "props": Object {},
           "spaceAfter": false,
           "spaceBefore": true,
@@ -208,7 +206,6 @@ Object {
         },
         Object {
           "contents": Array [],
-          "key": "switchToggle",
           "props": Object {},
           "spaceAfter": false,
           "spaceBefore": true,

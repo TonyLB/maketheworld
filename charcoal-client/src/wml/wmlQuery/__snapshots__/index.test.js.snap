@@ -157,7 +157,7 @@ exports[`wmlQuery addElement method should correctly add node 1`] = `
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit><Name>Vortex</Name>
             </Room>
@@ -178,7 +178,7 @@ exports[`wmlQuery addElement method should correctly add node before contents 1`
             <Room key=(VORTEX) global>
                 <Name>Vortex</Name><Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -199,7 +199,7 @@ exports[`wmlQuery addElement method should correctly add node to empty tag 1`] =
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -220,7 +220,7 @@ exports[`wmlQuery addElement method should correctly add node to self-closing ta
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -249,29 +249,22 @@ Array [
       Object {
         "contents": Array [
           Object {
-            "end": 194,
-            "start": 183,
+            "end": 183,
+            "start": 172,
             "type": "string",
             "value": "Clock Tower",
           },
         ],
-        "contentsEnd": 194,
-        "contentsStart": 183,
-        "end": 201,
+        "contentsEnd": 183,
+        "contentsStart": 172,
+        "end": 190,
         "props": Object {
-          "key": Object {
-            "end": 166,
-            "start": 156,
-            "value": "a123",
-            "valueEnd": 165,
-            "valueStart": 161,
-          },
           "to": Object {
-            "end": 182,
-            "start": 167,
+            "end": 171,
+            "start": 156,
             "value": "clockTower",
-            "valueEnd": 181,
-            "valueStart": 171,
+            "valueEnd": 170,
+            "valueStart": 160,
           },
         },
         "start": 150,
@@ -280,9 +273,9 @@ Array [
         "type": "tag",
       },
     ],
-    "contentsEnd": 218,
+    "contentsEnd": 207,
     "contentsStart": 96,
-    "end": 232,
+    "end": 221,
     "props": Object {},
     "start": 83,
     "tag": "Description",
@@ -292,46 +285,46 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 269,
-        "start": 265,
+        "end": 258,
+        "start": 254,
         "type": "string",
         "value": "test",
       },
     ],
-    "contentsEnd": 269,
-    "contentsStart": 265,
-    "end": 276,
+    "contentsEnd": 258,
+    "contentsStart": 254,
+    "end": 265,
     "props": Object {
       "to": Object {
-        "end": 264,
-        "start": 255,
+        "end": 253,
+        "start": 244,
         "value": "Test",
-        "valueEnd": 263,
-        "valueStart": 259,
+        "valueEnd": 252,
+        "valueStart": 248,
       },
     },
-    "start": 249,
+    "start": 238,
     "tag": "Exit",
-    "tagEnd": 254,
+    "tagEnd": 243,
     "type": "tag",
   },
   Object {
     "contents": Array [
       Object {
-        "end": 461,
-        "start": 422,
+        "end": 450,
+        "start": 411,
         "type": "string",
         "value": "Conditional Render
                     ",
       },
     ],
-    "contentsEnd": 461,
-    "contentsStart": 397,
-    "end": 475,
+    "contentsEnd": 450,
+    "contentsStart": 386,
+    "end": 464,
     "props": Object {},
-    "start": 384,
+    "start": 373,
     "tag": "Description",
-    "tagEnd": 396,
+    "tagEnd": 385,
     "type": "tag",
   },
 ]
@@ -381,7 +374,7 @@ exports[`wmlQuery not method should correctly chain multiple not operations 1`] 
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -436,29 +429,22 @@ Array [
           Object {
             "contents": Array [
               Object {
-                "end": 194,
-                "start": 183,
+                "end": 183,
+                "start": 172,
                 "type": "string",
                 "value": "Clock Tower",
               },
             ],
-            "contentsEnd": 194,
-            "contentsStart": 183,
-            "end": 201,
+            "contentsEnd": 183,
+            "contentsStart": 172,
+            "end": 190,
             "props": Object {
-              "key": Object {
-                "end": 166,
-                "start": 156,
-                "value": "a123",
-                "valueEnd": 165,
-                "valueStart": 161,
-              },
               "to": Object {
-                "end": 182,
-                "start": 167,
+                "end": 171,
+                "start": 156,
                 "value": "clockTower",
-                "valueEnd": 181,
-                "valueStart": 171,
+                "valueEnd": 170,
+                "valueStart": 160,
               },
             },
             "start": 150,
@@ -467,9 +453,9 @@ Array [
             "type": "tag",
           },
         ],
-        "contentsEnd": 218,
+        "contentsEnd": 207,
         "contentsStart": 96,
-        "end": 232,
+        "end": 221,
         "props": Object {},
         "start": 83,
         "tag": "Description",
@@ -479,33 +465,33 @@ Array [
       Object {
         "contents": Array [
           Object {
-            "end": 269,
-            "start": 265,
+            "end": 258,
+            "start": 254,
             "type": "string",
             "value": "test",
           },
         ],
-        "contentsEnd": 269,
-        "contentsStart": 265,
-        "end": 276,
+        "contentsEnd": 258,
+        "contentsStart": 254,
+        "end": 265,
         "props": Object {
           "to": Object {
-            "end": 264,
-            "start": 255,
+            "end": 253,
+            "start": 244,
             "value": "Test",
-            "valueEnd": 263,
-            "valueStart": 259,
+            "valueEnd": 252,
+            "valueStart": 248,
           },
         },
-        "start": 249,
+        "start": 238,
         "tag": "Exit",
-        "tagEnd": 254,
+        "tagEnd": 243,
         "type": "tag",
       },
     ],
-    "contentsEnd": 289,
+    "contentsEnd": 278,
     "contentsStart": 66,
-    "end": 296,
+    "end": 285,
     "props": Object {
       "global": Object {
         "end": 65,
@@ -534,7 +520,7 @@ exports[`wmlQuery prepend method should correctly aggregate child nodes 1`] = `
             <Room key=(VORTEX) global>
                 <Name>Vortex</Name><Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -584,7 +570,7 @@ exports[`wmlQuery render method should (temporarily) ignore render updates on se
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -618,7 +604,6 @@ Array [
   "Test Render:
                     ",
   Object {
-    "key": "a123",
     "tag": "Link",
     "targetTag": "Feature",
     "text": "Clock Tower",
@@ -633,7 +618,7 @@ exports[`wmlQuery render method should correctly update an empty description 1`]
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -668,7 +653,7 @@ exports[`wmlQuery render method should correctly update multiple renders in a se
             <Room key=(VORTEX) global>
                 <Description>
                     Test Render:
-                    <Link key=(a123) to=(clockTower)>Clock Tower</Link>
+                    <Link to=(clockTower)>Clock Tower</Link>
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
@@ -701,7 +686,7 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                <Description>Test Render Two: <Link key=(456) to=(clockTower)>(clock tower)</Link></Description>
+                <Description>Test Render Two: <Link to=(clockTower)>(clock tower)</Link></Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test) />

@@ -25,7 +25,7 @@ const currentWML = `
         <Name>Vortex</Name>
         <Description>
             Vortex
-            <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
+            <Link to=(toggleOpen)>(toggle)</Link>
         </Description>
         <Exit from=(DEF)>vortex</Exit>
     </Room>
@@ -127,7 +127,7 @@ describe('LibraryAsset context provider', () => {
                         case 'Link': 
                             return <React.Fragment key={index}>
                                 <span>Link</span>
-                                <span>{ room.key }</span>
+                                <span>{ room.to }</span>
                             </React.Fragment>
                         default:
                             return null

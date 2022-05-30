@@ -16,7 +16,7 @@ exports[`LibraryAsset context provider should provide currentWML 1`] = `
         <Name>Vortex</Name>
         <Description>
             Vortex
-            <Link key=(switchToggle) to=(toggleOpen)>(toggle)</Link>
+            <Link to=(toggleOpen)>(toggle)</Link>
         </Description>
         <Exit from=(DEF)>vortex</Exit>
     </Room>
@@ -294,7 +294,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                         \\"spaceAfter\\": false,
                         \\"contents\\": [],
                         \\"tag\\": \\"Link\\",
-                        \\"key\\": \\"switchToggle\\",
                         \\"to\\": \\"toggleOpen\\",
                         \\"props\\": {},
                         \\"text\\": \\"(toggle)\\"
@@ -513,7 +512,7 @@ exports[`LibraryAsset context provider should provide rooms 1`] = `
         Link
       </span>
       <span>
-        switchToggle
+        toggleOpen
       </span>
     </div>
   </div>

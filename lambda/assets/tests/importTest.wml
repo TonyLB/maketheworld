@@ -23,8 +23,8 @@
     </Map>
     <Room key=(welcomeRoom)>
         <Description>
-            <Link key=(switchLink) to=(lightSwitch)>[Light Switch]</Link>
-            <Link key=(switch) to=(toggleSwitch)>(Flip switch)</Link>
+            <Link to=(lightSwitch)>[Light Switch]</Link>
+            <Link to=(toggleSwitch)>(Flip switch)</Link>
         </Description>
         <Feature key=(lightSwitch) />
     </Room>

@@ -13,14 +13,12 @@ export type CustomLineElement = {
 export type CustomActionLinkElement = {
     type: 'actionLink';
     to: string;
-    key: string;
     children: CustomText[]
 }
 
 export type CustomFeatureLinkElement = {
     type: 'featureLink';
     to: string;
-    key: string;
     children: CustomText[]
 }
 

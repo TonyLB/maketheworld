@@ -247,7 +247,7 @@ export class WMLQueryResult {
             const renderContents = value.map((item) => {
                 switch(item.tag) {
                     case 'Link':
-                        return `<Link key=(${item.key}) to=(${item.to})>${item.text}</Link>`
+                        return `<Link to=(${item.to})>${item.text}</Link>`
                     case 'LineBreak':
                         return '<br />'
                     case 'String':

@@ -67,14 +67,14 @@ describe('WML semantic prettyPrint', () => {
                 <Room key=(Test)>
                     <Description>
                         A short first section
-                        <Link key=(testOne) to=(clockTower)>clockTower</Link>
+                        <Link to=(clockTower)>clockTower</Link>
                         then a long enough second section that it will start testing the
                         word-wrap functionality at eighty characters, which is actually
                         quite a long line indeed, eighty characters is a lot more than
-                        you might think<Link key=(testTwo) to=(clockTower)>clockTower</Link>and
+                        you might think<Link to=(clockTower)>clockTower</Link>and
                         then a third section also snuggled up to the link, to test that
                         wrapping functionality doesn't separate no-space connections.
-                        Then a section with two<Link key=(testTwo) to=(clockTower)>clockTower</Link><Link key=(testTwo) to=(clockTower)>clockTower</Link>tags
+                        Then a section with two<Link to=(clockTower)>clockTower</Link><Link to=(clockTower)>clockTower</Link>tags
                         directly adjacent.
                     </Description>
                 </Room>
@@ -92,9 +92,9 @@ describe('WML semantic prettyPrint', () => {
                 </Feature>
                 <Room key=(Test)>
                     <Description>
-                        One <Link key=(testOne) to=(clockTower)>clockTower</Link> two.
-                        Three<Link key=(testOne) to=(clockTower)>clockTower</Link>four.
-                        Five <Link key=(testOne) to=(clockTower)>clockTower</Link> <Link key=(testOne) to=(clockTower)>clockTower</Link> six.
+                        One <Link to=(clockTower)>clockTower</Link> two.
+                        Three<Link to=(clockTower)>clockTower</Link>four.
+                        Five <Link to=(clockTower)>clockTower</Link> <Link to=(clockTower)>clockTower</Link> six.
                     </Description>
                 </Room>
             </Asset>`)
@@ -123,7 +123,7 @@ describe('WML semantic prettyPrint', () => {
                 </Feature>
                 <Room key=(Test)>
                     <Description>
-                        One<Link key=(testOne) to=(clockTower)>clockTower</Link><br /><Link key=(testOne) to=(clockTower)>clockTower</Link>two.
+                        One<Link to=(clockTower)>clockTower</Link><br /><Link to=(clockTower)>clockTower</Link>two.
                     </Description>
                 </Room>
             </Asset>`)
