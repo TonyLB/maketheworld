@@ -158,12 +158,12 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
                     <svg width="100%" height="100%" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} preserveAspectRatio="xMidYMid meet" onClick={onClickScaled} >
                         <defs>
                             <radialGradient id="Gradient1">
-                                <stop offset="70%" stop-color="rgba(200, 255, 255, 0.2)" />
-                                <stop offset="91%" stop-color="rgba(200, 255, 255, 1.0)" />
-                                <stop offset="94%" stop-color="rgba(200, 255, 255, 1.0)" />
-                                <stop offset="94%" stop-color="rgba(200, 255, 255, 0.0)" />
-                                <stop offset="97%" stop-color="rgba(200, 255, 255, 0.0)" />
-                                <stop offset="97%" stop-color="rgba(200, 255, 255, 1.0)" />
+                                <stop offset="70%" stopColor="rgba(200, 255, 255, 0.2)" />
+                                <stop offset="91%" stopColor="rgba(200, 255, 255, 1.0)" />
+                                <stop offset="94%" stopColor="rgba(200, 255, 255, 1.0)" />
+                                <stop offset="94%" stopColor="rgba(200, 255, 255, 0.0)" />
+                                <stop offset="97%" stopColor="rgba(200, 255, 255, 0.0)" />
+                                <stop offset="97%" stopColor="rgba(200, 255, 255, 1.0)" />
                             </radialGradient>
                             <marker id='head' orient='auto' markerWidth='10' markerHeight='20'
                                     refX='5' refY='5'>

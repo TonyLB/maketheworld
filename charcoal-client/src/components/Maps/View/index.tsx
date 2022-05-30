@@ -24,7 +24,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         label: `Map: ${Name}`,
         iconName: 'Map'
     })
-    const [MapId, setMapId] = useState<string>(Object.keys(maps)[0] || '')
+    const [MapId, setMapId] = useState<string>(Object.keys(maps || {})[0] || '')
 
     return <Box sx={{ height: "100%", width: "100%" }}>
         <Box sx={{ width: "100%", margin: ".5rem", display: "flex", justifyContent: "center" }}>
@@ -39,7 +39,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         onChange={(event) => { setMapId(event.target.value) }}
                     >
                         {
-                            Object.entries(maps)
+                            Object.entries(maps || {})
                                 .map(([key, { Name }]) => (
                                     <MenuItem key={key} value={key}>{Name || key}</MenuItem>
                                 ))
