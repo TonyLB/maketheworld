@@ -73,7 +73,6 @@ const descendantsTranslate = function * (normalForm: NormalForm, renderItems: Co
                 yield {
                     type: targetTag === 'Feature' ? 'featureLink' : 'actionLink',
                     to: item.to,
-                    key: item.key,
                     children: [{
                         text: item.text || ''
                     }]
@@ -167,16 +166,16 @@ const InheritedDescription: FunctionComponent<{ inheritedRender?: ComponentRende
         style={{ background: 'lightgrey' }}
     >
         {
-            inheritedRender.map((item) => {
+            inheritedRender.map((item, index) => {
                 switch(item.tag) {
                     case 'Link':
                         switch(item.targetTag) {
                             case 'Feature':
-                                return <DescriptionLinkFeatureChip key={item.key} tooltipTitle={`Feature: ${item.to}`} active={false}>
+                                return <DescriptionLinkFeatureChip key={`link-${item.to}-${index}`} tooltipTitle={`Feature: ${item.to}`} active={false}>
                                         {item.text}
                                     </DescriptionLinkFeatureChip>
                             case 'Action':
-                                return <DescriptionLinkActionChip key={item.key} tooltipTitle={`Action: ${item.to}`} active={false}>
+                                return <DescriptionLinkActionChip key={`link-${item.to}-${index}`} tooltipTitle={`Action: ${item.to}`} active={false}>
                                         {item.text}
                                     </DescriptionLinkActionChip>
                             default:
@@ -353,7 +352,6 @@ const wrapActionLink = (editor: Editor, to: string) => {
     const link: CustomActionLinkElement = {
         type: 'actionLink',
         to,
-        key: 'test',
         children: isCollapsed ? [{ text: to }] : [],
     }
   
@@ -377,7 +375,6 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
     const link: CustomFeatureLinkElement = {
         type: 'featureLink',
         to,
-        key: 'test',
         children: isCollapsed ? [{ text: to }] : [],
     }
   
@@ -476,7 +473,6 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
                                 {
                                     tag: 'Link',
                                     targetTag: isCustomFeatureLink(item) ? 'Feature' : 'Action',
-                                    key: item.key,
                                     to: item.to,
                                     text: item.children
                                         .filter((child) => ('text' in child))
