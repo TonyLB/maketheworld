@@ -14,7 +14,7 @@ const TaggedMessageContent: FunctionComponent<TaggedMessageContentProps> = ({ li
             case 'String':
                 return item.value
             case 'LineBreak':
-                return <br />
+                return <br key={index} />
             default:
                 return null
         }
