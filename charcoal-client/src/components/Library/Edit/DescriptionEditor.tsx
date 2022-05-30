@@ -353,7 +353,7 @@ const wrapActionLink = (editor: Editor, to: string) => {
     const link: CustomActionLinkElement = {
         type: 'actionLink',
         to,
-        key: uuidv4(),
+        key: 'test',
         children: isCollapsed ? [{ text: to }] : [],
     }
   
@@ -377,7 +377,7 @@ const wrapFeatureLink = (editor: Editor, to: string) => {
     const link: CustomFeatureLinkElement = {
         type: 'featureLink',
         to,
-        key: uuidv4(),
+        key: 'test',
         children: isCollapsed ? [{ text: to }] : [],
     }
   
