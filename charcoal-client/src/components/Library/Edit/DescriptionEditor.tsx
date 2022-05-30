@@ -114,6 +114,9 @@ const descendantsFromRender = (normalForm: NormalForm) => ({ render, spaceBefore
         return [
             ...returnValue,
             ...(accumulator.length > 0
+                //
+                // TODO: Make or find a join procedure that joins children where possible (i.e. combines adjacent text children)
+                //
                 ? [{
                     type: "paragraph" as "paragraph",
                     children: accumulator
@@ -428,10 +431,10 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     const { AssetId: assetKey } = useParams<{ AssetId: string }>()
     const AssetId = `ASSET#${assetKey}`
     const normalForm = useSelector(getNormalized(AssetId))
-    const defaultValue = useMemo<Descendant[]>(() => ([{
+    const [defaultValue, setDefaultValue] = useState<Descendant[]>(() => ([{
         type: 'description',
         children: descendantsFromRender(normalForm)({ render, spaceBefore, spaceAfter })
-    }]), [normalForm])
+    }]))
     const [value, setValue] = useState<Descendant[]>(defaultValue)
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const renderElement = useCallback((props: RenderElementProps) => <Element inheritedRender={inheritedRender} {...props} />, [inheritedRender])
@@ -505,6 +508,7 @@ export const DescriptionEditor: FunctionComponent<DescriptionEditorProps> = ({ i
     useEffect(() => {
         if (!deepEqual(debouncedValue, defaultValue)) {
             saveToReduce(debouncedValue)
+            setDefaultValue(debouncedValue)
         }
     }, [debouncedValue, defaultValue, saveToReduce])
 

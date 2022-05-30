@@ -16,9 +16,16 @@ export type PublicSelectors = {
 
 const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 
-const getWMLQuery = ({ key }: PersonalAssetsPublic & { key: string }) => (wmlQueryFromCache({ key }))
+const getWMLKey = ({ key }: PersonalAssetsPublic & { key: string }) => (key)
 
-const getNormalized = createSelector(getWMLQuery, (wmlQuery) => (wmlQuery.normalize() || {}))
+const getWMLQuery = createSelector(getWMLKey, (key) => {
+    console.log(`Fetching wmlQuery: ${key}`)
+    return wmlQueryFromCache({ key })
+})
+
+const getWMLSource = (state: PersonalAssetsPublic & { key: string }) => (getWMLQuery(state).source)
+
+const getNormalized = createSelector(getWMLQuery, getWMLSource, (wmlQuery) => (wmlQuery.normalize() || {}))
 
 const getDefaultAppearances = (state: PersonalAssetsPublic) => (state.defaultAppearances || {})
 
