@@ -409,6 +409,130 @@ Object {
 }
 `;
 
+exports[`WML semantic schema should parse multiple and nested conditionals 1`] = `
+Object {
+  "Story": true,
+  "contents": Array [
+    Object {
+      "default": "true",
+      "key": "weatheredClockTower",
+      "props": Object {},
+      "tag": "Variable",
+    },
+    Object {
+      "default": "true",
+      "key": "brightClockTower",
+      "props": Object {},
+      "tag": "Variable",
+    },
+    Object {
+      "contents": Array [],
+      "display": undefined,
+      "global": false,
+      "key": "clockTower",
+      "props": Object {},
+      "render": Array [
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": "A clock-tower of",
+        },
+      ],
+      "spaceAfter": true,
+      "spaceBefore": false,
+      "tag": "Feature",
+    },
+    Object {
+      "contents": Array [
+        Object {
+          "contents": Array [],
+          "display": undefined,
+          "global": false,
+          "key": "clockTower",
+          "props": Object {},
+          "render": Array [
+            Object {
+              "spaceAfter": false,
+              "spaceBefore": false,
+              "tag": "String",
+              "value": "weathered",
+            },
+          ],
+          "spaceAfter": true,
+          "spaceBefore": true,
+          "tag": "Feature",
+        },
+      ],
+      "dependencies": Array [],
+      "if": "weatheredClockTower",
+      "props": Object {},
+      "tag": "Condition",
+    },
+    Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [],
+              "display": undefined,
+              "global": false,
+              "key": "clockTower",
+              "props": Object {},
+              "render": Array [
+                Object {
+                  "spaceAfter": false,
+                  "spaceBefore": false,
+                  "tag": "String",
+                  "value": "bright",
+                },
+              ],
+              "spaceAfter": true,
+              "spaceBefore": true,
+              "tag": "Feature",
+            },
+          ],
+          "dependencies": Array [],
+          "if": "!brightClockTower",
+          "props": Object {},
+          "tag": "Condition",
+        },
+      ],
+      "dependencies": Array [],
+      "if": "!weatheredClockTower",
+      "props": Object {},
+      "tag": "Condition",
+    },
+    Object {
+      "contents": Array [],
+      "display": undefined,
+      "global": false,
+      "key": "clockTower",
+      "props": Object {},
+      "render": Array [
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": "grey stone looms over the area.",
+        },
+      ],
+      "spaceAfter": false,
+      "spaceBefore": true,
+      "tag": "Feature",
+    },
+  ],
+  "description": undefined,
+  "fileName": "test",
+  "instance": true,
+  "key": "Test",
+  "player": undefined,
+  "props": Object {},
+  "tag": "Asset",
+  "zone": undefined,
+}
+`;
+
 exports[`WML semantic schema should percolate description spaceBefore and spaceAfter up hierarchy 1`] = `
 Object {
   "Story": true,

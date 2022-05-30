@@ -605,6 +605,279 @@ Object {
 }
 `;
 
+exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
+Object {
+  "123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "Vortex",
+        "render": Array [
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Hello, world!",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "render": Array [
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Vortex!",
+          },
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-1",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-2",
+            "tag": "Condition",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+          0,
+          0,
+        ],
+        "render": Array [
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "V.O.R.T.E.X.",
+          },
+        ],
+      },
+    ],
+    "key": "123",
+    "tag": "Room",
+  },
+  "Condition-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "strong",
+    ],
+    "if": "strong",
+    "key": "Condition-0",
+    "tag": "Condition",
+  },
+  "Condition-1": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "Condition-2",
+            "tag": "Condition",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "strong",
+    ],
+    "if": "!strong",
+    "key": "Condition-1",
+    "tag": "Condition",
+  },
+  "Condition-2": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-1",
+            "tag": "Condition",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+          0,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "trendy",
+    ],
+    "if": "trendy",
+    "key": "Condition-2",
+    "tag": "Condition",
+  },
+  "Test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-1",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "strong",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "trendy",
+            "tag": "Variable",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "key": "Test",
+    "tag": "Asset",
+  },
+  "strong": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          3,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "strong",
+    "tag": "Variable",
+  },
+  "trendy": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          4,
+        ],
+      },
+    ],
+    "default": "false",
+    "key": "trendy",
+    "tag": "Variable",
+  },
+}
+`;
+
 exports[`WML normalize should create wrapping elements for exits where needed 1`] = `
 Object {
   "123": Object {
