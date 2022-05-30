@@ -59,9 +59,9 @@ export const parseCommand = async ({
     //
     // TODO: Add syntax for exit aliases, and expand the match here to include them
     //
-    const matchedExit = exits.find(({ name }) => ( command.toLowerCase().trim() === name.toLowerCase() || command.toLowerCase().trim() === `go ${name.toLowerCase()}`))
+    const matchedExit = exits.find(({ Name = '' }) => ( command.toLowerCase().trim() === Name.toLowerCase() || command.toLowerCase().trim() === `go ${Name.toLowerCase()}`))
     if (matchedExit) {
-        return { actionType: 'move', payload: { CharacterId, ExitName: matchedExit.name, RoomId: splitType(matchedExit.to)[1] } }
+        return { actionType: 'move', payload: { CharacterId, ExitName: matchedExit.Name, RoomId: matchedExit.RoomId } }
     }
     return {}
 }
