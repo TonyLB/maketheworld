@@ -137,12 +137,13 @@ const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point |
 }
 
 export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
-    const { AssetId, assetKey, currentWML, updateWML } = useLibraryAsset()
+    const { AssetId, assetKey, currentWML, wmlQuery: globalQuery, updateWML } = useLibraryAsset()
     const dispatch = useDispatch()
     const onChange = (change: WMLQueryUpdate) => {
         const match = change.wmlQuery.matcher.match()
         if (match.succeeded()) {
             updateWML(change.wmlQuery.source)
+            globalQuery.setInput(change.wmlQuery.source)
         }
         else {
             dispatch(setDraftWML(AssetId)({ value: change.wmlQuery.source }))
