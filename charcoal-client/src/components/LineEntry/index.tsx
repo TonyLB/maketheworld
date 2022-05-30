@@ -58,6 +58,7 @@ const EntryField = React.forwardRef<any, EntryFieldProps>(({ value, defaultValue
                     const callbackResult = callback({ entry: (value || ''), mode })
                     if (callbackResult) {
                         onChange(defaultValue)
+                        setMode('Command')
                     }
                 }
             }
@@ -109,25 +110,25 @@ const EntryModeSpeedDial: FunctionComponent<EntryModeSpeedDialProps> = ({ mode, 
         <SpeedDialAction
             key="SayMessage"
             icon={<SayMessageIcon />}
-            tooltipTitle="Say"
+            tooltipTitle={`Say (")`}
             onClick={() => { setMode('SayMessage') }}
         />
         <SpeedDialAction
             key="NarrateMessage"
             icon={<NarrateMessageIcon />}
-            tooltipTitle="Narrate"
+            tooltipTitle="Narrate (:)"
             onClick={() => { setMode('NarrateMessage') }}
         />
         <SpeedDialAction
             key="OOCMessage"
             icon={<OOCMessageIcon />}
-            tooltipTitle="Out of Character"
+            tooltipTitle="Out of Character (\)"
             onClick={() => { setMode('OOCMessage') }}
         />
         <SpeedDialAction
             key="Command"
             icon={<CommandIcon />}
-            tooltipTitle="Command"
+            tooltipTitle="Command (/)"
             onClick={() => { setMode('Command') }}
         />
         <SpeedDialAction
@@ -197,7 +198,7 @@ interface LineEntryProps {
 
 export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => (true) }) => {
     const ref = useRef<HTMLInputElement>(null)
-    const [mode, setMode] = useState<LineEntryMode>('SayMessage')
+    const [mode, setMode] = useState<LineEntryMode>('Command')
     const [value, setValue] = useState<string>('')
 
     useEffect(() => {
