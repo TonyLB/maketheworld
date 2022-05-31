@@ -39,7 +39,7 @@ type LibraryAssetContextType = {
     normalForm: NormalForm;
     defaultAppearances: Record<string, InheritedComponent>;
     wmlQuery: WMLQuery;
-    updateWML: (value: string) => void;
+    updateWML: (value: string, options?: { prettyPrint?: boolean }) => void;
     components: Record<string, AssetComponent>;
     rooms: Record<string, AssetComponent>;
     exits: Record<string, NormalExit>;
@@ -137,10 +137,16 @@ export const LibraryAsset: FunctionComponent<LibraryAssetProps> = ({ assetKey, c
     const defaultAppearances = useSelector(getDefaultAppearances(AssetId))
     const inheritedExits = useSelector(getInheritedExits(AssetId))
     const dispatch = useDispatch()
-    const updateWML = (value: string) => {
-        const wmlQuery = new WMLQuery(value)
-        const prettyPrinted = wmlQuery.prettyPrint().source
-        dispatch(setCurrentWML(AssetId)({ value: prettyPrinted }))
+    const updateWML = (value: string, options?: { prettyPrint?: boolean }) => {
+        const { prettyPrint = true } = options || {}
+        if (prettyPrint) {
+            const wmlQuery = new WMLQuery(value)
+            const prettyPrinted = wmlQuery.prettyPrint().source
+            dispatch(setCurrentWML(AssetId)({ value: prettyPrinted }))
+        }
+        else {
+            dispatch(setCurrentWML(AssetId)({ value }))
+        }
     }
     const components = useMemo<Record<string, AssetComponent>>(() => ( assetComponents({ normalForm, defaultAppearances }) ), [normalForm, defaultAppearances])
     const rooms = useMemo<Record<string, AssetComponent>>(() => ( objectFilter(components, ({ tag }) => (tag === 'Room')) ), [components])
