@@ -142,4 +142,41 @@ describe('WML semantic schema', () => {
         expect(schema).toMatchSnapshot()
     })
 
+    it('should parse multiple and nested conditionals', () => {
+        const match = wmlGrammar.match(`
+            <Story key=(Test) instance fileName="test">
+                <Variable key=(weatheredClockTower) default={true} />
+                <Variable key=(brightClockTower) default={true} />
+                <Feature key=(clockTower)>
+                    <Description spaceAfter>
+                        A clock-tower of
+                    </Description>
+                </Feature>
+                <Condition if={weatheredClockTower}>
+                    <Feature key=(clockTower)>
+                        <Description spaceBefore spaceAfter>
+                            weathered
+                        </Description>
+                    </Feature>
+                </Condition>
+                <Condition if={!weatheredClockTower}>
+                    <Condition if={!brightClockTower}>
+                        <Feature key=(clockTower)>
+                            <Description spaceBefore spaceAfter>
+                                bright
+                            </Description>
+                        </Feature>
+                    </Condition>
+                </Condition>
+                <Feature key=(clockTower)>
+                    <Description spaceBefore>
+                        grey stone looms over the area.
+                    </Description>
+                </Feature>
+            </Story>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toMatchSnapshot()
+    })
+
 })

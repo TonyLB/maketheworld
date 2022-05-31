@@ -491,6 +491,70 @@ describe('WML normalize', () => {
         })).toMatchSnapshot()
     })
 
+    it('should correctly handle multiple and nested conditionals', () => {
+        expect(normalize({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: '123',
+                name: 'Vortex',
+                render: [{
+                    tag: 'String',
+                    value: 'Hello, world!',
+                    spaceBefore: false,
+                    spaceAfter: false
+                }]
+            },
+            {
+                tag: 'Condition',
+                if: 'strong',
+                dependencies: ['strong'],
+                contents: [{
+                    tag: 'Room',
+                    key: '123',
+                    render: [{
+                        tag: 'String',
+                        value: 'Vortex!',
+                        spaceBefore: false,
+                        spaceAfter: false
+                    }]
+                }]
+            },
+            {
+                tag: 'Condition',
+                if: '!strong',
+                dependencies: ['strong'],
+                contents: [{
+                    tag: 'Condition',
+                    if: 'trendy',
+                    dependencies: ['trendy'],
+                    contents: [{
+                        tag: 'Room',
+                        key: '123',
+                        render: [{
+                            tag: 'String',
+                            value: 'V.O.R.T.E.X.',
+                            spaceBefore: false,
+                            spaceAfter: false
+                        }]
+                    }]
+                }]
+            },
+            {
+                tag: 'Variable',
+                key: 'strong',
+                default: 'false'
+            },
+            {
+                tag: 'Variable',
+                key: 'trendy',
+                default: 'false'
+            }]
+        })).toMatchSnapshot()
+    })
+
+
     it('should throw an error on mismatched key use', () => {
         expect(() => {
             normalize({

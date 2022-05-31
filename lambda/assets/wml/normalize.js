@@ -34,10 +34,10 @@ const nextGeneratedKey = (tag) => {
         .filter((key) => (key.startsWith(`${tag}-`)))
         .map((key) => (key.slice(`${tag}-`.length)))
     const maxValue = currentValues.reduce((previous, value) => {
-        const numericValue = parseInt(value) || 0
+        const numericValue = parseInt(value) ?? -1
         return (numericValue > previous) ? numericValue : previous
-    }, 0)
-    return `${tag}-${maxValue}`
+    }, -1)
+    return `${tag}-${maxValue + 1}`
 }
 
 const keyForValue = (tag, value) => {
@@ -216,7 +216,7 @@ export const transformNode = (contextStack, node) => {
         }
     }
     if (node.tag === 'Condition') {
-        const key = keyForValue('Condition', node.src)
+        const key = keyForValue('Condition', node.if)
         return {
             node: {
                 key,
