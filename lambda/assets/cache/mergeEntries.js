@@ -89,13 +89,15 @@ export const mergeEntries = async (assetId, normalForm) => {
                 .map(mapContextStackToConditions(normalForm))
                 .map((item) => (['Room'].includes(rest.tag) ? mapContents(normalForm)(item) : item))
                 .map((item) => (['Map'].includes(rest.tag) ? mapRoomLocations(normalForm)(item) : item))
-                .map(({ conditions, name, render, exits, features, rooms, fileURL }) => ({
+                .map(({ conditions, name, render, exits, features, rooms, spaceBefore, spaceAfter, fileURL }) => ({
                     conditions,
                     name,
                     render,
                     exits,
                     features,
                     rooms,
+                    spaceBefore,
+                    spaceAfter,
                     fileURL
                 }))
         }))
