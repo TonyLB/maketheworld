@@ -1,3 +1,5 @@
+import { produce } from 'immer'
+
 import { splitType } from '../types.js'
 
 //
@@ -8,7 +10,10 @@ import { splitType } from '../types.js'
 //
 const joinRenderItems = function * (render = []) {
     if (render.length > 0) {
-        let currentItem = render[0]
+        //
+        // Use spread-operator to clear the read-only tags that Immer can apply
+        //
+        let currentItem = { ...render[0] }
         if (currentItem.spaceBefore) {
             switch(currentItem.tag) {
                 case 'String':
@@ -115,11 +120,18 @@ const joinRenderItems = function * (render = []) {
     }
 }
 
+const foldSpacingIntoList = ({ render, spaceBefore, spaceAfter }) => (produce(render, (draft) => {
+    if (draft && draft.length > 0) {
+        draft[0].spaceBefore = draft[0].spaceBefore || spaceBefore
+        draft[draft.length - 1].spaceAfter = draft[draft.length - 1].spaceAfter || spaceAfter
+    }
+}))
+
 export const componentAppearanceReduce = (...renderList) => {
     const joinedList = renderList.reduce((previous, current) => ({
         render: [
             ...(previous.render || []),
-            ...(current.render || [])
+            ...(current.render ? foldSpacingIntoList(current) : [])
         ],
         name: [
             ...(previous.name || []),
