@@ -12,7 +12,9 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
             State: state = {},
             Dependencies: dependencies = {},
             importTree = {}
-        }, {
+        },
+        roomQueryItems,
+        {
             Name = 'Someone',
             Color,
             Pronouns = {
@@ -30,6 +32,18 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
+        }),
+        ephemeraDB.query({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: `ASSET#${assetId}`,
+            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+            ExpressionAttributeValues: {
+                ':EphemeraPrefix': 'ROOM#'
+            },
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ProjectionFields: ['EphemeraId', '#key']
         }),
         ...(CharacterId
             ? [
@@ -54,6 +68,20 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
     const { changedKeys, newValues, returnValue } = executeCode(src)(
         valueState,
         {
+            ...(roomQueryItems.reduce((previous, { EphemeraId, key }) => ({
+                ...previous,
+                [key]: {
+                    message: (message) => {
+                        if (EphemeraId) {
+                            executeMessageQueue.push({
+                                Targets: [EphemeraId],
+                                DisplayProtocol: 'WorldMessage',
+                                Message: [{ tag: 'String', value: message }]
+                            })
+                        }
+                    }    
+                }
+            }), {})),
             here: {
                 message: (message) => {
                     if (RoomId) {
