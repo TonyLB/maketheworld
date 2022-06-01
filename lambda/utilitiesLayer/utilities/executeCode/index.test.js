@@ -21,6 +21,7 @@ describe('executeInAsset', () => {
     it('should post no changes on an empty change list', async () => {
         const testAssets = testAssetsFactory()
         ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        ephemeraDB.query.mockResolvedValue([])
         dependencyCascade.mockResolvedValue({
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
@@ -55,6 +56,7 @@ describe('executeInAsset', () => {
             fooBar: false,
             exclude: ['MixLayerB']
         })
+        ephemeraDB.query.mockResolvedValue([])
         ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
         dependencyCascade.mockResolvedValue({
             states: cascadedAssets,
@@ -118,6 +120,7 @@ describe('executeInAsset', () => {
                 importTree: {}
             }
         }
+        ephemeraDB.query.mockResolvedValue([])
         ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
         dependencyCascade.mockResolvedValue({
             states: updatedAssets,
@@ -150,6 +153,7 @@ describe('executeInAsset', () => {
 
     it('should add a message to queue on here.worldMessage call', async () => {
         const testAssets = testAssetsFactory()
+        ephemeraDB.query.mockResolvedValue([])
         ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
         dependencyCascade.mockResolvedValue({
             states: { BASE: testAssets.BASE },
@@ -164,4 +168,26 @@ describe('executeInAsset', () => {
         }])
 
     })
+
+    it('should add a message to queue on room-ID.worldMessage call', async () => {
+        const testAssets = testAssetsFactory()
+        ephemeraDB.query.mockResolvedValue([{
+            EphemeraId: 'ROOM#456789',
+            scopedId: 'test'
+        }])
+        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        dependencyCascade.mockResolvedValue({
+            states: { BASE: testAssets.BASE },
+            recalculated: { BASE: [] }
+        })
+        updateAssets.mockResolvedValue(testAssets)
+        const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('test.message("Test Message")')
+        expect(executeMessageQueue).toEqual([{
+            DisplayProtocol: 'WorldMessage',
+            Message: [{ tag: 'String', value: 'Test Message' }],
+            Targets: ['ROOM#456789']
+        }])
+
+    })
+
 })
