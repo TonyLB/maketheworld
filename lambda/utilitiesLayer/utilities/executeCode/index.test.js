@@ -173,7 +173,7 @@ describe('executeInAsset', () => {
         const testAssets = testAssetsFactory()
         ephemeraDB.query.mockResolvedValue([{
             EphemeraId: 'ROOM#456789',
-            scopedId: 'test'
+            key: 'test'
         }])
         ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
         dependencyCascade.mockResolvedValue({

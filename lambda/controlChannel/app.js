@@ -475,7 +475,16 @@ export const handler = async (event, context) => {
         case 'link':
             switch(request.targetTag) {
                 case 'Action':
-                    const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId: request.RoomId, CharacterId: request.CharacterId })
+                    const { RoomId } = await ephemeraDB.getItem({
+                        EphemeraId: `CHARACTERINPLAY#${request.CharacterId}`,
+                        DataCategory: 'Meta::Character',
+                        ProjectionFields: ['RoomId']
+                    })
+                    //
+                    // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
+                    // the action Links
+                    //
+                    const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
                     const epochTime = Date.now()
                     await Promise.all(executeMessageQueue
                         .map((message, index) => ({

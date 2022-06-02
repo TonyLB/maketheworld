@@ -46,13 +46,17 @@ export const getGlobalAssets = async (priorGlobalAssets) => {
 }
 
 export const getCharacterAssets = async (characters, priorCharacterAssets = {}) => {
+    //
+    // TODO: Add RoomId to projection fields, and then use that to populate the
+    // RoomId for any links rendered for that character
+    //
     const getSingleCharacterAssets = async (characterId) => {
-        const { assets = [] } = await ephemeraDB.getItem({
+        const { assets = [], RoomId } = await ephemeraDB.getItem({
             EphemeraId: `CHARACTERINPLAY#${characterId}`,
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
+            ProjectionFields: ['assets', 'RoomId']
         })
-        return { [characterId]: assets }
+        return { [characterId]: { assets, RoomId } }
     }
     const neededCharacters = await Promise.all(
         characters

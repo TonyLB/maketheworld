@@ -67,7 +67,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
         // that the Map isn't present in)...
         //
         if (splitType(EphemeraId)[0] === 'MAP') {
-            return [...previous, ...globalAssets, ...(characterAssets[CharacterId])]
+            return [...previous, ...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]
         }
         //
         // Whereas Room and Feature items only need the State information from the
@@ -77,7 +77,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             ...previous,
             ...(itemMetaData[EphemeraId]
                 .map(({ DataCategory }) => (splitType(DataCategory)[1]))
-                .filter((value) => ([...globalAssets, ...(characterAssets[CharacterId])].includes(value)))
+                .filter((value) => ([...globalAssets, ...(characterAssets[CharacterId]?.assets || [])].includes(value)))
             )
         ]
     }, [])
@@ -87,7 +87,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     clearMemoSpace()
 
     const extractRenderArguments = ({ EphemeraId, CharacterId }) => {
-        const personalAssets = characterAssets[CharacterId] || []
+        const personalAssets = characterAssets[CharacterId]?.assets || []
         const items = itemMetaData[EphemeraId] || []
         const meta = items.find(({ DataCategory }) => (DataCategory.startsWith('Meta::')))
         const itemsByAsset = items
@@ -146,7 +146,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
 
             case 'MAP':
                 const roomPseudonym = (AssetId, roomId) => (`${splitType(AssetId)[1]}#${roomId}`)
-                const assetsOfInterest = [...(new Set([...globalAssets, ...characterAssets[CharacterId]]))]
+                const assetsOfInterest = [...(new Set([...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]))]
                 const aggregatedMapCacheByEphemeraId = assetsOfInterest
                     .reduce((previous, assetId) => (Object.values(assetStateById[assetId]?.mapCache || {})
                         .reduce((accumulator, { EphemeraId, name = [], exits = [] }) => ({

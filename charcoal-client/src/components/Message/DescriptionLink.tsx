@@ -93,6 +93,10 @@ interface DescriptionLinkProps {
 export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
     const { CharacterId } = useActiveCharacter()
     const dispatch = useDispatch()
+    //
+    // TODO:  Figure out how to make sure that either (a) RoomId is populated based on where the ActiveCharacter is right
+    // now, or (b) link.RoomId gets populated correctly upon render
+    //
     switch(link.targetTag) {
         case 'Action':
             return <DescriptionLinkActionChip
