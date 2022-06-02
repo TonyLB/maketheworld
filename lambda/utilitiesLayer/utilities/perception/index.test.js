@@ -54,7 +54,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'ROOM#MNO',
@@ -96,7 +96,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -154,7 +154,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -198,7 +198,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -239,7 +239,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'FEATURE#MNO',
@@ -313,7 +313,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'MAP#MNO',
@@ -339,7 +339,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: [] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'CHARACTERINPLAY#QRS',
@@ -421,7 +421,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: ['LayerB'], XYZ: ['LayerA'] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: ['LayerB'] }, XYZ: { assets: ['LayerA'] } })
         const output = await render({
             renderList:
             [{
@@ -505,7 +505,7 @@ describe('render', () => {
             ]
         })
         getGlobalAssets.mockResolvedValue(['BASE'])
-        getCharacterAssets.mockResolvedValue({ QRS: ['LayerB'], XYZ: ['LayerA'] })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: ['LayerB'] }, XYZ: { assets: ['LayerA'] } })
         const output = await render({
             renderList: [{
                     EphemeraId: 'ROOM#MNO',

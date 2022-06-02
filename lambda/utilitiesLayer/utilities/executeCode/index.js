@@ -100,7 +100,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                         executeMessageQueue.push({
                             Targets: [RoomKey(RoomId)],
                             DisplayProtocol: 'NarrateMessage',
-                            Message: message,
+                            Message: [{ tag: 'String', value: message }],
                             CharacterId,
                             Name,
                             Color: Color || defaultColorFromCharacterId(CharacterId)

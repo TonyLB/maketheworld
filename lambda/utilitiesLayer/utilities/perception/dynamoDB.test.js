@@ -38,9 +38,9 @@ describe('getCharacterAssets', () => {
     const mockGetImplementation = async ({ EphemeraId }) => {
         switch(EphemeraId) {
             case 'CHARACTERINPLAY#ABC':
-                return { assets: ['LayerA'] }
+                return { assets: ['LayerA'], RoomId: 'XYZ' }
             case 'CHARACTERINPLAY#DEF':
-                return { assets: ['LayerB'] }
+                return { assets: ['LayerB'], RoomId: 'XYZ' }
         }
     }
 
@@ -48,34 +48,34 @@ describe('getCharacterAssets', () => {
         ephemeraDB.getItem.mockImplementation(mockGetImplementation)
         const output = await getCharacterAssets(['ABC', 'DEF'])
         expect(output).toEqual({
-            ABC: ['LayerA'],
-            DEF: ['LayerB']
+            ABC: { assets: ['LayerA'], RoomId: 'XYZ' },
+            DEF: { assets: ['LayerB'], RoomId: 'XYZ' }
         })
         expect(ephemeraDB.getItem).toHaveBeenCalledTimes(2)
         expect(ephemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTERINPLAY#ABC',
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
+            ProjectionFields: ['assets', 'RoomId']
         })
         expect(ephemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTERINPLAY#DEF',
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
+            ProjectionFields: ['assets', 'RoomId']
         })
     })
 
     it('should not fetch when character assets already passed', async () => {
         ephemeraDB.getItem.mockImplementation(mockGetImplementation)
-        const output = await getCharacterAssets(['ABC', 'DEF'], { DEF: ['LayerB'] })
+        const output = await getCharacterAssets(['ABC', 'DEF'], { DEF: { assets: ['LayerB'], RoomId: 'XYZ' } })
         expect(output).toEqual({
-            ABC: ['LayerA'],
-            DEF: ['LayerB']
+            ABC: { assets: ['LayerA'], RoomId: 'XYZ' },
+            DEF: { assets: ['LayerB'], RoomId: 'XYZ' }
         })
         expect(ephemeraDB.getItem).toHaveBeenCalledTimes(1)
         expect(ephemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTERINPLAY#ABC',
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
+            ProjectionFields: ['assets', 'RoomId']
         })
     })
 })
