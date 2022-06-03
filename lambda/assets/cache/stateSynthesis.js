@@ -146,7 +146,7 @@ export class StateSynthesizer extends Object {
             }
         }) || {}
         this.state = Object.entries(incomingState)
-            .filter(([key]) => (['Variable', 'Computed'].includes(this.normalForm[key]?.tag)))
+            .filter(([key, { computed }]) => (this.normalForm[key]?.tag === 'Variable' && !computed))
             .reduce(mergeStateReducer, this.state || {})
     }
 

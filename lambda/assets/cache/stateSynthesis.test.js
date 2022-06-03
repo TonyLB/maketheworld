@@ -349,6 +349,51 @@ describe('stateSynthesis', () => {
                 }
             })
         })
+
+        it('should update computed source as needed', async () => {
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            ephemeraDB.getItem.mockResolvedValue({
+                State: {
+                    active: {
+                        key: 'active',
+                        computed: true,
+                        src: 'power'
+                    },
+                    power: {
+                        key: 'power',
+                        value: true
+                    },
+                    switchedOn: {
+                        key: 'switchedOn',
+                        value: true
+                    }
+                }
+            })
+            await testSynthesizer.fetchFromEphemera()
+            expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+                EphemeraId: 'ASSET#test',
+                DataCategory: 'Meta::Asset',
+                ProjectionFields: ['#state'],
+                ExpressionAttributeNames: {
+                    '#state': 'State'
+                }    
+            })
+            expect(testSynthesizer.state).toEqual({
+                active: {
+                    key: 'active',
+                    computed: true,
+                    src: 'power && switchedOn'
+                },
+                power: {
+                    key: 'power',
+                    value: true
+                },
+                switchedOn: {
+                    key: 'switchedOn',
+                    value: true
+                }
+            })
+        })
     })
 
     describe('fetchImportedValues', () => {
