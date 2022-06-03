@@ -3,6 +3,7 @@ import { produce } from 'immer'
 import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
 import { splitType, AssetKey } from '/opt/utilities/types.js'
 import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
+import { objectFilter } from '../lib/objects'
 
 const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
     conditions: contextStack.reduce((previous, { key, tag }) => {
@@ -145,6 +146,7 @@ export class StateSynthesizer extends Object {
             }
         }) || {}
         this.state = Object.entries(incomingState)
+            .filter(([key]) => (['Variable', 'Computed'].includes(this.normalForm[key]?.tag)))
             .reduce(mergeStateReducer, this.state || {})
     }
 
@@ -221,6 +223,12 @@ export class StateSynthesizer extends Object {
 
     async updateImportedDependencies() {
         const updateAssetDependencies = produce(this.importedStates, (draft) => {
+            Object.values(draft).forEach((dependencyRecord) => {
+                Object.values(dependencyRecord.dependencies).forEach((item) => {
+                    item.imported = item.imported.filter(({ asset, key }) => (asset !== this.assetId || ['Variable', 'Computed'].includes(this.normalForm[key]?.tag)))
+                })
+                dependencyRecord.dependencies = objectFilter(dependencyRecord.dependencies, ({ imported }) => (imported.length > 0))
+            })
             Object.values(this.normalForm)
                 .filter(({ tag }) => (tag === 'Import'))
                 .filter(({ from }) => (from in this.importedStates))

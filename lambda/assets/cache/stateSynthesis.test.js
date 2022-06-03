@@ -305,6 +305,50 @@ describe('stateSynthesis', () => {
                 }
             })
         })
+
+        it('should remove variables from ephemera when they are removed from source', async () => {
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            ephemeraDB.getItem.mockResolvedValue({
+                State: {
+                    power: {
+                        key: 'power',
+                        value: true
+                    },
+                    switchedOn: {
+                        key: 'switchedOn',
+                        value: true
+                    },
+                    obsolete: {
+                        key: 'obsolete',
+                        value: 'Widget'
+                    }
+                }
+            })
+            await testSynthesizer.fetchFromEphemera()
+            expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+                EphemeraId: 'ASSET#test',
+                DataCategory: 'Meta::Asset',
+                ProjectionFields: ['#state'],
+                ExpressionAttributeNames: {
+                    '#state': 'State'
+                }    
+            })
+            expect(testSynthesizer.state).toEqual({
+                active: {
+                    key: 'active',
+                    computed: true,
+                    src: 'power && switchedOn'
+                },
+                power: {
+                    key: 'power',
+                    value: true
+                },
+                switchedOn: {
+                    key: 'switchedOn',
+                    value: true
+                }
+            })
+        })
     })
 
     describe('fetchImportedValues', () => {
@@ -364,6 +408,60 @@ describe('stateSynthesis', () => {
                             imported: [{
                                 asset: 'somethingElse',
                                 key: 'powered'
+                            }]
+                        }
+                    }
+                }])
+
+            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            await testSynthesizer.fetchImportedValues()
+            await testSynthesizer.updateImportedDependencies()
+
+            expect(ephemeraDB.update).toHaveBeenCalledWith({
+                EphemeraId: 'ASSET#BASE',
+                DataCategory: 'Meta::Asset',
+                UpdateExpression: 'SET Dependencies = :dependencies',
+                ExpressionAttributeValues: {
+                    ':dependencies': {
+                        powered: {
+                            imported: [{
+                                asset: 'somethingElse',
+                                key: 'powered'
+                            },
+                            {
+                                asset: 'test',
+                                key: 'power'
+                            }]
+                        }
+                    }
+                }
+            })
+
+        })
+
+        it('should remove asset dependencies when they are removed from source', async () => {
+            ephemeraDB.batchGetItem
+                .mockResolvedValueOnce([{
+                    EphemeraId: 'ASSET#BASE',
+                    State: {
+                        powered: {
+                            value: 'On'
+                        },
+                        widget: {
+                            value: 'Widget'
+                        }
+                    },
+                    Dependencies: {
+                        powered: {
+                            imported: [{
+                                asset: 'somethingElse',
+                                key: 'powered'
+                            }]
+                        },
+                        widget: {
+                            imported: [{
+                                asset: 'test',
+                                key: 'obsolete'
                             }]
                         }
                     }
