@@ -6,6 +6,7 @@ import { deliverRenders } from '../perception/deliverRenders.js'
 import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
 import { splitType, RoomKey } from '../types.js'
 import { unique } from '../lists.js'
+import { objectMap } from '../objects.js'
 
 //
 // Assumption:  roomsWithMapUpdates should be a subset of Object.keys(assetsChangedByRoom)
@@ -87,7 +88,8 @@ export const updateRooms = async ({
         )
     ])
     const allCharacters = unique(referencedCharacters, fetchAllCharacters)
-    const characterAssets = await getCharacterAssets(allCharacters)
+    const characterAssetsPreMap = await getCharacterAssets(allCharacters)
+    const characterAssets = objectMap(characterAssetsPreMap, ({ assets }) => (assets))
     //
     // Combine the assets-per-map from mapCache side-effects with the assets-per-map sent from
     // direct map changes detected in calculating dependency updates

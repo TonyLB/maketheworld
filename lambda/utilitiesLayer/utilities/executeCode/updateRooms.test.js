@@ -119,8 +119,8 @@ describe('updateRooms', () => {
         render.mockResolvedValue([])
         getGlobalAssets.mockResolvedValue(['BASE'])
         getCharacterAssets.mockResolvedValue({
-            TESS: ['LayerA'],
-            MARCO: ['LayerB']
+            TESS: { assets: ['LayerA'] },
+            MARCO: { assets: ['LayerB'] }
         })
 
         await updateRooms({
@@ -176,8 +176,8 @@ describe('updateRooms', () => {
         render.mockResolvedValue([])
         getGlobalAssets.mockResolvedValue(['BASE'])
         getCharacterAssets.mockResolvedValue({
-            TESS: ['LayerA'],
-            MARCO: ['LayerB']
+            TESS: { assets: ['LayerA'] },
+            MARCO: { assets: ['LayerB'] }
         })
 
         await updateRooms({
