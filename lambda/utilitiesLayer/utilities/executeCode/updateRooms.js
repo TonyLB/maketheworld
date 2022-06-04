@@ -88,8 +88,7 @@ export const updateRooms = async ({
         )
     ])
     const allCharacters = unique(referencedCharacters, fetchAllCharacters)
-    const characterAssetsPreMap = await getCharacterAssets(allCharacters)
-    const characterAssets = objectMap(characterAssetsPreMap, ({ assets }) => (assets))
+    const characterAssets = await getCharacterAssets(allCharacters)
     //
     // Combine the assets-per-map from mapCache side-effects with the assets-per-map sent from
     // direct map changes detected in calculating dependency updates
@@ -103,7 +102,7 @@ export const updateRooms = async ({
             ]))]
         }), assetsChangedByMap)
     const characterSeesChange = (characterId, changedAssets) => {
-        const localAssets = characterAssets[characterId] || []
+        const localAssets = characterAssets[characterId]?.assets || []
         return Boolean([...globalAssets, ...localAssets].find((asset) => (changedAssets.includes(asset))))
     }
     const roomsToUpdate = roomsMeta
