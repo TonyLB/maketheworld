@@ -30,12 +30,14 @@ const joinRenderItems = function * (render = []) {
             }
         }
         for (const renderItem of (render.slice(1) || [])) {
+            const currentSpacingDefined = currentItem.spaceAfter !== undefined || currentItem.spaceBefore !== undefined
+            const renderSpacingDefined = render.spaceAfter !== undefined || render.spaceBefore !== undefined
             const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
             switch(renderItem.tag) {
                 case 'String':
                     switch(currentItem.tag) {
                         case 'String':
-                            currentItem.value = `${currentItem.value.trimEnd()}${spaceBetween ? ' ' : ''}${renderItem.value.trimLeft()}`
+                            currentItem.value = `${currentSpacingDefined ? currentItem.value.trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}${renderSpacingDefined ? renderItem.value.trimLeft() : renderItem.value}`
                             currentItem.spaceAfter = renderItem.spaceAfter
                             break
                         case 'Link':
@@ -45,7 +47,7 @@ const joinRenderItems = function * (render = []) {
                             }
                             currentItem = {
                                 ...renderItem,
-                                value: `${spaceBetween ? ' ' : ''}${renderItem.value.trimLeft()}`,
+                                value: `${spaceBetween ? ' ' : ''}${renderSpacingDefined ? renderItem.value.trimLeft() : renderItem.value}`,
                                 spaceBefore: undefined
                             }
                             break
@@ -56,7 +58,7 @@ const joinRenderItems = function * (render = []) {
                             }
                             currentItem = {
                                 ...renderItem,
-                                value: renderItem.value.trimLeft(),
+                                value: renderSpacingDefined ? renderItem.value.trimLeft() : renderItem.value,
                                 spaceBefore: undefined
                             }
                             break
@@ -67,7 +69,7 @@ const joinRenderItems = function * (render = []) {
                         case 'String':
                             yield {
                                 ...currentItem,
-                                value: `${currentItem.value.trimEnd()}${spaceBetween ? ' ' : ''}`,
+                                value: `${currentSpacingDefined ? currentItem.value.trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}`,
                                 spaceAfter: undefined
                             }
                             currentItem = {
@@ -106,7 +108,7 @@ const joinRenderItems = function * (render = []) {
                 case 'LineBreak':
                     yield {
                         ...currentItem,
-                        value: currentItem.value.trim(),
+                        value: currentSpacingDefined ? currentItem.value.trim() : currentItem.value,
                         spaceAfter: undefined
                     }
                     currentItem = {
