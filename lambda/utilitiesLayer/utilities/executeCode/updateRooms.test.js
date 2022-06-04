@@ -136,8 +136,8 @@ describe('updateRooms', () => {
             }],
             assetMeta: {},
             assetLists: { global: ['BASE'], characters: {
-                TESS: ['LayerA'],
-                MARCO: ['LayerB']
+                TESS: { assets: ['LayerA'] },
+                MARCO: { assets: ['LayerB'] }
             } }
         })
     })
@@ -209,8 +209,8 @@ describe('updateRooms', () => {
             }],
             assetMeta: {},
             assetLists: { global: ['BASE'], characters: {
-                TESS: ['LayerA'],
-                MARCO: ['LayerB']
+                TESS: { assets: ['LayerA'] },
+                MARCO: { assets: ['LayerB'] }
             } }
         })
     })
