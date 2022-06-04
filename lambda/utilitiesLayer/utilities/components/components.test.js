@@ -134,5 +134,28 @@ describe('component utilities', () => {
 
         })
 
+
+        it('should correctly join items without spacing fields', () => {
+            expect(componentAppearanceReduce({
+                render: [{
+                    tag: 'String',
+                    value: 'Test ',
+                },
+                {
+                    tag: 'Link',
+                    value: 'One',
+                }]
+            })).toEqual({
+                render: [
+                    { tag: 'String', value: 'Test ' },
+                    { tag: 'Link', value: 'One' }
+                ],
+                name: '',
+                features: [],
+                exits: []
+            })
+
+        })
+
     })
 })
