@@ -1,5 +1,27 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`render should correctly interpret nested conditions 1`] = `
+Array [
+  Object {
+    "Ancestry": "",
+    "CharacterId": "QRS",
+    "Characters": Array [],
+    "Description": Array [
+      Object {
+        "tag": "String",
+        "value": "Should render.",
+      },
+    ],
+    "EphemeraId": "ROOM#MNO",
+    "Exits": Array [],
+    "Features": Array [],
+    "Name": "",
+    "RoomId": "MNO",
+    "tag": "Room",
+  },
+]
+`;
+
 exports[`render should fetch assetList data only where needed 1`] = `
 Array [
   Object {

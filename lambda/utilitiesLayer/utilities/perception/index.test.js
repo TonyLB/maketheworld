@@ -6,6 +6,7 @@ import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } fro
 import { resultStateFactory, testMockImplementation } from '../executeCode/testAssets.js'
 
 import { render } from './index.js'
+import { objectMap } from '../objects.js'
 
 describe('render', () => {
 
@@ -24,11 +25,10 @@ describe('render', () => {
     })
 
     it('should render with no provided state data', async () => {
-        const testAssets = Object.entries(resultStateFactory())
-            .reduce((previous, [key, value]) => ({
-                ...previous,
-                [key]: { State: value }
-            }), {})
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
@@ -66,11 +66,10 @@ describe('render', () => {
     })
 
     it('should render with provided state data', async () => {
-        const testAssets = Object.entries(resultStateFactory())
-            .reduce((previous, [key, value]) => ({
-                ...previous,
-                [key]: { State: value }
-            }), {})
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
@@ -109,12 +108,73 @@ describe('render', () => {
 
     })
 
-    it('should render spacing around tags', async () => {
-        const testAssets = Object.entries(resultStateFactory())
-            .reduce((previous, [key, value]) => ({
+    it('should correctly interpret nested conditions', async () => {
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
+        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        getStateByAsset.mockImplementation(async (assets) => {
+            return assets.reduce((previous, asset) => ({
                 ...previous,
-                [key]: { State: value }
+                [asset]: testAssets[asset] || {}
             }), {})
+        })
+        getItemMeta.mockResolvedValue({
+            ['ROOM#MNO']: [
+                {
+                    DataCategory: 'ASSET#BASE',
+                    appearances: [{
+                        conditions: [{
+                            if: 'foo',
+                            dependencies: ['foo']
+                        },
+                        {
+                            if: '!antiFoo',
+                            dependencies: ['antiFoo']
+                        }],
+                        render: [{
+                            tag: 'String',
+                            value: 'Should render.'
+                        }],
+                        exits: []
+                    },
+                    {
+                        conditions: [{
+                            if: 'foo',
+                            dependencies: ['foo']
+                        },
+                        {
+                            if: 'antiFoo',
+                            dependencies: ['antiFoo']
+                        }],
+                        render: [{
+                            tag: 'String',
+                            value: 'Should not render.'
+                        }],
+                        exits: []
+                    }]
+                }
+            ]
+        })
+        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        const output = await render({
+                renderList: [{
+                    EphemeraId: 'ROOM#MNO',
+                    CharacterId: 'QRS'
+                }],
+                assetMeta: testAssets
+        })
+        expect(output).toMatchSnapshot()
+        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
+
+    })
+
+    it('should render spacing around tags', async () => {
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
         getGlobalAssets.mockResolvedValue(['BASE'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
@@ -166,11 +226,10 @@ describe('render', () => {
     })
 
     it('should render when mapValueOnly set true', async () => {
-        const testAssets = Object.entries(resultStateFactory())
-            .reduce((previous, [key, value]) => ({
-                ...previous,
-                [key]: { State: value }
-            }), {})
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
         getStateByAsset.mockResolvedValue(testAssets)
         getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
         getItemMeta.mockResolvedValue({
@@ -361,11 +420,10 @@ describe('render', () => {
     })
 
     it('should fetch state data only where needed', async () => {
-        const testAssets = Object.entries(resultStateFactory())
-            .reduce((previous, [key, value]) => ({
-                ...previous,
-                [key]: { State: value }
-            }), {})
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
         getGlobalAssets.mockResolvedValue(['BASE'])
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
@@ -444,11 +502,10 @@ describe('render', () => {
     })
 
     it('should fetch assetList data only where needed', async () => {
-        const testAssets = Object.entries(resultStateFactory())
-            .reduce((previous, [key, value]) => ({
-                ...previous,
-                [key]: { State: value }
-            }), {})
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
         getStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
