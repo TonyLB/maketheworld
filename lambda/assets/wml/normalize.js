@@ -306,6 +306,10 @@ const mergeElements = ({ previous, contextStack, node, location }) => {
     //
     if (deepEqual(currentAppearance.contextStack, contextStack)) {
         const priorAppearances = previous.appearances.slice(0, -1)
+        const renderJoin = [
+            ...(currentAppearance.render || []),
+            ...(incomingAppearance.render || [])
+        ]
         return {
             ...previous,
             ...topLevel,
@@ -318,6 +322,7 @@ const mergeElements = ({ previous, contextStack, node, location }) => {
                         ...(currentAppearance.contents || []),
                         ...(incomingAppearance.contents || [])
                     ],
+                    render: renderJoin.length ? renderJoin : undefined,
                     location
                 }
             ]

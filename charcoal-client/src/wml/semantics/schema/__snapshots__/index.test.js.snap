@@ -533,6 +533,58 @@ Object {
 }
 `;
 
+exports[`WML semantic schema should parse multiple unconditioned descriptions on same room 1`] = `
+Object {
+  "Story": true,
+  "contents": Array [
+    Object {
+      "contents": Array [],
+      "display": undefined,
+      "global": false,
+      "key": "test",
+      "props": Object {},
+      "render": Array [
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": "One",
+        },
+      ],
+      "spaceAfter": false,
+      "spaceBefore": false,
+      "tag": "Room",
+    },
+    Object {
+      "contents": Array [],
+      "display": undefined,
+      "global": false,
+      "key": "test",
+      "props": Object {},
+      "render": Array [
+        Object {
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "tag": "String",
+          "value": "Two",
+        },
+      ],
+      "spaceAfter": false,
+      "spaceBefore": false,
+      "tag": "Room",
+    },
+  ],
+  "description": undefined,
+  "fileName": "test",
+  "instance": true,
+  "key": "Test",
+  "player": undefined,
+  "props": Object {},
+  "tag": "Asset",
+  "zone": undefined,
+}
+`;
+
 exports[`WML semantic schema should percolate description spaceBefore and spaceAfter up hierarchy 1`] = `
 Object {
   "Story": true,

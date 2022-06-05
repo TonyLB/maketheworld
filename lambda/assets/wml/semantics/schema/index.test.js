@@ -179,4 +179,15 @@ describe('WML semantic schema', () => {
         expect(schema).toMatchSnapshot()
     })
 
+    it('should parse multiple unconditioned descriptions on same room', () => {
+        const match = wmlGrammar.match(`
+            <Story key=(Test) instance fileName="test">
+                <Room key=(test)><Description>One</Description></Room>
+                <Room key=(test)><Description>Two</Description></Room>
+            </Story>
+        `)
+        const schema = wmlSemantics(match).schema()
+        expect(schema).toMatchSnapshot()
+    })
+
 })

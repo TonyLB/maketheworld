@@ -221,7 +221,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 \\"errors\\": [],
                 \\"props\\": {},
                 \\"name\\": \\"Welcome\\",
-                \\"render\\": [],
                 \\"spaceBefore\\": false,
                 \\"spaceAfter\\": false
             }

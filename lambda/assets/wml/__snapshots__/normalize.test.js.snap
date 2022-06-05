@@ -274,6 +274,7 @@ Object {
           },
         ],
         "location": undefined,
+        "render": undefined,
       },
     ],
     "if": "true",
@@ -874,6 +875,65 @@ Object {
     "default": "false",
     "key": "trendy",
     "tag": "Variable",
+  },
+}
+`;
+
+exports[`WML normalize should correctly serialize multiple unconditioned descriptions 1`] = `
+Object {
+  "Test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "key": "Test",
+    "tag": "Asset",
+  },
+  "test": Object {
+    "appearances": Array [
+      Object {
+        "conditions": Array [],
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "render": Array [
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "One",
+          },
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+      },
+    ],
+    "key": "test",
+    "tag": "Room",
   },
 }
 `;
@@ -1660,6 +1720,7 @@ Object {
           2,
         ],
         "name": "Welcome",
+        "render": undefined,
       },
     ],
     "key": "456",

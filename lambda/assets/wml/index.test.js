@@ -256,6 +256,57 @@ describe('WML dbEntries', () => {
             }
         })
     })
+
+    it('should correctly serialize multiple unconditioned descriptions', () => {
+        const descriptionsOutput = dbEntries({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: 'test',
+                contents: [],
+                render: [{
+                    spaceAfter: false,
+                    spaceBefore: false,
+                    tag: "String",
+                    value: "One"
+                }],
+                conditions: []
+            },
+            {
+                tag: 'Room',
+                key: 'test',
+                contents: [],
+                render: [{
+                    spaceAfter: false,
+                    spaceBefore: false,
+                    tag: "String",
+                    value: "Two"
+                }],
+                conditions: []
+            }]
+        })
+        expect(descriptionsOutput).toEqual({
+            test: {
+                appearances: [{
+                    conditions: [],
+                    render: [{
+                        spaceAfter: false,
+                        spaceBefore: false,
+                        tag: "String",
+                        value: "One"
+                    },
+                    {
+                        spaceAfter: false,
+                        spaceBefore: false,
+                        tag: "String",
+                        value: "Two"
+                    }]
+                }],
+                tag: 'Room'
+            }
+        })
+    })
 })
 
 describe('WML validateSchema', () => {
