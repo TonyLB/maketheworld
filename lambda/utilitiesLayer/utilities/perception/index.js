@@ -5,12 +5,13 @@ import { splitType, AssetKey, RoomKey } from '../types.js'
 import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
 
 const evaluateConditionalList = (asset, list = [], state) => {
+    console.log(`State for ${asset}: ${JSON.stringify(state, null, 4)}`)
     if (list.length > 0) {
         const [first, ...rest] = list
         const evaluation = memoizedEvaluate(asset, first.if, state)
 
         if (Boolean(evaluation) && evaluation !== '{#ERROR}') {
-            return evaluateConditionalList(rest)
+            return evaluateConditionalList(asset, rest, state)
         }
         else {
             return false
