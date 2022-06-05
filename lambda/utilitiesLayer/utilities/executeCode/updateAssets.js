@@ -53,7 +53,7 @@ export const updateAssets = async ({ newStates, recalculated }) => {
         .map((assetId) => (updateSingleAsset({ assetId, newStates, recalculated: recalculated[assetId] || [] })))
     )
 
-    return Object.assign(newStates, ...updates)
+    return Object.assign({ ...newStates }, ...updates)
 }
 
 export default updateAssets
