@@ -554,6 +554,36 @@ describe('WML normalize', () => {
         })).toMatchSnapshot()
     })
 
+    it('should correctly serialize multiple unconditioned descriptions', () => {
+        expect(normalize({
+            tag: 'Asset',
+            key: 'Test',
+            contents: [{
+                tag: 'Room',
+                key: 'test',
+                contents: [],
+                render: [{
+                    spaceAfter: false,
+                    spaceBefore: false,
+                    tag: "String",
+                    value: "One"
+                }],
+                conditions: []
+            },
+            {
+                tag: 'Room',
+                key: 'test',
+                contents: [],
+                render: [{
+                    spaceAfter: false,
+                    spaceBefore: false,
+                    tag: "String",
+                    value: "Two"
+                }],
+                conditions: []
+            }]
+        })).toMatchSnapshot()
+    })
 
     it('should throw an error on mismatched key use', () => {
         expect(() => {
