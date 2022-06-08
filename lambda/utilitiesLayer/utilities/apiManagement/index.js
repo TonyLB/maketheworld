@@ -61,16 +61,45 @@ const queueReducer = (state, action) => {
     }
 }
 
+const batchMessages = (messages = [])  => {
+    //
+    // API Gateway Websockets deliver a maximum of 32KB per data frame (with a maximum of 128k across multiple frames,
+    // but I don't think that's needed for an application with a large number of individually small messages)
+    //
+    const MAX_BATCH_SIZE = 20000
+    const lengthOfMessage = (message) => (JSON.stringify(message).length)
+    const { batchedMessages = [], currentBatch = [] } = messages.reduce((previous, message) => {
+        const newLength = lengthOfMessage(message)
+        const proposedLength = previous.currentLength + newLength
+        if (proposedLength > MAX_BATCH_SIZE) {
+            return {
+                batchedMessages: [...previous.batchedMessages, previous.currentBatch],
+                currentBatch: [message],
+                currentLength: newLength
+            }
+        }
+        else {
+            return {
+                batchedMessages: previous.batchedMessages,
+                currentBatch: [...previous.currentBatch, message],
+                currentLength: proposedLength
+            }
+        }
+    }, { batchedMessages: [], currentBatch: [], currentLength: 0 })
+    return currentBatch.length ? [...batchedMessages, currentBatch] : batchedMessages
+}
+
 const queueSerialize = ({ messages = [], messageMeta = {}, ephemera = [], ephemeraMeta = {}, otherSends = []}) => {
+    const sortedMessages = Object.values(messages)
+        .reduce((previous, targets) => ([ ...previous, ...(Object.values(targets)) ]), [])
+        .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
     return [
-        ...(Object.keys(messages).length
-            ? [{
+        ...(sortedMessages.length
+            ? batchMessages(sortedMessages).map((messageBatch) => ({
                 messageType: 'Messages',
                 ...messageMeta,
-                messages: Object.values(messages)
-                    .reduce((previous, targets) => ([ ...previous, ...(Object.values(targets)) ]), [])
-                    .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
-            }]
+                messages: messageBatch
+            }))
             : []
         ),
         ...(ephemera.length
