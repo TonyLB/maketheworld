@@ -54,7 +54,11 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     ] = await Promise.all([
         getGlobalAssets(priorAssetLists.global),
         getItemMeta(itemsToRender),
-        getCharacterAssets(charactersToRenderFor, priorAssetLists.characters ? objectMap(priorAssetLists.characters, (assets) => ({ assets })) : undefined)
+        //
+        // TODO: Refactor the sloppiness of how priorAssets are being passed around (maybe an assetCache for the perception lambda,
+        // with bespoke callbacks)
+        //
+        getCharacterAssets(charactersToRenderFor, priorAssetLists.characters ? objectMap(priorAssetLists.characters, (assets) => (assets?.assets ? assets : { assets })) : undefined)
     ])
     
     //
@@ -78,7 +82,13 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             ...previous,
             ...(itemMetaData[EphemeraId]
                 .map(({ DataCategory }) => (splitType(DataCategory)[1]))
-                .filter((value) => ([...globalAssets, ...(characterAssets[CharacterId]?.assets || [])].includes(value)))
+                .filter((value) => {
+                    console.log(`characterAssets: ${JSON.stringify(characterAssets, null, 4)}`)
+                    console.log(`globalAssets: ${JSON.stringify(globalAssets, null, 4)}`)
+                    console.log(`Character Id: ${CharacterId}`)
+                    const relevantAssets = [...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]
+                    return relevantAssets.includes(value)
+                })
             )
         ]
     }, [])

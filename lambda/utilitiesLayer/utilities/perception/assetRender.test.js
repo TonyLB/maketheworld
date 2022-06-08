@@ -251,4 +251,9 @@ describe('assetRender', () => {
         expect(getNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: normalForm })
     })
 
+    //
+    // TODO: Create a test to confirm that conditional rooms and exits are correctly rendered both
+    // when they fail and when they succeed
+    //
+
 })
