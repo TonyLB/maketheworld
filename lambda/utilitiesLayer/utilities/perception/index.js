@@ -1,11 +1,11 @@
 import { componentAppearanceReduce } from '../components/components.js'
 import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
 import { splitType, AssetKey, RoomKey } from '../types.js'
+import { objectMap } from '../objects.js'
 
 import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
 
 const evaluateConditionalList = (asset, list = [], state) => {
-    console.log(`State for ${asset}: ${JSON.stringify(state, null, 4)}`)
     if (list.length > 0) {
         const [first, ...rest] = list
         const evaluation = memoizedEvaluate(asset, first.if, state)
@@ -54,7 +54,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
     ] = await Promise.all([
         getGlobalAssets(priorAssetLists.global),
         getItemMeta(itemsToRender),
-        getCharacterAssets(charactersToRenderFor, priorAssetLists.characters)
+        getCharacterAssets(charactersToRenderFor, priorAssetLists.characters ? objectMap(priorAssetLists.characters, (assets) => ({ assets })) : undefined)
     ])
     
     //
@@ -146,7 +146,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 }
 
             case 'MAP':
-                const roomPseudonym = (AssetId, roomId) => (`${splitType(AssetId)[1]}#${roomId}`)
+                const roomPseudonym = (AssetId, roomId) => (`${AssetId}#${roomId}`)
                 const assetsOfInterest = [...(new Set([...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]))]
                 const aggregatedMapCacheByEphemeraId = assetsOfInterest
                     .reduce((previous, assetId) => (Object.values(assetStateById[assetId]?.mapCache || {})
@@ -166,10 +166,10 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                         }), previous)
                     ), {})
 
-                const { visibleMapAppearancesByAsset, name: mapName = [] } = assets.reduce((previous, AssetId) => {
-                    const { appearances = [], name } = itemsByAsset[AssetId]
+                const { visibleMapAppearancesByAsset, name: mapName = [] } = assetsOfInterest.reduce((previous, AssetId) => {
+                    const { appearances = [], name } = itemsByAsset[`ASSET#${AssetId}`]
 
-                    const { State: state = {} } = assetStateById[splitType(AssetId)[1]] || {}
+                    const { State: state = {} } = assetStateById[AssetId] || {}
                     return {
                         visibleMapAppearancesByAsset: {
                             ...previous.visibleMapAppearancesByAsset,
@@ -180,7 +180,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     }
                 }, { visibleMapAppearancesByAsset: {}, name: [] })
     
-                const roomKeysByEphemera = assets.reduce((previous, AssetId) => {
+                const roomKeysByEphemera = assetsOfInterest.reduce((previous, AssetId) => {
                     const appearances = visibleMapAppearancesByAsset[AssetId] || []
                     const roomEntriesInOrder = appearances.reduce((accumulator, { rooms }) => ([
                         ...accumulator,
@@ -196,7 +196,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     return roomKeysByEphemera
                 }, {})
 
-                const mapRooms = assets.reduce((previous, AssetId) => {
+                const mapRooms = assetsOfInterest.reduce((previous, AssetId) => {
                     const appearances = visibleMapAppearancesByAsset[AssetId] || []
                     const roomEntriesInOrder = appearances.reduce((accumulator, { rooms }) => ([
                         ...accumulator,
@@ -232,7 +232,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     return mapRooms
                 }, {})
 
-                const fileURL = assets.reduce((previous, AssetId) => {
+                const fileURL = assetsOfInterest.reduce((previous, AssetId) => {
                     const appearances = visibleMapAppearancesByAsset[AssetId] || []
                     return appearances.reduce((accumulator, { fileURL }) => (fileURL || accumulator), previous)
                 }, undefined)

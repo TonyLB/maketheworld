@@ -583,7 +583,7 @@ describe('render', () => {
         expect(output).toMatchSnapshot()
 
         expect(getGlobalAssets).toHaveBeenCalledWith(['BASE'])
-        expect(getCharacterAssets).toHaveBeenCalledWith(['XYZ', 'QRS'], { QRS: ['LayerB'] })
+        expect(getCharacterAssets).toHaveBeenCalledWith(['XYZ', 'QRS'], { QRS: { assets: ['LayerB'] } })
 
     })
 
