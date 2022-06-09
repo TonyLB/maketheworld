@@ -83,9 +83,6 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
             ...(itemMetaData[EphemeraId]
                 .map(({ DataCategory }) => (splitType(DataCategory)[1]))
                 .filter((value) => {
-                    console.log(`characterAssets: ${JSON.stringify(characterAssets, null, 4)}`)
-                    console.log(`globalAssets: ${JSON.stringify(globalAssets, null, 4)}`)
-                    console.log(`Character Id: ${CharacterId}`)
                     const relevantAssets = [...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]
                     return relevantAssets.includes(value)
                 })

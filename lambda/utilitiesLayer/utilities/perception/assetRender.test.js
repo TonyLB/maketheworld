@@ -4,6 +4,7 @@ jest.mock('./dynamoDB.js')
 import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets, getNormalForm } from './dynamoDB.js'
 
 import { resultStateFactory, testMockImplementation } from '../executeCode/testAssets.js'
+import { objectMap } from '../objects.js'
 
 import { assetRender } from './assetRender.js'
 
@@ -249,6 +250,166 @@ describe('assetRender', () => {
         })
         expect(getStateByAsset).toHaveBeenCalledWith(['LayerA'], { LayerA: testAssets.LayerA })
         expect(getNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: normalForm })
+    })
+
+    it('should correctly render (and not render) conditional rooms', async () => {
+        const conditionalNormalForm = {
+            Test: {
+                key: 'LayerA',
+                tag: 'Asset',
+                appearances: [{
+                    contextStack: [],
+                    contents: [{
+                        key: 'MNO',
+                        tag: 'Room',
+                        index: 0
+                    },
+                    {
+                        key: 'Condition-0',
+                        tag: 'Condition',
+                        index: 0
+                    },
+                    {
+                        key: 'bar',
+                        tag: 'Variable',
+                        index: 0
+                    },
+                    {
+                        key: 'Condition-1',
+                        tag: 'Condition',
+                        index: 0
+                    }]
+                }]
+            },
+            'MNO': {
+                key: 'MNO',
+                EphemeraId: 'ROOM#VORTEX',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    name: 'Vortex',
+                    contents: []
+                }]
+            },
+            'QRS#MNO': {
+                key: 'QRS#MNO',
+                tag: 'Exit',
+                to: 'MNO',
+                toEphemeraId: 'VORTEX',
+                from: 'QRS',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'QRS', tag: 'Room', index: 0 }],
+                    contents: []
+                }]
+            },
+            'QRS': {
+                key: 'QRS',
+                EphemeraId: 'ROOM#QRS',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
+                    contents: [{ key: 'QRS#MNO', tag: 'Exit', index: 0 }]
+                }]
+            },
+            'Condition-0': {
+                key: 'Condition-0',
+                tag: 'Condition',
+                if: 'bar',
+                dependencies: ['bar'],
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: [
+                        { key: 'QRS', tag: 'Room', index: 0 }
+                    ]
+                }]
+            },
+            bar: {
+                key: 'bar',
+                tag: 'Variable',
+                default: 'true',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: []
+                }]
+            },
+            'Condition-1': {
+                key: 'Condition-1',
+                tag: 'Condition',
+                if: '!bar',
+                dependencies: ['bar'],
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
+                    contents: [
+                        { key: 'TUV', tag: 'Room', index: 0 },
+                        { key: 'MNO#QRS', tag: 'Exit', index: 0 }
+                    ]
+                }]
+            },
+            'TUV#MNO': {
+                key: 'TUV#MNO',
+                tag: 'Exit',
+                to: 'MNO',
+                toEphemeraId: 'VORTEX',
+                from: 'TUV',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-1', tag: 'Condition', index: 0 }, { key: 'TUV', tag: 'Room', index: 0 }],
+                    contents: []
+                }]
+            },
+            'TUV': {
+                key: 'TUV',
+                tag: 'Room',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-1', tag: 'Condition', index: 0 }],
+                    contents: [{ key: 'TUV#MNO', tag: 'Exit', index: 0 }]
+                }]
+            },
+            'MNO#QRS': {
+                key: 'TUV#MNO',
+                tag: 'Exit',
+                to: 'QRS',
+                toEphemeraId: 'VORTEX',
+                from: 'MNO',
+                appearances: [{
+                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-1', tag: 'Condition', index: 0 }],
+                    contents: []
+                }]
+            }
+        }
+        const testAssets = objectMap(
+            resultStateFactory(),
+            (state) => ({ State: objectMap(state, ({ value }) => value) })
+        )
+        getStateByAsset.mockImplementation(async () => {
+            return { LayerA: testAssets.LayerA }
+        })
+        getNormalForm.mockResolvedValue(conditionalNormalForm)
+
+        const output = await assetRender({
+            assetId: 'LayerA',
+            existingStatesByAsset: {
+                LayerA: testAssets.LayerA
+            },
+            existingNormalFormsByAsset: { LayerA: conditionalNormalForm }
+        })
+        expect(output).toEqual({
+            MNO: {
+                EphemeraId: 'ROOM#VORTEX',
+                name: ['Vortex'],
+                exits: []
+            },
+            QRS: {
+                EphemeraId: 'ROOM#QRS',
+                name: [],
+                exits: [{
+                    key: 'QRS#MNO',
+                    to: 'MNO',
+                    toEphemeraId: 'VORTEX'
+                }]
+            }
+        })
+        expect(getStateByAsset).toHaveBeenCalledWith(['LayerA'], { LayerA: testAssets.LayerA })
+        expect(getNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: conditionalNormalForm })
     })
 
     //

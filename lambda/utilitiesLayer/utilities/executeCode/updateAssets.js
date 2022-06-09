@@ -8,12 +8,10 @@ const updateSingleAsset = async({ assetId, newStates, recalculated }) => {
         .map((recalculatedKey) => (Object.keys(newStates[assetId]?.Dependencies?.[recalculatedKey]?.mapCache || []).length > 0))
         .filter((value) => (value))).length > 0
     if (mapCacheDependencies) {
-        console.log(`Rendering mapCache`)
         const renderedAsset = await assetRender({
             assetId,
             existingStatesByAsset: newStates
         })
-        console.log(`Rendered Asset: ${JSON.stringify(renderedAsset, null, 4)}`)
         await ephemeraDB.update({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
