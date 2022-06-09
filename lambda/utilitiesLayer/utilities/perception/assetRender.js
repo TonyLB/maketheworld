@@ -8,7 +8,7 @@ const evaluateConditionalList = (asset, list = [], state) => {
         const evaluation = memoizedEvaluate(asset, first.if, state)
 
         if (Boolean(evaluation) && evaluation !== '{#ERROR}') {
-            return evaluateConditionalList(rest)
+            return evaluateConditionalList(asset, rest, state)
         }
         else {
             return false
@@ -29,13 +29,21 @@ export const assetRender = async ({ assetId, existingStatesByAsset = {}, existin
     const roomNamesAndExits = Object.values(normalForm)
         .filter(({ tag }) => (tag === 'Room'))
         .reduce((previous, { key, EphemeraId, appearances = [] }) => {
-            const name = appearances
+            const conditionalAppearances = appearances.map(({ contextStack = [], ...rest }) => ({
+                conditions: contextStack
+                    .filter(({ tag }) => (tag === 'Condition'))
+                    .map(({ key }) => (normalForm[key]))
+                    .filter((value) => (value)),
+                contextStack,
+                ...rest
+            }))
+            const name = conditionalAppearances
                 .filter(({ name }) => (name !== undefined))
-                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState[assetId]?.state || {})))
+                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState[assetId]?.State || {})))
                 .map(({ name }) => (name))
-            const exits = appearances
+            const exits = conditionalAppearances
                 .filter(({ contents = [] }) => (contents.filter(({ tag }) => (tag === 'Exit')).length > 0))
-                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState[assetId]?.state || {})))
+                .filter(({ conditions = [] }) => (evaluateConditionalList(assetId, conditions, assetState[assetId]?.State || {})))
                 .map(({ contents }) => {
                     return contents
                         .filter(({ tag }) => (tag === 'Exit'))
