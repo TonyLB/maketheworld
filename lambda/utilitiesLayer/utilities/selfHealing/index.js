@@ -211,7 +211,7 @@ export const healCharacter = async (CharacterId) => {
         const Item = await assetDB.getItem({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
-            ProjectionFields: ['player', '#Name', 'fileURL', 'HomeId', 'Color', 'Pronouns'],
+            ProjectionFields: ['player', '#Name', 'fileURL', 'HomeId', 'Color', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit'],
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
@@ -231,13 +231,16 @@ export const healCharacter = async (CharacterId) => {
                         possessive: 'their',
                         adjective: 'theirs',
                         reflexive: 'themself'
-                    }
+                    },
+                    FirstImpression,
+                    OneCoolThing,
+                    Outfit
                 } = Item
                 const personalAssets = await generatePersonalAssetList(player)
                 await ephemeraDB.update({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
-                    UpdateExpression: `SET #Name = :name, fileURL = :fileURL, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color, Pronouns = :pronouns`,
+                    UpdateExpression: `SET #Name = :name, fileURL = :fileURL, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color, Pronouns = :pronouns, FirstImpression = :firstImpression, Outfit = :outfit, OneCoolThing = :oneCoolThing`,
                     ExpressionAttributeNames: {
                         '#Name': 'Name'
                     },
@@ -248,7 +251,10 @@ export const healCharacter = async (CharacterId) => {
                         ':false': false,
                         ':assets': personalAssets,
                         ':color': Color,
-                        ':pronouns': Pronouns
+                        ':pronouns': Pronouns,
+                        ':firstImpression': FirstImpression,
+                        ':oneCoolThing': OneCoolThing,
+                        ':outfit': Outfit
                     }
                 })
             }
