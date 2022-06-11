@@ -72,17 +72,20 @@ export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, file
 }
 
 export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
-    const fileName = path.parse(key).name
+    const { dir: directory, name: fileName } = path.parse(key)
+    const lastDirectory = directory.split('/').slice(-1)
 
     const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
         Bucket: bucket,
         Key: key
     }))
     const contents = await streamToBuffer(contentStream)
+    
+    const { width, height } = (lastDirectory && lastDirectory.length > 0 && lastDirectory[0] === 'Characters') ? { width: 200, height: 200 } : { width: 800, height: 600 }
 
     try {
         const imageBuffer = await sharp(contents)
-            .resize({ width: 800, heigh: 600, fit: sharp.strategy.fill })
+            .resize({ width, height, fit: sharp.strategy.fill })
             .toFormat('png')
             .toBuffer()
         await s3Client.send(new PutObjectCommand({
