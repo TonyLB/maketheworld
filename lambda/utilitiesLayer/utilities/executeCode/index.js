@@ -2,7 +2,7 @@ import { executeCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { updateRooms } from './updateRooms.js'
 import dependencyCascade from './dependencyCascade.js'
-import { AssetKey, RoomKey } from '../types.js'
+import { AssetKey, RoomKey, splitType } from '../types.js'
 import { defaultColorFromCharacterId } from '../selfHealing/index.js'
 import updateAssets from './updateAssets.js'
 
@@ -14,6 +14,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
             importTree = {}
         },
         roomQueryItems,
+        mapQueryItems,
         {
             Name = 'Someone',
             Color,
@@ -44,6 +45,18 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                 '#key': 'key'
             },
             ProjectionFields: ['EphemeraId', '#key']
+        }),
+        ephemeraDB.query({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: `ASSET#${assetId}`,
+            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+            ExpressionAttributeValues: {
+                ':EphemeraPrefix': 'MAP#'
+            },
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ProjectionFields: ['EphemeraId', '#key', 'appearances']
         }),
         ...(CharacterId
             ? [
@@ -155,8 +168,8 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                 }), previous)),
             {})
     )
-    const recalculatedToMaps = ([asset, keys]) => (
-        keys
+    const recalculatedToMaps = ([asset, keys]) => {
+        const mapsDirectlyDependent = keys
             .map((key) => (secondPassStates[asset]?.Dependencies?.[key]?.map || []))
             .reduce((previous, maps) => (
                 maps.reduce((accumulator, map) => ({
@@ -164,7 +177,24 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                     [map]: [...(accumulator[map] || []), asset]
                 }), previous)),
             {})
-    )
+        const mapsWithCacheDependencies = keys
+            .map((key) => (secondPassStates[asset]?.Dependencies?.[key]?.mapCache || []))
+            .reduce((previous, roomsUpdated) => {
+                const mapsReferencingUpdatedRoom = mapQueryItems.filter((mapQuery) => (
+                    (mapQuery.appearances || [])
+                        .map(({ rooms }) => (
+                            Object.values(rooms).map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
+                        ))
+                        .find((rooms) => (roomsUpdated.find((roomId) => (rooms.includes(roomId)))))
+                ))
+                .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
+                return mapsReferencingUpdatedRoom.reduce((accumulator, map) => ({
+                        ...accumulator,
+                        [map]: [...(accumulator[map] || []), asset]
+                    }), previous)
+            }, mapsDirectlyDependent)
+        return mapsWithCacheDependencies
+    }
     const assetsChangedByRoom = Object.entries(recalculated)
         .map(recalculatedToRooms)
         .reduce((previous, roomMap) => (
