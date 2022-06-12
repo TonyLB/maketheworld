@@ -38,7 +38,7 @@ export const getConnectionsByPlayerName = async (PlayerName) => {
 export const convertAssetQuery = (queryItems) => {
     const Characters = queryItems
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
-        .map(({ AssetId, Name, scopedId, fileName, fileURL }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL }))
+        .map(({ AssetId, Name, scopedId, fileName, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => ({ CharacterId: splitType(AssetId)[1], Name, scopedId, fileName, fileURL, Pronouns, FirstImpression, OneCoolThing, Outfit }))
     const Assets = queryItems
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Asset'))
         .map(({ AssetId, scopedId, Story, instance }) => ({ AssetId: splitType(AssetId)[1], scopedId, Story, instance }))
