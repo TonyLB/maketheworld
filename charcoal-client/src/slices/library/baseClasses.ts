@@ -17,6 +17,16 @@ export type LibraryCharacter = {
     scopedId: string;
     fileName: string;
     fileURL?: string;
+    FirstImpression?: string;
+    Pronouns?: {
+        subject: string;
+        object: string;
+        reflexive: string;
+        possessive: string;
+        adjective: string;
+    };
+    OneCoolThing?: string;
+    Outfit?: string;
 }
 
 export interface LibraryPublic {

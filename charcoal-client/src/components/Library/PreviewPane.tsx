@@ -9,6 +9,7 @@ import {
     Avatar,
     Card,
     CardHeader,
+    CardContent,
     CardActions,
     Button,
     Typography,
@@ -89,7 +90,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
     </Card>
 }
 
-const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL }) => {
+const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean, clearPreview: () => void }> = ({ personal, clearPreview, CharacterId, scopedId, Name, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit }) => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const theme = useTheme()
@@ -119,11 +120,42 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
                     </IconButton>
             }
             title={
-                <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div" gutterBottom>
+                <Typography variant={large ? "h3" : medium ? "h5" : "h6"} component="div">
                     { Name }
                 </Typography>
             }
+            subheader={
+                <Typography variant="overline" component="div" gutterBottom>
+                    { FirstImpression }
+                </Typography>
+            }
         />
+        <CardContent>
+            <Typography variant='body1' align='left'>
+                {
+                    (Pronouns?.subject && Pronouns?.object) &&
+                    (<React.Fragment>
+                        <b>Pronouns: </b> { Pronouns?.subject[0]?.toUpperCase()}{ Pronouns?.subject?.slice(1) }/{Pronouns?.object}
+                    </React.Fragment>) 
+                }
+            </Typography>
+            <Typography variant='body1' align='left'>
+                {
+                    OneCoolThing &&
+                    (<React.Fragment>
+                        <b>One Cool Thing{ Pronouns?.object && <React.Fragment> about { Pronouns?.object }</React.Fragment>}: </b> { OneCoolThing }
+                    </React.Fragment>) 
+                }
+            </Typography>
+            <Typography variant='body1' align='left'>
+                {
+                    Outfit &&
+                    (<React.Fragment>
+                        <b>Outfit: </b> { Outfit }
+                    </React.Fragment>) 
+                }
+            </Typography>
+        </CardContent>
         <CardActions>
             { personal && <Button
                     onClick={() => {

@@ -291,7 +291,7 @@ export const fetchLibrary = async (RequestId) => {
         ExpressionAttributeNames: {
             '#name': 'Name'
         },
-        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL']
+        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
     })
 
     const { Characters, Assets } = convertAssetQuery(Items)
