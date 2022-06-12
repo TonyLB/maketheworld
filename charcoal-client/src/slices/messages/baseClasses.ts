@@ -84,6 +84,16 @@ type CharacterDescribeData = {
     CharacterId: string;
     Name: string;
     fileURL?: string;
+    FirstImpression?: string;
+    Pronouns?: {
+        subject: string;
+        object: string;
+        reflexive: string;
+        possessive: string;
+        adjective: string;
+    };
+    OneCoolThing?: string;
+    Outfit?: string;
 }
 
 export type CharacterDescription = {

@@ -399,8 +399,8 @@ describe('render', () => {
                     Outfit: 'Black',
                     OneCoolThing: 'Thousand yard stare',
                     Pronouns: {
-                        subjective: 'she',
-                        objective: 'her',
+                        subject: 'she',
+                        object: 'her',
                         reflexive: 'herself',
                         possessive: 'her',
                         adjective: 'hers'
@@ -427,8 +427,8 @@ describe('render', () => {
             Outfit: 'Black',
             OneCoolThing: 'Thousand yard stare',
             Pronouns: {
-                subjective: 'she',
-                objective: 'her',
+                subject: 'she',
+                object: 'her',
                 reflexive: 'herself',
                 possessive: 'her',
                 adjective: 'hers'
