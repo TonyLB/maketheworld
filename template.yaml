@@ -631,7 +631,6 @@ Resources:
                 Stream: !GetAtt AssetTable.StreamArn
                 BatchSize: 100
                 StartingPosition: LATEST
-          Events:
             BucketEvent:
               Type: S3
               Properties:
