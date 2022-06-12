@@ -9,6 +9,8 @@ import CardContent from '@mui/material/CardContent'
 import CardHeader from '@mui/material/CardHeader'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
+import Stack from '@mui/material/Stack'
+import useMediaQuery from '@mui/material/useMediaQuery'
 
 import LibraryIcon from '@mui/icons-material/ArtTrack'
 import MapIcon from '@mui/icons-material/Explore'
@@ -25,6 +27,9 @@ export const Home = ({
     signOut = () => {}
 }) => {
     const navigate = useNavigate()
+    const medium = useMediaQuery('(min-width: 600px)')
+    const large = useMediaQuery('(min-width: 1200px)')
+    const iconSize = large ? 80 : medium ? 60 : 40
 
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
@@ -76,20 +81,39 @@ export const Home = ({
                     <h2>Play</h2>
                 <Divider />
             </Grid>
-            { myCharacters.map(({ Name, CharacterId }) => (
-                CharacterId && <Grid key={`${Name}:${CharacterId}`} item sm={3}>
-                    <Card onClick={() => {
+            { myCharacters.map(({ Name, CharacterId, fileURL }) => (
+                CharacterId && 
+                <Grid
+                    key={`${Name}:${CharacterId}`}
+                    container
+                    item
+                    sm={3}
+                    sx={{
+                        justifyContent: 'center',
+                        alignContent: 'center',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => {
                         if (CharacterId) {
                             navigate(`/Character/${CharacterId}/Play`)
                         }
-                    }}>
-                        <CardHeader
-                            avatar={<Avatar>{Name[0] ? Name[0].toUpperCase() : '?'}</Avatar>}
-                            title={Name}
-                        />
-                        <CardContent>
-                        </CardContent>
-                    </Card>
+                    }}
+                >
+                    <Stack
+                        direction="column"
+                        justifyContent="center"
+                        alignItems="center"
+                        spacing={2}
+                    >
+                            <Avatar
+                                sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
+                                alt={Name || '???'}
+                                src={fileURL}
+                            >
+                                {Name[0] ? Name[0].toUpperCase() : '?'}
+                            </Avatar>
+                            <React.Fragment>{ Name }</React.Fragment>
+                    </Stack>
                 </Grid>))
             }
             <Grid item xs={12} sx={{ textAlign: "center" }}>
