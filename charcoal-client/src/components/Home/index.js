@@ -34,7 +34,7 @@ export const Home = ({
     return <Box sx={{ flexGrow: 1, padding: "10px" }}>
         <div style={{ textAlign: "center" }}>
             <h2>Make the World</h2>
-            A text-based platform for cooperative storytelling
+            Make stories together
         </div>
         <Grid
             sx={{ width: "100%", padding: "10px" }}
@@ -54,11 +54,6 @@ export const Home = ({
                     icon: <LibraryIcon />,
                     title: 'Library',
                     href: '/Library/'
-                },
-                {
-                    icon: <MapIcon />,
-                    title: 'Maps',
-                    href: '/Maps/'
                 }
             ].map(({ icon, title, href }) => (
                 <Grid key={title} item sm={3}>
@@ -122,11 +117,6 @@ export const Home = ({
                 <Divider />
             </Grid>
             {[
-                {
-                    icon: null,
-                    title: 'Code of Conduct',
-                    href: '/CodeOfConduct'
-                },
                 {
                     icon: null,
                     title: 'Logout',
