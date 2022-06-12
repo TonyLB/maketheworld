@@ -9,7 +9,7 @@ export const getItemMeta = async (items) => {
                 const characterItem = await ephemeraDB.getItem({
                     EphemeraId,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['#name', 'fileURL'],
+                    ProjectionFields: ['#name', 'fileURL', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }

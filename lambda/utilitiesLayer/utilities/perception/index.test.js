@@ -394,7 +394,17 @@ describe('render', () => {
                 {
                     DataCategory: 'Meta::Character',
                     Name: 'Tess',
-                    fileURL: 'tess.png'
+                    fileURL: 'tess.png',
+                    FirstImpression: 'Frumpy Goth',
+                    Outfit: 'Black',
+                    OneCoolThing: 'Thousand yard stare',
+                    Pronouns: {
+                        subject: 'she',
+                        object: 'her',
+                        reflexive: 'herself',
+                        possessive: 'her',
+                        adjective: 'hers'
+                    }
                 }
             ]
         })
@@ -412,7 +422,17 @@ describe('render', () => {
             CharacterId: 'QRS',
             EphemeraId: 'CHARACTERINPLAY#QRS',
             Name: "Tess",
-            fileURL: 'tess.png'
+            fileURL: 'tess.png',
+            FirstImpression: 'Frumpy Goth',
+            Outfit: 'Black',
+            OneCoolThing: 'Thousand yard stare',
+            Pronouns: {
+                subject: 'she',
+                object: 'her',
+                reflexive: 'herself',
+                possessive: 'her',
+                adjective: 'hers'
+            }
         }])
         expect(getItemMeta).toHaveBeenCalledWith(['CHARACTERINPLAY#QRS'])
         expect(getStateByAsset).toHaveBeenCalledWith([], characterAssets)

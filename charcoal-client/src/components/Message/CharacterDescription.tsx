@@ -31,7 +31,8 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
     const medium = useMediaQuery(theme.breakpoints.up('md'))
     const large = useMediaQuery(theme.breakpoints.up('lg'))
     const portraitSize = large ? 160 : medium ? 120 : 80
-    const { CharacterId, Name, fileURL } = message
+    const { CharacterId, Name, fileURL, FirstImpression, Pronouns, OneCoolThing, Outfit } = message
+
     return <MessageComponent
             sx={{
                 paddingTop: "10px",
@@ -60,7 +61,34 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
                 <Typography variant='h5' align='left'>
                     { Name }
                 </Typography>
+                <Typography variant='overline' align='left'>
+                    { FirstImpression }
+                </Typography>
                 <Divider />
+                <Typography variant='body1' align='left'>
+                    {
+                        (Pronouns?.subject && Pronouns?.object) &&
+                        (<React.Fragment>
+                            <b>Pronouns: </b> { Pronouns?.subject[0]?.toUpperCase()}{ Pronouns?.subject?.slice(1) }/{Pronouns?.object}
+                        </React.Fragment>) 
+                    }
+                </Typography>
+                <Typography variant='body1' align='left'>
+                    {
+                        OneCoolThing &&
+                        (<React.Fragment>
+                            <b>One Cool Thing{ Pronouns?.object && <React.Fragment> about { Pronouns?.object }</React.Fragment>}: </b> { OneCoolThing }
+                        </React.Fragment>) 
+                    }
+                </Typography>
+                <Typography variant='body1' align='left'>
+                    {
+                        Outfit &&
+                        (<React.Fragment>
+                            <b>Outfit: </b> { Outfit }
+                        </React.Fragment>) 
+                    }
+                </Typography>
             </Box>
         </MessageComponent>
 }
