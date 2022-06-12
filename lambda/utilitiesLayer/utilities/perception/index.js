@@ -128,7 +128,11 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     EphemeraId,
                     CharacterId: splitType(EphemeraId)[1],
                     Name: meta.Name,
-                    fileURL: meta.fileURL
+                    fileURL: meta.fileURL,
+                    Pronouns: meta.Pronouns,
+                    FirstImpression: meta.FirstImpression,
+                    OneCoolThing: meta.OneCoolThing,
+                    Outfit: meta.Outfit
                 }
             case 'ROOM':
             case 'FEATURE':
@@ -273,7 +277,7 @@ export const render = async ({
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, mapValuesOnly, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)
-        const { render: Description, name: Name, exits, characters, features, rooms, fileURL, Targets } = rest
+        const { render: Description, name: Name, exits, characters, features, rooms, fileURL, Targets, FirstImpression, OneCoolThing, Pronouns, Outfit } = rest
         switch(objectType) {
             case 'ROOM':
                 const RoomMessage = {
@@ -327,7 +331,11 @@ export const render = async ({
                     Targets,
                     CharacterId,
                     Name: rest.Name,
-                    fileURL
+                    fileURL,
+                    Pronouns,
+                    FirstImpression,
+                    OneCoolThing,
+                    Outfit
                 }
                 return CharacterMessage
             default:
