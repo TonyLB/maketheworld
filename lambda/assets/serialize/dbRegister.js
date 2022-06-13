@@ -162,7 +162,7 @@ export const dbRegister = async ({ fileName, translateFile, importTree, namespac
     if (character && character.key) {
         await Promise.all([
             assetDB.putItem({
-                AssetId: CharacterKey(scopeMap[character.key]),
+                AssetId: scopeMap[character.key],
                 DataCategory: 'Meta::Character',
                 fileName,
                 translateFile,
