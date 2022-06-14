@@ -1,38 +1,29 @@
 Make The World
 ==============
 
-Make The World is a multi-user text game, in the style of Multi-User-Dungeon (MUD) games that have populated the internet since the 80s.  Unlike some
-other systems, Make The World is cloud-native, residing in AWS and accessible through any web-browser (okay, *most* web-browsers, I'm sure you can
-find compatibility complaints with something).
+Make The World is a platform for creating worlds and telling stories together.  Make The World is cloud-native, residing in AWS and accessible through
+any web-browser (okay, *most* web-browsers, ain't nobody got time to keep supporting old version of Internet Explorer).
 
-Make The World is very much a work in progress:  Version 1 provides the minimal features that make a viable game, and we hope people will enjoy
-it, but there is much much more coming in version 2:  Objects, for a start.  What's an epic fantasy world without the ability to type "get magic sword",
-after all?
+Make The World is very much a work in progress:  Version 1 provided the minimal features to establish communications between players.
+Version 2 elaborates on that with World Markup Language, a syntax for defining shared worlds and their behaviors.
 
-### What Make The World includes
+### What Make The World included in V1
 
 - Globally available web-based chat client
 - Industry-grade (AWS Cognito) login security to keep your access safe and private
 - Characters you can create and customize as you desire
 - Rooms you invent, to set the scene and group which characters are chatting with which
 - Exits between Rooms to create the imaginary geography
-- Direct messaging to reach characters wherever they are
-- Neighborhoods that encompass multiple Rooms (and other Neighborhoods)
-- Neighborhood-granularity permissioning, to let people invite their friends to edit their creations
-- Neighborhood-granularity publishing settings, so that new players can create immediately but impressionable innocents don't see their material until
-someone with a public neighborhood agrees to host it in the "main world"
-- Button-click backup procedures to save your world
-- Backup JSON downloads to pull your content out of the cloud and onto your device (for whatever purpose)
-- Backup JSON import, to add content from another Make The World instance, a library, or wherever
 
-### What Make The World doesn't include (yet)
+### What is coming in V2
 
 - More robust moderation tools, to deal with potential bad actors (spammers, trolls, etc.)
 - In-game Objects
 - Asynchronous messaging, to leave folks in-game notes
 - Scene requests, to tell people what you'd like to play and what kind of people would help you do it
-- World-state and a set of tools to automate changes (day/night cycle, sudden descent into apocalypse, etc.)
 - Story authoring tools to create automated quests, riddles and events that people can opt into
+- Story instancing, so different groups can have their own versions of the same story, and work
+through them imdependently
 
 How does Make The World work (tech stack)
 =========================================
