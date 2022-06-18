@@ -13,8 +13,6 @@ of it.
 
 ---
 
-***CONTINUE EDITIG FROM HERE***
-
 ***Denormalized Meta-Data***
 - For a given room or feature, the manager should optimize *fetch* on a question of this form (even if
 that optimization costs resources at *insert* time):
