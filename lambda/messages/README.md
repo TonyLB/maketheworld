@@ -37,26 +37,52 @@ be able to both:
 
 ***Shared Base***:
     - CreatedTime: epoch time in milliseconds
-    - DisplayProtocol:  One of: 'RoomDescription', 'RoomUpdate', 'FeatureDescrption', 'WorldMessage', 'SayMessage', 'NarrateMessage', 'OOCMessage'
+    - DisplayProtocol:  One of: 'RoomHeader', 'RoomUpdate', 'FeatureDescrption', 'WorldMessage', 'SayMessage', 'NarrateMessage', 'OOCMessage'
 
-**TODO: Define formats specific to each DisplayProtocol**
-
-***RoomDescription***:
+***RoomHeader***:
+    - Characters
+    - Description
+    - Exits
+    - Features
+    - Name
+    - RoomId
 
 ***FeatureDescription***:
-
-***RoomUpdate***:
+    - Description
+    - FeatureId
+    - Features
+    - Name
 
 ***WorldMessage***:
+    - Message
 
 ***SayMessage***:
+    - CharacterId
+    - Color
+    - Message
+    - Name
 
 ***NarrateMessage***:
+    - CharacterId
+    - Color
+    - Message
+    - Name
 
 ***OOCMessage***:
+    - CharacterId
+    - Color
+    - Message
+    - Name
 
 **TODO: Define the formats for meta-data in the Message and MessageDelta table**
 
 ### messages table
+    - MessageId: Primary Key
+    - DataCategory:  Secondary Key, either:
+        - Meta::Message: For a header element that contains one copy of the payload, or
+        - A character ID: For an adjacency-list element that contains a denormalized copy of the payload, associated with a character receiving it
 
 ### message_delta table
+    - Target: Primary Key
+    - DeltaId: ${Epoch-millisecond time}::${MessageID from the corresponding messages-table element}
+    - RowId: MessageId from the corresponding messages-table element
