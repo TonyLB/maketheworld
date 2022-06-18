@@ -74,8 +74,6 @@ be able to both:
     - Message
     - Name
 
-**TODO: Define the formats for meta-data in the Message and MessageDelta table**
-
 ### messages table
     - MessageId: Primary Key
     - DataCategory:  Secondary Key, either:
