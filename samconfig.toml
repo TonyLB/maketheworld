@@ -1,0 +1,10 @@
+version=0.1
+
+[default.build.parameters]
+beta_features = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+
+[default.sync.parameters]
+beta_features = true
