@@ -15,16 +15,64 @@ Parameters:
     MaxLength: 50
     AllowedPattern: ^[A-Za-z_]+$
     ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
-  PermanentsStack:
+  #
+  # CognitoCallbackURL may be a useless parameter:  Worth reinvestigating the lifecycle of token assignment, and whether
+  # the '.aud' comparison is providing any added security.
+  #
+  CognitoCallbackURL:
     Type: String
-    Default: 'MTWPermanentsStack'
-    Description: (Required) The name of the stack containing the permanents DynamoDB table.
-    MinLength: 3
-    MaxLength: 50
-    AllowedPattern: ^[A-Za-z_]+$
-    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+    Default: 'http://localhost:3000'
+    Description: (Required) The URL that Cognito should return control to, after authorizing a user.
+
 
 Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub ${TablePrefix}-user-UserPool
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      EmailVerificationSubject: Welcome to Make The World
+      EmailVerificationMessage: >
+          Thank you for signing up for Make The World.  Here is your verification code (the system will ask for it): {####}
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: false
+          RequireUppercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${TablePrefix}-client
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      CallbackURLs:
+        - !Ref CognitoCallbackURL
+
   RealTimeWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -54,17 +102,13 @@ Resources:
           EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
           ASSETS_SERVICE: !GetAtt AssetsFunction.Arn
           WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
-          COGNITO_USER_POOL_CLIENT:
-            Fn::ImportValue:
-              !Sub "${PermanentsStack}-UserPoolClient"
+          COGNITO_USER_POOL_CLIENT: !Ref UserPoolClient
           COGNITO_KEYS_URL:
             Fn::Sub:
               - "https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}/.well-known/jwks.json"
               -
                   Region: !Ref AWS::Region
-                  CognitoUserPool:
-                    Fn::ImportValue:
-                      !Sub "${PermanentsStack}-UserPoolId"
+                  CognitoUserPool: !Ref UserPool
       Layers:
         - !Ref UtilityLambdaLayer
       Policies:
@@ -115,12 +159,6 @@ Resources:
           {
             "action": "disconnect"
           }
-  #
-  # TODO: Add a Lambda Authorizor on ConnectRoute, and use its output to
-  # know which CognitoID is connecting the WebSocket.  Store that in association
-  # with the connectionID and use that for security throughout, rather than
-  # relying upon the client to send the proper userName information
-  #
   ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -590,9 +628,7 @@ Resources:
                   TABLE_PREFIX: !Ref TablePrefix
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
-                  COGNITO_POOL_ID:
-                    Fn::ImportValue:
-                      !Sub "${PermanentsStack}-UserPoolId"
+                  COGNITO_POOL_ID: !Ref UserPool
           Layers:
             - !Ref UtilityLambdaLayer
           Policies:
@@ -621,9 +657,7 @@ Resources:
                 Resource:
                   Fn::Sub:
                       - "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
-                      - UserPoolId:
-                          Fn::ImportValue:
-                              !Sub "${PermanentsStack}-UserPoolId"
+                      - UserPoolId: !Ref UserPool
           Events:
             Stream:
               Type: DynamoDB
@@ -677,15 +711,11 @@ Resources:
 Outputs:
   UserPoolClient:
       Description: The client ID for the player user pool
-      Value:
-          Fn::ImportValue:
-              !Sub "${PermanentsStack}-UserPoolClient"
+      Value: !Ref UserPoolClient
 
   UserPoolId:
       Description: The internal ID for the player user pool
-      Value:
-          Fn::ImportValue:
-              !Sub "${PermanentsStack}-UserPoolId"
+      Value: !Ref UserPool
 
   WebSocketURI:
       Description: "The WSS Protocol URI to connect to for realtime control messages"
