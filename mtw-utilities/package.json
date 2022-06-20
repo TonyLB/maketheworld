@@ -1,5 +1,5 @@
 {
-  "name": "@tonylb/mtw-utilities/dist",
+  "name": "@tonylb/mtw-utilities",
   "type": "module",
   "version": "1.0.0",
   "description": "Utilities for MakeTheWorld",

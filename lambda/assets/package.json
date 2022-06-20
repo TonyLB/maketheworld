@@ -15,16 +15,19 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.43.0",
     "@aws-sdk/client-s3": "^3.42.0",
     "@aws-sdk/s3-request-presigner": "^3.44.0",
-    "@aws-sdk/util-dynamodb": "^3.42.0",
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.49.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.49.0",
+    "@aws-sdk/client-dynamodb": "^3.49.0",
+    "@aws-sdk/util-dynamodb": "^3.49.0",
     "immer": "^9.0.12",
     "ohm-js": "^16.0.0",
     "sharp": "^0.30.3",
     "uuid": "^8.3.2",
-    "@tonylb/mtw-utilities": "*"
+    "@tonylb/mtw-utilities": "file:./mtw-utilities"
   },
+  "files": ["mtw-utilities"],
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@babel/plugin-transform-runtime": "^7.17.0",
