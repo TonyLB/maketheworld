@@ -1,6 +1,6 @@
-import { unique } from "/opt/utilities/lists.js"
-import { generatePersonalAssetLibrary } from "/opt/utilities/selfHealing/index.js"
-import { SocketQueue } from '/opt/utilities/apiManagement/index.js'
+import { unique } from "mtw-utilities/lists.js"
+import { generatePersonalAssetLibrary } from "mtw-utilities/selfHealing/index.js"
+import { SocketQueue } from 'mtw-utilities/apiManagement/index.js'
 
 export const handlePlayerEvents = async ({ events }) => {
     const playersToUpdate = unique(

@@ -1,4 +1,4 @@
-import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
+import recalculateComputes from 'mtw-utilities/executeCode/recalculateComputes.js'
 import parseWMLFile from '../parseWMLFile.js'
 import localizeDBEntries from './localize.js'
 import initializeRooms from '../initializeRooms.js'

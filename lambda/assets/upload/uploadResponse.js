@@ -1,7 +1,7 @@
-import { splitType } from '/opt/utilities/types.js'
+import { splitType } from 'mtw-utilities/types.js'
 
-import { ephemeraDB, assetDB } from "/opt/utilities/dynamoDB/index.js"
-import { SocketQueue } from "/opt/utilities/apiManagement/index.js"
+import { ephemeraDB, assetDB } from "mtw-utilities/dynamoDB/index.js"
+import { SocketQueue } from "mtw-utilities/apiManagement/index.js"
 
 export const getConnectionsByPlayerName = async (PlayerName) => {
     const Items = await ephemeraDB.query({

@@ -1,8 +1,9 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
+jest.mock('mtw-utilities/dynamoDB/index.js')
 import {
     mergeIntoDataRange
-} from '/opt/utilities/dynamoDB/index.js'
+} from 'mtw-utilities/dynamoDB/index.js'
 
 import mergeEntries from './mergeEntries.js'
 

@@ -1,6 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+jest.mock('mtw-utilities/dynamoDB/index.js')
+import { ephemeraDB } from 'mtw-utilities/dynamoDB/index.js'
 import StateSynthesizer from './stateSynthesis.js'
 
 describe('stateSynthesis', () => {

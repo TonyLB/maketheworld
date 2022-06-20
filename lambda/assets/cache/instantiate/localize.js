@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid'
 import {
     assetDB,
     ephemeraDB
-} from '/opt/utilities/dynamoDB/index.js'
-import { splitType, AssetKey } from '/opt/utilities/types.js'
+} from 'mtw-utilities/dynamoDB/index.js'
+import { splitType, AssetKey } from 'mtw-utilities/types.js'
 import ScopeMap from '../../serialize/scopeMap.js'
 
 export const localizeDBEntries = async ({

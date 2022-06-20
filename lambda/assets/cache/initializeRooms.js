@@ -3,8 +3,8 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import {
     ephemeraDB,
     batchWriteDispatcher
-} from '/opt/utilities/dynamoDB/index.js'
-import { RoomKey } from '/opt/utilities/types.js'
+} from 'mtw-utilities/dynamoDB/index.js'
+import { RoomKey } from 'mtw-utilities/types.js'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`

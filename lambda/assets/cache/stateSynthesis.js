@@ -1,8 +1,8 @@
 import { produce } from 'immer'
 
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { splitType, AssetKey } from '/opt/utilities/types.js'
-import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
+import { ephemeraDB } from 'mtw-utilities/dynamoDB/index.js'
+import { splitType, AssetKey } from 'mtw-utilities/types.js'
+import { evaluateCode } from 'mtw-utilities/computation/sandbox.js'
 import { objectFilter } from '../lib/objects.js'
 
 const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({

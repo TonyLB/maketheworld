@@ -1,7 +1,7 @@
 import {
     assetDB
-} from '/opt/utilities/dynamoDB/index.js'
-import { AssetKey } from '/opt/utilities/types.js'
+} from 'mtw-utilities/dynamoDB/index.js'
+import { AssetKey } from 'mtw-utilities/types.js'
 import ScopeMap from '../serialize/scopeMap.js'
 
 export const globalizeDBEntries = async (assetId, normalizedDBEntries) => {

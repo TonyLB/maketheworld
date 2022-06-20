@@ -1,5 +1,5 @@
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
-import { streamToString } from "/opt/utilities/stream.js"
+import { streamToString } from "mtw-utilities/stream.js"
 
 const { S3_BUCKET } = process.env
 

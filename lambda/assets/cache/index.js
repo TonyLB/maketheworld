@@ -1,4 +1,4 @@
-import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
+import recalculateComputes from 'mtw-utilities/executeCode/recalculateComputes.js'
 import parseWMLFile from './parseWMLFile.js'
 import globalizeDBEntries from "./globalize.js"
 import initializeRooms, { initializeFeatures } from './initializeRooms.js'
@@ -6,7 +6,7 @@ import putAssetNormalized from './putAssetNormalized.js'
 import AssetMetaData from './assetMetaData.js'
 import mergeEntries from './mergeEntries.js'
 import StateSynthesizer from './stateSynthesis.js'
-import assetRender from '/opt/utilities/perception/assetRender.js'
+import assetRender from 'mtw-utilities/perception/assetRender.js'
 
 //
 // TODO:

@@ -1,0 +1,17 @@
+{
+    "files": [],
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "mtw-utilities/*": ["./mtw-utilities/*"]
+      }
+    },
+    // "references": [
+    //   {
+    //     "path": "./lambda/assets/tsconfig.ref.json"
+    //   },
+    //   {
+    //     "path": "./mtw-utilities/tsconfig.ref.json"
+    //   },
+    // ],
+  }

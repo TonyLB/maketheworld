@@ -1,9 +1,10 @@
 import { jest, expect } from '@jest/globals'
 
+jest.mock('mtw-utilities/dynamoDB/index.js')
 import {
     ephemeraDB,
     assetDB
-} from '/opt/utilities/dynamoDB/index.js'
+} from 'mtw-utilities/dynamoDB/index.js'
 
 jest.mock('./parseWMLFile.js')
 import parseWMLFile from './parseWMLFile.js'
@@ -13,9 +14,12 @@ jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
 jest.mock('./mergeEntries.js')
 import mergeEntries from './mergeEntries.js'
-import recalculateComputes from '/opt/utilities/executeCode/recalculateComputes.js'
-import { evaluateCode } from '/opt/utilities/computation/sandbox.js'
-import assetRender from '/opt/utilities/perception/assetRender.js'
+jest.mock('mtw-utilities/executeCode/recalculateComputes.js')
+import recalculateComputes from 'mtw-utilities/executeCode/recalculateComputes.js'
+jest.mock('mtw-utilities/computation/sandbox.js')
+import { evaluateCode } from 'mtw-utilities/computation/sandbox.js'
+jest.mock('mtw-utilities/perception/assetRender.js')
+import assetRender from 'mtw-utilities/perception/assetRender.js'
 
 import { cacheAsset } from './index.js'
 

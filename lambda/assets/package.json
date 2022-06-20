@@ -9,7 +9,6 @@
   },
   "jest": {
     "moduleNameMapper": {
-      "^/opt/utilities/(.*).jsx?$": "<rootDir>/__mocks__/opt/utilities/$1",
       "^(\\.{1,2}/.*)\\.jsx?$": "$1"
     }
   },
@@ -32,6 +31,7 @@
     "@ohm-js/cli": "^1.1.0",
     "babel-jest": "^27.5.1",
     "babel-plugin-transform-import-meta": "^2.1.1",
+    "esbuild": "^0.14.46",
     "jest": "^27.5.1"
   }
 }
