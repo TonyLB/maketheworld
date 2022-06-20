@@ -2,7 +2,7 @@ import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-s
 
 import { dbRegister } from '../serialize/dbRegister.js'
 import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"
-import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/errors.js"
+import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors.js"
 import ScopeMap from '../serialize/scopeMap.js'
 
 const { S3_BUCKET } = process.env;

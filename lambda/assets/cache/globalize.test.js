@@ -1,9 +1,9 @@
 import { jest, expect } from '@jest/globals'
 
-jest.mock('@tonylb/mtw-utilities/dynamoDB/index.js')
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
 import {
     assetDB
-} from '@tonylb/mtw-utilities/dynamoDB/index.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { v4 as uuidv4 } from 'uuid'
 
 import globalizeDBEntries from './globalize.js'

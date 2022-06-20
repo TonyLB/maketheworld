@@ -1,7 +1,7 @@
-import { splitType } from '@tonylb/mtw-utilities/types.js'
+import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
 
-import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dynamoDB/index.js"
-import { SocketQueue } from "@tonylb/mtw-utilities/apiManagement/index.js"
+import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
+import { SocketQueue } from "@tonylb/mtw-utilities/dist/apiManagement/index.js"
 
 export const getConnectionsByPlayerName = async (PlayerName) => {
     const Items = await ephemeraDB.query({

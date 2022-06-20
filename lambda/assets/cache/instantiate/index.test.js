@@ -1,10 +1,10 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-jest.mock('@tonylb/mtw-utilities/dynamoDB/index.js')
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
 import {
     assetDB,
     ephemeraDB
-} from '@tonylb/mtw-utilities/dynamoDB/index.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 
 jest.mock('../parseWMLFile.js')
 import parseWMLFile from '../parseWMLFile.js'
@@ -14,8 +14,8 @@ jest.mock('../initializeRooms.js')
 import initializeRooms from '../initializeRooms.js'
 jest.mock('../mergeEntries.js')
 import mergeEntries from '../mergeEntries.js'
-jest.mock('@tonylb/mtw-utilities/executeCode/recalculateComputes.js')
-import recalculateComputes from '@tonylb/mtw-utilities/executeCode/recalculateComputes.js'
+jest.mock('@tonylb/mtw-utilities/dist/executeCode/recalculateComputes.js')
+import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes.js'
 
 jest.mock('./localize.js')
 import { localizeDBEntries } from './localize.js'

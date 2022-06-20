@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid"
-import { splitType } from '@tonylb/mtw-utilities/types.js'
+import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { importedAssetIds } from "./importedAssets.js"
 import { getTranslateFile } from "./translateFile.js"
 import { objectEntryFilter } from '../lib/objects.js'

@@ -1,8 +1,8 @@
 import {
     assetDB,
     ephemeraDB
-} from '@tonylb/mtw-utilities/dynamoDB/index.js'
-import { splitType, AssetKey } from '@tonylb/mtw-utilities/types.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 
 export class AssetMetaData extends Object {
     constructor(assetId) {
