@@ -1,10 +1,10 @@
 import { jest, expect } from '@jest/globals'
 
-jest.mock('/opt/utilities/dynamoDB/index.js')
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
 import {
     assetDB,
     ephemeraDB
-} from '/opt/utilities/dynamoDB/index.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { v4 as uuidv4 } from 'uuid'
 
 import localizeDBEntries from './localize.js'

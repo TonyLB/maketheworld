@@ -617,6 +617,20 @@ Resources:
             Version: "2012-10-17"
   AssetsFunction:
       Type: AWS::Serverless::Function
+      Metadata:
+        BuildMethod: esbuild
+        BuildProperties:
+          Minify: true
+          Target: "es2020"
+          Sourcemap: true
+          EntryPoints: 
+            - app.js
+          #
+          # Sharp requires special handling by esbuild, because it uses dynamic loading of libraries to
+          # deal with binaries for different operating systems
+          #
+          # External:
+          #   - sharp
       Properties:
           CodeUri: lambda/assets/
           Handler: app.handler
@@ -629,8 +643,6 @@ Resources:
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
                   COGNITO_POOL_ID: !Ref UserPool
-          Layers:
-            - !Ref UtilityLambdaLayer
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -665,16 +677,16 @@ Resources:
                 Stream: !GetAtt AssetTable.StreamArn
                 BatchSize: 100
                 StartingPosition: LATEST
-            BucketEvent:
-              Type: S3
-              Properties:
-                Bucket: !Ref AssetBucket
-                Filter:
-                  S3Key:
-                    Rules:
-                      - Name: prefix
-                        Value: upload/
-                Events: s3:ObjectCreated:*
+            # BucketEvent:
+            #   Type: S3
+            #   Properties:
+            #     Bucket: !Ref AssetBucket
+            #     Filter:
+            #       S3Key:
+            #         Rules:
+            #           - Name: prefix
+            #             Value: upload/
+            #     Events: s3:ObjectCreated:*
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:

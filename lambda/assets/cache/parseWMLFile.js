@@ -1,6 +1,6 @@
 import { wmlGrammar, validatedSchema } from '../wml/index.js'
 import { normalize } from '../wml/normalize.js'
-import { streamToString } from '/opt/utilities/stream.js'
+import { streamToString } from '@tonylb/mtw-utilities/dist/stream.js'
 import { s3Client, GetObjectCommand } from '../clients.js'
 
 const { S3_BUCKET } = process.env;

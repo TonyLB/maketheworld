@@ -1,6 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { assetDB, mergeIntoDataRange } from '/opt/utilities/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
+import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 
 import { dbRegister } from './dbRegister.js'
 

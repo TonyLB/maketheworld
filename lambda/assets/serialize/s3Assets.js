@@ -1,9 +1,9 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
-import { streamToString } from '/opt/utilities/stream.js'
+import { streamToString } from '@tonylb/mtw-utilities/dist/stream.js'
 import { validatedSchema } from "../wml/index.js"
 import { WMLQuery } from '../wml/wmlQuery/index.js'
-import { assetDB } from "/opt/utilities/dynamoDB/index.js"
-import { splitType } from "/opt/utilities/types.js"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
+import { splitType } from "@tonylb/mtw-utilities/dist/types.js"
 
 const { S3_BUCKET } = process.env;
 

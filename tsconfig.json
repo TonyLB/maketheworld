@@ -1,0 +1,8 @@
+{
+    "files": [],
+    "references": [
+      {
+        "path": "./mtw-utilities/tsconfig.ref.json"
+      },
+    ],
+}
