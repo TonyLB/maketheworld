@@ -1,15 +1,21 @@
 {
     "compilerOptions": {
+      "rootDir": "ts",
+      "outDir": "./dist",
       "target": "es2020",
       "strict": true,
       "preserveConstEnums": true,
       "noEmit": true,
-      "sourceMap": false,
+      "sourceMap": true,
       "module":"es2015",
       "moduleResolution":"node",
       "esModuleInterop": true, 
       "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,  
+      "forceConsistentCasingInFileNames": true,
+      "allowJs": true,
+      "checkJs": false,
+      "noImplicitAny": false
     },
-    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__mocks__/*", "**/__snapshots__/*"]
-  }
+    "include": ["ts/**/*"],
+    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__snapshots__/*"]
+}

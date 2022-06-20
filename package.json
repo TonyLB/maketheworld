@@ -3,5 +3,13 @@
   "workspaces": [
     "mtw-utilities",
     "lambda/assets"
-  ]
+  ],
+  "scripts": {
+    "clean": "tsc --build --clean",
+    "build": "tsc --build",
+    "watch": "tsc --build --watch"
+  },
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
 }
