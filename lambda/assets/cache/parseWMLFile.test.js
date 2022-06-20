@@ -1,8 +1,8 @@
 import { jest, expect } from '@jest/globals'
 
 jest.mock('../clients.js')
-jest.mock('mtw-utilities/stream.js')
-import { streamToString } from 'mtw-utilities/stream.js'
+jest.mock('@tonylb/mtw-utilities/stream.js')
+import { streamToString } from '@tonylb/mtw-utilities/stream.js'
 
 import {
     parseWMLFile

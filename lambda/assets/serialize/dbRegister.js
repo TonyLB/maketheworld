@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
-import { assetDB, mergeIntoDataRange } from 'mtw-utilities/dynamoDB/index.js'
-import { AssetKey, CharacterKey } from 'mtw-utilities/types.js'
-import { componentAppearanceReduce } from 'mtw-utilities/components/components.js'
+import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dynamoDB/index.js'
+import { AssetKey, CharacterKey } from '@tonylb/mtw-utilities/types.js'
+import { componentAppearanceReduce } from '@tonylb/mtw-utilities/components/components.js'
 import { objectEntryMap } from '../lib/objects.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {

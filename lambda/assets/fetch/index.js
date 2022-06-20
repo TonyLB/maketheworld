@@ -1,7 +1,7 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { assetDB } from 'mtw-utilities/dynamoDB/index.js'
-import { splitType } from 'mtw-utilities/types.js'
+import { assetDB } from '@tonylb/mtw-utilities/dynamoDB/index.js'
+import { splitType } from '@tonylb/mtw-utilities/types.js'
 
 const { S3_BUCKET } = process.env;
 

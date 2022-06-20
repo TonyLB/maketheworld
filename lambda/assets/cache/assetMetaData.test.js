@@ -1,10 +1,10 @@
 import { jest, describe, expect, it } from '@jest/globals'
 
-jest.mock('mtw-utilities/dynamoDB/index.js')
+jest.mock('@tonylb/mtw-utilities/dynamoDB/index.js')
 import {
     assetDB,
     ephemeraDB
-} from 'mtw-utilities/dynamoDB/index.js'
+} from '@tonylb/mtw-utilities/dynamoDB/index.js'
 
 import AssetMetaData from './assetMetaData.js'
 

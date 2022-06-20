@@ -1,6 +1,6 @@
-import { assetDB } from "mtw-utilities/dynamoDB/index.js"
+import { assetDB } from "@tonylb/mtw-utilities/dynamoDB/index.js"
 
-import { splitType } from 'mtw-utilities/types.js'
+import { splitType } from '@tonylb/mtw-utilities/types.js'
 
 export const importedAssetIds = async (importMap) => {
     const getScopeMap = async () => {

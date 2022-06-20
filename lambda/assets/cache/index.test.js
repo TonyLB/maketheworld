@@ -1,10 +1,10 @@
 import { jest, expect } from '@jest/globals'
 
-jest.mock('mtw-utilities/dynamoDB/index.js')
+jest.mock('@tonylb/mtw-utilities/dynamoDB/index.js')
 import {
     ephemeraDB,
     assetDB
-} from 'mtw-utilities/dynamoDB/index.js'
+} from '@tonylb/mtw-utilities/dynamoDB/index.js'
 
 jest.mock('./parseWMLFile.js')
 import parseWMLFile from './parseWMLFile.js'
@@ -14,12 +14,12 @@ jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
 jest.mock('./mergeEntries.js')
 import mergeEntries from './mergeEntries.js'
-jest.mock('mtw-utilities/executeCode/recalculateComputes.js')
-import recalculateComputes from 'mtw-utilities/executeCode/recalculateComputes.js'
-jest.mock('mtw-utilities/computation/sandbox.js')
-import { evaluateCode } from 'mtw-utilities/computation/sandbox.js'
-jest.mock('mtw-utilities/perception/assetRender.js')
-import assetRender from 'mtw-utilities/perception/assetRender.js'
+jest.mock('@tonylb/mtw-utilities/executeCode/recalculateComputes.js')
+import recalculateComputes from '@tonylb/mtw-utilities/executeCode/recalculateComputes.js'
+jest.mock('@tonylb/mtw-utilities/computation/sandbox.js')
+import { evaluateCode } from '@tonylb/mtw-utilities/computation/sandbox.js'
+jest.mock('@tonylb/mtw-utilities/perception/assetRender.js')
+import assetRender from '@tonylb/mtw-utilities/perception/assetRender.js'
 
 import { cacheAsset } from './index.js'
 

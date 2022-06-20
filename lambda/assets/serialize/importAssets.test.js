@@ -1,7 +1,7 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-jest.mock('mtw-utilities/dynamoDB/index.js')
-import { assetDB } from 'mtw-utilities/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dynamoDB/index.js')
+import { assetDB } from '@tonylb/mtw-utilities/dynamoDB/index.js'
 
 import { importedAssetIds, assetIdsFromTree } from './importedAssets'
 

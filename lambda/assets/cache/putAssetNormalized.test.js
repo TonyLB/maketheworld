@@ -1,7 +1,7 @@
 import { jest, expect } from '@jest/globals'
 
-jest.mock('mtw-utilities/dynamoDB/index.js')
-import { ephemeraDB } from 'mtw-utilities/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dynamoDB/index.js')
+import { ephemeraDB } from '@tonylb/mtw-utilities/dynamoDB/index.js'
 
 import putAssetNormalized from './putAssetNormalized.js'
 

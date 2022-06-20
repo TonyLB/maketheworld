@@ -1,9 +1,9 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-jest.mock('mtw-utilities/selfHealing/index.js')
-import { generatePersonalAssetLibrary } from 'mtw-utilities/selfHealing/index.js'
-jest.mock('mtw-utilities/apiManagement/index.js')
-import { SocketQueue } from 'mtw-utilities/apiManagement/index.js'
+jest.mock('@tonylb/mtw-utilities/selfHealing/index.js')
+import { generatePersonalAssetLibrary } from '@tonylb/mtw-utilities/selfHealing/index.js'
+jest.mock('@tonylb/mtw-utilities/apiManagement/index.js')
+import { SocketQueue } from '@tonylb/mtw-utilities/apiManagement/index.js'
 
 import { handlePlayerEvents } from './player.js'
 

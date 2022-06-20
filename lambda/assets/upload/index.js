@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
 import sharp from "sharp"
 
-import { streamToBuffer } from 'mtw-utilities/stream.js'
+import { streamToBuffer } from '@tonylb/mtw-utilities/stream.js'
 
 import { getAssets } from '../serialize/s3Assets.js'
 import { putTranslateFile } from "../serialize/translateFile.js"
@@ -12,7 +12,7 @@ import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
 import { cacheAsset } from "../cache/index.js"
 
-import { assetDB } from "mtw-utilities/dynamoDB/index.js"
+import { assetDB } from "@tonylb/mtw-utilities/dynamoDB/index.js"
 
 import uploadResponse from "./uploadResponse.js"
 

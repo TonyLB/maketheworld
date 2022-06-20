@@ -1,6 +1,6 @@
-import { splitType } from "mtw-utilities/types.js"
-import { ephemeraDB, assetDB } from "mtw-utilities/dynamoDB/index.js"
-import { healGlobalValues, generatePersonalAssetList } from "mtw-utilities/selfHealing/index.js"
+import { splitType } from "@tonylb/mtw-utilities/types.js"
+import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dynamoDB/index.js"
+import { healGlobalValues, generatePersonalAssetList } from "@tonylb/mtw-utilities/selfHealing/index.js"
 import { cacheAsset } from "../cache/index.js"
 
 const healPersonalAssets = async ({ PlayerName }) => {
