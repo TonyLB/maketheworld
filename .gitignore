@@ -10,3 +10,4 @@ node_modules/
 charcoal-client/node_modules/
 charcoal-client/.eslintcache
 package-lock.json
+**/dist/*
