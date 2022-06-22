@@ -1,5 +1,5 @@
-import { messageDataCategoryQuery, messageDeltaQuery } from '/opt/utilities/dynamoDB/index.js'
-import { SocketQueue } from '/opt/utilities/apiManagement/index.js'
+import { messageDataCategoryQuery, messageDeltaQuery } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { SocketQueue } from '@tonylb/mtw-utilities/dist/apiManagement/index.js'
 
 //
 // syncRawHelper executes one step of the raw sync operation (either the first query or subsequent

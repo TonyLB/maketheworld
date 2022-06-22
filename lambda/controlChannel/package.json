@@ -11,24 +11,32 @@
   },
   "jest": {
     "moduleNameMapper": {
-      "^/opt/utilities/(.*).jsx?$": "<rootDir>/__mocks__/opt/utilities/$1",
       "^(\\.{1,2}/.*)\\.jsx?$": "$1"
     }
   },
   "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.49.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.49.0",
+    "@aws-sdk/client-dynamodb": "^3.49.0",
     "@aws-sdk/client-lambda": "^3.13.0",
-    "@aws-sdk/util-dynamodb": "^3.13.0",
+    "@aws-sdk/util-dynamodb": "^3.49.0",
+    "@tonylb/mtw-utilities": "file:./mtw-utilities",
     "aws-xray-sdk": "^3.3.3",
+    "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
     "node-jose": "^2.0.0",
     "uuid": "^8.3.2"
   },
+  "files": [
+    "mtw-utilities"
+  ],
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@babel/plugin-transform-runtime": "^7.17.0",
     "@babel/preset-env": "^7.16.11",
     "babel-jest": "^27.5.1",
     "babel-plugin-transform-import-meta": "^2.1.1",
+    "esbuild": "^0.14.47",
     "jest": "^27.5.1"
   }
 }

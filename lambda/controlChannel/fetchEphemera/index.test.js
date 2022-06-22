@@ -1,7 +1,9 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { render } from '/opt/utilities/perception/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/perception/index.js')
+import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
 
 import fetchEphemera, { fetchEphemeraForCharacter } from './index.js'
 

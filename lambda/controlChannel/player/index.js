@@ -1,6 +1,6 @@
-import { splitType } from '/opt/utilities/types.js'
-import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { generatePersonalAssetLibrary } from '/opt/utilities/selfHealing/index.js'
+import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { generatePersonalAssetLibrary } from '@tonylb/mtw-utilities/dist/selfHealing/index.js'
 
 export const getPlayerByConnectionId = async (connectionId) => {
     const { player } = await ephemeraDB.getItem({

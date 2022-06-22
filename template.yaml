@@ -89,6 +89,14 @@ Resources:
       Principal: apigateway.amazonaws.com
   ControlChannelFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints: 
+          - app.js
     Properties:
       Tracing: Active
       CodeUri: lambda/controlChannel/
@@ -109,8 +117,6 @@ Resources:
               -
                   Region: !Ref AWS::Region
                   CognitoUserPool: !Ref UserPool
-      Layers:
-        - !Ref UtilityLambdaLayer
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_assets'
