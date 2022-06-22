@@ -2,7 +2,7 @@
     "files": [],
     "references": [
       {
-        "path": "./mtw-utilities/tsconfig.ref.json"
+        "path": "./packages/mtw-utilities/tsconfig.ref.json"
       },
     ],
 }
