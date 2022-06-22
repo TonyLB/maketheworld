@@ -1,8 +1,8 @@
-import { sortImportTree } from '/opt/utilities/executeCode/sortImportTree.js'
-import { splitType } from '/opt/utilities/types.js'
-import { objectMap } from '/opt/utilities/objects.js'
-import { assetDB } from '/opt/utilities/dynamoDB/index.js'
-import { componentAppearanceReduce, isComponentKey } from '/opt/utilities/components/components.js'
+import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree.js'
+import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
+import { objectMap } from '@tonylb/mtw-utilities/dist/objects.js'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { componentAppearanceReduce, isComponentKey } from '@tonylb/mtw-utilities/dist/components/components.js'
 
 const importMetaByAssetId = async (assetId) => {
     const { importTree = {}, namespaceMap = {}, defaultNames = {}, defaultExits = [] } = await assetDB.getItem({

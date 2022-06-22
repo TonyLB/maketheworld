@@ -1,6 +1,6 @@
-import { splitType, RoomKey } from '/opt/utilities/types.js'
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { render } from '/opt/utilities/perception/index.js'
+import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
 
 const serialize = ({
     EphemeraId,

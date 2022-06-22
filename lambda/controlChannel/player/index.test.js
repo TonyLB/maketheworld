@@ -1,7 +1,9 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
-import { generatePersonalAssetLibrary } from '/opt/utilities/selfHealing/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/selfHealing/index.js')
+import { generatePersonalAssetLibrary } from '@tonylb/mtw-utilities/dist/selfHealing/index.js'
 
 import { whoAmI } from './index.js'
 

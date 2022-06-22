@@ -1,7 +1,9 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { assetDB } from '/opt/utilities/dynamoDB/index.js'
-import { sortImportTree } from '/opt/utilities/executeCode/sortImportTree.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/executeCode/sortImportTree.js')
+import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree.js'
 
 import fetchImportDefaults from './index.js'
 
@@ -90,7 +92,7 @@ describe('fetchImportDefaults', () => {
             DataCategory: 'ASSET#BASE',
             defaultAppearances: [{
                 contents: [],
-                render: ['Test description']
+                render: [{ tag: 'String', value: 'Test description' }]
             }]
         },
         {
@@ -99,7 +101,7 @@ describe('fetchImportDefaults', () => {
             defaultAppearances: [{
                 contents: [],
                 name: 'passage',
-                render: ['Test']
+                render: [{ tag: 'String', value: 'Test' }]
             }]
         },
         {
@@ -115,7 +117,7 @@ describe('fetchImportDefaults', () => {
             DataCategory: 'ASSET#LayerA',
             defaultAppearances: [{
                 contents: [],
-                render: [': test addition']
+                render: [{ tag: 'String', value: ': test addition' }]
             }]
         },
         {
@@ -184,12 +186,12 @@ describe('fetchImportDefaults', () => {
         expect(output).toEqual({
             welcomeRoom: {
                 type: 'Component',
-                render: ['Test description', ': test addition']
+                render: [{ tag: 'String', value: 'Test description: test addition' }]
             },
             hallway: {
                 type: 'Component',
                 name: 'passage',
-                render: ['Test']
+                render: [{ tag: 'String', value: 'Test' }]
             },
             walkway: {
                 type: 'Component',
@@ -274,7 +276,7 @@ describe('fetchImportDefaults', () => {
             defaultAppearances: [{
                 contents: [],
                 name: 'First',
-                render: ['Test description']
+                render: [{ tag: 'String', value: 'Test description' }]
             }]
         },
         {
@@ -283,7 +285,7 @@ describe('fetchImportDefaults', () => {
             defaultAppearances: [{
                 contents: [],
                 name: 'Second',
-                render: [': test addition']
+                render: [{ tag: 'String', value: ': test addition' }]
             }]
         },
         {
@@ -327,7 +329,7 @@ describe('fetchImportDefaults', () => {
             welcomeRoom: {
                 type: 'Component',
                 name: 'FirstSecond',
-                render: ['Test description', ': test addition']
+                render: [{ tag: 'String', value: 'Test description: test addition' }]
             },
             house: {
                 type: 'Map',

@@ -4,7 +4,8 @@ jest.mock('./validateJWT.js')
 jest.mock('./lambdaClient.js')
 
 import { registerCharacter, subscribe } from './app.js'
-import { assetDB, ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
+import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 
 describe("registerCharacter", () => {
     beforeEach(() => {
