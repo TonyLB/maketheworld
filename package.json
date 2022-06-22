@@ -1,7 +1,7 @@
 {
   "name": "mtw-packages",
   "workspaces": [
-    "mtw-utilities"
+    "packages/*"
   ],
   "scripts": {
     "clean": "tsc --build --clean",
