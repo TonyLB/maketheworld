@@ -47,43 +47,14 @@ CloudFormation is the AWS solution for *Infrastructure as Code*, which means bas
 resources to look like, then CloudFormation *creates* those resources when I ask it to."  Make The World uses two distinct templates, to
 create two *Stacks* (CloudFormation's way of grouping a set of resources created together).
 
-#### permanentsTemplate.yaml
-
-This describes the infrastructure requirements of the pieces of Make The World that should stick around forever (even if you're doing updates
-or tinkering with the code) and never be disturbed:
-- The Cognito pool of user names and login credentials
-- The *permanents* DynamoDB table, which stores anything that should still be around in your system even if everyone goes on vacation for a
-few months, then comes back ... so rooms, characters, permissions, all that jazz
-- An S3 object-storage bucket for files (like backup files) managed by the system.
-
-If you remove the Permanents stack, it will decommission the resources that are storing your game ... and that game will be *gone*.  Now maybe
-you've got a backup file saved to your desktop, and you can bring back the contents of the permanents table, in order to recreate the structure
-of the world you created.  But there is (by design) just nothing that can be done to bring back the security setup of the Cognito file.
-That's run by Cognito, which doesn't let anyone get at it (so as not to have everyone and their sister stealing passwords), so if you remove it
-and recreate it then *at best* your players will need to recreate their accounts, and it's just a lot of chaos.
-
-Unless you are absolutely positively sure you know what you are doing, do *not* delete the Permanents Stack.
-
 #### template.yaml
 
-This describes the much, much more extensive infrastructure requirements of the pieces of Make The World that actually make it run.  They rely
-upon the *data* in the Permanents stack, but then use it to actually do things.  This file creates the main stack, which has just a *ton* of stuff.
-A small sampling:
+This describes the infrastructure requirements of the pieces of Make The World that actually make it run.  This file creates the main stack,
+which has just a *ton* of stuff.  A small sampling:
 - DynamoDB tables for *ephemera* and *messages*
-- A data schema in AppSync (the AWS mobile-data service) that handles every interaction between the client and the data (permanent and ephemeral)
-of your world
 - Several Lambda function (the AWS solution for running code in the cloud) that act as glue to make sure that data is consistent
-- A file proxy API to let the client push and pull backups
 - A real-time API for connection to the client, so that the system can know quickly when somebody closes their tab (no more of that tedious
 problem of people losing their connection but not formally logging out)
-
-Now Make The World cannot run *without* these resources.  They are, in a very real way, what Make The World **is**.  But the system has been designed
-so that this main stack has only the resources that you could easily recover from losing.  Lose a Lambda function and replace it with an identical
-one?  The system won't even know.  Lose the *ephemera* table?  Oh no, the system will forget where off-line players are located, and they will be
-in their homes when they next log in.  Lose the *messages* table and you'll lose the room recaps from the last five minutes.
-
-Which is to say:  If you have the technical know-how and a reason to delete the main stack and recreate it, *feel free*.  That's what it's there for.
-But don't touch the permanents stack if you can possibly avoid it, I'm not kidding.
 
 ### The system in operation
 
