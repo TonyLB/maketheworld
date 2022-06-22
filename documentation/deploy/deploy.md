@@ -1,3 +1,7 @@
+*** OUTDATED:  These are the old instructions for Version 1 of the system.  These instructions are completely inaccurate for Version 2 alpha,
+which will be installed automatically (with many fewer steps).  Kept for historical reasons until the install procedure for v2alpha is
+sorted. ***
+
 You have both an AWS account and a GitHub account with the MTW code.  What you're going to do now is to create the *idea* of an application in
 AWS Amplify, so that it knows what you want it to do, and then guide the Amplify service through building your application.
 
