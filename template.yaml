@@ -509,20 +509,6 @@ Resources:
             Projection:
               ProjectionType: KEYS_ONLY
         TableName: !Sub '${TablePrefix}_message_delta'
-  InitializeFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          CodeUri: lambda/initialize/
-          Handler: app.handler
-          MemorySize: 128
-          Runtime: nodejs14.x
-          Timeout: 30
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-          Policies:
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_permanents'
   UtilityLambdaLayer:
       Type: AWS::Serverless::LayerVersion
       Properties:
@@ -742,7 +728,3 @@ Outputs:
   WebSocketApiId:
       Description: "The ID of the API for realtime controll"
       Value: !Ref RealTimeWebSocket
-
-  InitializeLambda:
-      Description: The Lambda function to invoke in order to initialize the basic world structure
-      Value: !Ref InitializeFunction

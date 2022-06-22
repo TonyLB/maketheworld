@@ -32,8 +32,6 @@ backend:
         - npm install
         - cd ../ephemera
         - npm install
-        - cd ../initialize
-        - npm install
         - cd ../../permanents/admin
         - npm install
         - cd ../characters
@@ -58,8 +56,6 @@ backend:
         - export s3bucket=$(aws cloudformation describe-stacks --stack-name ${permanentsStack} --output text --query "Stacks[0].Outputs[?OutputKey=='StorageBucket'].OutputValue")
         - sam package --template-file template.yaml --output-template-file packaged.yaml --s3-bucket $s3bucket --s3-prefix deploy/
         - sam deploy --template-file packaged.yaml --stack-name ${stackName} --capabilities CAPABILITY_IAM --parameter-overrides TablePrefix=${BUILD_PREFIX} PermanentsStack=${permanentsStack} --s3-bucket $s3bucket --s3-prefix deploy/
-        - export initializelambda=$(aws cloudformation describe-stacks --stack-name ${stackName} --output text --query "Stacks[0].Outputs[?OutputKey=='InitializeLambda'].OutputValue")
-        - aws lambda invoke --function-name $initializelambda response.json
         - export controlapi=$(aws cloudformation describe-stacks --stack-name ${stackName} --output text --query "Stacks[0].Outputs[?OutputKey=='WebSocketApiId'].OutputValue")
         - aws apigatewayv2 create-deployment --api-id $controlapi --stage-name Prod
   artifacts:
