@@ -15,7 +15,7 @@ the theoretical blueprints, and how they have been changed by player actions.  W
 needs to know *"What is the state of this place right now?" the Ephemera Manager is tasked
 with having that information on hand, and when a player does something to change the world,
 the Ephemera Manager is there to calculate all the consequences.
-- ***EventBus***:  An EventBridge bus for the different subsystems to communicate with
+- ***ExternalBus***:  An EventBridge bus for the different subsystems to communicate with
 each other within the AWS ecosystem.  When Ephemera Manager needs to request a blueprint
 from the Asset Manager, or Asset Manager needs to pass on changes and updates, the EventBus
 is the way they communicate.
@@ -34,6 +34,8 @@ Libraries
 MTW has several libraries which are used throughout its architecture in order to give a
 consistent programming framework:
 
+- ***InternalBus***: An internally maintained bus within a given Lambda, which decouples
+different steps of processing in complex jobs.
 - ***WML***: The WML library contains a lexical parser for the World Markup Language,
 which allows the definition of MTW assets and resources.
 - ***WMLQuery***: The WMLQuery library contains a JQuery-style domain-manipulator for
