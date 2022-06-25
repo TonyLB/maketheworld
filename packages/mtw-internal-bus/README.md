@@ -36,10 +36,10 @@ Usage
 
     const filterOne = (payload: MessagePayloads): payload is MessagePayloadOne => (payload.type === 'payloadOne')
 
-    const computeOne = ({
+    const computeOne = async ({
         payloads: MessagePayloadOne[],
         messageBus: InternalMessageBus<MessagePayloads>
-    }): Promise<void> => {}
+    }): void => {}
 
     messageBus.subscribe({
         tag: 'functionOne',
