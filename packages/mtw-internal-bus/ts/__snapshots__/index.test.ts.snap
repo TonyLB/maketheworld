@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InternalMessageBus should record sent messages 1`] = `
+Array [
+  Object {
+    "payload": Object {
+      "type": "payloadOne",
+      "value": "Test",
+    },
+    "processedBy": Array [],
+  },
+  Object {
+    "payload": Object {
+      "type": "payloadTwo",
+      "value": -1,
+    },
+    "processedBy": Array [],
+  },
+]
+`;
