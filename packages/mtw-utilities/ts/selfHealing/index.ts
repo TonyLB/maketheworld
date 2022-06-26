@@ -48,7 +48,7 @@ export const healPlayers = async () => {
             }
         }), {})
     await Promise.all(
-        userNames.map((userName) => (
+        userNames.map((userName = '') => (
             assetDB.update({
                 AssetId: `PLAYER#${userName}`,
                 DataCategory: 'Meta::Player',
@@ -127,7 +127,7 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
                 await healGlobalAssets()
             }
         }
-        return {}
+        return
     }, async () => ({}))
 }
 
@@ -208,14 +208,14 @@ export const defaultColorFromCharacterId = (CharacterId) => (
 
 export const healCharacter = async (CharacterId) => {
     try {
-        const Item = await assetDB.getItem({
+        const Item: any = await assetDB.getItem({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['player', '#Name', 'fileURL', 'HomeId', 'Color', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit'],
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
-        })
+        } as any)
 
         const healCharacterItem = async () => {
             if (Item) {
