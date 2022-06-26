@@ -1,17 +1,25 @@
-import { apiClient } from './apiManagementClient.js'
+import { apiClient } from './apiManagementClient'
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { forceDisconnect } from './forceDisconnect.js'
+import { forceDisconnect } from './forceDisconnect'
 import { unique } from '../lists'
 
-const queueInitial = {
-    messages: {},
+type MessageQueueContents = {
+    messages: any[];
+    messageMeta: Record<string, any>;
+    ephemera: any[];
+    ephemeraMeta: Record<string, any>;
+    otherSends: any[];
+}
+
+const queueInitial: MessageQueueContents = {
+    messages: [],
     messageMeta: {},
     ephemera: [],
     ephemeraMeta: {},
     otherSends: []
 }
 
-const queueReducer = (state, action) => {
+const queueReducer = (state: MessageQueueContents, action: any): MessageQueueContents => {
     const { messages, otherSends, messageMeta, ephemera, ephemeraMeta } = state
     switch(action.messageType || '') {
         case 'Messages':
@@ -61,7 +69,7 @@ const queueReducer = (state, action) => {
     }
 }
 
-const batchMessages = (messages = [])  => {
+const batchMessages = (messages: any[] = [])  => {
     //
     // API Gateway Websockets deliver a maximum of 32KB per data frame (with a maximum of 128k across multiple frames,
     // but I don't think that's needed for an application with a large number of individually small messages)
@@ -89,7 +97,19 @@ const batchMessages = (messages = [])  => {
     return currentBatch.length ? [...batchedMessages, currentBatch] : batchedMessages
 }
 
-const queueSerialize = ({ messages = [], messageMeta = {}, ephemera = [], ephemeraMeta = {}, otherSends = []}) => {
+const queueSerialize = ({
+    messages = [],
+    messageMeta = {},
+    ephemera = [],
+    ephemeraMeta = {},
+    otherSends = []
+}: {
+    messages?: any[];
+    messageMeta?: Record<string, any>;
+    ephemera?: any[];
+    ephemeraMeta?: Record<string, any>;
+    otherSends: any[];
+}) => {
     const sortedMessages = Object.values(messages)
         .reduce((previous, targets) => ([ ...previous, ...(Object.values(targets)) ]), [])
         .sort(({ CreatedTime: a }, { CreatedTime: b }) => ( a - b ))
@@ -119,6 +139,10 @@ const queueHasContent = ({ messages, ephemera, otherSends }) => (
 )
 
 export class SocketQueue extends Object {
+    globalMessageQueue: MessageQueueContents
+    forceConnections: string[]
+    messageQueueByConnection: Record<string, MessageQueueContents>
+    messageQueueByPlayer: Record<string, MessageQueueContents>
     constructor() {
         super()
         this.globalMessageQueue = queueInitial
@@ -144,10 +168,10 @@ export class SocketQueue extends Object {
             Message
         )
     }
-    sendAll(Message, options) {
+    sendAll(Message: any, options: { forceConnections: string[] }) {
         const { forceConnections = [] } = options || {}
         this.globalMessageQueue = queueReducer(this.globalMessageQueue, Message)
-        this.forceConnections = unique(this.forceConnections, forceConnections)
+        this.forceConnections = unique(this.forceConnections, forceConnections) as string[]
     }
     async flush() {
         const deliver = (connections = {}) => async (ConnectionId) => {
@@ -170,7 +194,7 @@ export class SocketQueue extends Object {
                     ...playerMessages
                 ].map(deliverMessage))
             }
-            catch (err) {
+            catch (err: any) {
                 if (err.name === 'GoneException' || err.name === 'BadRequestException') {
                     await forceDisconnect(ConnectionId)
                 }
@@ -186,7 +210,7 @@ export class SocketQueue extends Object {
                 EphemeraId: 'Global',
                 DataCategory: 'Connections',
                 ProjectionFields: ['connections']
-            })
+            } as any)
             await Promise.all(
                 [
                     ...Object.keys(connections),

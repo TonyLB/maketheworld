@@ -1,8 +1,8 @@
 jest.mock('uuid')
 import { v4 as uuid } from 'uuid'
 
-jest.mock('../apiManagement/index.js')
-import { SocketQueue } from '../apiManagement/index.js'
+jest.mock('../apiManagement/index')
+import { SocketQueue } from '../apiManagement/index'
 jest.mock('../dynamoDB/index.js')
 import { publishMessage, ephemeraDB } from '../dynamoDB/index.js'
 

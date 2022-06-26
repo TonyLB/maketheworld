@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { SocketQueue } from '../apiManagement/index.js'
+import { SocketQueue } from '../apiManagement/index'
 import { publishMessage, ephemeraDB } from '../dynamoDB/index.js'
 import { splitType } from '../types'
 

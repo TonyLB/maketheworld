@@ -1,11 +1,12 @@
-import { jest, describe, expect, it } from '@jest/globals'
-
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-jest.mock('./apiManagementClient.js')
-import { apiClient } from './apiManagementClient.js'
+jest.mock('./apiManagementClient')
+import { apiClient } from './apiManagementClient'
 
-import { SocketQueue } from './index.js'
+import { SocketQueue } from './index'
+
+const mockedAPIClient = apiClient as jest.Mocked<typeof apiClient>
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('apiManagment', () => {
 
@@ -19,14 +20,14 @@ describe('apiManagment', () => {
         it('should initialize empty', async () => {
             const testSocket = new SocketQueue()
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledTimes(0)
+            expect(mockedAPIClient.send).toHaveBeenCalledTimes(0)
         })
 
         it('should send a queued non-Message item', async() => {
             const testSocket = new SocketQueue()
             testSocket.send({ ConnectionId: 'ABC', Message: { update: 'Test' } })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: 'ABC',
                 Data: `{"update":"Test"}`
             })
@@ -62,7 +63,7 @@ describe('apiManagment', () => {
                 }
             })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: 'ABC',
                 Data: JSON.stringify({
                     messageType: 'Messages',
@@ -100,36 +101,36 @@ describe('apiManagment', () => {
             }, {
                 forceConnections: ['789']
             })
-            ephemeraDB.getItem.mockResolvedValue({
+            mockedEphemeraDB.getItem.mockResolvedValue({
                 connections: {
                     '123': 'TestPlayer',
                     '456': 'OtherTestPlayer'
                 }
             })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledTimes(4)
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledTimes(4)
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
                     messageType: 'Other',
                     payload: 'Test'
                 })
             })
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
                     messageType: 'Another',
                     payload: 'TestTwo'
                 })
             })
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '456',
                 Data: JSON.stringify({
                     messageType: 'Another',
                     payload: 'TestTwo'
                 })
             })
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '789',
                 Data: JSON.stringify({
                     messageType: 'Another',
@@ -154,7 +155,7 @@ describe('apiManagment', () => {
                     payload: 'TestTwo'
                 }
             })
-            ephemeraDB.getItem.mockResolvedValue({
+            mockedEphemeraDB.getItem.mockResolvedValue({
                 connections: {
                     '123': 'TestPlayer',
                     '456': 'OtherTestPlayer',
@@ -162,22 +163,22 @@ describe('apiManagment', () => {
                 }
             })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledTimes(3)
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledTimes(3)
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
                     messageType: 'Other',
                     payload: 'Test'
                 })
             })
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
                     messageType: 'Another',
                     payload: 'TestTwo'
                 })
             })
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '789',
                 Data: JSON.stringify({
                     messageType: 'Another',
@@ -204,8 +205,8 @@ describe('apiManagment', () => {
                 }
             })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledTimes(1)
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledTimes(1)
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
                     messageType: 'Ephemera',
@@ -258,8 +259,8 @@ describe('apiManagment', () => {
                 }
             })
             await testSocket.flush()
-            expect(apiClient.send).toHaveBeenCalledTimes(1)
-            expect(apiClient.send).toHaveBeenCalledWith({
+            expect(mockedAPIClient.send).toHaveBeenCalledTimes(1)
+            expect(mockedAPIClient.send).toHaveBeenCalledWith({
                 ConnectionId: '123',
                 Data: JSON.stringify({
                     messageType: 'Ephemera',

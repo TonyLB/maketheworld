@@ -1,7 +1,7 @@
 import { splitType } from '../types'
 import { ephemeraDB } from '../dynamoDB/index.js'
 
-const disconnectOneCharacter = async (ConnectionId, CharacterId) => {
+const disconnectOneCharacter = async (ConnectionId: string, CharacterId: string) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const DataCategory = `CONNECTION#${ConnectionId}`
     const activeConnectionQuery = await ephemeraDB.query({
@@ -46,7 +46,7 @@ export const forceDisconnect = async (ConnectionId) => {
         EphemeraId: 'Library',
         DataCategory: 'Subscriptions',
         ProjectionFields: ['ConnectionIds']
-    })
+    } as any) as { ConnectionIds: string[] }
 
     await Promise.all([
         ephemeraDB.deleteItem({

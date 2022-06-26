@@ -6,5 +6,5 @@ const localApiClient = new ApiGatewayManagementApiClient({
 })
 
 export const apiClient = {
-    send: (message) => (localApiClient.send(new PostToConnectionCommand(message)))
+    send: (message: any) => (localApiClient.send(new PostToConnectionCommand(message)))
 }
