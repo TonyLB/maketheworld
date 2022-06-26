@@ -1,4 +1,4 @@
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB'
 import { AssetKey } from '../types'
 import { assetRender } from '../perception/assetRender'
 

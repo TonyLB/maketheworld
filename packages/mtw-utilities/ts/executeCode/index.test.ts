@@ -1,5 +1,5 @@
-jest.mock('../dynamoDB/index.js')
-import { ephemeraDB } from '../dynamoDB/index.js'
+jest.mock('../dynamoDB')
+import { ephemeraDB } from '../dynamoDB'
 jest.mock('./updateRooms')
 import { updateRooms } from './updateRooms'
 jest.mock('./dependencyCascade')

@@ -1,5 +1,5 @@
 import { executeCode } from '../computation/sandbox'
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB'
 import { updateRooms } from './updateRooms'
 import dependencyCascade from './dependencyCascade'
 import { AssetKey, RoomKey, splitType } from '../types'
@@ -33,7 +33,7 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
-        } as any),
+        } as any) as any,
         ephemeraDB.query({
             IndexName: 'DataCategoryIndex',
             DataCategory: `ASSET#${assetId}`,
@@ -239,7 +239,7 @@ export const executeAction = async ({ action, assetId, RoomId, CharacterId }) =>
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['Actions']
-    } as any)
+    } as any) as any
     const { src = '' } = actions[action] || {}
     if (src) {
         return await executeInAsset(assetId, { RoomId, CharacterId })(src)

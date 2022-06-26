@@ -3,8 +3,8 @@ import { v4 as uuid } from 'uuid'
 
 jest.mock('../apiManagement/index')
 import { SocketQueue } from '../apiManagement/index'
-jest.mock('../dynamoDB/index.js')
-import { publishMessage, ephemeraDB } from '../dynamoDB/index.js'
+jest.mock('../dynamoDB')
+import { publishMessage, ephemeraDB } from '../dynamoDB'
 
 import { deliverRenders  } from './deliverRenders'
 

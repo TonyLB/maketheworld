@@ -1,6 +1,6 @@
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
 
-import { assetDB, ephemeraDB } from '../dynamoDB/index.js'
+import { assetDB, ephemeraDB } from '../dynamoDB'
 import { splitType } from '../types'
 import { asyncSuppressExceptions } from '../errors'
 import sortImportTree from '../executeCode/sortImportTree'

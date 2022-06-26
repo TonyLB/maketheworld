@@ -3,7 +3,7 @@ import {
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
-import { asyncSuppressExceptions } from '../errors.ts'
+import { asyncSuppressExceptions } from '../errors'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -119,10 +119,10 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
         return {
             Items: Items.map(unmarshall)
         }
-    }, () => ({ Items: [] }))
+    }, async () => ({ Items: [] }))
 }
 
 export const abstractQuery = (dbClient, table) => async (props) => {
-    const { Items } = await abstractQueryExtended(dbClient, table)(props)
+    const { Items } = await abstractQueryExtended(dbClient, table)(props) as any
     return Items
 }

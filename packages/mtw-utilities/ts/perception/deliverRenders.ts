@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { SocketQueue } from '../apiManagement/index'
-import { publishMessage, ephemeraDB } from '../dynamoDB/index.js'
+import { publishMessage, ephemeraDB } from '../dynamoDB'
 import { splitType } from '../types'
 
 export const deliverRenders = async ({

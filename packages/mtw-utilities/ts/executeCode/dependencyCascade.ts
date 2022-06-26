@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB'
 import recalculateComputes from './recalculateComputes'
 import sortImportTree from './sortImportTree'
 import { splitType, AssetKey } from '../types'

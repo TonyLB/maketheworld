@@ -13,10 +13,10 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import { produce } from 'immer'
 
-import { asyncSuppressExceptions } from '../errors.ts'
-import { DEVELOPER_MODE } from '../constants.ts'
-import { abstractQuery } from './query.js'
-import delayPromise from "./delayPromise.js"
+import { asyncSuppressExceptions } from '../errors'
+import { DEVELOPER_MODE } from '../constants'
+import { abstractQuery } from './query'
+import delayPromise from "./delayPromise"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -92,6 +92,16 @@ export const mergeIntoDataRange = async ({
     items,
     mergeFunction,
     extractKey = null
+}: {
+    table: string;
+    search: {
+        DataCategory?: string;
+        AssetId?: string;
+        EphemeraId?: string;
+    };
+    items: any[];
+    mergeFunction: <I, C>({ incoming: I, current: C}) => Record<keyof I | keyof C, 'ignore' | 'delete' | Record<string, any>>;
+    extractKey: null | ((item: Record<string, any>, currentItems: Record<string, any>[]) => string);
 }) => {
     //
     // TODO:  Better error handling and validation throughout
@@ -103,7 +113,7 @@ export const mergeIntoDataRange = async ({
     const keyLabel = table === 'assets'
         ? AssetId ? 'DataCategory' : 'AssetId'
         : EphemeraId ? 'DataCategory': 'EphemeraId'
-    const extractKeyDefault = (item) => (item[keyLabel])
+    const extractKeyDefault = (item: Record<string, any>) => (item[keyLabel])
     const KeyConditionExpression = DataCategory
         ? `DataCategory = :dc`
         : AssetId
@@ -119,7 +129,7 @@ export const mergeIntoDataRange = async ({
         }, { removeUndefinedValues: true }),
         ...(DataCategory ? { IndexName: 'DataCategoryIndex' } : {})
     }))
-    const currentItems = dbItems.map(unmarshall)
+    const currentItems = dbItems.map((value) => (unmarshall(value)))
     const incomingItems = items.map((item) => ({
             [keyLabel]: extractKey ? extractKey(item, currentItems) : extractKeyDefault(item),
             ...item
@@ -141,7 +151,7 @@ export const mergeIntoDataRange = async ({
     const thirdPassMerging = Object.entries(secondPassMerging)
         .reduce((previous, [key, items]) => ({
             ...previous,
-            [key]: mergeFunction(items)
+            [key]: mergeFunction(items as { current: any, incoming: any })
         }), {})
     const deleteRecord = (key) => ({
         DeleteRequest: {
@@ -167,7 +177,7 @@ export const mergeIntoDataRange = async ({
                             AssetId,
                             EphemeraId,
                             [keyLabel]: key,
-                            ...value
+                            ...(value as Record<string, any>)
                         }, { removeUndefinedValues: true })
                     }
                 }
@@ -227,8 +237,8 @@ const abstractBatchGet = (table) => async ({
     return outcomes.reduce((previous, { Responses = {} }) => {
         return [
             ...previous,
-            ...(Responses[table] || []).map(unmarshall)
-        ]}, [])
+            ...(Responses[table] || []).map((value) => (unmarshall(value)))
+        ]}, [] as Record<string, any>[])
 }
 
 export const abstractUpdate = (table) => async (props) => {
@@ -298,7 +308,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
     }, { removeUndefinedValues: true })
     let retries = 0
     let exponentialBackoff = 100
-    let returnValue = {}
+    let returnValue: Record<string, any> = {}
     let completed = false
     while(!completed && retries <= maxRetries) {
         completed = true
@@ -309,23 +319,29 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             DataCategory,
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        })
+        } as any)
         const newState = produce(state, updateReducer)
         if (newState === state) {
-            returnValue = state
+            returnValue = state || returnValue
             break
         }
         try {
-            if (Object.keys(state).length) {
+            if (state && newState && Object.keys(state || {}).length) {
                 //
                 // Updating an existing record
                 //
-                const { ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = produce({
-                        ExpressionAttributeValues: {},
-                        setExpressions: [],
-                        removeExpressions: [],
-                        conditionExpressions: []
-                    }, (draft) => {
+                const startingDraft: {
+                    ExpressionAttributeValues: Record<string, any>;
+                    setExpressions: string[];
+                    removeExpressions: string[];
+                    conditionExpressions: string[];
+                } = {
+                    ExpressionAttributeValues: {},
+                    setExpressions: [],
+                    removeExpressions: [],
+                    conditionExpressions: []
+                }
+                const { ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = produce(startingDraft, (draft) => {
                     updateKeys.forEach((key, index) => {
                         if (key in state && state[key] !== undefined) {
                             if (newState[key] === undefined) {
@@ -403,7 +419,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                 DataCategory
             }
         }
-        catch (err) {
+        catch (err: any) {
             if (err.code === 'ConditionalCheckFailedException') {
                 await delayPromise(exponentialBackoff)
                 exponentialBackoff = exponentialBackoff * 2
@@ -487,10 +503,10 @@ export const messageDataCategoryQuery = async ({
             ExclusiveStartKey
         }))
         return {
-            Items: Items.map(unmarshall),
+            Items: Items.map((value) => (unmarshall(value))),
             LastEvaluatedKey
         }
-    }, () => ([]))
+    }, async () => ([] as Record<string, any>[]))
 }
 
 export const messageDeltaQuery = async ({
@@ -513,10 +529,10 @@ export const messageDeltaQuery = async ({
             Limit
         }))
         return {
-            Items: Items.map(unmarshall),
+            Items: Items.map((value) => (unmarshall(value))),
             LastEvaluatedKey
         }
-    }, () => ([]))
+    }, async () => ([] as Record<string, any>[]))
 }
 
 export const messageDelete = abstractDeleteItem(messageTable)

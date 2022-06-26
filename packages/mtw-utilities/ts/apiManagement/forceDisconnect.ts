@@ -1,5 +1,5 @@
 import { splitType } from '../types'
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB'
 
 const disconnectOneCharacter = async (ConnectionId: string, CharacterId: string) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`

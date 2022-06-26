@@ -1,5 +1,5 @@
 import { apiClient } from './apiManagementClient'
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB'
 import { forceDisconnect } from './forceDisconnect'
 import { unique } from '../lists'
 
@@ -210,7 +210,7 @@ export class SocketQueue extends Object {
                 EphemeraId: 'Global',
                 DataCategory: 'Connections',
                 ProjectionFields: ['connections']
-            } as any)
+            } as any) as any
             await Promise.all(
                 [
                     ...Object.keys(connections),

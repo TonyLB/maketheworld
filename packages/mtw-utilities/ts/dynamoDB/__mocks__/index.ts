@@ -1,13 +1,10 @@
-import { jest } from '@jest/globals'
-
 const dbMock = () => ({
     getItem: jest.fn(),
     batchGetItem: jest.fn(),
     query: jest.fn(),
     update: jest.fn(),
     optimisticUpdate: jest.fn(),
-    putItem: jest.fn(),
-    getItem: jest.fn()
+    putItem: jest.fn()
 })
 
 export const assetDB = dbMock()

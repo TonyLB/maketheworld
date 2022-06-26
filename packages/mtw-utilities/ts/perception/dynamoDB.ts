@@ -1,4 +1,4 @@
-import { ephemeraDB } from '../dynamoDB/index.js'
+import { ephemeraDB } from '../dynamoDB'
 import { AssetKey, splitType } from '../types'
 import { RoomCache } from './baseClasses'
 

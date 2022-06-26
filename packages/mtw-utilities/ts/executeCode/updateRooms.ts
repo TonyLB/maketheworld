@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import { ephemeraDB, publishMessage } from '../dynamoDB/index.js'
+import { ephemeraDB, publishMessage } from '../dynamoDB'
 import { render } from '../perception/index'
 import { deliverRenders } from '../perception/deliverRenders'
 import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB'
@@ -29,7 +29,7 @@ export const updateRooms = async ({
             EphemeraId: RoomKey(roomId),
             DataCategory: 'Meta::Room',
             ProjectionFields: ['EphemeraId', 'activeCharacters', 'Dependencies']
-        } as any)))
+        } as any) as any))
     )
     if (roomsMetaFetch.length === 0) {
         return []
