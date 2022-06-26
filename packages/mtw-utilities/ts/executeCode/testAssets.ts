@@ -1,4 +1,42 @@
-import { splitType } from '../types.ts'
+import { splitType } from '../types'
+
+type CalculationDirectValue = {
+    value: any
+}
+
+type CalculationComputedValue = {
+    computed: true;
+    src: string;
+    value: any
+}
+
+type CalculationDependency = {
+    computed?: string[];
+    imported?: { asset: string; key: string }[];
+    map?: string[];
+}
+
+type CalculationImportTree = Record<string, any>
+
+type CalculationAsset = {
+    State: Record<string, CalculationDirectValue | CalculationComputedValue>;
+    Dependencies: Record<string, CalculationDependency>;
+    importTree: CalculationImportTree
+}
+
+type TestAssetsFactoryProps = {
+    foo?: boolean;
+    antiFoo?: boolean;
+    layerAFoo?: boolean;
+    bar?: boolean;
+    antiBar?: boolean;
+    fooBar?: boolean;
+    layerBFoo?: boolean;
+    baz?: boolean;
+    antiBaz?: boolean;
+    fooBaz?: boolean;
+    exclude?: string[];
+}
 
 export const testAssetsFactory = ({
     foo = true,
@@ -12,7 +50,7 @@ export const testAssetsFactory = ({
     antiBaz = false,
     fooBaz = true,
     exclude = []
-} = {}) => {
+}: TestAssetsFactoryProps = {}): Record<string, CalculationAsset> => {
     const baseAssets = {
         BASE: {
             State: {
@@ -116,12 +154,12 @@ export const testAssetsFactory = ({
         .reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
 }
 
-export const resultStateFactory = (props) => (
+export const resultStateFactory = (props?: TestAssetsFactoryProps) => (
     Object.entries(testAssetsFactory(props))
         .reduce((previous, [key, { State }]) => ({ ...previous, [key]: State }), {})
 )
 
-export const testMockImplementation = (testAssets, { type = 'batchGetItem' } = {}) => (props) => {
+export const testMockImplementation = (testAssets: Record<string, CalculationAsset>, { type = 'batchGetItem' } = {}) => (props) => {
     switch(type) {
         case 'batchGetItem':
             const { Items } = props

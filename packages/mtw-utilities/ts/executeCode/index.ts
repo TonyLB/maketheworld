@@ -1,13 +1,13 @@
 import { executeCode } from '../computation/sandbox.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { updateRooms } from './updateRooms.js'
-import dependencyCascade from './dependencyCascade.js'
-import { AssetKey, RoomKey, splitType } from '../types.js'
-import { defaultColorFromCharacterId } from '../selfHealing/index.js'
-import updateAssets from './updateAssets.js'
+import { updateRooms } from './updateRooms'
+import dependencyCascade from './dependencyCascade'
+import { AssetKey, RoomKey, splitType } from '../types'
+import { defaultColorFromCharacterId } from '../selfHealing/index'
+import updateAssets from './updateAssets'
 
-export const executeInAsset = (assetId, options = {}) => async (src) => {
-    const { RoomId, CharacterId } = options
+export const executeInAsset = (assetId: string, options = {}) => async (src: string) => {
+    const { RoomId, CharacterId }: { RoomId?: string ; CharacterId?: string } = options
     const [{
             State: state = {},
             Dependencies: dependencies = {},
@@ -17,7 +17,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
         mapQueryItems,
         {
             Name = 'Someone',
-            Color,
+            Color = '',
             Pronouns = {
                 subject: 'they',
                 object: 'them',
@@ -33,7 +33,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
-        }),
+        } as any),
         ephemeraDB.query({
             IndexName: 'DataCategoryIndex',
             DataCategory: `ASSET#${assetId}`,
@@ -67,15 +67,15 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                })
+                } as any)
             ]
             : []
         )
     ])
 
-    const valueState = Object.entries(state).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+    const valueState = Object.entries(state).reduce((previous, [key, item]) => ({ ...previous, [key]: (item as { value: any })?.value }), {})
 
-    const executeMessageQueue = []
+    const executeMessageQueue: { Targets: string[], DisplayProtocol: string; Message: any[], CharacterId?: string, Color?: string, Name?: string }[] = []
 
     const capitalize = (value) => ([value.slice(0, 1).toUppercase, value.slice(1)].join(''))
     const { changedKeys, newValues, returnValue } = executeCode(src)(
@@ -94,7 +94,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                         }
                     }    
                 }
-            }), {})),
+            }), {} as Partial<{ EphemeraId: string; key: string }>)),
             here: {
                 message: (message) => {
                     if (RoomId) {
@@ -182,7 +182,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
             .reduce((previous, roomsUpdated) => {
                 const mapsReferencingUpdatedRoom = mapQueryItems.filter((mapQuery) => (
                     (mapQuery.appearances || [])
-                        .map(({ rooms }) => (
+                        .map(({ rooms }: { rooms: Record<string, { EphemeraId: string }> }) => (
                             Object.values(rooms).map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
                         ))
                         .find((rooms) => (roomsUpdated.find((roomId) => (rooms.includes(roomId)))))
@@ -203,9 +203,9 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                     ...accumulator,
                     [room]: [
                         ...(accumulator[room] || []),
-                        ...assets
+                        ...(assets as any[])
                     ]
-                }), previous)
+                }), previous as Record<string, any>)
         ), {})
     const assetsChangedByMap = Object.entries(recalculated)
         .map(recalculatedToMaps)
@@ -215,7 +215,7 @@ export const executeInAsset = (assetId, options = {}) => async (src) => {
                     ...accumulator,
                     [mapId]: [
                         ...(accumulator[mapId] || []),
-                        ...assets
+                        ...(assets as any[])
                     ]
                 }), previous)
         ), {})
@@ -239,7 +239,7 @@ export const executeAction = async ({ action, assetId, RoomId, CharacterId }) =>
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['Actions']
-    })
+    } as any)
     const { src = '' } = actions[action] || {}
     if (src) {
         return await executeInAsset(assetId, { RoomId, CharacterId })(src)

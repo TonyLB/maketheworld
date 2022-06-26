@@ -1,7 +1,7 @@
 jest.mock('./dynamoDB')
 import { getStateByAsset, getNormalForm } from './dynamoDB'
 
-import { resultStateFactory } from '../executeCode/testAssets.js'
+import { resultStateFactory } from '../executeCode/testAssets'
 import { objectMap } from '../objects'
 
 import { assetRender } from './assetRender'

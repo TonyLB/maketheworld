@@ -1,13 +1,13 @@
 import { produce } from 'immer'
 
 import { ephemeraDB } from '../dynamoDB/index.js'
-import recalculateComputes from './recalculateComputes.js'
-import sortImportTree from './sortImportTree.js'
-import { splitType, AssetKey } from '../types.js'
+import recalculateComputes from './recalculateComputes'
+import sortImportTree from './sortImportTree'
+import { splitType, AssetKey } from '../types'
 
-export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAlreadyEvaluated = []) => {
+export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAlreadyEvaluated: string[] = []) => {
     const aggregateImportTree = Object.entries(assetsMeta)
-        .reduce((previous, [key, { importTree }]) => ({ ...previous, [key]: importTree }), {})
+        .reduce((previous, [key, item]) => ({ ...previous, [key]: (item as any)?.importTree }), {})
     const orderOfEvaluation = sortImportTree(aggregateImportTree)
         .filter((key) => (!assetsAlreadyEvaluated.includes(key)))
         .filter((key) => ((key in assetsMeta) && (key in assetValuesChanged)))
@@ -34,10 +34,11 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
             //
             const exportedValues = Object.entries(draft.assetsMeta[currentKey].Dependencies)
                 .filter(([key]) => (draft.assetValuesChanged[currentKey].includes(key)))
-                .reduce((previous, [key, { imported = [] }]) => ([
+                .map(([key, item]) => ({ key, item } as { key: string, item: { imported: { asset: string; key: string }[] }}))
+                .reduce((previous, { key, item: { imported = [] } }) => ([
                     ...previous,
                     ...(imported.map(({ asset, key: awayKey }) => ({ localKey: key, asset, awayKey })))
-                ]), [])
+                ]), [] as { localKey: string; asset: string; awayKey: string }[])
 
             //
             // First, fetch any other assets that we are updating for the first time
@@ -46,7 +47,7 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
                 .map(({ asset }) => (asset))
                 .filter((asset) => (!(asset in draft.assetsMeta)))
             ))]
-            const metaFetched = await ephemeraDB.batchGetItem({
+            const metaFetched: { EphemeraId: string; state: Record<string, any>; Dependencies: any; importTree: any }[] = await ephemeraDB.batchGetItem({
                 Items: unmappedAssets
                     .map((asset) => ({
                         EphemeraId: AssetKey(asset),
@@ -56,7 +57,8 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
                 ExpressionAttributeNames: {
                     '#state': 'State'
                 }
-            })
+            }) as any
+
             metaFetched
                 .filter((value) => (value))
                 .forEach(({ EphemeraId, ...rest }) => {
@@ -90,7 +92,7 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
                     ...previous,
                     [assetId]: [
                         ...(previous[assetId] || []),
-                        ...keys
+                        ...(keys as string[])
                     ]
                 }), {})
         }    

@@ -1,12 +1,12 @@
-const unencumberedImports = (tree, excludeList = [], depth = 0) => {
+const unencumberedImports = (tree: Record<string, any>, excludeList: string[] = [], depth = 0) => {
     if (depth > 200) {
         return []
     }
     const directImports = Object.entries(tree)
         .filter(([key]) => (!excludeList.includes(key)))
     const unencumbered = directImports
-        .map(([key, imports = {}]) => ([key, Object.keys(imports)]))
-        .map(([key, imports]) => ([
+        .map(([key, imports = {}]) => ({ key, imports: Object.keys(imports)}))
+        .map(({ key, imports }: { key: string, imports: string[] }) => ([
             key,
             imports.filter((dependency) => (!excludeList.includes(dependency)))
         ]))
@@ -17,7 +17,7 @@ const unencumberedImports = (tree, excludeList = [], depth = 0) => {
     return [...(new Set(unencumberedImportsAll))]
 }
 
-export const sortImportTree = (tree, currentList = []) => {
+export const sortImportTree = (tree, currentList: string[] = []) => {
     const readyImports = unencumberedImports(tree, currentList)
     if (readyImports.length > 0) {
         return [

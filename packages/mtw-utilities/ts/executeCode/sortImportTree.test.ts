@@ -1,6 +1,4 @@
-import { jest, describe, expect, it } from '@jest/globals'
-
-import sortImportTree from './sortImportTree.js'
+import sortImportTree from './sortImportTree'
 
 describe('sortImportTree', () => {
     it('should return an empty list for an empty tree', () => {

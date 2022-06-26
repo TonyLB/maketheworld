@@ -1,6 +1,6 @@
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { AssetKey } from '../types.js'
-import { assetRender } from '../perception/assetRender.js'
+import { AssetKey } from '../types'
+import { assetRender } from '../perception/assetRender'
 
 const updateSingleAsset = async({ assetId, newStates, recalculated }) => {
 

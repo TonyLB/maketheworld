@@ -1,9 +1,10 @@
-import { jest, describe, expect, it } from '@jest/globals'
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-import { testAssetsFactory, testMockImplementation } from './testAssets.js'
+import { testAssetsFactory, testMockImplementation } from './testAssets'
 
-import dependencyCascade from './dependencyCascade.js'
+import dependencyCascade from './dependencyCascade'
+
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 //
 // For testing clarity, this is more of an integration test:  dependencyCascade
@@ -19,8 +20,8 @@ describe('dependencyCascade', () => {
     })
 
     it('should return unchanged state on empty recalculate seed', async () => {
-        const testAssets = testAssetsFactory()
-        ephemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
+        const testAssets: Record<string, any> = testAssetsFactory()
+        mockedEphemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
         const output = await dependencyCascade(
             { BASE: testAssets.BASE },
             { BASE: [] }
@@ -32,8 +33,8 @@ describe('dependencyCascade', () => {
     })
 
     it('should update an end-to-end cascade', async () => {
-        const testAssets = testAssetsFactory({ foo: false })
-        ephemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
+        const testAssets: Record<string, any> = testAssetsFactory({ foo: false })
+        mockedEphemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
         const output = await dependencyCascade(
             { BASE: testAssets.BASE },
             { BASE: ['foo'] }
@@ -57,8 +58,8 @@ describe('dependencyCascade', () => {
     })
 
     it('should update a partial cascade', async () => {
-        const testAssets = testAssetsFactory({ bar: false })
-        ephemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
+        const testAssets: Record<string, any> = testAssetsFactory({ bar: false })
+        mockedEphemeraDB.batchGetItem.mockImplementation(testMockImplementation(testAssets))
         const output = await dependencyCascade(
             { LayerA: testAssets.LayerA },
             { LayerA: ['bar'] }

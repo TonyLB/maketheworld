@@ -1,18 +1,23 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-jest.mock('../perception/index.js')
-import { render } from '../perception/index.js'
-jest.mock('../perception/deliverRenders.js')
-import { deliverRenders } from '../perception/deliverRenders.js'
-jest.mock('../perception/dynamoDB.js')
-import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB.js'
+jest.mock('../perception/index')
+import { render } from '../perception/index'
+jest.mock('../perception/deliverRenders')
+import { deliverRenders } from '../perception/deliverRenders'
+jest.mock('../perception/dynamoDB')
+import { getGlobalAssets, getCharacterAssets } from '../perception/dynamoDB'
 jest.mock('uuid')
-import { v4 as uuidMock } from 'uuid'
-import { testAssetsFactory, testMockImplementation } from './testAssets.js'
+import { v4 as uuid } from 'uuid'
+import { testAssetsFactory, testMockImplementation } from './testAssets'
 
-import { updateRooms } from './updateRooms.js'
+import { updateRooms } from './updateRooms'
+
+const uuidMock = uuid as jest.Mock
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const mockedRender = render as jest.Mock
+const mockedDeliverRenders = deliverRenders as jest.Mock
+const mockedGetGlobalAssets = getGlobalAssets as jest.Mock
+const mockedGetCharacterAssets = getCharacterAssets as jest.Mock
 
 describe('updateRooms', () => {
 
@@ -31,10 +36,10 @@ describe('updateRooms', () => {
     })
 
     it('should publish whatever render returns', async() => {
-        ephemeraDB.getItem.mockResolvedValue({
+        mockedEphemeraDB.getItem.mockResolvedValue({
             activeCharacters: {}
         })
-        render.mockResolvedValue([{
+        mockedRender.mockResolvedValue([{
             tag: 'Room',
             RoomId: 'VORTEX',
             CharacterId: 'TESS',
@@ -42,19 +47,19 @@ describe('updateRooms', () => {
             Exits: [],
             Description: ['A swirling vortex '],
         }])
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getCharacterAssets.mockResolvedValue({})
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetCharacterAssets.mockResolvedValue({})
 
         await updateRooms({
             assetsChangedByRoom: { VORTEX: ['BASE'] }
         })
 
-        expect(render).toHaveBeenCalledWith({
+        expect(mockedRender).toHaveBeenCalledWith({
             renderList: [],
             assetMeta: {},
             assetLists: { global: ['BASE'], characters: {} }
         })
-        expect(deliverRenders).toHaveBeenCalledWith({
+        expect(mockedDeliverRenders).toHaveBeenCalledWith({
             renderOutputs: [{
                 tag: 'Room',
                 CharacterId: 'TESS',
@@ -67,7 +72,7 @@ describe('updateRooms', () => {
     })
 
     it('should render no rooms on an empty check-list', async () => {
-        render.mockResolvedValue([])
+        mockedRender.mockResolvedValue([])
         await updateRooms({
             assetsChangedByRoom: {}
         })
@@ -76,7 +81,7 @@ describe('updateRooms', () => {
     })
 
     it('should publish to all characters on a global-asset update', async() => {
-        ephemeraDB.getItem.mockResolvedValue({
+        mockedEphemeraDB.getItem.mockResolvedValue({
             EphemeraId: 'ROOM#VORTEX',
             activeCharacters: {
                 ['CHARACTERINPLAY#TESS']: { Name: 'Tess' },
@@ -84,9 +89,9 @@ describe('updateRooms', () => {
             },
             Dependencies: {}
         })
-        render.mockResolvedValue([])
-        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB'])
-        getCharacterAssets.mockResolvedValue({})
+        mockedRender.mockResolvedValue([])
+        mockedGetGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB'])
+        mockedGetCharacterAssets.mockResolvedValue({})
 
         await updateRooms({
             assetsChangedByRoom: {
@@ -94,7 +99,7 @@ describe('updateRooms', () => {
             }
         })
 
-        expect(render).toHaveBeenCalledWith({
+        expect(mockedRender).toHaveBeenCalledWith({
             renderList: [{
                     EphemeraId: 'ROOM#VORTEX',
                     CharacterId: 'TESS'
@@ -109,16 +114,16 @@ describe('updateRooms', () => {
     })
 
     it('should publish to characters who see a change on a character-asset update', async() => {
-        ephemeraDB.getItem.mockResolvedValue({
+        mockedEphemeraDB.getItem.mockResolvedValue({
             EphemeraId: 'ROOM#VORTEX',
             activeCharacters: {
                 ['CHARACTERINPLAY#TESS']: { Name: 'Tess' },
                 ['CHARACTERINPLAY#MARCO']: { Name: 'Marco' }
             }
         })
-        render.mockResolvedValue([])
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getCharacterAssets.mockResolvedValue({
+        mockedRender.mockResolvedValue([])
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetCharacterAssets.mockResolvedValue({
             TESS: { assets: ['LayerA'] },
             MARCO: { assets: ['LayerB'] }
         })
@@ -129,7 +134,7 @@ describe('updateRooms', () => {
             }
         })
 
-        expect(render).toHaveBeenCalledWith({
+        expect(mockedRender).toHaveBeenCalledWith({
             renderList: [{
                 EphemeraId: 'ROOM#VORTEX',
                 CharacterId: 'TESS'
@@ -143,7 +148,7 @@ describe('updateRooms', () => {
     })
 
     it('should publish map updates to everyone on a global map-dependency change', async () => {
-        ephemeraDB.getItem.mockResolvedValue({
+        mockedEphemeraDB.getItem.mockResolvedValue({
             EphemeraId: 'ROOM#VORTEX',
             activeCharacters: {
                 ['CHARACTERINPLAY#TESS']: { Name: 'Tess' },
@@ -153,7 +158,7 @@ describe('updateRooms', () => {
                 map: ['MAP#TestMap']
             }
         })
-        ephemeraDB.query.mockImplementation(({ IndexName }) => {
+        mockedEphemeraDB.query.mockImplementation(async ({ IndexName }: { IndexName: string }) => {
             if (IndexName === 'DataCategoryIndex') {
                 return [{
                     EphemeraId: 'CHARACTERINPLAY#TESS',
@@ -173,9 +178,9 @@ describe('updateRooms', () => {
                 DataCategory: 'ASSET#BASE'
             }]
         })
-        render.mockResolvedValue([])
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getCharacterAssets.mockResolvedValue({
+        mockedRender.mockResolvedValue([])
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetCharacterAssets.mockResolvedValue({
             TESS: { assets: ['LayerA'] },
             MARCO: { assets: ['LayerB'] }
         })

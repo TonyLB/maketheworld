@@ -1,9 +1,9 @@
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
 
 import { assetDB, ephemeraDB } from '../dynamoDB/index.js'
-import { splitType } from '../types.js'
-import { asyncSuppressExceptions } from '../errors.js'
-import sortImportTree from '../executeCode/sortImportTree.js'
+import { splitType } from '../types'
+import { asyncSuppressExceptions } from '../errors'
+import sortImportTree from '../executeCode/sortImportTree'
 
 const { COGNITO_POOL_ID } = process.env
 

@@ -1,12 +1,13 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-jest.mock('../perception/assetRender.js')
-import { assetRender } from '../perception/assetRender.js'
-import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets.js'
+jest.mock('../perception/assetRender')
+import { assetRender } from '../perception/assetRender'
+import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets'
 
-import updateAssets from './updateAssets.js'
+import updateAssets from './updateAssets'
+
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const mockedAssetRender = assetRender as jest.Mock
 
 describe('updateAssets', () => {
     beforeEach(() => {
@@ -15,14 +16,14 @@ describe('updateAssets', () => {
     })
 
     it('should update single state when passed', async () => {
-        const testAssets = testAssetsFactory()
+        const testAssets: Record<string, any> = testAssetsFactory()
         await updateAssets({
             newStates: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
-        expect(assetRender).toHaveBeenCalledTimes(0)
-        expect(ephemeraDB.update).toHaveBeenCalledTimes(1)
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedAssetRender).toHaveBeenCalledTimes(0)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledTimes(1)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state',
@@ -60,9 +61,9 @@ describe('updateAssets', () => {
                 MixLayerA: ['fooBar']
             }
         })
-        expect(assetRender).toHaveBeenCalledTimes(0)
-        expect(ephemeraDB.update).toHaveBeenCalledTimes(4)
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedAssetRender).toHaveBeenCalledTimes(0)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledTimes(4)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state',
@@ -80,7 +81,7 @@ describe('updateAssets', () => {
                 }
             }
         })
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#LayerA',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state',
@@ -109,7 +110,7 @@ describe('updateAssets', () => {
                 }
             }
         })
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#LayerB',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state',
@@ -138,7 +139,7 @@ describe('updateAssets', () => {
                 }
             }
         })
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#MixLayerA',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state',
@@ -166,7 +167,7 @@ describe('updateAssets', () => {
                 exits: []
             },
         }
-        assetRender.mockResolvedValue(testRender)
+        mockedAssetRender.mockResolvedValue(testRender)
         const mapCacheAssets = {
             BASE: {
                 State: {
@@ -202,13 +203,13 @@ describe('updateAssets', () => {
                 mapCache: testRender
             }
         })
-        expect(assetRender).toHaveBeenCalledTimes(1)
-        expect(assetRender).toHaveBeenCalledWith({
+        expect(mockedAssetRender).toHaveBeenCalledTimes(1)
+        expect(mockedAssetRender).toHaveBeenCalledWith({
             assetId: 'BASE',
             existingStatesByAsset: mapCacheAssets
         })
-        expect(ephemeraDB.update).toHaveBeenCalledTimes(1)
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.update).toHaveBeenCalledTimes(1)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state, mapCache = :mapCache',
@@ -242,9 +243,9 @@ describe('updateAssets', () => {
             newStates: mapCacheAssets,
             recalculated: { BASE: ['bar'] }
         })
-        expect(assetRender).toHaveBeenCalledTimes(0)
-        expect(ephemeraDB.update).toHaveBeenCalledTimes(1)
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
+        expect(mockedAssetRender).toHaveBeenCalledTimes(0)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledTimes(1)
+        expect(mockedEphemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'ASSET#BASE',
             DataCategory: 'Meta::Asset',
             UpdateExpression: 'SET #state = :state',

@@ -1,16 +1,19 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
-jest.mock('./updateRooms.js')
-import { updateRooms } from './updateRooms.js'
-jest.mock('./dependencyCascade.js')
-import dependencyCascade from './dependencyCascade.js'
-jest.mock('./updateAssets.js')
-import updateAssets from './updateAssets.js'
-import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets.js'
+jest.mock('./updateRooms')
+import { updateRooms } from './updateRooms'
+jest.mock('./dependencyCascade')
+import dependencyCascade from './dependencyCascade'
+jest.mock('./updateAssets')
+import updateAssets from './updateAssets'
+import { testAssetsFactory, resultStateFactory, testMockImplementation } from './testAssets'
 
-import { executeInAsset } from './index.js'
+import { executeInAsset } from './index'
+
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const mockedDependencyCascade = dependencyCascade as jest.Mock
+const mockedUpdateAssets = updateAssets as jest.Mock
+const mockedUpdateRooms = updateRooms as jest.Mock
 
 describe('executeInAsset', () => {
     beforeEach(() => {
@@ -19,27 +22,27 @@ describe('executeInAsset', () => {
     })
 
     it('should post no changes on an empty change list', async () => {
-        const testAssets = testAssetsFactory()
-        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
-        ephemeraDB.query.mockResolvedValue([])
-        dependencyCascade.mockResolvedValue({
+        const testAssets: Record<string, any> = testAssetsFactory()
+        mockedEphemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        mockedEphemeraDB.query.mockResolvedValue([])
+        mockedDependencyCascade.mockResolvedValue({
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
-        updateAssets.mockResolvedValue({ BASE: testAssets.BASE })
+        mockedUpdateAssets.mockResolvedValue({ BASE: testAssets.BASE })
         const output = await executeInAsset('BASE')('return foo')
         expect(output.returnValue).toBe(true)
-        expect(dependencyCascade).toHaveBeenCalledWith(
+        expect(mockedDependencyCascade).toHaveBeenCalledWith(
             { BASE: testAssets.BASE },
             { BASE: [] },
             []
         )
-        expect(updateAssets).toHaveBeenCalledTimes(1)
-        expect(updateAssets).toHaveBeenCalledWith({
+        expect(mockedUpdateAssets).toHaveBeenCalledTimes(1)
+        expect(mockedUpdateAssets).toHaveBeenCalledWith({
             newStates: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
-        expect(updateRooms).toHaveBeenCalledWith({
+        expect(mockedUpdateRooms).toHaveBeenCalledWith({
             assetsChangedByRoom: {},
             assetsChangedByMap: {},
             existingStatesByAsset: { BASE: testAssets.BASE }
@@ -47,7 +50,7 @@ describe('executeInAsset', () => {
     })
 
     it('should post an end-to-end cascade', async () => {
-        const testAssets = testAssetsFactory()
+        const testAssets: Record<string, any> = testAssetsFactory()
         const cascadedAssets = testAssetsFactory({
             foo: false,
             antiFoo: true,
@@ -56,9 +59,9 @@ describe('executeInAsset', () => {
             fooBar: false,
             exclude: ['MixLayerB']
         })
-        ephemeraDB.query.mockResolvedValue([])
-        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
-        dependencyCascade.mockResolvedValue({
+        mockedEphemeraDB.query.mockResolvedValue([])
+        mockedEphemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        mockedDependencyCascade.mockResolvedValue({
             states: cascadedAssets,
             recalculated: {
                 BASE: ['foo', 'antiFoo'],
@@ -67,15 +70,15 @@ describe('executeInAsset', () => {
                 MixLayerA: ['fooBar']
             }
         })
-        updateAssets.mockResolvedValue(cascadedAssets)
+        mockedUpdateAssets.mockResolvedValue(cascadedAssets)
         await executeInAsset('BASE')('foo = false')
-        expect(dependencyCascade).toHaveBeenCalledWith(
-            { BASE: testAssetsFactory({ foo: false }).BASE },
+        expect(mockedDependencyCascade).toHaveBeenCalledWith(
+            { BASE: (testAssetsFactory({ foo: false }) as Record<string, any>).BASE },
             { BASE: ['foo'] },
             []
         )
-        expect(updateAssets).toHaveBeenCalledTimes(1)
-        expect(updateAssets).toHaveBeenCalledWith({
+        expect(mockedUpdateAssets).toHaveBeenCalledTimes(1)
+        expect(mockedUpdateAssets).toHaveBeenCalledWith({
             newStates: cascadedAssets,
             recalculated: {
                 BASE: ['foo', 'antiFoo'],
@@ -84,7 +87,7 @@ describe('executeInAsset', () => {
                 MixLayerA: ['fooBar']
             }
         })
-        expect(updateRooms).toHaveBeenCalledWith({
+        expect(mockedUpdateRooms).toHaveBeenCalledWith({
             assetsChangedByRoom: {
                 MNO: ['LayerA']
             },
@@ -120,29 +123,29 @@ describe('executeInAsset', () => {
                 importTree: {}
             }
         }
-        ephemeraDB.query.mockResolvedValue([])
-        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
-        dependencyCascade.mockResolvedValue({
+        mockedEphemeraDB.query.mockResolvedValue([])
+        mockedEphemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        mockedDependencyCascade.mockResolvedValue({
             states: updatedAssets,
             recalculated: {
                 BASE: ['foo']
             }
         })
-        updateAssets.mockResolvedValue(updatedAssets)
+        mockedUpdateAssets.mockResolvedValue(updatedAssets)
         await executeInAsset('BASE')('foo = true')
-        expect(dependencyCascade).toHaveBeenCalledWith(
+        expect(mockedDependencyCascade).toHaveBeenCalledWith(
             { BASE: updatedAssets.BASE },
             { BASE: ['foo'] },
             []
         )
-        expect(updateAssets).toHaveBeenCalledTimes(1)
-        expect(updateAssets).toHaveBeenCalledWith({
+        expect(mockedUpdateAssets).toHaveBeenCalledTimes(1)
+        expect(mockedUpdateAssets).toHaveBeenCalledWith({
             newStates: updatedAssets,
             recalculated: {
                 BASE: ['foo'],
             }
         })
-        expect(updateRooms).toHaveBeenCalledWith({
+        expect(mockedUpdateRooms).toHaveBeenCalledWith({
             assetsChangedByRoom: {},
             assetsChangedByMap: {
                 TestMap: ['BASE']
@@ -152,14 +155,14 @@ describe('executeInAsset', () => {
     })
 
     it('should add a message to queue on here.worldMessage call', async () => {
-        const testAssets = testAssetsFactory()
-        ephemeraDB.query.mockResolvedValue([])
-        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
-        dependencyCascade.mockResolvedValue({
+        const testAssets: Record<string, any> = testAssetsFactory()
+        mockedEphemeraDB.query.mockResolvedValue([])
+        mockedEphemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        mockedDependencyCascade.mockResolvedValue({
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
-        updateAssets.mockResolvedValue(testAssets)
+        mockedUpdateAssets.mockResolvedValue(testAssets)
         const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('here.message("Test Message")')
         expect(executeMessageQueue).toEqual([{
             DisplayProtocol: 'WorldMessage',
@@ -170,17 +173,17 @@ describe('executeInAsset', () => {
     })
 
     it('should add a message to queue on room-ID.worldMessage call', async () => {
-        const testAssets = testAssetsFactory()
-        ephemeraDB.query.mockResolvedValue([{
+        const testAssets: Record<string, any> = testAssetsFactory()
+        mockedEphemeraDB.query.mockResolvedValue([{
             EphemeraId: 'ROOM#456789',
             key: 'test'
         }])
-        ephemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
-        dependencyCascade.mockResolvedValue({
+        mockedEphemeraDB.getItem.mockImplementation(testMockImplementation(testAssets, { type: 'getItem' }))
+        mockedDependencyCascade.mockResolvedValue({
             states: { BASE: testAssets.BASE },
             recalculated: { BASE: [] }
         })
-        updateAssets.mockResolvedValue(testAssets)
+        mockedUpdateAssets.mockResolvedValue(testAssets)
         const { executeMessageQueue } = await executeInAsset('BASE', { RoomId: '123456' })('test.message("Test Message")')
         expect(executeMessageQueue).toEqual([{
             DisplayProtocol: 'WorldMessage',

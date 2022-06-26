@@ -12,6 +12,14 @@ export const deliverRenders = async ({
         featureProtocol = 'FeatureDescription',
         characterProtocol = 'CharacterDescription'
     } = {}
+}: {
+    renderOutputs: any[];
+    RequestId?: string;
+    options?: {
+        roomProtocol?: string;
+        featureProtocol?: string;
+        characterProtocol?: string;
+    }
 }) => {
 
     const allCharacterIds = [...(new Set(renderOutputs.map(({ CharacterId }) => (CharacterId))))]

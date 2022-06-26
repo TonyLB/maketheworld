@@ -1,6 +1,6 @@
 import { evaluateCode } from '../computation/sandbox.js'
 
-const dependencyCascadeHelper = (dependencies, recalculatedLayerMap, depth = 0) => {
+const dependencyCascadeHelper = (dependencies: Record<string, any>, recalculatedLayerMap: Record<string, number>, depth = 0): Record<string, number> => {
     const layerItems = Object.entries(recalculatedLayerMap)
         .filter(([_, value]) => (value === depth))
         .map(([key]) => (key))
@@ -31,7 +31,7 @@ const dependencyCascade = (dependencies, recalculated) => {
         recalculated.reduce((previous, key) => ({ ...previous, [key]: 0 }), {}),
     )
     return Object.entries(recalculatedLayerMap)
-        .filter(([_, layer]) => (layer > 0))
+        .filter(([_, layer]) => ((layer as number) > 0))
         .sort(([keyA, a], [keyB, b]) => (a - b))
         .map(([key]) => (key))
 }
@@ -61,7 +61,7 @@ export const recalculateComputes = (state, dependencies, recalculated) => {
         if (!currentSrc) {
             return previous
         }
-        const valueState = Object.entries(previous.state).reduce((accumulator, [key, { value }]) => ({ ...accumulator, [key]: value }), {})
+        const valueState = Object.entries(previous.state).reduce((accumulator, [key, item]) => ({ ...accumulator, [key]: (item as any)?.value }), {})
         const updatedValue = evaluateCode(` return (${currentSrc}) `)(valueState)
         if (updatedValue === valueState[dependencyCheck]) {
             return previous
