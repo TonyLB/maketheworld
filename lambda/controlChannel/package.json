@@ -21,6 +21,7 @@
     "@aws-sdk/client-lambda": "^3.13.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
+    "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
     "aws-xray-sdk": "^3.3.3",
     "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
@@ -28,7 +29,8 @@
     "uuid": "^8.3.2"
   },
   "files": [
-    "mtw-utilities"
+    "mtw-utilities",
+    "mtw-internal-bus"
   ],
   "devDependencies": {
     "@babel/core": "^7.17.5",
