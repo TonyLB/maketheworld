@@ -1,4 +1,4 @@
-import evaluateCode from '../computation/sandbox.js'
+import evaluateCode from '../computation/sandbox'
 
 let memoSpace = {}
 

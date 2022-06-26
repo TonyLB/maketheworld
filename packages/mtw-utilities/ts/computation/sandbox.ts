@@ -1,9 +1,9 @@
 import { produce } from 'immer'
 
-const sandboxedExecution = (src) => (sandboxTransform) => {
+const sandboxedExecution = (src: string) => (sandboxTransform: (...args: any[]) => any) => {
     src = 'with (sandbox) {' + src + '}'
     const code = new Function('sandbox', src)
-    return (...args) => {
+    return (...args: any[]) => {
         const sandboxProxy = sandboxTransform(...args)
         return code(sandboxProxy)
     }
@@ -13,15 +13,15 @@ const sandboxedExecution = (src) => (sandboxTransform) => {
 // TODO: Create set operators for the sandbox that throw an error when
 // attempting to set global variables during a pure evaluation
 //
-export const evaluateCode = (src) => {
-    const transform = (sandbox) => (new Proxy(sandbox, {
+export const evaluateCode = (src: string): any => {
+    const transform = (sandbox: Record<string | symbol, any>) => (new Proxy(sandbox, {
         has: () => true,
         get: (target, key) => (key === Symbol.unscopables ? undefined: target[key])
     }))
     return sandboxedExecution(src)(transform)
 }
 
-export const executeCode = (src) => (sandbox, primitives = {}) => {
+export const executeCode = (src: string) => (sandbox: Record<string | symbol, any>, primitives: Record<string | symbol, any> = {}) => {
     let returnValue = null
     const executeSandbox = produce({ ...primitives, ...sandbox }, (draftSandbox) => {
         const transform = (globalSandbox) => (new Proxy(globalSandbox, {
@@ -29,7 +29,7 @@ export const executeCode = (src) => (sandbox, primitives = {}) => {
             get: (target, key) => (key === Symbol.unscopables ? undefined: target[key]),
             set: (target, key, value) => {
                 if (key === Symbol.unscopables || !(key in sandbox)) {
-                    return null
+                    return false
                 }
                 else {
                     return Reflect.set(target, key, value)

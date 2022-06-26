@@ -1,4 +1,4 @@
-import { evaluateCode } from '../computation/sandbox.js'
+import { evaluateCode } from '../computation/sandbox'
 
 const dependencyCascadeHelper = (dependencies: Record<string, any>, recalculatedLayerMap: Record<string, number>, depth = 0): Record<string, number> => {
     const layerItems = Object.entries(recalculatedLayerMap)
