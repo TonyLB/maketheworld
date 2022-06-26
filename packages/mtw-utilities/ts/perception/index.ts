@@ -1,4 +1,4 @@
-import { componentAppearanceReduce } from '../components/components.js'
+import { componentAppearanceReduce } from '../components/components'
 import { memoizedEvaluate, clearMemoSpace } from './memoize'
 import { splitType, AssetKey, RoomKey } from '../types'
 import { objectMap } from '../objects'

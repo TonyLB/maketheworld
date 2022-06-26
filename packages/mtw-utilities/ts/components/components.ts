@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 
-import { splitType } from '../types.ts'
+import { splitType } from '../types'
 
 //
 // TODO: Replace repeated direct assigns of spaceAfter and spaceBefore with a post-process
@@ -8,12 +8,20 @@ import { splitType } from '../types.ts'
 // elevates them to record level (in TaggedContentJoined or some such) and then purges
 // all spaceBefore/spaceAfter from the list of joined arguments
 //
-const joinRenderItems = function * (render = []) {
+
+type RenderItem = {
+    spaceAfter?: boolean;
+    spaceBefore?: boolean;
+    value?: string;
+    tag: 'String' | 'LineBreak' | 'Link'
+}
+
+const joinRenderItems = function * (render: RenderItem[] = []): Generator<RenderItem> {
     if (render.length > 0) {
         //
         // Use spread-operator to clear the read-only tags that Immer can apply
         //
-        let currentItem = { ...render[0] }
+        let currentItem: RenderItem = { ...render[0] }
         if (currentItem.spaceBefore) {
             switch(currentItem.tag) {
                 case 'String':
@@ -31,13 +39,13 @@ const joinRenderItems = function * (render = []) {
         }
         for (const renderItem of (render.slice(1) || [])) {
             const currentSpacingDefined = currentItem.spaceAfter !== undefined || currentItem.spaceBefore !== undefined
-            const renderSpacingDefined = render.spaceAfter !== undefined || render.spaceBefore !== undefined
+            const renderSpacingDefined = renderItem.spaceAfter !== undefined || renderItem.spaceBefore !== undefined
             const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
             switch(renderItem.tag) {
                 case 'String':
                     switch(currentItem.tag) {
                         case 'String':
-                            currentItem.value = `${currentSpacingDefined ? currentItem.value.trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}${renderSpacingDefined ? renderItem.value.trimLeft() : renderItem.value}`
+                            currentItem.value = `${currentSpacingDefined ? (currentItem.value || '').trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}${renderSpacingDefined ? (renderItem.value || '').trimStart() : renderItem.value}`
                             currentItem.spaceAfter = renderItem.spaceAfter
                             break
                         case 'Link':
@@ -47,7 +55,7 @@ const joinRenderItems = function * (render = []) {
                             }
                             currentItem = {
                                 ...renderItem,
-                                value: `${spaceBetween ? ' ' : ''}${renderSpacingDefined ? renderItem.value.trimLeft() : renderItem.value}`,
+                                value: `${spaceBetween ? ' ' : ''}${renderSpacingDefined ? (renderItem.value || '').trimStart() : renderItem.value}`,
                                 spaceBefore: undefined
                             }
                             break
@@ -58,7 +66,7 @@ const joinRenderItems = function * (render = []) {
                             }
                             currentItem = {
                                 ...renderItem,
-                                value: renderSpacingDefined ? renderItem.value.trimLeft() : renderItem.value,
+                                value: renderSpacingDefined ? (renderItem.value || '').trimStart() : renderItem.value,
                                 spaceBefore: undefined
                             }
                             break
@@ -69,7 +77,7 @@ const joinRenderItems = function * (render = []) {
                         case 'String':
                             yield {
                                 ...currentItem,
-                                value: `${currentSpacingDefined ? currentItem.value.trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}`,
+                                value: `${currentSpacingDefined ? (currentItem.value || '').trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}`,
                                 spaceAfter: undefined
                             }
                             currentItem = {
@@ -108,7 +116,7 @@ const joinRenderItems = function * (render = []) {
                 case 'LineBreak':
                     yield {
                         ...currentItem,
-                        value: currentSpacingDefined ? currentItem.value.trim() : currentItem.value,
+                        value: currentSpacingDefined ? (currentItem.value || '').trim() : currentItem.value,
                         spaceAfter: undefined
                     }
                     currentItem = {
@@ -122,7 +130,7 @@ const joinRenderItems = function * (render = []) {
     }
 }
 
-const foldSpacingIntoList = ({ render, spaceBefore, spaceAfter }) => (produce(render, (draft) => {
+const foldSpacingIntoList = ({ render, spaceBefore, spaceAfter }: { render: RenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): RenderItem[] => (produce(render, (draft) => {
     if (draft && draft.length > 0) {
         draft[0].spaceBefore = draft[0].spaceBefore || spaceBefore
         draft[draft.length - 1].spaceAfter = draft[draft.length - 1].spaceAfter || spaceAfter

@@ -1,6 +1,4 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
-import { componentAppearanceReduce, joinRenderItems } from './components.js'
+import { componentAppearanceReduce } from './components'
 
 describe('component utilities', () => {
     describe('componentAppearanceReduce', () => {
