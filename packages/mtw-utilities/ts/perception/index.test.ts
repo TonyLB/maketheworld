@@ -1,12 +1,15 @@
-import { jest, describe, expect, it } from '@jest/globals'
-
-jest.mock('./dynamoDB.js')
-import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
+jest.mock('./dynamoDB')
+import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB'
 
 import { resultStateFactory, testMockImplementation } from '../executeCode/testAssets.js'
 
-import { render } from './index.js'
-import { objectMap } from '../objects.js'
+import { render } from './index'
+import { objectMap } from '../objects'
+
+const mockedGetGlobalAssets = getGlobalAssets as jest.Mock
+const mockedGetCharacterAssets = getCharacterAssets as jest.Mock
+const mockedGetItemMeta = getItemMeta as jest.Mock
+const mockedGetStateByAsset = getStateByAsset as jest.Mock
 
 describe('render', () => {
 
@@ -17,7 +20,7 @@ describe('render', () => {
     })
 
     it('should return empty on an empty list', async () => {
-        getGlobalAssets.mockResolvedValue([])
+        mockedGetGlobalAssets.mockResolvedValue([])
         const output = await render({
             renderList: []
         })
@@ -27,16 +30,16 @@ describe('render', () => {
     it('should render with no provided state data', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
                 [asset]: testAssets[asset] || {}
             }), {})
         })
-        getItemMeta.mockResolvedValue({
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -54,7 +57,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'ROOM#MNO',
@@ -62,22 +65,22 @@ describe('render', () => {
             }]
         })
         expect(output).toMatchSnapshot()
-        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], {})
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['BASE'], {})
     })
 
     it('should render with provided state data', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
                 [asset]: testAssets[asset] || {}
             }), {})
         })
-        getItemMeta.mockResolvedValue({
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -95,7 +98,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -104,23 +107,23 @@ describe('render', () => {
                 assetMeta: testAssets
         })
         expect(output).toMatchSnapshot()
-        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
 
     })
 
     it('should correctly interpret nested conditions', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
                 [asset]: testAssets[asset] || {}
             }), {})
         })
-        getItemMeta.mockResolvedValue({
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -157,7 +160,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -166,23 +169,23 @@ describe('render', () => {
                 assetMeta: testAssets
         })
         expect(output).toMatchSnapshot()
-        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['BASE'], testAssets)
 
     })
 
     it('should render spacing around tags', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
                 [asset]: testAssets[asset] || {}
             }), {})
         })
-        getItemMeta.mockResolvedValue({
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -214,7 +217,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -228,11 +231,11 @@ describe('render', () => {
     it('should render when mapValueOnly set true', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getStateByAsset.mockResolvedValue(testAssets)
-        getGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
-        getItemMeta.mockResolvedValue({
+        mockedGetStateByAsset.mockResolvedValue(testAssets)
+        mockedGetGlobalAssets.mockResolvedValue(['BASE', 'LayerA', 'LayerB', 'MixLayerA', 'MixLayerB'])
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -257,7 +260,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
                 renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -267,7 +270,7 @@ describe('render', () => {
                 assetMeta: testAssets
         })
         expect(output).toMatchSnapshot()
-        expect(getStateByAsset).toHaveBeenCalledWith(
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(
             ['BASE', 'LayerA'],
             testAssets
         )
@@ -282,9 +285,9 @@ describe('render', () => {
                 importTree: {}
             },
         }
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getStateByAsset.mockResolvedValue(featureAssets)
-        getItemMeta.mockResolvedValue({
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetStateByAsset.mockResolvedValue(featureAssets)
+        mockedGetItemMeta.mockResolvedValue({
             ['FEATURE#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -298,7 +301,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'FEATURE#MNO',
@@ -315,7 +318,7 @@ describe('render', () => {
             Name: "Clock Tower",
             Features: []
         }])
-        expect(getStateByAsset).toHaveBeenCalledWith(
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(
             ['BASE'],
             featureAssets
         )
@@ -346,9 +349,9 @@ describe('render', () => {
                 importTree: {}
             },
         }
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getStateByAsset.mockResolvedValue(mapAssets)
-        getItemMeta.mockResolvedValue({
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetStateByAsset.mockResolvedValue(mapAssets)
+        mockedGetItemMeta.mockResolvedValue({
             ['MAP#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -372,7 +375,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'MAP#MNO',
@@ -381,15 +384,15 @@ describe('render', () => {
             assetMeta: mapAssets
         })
         expect(output).toMatchSnapshot()
-        expect(getStateByAsset).toHaveBeenCalledWith(['BASE'], mapAssets)
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['BASE'], mapAssets)
 
     })
 
     it('should render characters', async () => {
         const characterAssets = {}
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getStateByAsset.mockResolvedValue(characterAssets)
-        getItemMeta.mockResolvedValue({
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetStateByAsset.mockResolvedValue(characterAssets)
+        mockedGetItemMeta.mockResolvedValue({
             ['CHARACTERINPLAY#QRS']: [
                 {
                     DataCategory: 'Meta::Character',
@@ -408,7 +411,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: [] } })
         const output = await render({
             renderList: [{
                 EphemeraId: 'CHARACTERINPLAY#QRS',
@@ -434,24 +437,24 @@ describe('render', () => {
                 adjective: 'hers'
             }
         }])
-        expect(getItemMeta).toHaveBeenCalledWith(['CHARACTERINPLAY#QRS'])
-        expect(getStateByAsset).toHaveBeenCalledWith([], characterAssets)
+        expect(mockedGetItemMeta).toHaveBeenCalledWith(['CHARACTERINPLAY#QRS'])
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith([], characterAssets)
 
     })
 
     it('should fetch state data only where needed', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
                 [asset]: testAssets[asset] || {}
             }), {})
         })
-        getItemMeta.mockResolvedValue({
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -499,7 +502,7 @@ describe('render', () => {
                 }
             ]
         })
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: ['LayerB'] }, XYZ: { assets: ['LayerA'] } })
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: ['LayerB'] }, XYZ: { assets: ['LayerA'] } })
         const output = await render({
             renderList:
             [{
@@ -514,7 +517,7 @@ describe('render', () => {
         })
         expect(output).toMatchSnapshot()
 
-        expect(getStateByAsset).toHaveBeenCalledWith(
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(
             ['BASE', 'LayerB'],
             { BASE: testAssets.BASE }
         )
@@ -524,16 +527,16 @@ describe('render', () => {
     it('should fetch assetList data only where needed', async () => {
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({
                 ...previous,
                 [asset]: testAssets[asset] || {}
             }), {})
         })
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getItemMeta.mockResolvedValue({
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetItemMeta.mockResolvedValue({
             ['ROOM#MNO']: [
                 {
                     DataCategory: 'ASSET#BASE',
@@ -581,8 +584,8 @@ describe('render', () => {
                 }
             ]
         })
-        getGlobalAssets.mockResolvedValue(['BASE'])
-        getCharacterAssets.mockResolvedValue({ QRS: { assets: ['LayerB'] }, XYZ: { assets: ['LayerA'] } })
+        mockedGetGlobalAssets.mockResolvedValue(['BASE'])
+        mockedGetCharacterAssets.mockResolvedValue({ QRS: { assets: ['LayerB'] }, XYZ: { assets: ['LayerA'] } })
         const output = await render({
             renderList: [{
                     EphemeraId: 'ROOM#MNO',
@@ -602,8 +605,8 @@ describe('render', () => {
         })
         expect(output).toMatchSnapshot()
 
-        expect(getGlobalAssets).toHaveBeenCalledWith(['BASE'])
-        expect(getCharacterAssets).toHaveBeenCalledWith(['XYZ', 'QRS'], { QRS: { assets: ['LayerB'] } })
+        expect(mockedGetGlobalAssets).toHaveBeenCalledWith(['BASE'])
+        expect(mockedGetCharacterAssets).toHaveBeenCalledWith(['XYZ', 'QRS'], { QRS: { assets: ['LayerB'] } })
 
     })
 

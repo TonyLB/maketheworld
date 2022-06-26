@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import { SocketQueue } from '../apiManagement/index.js'
 import { publishMessage, ephemeraDB } from '../dynamoDB/index.js'
-import { splitType } from '../types.js'
+import { splitType } from '../types'
 
 export const deliverRenders = async ({
     renderOutputs,
@@ -32,7 +32,7 @@ export const deliverRenders = async ({
 
     const socketQueue = new SocketQueue()
 
-    const messagesToPublish = []
+    const messagesToPublish: any[] = []
 
     renderOutputs.forEach((message) => {
         const { tag, type, EphemeraId, ...restOfMessage } = message

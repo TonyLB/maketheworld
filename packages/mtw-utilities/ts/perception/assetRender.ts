@@ -1,8 +1,10 @@
-import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
+import { memoizedEvaluate, clearMemoSpace } from './memoize'
 
-import { getStateByAsset, getNormalForm } from './dynamoDB.js'
+import { getStateByAsset, getNormalForm } from './dynamoDB'
 
-const evaluateConditionalList = (asset, list = [], state) => {
+import { ConditionExpression } from './baseClasses'
+
+const evaluateConditionalList = (asset: string, list: ConditionExpression[] = [], state: any) => {
     if (list.length > 0) {
         const [first, ...rest] = list
         const evaluation = memoizedEvaluate(asset, first.if, state)
@@ -19,15 +21,15 @@ const evaluateConditionalList = (asset, list = [], state) => {
 
 export const assetRender = async ({ assetId, existingStatesByAsset = {}, existingNormalFormsByAsset = {} }) => {
 
-    const [normalForm, assetState] = await Promise.all([
+    const [normalForm, assetState]: [normalForm: any, assetState: any] = await Promise.all([
         getNormalForm(assetId, existingNormalFormsByAsset),
         getStateByAsset([assetId], existingStatesByAsset)
     ])
 
     clearMemoSpace()
 
-    const roomNamesAndExits = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Room'))
+    const roomNamesAndExits = (Object.values(normalForm) as any[])
+        .filter(({ tag }: { tag: string }) => (tag === 'Room'))
         .reduce((previous, { key, EphemeraId, appearances = [] }) => {
             const conditionalAppearances = appearances.map(({ contextStack = [], ...rest }) => ({
                 conditions: contextStack
@@ -68,7 +70,7 @@ export const assetRender = async ({ assetId, existingStatesByAsset = {}, existin
             }
         }, {})
 
-    return Object.entries(roomNamesAndExits)
+    return (Object.entries(roomNamesAndExits) as any[])
         .filter(([_, { name = [], exits = [] }]) => (name.length > 0 || exits.length > 0))
         .reduce((previous, [key, value]) => ({ ...previous, [key]: value }), {})
 }

@@ -1,14 +1,20 @@
-import { jest, describe, expect, it } from '@jest/globals'
-
 jest.mock('uuid')
-import { v4 as uuidMock } from 'uuid'
+import { v4 as uuid } from 'uuid'
 
 jest.mock('../apiManagement/index.js')
 import { SocketQueue } from '../apiManagement/index.js'
 jest.mock('../dynamoDB/index.js')
 import { publishMessage, ephemeraDB } from '../dynamoDB/index.js'
 
-import { deliverRenders  } from './deliverRenders.js'
+import { deliverRenders  } from './deliverRenders'
+
+const uuidMock = uuid as jest.Mock
+const mockedSocketQueue = SocketQueue as unknown as jest.Mock
+const mockedPublishMessage = publishMessage as jest.Mock
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+
+const mockSocketSend = jest.fn()
+const mockSocketFlush = jest.fn()
 
 describe('displayRenders', () => {
 
@@ -18,6 +24,12 @@ describe('displayRenders', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         jest.restoreAllMocks()
+        mockedSocketQueue.mockImplementation(() => {
+            return {
+                send: mockSocketSend,
+                flush: mockSocketFlush
+            }
+        })
         uuidMock.mockReturnValue('UUID')
         const dateNowStub = jest.fn(() => 1000000000000)
         global.Date.now = dateNowStub
@@ -28,13 +40,7 @@ describe('displayRenders', () => {
     })
 
     it('should deliver Rooms, Features and Maps', async () => {
-        const socketSendMock = jest.fn()
-        const socketFlushMock = jest.fn()
-        SocketQueue.mockImplementation(() => ({
-            send: socketSendMock,
-            flush: socketFlushMock
-        }))
-        ephemeraDB.query.mockResolvedValue([{
+        mockedEphemeraDB.query.mockResolvedValue([{
             DataCategory: 'CONNECTION#123'
         }])
 
@@ -93,10 +99,10 @@ describe('displayRenders', () => {
                     }
                 }
             }]
-        })
+        } as any)
 
-        expect(publishMessage).toHaveBeenCalledTimes(3)
-        expect(publishMessage).toHaveBeenCalledWith({
+        expect(mockedPublishMessage).toHaveBeenCalledTimes(3)
+        expect(mockedPublishMessage).toHaveBeenCalledWith({
             MessageId: 'MESSAGE#UUID',
             CreatedTime: 1000000000000,
             DisplayProtocol: 'RoomUpdate',
@@ -109,7 +115,7 @@ describe('displayRenders', () => {
             Exits: [],
             Features: []
         })
-        expect(publishMessage).toHaveBeenCalledWith({
+        expect(mockedPublishMessage).toHaveBeenCalledWith({
             MessageId: 'MESSAGE#UUID',
             CreatedTime: 1000000000000,
             DisplayProtocol: 'FeatureDescription',
@@ -119,7 +125,7 @@ describe('displayRenders', () => {
             Name: "Clock Tower",
             Features: []
         })
-        expect(publishMessage).toHaveBeenCalledWith({
+        expect(mockedPublishMessage).toHaveBeenCalledWith({
             MessageId: 'MESSAGE#UUID',
             CreatedTime: 1000000000000,
             DisplayProtocol: 'CharacterDescription',
@@ -128,8 +134,8 @@ describe('displayRenders', () => {
             Name: "Marco",
             fileURL: 'marco.png'
         })
-        expect(socketSendMock).toHaveBeenCalledTimes(1)
-        expect(socketSendMock).toHaveBeenCalledWith({
+        expect(mockSocketSend).toHaveBeenCalledTimes(1)
+        expect(mockSocketSend).toHaveBeenCalledWith({
             ConnectionId: '123',
             Message: {
                 messageType: 'Ephemera',

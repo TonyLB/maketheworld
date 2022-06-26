@@ -1,7 +1,7 @@
 import { apiClient } from './apiManagementClient.js'
 import { ephemeraDB } from '../dynamoDB/index.js'
 import { forceDisconnect } from './forceDisconnect.js'
-import { unique } from '../lists.js'
+import { unique } from '../lists'
 
 const queueInitial = {
     messages: {},

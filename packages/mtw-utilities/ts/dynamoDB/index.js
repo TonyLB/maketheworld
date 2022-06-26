@@ -13,8 +13,8 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 import { produce } from 'immer'
 
-import { asyncSuppressExceptions } from '../errors.js'
-import { DEVELOPER_MODE } from '../constants.js'
+import { asyncSuppressExceptions } from '../errors.ts'
+import { DEVELOPER_MODE } from '../constants.ts'
 import { abstractQuery } from './query.js'
 import delayPromise from "./delayPromise.js"
 

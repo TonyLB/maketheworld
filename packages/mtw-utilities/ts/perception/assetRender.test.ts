@@ -1,12 +1,13 @@
-import { jest, describe, expect, it } from '@jest/globals'
+jest.mock('./dynamoDB')
+import { getStateByAsset, getNormalForm } from './dynamoDB'
 
-jest.mock('./dynamoDB.js')
-import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets, getNormalForm } from './dynamoDB.js'
+import { resultStateFactory } from '../executeCode/testAssets.js'
+import { objectMap } from '../objects'
 
-import { resultStateFactory, testMockImplementation } from '../executeCode/testAssets.js'
-import { objectMap } from '../objects.js'
+import { assetRender } from './assetRender'
 
-import { assetRender } from './assetRender.js'
+const mockedGetStateByAsset = getStateByAsset as jest.Mock
+const mockedGetNormalForm = getNormalForm as jest.Mock
 
 describe('assetRender', () => {
 
@@ -187,10 +188,10 @@ describe('assetRender', () => {
                 ...previous,
                 [key]: { state: value }
             }), {})
-        getStateByAsset.mockImplementation(async (assets) => {
+        mockedGetStateByAsset.mockImplementation(async (assets) => {
             return assets.reduce((previous, asset) => ({ ...previous, [asset]: testAssets[asset] || {} }), {})
         })
-        getNormalForm.mockResolvedValue(normalForm)
+        mockedGetNormalForm.mockResolvedValue(normalForm)
 
         const output = await assetRender({
             assetId: 'LayerA'
@@ -211,7 +212,7 @@ describe('assetRender', () => {
                 }]
             }
         })
-        expect(getStateByAsset).toHaveBeenCalledWith(['LayerA'], {})
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['LayerA'], {})
     })
 
     it('should render with provided state and normal data', async () => {
@@ -219,11 +220,11 @@ describe('assetRender', () => {
             .reduce((previous, [key, value]) => ({
                 ...previous,
                 [key]: { state: value }
-            }), {})
-        getStateByAsset.mockImplementation(async () => {
+            }), {}) as Record<string, any>
+        mockedGetStateByAsset.mockImplementation(async () => {
             return { LayerA: testAssets.LayerA }
         })
-        getNormalForm.mockResolvedValue(normalForm)
+        mockedGetNormalForm.mockResolvedValue(normalForm)
 
         const output = await assetRender({
             assetId: 'LayerA',
@@ -248,8 +249,8 @@ describe('assetRender', () => {
                 }]
             }
         })
-        expect(getStateByAsset).toHaveBeenCalledWith(['LayerA'], { LayerA: testAssets.LayerA })
-        expect(getNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: normalForm })
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['LayerA'], { LayerA: testAssets.LayerA })
+        expect(mockedGetNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: normalForm })
     })
 
     it('should correctly render (and not render) conditional rooms', async () => {
@@ -378,12 +379,12 @@ describe('assetRender', () => {
         }
         const testAssets = objectMap(
             resultStateFactory(),
-            (state) => ({ State: objectMap(state, ({ value }) => value) })
+            (state: Record<string, { value: any }>) => ({ State: objectMap(state, ({ value }) => value) })
         )
-        getStateByAsset.mockImplementation(async () => {
+        mockedGetStateByAsset.mockImplementation(async () => {
             return { LayerA: testAssets.LayerA }
         })
-        getNormalForm.mockResolvedValue(conditionalNormalForm)
+        mockedGetNormalForm.mockResolvedValue(conditionalNormalForm)
 
         const output = await assetRender({
             assetId: 'LayerA',
@@ -408,8 +409,8 @@ describe('assetRender', () => {
                 }]
             }
         })
-        expect(getStateByAsset).toHaveBeenCalledWith(['LayerA'], { LayerA: testAssets.LayerA })
-        expect(getNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: conditionalNormalForm })
+        expect(mockedGetStateByAsset).toHaveBeenCalledWith(['LayerA'], { LayerA: testAssets.LayerA })
+        expect(mockedGetNormalForm).toHaveBeenCalledWith('LayerA', { LayerA: conditionalNormalForm })
     })
 
     //

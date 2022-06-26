@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 
-import { splitType } from '../types.js'
+import { splitType } from '../types.ts'
 
 //
 // TODO: Replace repeated direct assigns of spaceAfter and spaceBefore with a post-process

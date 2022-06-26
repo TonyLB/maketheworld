@@ -1,11 +1,12 @@
 import { componentAppearanceReduce } from '../components/components.js'
-import { memoizedEvaluate, clearMemoSpace } from './memoize.js'
-import { splitType, AssetKey, RoomKey } from '../types.js'
-import { objectMap } from '../objects.js'
+import { memoizedEvaluate, clearMemoSpace } from './memoize'
+import { splitType, AssetKey, RoomKey } from '../types'
+import { objectMap } from '../objects'
 
-import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB.js'
+import { getCharacterAssets, getItemMeta, getStateByAsset, getGlobalAssets } from './dynamoDB'
+import { ConditionExpression, RoomExit, RoomCacheItem, RoomCache } from './baseClasses'
 
-const evaluateConditionalList = (asset, list = [], state) => {
+const evaluateConditionalList = (asset, list: ConditionExpression[] = [], state) => {
     if (list.length > 0) {
         const [first, ...rest] = list
         const evaluation = memoizedEvaluate(asset, first.if, state)
@@ -43,7 +44,12 @@ const aggregateComponentRender = (assets, itemsByAsset, assetStateById, mapValue
 
 }
 
-export const renderItems = async (renderList, existingStatesByAsset = {}, priorAssetLists = {}) => {
+type PriorAssetListRecord = {
+    global?: any[],
+    characters?: Record<string, any>
+}
+
+export const renderItems = async (renderList, existingStatesByAsset = {}, priorAssetLists: PriorAssetListRecord = {}) => {
     const itemsToRender = [...(new Set(renderList.map(({ EphemeraId }) => (EphemeraId))))]
     const charactersToRenderFor = [...(new Set(renderList.map(({ CharacterId }) => (CharacterId))))]
 
@@ -52,7 +58,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
         itemMetaData = {},
         characterAssets = {}
     ] = await Promise.all([
-        getGlobalAssets(priorAssetLists.global),
+        getGlobalAssets(priorAssetLists.global || []),
         getItemMeta(itemsToRender),
         //
         // TODO: Refactor the sloppiness of how priorAssets are being passed around (maybe an assetCache for the perception lambda,
@@ -90,7 +96,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
         ]
     }, [])
     const deduplicatedAssetList = [...(new Set(allAssets))]
-    const assetStateById = await getStateByAsset(deduplicatedAssetList, existingStatesByAsset)
+    const assetStateById: any = await getStateByAsset(deduplicatedAssetList, existingStatesByAsset)
 
     clearMemoSpace()
 
@@ -157,10 +163,10 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                 }
 
             case 'MAP':
-                const roomPseudonym = (AssetId, roomId) => (`${AssetId}#${roomId}`)
-                const assetsOfInterest = [...(new Set([...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]))]
-                const aggregatedMapCacheByEphemeraId = assetsOfInterest
-                    .reduce((previous, assetId) => (Object.values(assetStateById[assetId]?.mapCache || {})
+                const roomPseudonym = (AssetId: string, roomId: string) => (`${AssetId}#${roomId}`)
+                const assetsOfInterest: string[] = [...(new Set([...globalAssets, ...(characterAssets[CharacterId]?.assets || [])]))]
+                const aggregatedMapCacheByEphemeraId: any = assetsOfInterest
+                    .reduce((previous, assetId) => ((Object.values(assetStateById[assetId]?.mapCache || {}) as RoomCacheItem[])
                         .reduce((accumulator, { EphemeraId, name = [], exits = [] }) => ({
                             ...accumulator,
                             [EphemeraId]: {
@@ -189,7 +195,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                         },
                         name: [ ...previous.name, name ].filter((value) => (value))
                     }
-                }, { visibleMapAppearancesByAsset: {}, name: [] })
+                }, { visibleMapAppearancesByAsset: {}, name: [] as string[] })
     
                 const roomKeysByEphemera = assetsOfInterest.reduce((previous, AssetId) => {
                     const appearances = visibleMapAppearancesByAsset[AssetId] || []
@@ -273,7 +279,7 @@ export const render = async ({
     renderList = [],
     assetMeta = {},
     assetLists = {}
-}) => {
+}: { renderList?: any[], assetMeta?: Record<string, any>, assetLists?: Record<string, any> }) => {
     const renderedOutput = await renderItems(renderList, assetMeta, assetLists)
     return renderedOutput.map(({ EphemeraId, CharacterId, mapValuesOnly, ...rest }) => {
         const [objectType, objectKey] = splitType(EphemeraId)

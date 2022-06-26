@@ -3,7 +3,7 @@ import {
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
-import { asyncSuppressExceptions } from '../errors.js'
+import { asyncSuppressExceptions } from '../errors.ts'
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`

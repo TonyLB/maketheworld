@@ -2,7 +2,7 @@ import evaluateCode from '../computation/sandbox.js'
 
 let memoSpace = {}
 
-export const clearMemoSpace = (asset) => {
+export const clearMemoSpace = (asset?: string) => {
     if (asset) {
         memoSpace[asset] = {}
     }

@@ -1,9 +1,9 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
 jest.mock('../dynamoDB/index.js')
 import { ephemeraDB } from '../dynamoDB/index.js'
 
-import { getCharacterAssets, getGlobalAssets, getItemMeta } from './dynamoDB.js'
+import { getCharacterAssets, getGlobalAssets, getItemMeta } from './dynamoDB'
+
+const mockedEphemeraDB = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('getGlobalAssets', () => {
     beforeEach(() => {
@@ -12,10 +12,10 @@ describe('getGlobalAssets', () => {
     })
 
     it('should fetch when nothing passed', async () => {
-        ephemeraDB.getItem.mockResolvedValue({ assets: ['BASE'] })
+        mockedEphemeraDB.getItem.mockResolvedValue({ assets: ['BASE'] })
         const output = await getGlobalAssets()
         expect(output).toEqual(['BASE'])
-        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'Global',
             DataCategory: 'Assets',
             ProjectionFields: ['assets']
@@ -25,7 +25,7 @@ describe('getGlobalAssets', () => {
     it('should not fetch when global assets already passed', async () => {
         const output = await getGlobalAssets(['BASE'])
         expect(output).toEqual(['BASE'])
-        expect(ephemeraDB.getItem).toHaveBeenCalledTimes(0)
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledTimes(0)
     })
 })
 
@@ -45,19 +45,19 @@ describe('getCharacterAssets', () => {
     }
 
     it('should fetch when nothing passed', async () => {
-        ephemeraDB.getItem.mockImplementation(mockGetImplementation)
+        mockedEphemeraDB.getItem.mockImplementation(mockGetImplementation)
         const output = await getCharacterAssets(['ABC', 'DEF'])
         expect(output).toEqual({
             ABC: { assets: ['LayerA'], RoomId: 'XYZ' },
             DEF: { assets: ['LayerB'], RoomId: 'XYZ' }
         })
-        expect(ephemeraDB.getItem).toHaveBeenCalledTimes(2)
-        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledTimes(2)
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTERINPLAY#ABC',
             DataCategory: 'Meta::Character',
             ProjectionFields: ['assets', 'RoomId']
         })
-        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTERINPLAY#DEF',
             DataCategory: 'Meta::Character',
             ProjectionFields: ['assets', 'RoomId']
@@ -65,14 +65,14 @@ describe('getCharacterAssets', () => {
     })
 
     it('should not fetch when character assets already passed', async () => {
-        ephemeraDB.getItem.mockImplementation(mockGetImplementation)
+        mockedEphemeraDB.getItem.mockImplementation(mockGetImplementation)
         const output = await getCharacterAssets(['ABC', 'DEF'], { DEF: { assets: ['LayerB'], RoomId: 'XYZ' } })
         expect(output).toEqual({
             ABC: { assets: ['LayerA'], RoomId: 'XYZ' },
             DEF: { assets: ['LayerB'], RoomId: 'XYZ' }
         })
-        expect(ephemeraDB.getItem).toHaveBeenCalledTimes(1)
-        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledTimes(1)
+        expect(mockedEphemeraDB.getItem).toHaveBeenCalledWith({
             EphemeraId: 'CHARACTERINPLAY#ABC',
             DataCategory: 'Meta::Character',
             ProjectionFields: ['assets', 'RoomId']
@@ -105,11 +105,11 @@ describe('getItemMeta', () => {
                     return []
             }
         }
-        ephemeraDB.getItem.mockResolvedValue({
+        mockedEphemeraDB.getItem.mockResolvedValue({
             Name: 'Tess',
             fileURL: 'tess.png'
         })
-        ephemeraDB.query.mockImplementation(mockQueryImplementation)
+        mockedEphemeraDB.query.mockImplementation(mockQueryImplementation)
         const output = await getItemMeta([
             'ROOM#ABC',
             'CHARACTERINPLAY#QRS'
