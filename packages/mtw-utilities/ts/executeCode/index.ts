@@ -15,17 +15,8 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
         },
         roomQueryItems,
         mapQueryItems,
-        {
-            Name = 'Someone',
-            Color = '',
-            Pronouns = {
-                subject: 'they',
-                object: 'them',
-                possessive: 'their',
-                adjective: 'theirs',
-                reflexive: 'themself'
-            }
-        } = {}] = await Promise.all([
+        characterQueryItem
+    ] = await Promise.all([
         ephemeraDB.getItem({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
@@ -60,7 +51,17 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
         }),
         ...(CharacterId
             ? [
-                ephemeraDB.getItem({
+                ephemeraDB.getItem<{
+                    Name: string;
+                    Color: string;
+                    Pronouns: {
+                        subject: string;
+                        object: string;
+                        possessive: string;
+                        adjective: string;
+                        reflexive: string;
+                    }
+                }>({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
                     ProjectionFields: ['#name', 'Color', 'Pronouns'],
@@ -72,6 +73,17 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
             : []
         )
     ])
+    const {
+        Name = 'Someone',
+        Color = '',
+        Pronouns = {
+            subject: 'they',
+            object: 'them',
+            possessive: 'their',
+            adjective: 'theirs',
+            reflexive: 'themself'
+        }
+    } = characterQueryItem || {}
 
     const valueState = Object.entries(state).reduce((previous, [key, item]) => ({ ...previous, [key]: (item as { value: any })?.value }), {})
 

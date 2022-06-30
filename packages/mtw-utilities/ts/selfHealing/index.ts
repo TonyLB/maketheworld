@@ -202,13 +202,29 @@ export const generateLibrary = async () => {
     }
 }
 
-export const defaultColorFromCharacterId = (CharacterId) => (
+export const defaultColorFromCharacterId = (CharacterId: string): string => (
     ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
 )
 
-export const healCharacter = async (CharacterId) => {
+export const healCharacter = async (CharacterId: string) => {
     try {
-        const Item: any = await assetDB.getItem({
+        const Item = await assetDB.getItem<{
+            Name: string;
+            fileURL: string;
+            player: string;
+            HomeId: string;
+            Color: string;
+            Pronouns: {
+                subject: string;
+                object: string;
+                possessive: string;
+                adjective: string;
+                reflexive: string;
+            };
+            FirstImpression: string;
+            OneCoolThing: string;
+            Outfit: string;
+        }>({
             AssetId: `CHARACTER#${CharacterId}`,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['player', '#Name', 'fileURL', 'HomeId', 'Color', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit'],

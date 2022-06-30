@@ -195,7 +195,7 @@ type GetItemExtendedProps = {
     ExpressionAttributeNames?: Record<string, string>;
 }
 
-const abstractGetItem = <Key extends { DataCategory: string }>(table: string) => async (props: Key & GetItemExtendedProps) => {
+const abstractGetItem = <Key extends { DataCategory: string }>(table: string) => async <T extends Record<string, any>>(props: Key & GetItemExtendedProps): Promise<T | undefined> => {
     const {
         AssetId,
         EphemeraId,
@@ -211,7 +211,7 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
         ExpressionAttributeNames
     } = props as any
     return await asyncSuppressExceptions(async () => {
-        const { Item = {} } = await dbClient.send(new GetItemCommand({
+        const { Item = null } = await dbClient.send(new GetItemCommand({
             TableName: table,
             Key: marshall({
                 AssetId,
@@ -222,8 +222,8 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
             ProjectionExpression: ProjectionFields.join(', '),
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
-        return unmarshall(Item)
-    })
+        return Item ? unmarshall(Item) : undefined
+    }, async () => (undefined)) as T | undefined
 }
 
 const abstractBatchGet = <Key extends { DataCategory: string }>(table: string) => async ({

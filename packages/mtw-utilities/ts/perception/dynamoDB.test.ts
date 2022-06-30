@@ -43,6 +43,7 @@ describe('getCharacterAssets', () => {
             case 'CHARACTERINPLAY#DEF':
                 return { assets: ['LayerB'], RoomId: 'XYZ' }
         }
+        return undefined
     }
 
     it('should fetch when nothing passed', async () => {
