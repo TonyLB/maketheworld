@@ -47,7 +47,7 @@ export const dependencyCascade = async (assetsMeta, assetValuesChanged, assetsAl
                 .map(({ asset }) => (asset))
                 .filter((asset) => (!(asset in draft.assetsMeta)))
             ))]
-            const metaFetched: { EphemeraId: string; state: Record<string, any>; Dependencies: any; importTree: any }[] = await ephemeraDB.batchGetItem({
+            const metaFetched = await ephemeraDB.batchGetItem<{ EphemeraId: string; state: Record<string, any>; Dependencies: any; importTree: any }>({
                 Items: unmappedAssets
                     .map((asset) => ({
                         EphemeraId: AssetKey(asset),

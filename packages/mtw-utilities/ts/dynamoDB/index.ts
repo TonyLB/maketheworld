@@ -226,13 +226,13 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
     }, async () => (undefined)) as T | undefined
 }
 
-const abstractBatchGet = <Key extends { DataCategory: string }>(table: string) => async ({
+const abstractBatchGet = <Key extends { DataCategory: string }>(table: string) => async <T extends Record<string, any>>({
     Items, ExpressionAttributeNames, ProjectionFields
 }: {
     Items: Key[],
     ExpressionAttributeNames?: Record<string, string>,
     ProjectionFields: string[]
-}) => {
+}): Promise<T[]> => {
     const batchPromises = paginateList(Items, 40)
         .filter((itemList) => (itemList.length))
         .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
@@ -246,8 +246,8 @@ const abstractBatchGet = <Key extends { DataCategory: string }>(table: string) =
     return outcomes.reduce((previous, { Responses = {} }) => {
         return [
             ...previous,
-            ...(Responses[table] || []).map((value) => (unmarshall(value)))
-        ]}, [] as Record<string, any>[])
+            ...(Responses[table] || []).map((value) => (unmarshall(value) as T))
+        ]}, [] as T[])
 }
 
 type UpdateExpressionProps = {

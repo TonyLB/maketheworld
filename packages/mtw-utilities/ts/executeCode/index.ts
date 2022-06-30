@@ -12,19 +12,23 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
             State: state = {},
             Dependencies: dependencies = {},
             importTree = {}
-        },
+        } = {},
         roomQueryItems,
         mapQueryItems,
         characterQueryItem
     ] = await Promise.all([
-        ephemeraDB.getItem({
+        ephemeraDB.getItem<{
+            State: Record<string, any>;
+            Dependencies: Record<string, any>;
+            importTree: Record<string, any>;
+        }>({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['#state', 'Dependencies', 'importTree'],
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
-        }) as any,
+        }),
         ephemeraDB.query({
             IndexName: 'DataCategoryIndex',
             DataCategory: `ASSET#${assetId}`,
@@ -247,11 +251,11 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
 }
 
 export const executeAction = async ({ action, assetId, RoomId, CharacterId }) => {
-    const { Actions: actions = {} } = await ephemeraDB.getItem({
+    const { Actions: actions = {} } = await ephemeraDB.getItem<{ Actions: Record<string, any> }>({
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['Actions']
-    }) as any
+    }) || {}
     const { src = '' } = actions[action] || {}
     if (src) {
         return await executeInAsset(assetId, { RoomId, CharacterId })(src)

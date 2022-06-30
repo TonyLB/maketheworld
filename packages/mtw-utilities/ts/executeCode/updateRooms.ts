@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { stringify, v4 as uuidv4 } from 'uuid'
 
 import { ephemeraDB, publishMessage } from '../dynamoDB'
 import { render } from '../perception/index'
@@ -13,6 +13,12 @@ import { objectMap } from '../objects'
 // (which is to say, any room updated in such a way as to side-effect maps should also
 // be included in the updates to room description)
 //
+type UpdateRoomsMeta = {
+    EphemeraId: string;
+    activeCharacters: Record<string, any>;
+    Dependencies: Record<string, any>;
+}
+
 export const updateRooms = async ({
     assetsChangedByRoom,
     assetsChangedByMap = {},
@@ -25,21 +31,23 @@ export const updateRooms = async ({
     existingStatesByAsset?: Record<string, any>;
 }) => {
     const roomsMetaFetch = await Promise.all(
-        Object.keys(assetsChangedByRoom).map((roomId) => (ephemeraDB.getItem({
+        Object.keys(assetsChangedByRoom).map((roomId) => (ephemeraDB.getItem<UpdateRoomsMeta>({
             EphemeraId: RoomKey(roomId),
             DataCategory: 'Meta::Room',
             ProjectionFields: ['EphemeraId', 'activeCharacters', 'Dependencies']
-        }) as any))
+        })))
     )
     if (roomsMetaFetch.length === 0) {
         return []
     }
-    const roomsMeta: { EphemeraId: string; activeCharacters?: Record<string, any>, Dependencies: Record<string, any>, assets: string[] }[] = roomsMetaFetch.map(({ EphemeraId, activeCharacters, Dependencies = {} }) => ({
-        EphemeraId,
-        activeCharacters,
-        Dependencies,
-        assets: assetsChangedByRoom[splitType(EphemeraId)[1]] || []
-    }))
+    const roomsMeta: (UpdateRoomsMeta & { assets: string[] })[] = roomsMetaFetch
+        .filter((value): value is UpdateRoomsMeta => !!value)
+        .map(({ EphemeraId, activeCharacters, Dependencies = {} }) => ({
+            EphemeraId,
+            activeCharacters,
+            Dependencies,
+            assets: assetsChangedByRoom[splitType(EphemeraId)[1]] || []
+        }))
 
     //
     // Look at all the maps that might be side-effected by the room changes we're
