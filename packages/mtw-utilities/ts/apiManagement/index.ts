@@ -174,7 +174,7 @@ export class SocketQueue extends Object {
         this.forceConnections = unique(this.forceConnections, forceConnections) as string[]
     }
     async flush() {
-        const deliver = (connections = {}) => async (ConnectionId) => {
+        const deliver = (connections: Record<string, string> = {}) => async (ConnectionId) => {
             const deliverMessage = async (message) => {
                 await apiClient.send({
                     ConnectionId,
@@ -206,11 +206,11 @@ export class SocketQueue extends Object {
 
         }
         if (queueHasContent(this.globalMessageQueue) || Object.values(this.messageQueueByPlayer).find((queue) => (queueHasContent(queue)))) {
-            const { connections = {} } = await ephemeraDB.getItem({
+            const { connections = {} } = await ephemeraDB.getItem<{ connections: Record<string, string>}>({
                 EphemeraId: 'Global',
                 DataCategory: 'Connections',
                 ProjectionFields: ['connections']
-            } as any) as any
+            }) as any
             await Promise.all(
                 [
                     ...Object.keys(connections),

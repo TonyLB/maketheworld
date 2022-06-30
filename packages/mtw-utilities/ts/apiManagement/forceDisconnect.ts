@@ -42,11 +42,13 @@ export const forceDisconnect = async (ConnectionId) => {
         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'CHARACTERINPLAY'))
         .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
 
-    const { ConnectionIds: oldLibrarySubscription = [] } = await ephemeraDB.getItem({
+    const { ConnectionIds: oldLibrarySubscription = [] } = await ephemeraDB.getItem<{
+        ConnectionIds: string[]
+    }>({
         EphemeraId: 'Library',
         DataCategory: 'Subscriptions',
         ProjectionFields: ['ConnectionIds']
-    } as any) as { ConnectionIds: string[] }
+    }) as { ConnectionIds: string[] }
 
     await Promise.all([
         ephemeraDB.deleteItem({

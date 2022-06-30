@@ -6,14 +6,14 @@ export const getItemMeta = async (items) => {
     const getSingleMeta = async (EphemeraId) => {
         switch(splitType(EphemeraId)[0]) {
             case 'CHARACTERINPLAY':
-                const characterItem = await ephemeraDB.getItem({
+                const characterItem = await ephemeraDB.getItem<{ Name: string }>({
                     EphemeraId,
                     DataCategory: 'Meta::Character',
                     ProjectionFields: ['#name', 'fileURL', 'FirstImpression', 'OneCoolThing', 'Outfit', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                } as any)
+                })
                 return { [EphemeraId]: [{
                     DataCategory: 'Meta::Character',
                     ...characterItem
@@ -37,11 +37,11 @@ export const getGlobalAssets = async (priorGlobalAssets?: any) => {
     if (priorGlobalAssets !== undefined) {
         return priorGlobalAssets
     }
-    const { assets = [] }: { assets?: string[] } = await ephemeraDB.getItem({
+    const { assets = [] }: { assets?: string[] } = await ephemeraDB.getItem<{ assets: string[] }>({
         EphemeraId: 'Global',
         DataCategory: 'Assets',
         ProjectionFields: ['assets']
-    } as any) || {}
+    }) || {}
     return assets
 }
 
@@ -51,11 +51,11 @@ export const getCharacterAssets = async (characters, priorCharacterAssets = {}) 
     // RoomId for any links rendered for that character
     //
     const getSingleCharacterAssets = async (characterId) => {
-        const { assets = [], RoomId }: { assets?: string[], RoomId?: string } = await ephemeraDB.getItem({
+        const { assets = [], RoomId }: { assets?: string[], RoomId?: string } = await ephemeraDB.getItem<{ assets: string[]; RoomId: string }>({
             EphemeraId: `CHARACTERINPLAY#${characterId}`,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['assets', 'RoomId']
-        } as any) || {}
+        }) || {}
         return { [characterId]: { assets, RoomId } }
     }
     const neededCharacters = await Promise.all(
@@ -77,14 +77,14 @@ export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
                 }
             }
         }
-        const { State = {}, mapCache = {} }: { State?: Record<string, any>, mapCache?: RoomCache } = await ephemeraDB.getItem({
+        const { State = {}, mapCache = {} } = await ephemeraDB.getItem<{ State?: Record<string, any>, mapCache?: RoomCache }>({
             EphemeraId: AssetKey(assetId),
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['#state', 'mapCache'],
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
-        } as any) || {}
+        }) || {}
         return {
             [assetId]: {
                 State: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}),
@@ -100,10 +100,10 @@ export const getNormalForm = async (assetId, existingNormalFormsByAsset = {}) =>
     if (existingNormalFormsByAsset[assetId]) {
         return existingNormalFormsByAsset[assetId]
     }
-    const { normalForm = {} }: { normalForm?: Record<string, any> } = await ephemeraDB.getItem({
+    const { normalForm = {} } = await ephemeraDB.getItem<{ normalForm: Record<string, any> }>({
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::AssetNormalized',
         ProjectionFields: ['normalForm']
-    } as any) || {}
+    }) || {}
     return normalForm
 }

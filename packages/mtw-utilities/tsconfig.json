@@ -18,5 +18,5 @@
       "declaration": true,
       "declarationMap": true
     },
-    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__snapshots__/*", "dist"]
+    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__snapshots__/*", "dist/**/*", "jest.config.js"]
 }

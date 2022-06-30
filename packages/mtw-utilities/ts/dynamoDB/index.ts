@@ -15,8 +15,9 @@ import { produce } from 'immer'
 
 import { asyncSuppressExceptions } from '../errors'
 import { DEVELOPER_MODE } from '../constants'
-import { abstractQuery } from './query'
+import { assetsQueryFactory, ephemeraQueryFactory } from './query'
 import delayPromise from "./delayPromise"
+import { stringify } from "uuid"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -189,22 +190,28 @@ export const mergeIntoDataRange = async ({
     })
 }
 
-const abstractGetItem = (table) => async ({
-    AssetId,
-    EphemeraId,
-    MessageId,
-    DataCategory,
-    ProjectionFields = [
-        table === assetsTable
-            ? 'AssetId'
-            : table === ephemeraTable
-                ? 'EphemeraId'
-                : 'MessageId'
-    ],
-    ExpressionAttributeNames
-}) => {
+type GetItemExtendedProps = {
+    ProjectionFields?: string[];
+    ExpressionAttributeNames?: Record<string, string>;
+}
+
+const abstractGetItem = <Key extends { DataCategory: string }>(table: string) => async <T extends Record<string, any>>(props: Key & GetItemExtendedProps): Promise<T | undefined> => {
+    const {
+        AssetId,
+        EphemeraId,
+        MessageId,
+        DataCategory,
+        ProjectionFields = [
+            table === assetsTable
+                ? 'AssetId'
+                : table === ephemeraTable
+                    ? 'EphemeraId'
+                    : 'MessageId'
+        ],
+        ExpressionAttributeNames
+    } = props as any
     return await asyncSuppressExceptions(async () => {
-        const { Item = {} } = await dbClient.send(new GetItemCommand({
+        const { Item = null } = await dbClient.send(new GetItemCommand({
             TableName: table,
             Key: marshall({
                 AssetId,
@@ -215,15 +222,17 @@ const abstractGetItem = (table) => async ({
             ProjectionExpression: ProjectionFields.join(', '),
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         }))
-        return unmarshall(Item)
-    })
+        return Item ? unmarshall(Item) : undefined
+    }, async () => (undefined)) as T | undefined
 }
 
-const abstractBatchGet = (table) => async ({
-    Items,
-    ExpressionAttributeNames,
-    ProjectionFields
-}) => {
+const abstractBatchGet = <Key extends { DataCategory: string }>(table: string) => async <T extends Record<string, any>>({
+    Items, ExpressionAttributeNames, ProjectionFields
+}: {
+    Items: Key[],
+    ExpressionAttributeNames?: Record<string, string>,
+    ProjectionFields: string[]
+}): Promise<T[]> => {
     const batchPromises = paginateList(Items, 40)
         .filter((itemList) => (itemList.length))
         .map((itemList) => (dbClient.send(new BatchGetItemCommand({ RequestItems: {
@@ -237,11 +246,19 @@ const abstractBatchGet = (table) => async ({
     return outcomes.reduce((previous, { Responses = {} }) => {
         return [
             ...previous,
-            ...(Responses[table] || []).map((value) => (unmarshall(value)))
-        ]}, [] as Record<string, any>[])
+            ...(Responses[table] || []).map((value) => (unmarshall(value) as T))
+        ]}, [] as T[])
 }
 
-export const abstractUpdate = (table) => async (props) => {
+type UpdateExpressionProps = {
+    UpdateExpression: string;
+    ExpressionAttributeNames?: Record<string, string>;
+    ExpressionAttributeValues?: Record<string, any>;
+    ReturnValues?: string[],
+    catchException?: (err: any) => void;
+}
+
+export const abstractUpdate = <Key extends { DataCategory: string }>(table: string) => async (props: Key & UpdateExpressionProps) => {
     const {
         AssetId,
         EphemeraId,
@@ -252,7 +269,7 @@ export const abstractUpdate = (table) => async (props) => {
         ExpressionAttributeValues,
         ReturnValues,
         catchException = () => ({})
-    } = props
+    } = props as any
     return await asyncSuppressExceptions(async () => {
         const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
             TableName: table,
@@ -443,7 +460,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
     return returnValue
 }
 
-const abstractPutItem = (table) => async (item) => {
+const abstractPutItem = <Key extends { DataCategory: string }>(table: string) => async <T extends Key>(item: T) => {
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new PutItemCommand({
             TableName: table,
@@ -452,27 +469,44 @@ const abstractPutItem = (table) => async (item) => {
     })
 }
 
-const abstractDeleteItem = (table) => async (key) => {
+const abstractDeleteItem = <Key extends { DataCategory: string }>(table: string) => async (key: Key): Promise<void> => {
     return await asyncSuppressExceptions(async () => {
         await dbClient.send(new DeleteItemCommand({
             TableName: table,
             Key: marshall(key, { removeUndefinedValues: true })
         }))
-    })
+    }) as void
 }
 
-const dbHandlerFactory = (table) => ({
-    getItem: abstractGetItem(table),
-    batchGetItem: abstractBatchGet(table),
-    query: abstractQuery(dbClient, table),
-    update: abstractUpdate(table),
-    optimisticUpdate: abstractOptimisticUpdate(table),
-    putItem: abstractPutItem(table),
-    deleteItem: abstractDeleteItem(table)
-})
+type EphemeraDBKey = {
+    EphemeraId: string;
+    DataCategory: string;
+}
 
-export const assetDB = dbHandlerFactory(assetsTable)
-export const ephemeraDB = dbHandlerFactory(ephemeraTable)
+export const ephemeraDB = {
+    getItem: abstractGetItem<EphemeraDBKey>(ephemeraTable),
+    batchGetItem: abstractBatchGet<EphemeraDBKey>(ephemeraTable),
+    query: ephemeraQueryFactory(dbClient),
+    update: abstractUpdate<EphemeraDBKey>(ephemeraTable),
+    optimisticUpdate: abstractOptimisticUpdate(ephemeraTable),
+    putItem: abstractPutItem<EphemeraDBKey>(ephemeraTable),
+    deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable)
+}
+
+type AssetDBKey = {
+    AssetId: string;
+    DataCategory: string;
+}
+
+export const assetDB = {
+    getItem: abstractGetItem<AssetDBKey>(assetsTable),
+    batchGetItem: abstractBatchGet<AssetDBKey>(assetsTable),
+    query: assetsQueryFactory(dbClient),
+    update: abstractUpdate<AssetDBKey>(assetsTable),
+    optimisticUpdate: abstractOptimisticUpdate(assetsTable),
+    putItem: abstractPutItem<AssetDBKey>(assetsTable),
+    deleteItem: abstractDeleteItem<AssetDBKey>(assetsTable)
+}
 
 export const publishMessage = async (Item) => {
     return await asyncSuppressExceptions(async () => {
