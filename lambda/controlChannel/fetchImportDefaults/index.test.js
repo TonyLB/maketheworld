@@ -1,9 +1,7 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-jest.mock('@tonylb/mtw-utilities/dist/executeCode/sortImportTree.js')
-import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+jest.mock('@tonylb/mtw-utilities/dist/executeCode/sortImportTree')
+import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree'
 
 import fetchImportDefaults from './index.js'
 

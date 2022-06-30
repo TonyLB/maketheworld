@@ -1,5 +1,3 @@
-import { jest, describe, it, expect } from '@jest/globals'
-
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 jest.mock('@tonylb/mtw-utilities/dist/selfHealing/index.js')
