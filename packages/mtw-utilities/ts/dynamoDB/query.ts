@@ -11,12 +11,6 @@ const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 const messageTable = `${TABLE_PREFIX}_messages`
 
-type ExtractKeyBase = {
-    AssetId?: string;
-    EphemeraId?: string;
-    MessageId?: string;
-}
-
 type QueryExtendedProps = Partial<{
     ProjectionFields: string[];
     KeyConditionExpression: string;
@@ -24,14 +18,6 @@ type QueryExtendedProps = Partial<{
     ExpressionAttributeValues: Record<string, any>;
     FilterExpression: string;
 }>
-
-type DynamoTables = 'Assets' | 'Ephemera' | 'Messages'
-
-type QueryPropsNoIndex<Table extends DynamoTables> = {
-    IndexName: '';
-} & (Table extends 'Assets' 
-    ? { AssetId: string }
-    : Table extends 'Ephemera' ? { EphemeraId: string } : { MessageId: string })
 
 type QueryKeyPropsDataCategoryIndex = {
     IndexName: 'DataCategoryIndex';
@@ -57,8 +43,6 @@ type QueryKeyPropsConnectionIndex = {
     IndexName: 'ConnectionIndex';
     ConnectionId: string;
 }
-
-type QueryKeyProps<Table extends DynamoTables> = QueryPropsNoIndex<Table> | QueryKeyPropsDataCategoryIndex | QueryKeyPropsPlayerIndex | QueryKeyPropsZoneIndex | QueryKeyPropsScopedIdIndex | QueryKeyPropsConnectionIndex
 
 type ExtractKeyReturn = {
     KeyConditionExpression: string;
@@ -144,7 +128,6 @@ export const ephemeraExtractKeyInfo = (props: EphemeraQueryKeyProps): ExtractKey
             }
     }    
 }
-type QueryProps<Table extends DynamoTables> = QueryKeyProps<Table> & QueryExtendedProps
 
 export const abstractQueryExtended = <QueryInferredProps extends QueryExtendedProps & { IndexName?: string }>(dbClient: DynamoDBClient, table: string, extractKeyInfo: (props: QueryInferredProps) => ExtractKeyReturn) => async (props: QueryInferredProps) => {
     const {
