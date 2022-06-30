@@ -1,5 +1,6 @@
 jest.mock('../dynamoDB')
 import { ephemeraDB } from '../dynamoDB'
+import { EphemeraQueryKeyProps } from '../dynamoDB/query'
 
 import { getCharacterAssets, getGlobalAssets, getItemMeta } from './dynamoDB'
 
@@ -87,23 +88,24 @@ describe('getItemMeta', () => {
     })
 
     it('should fetch all types of data', async () => {
-        const mockQueryImplementation = async ({ EphemeraId }) => {
-            switch(EphemeraId) {
-                case 'ROOM#ABC':
-                    return [{
-                        DataCategory: 'Meta::Room',
-                        activeCharacters: {}
-                    },
-                    {
-                        DataCategory: 'ASSET#BASE',
-                        appearances: [{
-                            contextStack: [],
-                            render: ['Test']
+        const mockQueryImplementation = async (props: EphemeraQueryKeyProps) => {
+            if (!props.IndexName) {
+                switch(props.EphemeraId) {
+                    case 'ROOM#ABC':
+                        return [{
+                            DataCategory: 'Meta::Room',
+                            activeCharacters: {}
+                        },
+                        {
+                            DataCategory: 'ASSET#BASE',
+                            appearances: [{
+                                contextStack: [],
+                                render: ['Test']
+                            }]
                         }]
-                    }]
-                default:
-                    return []
+                }
             }
+            return [] as { DataCategory: string; appearances: any[] }[]
         }
         mockedEphemeraDB.getItem.mockResolvedValue({
             Name: 'Tess',

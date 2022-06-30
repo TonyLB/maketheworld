@@ -1,5 +1,6 @@
 import {
     QueryCommand,
+    DynamoDBClient
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -9,72 +10,145 @@ const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
 const messageTable = `${TABLE_PREFIX}_messages`
-const deltaTable = `${TABLE_PREFIX}_message_delta`
 
-const extractKeyInfo = (table, indexName, {
-    AssetId,
-    EphemeraId,
-    MessageId,
-    DataCategory,
-    player,
-    scopedId,
-    ConnectionId,
-    zone
-}) => {
-    if (indexName) {
-        switch(indexName) {
-            case 'PlayerIndex':
-                return {
-                    KeyConditionExpression: 'player = :keyId',
-                    keyId: player
-                }
-            case 'ScopedIdIndex':
-                return {
-                    KeyConditionExpression: 'scopedId = :keyId',
-                    keyId: scopedId
-                }
-            case 'ConnectionIndex':
-                return {
-                    KeyConditionExpression: 'ConnectionId = :keyId',
-                    keyId: ConnectionId
-                }
-            case 'ZoneIndex':
-                return {
-                    KeyConditionExpression: '#zone = :keyId',
-                    keyId: zone
-                }
-            case 'DataCategoryIndex':
-            default:
-                return {
-                    KeyConditionExpression: 'DataCategory = :keyId',
-                    keyId: DataCategory
-                }
-        }    
-    }
-    else {
-        switch(table) {
-            case messageTable:
-                return {
-                    KeyConditionExpression: 'MessageId = :keyId',
-                    keyId: MessageId,
-                }
-            case ephemeraTable:
-                return {
-                    KeyConditionExpression: 'EphemeraId = :keyId',
-                    keyId: EphemeraId,
-                }
-            default:
-                return {
-                    KeyConditionExpression: 'AssetId = :keyId',
-                    keyId: AssetId,
-                }
-        }
-    }
+type ExtractKeyBase = {
+    AssetId?: string;
+    EphemeraId?: string;
+    MessageId?: string;
 }
 
-export const abstractQueryExtended = (dbClient, table) => async (props) => {
+type QueryExtendedProps = Partial<{
+    ProjectionFields: string[];
+    KeyConditionExpression: string;
+    ExpressionAttributeNames: Record<string, string>;
+    ExpressionAttributeValues: Record<string, any>;
+    FilterExpression: string;
+}>
+
+type DynamoTables = 'Assets' | 'Ephemera' | 'Messages'
+
+type QueryPropsNoIndex<Table extends DynamoTables> = {
+    IndexName: '';
+} & (Table extends 'Assets' 
+    ? { AssetId: string }
+    : Table extends 'Ephemera' ? { EphemeraId: string } : { MessageId: string })
+
+type QueryKeyPropsDataCategoryIndex = {
+    IndexName: 'DataCategoryIndex';
+    DataCategory: string;
+}
+
+type QueryKeyPropsScopedIdIndex = {
+    IndexName: 'ScopedIdIndex';
+    scopedId: string;
+}
+
+type QueryKeyPropsPlayerIndex = {
+    IndexName: 'PlayerIndex';
+    player: string;
+}
+
+type QueryKeyPropsZoneIndex = {
+    IndexName: 'ZoneIndex';
+    zone: string;
+}
+
+type QueryKeyPropsConnectionIndex = {
+    IndexName: 'ConnectionIndex';
+    ConnectionId: string;
+}
+
+type QueryKeyProps<Table extends DynamoTables> = QueryPropsNoIndex<Table> | QueryKeyPropsDataCategoryIndex | QueryKeyPropsPlayerIndex | QueryKeyPropsZoneIndex | QueryKeyPropsScopedIdIndex | QueryKeyPropsConnectionIndex
+
+type ExtractKeyReturn = {
+    KeyConditionExpression: string;
+    keyId: string;
+}
+
+export type AssetQueryKeyProps = {
+    IndexName?: '';
+    AssetId: string;
+} | QueryKeyPropsDataCategoryIndex | QueryKeyPropsPlayerIndex | QueryKeyPropsZoneIndex | QueryKeyPropsScopedIdIndex | QueryKeyPropsConnectionIndex | QueryKeyPropsDataCategoryIndex
+
+export const assetExtractKeyInfo = (props: AssetQueryKeyProps): ExtractKeyReturn => {
+    switch(props.IndexName) {
+        case 'PlayerIndex':
+            return {
+                KeyConditionExpression: 'player = :keyId',
+                keyId: props.player
+            }
+        case 'ScopedIdIndex':
+            return {
+                KeyConditionExpression: 'scopedId = :keyId',
+                keyId: props.scopedId
+            }
+        case 'ConnectionIndex':
+            return {
+                KeyConditionExpression: 'ConnectionId = :keyId',
+                keyId: props.ConnectionId
+            }
+        case 'ZoneIndex':
+            return {
+                KeyConditionExpression: '#zone = :keyId',
+                keyId: props.zone
+            }
+        case 'DataCategoryIndex':
+            return {
+                KeyConditionExpression: 'DataCategory = :keyId',
+                keyId: props.DataCategory
+            }
+        default:
+            return {
+                KeyConditionExpression: 'AssetId = :keyId',
+                keyId: props.AssetId
+            }
+    }    
+}
+
+export type EphemeraQueryKeyProps = {
+    IndexName?: '';
+    EphemeraId: string;
+} | QueryKeyPropsDataCategoryIndex | QueryKeyPropsPlayerIndex | QueryKeyPropsZoneIndex | QueryKeyPropsScopedIdIndex | QueryKeyPropsConnectionIndex | QueryKeyPropsDataCategoryIndex
+
+export const ephemeraExtractKeyInfo = (props: EphemeraQueryKeyProps): ExtractKeyReturn => {
+    switch(props.IndexName) {
+        case 'PlayerIndex':
+            return {
+                KeyConditionExpression: 'player = :keyId',
+                keyId: props.player
+            }
+        case 'ScopedIdIndex':
+            return {
+                KeyConditionExpression: 'scopedId = :keyId',
+                keyId: props.scopedId
+            }
+        case 'ConnectionIndex':
+            return {
+                KeyConditionExpression: 'ConnectionId = :keyId',
+                keyId: props.ConnectionId
+            }
+        case 'ZoneIndex':
+            return {
+                KeyConditionExpression: '#zone = :keyId',
+                keyId: props.zone
+            }
+        case 'DataCategoryIndex':
+            return {
+                KeyConditionExpression: 'DataCategory = :keyId',
+                keyId: props.DataCategory
+            }
+        default:
+            return {
+                KeyConditionExpression: 'EphemeraId = :keyId',
+                keyId: props.EphemeraId
+            }
+    }    
+}
+type QueryProps<Table extends DynamoTables> = QueryKeyProps<Table> & QueryExtendedProps
+
+export const abstractQueryExtended = <QueryInferredProps extends QueryExtendedProps & { IndexName?: string }>(dbClient: DynamoDBClient, table: string, extractKeyInfo: (props: QueryInferredProps) => ExtractKeyReturn) => async (props: QueryInferredProps) => {
     const {
-        IndexName,
+        IndexName = '',
         ProjectionFields: passedProjectionFields,
         KeyConditionExpression: extraExpression,
         ExpressionAttributeNames = {},
@@ -90,11 +164,7 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
                     table === messageTable && 'MessageId'
                 ].filter((value) => (value)) 
                 : ['DataCategory'])
-        const { KeyConditionExpression: baseExpression, keyId } = extractKeyInfo(
-            table,
-            IndexName,
-            props
-        )
+        const { KeyConditionExpression: baseExpression, keyId } = extractKeyInfo(props)
         const KeyConditionExpression = extraExpression
             ? `${baseExpression} AND ${extraExpression}`
             : baseExpression
@@ -117,12 +187,15 @@ export const abstractQueryExtended = (dbClient, table) => async (props) => {
             FilterExpression
         }))
         return {
-            Items: Items.map(unmarshall)
+            Items: Items.map((value) => (unmarshall(value)))
         }
     }, async () => ({ Items: [] }))
 }
 
-export const abstractQuery = (dbClient, table) => async (props) => {
-    const { Items } = await abstractQueryExtended(dbClient, table)(props) as any
+export const abstractQuery = <QueryInferredProps extends QueryExtendedProps & { IndexName?: string }>(dbClient: DynamoDBClient, table: string, extractKeyInfo: (props: QueryInferredProps) => ExtractKeyReturn) => async <T extends Record<string, any>[]>(props: QueryInferredProps): Promise<T> => {
+    const { Items } = await abstractQueryExtended(dbClient, table, extractKeyInfo)(props) as { Items: T }
     return Items
 }
+
+export const assetsQueryFactory = (dbClient: DynamoDBClient): (<T extends Record<string, any>[]>(props: AssetQueryKeyProps & QueryExtendedProps) => Promise<T>) => (abstractQuery<AssetQueryKeyProps & QueryExtendedProps>(dbClient, assetsTable, assetExtractKeyInfo))
+export const ephemeraQueryFactory = (dbClient: DynamoDBClient): (<T extends Record<string, any>[]>(props: EphemeraQueryKeyProps & QueryExtendedProps) => Promise<T>) => (abstractQuery<EphemeraQueryKeyProps & QueryExtendedProps>(dbClient, ephemeraTable, ephemeraExtractKeyInfo))

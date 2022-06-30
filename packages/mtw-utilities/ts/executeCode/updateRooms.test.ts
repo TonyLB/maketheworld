@@ -158,7 +158,7 @@ describe('updateRooms', () => {
                 map: ['MAP#TestMap']
             }
         })
-        mockedEphemeraDB.query.mockImplementation(async ({ IndexName }: { IndexName: string }) => {
+        mockedEphemeraDB.query.mockImplementation(async ({ IndexName }: { IndexName?: string }) => {
             if (IndexName === 'DataCategoryIndex') {
                 return [{
                     EphemeraId: 'CHARACTERINPLAY#TESS',

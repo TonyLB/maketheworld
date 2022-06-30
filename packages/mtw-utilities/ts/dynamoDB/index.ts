@@ -15,7 +15,7 @@ import { produce } from 'immer'
 
 import { asyncSuppressExceptions } from '../errors'
 import { DEVELOPER_MODE } from '../constants'
-import { abstractQuery } from './query'
+import { assetsQueryFactory, ephemeraQueryFactory } from './query'
 import delayPromise from "./delayPromise"
 
 const { TABLE_PREFIX } = process.env;
@@ -461,18 +461,25 @@ const abstractDeleteItem = (table) => async (key) => {
     })
 }
 
-const dbHandlerFactory = (table) => ({
-    getItem: abstractGetItem(table),
-    batchGetItem: abstractBatchGet(table),
-    query: abstractQuery(dbClient, table),
-    update: abstractUpdate(table),
-    optimisticUpdate: abstractOptimisticUpdate(table),
-    putItem: abstractPutItem(table),
-    deleteItem: abstractDeleteItem(table)
-})
+export const ephemeraDB = {
+    getItem: abstractGetItem(ephemeraTable),
+    batchGetItem: abstractBatchGet(ephemeraTable),
+    query: ephemeraQueryFactory(dbClient),
+    update: abstractUpdate(ephemeraTable),
+    optimisticUpdate: abstractOptimisticUpdate(ephemeraTable),
+    putItem: abstractPutItem(ephemeraTable),
+    deleteItem: abstractDeleteItem(ephemeraTable)
+}
 
-export const assetDB = dbHandlerFactory(assetsTable)
-export const ephemeraDB = dbHandlerFactory(ephemeraTable)
+export const assetDB = {
+    getItem: abstractGetItem(assetsTable),
+    batchGetItem: abstractBatchGet(assetsTable),
+    query: assetsQueryFactory(dbClient),
+    update: abstractUpdate(assetsTable),
+    optimisticUpdate: abstractOptimisticUpdate(assetsTable),
+    putItem: abstractPutItem(assetsTable),
+    deleteItem: abstractDeleteItem(assetsTable)
+}
 
 export const publishMessage = async (Item) => {
     return await asyncSuppressExceptions(async () => {
