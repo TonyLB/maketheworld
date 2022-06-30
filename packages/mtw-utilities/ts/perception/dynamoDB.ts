@@ -13,7 +13,7 @@ export const getItemMeta = async (items) => {
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                } as any)
+                })
                 return { [EphemeraId]: [{
                     DataCategory: 'Meta::Character',
                     ...characterItem
@@ -41,7 +41,7 @@ export const getGlobalAssets = async (priorGlobalAssets?: any) => {
         EphemeraId: 'Global',
         DataCategory: 'Assets',
         ProjectionFields: ['assets']
-    } as any) || {}
+    }) || {}
     return assets
 }
 
@@ -55,7 +55,7 @@ export const getCharacterAssets = async (characters, priorCharacterAssets = {}) 
             EphemeraId: `CHARACTERINPLAY#${characterId}`,
             DataCategory: 'Meta::Character',
             ProjectionFields: ['assets', 'RoomId']
-        } as any) || {}
+        }) || {}
         return { [characterId]: { assets, RoomId } }
     }
     const neededCharacters = await Promise.all(
@@ -84,7 +84,7 @@ export const getStateByAsset = async (assets, existingStatesByAsset = {}) => {
             ExpressionAttributeNames: {
                 '#state': 'State'
             }
-        } as any) || {}
+        }) || {}
         return {
             [assetId]: {
                 State: Object.entries(State).reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {}),
@@ -104,6 +104,6 @@ export const getNormalForm = async (assetId, existingNormalFormsByAsset = {}) =>
         EphemeraId: AssetKey(assetId),
         DataCategory: 'Meta::AssetNormalized',
         ProjectionFields: ['normalForm']
-    } as any) || {}
+    }) || {}
     return normalForm
 }

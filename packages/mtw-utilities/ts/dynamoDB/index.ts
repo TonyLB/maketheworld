@@ -191,8 +191,8 @@ export const mergeIntoDataRange = async ({
 }
 
 type GetItemExtendedProps = {
-    ProjectionFields: string[];
-    ExpressionAttributeNames: Record<string, string>;
+    ProjectionFields?: string[];
+    ExpressionAttributeNames?: Record<string, string>;
 }
 
 const abstractGetItem = <Key extends { DataCategory: string }>(table: string) => async (props: Key & GetItemExtendedProps) => {

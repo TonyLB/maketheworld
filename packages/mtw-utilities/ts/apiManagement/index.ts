@@ -210,7 +210,7 @@ export class SocketQueue extends Object {
                 EphemeraId: 'Global',
                 DataCategory: 'Connections',
                 ProjectionFields: ['connections']
-            } as any) as any
+            }) as any
             await Promise.all(
                 [
                     ...Object.keys(connections),

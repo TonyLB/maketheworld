@@ -29,7 +29,7 @@ export const updateRooms = async ({
             EphemeraId: RoomKey(roomId),
             DataCategory: 'Meta::Room',
             ProjectionFields: ['EphemeraId', 'activeCharacters', 'Dependencies']
-        } as any) as any))
+        }) as any))
     )
     if (roomsMetaFetch.length === 0) {
         return []

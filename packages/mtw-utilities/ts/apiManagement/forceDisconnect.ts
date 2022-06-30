@@ -46,7 +46,7 @@ export const forceDisconnect = async (ConnectionId) => {
         EphemeraId: 'Library',
         DataCategory: 'Subscriptions',
         ProjectionFields: ['ConnectionIds']
-    } as any) as { ConnectionIds: string[] }
+    }) as { ConnectionIds: string[] }
 
     await Promise.all([
         ephemeraDB.deleteItem({

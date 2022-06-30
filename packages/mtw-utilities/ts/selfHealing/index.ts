@@ -215,7 +215,7 @@ export const healCharacter = async (CharacterId) => {
             ExpressionAttributeNames: {
                 '#Name': 'Name'
             }
-        } as any)
+        })
 
         const healCharacterItem = async () => {
             if (Item) {
