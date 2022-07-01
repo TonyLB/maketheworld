@@ -1,8 +1,8 @@
 import { produce } from 'immer'
 
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
-import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox.js'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types'
+import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 import { objectFilter } from '../lib/objects.js'
 
 const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({

@@ -1,7 +1,7 @@
 import {
     mergeIntoDataRange
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types'
 
 //
 // At current levels of functionality, it is sufficient to do a deep-equality

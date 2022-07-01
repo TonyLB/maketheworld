@@ -1,8 +1,8 @@
 import {
     assetDB,
     ephemeraDB
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types'
 
 export const putAssetNormalized = async ({ assetId, normalForm }) => {
     await ephemeraDB.putItem({

@@ -2,11 +2,11 @@ import { jest, expect } from '@jest/globals'
 import { marshall } from "@aws-sdk/util-dynamodb"
 
 jest.mock('../clients.js')
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB,
     batchWriteDispatcher
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 

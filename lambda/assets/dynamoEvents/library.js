@@ -1,6 +1,6 @@
-import { generateLibrary } from "@tonylb/mtw-utilities/dist/selfHealing/index.js"
-import { SocketQueue } from '@tonylb/mtw-utilities/dist/apiManagement/index.js'
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
+import { generateLibrary } from "@tonylb/mtw-utilities/dist/selfHealing/index"
+import { SocketQueue } from '@tonylb/mtw-utilities/dist/apiManagement/index'
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
 export const handleLibraryEvents = async ({ events }) => {
     const anyLibraryUpdates = (events
