@@ -8,19 +8,19 @@ import { whoAmI, getPlayerByConnectionId, convertAssetQuery } from './player/ind
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
-import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
-import { deliverRenders } from '@tonylb/mtw-utilities/dist/perception/deliverRenders.js'
-import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index.js'
+import { render } from '@tonylb/mtw-utilities/dist/perception/index'
+import { deliverRenders } from '@tonylb/mtw-utilities/dist/perception/deliverRenders'
+import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
 
-import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
-import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
+import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types'
+import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import {
     publishMessage,
     ephemeraDB,
     assetDB
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect.js'
-import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index.js'
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect'
+import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
 import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.js'
 import fetchImportDefaults from './fetchImportDefaults/index.js'

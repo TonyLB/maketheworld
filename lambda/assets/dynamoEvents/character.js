@@ -1,5 +1,5 @@
-import { splitType } from "@tonylb/mtw-utilities/dist/types.js"
-import { assetDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { assetDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
 export const handleCharacterEvents = async ({ events }) => {
     await Promise.all(

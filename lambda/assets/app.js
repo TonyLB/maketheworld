@@ -4,7 +4,7 @@ import { S3Client } from "@aws-sdk/client-s3"
 import { cacheAsset } from './cache/index.js'
 import { instantiateAsset } from './cache/instantiate/index.js'
 import { healAsset } from "./selfHealing/index.js"
-import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index.js"
+import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
 import { handleUpload, createUploadLink, createUploadImageLink } from './upload/index.js'
 import { createFetchLink } from './fetch/index.js'

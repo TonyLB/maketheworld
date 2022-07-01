@@ -11,10 +11,10 @@
       "forceConsistentCasingInFileNames": true,  
       "sourceMap": true,
       "declaration": true,
-      "declarationMap": true
+      "declarationMap": true,
+      "allowJs": true,
+      "checkJs": false,
+      "noImplicitAny": false
     },
-    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__mocks__/*", "**/__snapshots__/*"],
-    "references": [{
-        "path": "../../packages/mtw-utilities/tsconfig.ref.json"
-    }]
+    "exclude": ["node_modules", "**/*.test.ts", "**/*.test.js", "**/__mocks__/*", "**/__snapshots__/*"]
   }
