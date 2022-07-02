@@ -14,7 +14,7 @@ describe('ReturnValueMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.get.mockReturnValue("TestConnection")
+        internalCacheMock.get.mockResolvedValue("TestConnection")
     })
 
     it('should call apiClient against registered connectionId', async () => {

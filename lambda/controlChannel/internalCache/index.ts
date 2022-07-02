@@ -1,39 +1,82 @@
-type CacheItem = {
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+
+type CacheItem<T> = {
     invalidatedAt?: number;
-    value: any;
+    value: T;
 }
 
-type CacheCategory = {
-    entries: Record<string, any>;
+type CacheCategoryKeyValue = {
+    entries: Record<string, CacheItem<any>>;
+    fetch: false;
 }
 
-//
-// TODO: More specifically type-constrain certain categories to having only certain data types
-//
+type CacheCategoryLookup<T> = {
+    entries: Record<string, CacheItem<T>>;
+    fetch: (key: string) => Promise<T>;
+}
 
-//
-// TODO: Create two different types of categories:  Key-Value, which store individual data
-// items by explicit key, and Lookup which come with a fetch function that takes a key and
-// asynchronously fetches an entry of a specified data-type according to that key.
-//
+type RoomCharacterActive = {
+    EphemeraId: string;
+    Color?: string;
+    ConnectionIds: string[];
+    fileURL?: string;
+    Name: string;
+}
+
+type CacheStorageType = {
+    Global: CacheCategoryKeyValue;
+    RoomCharacterList: CacheCategoryLookup<Record<string, RoomCharacterActive>>;
+}
+
+const initialCache: CacheStorageType = {
+    Global: {
+        entries: {},
+        fetch: false
+    },
+    RoomCharacterList: {
+        entries: {},
+        fetch: async (RoomId) => {
+            const { activeCharacters = {} } = await ephemeraDB.getItem<{
+                    activeCharacters: Record<string, RoomCharacterActive>
+                }>({
+                    EphemeraId: `ROOM#${RoomId}`,
+                    DataCategory: 'Meta::Room',
+                    ProjectionFields: ['activeCharacters']
+                }) || { activeCharacters: {} }
+            return activeCharacters
+        }
+    }
+}
+
+const isCacheKeyValue = <T>(prop: CacheCategoryKeyValue | CacheCategoryLookup<T>): prop is CacheCategoryKeyValue => (prop.fetch === false)
+
 export class InternalCache extends Object {
-    _cache: Record<string, CacheCategory> = {};
+    _cache: CacheStorageType = initialCache
 
     constructor() {
         super()
     }
 
-    set({ category, key, value }: { category: string; key: string; value: any; }): void {
+    set({ category, key, value }: { category: 'Global'; key: string; value: any; }): void {
         this._cache[category] = this._cache[category] || { entries: {} }
-        this._cache[category].entries[key] = value
+        this._cache[category].entries[key] = { value }
     }
 
-    get({ category, key }: { category: string; key: string }): any {
-        return this._cache[category]?.entries?.[key]
+    async get<T extends keyof CacheStorageType>({ category, key }: { category: T; key: string }): Promise<CacheStorageType[T] extends CacheCategoryLookup<infer T> ? T : any> {
+        const cacheCategory = this._cache[category]
+        if (!isCacheKeyValue(cacheCategory)) {
+            if (!cacheCategory.entries[key]) {
+                const fetchedValue = await cacheCategory.fetch(key)
+                this._cache[category].entries[key] = {
+                    value: fetchedValue
+                }
+            }
+        }
+        return this._cache[category]?.entries?.[key]?.value
     }
 
     clear() {
-        this._cache = {}
+        this._cache = initialCache
     }
 }
 
