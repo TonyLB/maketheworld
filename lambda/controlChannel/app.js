@@ -26,6 +26,7 @@ import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.
 import fetchImportDefaults from './fetchImportDefaults/index.js'
 
 import lambdaClient from './lambdaClient.js'
+import internalCache from './internalCache/index'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -390,6 +391,9 @@ export const handler = async (event, context) => {
 
     const { connectionId, routeKey } = event.requestContext
     const request = event.body && JSON.parse(event.body) || {}
+
+    internalCache.clear()
+    internalCache.set({ category: 'Global', key: 'connectionId', value: connectionId })
 
     if (routeKey === '$connect') {
         const { Authorization = '' } = event.queryStringParameters || {}

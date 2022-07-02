@@ -1,7 +1,3 @@
-export type NullMessage = {
-    type: 'Null',
-}
-
 export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: string[];
@@ -17,7 +13,14 @@ export type PublishWorldMessage = PublishMessageBase & {
 
 export type PublishMessage = PublishWorldMessage
 
-export type MessageType = NullMessage | PublishMessage
+export type ReturnValueMessage = {
+    type: 'ReturnValue';
+    body: Record<string, any>;
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
+
+export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
