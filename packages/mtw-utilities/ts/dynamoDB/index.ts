@@ -7,7 +7,7 @@ import {
     QueryCommand,
     BatchWriteItemCommand,
     BatchGetItemCommand,
-    ScanCommand
+    AttributeValue
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -548,8 +548,14 @@ export const messageDeltaQuery = async ({
     ExpressionAttributeNames,
     ExclusiveStartKey,
     StartingAt,
-    Limit
-}) => {
+    Limit = 20
+}: {
+    Target: string;
+    ExpressionAttributeNames?: Record<string, any>;
+    ExclusiveStartKey?: Record<string, AttributeValue>;
+    StartingAt?: number;
+    Limit?: number;
+}): Promise<{ Items: any[], LastEvaluatedKey?: Record<string, AttributeValue> }> => {
     return await asyncSuppressExceptions(async () => {
         const { Items = [], LastEvaluatedKey } = await dbClient.send(new QueryCommand({
             TableName: deltaTable,
@@ -566,7 +572,7 @@ export const messageDeltaQuery = async ({
             Items: Items.map((value) => (unmarshall(value))),
             LastEvaluatedKey
         }
-    }, async () => ([] as Record<string, any>[]))
+    }, async () => ({ Items: [] as any[] })) as { Items: any[], LastEvaluatedKey?: Record<string, AttributeValue> }
 }
 
 export const messageDelete = abstractDeleteItem(messageTable)

@@ -1,3 +1,5 @@
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
+
 export type PublishMessageBase = {
     type: 'PublishMessage';
     targets: string[];
@@ -86,7 +88,22 @@ export type WhoAmIMessage = {
     type: 'WhoAmI'
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage
+export type SyncRequest = {
+    type: 'Sync';
+    targetId: string;
+    LastEvaluatedKey?: Record<string, AttributeValue>;
+    startingAt?: number;
+    limit?: number;
+    loopCount?: number;
+}
+
+export type SyncResponse = {
+    type: 'SyncResponse',
+    messages: any[];
+    lastSync?: number;
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -96,3 +113,6 @@ export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMess
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
 export const isConnectMessage = (prop: MessageType): prop is ConnectMessage => (prop.type === 'Connect')
 export const isWhoAmIMessage = (prop: MessageType): prop is WhoAmIMessage => (prop.type === 'WhoAmI')
+
+export const isSyncRequest = (prop: MessageType): prop is SyncRequest => (prop.type === 'Sync')
+export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop.type === 'SyncResponse')

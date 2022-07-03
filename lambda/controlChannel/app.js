@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { getPlayerByConnectionId, convertAssetQuery } from './player/index.js'
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
-import { sync } from './sync/index.js'
 import { render } from '@tonylb/mtw-utilities/dist/perception/index'
 import { deliverRenders } from '@tonylb/mtw-utilities/dist/perception/deliverRenders'
 import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
@@ -453,11 +452,9 @@ export const handler = async (event, context) => {
             })
             break
         case 'sync':
-            await sync({
-                type: request.syncType,
-                ConnectionId: connectionId,
-                RequestId: request.RequestId,
-                TargetId: request.CharacterId,
+            messageBus.send({
+                type: 'Sync',
+                targetId: request.CharacterId,
                 startingAt: request.startingAt,
                 limit: request.limit
             })
