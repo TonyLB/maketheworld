@@ -19,7 +19,6 @@ import {
     ephemeraDB,
     assetDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect'
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
 import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.js'
@@ -31,7 +30,7 @@ import messageBus from './messageBus/index'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
-// cycle you don't have the disconnect update come after the connect.
+// cycle you don't have two lambdas in a race condition where the disconnect update might come after the connect.
 //
 export const disconnect = async (connectionId) => {
 
@@ -49,33 +48,17 @@ export const disconnect = async (connectionId) => {
 // use the validateJWT code (and passed Authorization querystring) to block
 // unauthenticated users from websocket access entirely..
 //
-export const connect = async (connectionId, token) => {
+export const connect = async (token) => {
 
     const { userName } = await validateJWT(token)
     if (userName) {
-        await Promise.all([
-            ephemeraDB.putItem({
-                EphemeraId: `CONNECTION#${connectionId}`,
-                DataCategory: 'Meta::Connection',
-                player: userName
-            }),
-            ephemeraDB.update({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections',
-                UpdateExpression: 'SET connections.#connection = :player',
-                ExpressionAttributeValues: {
-                    ':player': userName
-                },
-                ExpressionAttributeNames: {
-                    '#connection': connectionId
-                },
-                //
-                // TODO: Activate when selfHeal is in the utility layer
-                //
-                // catchException: healGlobalValues
-            })
-        ])
     
+        messageBus.send({
+            type: 'Connect',
+            userName
+        })
+        await messageBus.flush()
+
         return { statusCode: 200 }
     }
     return { statusCode: 403 }
@@ -397,12 +380,12 @@ export const handler = async (event, context) => {
     const request = event.body && JSON.parse(event.body) || {}
 
     internalCache.clear()
-    internalCache.set({ category: 'Global', key: 'connectionId', value: connectionId })
+    internalCache.set({ category: 'Global', key: 'ConnectionId', value: connectionId })
     messageBus.clear()
 
     if (routeKey === '$connect') {
         const { Authorization = '' } = event.queryStringParameters || {}
-        return connect(connectionId, Authorization)
+        return connect(Authorization)
     }
     if (routeKey === '$disconnect') {
         return disconnect(connectionId)

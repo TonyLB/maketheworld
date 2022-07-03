@@ -77,7 +77,12 @@ export type DisconnectMessage = {
     connectionId: string;
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage
+export type ConnectMessage = {
+    type: 'Connect';
+    userName: string;
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -85,3 +90,4 @@ export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeech
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
+export const isConnectMessage = (prop: MessageType): prop is ConnectMessage => (prop.type === 'Connect')
