@@ -6,7 +6,9 @@ import {
     isReturnValueMessage,
     isDisconnectMessage,
     isConnectMessage,
-    isWhoAmIMessage
+    isWhoAmIMessage,
+    isSyncRequest,
+    isSyncResponse
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -14,6 +16,7 @@ import returnValueMessage from '../returnValue'
 import disconnectMessage from '../disconnectMessage'
 import connectMessage from '../connectMessage'
 import whoAmIMessage from '../whoAmI'
+import { syncRequest, syncResponse } from '../syncHandler'
 
 export class MessageBus extends InternalMessageBus<MessageType> {
     constructor() {
@@ -41,6 +44,18 @@ export class MessageBus extends InternalMessageBus<MessageType> {
             priority: 1,
             filter: isWhoAmIMessage,
             callback: whoAmIMessage
+        })
+        this.subscribe({
+            tag: 'SyncResponse',
+            priority: 2,
+            filter: isSyncResponse,
+            callback: syncResponse
+        })
+        this.subscribe({
+            tag: 'SyncRequest',
+            priority: 3,
+            filter: isSyncRequest,
+            callback: syncRequest
         })
     }
 }
