@@ -8,7 +8,8 @@ import {
     isConnectMessage,
     isWhoAmIMessage,
     isSyncRequest,
-    isSyncResponse
+    isSyncResponse,
+    isRegisterCharacterMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -17,6 +18,7 @@ import disconnectMessage from '../disconnectMessage'
 import connectMessage from '../connectMessage'
 import whoAmIMessage from '../whoAmI'
 import { syncRequest, syncResponse } from '../syncHandler'
+import registerCharacter from '../registerCharacter'
 
 export class MessageBus extends InternalMessageBus<MessageType> {
     constructor() {
@@ -56,6 +58,12 @@ export class MessageBus extends InternalMessageBus<MessageType> {
             priority: 3,
             filter: isSyncRequest,
             callback: syncRequest
+        })
+        this.subscribe({
+            tag: 'RegisterCharacter',
+            priority: 1,
+            filter: isRegisterCharacterMessage,
+            callback: registerCharacter
         })
     }
 }
