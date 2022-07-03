@@ -59,4 +59,8 @@ export class InternalMessageBus<PayloadType> {
         await Promise.all(subscriptionsToProcess.map(processSubscription))
         await this.flush()
     }
+
+    clear(): void {
+        this._stream = []
+    }
 }

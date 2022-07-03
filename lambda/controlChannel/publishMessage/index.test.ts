@@ -30,14 +30,14 @@ describe('PublishMessage', () => {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldMessage',
-                message: 'Test'
+                message: [{ tag: 'String', value: 'Test' }]
             }]
         })
         expect(publishMessageMock).toHaveBeenCalledWith({
             MessageId: 'MESSAGE#UUID',
             CreatedTime: 1000000000000,
             Targets: ['CHARACTER#123'],
-            Message: 'Test',
+            Message: [{ tag: 'String', value: 'Test' }],
             DisplayProtocol: 'WorldMessage'
         })
     })

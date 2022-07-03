@@ -27,6 +27,7 @@ import fetchImportDefaults from './fetchImportDefaults/index.js'
 
 import lambdaClient from './lambdaClient.js'
 import internalCache from './internalCache/index'
+import messageBus from './messageBus/index'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -149,24 +150,37 @@ const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
 }
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await ephemeraDB.getItem({
-        EphemeraId,
-        DataCategory: 'Meta::Character',
-        ProjectionFields: ['RoomId', '#name', 'Color'],
-        ExpressionAttributeNames: { '#name': 'Name' }
-    })
-    if (RoomId) {
-        await publishMessage({
-            MessageId: `MESSAGE#${uuidv4()}`,
-            CreatedTime: Date.now(),
-            Targets: [RoomKey(RoomId)],
-            DisplayProtocol,
-            CharacterId,
-            Message: [{ tag: 'String', value: Message }],
-            Name,
-            Color
+    if (CharacterId) {
+        const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await internalCache.get({
+            category: 'CharacterMeta',
+            key: CharacterId
         })
+        if (RoomId) {
+            const activeCharacters = await internalCache.get({
+                category: 'RoomCharacterList',
+                key: RoomId
+            })
+            messageBus.send({
+                type: 'PublishMessage',
+                targets: Object.keys(activeCharacters || {}),
+                displayProtocol: DisplayProtocol,
+                message: [{ tag: 'String', value: Message }],
+                characterId,
+                name: Name,
+                color: Color
+            })
+            await messageBus.flush()
+            // await publishMessage({
+            //     MessageId: `MESSAGE#${uuidv4()}`,
+            //     CreatedTime: Date.now(),
+            //     Targets: Object.keys(activeCharacters || {}),
+            //     DisplayProtocol,
+            //     CharacterId,
+            //     Message: [{ tag: 'String', value: Message }],
+            //     Name,
+            //     Color
+            // })
+        }
     }
     return {
         statusCode: 200,
@@ -394,6 +408,7 @@ export const handler = async (event, context) => {
 
     internalCache.clear()
     internalCache.set({ category: 'Global', key: 'connectionId', value: connectionId })
+    messageBus.clear()
 
     if (routeKey === '$connect') {
         const { Authorization = '' } = event.queryStringParameters || {}

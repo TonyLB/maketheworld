@@ -38,10 +38,18 @@ type CacheGlobal = {
     ConnectionId: string;
 }
 
+type CacheCharacterMeta = {
+    EphemeraId: string;
+    Name: string;
+    RoomId: string;
+    Color?: string;
+}
+
 type CacheStorageType = {
     Global: CacheCategoryKeyValue<CacheGlobal>;
     CurrentPlayerMeta: CacheCategoryFetchOnce<CurrentPlayerMeta, InternalCache>;
     RoomCharacterList: CacheCategoryLookup<Record<string, RoomCharacterActive>>;
+    CharacterMeta: CacheCategoryLookup<CacheCharacterMeta>;
 }
 
 type CacheStorageTypeCategories = CacheStorageType[keyof CacheStorageType]
@@ -102,6 +110,24 @@ const initialCache: CacheStorageType = {
                 }) || { activeCharacters: {} }
             return activeCharacters
         }
+    },
+    CharacterMeta: {
+        cacheType: 'Lookup',
+        entries: {},
+        fetch: async (CharacterId) => {
+            return await ephemeraDB.getItem<CacheCharacterMeta>({
+                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
+                    DataCategory: 'Meta::CharacterInPlay',
+                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color'],
+                    ExpressionAttributeNames: {
+                        '#name': 'Name'
+                    }
+                }) || {
+                    EphemeraId: '',
+                    Name: '',
+                    RoomId: ''
+                }
+        }
     }
 }
 
@@ -122,7 +148,7 @@ export class InternalCache extends Object {
         if (isFetchable(cacheCategory)) {
             if (cacheCategory.cacheType === 'Lookup') {
                 if (!cacheCategory.entries[key]) {
-                    const fetchedValue = await cacheCategory.fetch(key)
+                    const fetchedValue = await cacheCategory.fetch(key) as CacheCategoryToOutput[T][CacheCategoryToKeys[T]]
                     cacheCategory.entries[key] = {
                         value: fetchedValue
                     }

@@ -5,7 +5,7 @@ import { MessageType, isPublishMessage, isReturnValueMessage } from "./baseClass
 import publishMessage from '../publishMessage'
 import returnValueMessage from '../returnValue'
 
-export default class MessageBus extends InternalMessageBus<MessageType> {
+export class MessageBus extends InternalMessageBus<MessageType> {
     constructor() {
         super()
         this.subscribe({
@@ -22,3 +22,6 @@ export default class MessageBus extends InternalMessageBus<MessageType> {
         })
     }
 }
+
+export const messageBus = new MessageBus()
+export default messageBus

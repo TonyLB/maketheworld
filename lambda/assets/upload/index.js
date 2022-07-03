@@ -2,7 +2,7 @@ import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectComm
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
-import sharp from "sharp"
+// import sharp from "sharp"
 
 import { streamToBuffer } from '@tonylb/mtw-utilities/dist/stream'
 
@@ -84,22 +84,22 @@ export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
     const { width, height } = (lastDirectory && lastDirectory.length > 0 && lastDirectory[0] === 'Characters') ? { width: 200, height: 200 } : { width: 800, height: 600 }
 
     try {
-        const imageBuffer = await sharp(contents)
-            .resize({ width, height, fit: sharp.strategy.fill })
-            .toFormat('png')
-            .toBuffer()
-        await s3Client.send(new PutObjectCommand({
-            Bucket: bucket,
-            Key: `images/${fileName}.png`,
-            Body: imageBuffer
-        }))
-        await Promise.all([
-            uploadResponse({
-                uploadId: key,
-                messageType: 'Success',
-                operation: 'Upload'
-            })
-        ])
+        // const imageBuffer = await sharp(contents)
+        //     .resize({ width, height, fit: sharp.strategy.fill })
+        //     .toFormat('png')
+        //     .toBuffer()
+        // await s3Client.send(new PutObjectCommand({
+        //     Bucket: bucket,
+        //     Key: `images/${fileName}.png`,
+        //     Body: imageBuffer
+        // }))
+        // await Promise.all([
+        //     uploadResponse({
+        //         uploadId: key,
+        //         messageType: 'Success',
+        //         operation: 'Upload'
+        //     })
+        // ])
 
     }
     catch {
