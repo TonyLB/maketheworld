@@ -184,7 +184,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     ), {})
 
                 const { visibleMapAppearancesByAsset, name: mapName = [] } = assetsOfInterest.reduce((previous, AssetId) => {
-                    const { appearances = [], name } = itemsByAsset[`ASSET#${AssetId}`]
+                    const { appearances = [], name } = itemsByAsset[`ASSET#${AssetId}`] || {}
 
                     const { State: state = {} } = assetStateById[AssetId] || {}
                     return {
@@ -196,7 +196,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                         name: [ ...previous.name, name ].filter((value) => (value))
                     }
                 }, { visibleMapAppearancesByAsset: {}, name: [] as string[] })
-    
+
                 const roomKeysByEphemera = assetsOfInterest.reduce((previous, AssetId) => {
                     const appearances = visibleMapAppearancesByAsset[AssetId] || []
                     const roomEntriesInOrder = appearances.reduce((accumulator, { rooms }) => ([

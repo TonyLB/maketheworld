@@ -513,8 +513,8 @@ export const publishMessage = async (Item) => {
         await dbClient.send(new PutItemCommand({
             TableName: messageTable,
             Item: marshall({
-                DataCategory: 'Meta::Message',
-                ...Item
+                ...Item,
+                DataCategory: 'Meta::Message'
             }, { removeUndefinedValues: true })
         }))
     })

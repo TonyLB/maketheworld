@@ -1,10 +1,11 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 
-import { MessageType, isPublishMessage } from "./baseClasses"
+import { MessageType, isPublishMessage, isReturnValueMessage } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
+import returnValueMessage from '../returnValue'
 
-export default class MessageBus extends InternalMessageBus<MessageType> {
+export class MessageBus extends InternalMessageBus<MessageType> {
     constructor() {
         super()
         this.subscribe({
@@ -13,5 +14,14 @@ export default class MessageBus extends InternalMessageBus<MessageType> {
             filter: isPublishMessage,
             callback: publishMessage
         })
+        this.subscribe({
+            tag: 'ReturnValue',
+            priority: 10,
+            filter: isReturnValueMessage,
+            callback: returnValueMessage
+        })
     }
 }
+
+export const messageBus = new MessageBus()
+export default messageBus

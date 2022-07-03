@@ -178,7 +178,7 @@ export const renderItems = async (renderList, existingStatesByAsset = {}, priorA
                     ), {})
 
                 const { visibleMapAppearancesByAsset, name: mapName = [] } = assetsOfInterest.reduce((previous, AssetId) => {
-                    const { appearances = [], name } = itemsByAsset[`ASSET#${AssetId}`]
+                    const { appearances = [], name } = itemsByAsset[`ASSET#${AssetId}`] || {}
 
                     const { State: state = {} } = assetStateById[AssetId] || {}
                     return {
