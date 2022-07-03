@@ -20,7 +20,7 @@ import {
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
-import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.js'
+import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera'
 import fetchImportDefaults from './fetchImportDefaults/index.js'
 
 import lambdaClient from './lambdaClient.js'
@@ -358,20 +358,20 @@ export const handler = async (event, context) => {
             }
             break
         case 'fetchEphemera':
-            let ephemera = {}
             if (request.CharacterId) {
-                ephemera = await fetchEphemeraForCharacter({
+                const ephemera = await fetchEphemeraForCharacter({
                     RequestId: request.RequestId,
                     CharacterId: request.CharacterId
                 })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify(ephemera)
+                }
             }
             else {
-                ephemera = await fetchEphemera(request.RequestId)
+                await fetchEphemera()
             }
-            return {
-                statusCode: 200,
-                body: JSON.stringify(ephemera)
-            }
+            break
         case 'fetchImportDefaults':
             let importDefaults = {}
             if (request.importsByAssetId && request.assetId) {

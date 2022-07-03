@@ -1,9 +1,15 @@
-jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-jest.mock('@tonylb/mtw-utilities/dist/perception/index.js')
-import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
+jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+jest.mock('@tonylb/mtw-utilities/dist/perception')
+import { render } from '@tonylb/mtw-utilities/dist/perception'
 
-import fetchEphemera, { fetchEphemeraForCharacter } from './index.js'
+jest.mock('../messageBus')
+import messageBus from '../messageBus'
+
+import fetchEphemera, { fetchEphemeraForCharacter } from '.'
+
+const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const renderMock = render as jest.Mock
 
 describe('fetchEphemera', () => {
     beforeEach(() => {
@@ -12,17 +18,16 @@ describe('fetchEphemera', () => {
     })
 
     it('should serialize fetched CharacterInPlay records', async () => {
-        ephemeraDB.query.mockResolvedValue([{
+        ephemeraDBMock.query.mockResolvedValue([{
             EphemeraId: 'CHARACTERINPLAY#ABC',
             Connected: true,
             RoomId: 'ROOM#XYZ',
             Name: 'Testy',
             fileURL: 'test.png'
         }])
-        const output = await fetchEphemera('Request123')
-        expect(output).toEqual({
-            messageType: 'Ephemera',
-            RequestId: 'Request123',
+        await fetchEphemera()
+        expect(messageBus.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'ABC',
@@ -42,7 +47,7 @@ describe('fetchEphemeraForCharacter', () => {
     })
 
     it('should return empty update when no Maps match character assets', async () => {
-        ephemeraDB.getItem.mockImplementation(async ({ DataCategory }) => {
+        ephemeraDBMock.getItem.mockImplementation(async ({ DataCategory }) => {
             if (DataCategory === 'Meta::Character') {
                 return {
                     assets: ['TESTONE']
@@ -55,7 +60,7 @@ describe('fetchEphemeraForCharacter', () => {
             }
             return {}
         })
-        ephemeraDB.query.mockResolvedValue([])
+        ephemeraDBMock.query.mockResolvedValue([])
         const output = await fetchEphemeraForCharacter({
             RequestId: '1234',
             CharacterId: 'TEST'
@@ -82,7 +87,7 @@ describe('fetchEphemeraForCharacter', () => {
     })
 
     it('should return update when Maps match character assets', async () => {
-        ephemeraDB.getItem.mockImplementation(async ({ DataCategory }) => {
+        ephemeraDBMock.getItem.mockImplementation(async ({ DataCategory }) => {
             if (DataCategory === 'Meta::Character') {
                 return {
                     assets: ['TESTONE']
@@ -95,23 +100,25 @@ describe('fetchEphemeraForCharacter', () => {
             }
             return {}
         })
-        ephemeraDB.query.mockImplementation(async ({ DataCategory }) => {
-            if (DataCategory === 'ASSET#TESTONE') {
-                return [{
-                    EphemeraId: 'MAP#ABC'
-                }]
+        ephemeraDBMock.query.mockImplementation(async (props) => {
+            if (props.IndexName === 'DataCategoryIndex') {
+                if (props.DataCategory === 'ASSET#TESTONE') {
+                    return [{
+                        EphemeraId: 'MAP#ABC'
+                    }]
+                }
+                if (props.DataCategory === 'ASSET#BASE') {
+                    return [{
+                        EphemeraId: 'MAP#ABC'
+                    },
+                    {
+                        EphemeraId: 'MAP#DEF'
+                    }]
+                }    
             }
-            if (DataCategory === 'ASSET#BASE') {
-                return [{
-                    EphemeraId: 'MAP#ABC'
-                },
-                {
-                    EphemeraId: 'MAP#DEF'
-                }]
-            }
-            return {}
+            return []
         })
-        render.mockResolvedValue([{
+        renderMock.mockResolvedValue([{
             type: 'Map',
             CharacterId: 'TEST',
             MapId: 'MAP#ABC',
@@ -124,7 +131,7 @@ describe('fetchEphemeraForCharacter', () => {
             RequestId: '1234',
             CharacterId: 'TEST'
         })
-        expect(render).toHaveBeenCalledWith({
+        expect(renderMock).toHaveBeenCalledWith({
             renderList: [{
                 CharacterId: 'TEST',
                 EphemeraId: 'MAP#ABC'

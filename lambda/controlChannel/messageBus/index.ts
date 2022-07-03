@@ -3,7 +3,7 @@ import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import {
     MessageType,
     isPublishMessage,
-    isReturnValueMessage,
+    isEphemeraUpdate,
     isDisconnectMessage,
     isConnectMessage,
     isWhoAmIMessage,
@@ -13,7 +13,7 @@ import {
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
-import returnValueMessage from '../returnValue'
+import ephemeraUpdate from '../ephemeraUpdate'
 import disconnectMessage from '../disconnectMessage'
 import connectMessage from '../connectMessage'
 import whoAmIMessage from '../whoAmI'
@@ -28,6 +28,12 @@ export class MessageBus extends InternalMessageBus<MessageType> {
             priority: 5,
             filter: isPublishMessage,
             callback: publishMessage
+        })
+        this.subscribe({
+            tag: 'EphemeraUpdate',
+            priority: 5,
+            filter: isEphemeraUpdate,
+            callback: ephemeraUpdate
         })
         this.subscribe({
             tag: 'Disconnect',
