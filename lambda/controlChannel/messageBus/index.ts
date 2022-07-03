@@ -5,13 +5,15 @@ import {
     isPublishMessage,
     isReturnValueMessage,
     isDisconnectMessage,
-    isConnectMessage
+    isConnectMessage,
+    isWhoAmIMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
 import returnValueMessage from '../returnValue'
 import disconnectMessage from '../disconnectMessage'
 import connectMessage from '../connectMessage'
+import whoAmIMessage from '../whoAmI'
 
 export class MessageBus extends InternalMessageBus<MessageType> {
     constructor() {
@@ -21,12 +23,6 @@ export class MessageBus extends InternalMessageBus<MessageType> {
             priority: 5,
             filter: isPublishMessage,
             callback: publishMessage
-        })
-        this.subscribe({
-            tag: 'ReturnValue',
-            priority: 10,
-            filter: isReturnValueMessage,
-            callback: returnValueMessage
         })
         this.subscribe({
             tag: 'Disconnect',
@@ -39,6 +35,12 @@ export class MessageBus extends InternalMessageBus<MessageType> {
             priority: 1,
             filter: isConnectMessage,
             callback: connectMessage
+        })
+        this.subscribe({
+            tag: 'WhoAmI',
+            priority: 1,
+            filter: isWhoAmIMessage,
+            callback: whoAmIMessage
         })
     }
 }

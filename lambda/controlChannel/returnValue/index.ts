@@ -1,4 +1,4 @@
-import { ReturnValueMessage } from "../messageBus/baseClasses"
+import { ReturnValueMessage, isReturnValueMessage } from "../messageBus/baseClasses"
 import { MessageBus } from "../messageBus"
 
 import internalCache from '../internalCache'
@@ -17,3 +17,19 @@ export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMe
 }
 
 export default returnValueMessage
+
+export const extractReturnValue = (messageBus: MessageBus) => {
+    const returnValueMessages = messageBus._stream
+        .map(({ payload }) => (payload))
+        .filter(isReturnValueMessage)
+
+    const body = returnValueMessages.reduce((previous, { body }) => ({
+        ...previous,
+        ...body
+    }), {} as Record<string, any>)
+
+    return {
+        statusCode: 200,
+        body: JSON.stringify(body)
+    }
+}
