@@ -103,7 +103,12 @@ export type SyncResponse = {
     lastSync?: number;
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse
+export type RegisterCharacterMessage = {
+    type: 'RegisterCharacter';
+    characterId: string;
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse | RegisterCharacterMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -116,3 +121,4 @@ export const isWhoAmIMessage = (prop: MessageType): prop is WhoAmIMessage => (pr
 
 export const isSyncRequest = (prop: MessageType): prop is SyncRequest => (prop.type === 'Sync')
 export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop.type === 'SyncResponse')
+export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')

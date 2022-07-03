@@ -71,59 +71,6 @@ export const connect = async (token) => {
     }
 }
 
-export const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
-
-    //
-    // TODO: Create functionality to record what assets a character has access to,
-    // and check before registering the character whether you need to cache any
-    // as-yet uncached assets in order to support them.
-    //
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    const [{ Name = '', HomeId = '' }, characterQueryItems = []] = await Promise.all([
-        assetDB.getItem({
-            AssetId: `CHARACTER#${CharacterId}`,
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['#name', 'HomeId'],
-            ExpressionAttributeNames: {
-                '#name': 'Name'
-            }
-        }),
-        ephemeraDB.query({
-            EphemeraId,
-            KeyConditionExpression: 'begins_with(DataCategory, :dc)',
-            ExpressionAttributeValues: {
-                ':dc': 'CONNECTION#'
-            }
-        })
-    ])
-    const ConnectionIds = [...(new Set([
-        ...characterQueryItems.map(({ DataCategory }) => (splitType(DataCategory)[1])),
-        connectionId
-    ]))]
-    await Promise.all([
-        ephemeraDB.update({
-            EphemeraId,
-            DataCategory: 'Meta::Character',
-            UpdateExpression: 'SET Connected = :true, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId), ConnectionIds = :connectionIds',
-            ExpressionAttributeNames: {
-                '#name': 'Name'
-            },
-            ExpressionAttributeValues: {
-                ':true': true,
-                ':name': Name,
-                ':roomId': HomeId || 'VORTEX',
-                ':connectionIds': ConnectionIds
-            }
-        }),
-        ephemeraDB.putItem({
-            EphemeraId,
-            DataCategory: `CONNECTION#${connectionId}`
-        })
-    ])
-
-    return { statusCode: 200, body: JSON.stringify({ messageType: 'Registration', CharacterId, RequestId }) }
-}
-
 const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
     //
     // TODO: Create asset management system to allow non-hard-coded asset lists
@@ -404,7 +351,10 @@ export const handler = async (event, context) => {
     switch(request.message) {
         case 'registercharacter':
             if (request.CharacterId) {
-                return registerCharacter({ connectionId, CharacterId: request.CharacterId, RequestId: request.RequestId })
+                messageBus.send({
+                    type: 'RegisterCharacter',
+                    characterId: request.CharacterId
+                })
             }
             break
         case 'fetchEphemera':
