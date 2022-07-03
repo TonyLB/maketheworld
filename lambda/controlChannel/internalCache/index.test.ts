@@ -1,5 +1,6 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import exp from 'constants'
 
 import internalCache from "."
 
@@ -36,12 +37,26 @@ describe('InternalCache', () => {
                 Name: 'Marco'
             }
         }
+        const expectedOutput = {
+            '123': {
+                EphemeraId: 'CHARACTER#123',
+                ConnectionIds: ['Test1'],
+                Color: 'green',
+                Name: 'Tess'
+            },
+            '456': {
+                EphemeraId: 'CHARACTER#456',
+                ConnectionIds: ['Test2'],
+                Color: 'purple',
+                Name: 'Marco'
+            }
+        }
         ephemeraMock.getItem.mockResolvedValue({
             activeCharacters: testActiveCharacters
         })
-        expect(await internalCache.get({ category: 'RoomCharacterList', key: 'ROOM#1234' })).toEqual(testActiveCharacters)
+        expect(await internalCache.get({ category: 'RoomCharacterList', key: 'ROOM#1234' })).toEqual(expectedOutput)
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
-        expect(await internalCache.get({ category: 'RoomCharacterList', key: 'ROOM#1234' })).toEqual(testActiveCharacters)
+        expect(await internalCache.get({ category: 'RoomCharacterList', key: 'ROOM#1234' })).toEqual(expectedOutput)
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
         
     })

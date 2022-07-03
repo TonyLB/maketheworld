@@ -1,4 +1,5 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { splitType } from '@tonylb/mtw-utilities/dist/types';
 
 type CacheItem<T> = {
     invalidatedAt?: number;
@@ -108,7 +109,7 @@ const initialCache: CacheStorageType = {
                     DataCategory: 'Meta::Room',
                     ProjectionFields: ['activeCharacters']
                 }) || { activeCharacters: {} }
-            return activeCharacters
+            return Object.entries(activeCharacters).reduce((previous, [key, value]) => ({ ...previous,  [splitType(key)[1]]: value }), {})
         }
     },
     CharacterMeta: {

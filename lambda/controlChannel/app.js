@@ -156,13 +156,9 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
             key: CharacterId
         })
         if (RoomId) {
-            const activeCharacters = await internalCache.get({
-                category: 'RoomCharacterList',
-                key: RoomId
-            })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: Object.keys(activeCharacters || {}).map((value) => (`CHARACTER#${splitType(value)[1]}`)),
+                targets: [`ROOM#${RoomId}`],
                 displayProtocol: DisplayProtocol,
                 message: [{ tag: 'String', value: Message }],
                 characterId: CharacterId,
