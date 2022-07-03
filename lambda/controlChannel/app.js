@@ -35,7 +35,11 @@ import messageBus from './messageBus/index'
 //
 export const disconnect = async (connectionId) => {
 
-    await forceDisconnect(connectionId)
+    messageBus.send({
+        type: 'Disconnect',
+        connectionId
+    })
+    await messageBus.flush()
 
     return { statusCode: 200 }
 }
