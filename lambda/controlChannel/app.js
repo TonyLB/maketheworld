@@ -162,24 +162,14 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
             })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: Object.keys(activeCharacters || {}),
+                targets: Object.keys(activeCharacters || {}).map((value) => (`CHARACTER#${splitType(value)[1]}`)),
                 displayProtocol: DisplayProtocol,
                 message: [{ tag: 'String', value: Message }],
-                characterId,
+                characterId: CharacterId,
                 name: Name,
                 color: Color
             })
             await messageBus.flush()
-            // await publishMessage({
-            //     MessageId: `MESSAGE#${uuidv4()}`,
-            //     CreatedTime: Date.now(),
-            //     Targets: Object.keys(activeCharacters || {}),
-            //     DisplayProtocol,
-            //     CharacterId,
-            //     Message: [{ tag: 'String', value: Message }],
-            //     Name,
-            //     Color
-            // })
         }
     }
     return {

@@ -158,7 +158,7 @@ export const abstractQueryExtended = <QueryInferredProps extends QueryExtendedPr
         const { Items = [] } = await dbClient.send(new QueryCommand({
             TableName: table,
             KeyConditionExpression,
-            IndexName,
+            IndexName: IndexName.length > 0 ? IndexName : undefined,
             ExpressionAttributeValues: marshall({
                 ':keyId': keyId,
                 ...(ExpressionAttributeValues || {})

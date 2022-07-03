@@ -117,7 +117,7 @@ const initialCache: CacheStorageType = {
         fetch: async (CharacterId) => {
             return await ephemeraDB.getItem<CacheCharacterMeta>({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Meta::CharacterInPlay',
+                    DataCategory: 'Meta::Character',
                     ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
