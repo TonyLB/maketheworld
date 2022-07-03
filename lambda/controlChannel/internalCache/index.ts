@@ -37,6 +37,7 @@ type CurrentPlayerMeta = {
 
 type CacheGlobal = {
     ConnectionId: string;
+    RequestId: string;
 }
 
 type CacheCharacterMeta = {

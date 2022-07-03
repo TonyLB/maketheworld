@@ -1,9 +1,20 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index.js')
-import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 jest.mock('@tonylb/mtw-utilities/dist/selfHealing/index.js')
 import { generatePersonalAssetLibrary } from '@tonylb/mtw-utilities/dist/selfHealing/index.js'
 
-import { whoAmI } from './index.js'
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
+
+jest.mock('../messageBus')
+import messageBus from '../messageBus'
+
+import whoAmIMessage from './index'
+
+const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
+const generatePersonalAssetLibraryMock = generatePersonalAssetLibrary as jest.Mock
+const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
+const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 
 describe('whoAmI', () => {
     beforeEach(() => {
@@ -12,13 +23,10 @@ describe('whoAmI', () => {
     })
 
     it('should return assets in table for given player', async () => {
-        ephemeraDB.getItem.mockResolvedValue({
-            player: 'TestPlayer'
-        })
-        assetDB.getItem.mockResolvedValue({
+        assetDBMock.getItem.mockResolvedValue({
             CodeOfConductConsent: true
         })
-        generatePersonalAssetLibrary.mockResolvedValue({
+        generatePersonalAssetLibraryMock.mockResolvedValue({
             PlayerName: 'TestPlayer',
             Assets:  [{
                 AssetId: 'QRS'
@@ -34,10 +42,11 @@ describe('whoAmI', () => {
                 scopedId: 'TESS'
             }]
         })
-        const output = await whoAmI('ABC', 'RequestTest')
-        expect(output).toEqual({
-            statusCode: 200,
-            body: JSON.stringify({
+        internalCacheMock.get.mockResolvedValueOnce('TestPlayer').mockResolvedValueOnce('RequestTest')
+        await whoAmIMessage({ payloads: [{ type: 'WhoAmI'} ], messageBus })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'ReturnValue',
+            body: {
                 messageType: 'Player',
                 PlayerName: 'TestPlayer',
                 Assets: [{
@@ -55,7 +64,7 @@ describe('whoAmI', () => {
                 }],
                 CodeOfConductConsent: true,
                 RequestId: 'RequestTest'
-            })
+            }
         })
     })
 })

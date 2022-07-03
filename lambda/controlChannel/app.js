@@ -4,7 +4,7 @@
 import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 
-import { whoAmI, getPlayerByConnectionId, convertAssetQuery } from './player/index.js'
+import { getPlayerByConnectionId, convertAssetQuery } from './player/index.js'
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { sync } from './sync/index.js'
@@ -25,8 +25,9 @@ import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.
 import fetchImportDefaults from './fetchImportDefaults/index.js'
 
 import lambdaClient from './lambdaClient.js'
-import internalCache from './internalCache/index'
-import messageBus from './messageBus/index'
+import internalCache from './internalCache'
+import messageBus from './messageBus'
+import { extractReturnValue } from './returnValue'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -40,7 +41,6 @@ export const disconnect = async (connectionId) => {
     })
     await messageBus.flush()
 
-    return { statusCode: 200 }
 }
 
 //
@@ -59,9 +59,17 @@ export const connect = async (token) => {
         })
         await messageBus.flush()
 
-        return { statusCode: 200 }
+        messageBus.send({
+            type: 'ReturnValue',
+            body: { statusCode: 200 }
+        })
     }
-    return { statusCode: 403 }
+    else {
+        messageBus.send({
+            type: 'ReturnValue',
+            body: { statusCode: 403 }
+        })
+    }
 }
 
 export const registerCharacter = async ({ connectionId, CharacterId, RequestId }) => {
@@ -152,12 +160,11 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
                 name: Name,
                 color: Color
             })
-            await messageBus.flush()
+            messageBus.send({
+                type: 'ReturnValue',
+                body: { messageType: 'ActionComplete' }
+            })
         }
-    }
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ messageType: "ActionComplete" })
     }
 }
 
@@ -202,22 +209,24 @@ const goHome = async ({ CharacterId } = {}) => {
 
 }
 
-const executeAction = (request) => {
+const executeAction = async (request) => {
     switch(request.actionType) {
         case 'look':
-            return lookPermanent(request.payload)
+            return await lookPermanent(request.payload)
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':
-            return narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
+            await narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
+            break
         case 'move':
-            return moveCharacter(request.payload)
+            return await moveCharacter(request.payload)
         case 'home':
-            return goHome(request.payload)
+            return await goHome(request.payload)
         default:
             break        
     }
-    return { statusCode: 200, body: JSON.stringify({}) }
+    await messageBus.flush()
+    return extractReturnValue(messageBus)
 }
 
 const upload = async ({ fileName, tag, connectionId, requestId, uploadRequestId }) => {
@@ -381,14 +390,17 @@ export const handler = async (event, context) => {
 
     internalCache.clear()
     internalCache.set({ category: 'Global', key: 'ConnectionId', value: connectionId })
+    if (request.RequestId) {
+        internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
+    }
     messageBus.clear()
 
     if (routeKey === '$connect') {
         const { Authorization = '' } = event.queryStringParameters || {}
-        return connect(Authorization)
+        await connect(Authorization)
     }
     if (routeKey === '$disconnect') {
-        return disconnect(connectionId)
+        await disconnect(connectionId)
     }
     switch(request.message) {
         case 'registercharacter':
@@ -436,7 +448,10 @@ export const handler = async (event, context) => {
         case 'subscribe':
             return subscribe({ connectionId, RequestId: request.RequestId })
         case 'whoAmI':
-            return whoAmI(connectionId, request.RequestId)
+            messageBus.send({
+                type: 'WhoAmI'
+            })
+            break
         case 'sync':
             await sync({
                 type: request.syncType,
@@ -560,6 +575,7 @@ export const handler = async (event, context) => {
         default:
             break
     }
-    return { statusCode: 200, body: JSON.stringify({}) }
+    await messageBus.flush()
+    return extractReturnValue(messageBus)
 
 }
