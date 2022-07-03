@@ -72,10 +72,16 @@ export type ReturnValueMessage = {
     body: Record<string, any>;
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage
+export type DisconnectMessage = {
+    type: 'Disconnect';
+    connectionId: string;
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
+export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
