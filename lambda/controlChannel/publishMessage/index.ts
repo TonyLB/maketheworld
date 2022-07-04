@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage } from "../messageBus/baseClasses"
-import { MessageBus } from "../messageBus"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus } from "../messageBus/baseClasses"
 import { publishMessage as publishMessageDynamoDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'

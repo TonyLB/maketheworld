@@ -1,11 +1,11 @@
-import { EphemeraUpdateMessage } from "../messageBus/baseClasses"
-import { MessageBus } from "../messageBus"
+import { EphemeraUpdateMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 
 import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
+    console.log('EphemeraUpdate handler')
     const ConnectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
     const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId'})
 
@@ -17,6 +17,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
             updates: payloads.reduce((previous, payload) => ([ ...previous, ...payload.updates]), [] as EphemeraUpdateMessage["updates"])
         })
     })
+    console.log('Exit EphemeraUpdate handler')
 }
 
 export default ephemeraUpdate

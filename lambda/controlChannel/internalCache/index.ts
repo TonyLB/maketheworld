@@ -1,5 +1,6 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import { splitType } from '@tonylb/mtw-utilities/dist/types';
+import { splitType } from '@tonylb/mtw-utilities/dist/types'
+import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 
 type CacheItem<T> = {
     invalidatedAt?: number;
@@ -89,14 +90,27 @@ const initialCache: CacheStorageType = {
                 category: 'Global',
                 key: 'ConnectionId'
             })
-            const { player = '' } = await ephemeraDB.getItem<{ player: string }>({
-                EphemeraId: `CONNECTION#${connectionId}`,
-                DataCategory: 'Meta::Connection',
-                ProjectionFields: ['player']
-            }) || {}
-            return {
-                player
+            //
+            // TODO: Replace repeated attempts with exponential backoff by
+            // refactoring ephemeraDB.getItem to allow a consistent argument
+            // that can actviate strongly-consistent reads
+            //
+            let attempts = 0
+            let exponentialBackoff = 50
+            while(attempts < 5) {
+                const { player = '' } = await ephemeraDB.getItem<{ player: string }>({
+                    EphemeraId: `CONNECTION#${connectionId}`,
+                    DataCategory: 'Meta::Connection',
+                    ProjectionFields: ['player']
+                }) || {}
+                if (player) {
+                    return { player }
+                }
+                attempts += 1
+                await delayPromise(exponentialBackoff)
+                exponentialBackoff = exponentialBackoff * 2
             }
+            return { player: '' }
         }
     },
     RoomCharacterList: {

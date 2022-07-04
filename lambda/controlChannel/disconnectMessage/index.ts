@@ -1,5 +1,4 @@
-import { DisconnectMessage } from "../messageBus/baseClasses"
-import { MessageBus } from "../messageBus"
+import { DisconnectMessage, MessageBus } from "../messageBus/baseClasses"
 
 import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect'
 

@@ -49,12 +49,14 @@ export class InternalMessageBus<PayloadType> {
             return
         }
         const subscriptionsToProcess = this._subscriptions.filter(({ priority }) => (priority === priorityToProcess))
-        const processSubscription = ({ tag, filter: filterFunc, callback }): Promise<void> => {
+        const processSubscription = async ({ tag, filter: filterFunc, callback }): Promise<void> => {
             const filteredMessages = this._stream
                 .filter(({ processedBy }) => (!processedBy.includes(tag)))
                 .filter(({ payload }) => (filterFunc(payload)))
             filteredMessages.forEach((message) => (message.processedBy.push(tag)))
-            return callback({ payloads: filteredMessages.map(({ payload }) => (payload)), messageBus: this })
+            if (filteredMessages.length > 0) {
+                await callback({ payloads: filteredMessages.map(({ payload }) => (payload)), messageBus: this })
+            }
         }
         await Promise.all(subscriptionsToProcess.map(processSubscription))
         await this.flush()

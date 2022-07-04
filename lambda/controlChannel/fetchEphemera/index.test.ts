@@ -6,12 +6,12 @@ import { render } from '@tonylb/mtw-utilities/dist/perception'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
-import fetchEphemera, { fetchEphemeraForCharacter } from '.'
+import { fetchEphemeraForCharacter, fetchPlayerEphemera } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const renderMock = render as jest.Mock
 
-describe('fetchEphemera', () => {
+describe('fetchPlayerEphemera', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -25,7 +25,12 @@ describe('fetchEphemera', () => {
             Name: 'Testy',
             fileURL: 'test.png'
         }])
-        await fetchEphemera()
+        await fetchPlayerEphemera({
+            payloads: [{
+                type: 'FetchPlayerEphemera'
+            }],
+            messageBus
+        })
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{

@@ -1,5 +1,5 @@
-import { RegisterCharacterMessage } from "../messageBus/baseClasses"
-import messageBus, { MessageBus } from "../messageBus"
+import { RegisterCharacterMessage, MessageBus } from "../messageBus/baseClasses"
+import messageBus from "../messageBus"
 import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'

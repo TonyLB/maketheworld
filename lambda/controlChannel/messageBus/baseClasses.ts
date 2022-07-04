@@ -1,4 +1,5 @@
-import { AttributeValue } from "@aws-sdk/client-dynamodb";
+import { AttributeValue } from "@aws-sdk/client-dynamodb"
+import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
@@ -122,7 +123,11 @@ export type EphemeraUpdateMessage = {
     updates: EphemeraUpdateEntry[];
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse | RegisterCharacterMessage | EphemeraUpdateMessage
+export type FetchPlayerEphemeraMessage = {
+    type: 'FetchPlayerEphemera';
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse | RegisterCharacterMessage | EphemeraUpdateMessage | FetchPlayerEphemeraMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -138,3 +143,6 @@ export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
 
 export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')
+export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')
+
+export class MessageBus extends InternalMessageBus<MessageType> {}

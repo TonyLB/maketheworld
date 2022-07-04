@@ -1,11 +1,10 @@
-import { WhoAmIMessage } from "../messageBus/baseClasses"
-import messageBus, { MessageBus } from "../messageBus"
+import { WhoAmIMessage, MessageBus } from "../messageBus/baseClasses"
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { generatePersonalAssetLibrary } from '@tonylb/mtw-utilities/dist/selfHealing/index.js'
 
 import internalCache from '../internalCache'
 
-export const whoAmIMessage = async ({ payloads }: { payloads: WhoAmIMessage[], messageBus?: MessageBus }): Promise<void> => {
+export const whoAmIMessage = async ({ payloads, messageBus }: { payloads: WhoAmIMessage[], messageBus: MessageBus }): Promise<void> => {
 
     const username = await internalCache.get({ category: 'CurrentPlayerMeta', key: 'player' })
     if (username) {

@@ -56,12 +56,7 @@ export const connect = async (token) => {
             type: 'Connect',
             userName
         })
-        await messageBus.flush()
 
-        messageBus.send({
-            type: 'ReturnValue',
-            body: { statusCode: 200 }
-        })
     }
     else {
         messageBus.send({
@@ -369,7 +364,9 @@ export const handler = async (event, context) => {
                 }
             }
             else {
-                await fetchEphemera()
+                messageBus.send({
+                    type: 'FetchPlayerEphemera'
+                })
             }
             break
         case 'fetchImportDefaults':
@@ -522,6 +519,7 @@ export const handler = async (event, context) => {
         default:
             break
     }
+    console.log(`Message Bus: ${JSON.stringify(messageBus._stream, null, 4)}`)
     await messageBus.flush()
     return extractReturnValue(messageBus)
 
