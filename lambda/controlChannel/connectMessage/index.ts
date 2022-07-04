@@ -1,10 +1,9 @@
-import { ConnectMessage } from "../messageBus/baseClasses"
-import { MessageBus } from "../messageBus"
+import { ConnectMessage, MessageBus } from "../messageBus/baseClasses"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 
-export const connectMessage = async ({ payloads }: { payloads: ConnectMessage[], messageBus?: MessageBus }): Promise<void> => {
+export const connectMessage = async ({ payloads, messageBus }: { payloads: ConnectMessage[], messageBus: MessageBus }): Promise<void> => {
 
     const connectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
 
@@ -35,6 +34,20 @@ export const connectMessage = async ({ payloads }: { payloads: ConnectMessage[],
     
         await Promise.all(aggregatePromises)
 
+        messageBus.send({
+            type: 'ReturnValue',
+            body: { statusCode: 200 }
+        })
+
+    }
+    else {
+        messageBus.send({
+            type: 'ReturnValue',
+            body: {
+                statusCode: 500,
+                message: 'Internal Server Error'
+            }
+        })
     }
 
 }

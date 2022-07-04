@@ -20,7 +20,7 @@ import {
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
-import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera/index.js'
+import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera'
 import fetchImportDefaults from './fetchImportDefaults/index.js'
 
 import lambdaClient from './lambdaClient.js'
@@ -56,12 +56,7 @@ export const connect = async (token) => {
             type: 'Connect',
             userName
         })
-        await messageBus.flush()
 
-        messageBus.send({
-            type: 'ReturnValue',
-            body: { statusCode: 200 }
-        })
     }
     else {
         messageBus.send({
@@ -358,20 +353,22 @@ export const handler = async (event, context) => {
             }
             break
         case 'fetchEphemera':
-            let ephemera = {}
             if (request.CharacterId) {
-                ephemera = await fetchEphemeraForCharacter({
+                const ephemera = await fetchEphemeraForCharacter({
                     RequestId: request.RequestId,
                     CharacterId: request.CharacterId
                 })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify(ephemera)
+                }
             }
             else {
-                ephemera = await fetchEphemera(request.RequestId)
+                messageBus.send({
+                    type: 'FetchPlayerEphemera'
+                })
             }
-            return {
-                statusCode: 200,
-                body: JSON.stringify(ephemera)
-            }
+            break
         case 'fetchImportDefaults':
             let importDefaults = {}
             if (request.importsByAssetId && request.assetId) {
@@ -522,6 +519,7 @@ export const handler = async (event, context) => {
         default:
             break
     }
+    console.log(`Message Bus: ${JSON.stringify(messageBus._stream, null, 4)}`)
     await messageBus.flush()
     return extractReturnValue(messageBus)
 

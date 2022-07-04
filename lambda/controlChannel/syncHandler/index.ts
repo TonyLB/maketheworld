@@ -1,5 +1,4 @@
-import { SyncRequest, SyncResponse } from "../messageBus/baseClasses"
-import { MessageBus } from "../messageBus"
+import { SyncRequest, SyncResponse, MessageBus } from "../messageBus/baseClasses"
 import { messageDeltaQuery } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
 import internalCache from "../internalCache"

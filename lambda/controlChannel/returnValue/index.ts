@@ -1,5 +1,4 @@
-import { ReturnValueMessage, isReturnValueMessage } from "../messageBus/baseClasses"
-import { MessageBus } from "../messageBus"
+import { ReturnValueMessage, isReturnValueMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
 

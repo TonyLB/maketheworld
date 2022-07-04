@@ -1,4 +1,5 @@
-import { AttributeValue } from "@aws-sdk/client-dynamodb";
+import { AttributeValue } from "@aws-sdk/client-dynamodb"
+import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
@@ -108,7 +109,25 @@ export type RegisterCharacterMessage = {
     characterId: string;
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse | RegisterCharacterMessage
+export type EphemeraUpdateEntry = {
+    type: 'CharacterInPlay';
+    CharacterId: string;
+    Connected: boolean;
+    RoomId: string;
+    Name: string;
+    fileURL: string;
+}
+
+export type EphemeraUpdateMessage = {
+    type: 'EphemeraUpdate';
+    updates: EphemeraUpdateEntry[];
+}
+
+export type FetchPlayerEphemeraMessage = {
+    type: 'FetchPlayerEphemera';
+}
+
+export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse | RegisterCharacterMessage | EphemeraUpdateMessage | FetchPlayerEphemeraMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -122,3 +141,8 @@ export const isWhoAmIMessage = (prop: MessageType): prop is WhoAmIMessage => (pr
 export const isSyncRequest = (prop: MessageType): prop is SyncRequest => (prop.type === 'Sync')
 export const isSyncResponse = (prop: MessageType): prop is SyncResponse => (prop.type === 'SyncResponse')
 export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterCharacterMessage => (prop.type === 'RegisterCharacter')
+
+export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')
+export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')
+
+export class MessageBus extends InternalMessageBus<MessageType> {}

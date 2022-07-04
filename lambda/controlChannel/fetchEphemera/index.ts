@@ -1,6 +1,12 @@
-import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
+import { splitType } from '@tonylb/mtw-utilities/dist/types'
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { render } from '@tonylb/mtw-utilities/dist/perception'
+// import messageBus from '../messageBus'
+import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
+
+type EphemeraQueryResult = {
+    EphemeraId: string;
+} & Omit<EphemeraUpdateEntry, 'CharacterId' | 'type'>
 
 const serialize = ({
     EphemeraId,
@@ -8,7 +14,7 @@ const serialize = ({
     RoomId,
     Name,
     fileURL
-}) => {
+}: EphemeraQueryResult): EphemeraUpdateEntry | undefined => {
     const [type, payload] = splitType(EphemeraId)
     switch(type) {
         case 'CHARACTERINPLAY':
@@ -24,34 +30,36 @@ const serialize = ({
         // TODO:  More serializers for more data types!
         //
         default:
-            return null
+            return undefined
     }
 }
 
-export const fetchEphemera = async (RequestId) => {
-    const Items = await ephemeraDB.query({
-        IndexName: 'DataCategoryIndex',
-        DataCategory: 'Meta::Character',
-        KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
-        ExpressionAttributeValues: {
-            ':EphemeraPrefix': 'CHARACTERINPLAY#'
-        },
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL']
-    })
-    const returnItems = Items
-        .map(serialize)
-        .filter((value) => value)
-        .filter(({ Connected }) => (Connected))
-
-    return {
-        messageType: 'Ephemera',
-        RequestId,
-        updates: returnItems
+export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: FetchPlayerEphemeraMessage[], messageBus: MessageBus }): Promise<void> => {
+    if (payloads.length > 0) {
+        const Items = await ephemeraDB.query<EphemeraQueryResult[]>({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: 'Meta::Character',
+            KeyConditionExpression: 'begins_with(EphemeraId, :EphemeraPrefix)',
+            ExpressionAttributeValues: {
+                ':EphemeraPrefix': 'CHARACTERINPLAY#'
+            },
+            ExpressionAttributeNames: {
+                '#name': 'Name'
+            },
+            ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL']
+        })
+        const returnItems = Items
+            .map(serialize)
+            .filter((value): value is EphemeraUpdateEntry => (!!value))
+            .filter(({ Connected }) => (Connected))
+    
+        messageBus.send({
+            type: 'EphemeraUpdate',
+            updates: returnItems
+        })
     }
 }
+
 
 export const fetchEphemeraForCharacter = async ({
     RequestId,
@@ -117,4 +125,4 @@ export const fetchEphemeraForCharacter = async ({
 
 }
 
-export default fetchEphemera
+// export default fetchEphemera

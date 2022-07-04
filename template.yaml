@@ -6,6 +6,11 @@ Description: >
   SAM Template for Make The World, a serverless multiplayer text roleplaying system,
   with DynamoDB storage, React front-end and administrative tools.
 
+Globals:
+  Function:
+    Environment:
+      Variables:
+        NODE_OPTIONS: '--enable-source-maps'
 Parameters:
   TablePrefix:
     Type: String
@@ -101,9 +106,9 @@ Resources:
       Tracing: Active
       CodeUri: lambda/controlChannel/
       Handler: app.handler
-      MemorySize: 128
+      MemorySize: 512
       Runtime: nodejs14.x
-      Timeout: 10
+      Timeout: 20
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
