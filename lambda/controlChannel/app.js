@@ -21,7 +21,7 @@ import {
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
 import fetchEphemera, { fetchEphemeraForCharacter } from './fetchEphemera'
-import fetchImportDefaults from './fetchImportDefaults/index.js'
+import fetchImportDefaults from './fetchImportDefaults'
 
 import lambdaClient from './lambdaClient.js'
 import internalCache from './internalCache'

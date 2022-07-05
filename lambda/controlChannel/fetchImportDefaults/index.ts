@@ -1,15 +1,27 @@
-import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree.js'
-import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
-import { objectMap } from '@tonylb/mtw-utilities/dist/objects.js'
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { componentAppearanceReduce, isComponentKey } from '@tonylb/mtw-utilities/dist/components/components.js'
+import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree'
+import { splitType } from '@tonylb/mtw-utilities/dist/types'
+import { objectMap } from '@tonylb/mtw-utilities/dist/objects'
+import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { componentAppearanceReduce, isComponentKey } from '@tonylb/mtw-utilities/dist/components/components'
 
-const importMetaByAssetId = async (assetId) => {
-    const { importTree = {}, namespaceMap = {}, defaultNames = {}, defaultExits = [] } = await assetDB.getItem({
+type NamespaceMapItem = {
+    assetId: string;
+    key: string;
+}
+
+type AssetMeta = {
+    importTree: Record<string, any>;
+    namespaceMap: Record<string, NamespaceMapItem>;
+    defaultNames: Record<string, any>;
+    defaultExits: any[];
+}
+
+const importMetaByAssetId = async (assetId: string) => {
+    const { importTree = {}, namespaceMap = {}, defaultNames = {}, defaultExits = [] } = await assetDB.getItem<AssetMeta>({
         AssetId: `ASSET#${assetId}`,
         DataCategory: 'Meta::Asset',
         ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
-    })
+    }) || {}
     return { [assetId]: { importTree, namespaceMap, defaultNames, defaultExits } }
 }
 
@@ -29,30 +41,30 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
     //
 
     const directImportMetaFetch = await Promise.all(Object.keys(importsByAssetId).map((assetId) => (importMetaByAssetId(assetId))))
-    const directImportMeta = Object.assign({}, ...directImportMetaFetch)
+    const directImportMeta = Object.assign({}, ...directImportMetaFetch) as Record<string, AssetMeta>
     const directImportTree = objectMap(directImportMeta, ({ importTree }) => (importTree))
     const sortedImports = sortImportTree(directImportTree)
     const ancestorLookupsNeeded = sortedImports.filter((importId) => (!Object.keys(importsByAssetId).includes(importId)))
     const ancestorImportMetaFetch = await Promise.all(ancestorLookupsNeeded.map((assetId) => (importMetaByAssetId(assetId))))
-    const importMeta = Object.assign(directImportMeta, ...ancestorImportMetaFetch)
+    const importMeta = Object.assign(directImportMeta, ...ancestorImportMetaFetch) as Record<string, AssetMeta>
 
     const localIdsByItemId = Object.entries(topLevelMeta?.namespaceMap || {})
         .reduce((previous, [key, { assetId }]) => ({
             ...previous,
             [assetId]: [...(previous[assetId] || []), key]
-        }), {})
+        }), {}) as Record<string, string[]>
     const localIdsByNamespaceKey = Object.entries(topLevelMeta?.namespaceMap || {})
         .reduce((previous, [key, { key: namespaceKey }]) => ({
             ...previous,
             [namespaceKey]: [...(previous[namespaceKey] || []), key]
-        }), {})
+        }), {}) as Record<string, string>
 
     //
     // Create a list for each imported Asset of the ancestors for that particular asset,
     // and then create a list of all asset-item pairs that are part of the import tree
     // for the values actually imported
     //
-    const importedByTopLevel = (assetId) => ({ key: namespaceKey }) => {
+    const importedByTopLevel = (assetId: string) => ({ key: namespaceKey }: NamespaceMapItem) => {
         
         if (splitType(namespaceKey)[0] === assetId) {
             return true
@@ -68,7 +80,11 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
         .reduce((previous, list) => ([...previous, ...list]), [])
         .filter(({ AssetId }) => (AssetId))
 
-    const batchGetImports = await assetDB.batchGetItem({
+    const batchGetImports = await assetDB.batchGetItem<{
+        AssetId: string;
+        DataCategory: string;
+        defaultAppearances: any[];
+    }>({
         Items: neededImports,
         ProjectionFields: ['AssetId', 'DataCategory', 'defaultAppearances']
     })
@@ -115,13 +131,13 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
     //      importMeta[importAssetId]?.defaultExits
     //
 
-    const { aggregatesByAssetId } = sortedImports
+    const { aggregatesByAssetId } = (sortedImports
         .reduce((previous, importAssetId) => {
             //
             // TODO:  Fix the assumption that localIdsByNamespaceKey is a one-to-one mapping (either
             // by making translateId more capable, or by validating against many-to-one imports)
             //
-            const translateId = (importedId) => {
+            const translateId = (importedId: string): string => {
                 const namespaceKey = importMeta[importAssetId]?.namespaceMap?.[importedId]?.key || `${importAssetId}#${importedId}`
                 if (localIdsByNamespaceKey[namespaceKey]) {
                     return localIdsByNamespaceKey[namespaceKey][0]
@@ -156,7 +172,7 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                 currentNames: newDefaultNames
             }
 
-        }, { aggregatesByAssetId: {}, currentExits: [], currentNames: {}, aggregateRooms: {} })
+        }, { aggregatesByAssetId: {}, currentExits: [], currentNames: {} } as { aggregatesByAssetId: Record<string, { exits: any[], names: Record<string, string> }>, currentExits: any[], currentNames: Record<string, string> }))
 
     const { mapAppearances: ancestryDefaultMapAppearances } = sortedImports
         //
@@ -184,7 +200,7 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                 }
                 const defaultNames = aggregatesByAssetId[importAssetId]?.names || {}
                 const defaultExits = aggregatesByAssetId[importAssetId]?.exits || []
-                const addedRooms = Object.assign({}, ...defaultAppearances.map(({ rooms = {} }) => (
+                const addedRooms = Object.assign({}, ...defaultAppearances.map(({ rooms = {} }: { rooms: Record<string, any>}) => (
                     Object.entries(rooms)
                         .reduce((previous, [key, value]) => ({
                             ...previous,
@@ -192,9 +208,9 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                                 ...value,
                                 name: defaultNames[translateId(key)]
                             }
-                        }), {})
-                )))
-                const newRooms = Object.assign(accumulator.aggregateRooms, addedRooms)
+                        }), {} as Record<string, any>)
+                ))) as Record<string, any>
+                const newRooms = Object.assign(accumulator.aggregateRooms, addedRooms) as Record<string, any>
                 const addedExits = defaultExits
                     .filter(({ to, from }) => ((to in newRooms) && (from in newRooms)))
                     .filter(({ to, from }) => (
@@ -226,7 +242,7 @@ export const fetchImportDefaults = async ({ importsByAssetId, assetId: topLevelA
                     aggregateRooms: newRooms
                 }
             }, previous)
-        }, { mapAppearances: {}, aggregateExitsIncluded: [], aggregateRooms: {} })
+        }, { mapAppearances: {}, aggregateExitsIncluded: [], aggregateRooms: {} } as { mapAppearances: Record<string, { exits: any[]; rooms: Record<string, any> }[]>; aggregateExitsIncluded: any[]; aggregateRooms: Record<string, any> })
     const lastImportAssetId = sortedImports.length ? sortedImports.slice(-1)[0] : ''
     return {
         components: Object.assign({},

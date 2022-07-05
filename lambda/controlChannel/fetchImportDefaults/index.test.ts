@@ -3,7 +3,10 @@ import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('@tonylb/mtw-utilities/dist/executeCode/sortImportTree')
 import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree'
 
-import fetchImportDefaults from './index.js'
+import fetchImportDefaults from '.'
+
+const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
+const sortImportTreeMock = sortImportTree as jest.Mock
 
 describe('fetchImportDefaults', () => {
     beforeEach(() => {
@@ -12,7 +15,7 @@ describe('fetchImportDefaults', () => {
     })
 
     it('should fetch importTree from assets and rooms from all ancestor imports', async () => {
-        assetDB.getItem.mockImplementation(({ AssetId }) => {
+        assetDBMock.getItem.mockImplementation(async ({ AssetId }) => {
             switch(AssetId) {
                 case 'ASSET#BASE':
                     return {
@@ -73,7 +76,7 @@ describe('fetchImportDefaults', () => {
                     }                    
             }
         })
-        sortImportTree.mockImplementation((tree) => {
+        sortImportTreeMock.mockImplementation((tree) => {
             if (tree.LayerA) {
                 return ['BASE', 'test', 'LayerA', 'LayerB']
             }
@@ -85,7 +88,7 @@ describe('fetchImportDefaults', () => {
             }
         })
 
-        assetDB.batchGetItem.mockResolvedValue([{
+        assetDBMock.batchGetItem.mockResolvedValue([{
             AssetId: 'ROOM#123',
             DataCategory: 'ASSET#BASE',
             defaultAppearances: [{
@@ -140,21 +143,21 @@ describe('fetchImportDefaults', () => {
             },
             assetId: 'Final'
         })
-        expect(assetDB.getItem).toHaveBeenCalledWith({
+        expect(assetDBMock.getItem).toHaveBeenCalledWith({
             AssetId: 'ASSET#LayerA',
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
         })
-        expect(assetDB.getItem).toHaveBeenCalledWith({
+        expect(assetDBMock.getItem).toHaveBeenCalledWith({
             AssetId: 'ASSET#LayerB',
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
         })
-        expect(sortImportTree).toHaveBeenCalledWith({
+        expect(sortImportTreeMock).toHaveBeenCalledWith({
             LayerA: { BASE: {} },
             LayerB: { test: { BASE: {} }}
         })
-        expect(assetDB.batchGetItem).toHaveBeenCalledWith({
+        expect(assetDBMock.batchGetItem).toHaveBeenCalledWith({
             Items: [{
                 AssetId: 'ROOM#123',
                 DataCategory: `ASSET#BASE`
@@ -204,7 +207,7 @@ describe('fetchImportDefaults', () => {
     //
 
     it('should create successive inherited layers for imported maps', async () => {
-        assetDB.getItem.mockImplementation(({ AssetId }) => {
+        assetDBMock.getItem.mockImplementation(async ({ AssetId }) => {
             switch(AssetId) {
                 case 'ASSET#BASE':
                     return {
@@ -259,7 +262,7 @@ describe('fetchImportDefaults', () => {
                     }                    
             }
         })
-        sortImportTree.mockImplementation((tree) => {
+        sortImportTreeMock.mockImplementation((tree) => {
             if (tree.LayerA) {
                 return ['BASE', 'LayerA']
             }
@@ -268,7 +271,7 @@ describe('fetchImportDefaults', () => {
             }
         })
 
-        assetDB.batchGetItem.mockResolvedValue([{
+        assetDBMock.batchGetItem.mockResolvedValue([{
             AssetId: 'ROOM#123',
             DataCategory: 'ASSET#BASE',
             defaultAppearances: [{
