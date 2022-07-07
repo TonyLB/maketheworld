@@ -3,10 +3,14 @@ import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('@tonylb/mtw-utilities/dist/executeCode/sortImportTree')
 import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree'
 
+jest.mock('../messageBus')
+import { messageBus } from '../messageBus'
+
 import fetchImportDefaults from '.'
 
 const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
 const sortImportTreeMock = sortImportTree as jest.Mock
+const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 
 describe('fetchImportDefaults', () => {
     beforeEach(() => {
@@ -131,7 +135,8 @@ describe('fetchImportDefaults', () => {
             DataCategory: 'ASSET#LayerB',
             defaultAppearances: []            
         }])
-        const { components: output } = await fetchImportDefaults({
+        await fetchImportDefaults({ payloads: [{
+            type: 'FetchImportDefaults',
             importsByAssetId: {
                 LayerA: {
                     welcomeRoom: 'layerAWelcomeRoom',
@@ -142,7 +147,7 @@ describe('fetchImportDefaults', () => {
                 }
             },
             assetId: 'Final'
-        })
+        }], messageBus: messageBusMock })
         expect(assetDBMock.getItem).toHaveBeenCalledWith({
             AssetId: 'ASSET#LayerA',
             DataCategory: 'Meta::Asset',
@@ -184,20 +189,24 @@ describe('fetchImportDefaults', () => {
             }],
             ProjectionFields: ['AssetId', 'DataCategory', 'defaultAppearances']
         })
-        expect(output).toEqual({
-            welcomeRoom: {
-                type: 'Component',
-                render: [{ tag: 'String', value: 'Test description: test addition' }]
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'ImportDefaults',
+            components: {
+                welcomeRoom: {
+                    type: 'Component',
+                    render: [{ tag: 'String', value: 'Test description: test addition' }]
+                },
+                hallway: {
+                    type: 'Component',
+                    name: 'passage',
+                    render: [{ tag: 'String', value: 'Test' }]
+                },
+                walkway: {
+                    type: 'Component',
+                    name: "Widow's walk"
+                }
             },
-            hallway: {
-                type: 'Component',
-                name: 'passage',
-                render: [{ tag: 'String', value: 'Test' }]
-            },
-            walkway: {
-                type: 'Component',
-                name: "Widow's walk"
-            }
+            aggregateExits: expect.any(Array)
         })
     })
 
@@ -317,7 +326,8 @@ describe('fetchImportDefaults', () => {
                 }
             }]
         }])
-        const { components: output } = await fetchImportDefaults({
+        await fetchImportDefaults({ payloads: [{
+            type: 'FetchImportDefaults',
             importsByAssetId: {
                 LayerA: {
                     welcomeRoom: 'layerAWelcomeRoom',
@@ -325,50 +335,54 @@ describe('fetchImportDefaults', () => {
                 }
             },
             assetId: 'Final'
-        })
-        expect(output).toEqual({
-            welcomeRoom: {
-                type: 'Component',
-                name: 'FirstSecond',
-                render: [{ tag: 'String', value: 'Test description: test addition' }]
-            },
-            house: {
-                type: 'Map',
-                layers: [{
-                    rooms: {
-                        welcomeRoom: {
-                            name: 'First',
-                            x: 0,
-                            y: 0
-                        }
-                    },
-                    exits: []
+        }], messageBus: messageBusMock})
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'ImportDefaults',
+            components: {
+                welcomeRoom: {
+                    type: 'Component',
+                    name: 'FirstSecond',
+                    render: [{ tag: 'String', value: 'Test description: test addition' }]
                 },
-                {
-                    rooms: {
-                        welcomeRoom: {
-                            name: 'FirstSecond',
-                            x: 100,
-                            y: 0
+                house: {
+                    type: 'Map',
+                    layers: [{
+                        rooms: {
+                            welcomeRoom: {
+                                name: 'First',
+                                x: 0,
+                                y: 0
+                            }
                         },
-                        'BASE#passage': {
-                            name: 'AB',
-                            x: -100,
-                            y: 0
-                        }
-                    },
-                    exits: [{
-                        name: 'passage',
-                        to: 'BASE#passage',
-                        from: 'welcomeRoom'
+                        exits: []
                     },
                     {
-                        name: 'welcome',
-                        to: 'welcomeRoom',
-                        from: 'BASE#passage'
+                        rooms: {
+                            welcomeRoom: {
+                                name: 'FirstSecond',
+                                x: 100,
+                                y: 0
+                            },
+                            'BASE#passage': {
+                                name: 'AB',
+                                x: -100,
+                                y: 0
+                            }
+                        },
+                        exits: [{
+                            name: 'passage',
+                            to: 'BASE#passage',
+                            from: 'welcomeRoom'
+                        },
+                        {
+                            name: 'welcome',
+                            to: 'welcomeRoom',
+                            from: 'BASE#passage'
+                        }]
                     }]
-                }]
-            }
+                }
+            },
+            aggregateExits: expect.any(Array)
         })
     })
 })

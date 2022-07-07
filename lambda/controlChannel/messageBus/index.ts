@@ -10,7 +10,9 @@ import {
     isSyncRequest,
     isSyncResponse,
     isRegisterCharacterMessage,
-    isFetchPlayerEphemera
+    isFetchPlayerEphemera,
+    isImportDefaults,
+    isFetchImportDefaults
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -21,6 +23,7 @@ import whoAmIMessage from '../whoAmI'
 import { syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
+import { importDefaultsMessage, fetchImportDefaults } from '../fetchImportDefaults'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -76,6 +79,18 @@ messageBus.subscribe({
     priority: 2,
     filter: isFetchPlayerEphemera,
     callback: fetchPlayerEphemera
+})
+messageBus.subscribe({
+    tag: 'ImportDefaults',
+    priority: 3,
+    filter: isImportDefaults,
+    callback: importDefaultsMessage
+})
+messageBus.subscribe({
+    tag: 'FetchImportDefaults',
+    priority: 2,
+    filter: isFetchImportDefaults,
+    callback: fetchImportDefaults
 })
 
 export default messageBus
