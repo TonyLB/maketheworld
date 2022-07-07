@@ -17,7 +17,7 @@ const unencumberedImports = (tree: Record<string, any>, excludeList: string[] = 
     return [...(new Set(unencumberedImportsAll))]
 }
 
-export const sortImportTree = (tree, currentList: string[] = []) => {
+export const sortImportTree = (tree: Record<string, any>, currentList: string[] = []): string[] => {
     const readyImports = unencumberedImports(tree, currentList)
     if (readyImports.length > 0) {
         return [

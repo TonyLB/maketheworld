@@ -127,7 +127,30 @@ export type FetchPlayerEphemeraMessage = {
     type: 'FetchPlayerEphemera';
 }
 
-export type MessageType = PublishMessage | ReturnValueMessage | DisconnectMessage | ConnectMessage | WhoAmIMessage | SyncRequest | SyncResponse | RegisterCharacterMessage | EphemeraUpdateMessage | FetchPlayerEphemeraMessage
+export type ImportDefaultsMessage = {
+    type: 'ImportDefaults';
+    components: Record<string, any>;
+    aggregateExits: any[];
+}
+
+export type FetchImportDefaultsMessage = {
+    type: 'FetchImportDefaults';
+    importsByAssetId: Record<string, any>;
+    assetId: string;
+}
+
+export type MessageType = PublishMessage |
+    ReturnValueMessage |
+    DisconnectMessage |
+    ConnectMessage |
+    WhoAmIMessage |
+    SyncRequest |
+    SyncResponse |
+    RegisterCharacterMessage |
+    EphemeraUpdateMessage |
+    FetchPlayerEphemeraMessage |
+    ImportDefaultsMessage |
+    FetchImportDefaultsMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -144,5 +167,7 @@ export const isRegisterCharacterMessage = (prop: MessageType): prop is RegisterC
 
 export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessage => (prop.type === 'EphemeraUpdate')
 export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')
+export const isImportDefaults = (prop: MessageType): prop is ImportDefaultsMessage => (prop.type === 'ImportDefaults')
+export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDefaultsMessage => (prop.type === 'FetchImportDefaults')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
