@@ -66,25 +66,6 @@ export const connect = async (token) => {
     }
 }
 
-// const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
-//     //
-//     // TODO: Create asset management system to allow non-hard-coded asset lists
-//     //
-//     const renderOutputs = await render({
-//         renderList: [{
-//             CharacterId,
-//             EphemeraId: PermanentId
-//         }]
-//     })
-//     await deliverRenders({
-//         renderOutputs
-//     })
-//     return {
-//         statusCode: 200,
-//         body: JSON.stringify({ messageType: "ActionComplete" })
-//     }
-// }
-
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
     if (CharacterId) {
         const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await internalCache.get({
