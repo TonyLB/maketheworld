@@ -13,7 +13,8 @@ import {
     isFetchPlayerEphemera,
     isImportDefaults,
     isFetchImportDefaults,
-    isPerception
+    isPerception,
+    isMoveCharacter
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -26,6 +27,7 @@ import registerCharacter from '../registerCharacter'
 import { fetchPlayerEphemera } from '../fetchEphemera'
 import { importDefaultsMessage, fetchImportDefaults } from '../fetchImportDefaults'
 import perceptionMessage from '../perception'
+import moveCharacter from '../moveCharacter'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -99,6 +101,12 @@ messageBus.subscribe({
     priority: 3,
     filter: isPerception,
     callback: perceptionMessage
+})
+messageBus.subscribe({
+    tag: 'MoveCharacter',
+    priority: 4,
+    filter: isMoveCharacter,
+    callback: moveCharacter
 })
 
 export default messageBus
