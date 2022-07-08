@@ -1,6 +1,7 @@
 {
   "name": "@tonylb/mtw-internal-bus",
   "type": "module",
+  "main": "ts/index.ts",
   "version": "1.0.0",
   "description": "Internal message bus for MakeTheWorld lambda functions",
   "scripts": {

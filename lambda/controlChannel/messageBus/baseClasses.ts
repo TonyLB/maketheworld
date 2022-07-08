@@ -139,6 +139,12 @@ export type FetchImportDefaultsMessage = {
     assetId: string;
 }
 
+export type PerceptionMessage = {
+    type: 'Perception';
+    characterId: string;
+    ephemeraId: string;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -150,7 +156,8 @@ export type MessageType = PublishMessage |
     EphemeraUpdateMessage |
     FetchPlayerEphemeraMessage |
     ImportDefaultsMessage |
-    FetchImportDefaultsMessage
+    FetchImportDefaultsMessage |
+    PerceptionMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -169,5 +176,7 @@ export const isEphemeraUpdate = (prop: MessageType): prop is EphemeraUpdateMessa
 export const isFetchPlayerEphemera = (prop: MessageType): prop is FetchPlayerEphemeraMessage => (prop.type === 'FetchPlayerEphemera')
 export const isImportDefaults = (prop: MessageType): prop is ImportDefaultsMessage => (prop.type === 'ImportDefaults')
 export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDefaultsMessage => (prop.type === 'FetchImportDefaults')
+
+export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
