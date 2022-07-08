@@ -66,24 +66,24 @@ export const connect = async (token) => {
     }
 }
 
-const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
-    //
-    // TODO: Create asset management system to allow non-hard-coded asset lists
-    //
-    const renderOutputs = await render({
-        renderList: [{
-            CharacterId,
-            EphemeraId: PermanentId
-        }]
-    })
-    await deliverRenders({
-        renderOutputs
-    })
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ messageType: "ActionComplete" })
-    }
-}
+// const lookPermanent = async ({ CharacterId, PermanentId } = {}) => {
+//     //
+//     // TODO: Create asset management system to allow non-hard-coded asset lists
+//     //
+//     const renderOutputs = await render({
+//         renderList: [{
+//             CharacterId,
+//             EphemeraId: PermanentId
+//         }]
+//     })
+//     await deliverRenders({
+//         renderOutputs
+//     })
+//     return {
+//         statusCode: 200,
+//         body: JSON.stringify({ messageType: "ActionComplete" })
+//     }
+// }
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
     if (CharacterId) {
@@ -153,7 +153,12 @@ const goHome = async ({ CharacterId } = {}) => {
 const executeAction = async (request) => {
     switch(request.actionType) {
         case 'look':
-            return await lookPermanent(request.payload)
+            messageBus.send({
+                type: 'Perception',
+                characterId: request.CharacterId,
+                ephemeraId: request.EphemeraId
+            })
+            break
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':
@@ -438,21 +443,23 @@ export const handler = async (event, context) => {
                         }))
                         .map(publishMessage)
                     )
-                    break
+                    return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
                 case 'Feature':
-                    await lookPermanent({
-                        CharacterId: request.CharacterId,
-                        PermanentId: `FEATURE#${request.FeatureId}`
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: request.CharacterId,
+                        ephemeraId: `FEATURE#${request.FeatureId}`
                     })
                     break
                 case 'Character':
-                    await lookPermanent({
-                        CharacterId: request.viewCharacterId,
-                        PermanentId: `CHARACTERINPLAY#${request.CharacterId}`
+                    messageBus.send({
+                        type: 'Perception',
+                        characterId: request.viewCharacterId,
+                        ephemeraId: `CHARACTERINPLAY#${request.CharacterId}`
                     })
                     break
             }
-            return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
+            break
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
             if (actionPayload.actionType) {

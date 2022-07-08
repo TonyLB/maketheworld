@@ -1,0 +1,12 @@
+{
+  "name": "@tonylb/mtw-interfaces",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Typescript interfaces shared across multiple MTW subsystems",
+  "main": "ts/index.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Tony Lower-Basch",
+  "license": "MIT"
+}
