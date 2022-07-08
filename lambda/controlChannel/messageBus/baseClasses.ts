@@ -145,6 +145,13 @@ export type PerceptionMessage = {
     ephemeraId: string;
 }
 
+export type MoveCharacterMessage = {
+    type: 'MoveCharacter';
+    characterId: string;
+    roomId: string;
+    exitName?: string;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -157,7 +164,8 @@ export type MessageType = PublishMessage |
     FetchPlayerEphemeraMessage |
     ImportDefaultsMessage |
     FetchImportDefaultsMessage |
-    PerceptionMessage
+    PerceptionMessage |
+    MoveCharacterMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -178,5 +186,6 @@ export const isImportDefaults = (prop: MessageType): prop is ImportDefaultsMessa
 export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDefaultsMessage => (prop.type === 'FetchImportDefaults')
 
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
+export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

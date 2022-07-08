@@ -90,20 +90,12 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
     }
 }
 
-const moveCharacter = async ({ CharacterId, RoomId, ExitName } = {}) => {
-    //
-    // TODO: Validate the RoomId as one that is valid for the character to move to, before
-    // pushing data to the DB.
-    //
-    await ephemeraDB.update({
-        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-        DataCategory: 'Meta::Character',
-        UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
-        ExpressionAttributeValues: {
-            ':roomId': RoomId,
-            ':leave': ` left${ ExitName ? ` by ${ExitName} exit` : ''}.`,
-            ':enter': ` arrives.`
-        }
+const moveCharacter = ({ CharacterId, RoomId, ExitName } = {}) => {
+    messageBus.send({
+        type: 'MoveCharacter',
+        characterId: CharacterId,
+        roomId: RoomId,
+        exitName: ExitName
     })
 }
 
@@ -146,7 +138,8 @@ const executeAction = async (request) => {
             await narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
             break
         case 'move':
-            return await moveCharacter(request.payload)
+            moveCharacter(request.payload)
+            break
         case 'home':
             return await goHome(request.payload)
         default:
