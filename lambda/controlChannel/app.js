@@ -90,15 +90,6 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
     }
 }
 
-const moveCharacter = ({ CharacterId, RoomId, ExitName } = {}) => {
-    messageBus.send({
-        type: 'MoveCharacter',
-        characterId: CharacterId,
-        roomId: RoomId,
-        exitName: ExitName
-    })
-}
-
 const goHome = async ({ CharacterId } = {}) => {
 
     const { HomeId = 'VORTEX' } = await assetDB.getItem({
@@ -138,10 +129,23 @@ const executeAction = async (request) => {
             await narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
             break
         case 'move':
-            moveCharacter(request.payload)
+            messageBus.send({
+                type: 'MoveCharacter',
+                characterId: request.payload.CharacterId,
+                roomId: request.payload.RoomId,
+                leaveMessage: ` left${request.payload.ExitName ? ` by ${request.payload.ExitName} exit` : ''}.`
+            })
             break
         case 'home':
-            return await goHome(request.payload)
+            const props = await internalCache.get({ category: 'CharacterHome', key: request.payload.CharacterId })
+            const { HomeId = '' } = props || {}
+            messageBus.send({
+                type: 'MoveCharacter',
+                characterId: request.payload.CharacterId,
+                roomId: HomeId,
+                leaveMessage: ' left to return home.'
+            })
+            break
         default:
             break        
     }
@@ -493,7 +497,6 @@ export const handler = async (event, context) => {
         default:
             break
     }
-    console.log(`Message Bus: ${JSON.stringify(messageBus._stream, null, 4)}`)
     await messageBus.flush()
     return extractReturnValue(messageBus)
 

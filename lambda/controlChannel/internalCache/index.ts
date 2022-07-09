@@ -1,4 +1,4 @@
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { ephemeraDB, assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 
@@ -7,20 +7,25 @@ type CacheItem<T> = {
     value: T;
 }
 
-type CacheCategoryKeyValue<T> = {
+type CacheCategoryKeyValue<T extends Record<string, any>> = {
     cacheType: 'SetOnly';
     entries: Partial<T>;
 }
 
-type CacheCategoryLookup<T> = {
-    cacheType: 'Lookup';
-    entries: Record<string, CacheItem<T>>;
-    fetch: (key: string) => Promise<T>;
+type CacheCategoryFetchFunction<T extends Record<string, any>> = {
+    (key: string): Promise<T>;
 }
 
-type CacheCategoryFetchOnce<T, C> = {
+type CacheCategoryLookup<T extends Record<string, any>> = {
+    cacheType: 'Lookup';
+    entries: Record<string, CacheItem<T>>;
+    fetch: CacheCategoryFetchFunction<T>;
+}
+
+
+type CacheCategoryFetchOnce<T extends Record<string, any>, C> = {
     cacheType: 'FetchOnce';
-    entry?: T;
+    entries: Partial<T>;
     fetch: (values: C) => Promise<T>;
 }
 
@@ -48,35 +53,57 @@ type CacheCharacterMeta = {
     Color?: string;
 }
 
+type CacheCharacterHome = {
+    HomeId: string;
+}
+
 type CacheStorageType = {
     Global: CacheCategoryKeyValue<CacheGlobal>;
     CurrentPlayerMeta: CacheCategoryFetchOnce<CurrentPlayerMeta, InternalCache>;
     RoomCharacterList: CacheCategoryLookup<Record<string, RoomCharacterActive>>;
     CharacterMeta: CacheCategoryLookup<CacheCharacterMeta>;
+    CharacterHome: CacheCategoryLookup<CacheCharacterHome>;
 }
 
 type CacheStorageTypeCategories = CacheStorageType[keyof CacheStorageType]
 type CacheStorageTypeFetchableCategories = Extract<CacheStorageTypeCategories, { fetch: Function }>
-type CacheCategoryToKeys = {
-    [Category in keyof CacheStorageType]: CacheStorageType[Category] extends CacheCategoryFetchOnce<infer A, infer Cache>
-    ? keyof A
-    : CacheStorageType[Category] extends CacheCategoryLookup<infer T>
-        ? keyof T
-        : CacheStorageType[Category] extends CacheCategoryKeyValue<infer K>
-            ? keyof K
-            : never
+
+type CacheGetArgumentBase = {
+    category: keyof CacheStorageType;
+    key: string;
 }
-type CacheCategoryToOutput = {
-    [Category in keyof CacheStorageType]: CacheStorageType[Category] extends CacheCategoryFetchOnce<infer A, infer Cache>
-        ? A
-        : CacheStorageType[Category] extends CacheCategoryLookup<infer T>
-            ? T
-            : CacheStorageType[Category] extends CacheCategoryKeyValue<infer K>
-                ? K
-                : never
+interface CacheGetArgumentGlobal extends CacheGetArgumentBase {
+    category: 'Global',
+    key: keyof CacheGlobal
 }
+interface CacheGetArgumentCurrentPlayer extends CacheGetArgumentBase {
+    category: 'CurrentPlayerMeta';
+    key: keyof CurrentPlayerMeta;
+}
+interface CacheGetArgumentRoomCharacter extends CacheGetArgumentBase {
+    category: 'RoomCharacterList';
+    key: string;
+}
+interface CacheGetArgumentCharacterMeta extends CacheGetArgumentBase {
+    category: 'CharacterMeta';
+    key: string;
+}
+interface CacheGetArgumentCharacterHome extends CacheGetArgumentBase {
+    category: 'CharacterHome';
+    key: string;
+}
+type CacheGetArgument = CacheGetArgumentGlobal | CacheGetArgumentCurrentPlayer | CacheGetArgumentRoomCharacter | CacheGetArgumentCharacterMeta | CacheGetArgumentCharacterHome
+
+type CacheGetReturnValue<T extends CacheGetArgument, K extends T["key"]> = T["category"] extends 'Global' ? K extends keyof CacheGlobal ? CacheGlobal[K] : never
+    : T["category"] extends 'CurrentPlayerMeta' ? K extends keyof CurrentPlayerMeta ? CurrentPlayerMeta[K] : never
+    : T["category"] extends ('RoomCharacterList' | 'CharacterMeta' | 'CharacterHome') ? CacheStorageType[T["category"]]["entries"] extends CacheItem<infer P> ? P : never : never
 
 const isFetchable = (category: CacheStorageTypeCategories): category is CacheStorageTypeFetchableCategories => (['FetchOnce', 'Lookup'].includes(category.cacheType))
+const isGlobalArgument = (props: CacheGetArgument): props is CacheGetArgumentGlobal => (props.category === 'Global')
+const isCurrentPlayerArgument = (props: CacheGetArgument): props is CacheGetArgumentCurrentPlayer => (props.category === 'CurrentPlayerMeta')
+const isRoomCharacterArgument = (props: CacheGetArgument): props is CacheGetArgumentRoomCharacter => (props.category === 'RoomCharacterList')
+const isCharacterMetaArgument = (props: CacheGetArgument): props is CacheGetArgumentCharacterMeta => (props.category === 'CharacterMeta')
+const isCharacterHomeArgument = (props: CacheGetArgument): props is CacheGetArgumentCharacterHome => (props.category === 'CharacterHome')
 
 const initialCache: CacheStorageType = {
     Global: {
@@ -85,6 +112,7 @@ const initialCache: CacheStorageType = {
     },
     CurrentPlayerMeta: {
         cacheType: 'FetchOnce',
+        entries: {},
         fetch: async (internalCache: InternalCache) => {
             const connectionId = await internalCache.get({
                 category: 'Global',
@@ -131,18 +159,27 @@ const initialCache: CacheStorageType = {
         cacheType: 'Lookup',
         entries: {},
         fetch: async (CharacterId) => {
-            return await ephemeraDB.getItem<CacheCharacterMeta>({
+            const { EphemeraId = `CHARACTERINPLAY#${CharacterId}`, Name = '', RoomId = '', Color } = await ephemeraDB.getItem<CacheCharacterMeta>({
                     EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color'],
+                    ProjectionFields: ['#name', 'RoomId', 'Color'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                }) || {
-                    EphemeraId: '',
-                    Name: '',
-                    RoomId: ''
-                }
+                }) || {}
+            return { EphemeraId, Name, RoomId, Color }
+        }
+    },
+    CharacterHome: {
+        cacheType: 'Lookup',
+        entries: {},
+        fetch: async (CharacterId) => {
+            const { HomeId = 'VORTEX' } = await assetDB.getItem<CacheCharacterHome>({
+                    AssetId: `CHARACTER#${CharacterId}`,
+                    DataCategory: 'Meta::Character',
+                    ProjectionFields: ['HomeId'],
+                }) || {}
+            return { HomeId }
         }
     }
 }
@@ -154,38 +191,77 @@ export class InternalCache extends Object {
         super()
     }
 
-    set({ category, key, value }: { category: 'Global'; key: CacheCategoryToKeys['Global']; value: any; }): void {
+    set({ category, key, value }: { category: 'Global'; key: keyof CacheStorageType['Global']["entries"]; value: any; }): void {
         this._cache[category] = this._cache[category] || { entries: {} }
         this._cache[category].entries[key] = value
     }
 
-    async get<T extends keyof CacheStorageType>({ category, key }: { category: T; key: CacheCategoryToKeys[T] }): Promise<CacheCategoryToOutput[T][CacheCategoryToKeys[T]] | undefined> {
-        const cacheCategory = this._cache[category]
-        if (isFetchable(cacheCategory)) {
-            if (cacheCategory.cacheType === 'Lookup') {
-                if (!cacheCategory.entries[key]) {
-                    const fetchedValue = await cacheCategory.fetch(key) as CacheCategoryToOutput[T][CacheCategoryToKeys[T]]
-                    cacheCategory.entries[key] = {
-                        value: fetchedValue
-                    }
-                }
-                return cacheCategory.entries[key].value as CacheCategoryToOutput[T][CacheCategoryToKeys[T]]
-            }
-            if (cacheCategory.cacheType === 'FetchOnce') {
-                if (!cacheCategory.entry) {
-                    const fetchedValue = await cacheCategory.fetch(this)
-                    cacheCategory.entry = fetchedValue
-                }
-                return cacheCategory.entry[key]
-            }
-        }
-        else {
+    get(props: CacheGetArgumentGlobal): Promise<CacheGlobal[keyof CacheGlobal] | undefined>
+    get(props: CacheGetArgumentCurrentPlayer): Promise<CurrentPlayerMeta[keyof CurrentPlayerMeta] | undefined>
+    get(props: CacheGetArgumentRoomCharacter): Promise<Record<string, RoomCharacterActive> | undefined>
+    get(props: CacheGetArgumentCharacterMeta): Promise<CacheCharacterMeta | undefined>
+    get(props: CacheGetArgumentCharacterHome): Promise<CacheCharacterHome | undefined>
+    get(props: CacheGetArgument): Promise<CacheGlobal[keyof CacheGlobal] | CurrentPlayerMeta[keyof CurrentPlayerMeta] | Record<string, RoomCharacterActive> | CacheCharacterMeta | CacheCharacterHome | undefined>
+    async get(props: CacheGetArgument): Promise<CacheGlobal[keyof CacheGlobal] | CurrentPlayerMeta[keyof CurrentPlayerMeta] | Record<string, RoomCharacterActive> | CacheCharacterMeta | CacheCharacterHome | undefined> {
+        //
+        // Unfortunately, I have not yet figured out a way to typescript constrain these polymorphic outputs without
+        // repeating a lot of code.
+        //
+        if (isGlobalArgument(props)) {
+            const { category, key } = props
+            const cacheCategory = this._cache[category]
             return cacheCategory.entries[key]
+        }
+        if (isCurrentPlayerArgument(props)) {
+            const { category, key } = props
+            const cacheCategory = this._cache[category]
+            if (Object.keys(cacheCategory.entries).length === 0) {
+                const fetchedValue = await cacheCategory.fetch(this)
+                cacheCategory.entries = fetchedValue
+            }
+            return cacheCategory.entries[key]
+        }
+        if (isRoomCharacterArgument(props)) {
+            const { category, key } = props
+            const cacheCategory = this._cache[category]
+            if (!cacheCategory.entries[key]) {
+                const fetchedValue = await cacheCategory.fetch(key)
+                cacheCategory.entries[key] = {
+                    value: fetchedValue
+                }
+            }
+            return cacheCategory.entries[key].value
+        }
+        if (isCharacterMetaArgument(props)) {
+            const { category, key } = props
+            const cacheCategory = this._cache[category]
+            if (!cacheCategory.entries[key]) {
+                const fetchedValue = await cacheCategory.fetch(key)
+                cacheCategory.entries[key] = {
+                    value: fetchedValue
+                }
+            }
+            return cacheCategory.entries[key].value
+        }
+        if (isCharacterHomeArgument(props)) {
+            const { category, key } = props
+            const cacheCategory = this._cache[category]
+            if (!cacheCategory.entries[key]) {
+                const fetchedValue = await cacheCategory.fetch(key)
+                cacheCategory.entries[key] = {
+                    value: fetchedValue
+                }
+            }
+            return cacheCategory.entries[key].value
         }
     }
 
     clear() {
-        this._cache = initialCache
+        this._cache.Global.entries = {}
+        this._cache.CurrentPlayerMeta.entries = {}
+        this._cache.RoomCharacterList.entries = {}
+        this._cache.CharacterMeta.entries = {}
+        this._cache.CharacterHome.entries = {}
     }
 }
 

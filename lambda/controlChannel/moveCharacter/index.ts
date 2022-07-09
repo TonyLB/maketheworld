@@ -13,7 +13,7 @@ export const moveCharacter = async ({ payloads }: { payloads: MoveCharacterMessa
             UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
             ExpressionAttributeValues: {
                 ':roomId': payload.roomId,
-                ':leave': ` left${ payload.exitName ? ` by ${payload.exitName} exit` : ''}.`,
+                ':leave': payload.leaveMessage || ' left.',
                 ':enter': ` arrives.`
             }
         })

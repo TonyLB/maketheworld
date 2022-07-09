@@ -149,7 +149,7 @@ export type MoveCharacterMessage = {
     type: 'MoveCharacter';
     characterId: string;
     roomId: string;
-    exitName?: string;
+    leaveMessage?: string;
 }
 
 export type MessageType = PublishMessage |
