@@ -9,7 +9,7 @@ const remapTargets = async (targets: string[]): Promise<string[]> => {
     const roomTargets = targets.filter((target) => (splitType(target)[0] === 'ROOM'))
     const nonRoomTargets = targets.filter((target) => (splitType(target)[0] !== 'ROOM'))
     const mappedRoomTargetGroups = (await Promise.all(roomTargets
-            .map((target) => (internalCache.get<'RoomCharacterList'>({ category: 'RoomCharacterList', key: splitType(target)[1] })))
+            .map((target) => (internalCache.get({ category: 'RoomCharacterList', key: splitType(target)[1] })))
         ))
         .map((activeCharacters) => (Object.keys(activeCharacters || {}).map((character) => (`CHARACTER#${character}`))))
     return unique(nonRoomTargets, ...mappedRoomTargetGroups) as string[]
