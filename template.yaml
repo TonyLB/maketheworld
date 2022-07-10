@@ -92,6 +92,14 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref ControlChannelFunction
       Principal: apigateway.amazonaws.com
+  AssetPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - AssetsFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AssetsFunction
+      Principal: apigateway.amazonaws.com
   ControlChannelFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -337,16 +345,11 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       IntegrationId: !Ref AssetInteg
       IntegrationResponseKey: "/200/"
-  #
-  # A Response tells the Websocket to return the return-value of the NodeJS handler function as
-  # a websocket message in response to the incoming data.  This isn't strictly necessary (we could
-  # explicitly invoke the post-to-connection API), but it's convenient.
-  #
-  EphemeraResponse:
+  AssetResponse:
     Type: AWS::ApiGatewayV2::RouteResponse
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      RouteId: !Ref EphemeraRoute
+      RouteId: !Ref AssetRoute
       RouteResponseKey: "$default"
   RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage

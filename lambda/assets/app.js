@@ -10,6 +10,7 @@ import { handleUpload, createUploadLink, createUploadImageLink } from './upload/
 import { createFetchLink } from './fetch/index.js'
 import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
+import { fetchLibrary } from "./assetLibrary/fetch.js"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -120,6 +121,15 @@ export const handler = async (event, context) => {
                 fileName: event.fileName,
                 toPath: event.toPath
             })
+    }
+    const request = event.body && JSON.parse(event.body) || {}
+    switch(request.message) {
+        case 'fetchLibrary':
+            const libraryEphemera = await fetchLibrary(request.RequestId)
+            return {
+                statusCode: 200,
+                body: JSON.stringify(libraryEphemera)
+            }
     }
     context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
 
