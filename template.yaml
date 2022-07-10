@@ -304,15 +304,50 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref EphemeraRoute
       RouteResponseKey: "$default"
-  # RealTimeDeployment:
-  #   Type: AWS::ApiGatewayV2::Deployment
-  #   DependsOn:
-  #   - PingRoute
-  #   - ConnectRoute
-  #   - DisconnectRoute
-  #   - DefaultRoute
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
+  #
+  # Separate route and integrations for asset service
+  #
+  AssetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: asset
+      AuthorizationType: NONE
+      OperationName: AssetRoute
+      RouteResponseSelectionExpression: $default
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref AssetInteg
+  AssetInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Asset Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt AssetsFunction.Arn
+  AssetIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref AssetInteg
+      IntegrationResponseKey: "/200/"
+  #
+  # A Response tells the Websocket to return the return-value of the NodeJS handler function as
+  # a websocket message in response to the incoming data.  This isn't strictly necessary (we could
+  # explicitly invoke the post-to-connection API), but it's convenient.
+  #
+  EphemeraResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref EphemeraRoute
+      RouteResponseKey: "$default"
   RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
