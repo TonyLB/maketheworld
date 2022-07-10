@@ -336,7 +336,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             DataCategory,
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        } as any)
+        } as any) || {}
         const newState = produce(state, updateReducer)
         if (newState === state) {
             returnValue = state || returnValue
