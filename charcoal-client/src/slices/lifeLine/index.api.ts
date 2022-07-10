@@ -82,7 +82,7 @@ export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
 // TODO:  Enqueue messages that come in when status is not connected, and flush the
 //   queue through the lifeline when status returns to connected.
 //
-export const socketDispatch = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset'} = {}) => (payload: any): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch: AppDispatch, getState: AppGetState): void => {
+export const socketDispatch = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping'} = {}) => (payload: any): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch: AppDispatch, getState: AppGetState): void => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
         webSocket.send(JSON.stringify({
@@ -108,7 +108,7 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
                 if (webSocket) {
                     dispatch(disconnectWebSocket)
                 }
-                const pingInterval = setInterval(() => { dispatch(socketDispatch('ping')({})) }, 300000)
+                const pingInterval = setInterval(() => { dispatch(socketDispatch('ping', { service: 'ping' })({})) }, 300000)
                 const refreshTimeout = setTimeout(() => { dispatch(internalStateChange({ newState: 'STALE' })) }, 3600000 )
                 resolve({
                     internalData: {
