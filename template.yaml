@@ -304,24 +304,22 @@ Resources:
       ApiId: !Ref RealTimeWebSocket
       RouteId: !Ref DefaultRoute
       RouteResponseKey: "$default"
-  RealTimeDeployment:
-    Type: AWS::ApiGatewayV2::Deployment
-    DependsOn:
-    - PingRoute
-    - ConnectRoute
-    - DisconnectRoute
-    - DefaultRoute
-    Properties:
-      ApiId: !Ref RealTimeWebSocket
+  # RealTimeDeployment:
+  #   Type: AWS::ApiGatewayV2::Deployment
+  #   DependsOn:
+  #   - PingRoute
+  #   - ConnectRoute
+  #   - DisconnectRoute
+  #   - DefaultRoute
+  #   Properties:
+  #     ApiId: !Ref RealTimeWebSocket
   RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage
-    DependsOn:
-      - RealTimeDeployment
     Properties:
       StageName: Prod
       Description: Prod Stage
-      DeploymentId: !Ref RealTimeDeployment
       ApiId: !Ref RealTimeWebSocket
+      AutoDeploy: true
   AssetTable:
       Type: AWS::DynamoDB::Table
       Properties:
