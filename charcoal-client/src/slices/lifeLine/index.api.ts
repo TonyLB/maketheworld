@@ -82,10 +82,11 @@ export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
 // TODO:  Enqueue messages that come in when status is not connected, and flush the
 //   queue through the lifeline when status returns to connected.
 //
-export const socketDispatch = (messageType: any) => (payload: any): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch: AppDispatch, getState: AppGetState): void => {
+export const socketDispatch = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping'} = {}) => (payload: any): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch: AppDispatch, getState: AppGetState): void => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
         webSocket.send(JSON.stringify({
+            service,
             message: messageType,
             ...payload
         }))
@@ -107,7 +108,7 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
                 if (webSocket) {
                     dispatch(disconnectWebSocket)
                 }
-                const pingInterval = setInterval(() => { dispatch(socketDispatch('ping')({})) }, 300000)
+                const pingInterval = setInterval(() => { dispatch(socketDispatch('ping', { service: 'ping' })({})) }, 300000)
                 const refreshTimeout = setTimeout(() => { dispatch(internalStateChange({ newState: 'STALE' })) }, 3600000 )
                 resolve({
                     internalData: {
@@ -145,7 +146,7 @@ export const backoffAction: LifeLineAction = ({ internalData: { incrementalBacko
 // This lets some message types associate an expected round-trip and return a Promise that watches
 // for that (similar to how HTTP calls are processed).
 //
-export const socketDispatchPromise = (messageType: any) => (payload: any): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> => (dispatch, getState) => {
+export const socketDispatchPromise = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset'} = {}) => (payload: any): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> => (dispatch, getState) => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
         const RequestId = uuidv4()
@@ -163,6 +164,7 @@ export const socketDispatchPromise = (messageType: any) => (payload: any): Thunk
                 }
             })
             webSocket.send(JSON.stringify({
+                service,
                 message: messageType,
                 RequestId,
                 ...payload

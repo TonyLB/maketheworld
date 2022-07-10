@@ -83,7 +83,7 @@ Resources:
     Properties:
       Name: MTWRealTimeSocket
       ProtocolType: WEBSOCKET
-      RouteSelectionExpression: "$request.body.message"
+      RouteSelectionExpression: "$request.body.service"
   ControlChannelPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -253,28 +253,28 @@ Resources:
   # The Route defines the mapping from a key to a particular integration.  In this case, the $default
   # key catches everything not specified explicitly
   #
-  DefaultRoute:
+  EphemeraRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      RouteKey: $default
+      RouteKey: ephemera
       AuthorizationType: NONE
-      OperationName: DefaultRoute
+      OperationName: EphemeraRoute
       RouteResponseSelectionExpression: $default
       Target: !Join
         - '/'
         - - 'integrations'
-          - !Ref DefaultInteg
+          - !Ref EphemeraInteg
   #
   # The integration connects the incoming message with a specific target.  In this case, we use
   # a direct AWS-PROXY to integrate with our lambda invocation, passing the incoming message
   # unchanged.
   #
-  DefaultInteg:
+  EphemeraInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      Description: Default Integration
+      Description: Ephemera Integration
       IntegrationType: AWS_PROXY
       IntegrationUri:
           Fn::Sub:
@@ -287,32 +287,67 @@ Resources:
   # I don't include it, messaging goes wonky.  Maybe it's superstition at this point, but I'm
   # leaving it in.
   #
-  DefaultIntegrationResponse:
+  EphemeraIntegrationResponse:
     Type: AWS::ApiGatewayV2::IntegrationResponse
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      IntegrationId: !Ref DefaultInteg
+      IntegrationId: !Ref EphemeraInteg
       IntegrationResponseKey: "/200/"
   #
   # A Response tells the Websocket to return the return-value of the NodeJS handler function as
   # a websocket message in response to the incoming data.  This isn't strictly necessary (we could
   # explicitly invoke the post-to-connection API), but it's convenient.
   #
-  DefaultResponse:
+  EphemeraResponse:
     Type: AWS::ApiGatewayV2::RouteResponse
     Properties:
       ApiId: !Ref RealTimeWebSocket
-      RouteId: !Ref DefaultRoute
+      RouteId: !Ref EphemeraRoute
       RouteResponseKey: "$default"
-  # RealTimeDeployment:
-  #   Type: AWS::ApiGatewayV2::Deployment
-  #   DependsOn:
-  #   - PingRoute
-  #   - ConnectRoute
-  #   - DisconnectRoute
-  #   - DefaultRoute
-  #   Properties:
-  #     ApiId: !Ref RealTimeWebSocket
+  #
+  # Separate route and integrations for asset service
+  #
+  AssetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteKey: asset
+      AuthorizationType: NONE
+      OperationName: AssetRoute
+      RouteResponseSelectionExpression: $default
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref AssetInteg
+  AssetInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      Description: Asset Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+          Fn::Sub:
+              - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
+              -
+                  Region: !Ref AWS::Region
+                  ChannelArn: !GetAtt AssetsFunction.Arn
+  AssetIntegrationResponse:
+    Type: AWS::ApiGatewayV2::IntegrationResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      IntegrationId: !Ref AssetInteg
+      IntegrationResponseKey: "/200/"
+  #
+  # A Response tells the Websocket to return the return-value of the NodeJS handler function as
+  # a websocket message in response to the incoming data.  This isn't strictly necessary (we could
+  # explicitly invoke the post-to-connection API), but it's convenient.
+  #
+  EphemeraResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref RealTimeWebSocket
+      RouteId: !Ref EphemeraRoute
+      RouteResponseKey: "$default"
   RealTimeStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
