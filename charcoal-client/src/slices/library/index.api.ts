@@ -28,7 +28,7 @@ export const syncAction: LibraryAction = () => async (dispatch) => {
     // TODO: Update values based on return value of socketDispatchPromise, rather
     // than counting implicitly on the subscription to receive that data
     //
-    await dispatch(socketDispatchPromise('fetchLibrary')({}))
+    await dispatch(socketDispatchPromise('fetchLibrary', { service: 'asset'})({}))
     return {}
 }
 

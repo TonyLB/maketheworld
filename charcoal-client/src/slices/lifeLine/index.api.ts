@@ -146,7 +146,7 @@ export const backoffAction: LifeLineAction = ({ internalData: { incrementalBacko
 // This lets some message types associate an expected round-trip and return a Promise that watches
 // for that (similar to how HTTP calls are processed).
 //
-export const socketDispatchPromise = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset'} = {}) => (payload: any): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> => (dispatch, getState) => {
+export const socketDispatchPromise = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping' } = {}) => (payload: any): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> => (dispatch, getState) => {
     const { status, webSocket }: any = getLifeLine(getState()) || {}
     if (webSocket && status === 'CONNECTED') {
         const RequestId = uuidv4()
