@@ -74,7 +74,7 @@ export const getSaveURL: PersonalAssetsAction = ({ internalData: { id } }) => as
         const uploadRequestId = uuidv4()
         const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Character' : 'Asset'
         const assetKey = id?.split('#').slice(1).join('#')
-        const { url } = await dispatch(socketDispatchPromise('upload')({
+        const { url } = await dispatch(socketDispatchPromise('upload', { service: 'asset' })({
             fileName: `${assetKey}.wml`,
             tag: assetType,
             uploadRequestId
