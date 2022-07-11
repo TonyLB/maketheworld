@@ -12,6 +12,10 @@ type CacheGlobalData = {
     test: string;
 }
 
+//
+// TODO: Try again to apply methods in https://stackoverflow.com/questions/71706222/typescript-mixins-with-dynamic-property-names
+//
+
 export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     return class CacheGlobal extends Base {
         Global: Partial<CacheGlobalData> = {}

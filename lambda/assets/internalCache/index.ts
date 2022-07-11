@@ -95,3 +95,7 @@ export const CacheLookupOnce = <GBase extends Constructor<{ get(props: { categor
 
     }
 }
+
+const InternalCache = CacheLookupOnce(CacheGlobal(CacheBase))
+export const internalCache = new InternalCache()
+export default internalCache

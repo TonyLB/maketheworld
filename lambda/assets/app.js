@@ -11,6 +11,7 @@ import { createFetchLink } from './fetch/index.js'
 import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
 import { fetchLibrary } from "./assetLibrary/fetch.js"
+import internalCache from "./internalCache"
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -61,6 +62,9 @@ export const handler = async (event, context) => {
     //
 
     const { message = '' } = event
+    const { connectionId } = event.requestContext
+    internalCache.clear()
+    internalCache.set({ category: 'Global', key: 'connectionId', value: connectionId })
     if (event.cache) {
         const fileName = await cacheAsset(event.cache)
 
@@ -109,12 +113,6 @@ export const handler = async (event, context) => {
                 tag: event.tag,
                 RequestId: event.RequestId
             })
-        case 'fetch':
-            return await createFetchLink({ s3Client })({
-                PlayerName: event.PlayerName,
-                fileName: event.fileName,
-                AssetId: event.AssetId
-            })
         case 'move':
             return await moveAsset({ s3Client })({
                 fromPath: event.fromPath,
@@ -123,6 +121,9 @@ export const handler = async (event, context) => {
             })
     }
     const request = event.body && JSON.parse(event.body) || {}
+    if (request.RequestId) {
+        internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
+    }
     switch(request.message) {
         case 'fetchLibrary':
             const libraryEphemera = await fetchLibrary(request.RequestId)
@@ -130,7 +131,22 @@ export const handler = async (event, context) => {
                 statusCode: 200,
                 body: JSON.stringify(libraryEphemera)
             }
+        case 'fetch':
+            const player = await internalCache.get({ category: 'Lookup', key: 'player' })
+            if (player) {
+                const presignedURL = await createFetchLink({ s3Client })({
+                    PlayerName: player,
+                    fileName: request.fileName,
+                    AssetId: request.AssetId
+                })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "FetchURL", RequestId: request.RequestId, url: presignedURL })
+                }
+            }
+            break
+        default:
+            context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
-    context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
 
 }
