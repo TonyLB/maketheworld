@@ -201,52 +201,6 @@ const uploadImage = async ({ fileExtension, tag, connectionId, requestId, upload
     return null
 }
 
-export const fetchLibrary = async (RequestId) => {
-    const Items = await assetDB.query({
-        IndexName: 'ZoneIndex',
-        zone: 'Library',
-        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-        ExpressionAttributeValues: {
-            ':dcPrefix': 'Meta::'
-        },
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
-    })
-
-    const { Characters, Assets } = convertAssetQuery(Items)
-
-    return {
-        messageType: 'Library',
-        RequestId,
-        Characters,
-        Assets
-    }
-}
-
-const fetchLink = async ({ fileName, AssetId, connectionId, requestId }) => {
-    const PlayerName = await getPlayerByConnectionId(connectionId)
-    if (PlayerName) {
-        const { Payload } = await lambdaClient.send(new InvokeCommand({
-            FunctionName: process.env.ASSETS_SERVICE,
-            InvocationType: 'RequestResponse',
-            Payload: new TextEncoder().encode(JSON.stringify({
-                message: 'fetch',
-                PlayerName,
-                fileName,
-                AssetId
-            }))
-        }))
-        const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ messageType: "FetchURL", RequestId: requestId, url })
-        }
-    }
-    return null
-}
-
 const checkIn = async ({ AssetId, RequestId, connectionId }) => {
     const PlayerName = await getPlayerByConnectionId(connectionId)
     const { player } = await assetDB.getItem({
@@ -361,12 +315,6 @@ export const handler = async (event, context) => {
                 })
             }
             break
-        case 'fetchLibrary':
-            const libraryEphemera = await fetchLibrary(request.RequestId)
-            return {
-                statusCode: 200,
-                body: JSON.stringify(libraryEphemera)
-            }
         case 'subscribe':
             return subscribe({ connectionId, RequestId: request.RequestId })
         case 'whoAmI':
@@ -469,17 +417,6 @@ export const handler = async (event, context) => {
             })
             if (imageReturnVal) {
                 return imageReturnVal
-            }
-            break
-        case 'fetch':
-            const fetchReturnVal = await fetchLink({
-                fileName: request.fileName,
-                AssetId: request.AssetId,
-                connectionId,
-                requestId: request.RequestId
-            })
-            if (fetchReturnVal) {
-                return fetchReturnVal
             }
             break
         case 'checkin':
