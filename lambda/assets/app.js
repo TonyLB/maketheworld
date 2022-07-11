@@ -99,13 +99,6 @@ export const handler = async (event, context) => {
         return JSON.stringify(returnVal, null, 4)
     }
     switch(message) {
-        case 'upload':
-            return await createUploadLink({ s3Client })({
-                PlayerName: event.PlayerName,
-                fileName: event.fileName,
-                tag: event.tag,
-                RequestId: event.RequestId
-            })
         case 'uploadImage':
             return await createUploadImageLink({ s3Client })({
                 PlayerName: event.PlayerName,
@@ -142,6 +135,21 @@ export const handler = async (event, context) => {
                 return {
                     statusCode: 200,
                     body: JSON.stringify({ messageType: "FetchURL", RequestId: request.RequestId, url: presignedURL })
+                }
+            }
+            break
+        case 'upload':
+            const uploadPlayer = await internalCache.get({ category: 'Lookup', key: 'player' })
+            if (uploadPlayer) {
+                const presignedURL = await createUploadLink({ s3Client })({
+                    PlayerName: uploadPlayer,
+                    fileName: request.fileName,
+                    tag: request.tag,
+                    RequestId: request.uploadRequestId
+                })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "UploadURL", RequestId: request.RequestId, url: presignedURL })
                 }
             }
             break
