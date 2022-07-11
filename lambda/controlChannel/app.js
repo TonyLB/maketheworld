@@ -201,30 +201,6 @@ const uploadImage = async ({ fileExtension, tag, connectionId, requestId, upload
     return null
 }
 
-export const fetchLibrary = async (RequestId) => {
-    const Items = await assetDB.query({
-        IndexName: 'ZoneIndex',
-        zone: 'Library',
-        KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-        ExpressionAttributeValues: {
-            ':dcPrefix': 'Meta::'
-        },
-        ExpressionAttributeNames: {
-            '#name': 'Name'
-        },
-        ProjectionFields: ['AssetId', 'DataCategory', 'Connected', 'RoomId', '#name', 'fileURL', 'FirstImpression', 'Pronouns', 'OneCoolThing', 'Outfit']
-    })
-
-    const { Characters, Assets } = convertAssetQuery(Items)
-
-    return {
-        messageType: 'Library',
-        RequestId,
-        Characters,
-        Assets
-    }
-}
-
 const fetchLink = async ({ fileName, AssetId, connectionId, requestId }) => {
     const PlayerName = await getPlayerByConnectionId(connectionId)
     if (PlayerName) {
@@ -361,12 +337,6 @@ export const handler = async (event, context) => {
                 })
             }
             break
-        case 'fetchLibrary':
-            const libraryEphemera = await fetchLibrary(request.RequestId)
-            return {
-                statusCode: 200,
-                body: JSON.stringify(libraryEphemera)
-            }
         case 'subscribe':
             return subscribe({ connectionId, RequestId: request.RequestId })
         case 'whoAmI':
