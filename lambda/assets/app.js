@@ -117,6 +117,7 @@ export const handler = async (event, context) => {
     if (request.RequestId) {
         internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
     }
+    const player = await internalCache.get({ category: 'Lookup', key: 'player' })
     switch(request.message) {
         case 'fetchLibrary':
             const libraryEphemera = await fetchLibrary(request.RequestId)
@@ -125,7 +126,6 @@ export const handler = async (event, context) => {
                 body: JSON.stringify(libraryEphemera)
             }
         case 'fetch':
-            const player = await internalCache.get({ category: 'Lookup', key: 'player' })
             if (player) {
                 const presignedURL = await createFetchLink({ s3Client })({
                     PlayerName: player,
@@ -139,11 +139,24 @@ export const handler = async (event, context) => {
             }
             break
         case 'upload':
-            const uploadPlayer = await internalCache.get({ category: 'Lookup', key: 'player' })
-            if (uploadPlayer) {
+            if (player) {
                 const presignedURL = await createUploadLink({ s3Client })({
-                    PlayerName: uploadPlayer,
+                    PlayerName: player,
                     fileName: request.fileName,
+                    tag: request.tag,
+                    RequestId: request.uploadRequestId
+                })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "UploadURL", RequestId: request.RequestId, url: presignedURL })
+                }
+            }
+            break
+        case 'uploadImage':
+            if (player) {
+                const presignedURL = await createUploadImageLink({ s3Client })({
+                    PlayerName: player,
+                    fileExtension: request.fileExtension,
                     tag: request.tag,
                     RequestId: request.uploadRequestId
                 })

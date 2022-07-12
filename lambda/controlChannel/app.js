@@ -371,18 +371,6 @@ export const handler = async (event, context) => {
             // TODO: Build more elaborate error-handling pass-backs
             //
             break;
-        case 'uploadImage':
-            const imageReturnVal = await uploadImage({
-                fileExtension: request.fileExtension,
-                tag: request.tag,
-                connectionId,
-                requestId: request.RequestId,
-                uploadRequestId: request.uploadRequestId
-            })
-            if (imageReturnVal) {
-                return imageReturnVal
-            }
-            break
         case 'checkin':
             return await checkIn({
                 AssetId: request.AssetId,
