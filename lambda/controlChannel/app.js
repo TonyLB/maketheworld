@@ -371,12 +371,6 @@ export const handler = async (event, context) => {
             // TODO: Build more elaborate error-handling pass-backs
             //
             break;
-        case 'checkin':
-            return await checkIn({
-                AssetId: request.AssetId,
-                connectionId,
-                RequestId: request.RequestId
-            })
         case 'checkout':
             return await checkOut({
                 AssetId: request.AssetId,
