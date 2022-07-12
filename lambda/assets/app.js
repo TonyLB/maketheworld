@@ -90,14 +90,6 @@ export const handler = async (event, context) => {
         const returnVal = await canonize({ s3Client })(event.canonize)
         return JSON.stringify(returnVal, null, 4)
     }
-    // if (event.checkin) {
-    //     const returnVal = await libraryCheckin({ s3Client })(event.checkin)
-    //     return JSON.stringify(returnVal, null, 4)
-    // }
-    // if (event.checkout) {
-    //     const returnVal = await libraryCheckout(event.PlayerName)({ s3Client })(event.checkout)
-    //     return JSON.stringify(returnVal, null, 4)
-    // }
     switch(message) {
         case 'move':
             return await moveAsset({ s3Client })({

@@ -3,24 +3,18 @@
 
 import { v4 as uuidv4 } from 'uuid'
 
-import { getPlayerByConnectionId, convertAssetQuery } from './player/index.js'
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
-import { render } from '@tonylb/mtw-utilities/dist/perception/index'
-import { deliverRenders } from '@tonylb/mtw-utilities/dist/perception/deliverRenders'
 import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
 
-import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import {
     publishMessage,
-    ephemeraDB,
-    assetDB
+    ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
-import fetchImportDefaults from './fetchImportDefaults'
 
 import internalCache from './internalCache'
 import messageBus from './messageBus'
@@ -86,30 +80,6 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}
             })
         }
     }
-}
-
-const goHome = async ({ CharacterId } = {}) => {
-
-    const { HomeId = 'VORTEX' } = await assetDB.getItem({
-        AssetId: `CHARACTER#${CharacterId}`,
-        DataCategory: 'Meta::Character',
-        ProjectionFields: ['HomeId']
-    })
-    //
-    // TODO: Validate that the home RoomID is still a valid destination
-    //
-    const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-    await ephemeraDB.update({
-        EphemeraId,
-        DataCategory: 'Meta::Character',
-        UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
-        ExpressionAttributeValues: {
-            ':roomId': RoomKey(HomeId),
-            ':leave': ` left to go home.`,
-            ':enter': ` arrives.`
-        }
-    })
-
 }
 
 const executeAction = async (request) => {
