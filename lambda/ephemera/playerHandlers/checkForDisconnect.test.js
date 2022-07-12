@@ -1,6 +1,6 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB, assetDB } from '/opt/utilities/dynamoDB/index.js'
 
 import { checkForDisconnect } from './checkForDisconnect.js'
 
@@ -11,7 +11,7 @@ describe('player checkForDisconnect', () => {
     })
 
     it('should remove connection from global and library subscriptions', async () => {
-        ephemeraDB.getItem.mockResolvedValue({
+        assetDB.getItem.mockResolvedValue({
             ConnectionIds: ['123', '456']
         })
         await checkForDisconnect({
@@ -19,12 +19,12 @@ describe('player checkForDisconnect', () => {
                 DataCategory: 'CONNECTION#123'
             }
         })
-        expect(ephemeraDB.getItem).toHaveBeenCalledWith({
-            EphemeraId: 'Library',
+        expect(assetDB.getItem).toHaveBeenCalledWith({
+            AssetId: 'Library',
             DataCategory: 'Subscriptions',
             ProjectionFields: ['ConnectionIds']
         })
-        expect(ephemeraDB.update).toBeCalledTimes(2)
+        expect(ephemeraDB.update).toBeCalledTimes(1)
         expect(ephemeraDB.update).toHaveBeenCalledWith({
             EphemeraId: 'Global',
             DataCategory: 'Connections',
@@ -33,8 +33,9 @@ describe('player checkForDisconnect', () => {
                 '#connection': '123'
             }
         })
-        expect(ephemeraDB.update).toHaveBeenCalledWith({
-            EphemeraId: 'Library',
+        expect(assetDB.update).toBeCalledTimes(1)
+        expect(assetDB.update).toHaveBeenCalledWith({
+            AssetId: 'Library',
             DataCategory: 'Subscriptions',
             UpdateExpression: 'SET ConnectionIds = :connectionIds',
             ExpressionAttributeValues: {

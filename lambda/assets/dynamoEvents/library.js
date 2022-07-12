@@ -1,6 +1,6 @@
 import { generateLibrary } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 import { SocketQueue } from '@tonylb/mtw-utilities/dist/apiManagement/index'
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
 export const handleLibraryEvents = async ({ events }) => {
     const anyLibraryUpdates = (events
@@ -8,11 +8,11 @@ export const handleLibraryEvents = async ({ events }) => {
             .filter(({ oldImage, newImage }) => ((oldImage.zone || '') !== (newImage.zone || '')))).length > 0
 
     if (anyLibraryUpdates) {
-        const { ConnectionIds: librarySubscriptions } = await ephemeraDB.getItem({
-            EphemeraId: 'Library',
+        const { ConnectionIds: librarySubscriptions = []} = (await assetDB.getItem({
+            AssetId: 'Library',
             DataCategory: 'Subscriptions',
             ProjectionFields: ['ConnectionIds']
-        })
+        })) || {}
         if (librarySubscriptions.length > 0) {
             const { Assets, Characters } = await generateLibrary()
             const socketQueue = new SocketQueue()

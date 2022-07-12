@@ -18,7 +18,7 @@ export const subscribeAction: LibraryAction = ({ actions: { receiveLibrary } }) 
             dispatch(receiveLibrary({ Assets, Characters }))
         }
     })
-    await dispatch(socketDispatchPromise('subscribe')({}))
+    await dispatch(socketDispatchPromise('subscribe', { service: 'asset' })({}))
 
     return { internalData: { subscription: lifeLineSubscription } }
 }

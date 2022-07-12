@@ -18,8 +18,8 @@ export const checkForDisconnect = async ({ oldImage }) => {
     const { DataCategory } = oldImage
     if (DataCategory.startsWith('CONNECTION#')) {
         const ConnectionId = splitType(DataCategory)[1]
-        const { ConnectionIds: oldLibrarySubscription = [] } = await ephemeraDB.getItem({
-            EphemeraId: 'Library',
+        const { ConnectionIds: oldLibrarySubscription = [] } = await assetDB.getItem({
+            AssetId: 'Library',
             DataCategory: 'Subscriptions',
             ProjectionFields: ['ConnectionIds']
         })
@@ -33,8 +33,8 @@ export const checkForDisconnect = async ({ oldImage }) => {
                 },
                 catchException: healGlobalValues
             }),
-            ephemeraDB.update({
-                EphemeraId: 'Library',
+            assetDB.update({
+                AssetId: 'Library',
                 DataCategory: 'Subscriptions',
                 UpdateExpression: 'SET ConnectionIds = :connectionIds',
                 ExpressionAttributeValues: {

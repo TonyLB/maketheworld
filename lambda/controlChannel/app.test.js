@@ -5,7 +5,7 @@ import { subscribe } from './app.js'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
-describe('subscribe to library', () => {
+xdescribe('subscribe to library', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
