@@ -42,8 +42,8 @@ export const forceDisconnect = async (ConnectionId) => {
         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'CHARACTERINPLAY'))
         .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
 
-    const { ConnectionIds: oldLibrarySubscription = [] } = await ephemeraDB.getItem({
-        EphemeraId: 'Library',
+    const { ConnectionIds: oldLibrarySubscription = [] } = await assetDB.getItem({
+        AssetId: 'Library',
         DataCategory: 'Subscriptions',
         ProjectionFields: ['ConnectionIds']
     })
@@ -65,8 +65,8 @@ export const forceDisconnect = async (ConnectionId) => {
             // callback here to heal global connections
             //
         }),
-        ephemeraDB.update({
-            EphemeraId: 'Library',
+        assetDB.update({
+            AssetId: 'Library',
             DataCategory: 'Subscriptions',
             UpdateExpression: 'SET ConnectionIds = :connectionIds',
             ExpressionAttributeValues: {

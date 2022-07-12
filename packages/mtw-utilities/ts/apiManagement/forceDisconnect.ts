@@ -1,5 +1,5 @@
 import { splitType } from '../types'
-import { ephemeraDB } from '../dynamoDB'
+import { ephemeraDB, assetDB } from '../dynamoDB'
 
 const disconnectOneCharacter = async (ConnectionId: string, CharacterId: string) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
@@ -42,13 +42,13 @@ export const forceDisconnect = async (ConnectionId) => {
         .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'CHARACTERINPLAY'))
         .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
 
-    const { ConnectionIds: oldLibrarySubscription = [] } = await ephemeraDB.getItem<{
+    const { ConnectionIds: oldLibrarySubscription = [] } = (await assetDB.getItem<{
         ConnectionIds: string[]
     }>({
-        EphemeraId: 'Library',
+        AssetId: 'Library',
         DataCategory: 'Subscriptions',
         ProjectionFields: ['ConnectionIds']
-    }) as { ConnectionIds: string[] }
+    }) as { ConnectionIds: string[] }) || {}
 
     await Promise.all([
         ephemeraDB.deleteItem({
@@ -67,8 +67,8 @@ export const forceDisconnect = async (ConnectionId) => {
             // callback here to heal global connections
             //
         }),
-        ephemeraDB.update({
-            EphemeraId: 'Library',
+        assetDB.update({
+            AssetId: 'Library',
             DataCategory: 'Subscriptions',
             UpdateExpression: 'SET ConnectionIds = :connectionIds',
             ExpressionAttributeValues: {

@@ -329,14 +329,14 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
     let completed = false
     while(!completed && retries <= maxRetries) {
         completed = true
-        const state = await abstractGetItem(table)({
+        const state = (await abstractGetItem(table)({
             AssetId,
             EphemeraId,
             MessageId,
             DataCategory,
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
-        } as any) || {}
+        } as any)) || {}
         const newState = produce(state, updateReducer)
         if (newState === state) {
             returnValue = state || returnValue

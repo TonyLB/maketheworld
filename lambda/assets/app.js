@@ -1,6 +1,9 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
 
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
+import { unique } from "@tonylb/mtw-utilities/dist/lists.js"
+
 import { cacheAsset } from './cache/index.js'
 import { instantiateAsset } from './cache/instantiate/index.js'
 import { healAsset } from "./selfHealing/index.js"
@@ -16,12 +19,27 @@ import internalCache from "./internalCache"
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
-//
-// TODO: Step 3
-//
-// Update the CharacterEdit component to accept routes other than New
-// and look up the character defaults to populate the form
-//
+const subscribe = async ({ connectionId, RequestId }) => {
+    await assetDB.optimisticUpdate({
+        key: {
+            AssetId: 'Library',
+            DataCategory: 'Subscriptions'
+        },
+        updateKeys: ['ConnectionIds'],
+        updateReducer: (draft) => {
+            if (draft.ConnectionIds === undefined) {
+                draft.ConnectionIds = []
+            }
+            if (connectionId) {
+                draft.ConnectionIds = unique(draft.ConnectionIds, [connectionId])
+            }
+        },
+    })
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ RequestId })
+    }
+}
 
 const handleS3Event = async (event) => {
     const bucket = event.bucket.name;
@@ -167,6 +185,11 @@ export const handler = async (event, context) => {
                     body: JSON.stringify({ messageType: "Success", RequestId: request.RequestId })
                 }
             }
+        case 'subscribe':
+            return await subscribe({
+                connectionId,
+                RequestId: request.RequestId
+            })
         default:
             context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }

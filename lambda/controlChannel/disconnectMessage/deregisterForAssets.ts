@@ -24,6 +24,21 @@ export const discconnectForAssetsMessage = async ({ payloads, messageBus }: { pa
                     delete draft.connections[payload.connectionId]
                 })
             },
+        }),
+        assetDB.optimisticUpdate({
+            key: {
+                AssetId: 'Library',
+                DataCategory: 'Subscriptions'
+            },
+            updateKeys: ['ConnectionIds'],
+            updateReducer: (draft: { ConnectionIds?: string[] }) => {
+                payloads.forEach((payload) => {
+                    if (draft.ConnectionIds === undefined) {
+                        draft.ConnectionIds = []
+                    }
+                    draft.ConnectionIds = draft.ConnectionIds.filter((connection) => (connection !== payload.connectionId))
+                })
+            },
         })
     ])
 

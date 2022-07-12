@@ -121,26 +121,6 @@ const executeAction = async (request) => {
     return extractReturnValue(messageBus)
 }
 
-export const subscribe = async ({ connectionId, RequestId, options = {} }) => {
-    const { ConnectionIds = [] } = await ephemeraDB.getItem({
-        EphemeraId: 'Library',
-        DataCategory: 'Subscriptions',
-        ProjectionFields: ['ConnectionIds']
-    })
-    await ephemeraDB.update({
-        EphemeraId: 'Library',
-        DataCategory: 'Subscriptions',
-        UpdateExpression: 'SET ConnectionIds = :connectionIds',
-        ExpressionAttributeValues: {
-            ':connectionIds': unique(ConnectionIds, [connectionId])
-        }
-    })
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ RequestId })
-    }
-}
-
 export const handler = async (event, context) => {
 
     const { connectionId, routeKey } = event.requestContext
