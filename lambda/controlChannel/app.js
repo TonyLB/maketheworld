@@ -1,7 +1,6 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { InvokeCommand } from '@aws-sdk/client-lambda'
 import { v4 as uuidv4 } from 'uuid'
 
 import { getPlayerByConnectionId, convertAssetQuery } from './player/index.js'
@@ -23,7 +22,6 @@ import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHeal
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 import fetchImportDefaults from './fetchImportDefaults'
 
-import lambdaClient from './lambdaClient.js'
 import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
@@ -151,70 +149,6 @@ const executeAction = async (request) => {
     }
     await messageBus.flush()
     return extractReturnValue(messageBus)
-}
-
-const uploadImage = async ({ fileExtension, tag, connectionId, requestId, uploadRequestId }) => {
-    const PlayerName = await getPlayerByConnectionId(connectionId)
-    if (PlayerName) {
-        const { Payload } = await lambdaClient.send(new InvokeCommand({
-            FunctionName: process.env.ASSETS_SERVICE,
-            InvocationType: 'RequestResponse',
-            Payload: new TextEncoder().encode(JSON.stringify({
-                message: 'uploadImage',
-                PlayerName,
-                fileExtension,
-                tag,
-                RequestId: uploadRequestId
-            }))
-        }))
-        const url = JSON.parse(new TextDecoder('utf-8').decode(Payload))
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ messageType: "UploadImageURL", RequestId: requestId, url })
-        }
-    
-    }
-    return null
-}
-
-const checkIn = async ({ AssetId, RequestId, connectionId }) => {
-    const PlayerName = await getPlayerByConnectionId(connectionId)
-    const { player } = await assetDB.getItem({
-        AssetId,
-        DataCategory: splitType(AssetId)[0] === 'CHARACTER' ? 'Meta::Character' : 'Meta::Asset',
-        ProjectionFields: ['player']
-    })
-    if (PlayerName === player) {
-        await lambdaClient.send(new InvokeCommand({
-            FunctionName: process.env.ASSETS_SERVICE,
-            InvocationType: 'RequestResponse',
-            Payload: new TextEncoder().encode(JSON.stringify({
-                checkin: AssetId
-            }))
-        }))
-    }
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ messageType: "Success", RequestId })
-    }
-}
-
-const checkOut = async ({ AssetId, RequestId, connectionId }) => {
-    const PlayerName = await getPlayerByConnectionId(connectionId)
-    if (PlayerName) {
-        await lambdaClient.send(new InvokeCommand({
-            FunctionName: process.env.ASSETS_SERVICE,
-            InvocationType: 'RequestResponse',
-            Payload: new TextEncoder().encode(JSON.stringify({
-                PlayerName,
-                checkout: AssetId
-            }))
-        }))
-    }
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ messageType: "Success", RequestId })
-    }
 }
 
 export const subscribe = async ({ connectionId, RequestId, options = {} }) => {
@@ -371,12 +305,6 @@ export const handler = async (event, context) => {
             // TODO: Build more elaborate error-handling pass-backs
             //
             break;
-        case 'checkout':
-            return await checkOut({
-                AssetId: request.AssetId,
-                connectionId,
-                RequestId: request.RequestId
-            })
         default:
             break
     }
