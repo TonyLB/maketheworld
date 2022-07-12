@@ -79,7 +79,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
             }
             { !personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkout')({ AssetId: `ASSET#${AssetId}` }))
+                        dispatch(socketDispatchPromise('checkout', { service: 'asset' })({ AssetId: `ASSET#${AssetId}` }))
                         clearPreview()
                     }}
                 >
@@ -168,7 +168,7 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
             }
             { !personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkout')({ AssetId: `CHARACTER#${CharacterId}` }))
+                        dispatch(socketDispatchPromise('checkout', { service: 'asset' })({ AssetId: `CHARACTER#${CharacterId}` }))
                         clearPreview()
                     }}
                 >
