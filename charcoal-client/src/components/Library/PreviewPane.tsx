@@ -70,7 +70,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
         <CardActions>
             { personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkin')({ AssetId: `ASSET#${AssetId}` }))
+                        dispatch(socketDispatchPromise('checkin', { service: 'asset' })({ AssetId: `ASSET#${AssetId}` }))
                         clearPreview()
                     }}
                 >
@@ -159,7 +159,7 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
         <CardActions>
             { personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkin')({ AssetId: `CHARACTER#${CharacterId}` }))
+                        dispatch(socketDispatchPromise('checkin', { service: 'asset' })({ AssetId: `CHARACTER#${CharacterId}` }))
                         clearPreview()
                     }}
                 >

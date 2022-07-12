@@ -99,13 +99,6 @@ export const handler = async (event, context) => {
         return JSON.stringify(returnVal, null, 4)
     }
     switch(message) {
-        case 'uploadImage':
-            return await createUploadImageLink({ s3Client })({
-                PlayerName: event.PlayerName,
-                fileExtension: event.fileExtension,
-                tag: event.tag,
-                RequestId: event.RequestId
-            })
         case 'move':
             return await moveAsset({ s3Client })({
                 fromPath: event.fromPath,
@@ -166,6 +159,14 @@ export const handler = async (event, context) => {
                 }
             }
             break
+        case 'checkin':
+            if (player) {
+                await libraryCheckin({ s3Client })(request.AssetId)
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "Success", RequestId: request.RequestId })
+                }
+            }
         default:
             context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
