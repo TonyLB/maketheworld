@@ -110,8 +110,6 @@ export const handler = async (event, context) => {
                 })
             }
             break
-        case 'subscribe':
-            return subscribe({ connectionId, RequestId: request.RequestId })
         case 'whoAmI':
             messageBus.send({
                 type: 'WhoAmI'
@@ -123,17 +121,6 @@ export const handler = async (event, context) => {
                 targetId: request.CharacterId,
                 startingAt: request.startingAt,
                 limit: request.limit
-            })
-            break;
-        case 'directMessage':
-            await publishMessage({
-                MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime: Date.now(),
-                Targets: request.Targets,
-                DisplayProtocol: "Direct",
-                Message: request.Message,
-                Recipients: request.Recipients,
-                CharacterId: request.CharacterId
             })
             break;
         //
