@@ -1,15 +1,14 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { v4 as uuidv4 } from 'uuid'
-
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse'
 import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
 
 import {
-    publishMessage
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+    EphemeraAPIMessage,
+    isRegisterCharacterAPIMessage
+} from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
@@ -17,12 +16,13 @@ import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
+import { LegalCharacterColor } from './messageBus/baseClasses'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
 // cycle you don't have two lambdas in a race condition where the disconnect update might come after the connect.
 //
-export const disconnect = async (connectionId) => {
+export const disconnect = async (connectionId: string) => {
 
     messageBus.send({
         type: 'Disconnect',
@@ -37,9 +37,9 @@ export const disconnect = async (connectionId) => {
 // use the validateJWT code (and passed Authorization querystring) to block
 // unauthenticated users from websocket access entirely..
 //
-export const connect = async (token) => {
+export const connect = async (token: any) => {
 
-    const { userName } = await validateJWT(token)
+    const { userName } = (await validateJWT(token)) || {}
     if (userName) {
     
         messageBus.send({
@@ -56,7 +56,7 @@ export const connect = async (token) => {
     }
 }
 
-export const handler = async (event, context) => {
+export const handler = async (event: any, context: any) => {
 
     const { connectionId, routeKey } = event.requestContext
     const request = event.body && JSON.parse(event.body) || {}
@@ -75,15 +75,15 @@ export const handler = async (event, context) => {
     if (routeKey === '$disconnect') {
         await disconnect(connectionId)
     }
+    if (isRegisterCharacterAPIMessage(request as EphemeraAPIMessage)) {
+        if (request.CharacterId) {
+            messageBus.send({
+                type: 'RegisterCharacter',
+                characterId: request.CharacterId
+            })
+        }
+    }
     switch(request.message) {
-        case 'registercharacter':
-            if (request.CharacterId) {
-                messageBus.send({
-                    type: 'RegisterCharacter',
-                    characterId: request.CharacterId
-                })
-            }
-            break
         case 'fetchEphemera':
             if (request.CharacterId) {
                 const ephemera = await fetchEphemeraForCharacter({
@@ -133,10 +133,10 @@ export const handler = async (event, context) => {
         case 'link':
             switch(request.targetTag) {
                 case 'Action':
-                    const { RoomId } = await internalCache.get({
+                    const { RoomId } = (await internalCache.get({
                         category: 'CharacterMeta',
                         key: request.CharacterId
-                    })
+                    })) || {}
             
                     //
                     // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
@@ -148,10 +148,10 @@ export const handler = async (event, context) => {
                             type: 'PublishMessage',
                             targets: message.Targets,
                             message: message.Message,
-                            displayProtocol: message.DisplayProtocol,
-                            characterId: message.CharacterId,
-                            name: message.Name,
-                            color: message.Color
+                            displayProtocol: message.DisplayProtocol as "OOCMessage",
+                            characterId: message.CharacterId || '',
+                            name: message.Name || '',
+                            color: (message.Color || 'grey') as LegalCharacterColor
                         })
                     })
                     break

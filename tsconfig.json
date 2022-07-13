@@ -7,5 +7,8 @@
       {
         "path": "./packages/mtw-internal-bus/tsconfig.ref.json"
       },
+      {
+        "path": "./packages/mtw-interfaces/tsconfig.ref.json"
+      },
     ],
 }
