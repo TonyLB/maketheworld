@@ -218,16 +218,17 @@ export const handler = async (event, context) => {
                     // the action Links
                     //
                     const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
+                    console.log(`Execute Code message output: ${JSON.stringify(executeMessageQueue, null, 4)}`)
                     const epochTime = Date.now()
                     executeMessageQueue.forEach((message, index) => {
                         messageBus.send({
                             type: 'PublishMessage',
-                            MessageId: `MESSAGE#${uuidv4()}`,
-                            CreatedTime: epochTime + index,
-                            ...message,
-                            CharacterId: message.characterId,
-                            Name: message.name,
-                            Color: message.color
+                            targets: message.Targets,
+                            message: message.Message,
+                            displayProtocol: message.DisplayProtocol,
+                            characterId: message.CharacterId,
+                            name: message.Name,
+                            color: message.Color
                         })
                     })
                     break
