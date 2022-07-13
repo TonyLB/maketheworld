@@ -4,19 +4,19 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { validateJWT } from './validateJWT.js'
-import { parseCommand } from './parse/index.js'
+import { parseCommand } from './parse'
 import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
 
 import {
     publishMessage
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 
 import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
+import { executeAction } from './parse/executeAction'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -54,69 +54,6 @@ export const connect = async (token) => {
             body: { statusCode: 403 }
         })
     }
-}
-
-const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol } = {}) => {
-    if (CharacterId) {
-        const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await internalCache.get({
-            category: 'CharacterMeta',
-            key: CharacterId
-        })
-        if (RoomId) {
-            messageBus.send({
-                type: 'PublishMessage',
-                targets: [`ROOM#${RoomId}`],
-                displayProtocol: DisplayProtocol,
-                message: [{ tag: 'String', value: Message }],
-                characterId: CharacterId,
-                name: Name,
-                color: Color
-            })
-            messageBus.send({
-                type: 'ReturnValue',
-                body: { messageType: 'ActionComplete' }
-            })
-        }
-    }
-}
-
-const executeAction = async (request) => {
-    switch(request.actionType) {
-        case 'look':
-            messageBus.send({
-                type: 'Perception',
-                characterId: request.CharacterId,
-                ephemeraId: request.EphemeraId
-            })
-            break
-        case 'SayMessage':
-        case 'NarrateMessage':
-        case 'OOCMessage':
-            await narrateOOCOrSpeech({ ...request.payload, DisplayProtocol: request.actionType })
-            break
-        case 'move':
-            messageBus.send({
-                type: 'MoveCharacter',
-                characterId: request.payload.CharacterId,
-                roomId: request.payload.RoomId,
-                leaveMessage: ` left${request.payload.ExitName ? ` by ${request.payload.ExitName} exit` : ''}.`
-            })
-            break
-        case 'home':
-            const props = await internalCache.get({ category: 'CharacterHome', key: request.payload.CharacterId })
-            const { HomeId = '' } = props || {}
-            messageBus.send({
-                type: 'MoveCharacter',
-                characterId: request.payload.CharacterId,
-                roomId: HomeId,
-                leaveMessage: ' left to return home.'
-            })
-            break
-        default:
-            break        
-    }
-    await messageBus.flush()
-    return extractReturnValue(messageBus)
 }
 
 export const handler = async (event, context) => {
@@ -204,7 +141,8 @@ export const handler = async (event, context) => {
         // from in-game actions like look
         //
         case 'action':
-            return executeAction(request)
+            await executeAction(request)
+            break
         case 'link':
             switch(request.targetTag) {
                 case 'Action':
@@ -218,8 +156,6 @@ export const handler = async (event, context) => {
                     // the action Links
                     //
                     const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
-                    console.log(`Execute Code message output: ${JSON.stringify(executeMessageQueue, null, 4)}`)
-                    const epochTime = Date.now()
                     executeMessageQueue.forEach((message, index) => {
                         messageBus.send({
                             type: 'PublishMessage',
@@ -251,7 +187,7 @@ export const handler = async (event, context) => {
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
             if (actionPayload.actionType) {
-                return executeAction(actionPayload)
+                await executeAction(actionPayload)
             }
             //
             // TODO: Build more elaborate error-handling pass-backs

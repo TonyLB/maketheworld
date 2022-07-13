@@ -1,13 +1,13 @@
 import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
+import internalCache from '../internalCache'
 
-const getCurrentRoom = async (CharacterId) => {
-    const { RoomId } = await ephemeraDB.getItem({
-        EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-        DataCategory: 'Meta::Character',
-        ProjectionFields: ['RoomId']
-    })
+const getCurrentRoom = async (CharacterId: string) => {
+    const { RoomId } = await internalCache.get({
+        category: 'CharacterMeta',
+        key: CharacterId
+    }) || {}
     if (RoomId) {
         const [{
             Exits: exits = [],
@@ -18,7 +18,7 @@ const getCurrentRoom = async (CharacterId) => {
                 CharacterId,
                 EphemeraId: RoomKey(RoomId)
             }]
-        })    
+        })
 
         return { roomId: RoomId, exits, characters, features }
     }
@@ -30,10 +30,10 @@ const getCurrentRoom = async (CharacterId) => {
 export const parseCommand = async ({
     CharacterId,
     command
-}) => {
+}: { CharacterId: string; command: string; }) => {
     const { roomId, exits, characters, features } = await getCurrentRoom(CharacterId)
-    if (command.match(/^\s*(?:look|l)\s*$/gi)) {
-        return { actionType: 'look', payload: { CharacterId, PermanentId: RoomKey(roomId) } }
+    if (command.match(/^\s*(?:look|l)\s*$/gi) && roomId) {
+        return { actionType: 'look', payload: { CharacterId, EphemeraId: RoomKey(roomId) } }
     }
     if (command.match(/^\s*home\s*$/gi)) {
         return { actionType: 'home', payload: { CharacterId } }
@@ -50,10 +50,7 @@ export const parseCommand = async ({
         }
         const featureMatch = features.find(({ name = '' }) => (name.toLowerCase() === lookTarget))
         if (featureMatch) {
-            //
-            // TODO:  Build a perception function for looking at characters, and route to it here.
-            //
-            return { actionType: 'look', payload: { CharacterId, PermanentId: featureMatch.EphemeraId }}
+            return { actionType: 'look', payload: { CharacterId, EphemeraId: featureMatch.EphemeraId }}
         }
     }
     //
