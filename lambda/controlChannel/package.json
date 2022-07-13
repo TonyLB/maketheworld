@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "description": "A websocket channel to provide a persistent service-client connection for MTW",
-  "main": "src/app.js",
+  "main": "src/app.ts",
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "scripts": {
@@ -15,6 +15,7 @@
     "@aws-sdk/client-dynamodb": "^3.49.0",
     "@aws-sdk/client-lambda": "^3.13.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
+    "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
     "aws-xray-sdk": "^3.3.3",
@@ -25,7 +26,8 @@
   },
   "files": [
     "mtw-utilities",
-    "mtw-internal-bus"
+    "mtw-internal-bus",
+    "mtw-interfaces"
   ],
   "devDependencies": {
     "@types/jest": "^28.1.4",
