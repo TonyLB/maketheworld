@@ -7,10 +7,8 @@ import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse/index.js'
 import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
 
-import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import {
-    publishMessage,
-    ephemeraDB
+    publishMessage
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
 
@@ -210,26 +208,30 @@ export const handler = async (event, context) => {
         case 'link':
             switch(request.targetTag) {
                 case 'Action':
-                    const { RoomId } = await ephemeraDB.getItem({
-                        EphemeraId: `CHARACTERINPLAY#${request.CharacterId}`,
-                        DataCategory: 'Meta::Character',
-                        ProjectionFields: ['RoomId']
+                    const { RoomId } = await internalCache.get({
+                        category: 'CharacterMeta',
+                        key: request.CharacterId
                     })
+            
                     //
                     // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
                     // the action Links
                     //
                     const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
+                    console.log(`Execute Code message output: ${JSON.stringify(executeMessageQueue, null, 4)}`)
                     const epochTime = Date.now()
-                    await Promise.all(executeMessageQueue
-                        .map((message, index) => ({
-                            MessageId: `MESSAGE#${uuidv4()}`,
-                            CreatedTime: epochTime + index,
-                            ...message
-                        }))
-                        .map(publishMessage)
-                    )
-                    return { statusCode: 200, body: JSON.stringify({ RequestId: request.RequestId })}
+                    executeMessageQueue.forEach((message, index) => {
+                        messageBus.send({
+                            type: 'PublishMessage',
+                            targets: message.Targets,
+                            message: message.Message,
+                            displayProtocol: message.DisplayProtocol,
+                            characterId: message.CharacterId,
+                            name: message.Name,
+                            color: message.Color
+                        })
+                    })
+                    break
                 case 'Feature':
                     messageBus.send({
                         type: 'Perception',

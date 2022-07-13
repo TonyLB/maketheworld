@@ -17,7 +17,7 @@ const remapTargets = async (targets: string[]): Promise<string[]> => {
 
 export const publishMessage = async ({ payloads }: { payloads: PublishMessage[], messageBus?: MessageBus }): Promise<void> => {
     const CreatedTime = Date.now()
-    await Promise.all(payloads.map(async (payload) => {
+    await Promise.all(payloads.map(async (payload, index) => {
         if (isWorldMessage(payload)) {
             //
             // TODO: Fold the entirety of the messaging functionality in here, rather than have it hang off of
@@ -26,7 +26,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             const remappedTargets = await remapTargets(payload.targets)
             await publishMessageDynamoDB({
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime,
+                CreatedTime: CreatedTime + index,
                 Targets: remappedTargets,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
@@ -36,7 +36,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             const remappedTargets = await remapTargets(payload.targets)
             await publishMessageDynamoDB({
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime,
+                CreatedTime: CreatedTime + index,
                 Targets: remappedTargets,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
