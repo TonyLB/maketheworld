@@ -7,7 +7,8 @@ import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist
 
 import {
     EphemeraAPIMessage,
-    isRegisterCharacterAPIMessage
+    isRegisterCharacterAPIMessage,
+    isFetchEphemeraAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -83,24 +84,24 @@ export const handler = async (event: any, context: any) => {
             })
         }
     }
+    if (isFetchEphemeraAPIMessage(request as EphemeraAPIMessage)) {
+        if (request.CharacterId) {
+            const ephemera = await fetchEphemeraForCharacter({
+                RequestId: request.RequestId,
+                CharacterId: request.CharacterId
+            })
+            messageBus.send({
+                type: 'ReturnValue',
+                body: ephemera
+            })
+        }
+        else {
+            messageBus.send({
+                type: 'FetchPlayerEphemera'
+            })
+        }
+    }
     switch(request.message) {
-        case 'fetchEphemera':
-            if (request.CharacterId) {
-                const ephemera = await fetchEphemeraForCharacter({
-                    RequestId: request.RequestId,
-                    CharacterId: request.CharacterId
-                })
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify(ephemera)
-                }
-            }
-            else {
-                messageBus.send({
-                    type: 'FetchPlayerEphemera'
-                })
-            }
-            break
         case 'fetchImportDefaults':
             if (request.importsByAssetId && request.assetId) {
                 messageBus.send({
