@@ -79,13 +79,41 @@ export type ActionAPIMessage = {
     ActionAPIHomeMessage
 )
 
+type LinkActionAPIMessage = {
+    targetTag: 'Action';
+    CharacterId: string;
+    Action: string;
+    AssetId: string;
+}
+
+type LinkFeatureAPIMessage = {
+    targetTag: 'Feature';
+    CharacterId: string;
+    FeatureId: string;
+}
+
+type LinkCharacterAPIMessage = {
+    targetTag: 'Character';
+    CharacterId: string;
+    viewCharacterId: string;
+}
+
+export type LinkAPIMessage = {
+    message: 'link';
+} & (
+    LinkActionAPIMessage |
+    LinkFeatureAPIMessage |
+    LinkCharacterAPIMessage
+)
+
 export type EphemeraAPIMessage = { RequestId?: string } & (
     RegisterCharacterAPIMessage |
     FetchEphemeraAPIMessage |
     FetchImportDefaultsAPIMessage |
     WhoAmIAPIMessage |
     SyncAPIMessage |
-    ActionAPIMessage
+    ActionAPIMessage |
+    LinkAPIMessage
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
@@ -94,3 +122,4 @@ export const isFetchImportDefaultsAPIMessage = (message: EphemeraAPIMessage): me
 export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoAmIAPIMessage => (message.message === 'whoAmI')
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
+export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')

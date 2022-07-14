@@ -13,7 +13,7 @@ import {
     isWhoAmIAPIMessage,
     isSyncAPIMessage,
     isActionAPIMessage,
-    ActionAPIMessage
+    isLinkAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -132,48 +132,48 @@ export const handler = async (event: any, context: any) => {
     if (isActionAPIMessage(requestCast)) {
         await executeAction(requestCast)
     }
+    if (isLinkAPIMessage(requestCast)) {
+        switch(requestCast.targetTag) {
+            case 'Action':
+                const { RoomId } = (await internalCache.get({
+                    category: 'CharacterMeta',
+                    key: requestCast.CharacterId
+                })) || {}
+        
+                //
+                // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
+                // the action Links
+                //
+                const { executeMessageQueue = [] } = await executeActionFromDB({ action: requestCast.Action, assetId: requestCast.AssetId, RoomId, CharacterId: requestCast.CharacterId })
+                executeMessageQueue.forEach((message, index) => {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: message.Targets,
+                        message: message.Message,
+                        displayProtocol: message.DisplayProtocol as "OOCMessage",
+                        characterId: message.CharacterId || '',
+                        name: message.Name || '',
+                        color: (message.Color || 'grey') as LegalCharacterColor
+                    })
+                })
+                break
+            case 'Feature':
+                messageBus.send({
+                    type: 'Perception',
+                    characterId: requestCast.CharacterId,
+                    ephemeraId: `FEATURE#${requestCast.FeatureId}`
+                })
+                break
+            case 'Character':
+                messageBus.send({
+                    type: 'Perception',
+                    characterId: requestCast.viewCharacterId,
+                    ephemeraId: `CHARACTERINPLAY#${requestCast.CharacterId}`
+                })
+                break
+        }
+    }
     switch(request.message) {
-        case 'link':
-            switch(request.targetTag) {
-                case 'Action':
-                    const { RoomId } = (await internalCache.get({
-                        category: 'CharacterMeta',
-                        key: request.CharacterId
-                    })) || {}
-            
-                    //
-                    // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
-                    // the action Links
-                    //
-                    const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
-                    executeMessageQueue.forEach((message, index) => {
-                        messageBus.send({
-                            type: 'PublishMessage',
-                            targets: message.Targets,
-                            message: message.Message,
-                            displayProtocol: message.DisplayProtocol as "OOCMessage",
-                            characterId: message.CharacterId || '',
-                            name: message.Name || '',
-                            color: (message.Color || 'grey') as LegalCharacterColor
-                        })
-                    })
-                    break
-                case 'Feature':
-                    messageBus.send({
-                        type: 'Perception',
-                        characterId: request.CharacterId,
-                        ephemeraId: `FEATURE#${request.FeatureId}`
-                    })
-                    break
-                case 'Character':
-                    messageBus.send({
-                        type: 'Perception',
-                        characterId: request.viewCharacterId,
-                        ephemeraId: `CHARACTERINPLAY#${request.CharacterId}`
-                    })
-                    break
-            }
-            break
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
             if (actionPayload?.actionType) {
