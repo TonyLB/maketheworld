@@ -10,7 +10,8 @@ import {
     isRegisterCharacterAPIMessage,
     isFetchEphemeraAPIMessage,
     isFetchImportDefaultsAPIMessage,
-    isWhoAmIAPIMessage
+    isWhoAmIAPIMessage,
+    isSyncAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -118,15 +119,15 @@ export const handler = async (event: any, context: any) => {
             type: 'WhoAmI'
         })
     }
+    if (isSyncAPIMessage(requestCast)) {
+        messageBus.send({
+            type: 'Sync',
+            targetId: requestCast.CharacterId,
+            startingAt: requestCast.startingAt,
+            limit: requestCast.limit
+        })
+    }
     switch(request.message) {
-        case 'sync':
-            messageBus.send({
-                type: 'Sync',
-                targetId: request.CharacterId,
-                startingAt: request.startingAt,
-                limit: request.limit
-            })
-            break;
         //
         // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
         // from in-game actions like look
