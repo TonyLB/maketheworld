@@ -1,5 +1,5 @@
 import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
+import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
 import internalCache from '../internalCache'
 
@@ -30,13 +30,13 @@ const getCurrentRoom = async (CharacterId: string) => {
 export const parseCommand = async ({
     CharacterId,
     command
-}: { CharacterId: string; command: string; }) => {
+}: { CharacterId: string; command: string; }): Promise<ActionAPIMessage | undefined> => {
     const { roomId, exits, characters, features } = await getCurrentRoom(CharacterId)
     if (command.match(/^\s*(?:look|l)\s*$/gi) && roomId) {
-        return { actionType: 'look', payload: { CharacterId, EphemeraId: RoomKey(roomId) } }
+        return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: RoomKey(roomId) } }
     }
     if (command.match(/^\s*home\s*$/gi)) {
-        return { actionType: 'home', payload: { CharacterId } }
+        return { message: 'action', actionType: 'home', payload: { CharacterId } }
     }
     const lookMatch = (/^\s*(?:look|l)(?:\s+at)?\s+(.*)$/gi).exec(command)
     if (lookMatch) {
@@ -46,11 +46,11 @@ export const parseCommand = async ({
             //
             // TODO:  Build a perception function for looking at characters, and route to it here.
             //
-            return {}
+            return undefined
         }
         const featureMatch = features.find(({ name = '' }) => (name.toLowerCase() === lookTarget))
         if (featureMatch) {
-            return { actionType: 'look', payload: { CharacterId, EphemeraId: featureMatch.EphemeraId }}
+            return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: featureMatch.EphemeraId }}
         }
     }
     //
@@ -58,8 +58,8 @@ export const parseCommand = async ({
     //
     const matchedExit = exits.find(({ Name = '' }) => ( command.toLowerCase().trim() === Name.toLowerCase() || command.toLowerCase().trim() === `go ${Name.toLowerCase()}`))
     if (matchedExit) {
-        return { actionType: 'move', payload: { CharacterId, ExitName: matchedExit.Name, RoomId: matchedExit.RoomId } }
+        return { message: 'action', actionType: 'move', payload: { CharacterId, ExitName: matchedExit.Name, RoomId: matchedExit.RoomId } }
     }
-    return {}
+    return undefined
 }
 

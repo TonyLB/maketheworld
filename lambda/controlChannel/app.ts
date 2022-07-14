@@ -11,7 +11,9 @@ import {
     isFetchEphemeraAPIMessage,
     isFetchImportDefaultsAPIMessage,
     isWhoAmIAPIMessage,
-    isSyncAPIMessage
+    isSyncAPIMessage,
+    isActionAPIMessage,
+    ActionAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -127,14 +129,10 @@ export const handler = async (event: any, context: any) => {
             limit: requestCast.limit
         })
     }
+    if (isActionAPIMessage(requestCast)) {
+        await executeAction(requestCast)
+    }
     switch(request.message) {
-        //
-        // TODO:  Make a better messaging protocol to distinguish meta-actions like registercharacter
-        // from in-game actions like look
-        //
-        case 'action':
-            await executeAction(request)
-            break
         case 'link':
             switch(request.targetTag) {
                 case 'Action':
@@ -178,7 +176,7 @@ export const handler = async (event: any, context: any) => {
             break
         case 'command':
             const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
-            if (actionPayload.actionType) {
+            if (actionPayload?.actionType) {
                 await executeAction(actionPayload)
             }
             //
