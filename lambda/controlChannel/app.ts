@@ -9,7 +9,8 @@ import {
     EphemeraAPIMessage,
     isRegisterCharacterAPIMessage,
     isFetchEphemeraAPIMessage,
-    isFetchImportDefaultsAPIMessage
+    isFetchImportDefaultsAPIMessage,
+    isWhoAmIAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -112,12 +113,12 @@ export const handler = async (event: any, context: any) => {
             })
         }
     }
+    if (isWhoAmIAPIMessage(requestCast)) {
+        messageBus.send({
+            type: 'WhoAmI'
+        })
+    }
     switch(request.message) {
-        case 'whoAmI':
-            messageBus.send({
-                type: 'WhoAmI'
-            })
-            break
         case 'sync':
             messageBus.send({
                 type: 'Sync',
