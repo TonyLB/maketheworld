@@ -1,6 +1,7 @@
 import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
+import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { LegalCharacterColor, PublishMessage } from '../messageBus/baseClasses'
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: string; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {
@@ -27,7 +28,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
     }
 }
 
-export const executeAction = async (request) => {
+export const executeAction = async (request: ActionAPIMessage) => {
     switch(request.actionType) {
         case 'look':
             messageBus.send({
