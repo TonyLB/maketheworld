@@ -8,7 +8,8 @@ import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist
 import {
     EphemeraAPIMessage,
     isRegisterCharacterAPIMessage,
-    isFetchEphemeraAPIMessage
+    isFetchEphemeraAPIMessage,
+    isFetchImportDefaultsAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -76,19 +77,20 @@ export const handler = async (event: any, context: any) => {
     if (routeKey === '$disconnect') {
         await disconnect(connectionId)
     }
-    if (isRegisterCharacterAPIMessage(request as EphemeraAPIMessage)) {
-        if (request.CharacterId) {
+    const requestCast = request as EphemeraAPIMessage
+    if (isRegisterCharacterAPIMessage(requestCast)) {
+        if (requestCast.CharacterId) {
             messageBus.send({
                 type: 'RegisterCharacter',
-                characterId: request.CharacterId
+                characterId: requestCast.CharacterId
             })
         }
     }
-    if (isFetchEphemeraAPIMessage(request as EphemeraAPIMessage)) {
-        if (request.CharacterId) {
+    if (isFetchEphemeraAPIMessage(requestCast)) {
+        if (requestCast.CharacterId) {
             const ephemera = await fetchEphemeraForCharacter({
-                RequestId: request.RequestId,
-                CharacterId: request.CharacterId
+                RequestId: requestCast.RequestId,
+                CharacterId: requestCast.CharacterId
             })
             messageBus.send({
                 type: 'ReturnValue',
@@ -101,16 +103,16 @@ export const handler = async (event: any, context: any) => {
             })
         }
     }
+    if (isFetchImportDefaultsAPIMessage(requestCast)) {
+        if (requestCast.importsByAssetId && requestCast.assetId) {
+            messageBus.send({
+                type: 'FetchImportDefaults',
+                importsByAssetId: requestCast.importsByAssetId,
+                assetId: requestCast.assetId
+            })
+        }
+    }
     switch(request.message) {
-        case 'fetchImportDefaults':
-            if (request.importsByAssetId && request.assetId) {
-                messageBus.send({
-                    type: 'FetchImportDefaults',
-                    importsByAssetId: request.importsByAssetId,
-                    assetId: request.assetId
-                })
-            }
-            break
         case 'whoAmI':
             messageBus.send({
                 type: 'WhoAmI'
