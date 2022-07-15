@@ -3,6 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { render } from '@tonylb/mtw-utilities/dist/perception'
 // import messageBus from '../messageBus'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
+import internalCache from '../internalCache'
 
 type EphemeraQueryResult = {
     EphemeraId: string;
@@ -62,9 +63,13 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
 
 
 export const fetchEphemeraForCharacter = async ({
-    RequestId,
     CharacterId
 }) => {
+    const RequestId = (await internalCache.get({
+        category: 'Global',
+        key: 'RequestId'
+    })) || ''
+
     const [
         { assets: characterAssets = [] } = {},
         { assets: globalAssets = [] } = {}

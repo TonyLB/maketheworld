@@ -106,6 +106,12 @@ export type LinkAPIMessage = {
     LinkCharacterAPIMessage
 )
 
+export type CommandAPIMessage = {
+    message: 'command';
+    CharacterId: string;
+    command: string;
+}
+
 export type EphemeraAPIMessage = { RequestId?: string } & (
     RegisterCharacterAPIMessage |
     FetchEphemeraAPIMessage |
@@ -113,7 +119,8 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     WhoAmIAPIMessage |
     SyncAPIMessage |
     ActionAPIMessage |
-    LinkAPIMessage
+    LinkAPIMessage |
+    CommandAPIMessage
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
@@ -123,3 +130,4 @@ export const isWhoAmIAPIMessage = (message: EphemeraAPIMessage): message is WhoA
 export const isSyncAPIMessage = (message: EphemeraAPIMessage): message is SyncAPIMessage => (message.message === 'sync')
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
+export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')

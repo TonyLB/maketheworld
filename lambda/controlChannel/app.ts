@@ -13,7 +13,8 @@ import {
     isWhoAmIAPIMessage,
     isSyncAPIMessage,
     isActionAPIMessage,
-    isLinkAPIMessage
+    isLinkAPIMessage,
+    isCommandAPIMessage
 } from '@tonylb/mtw-interfaces/dist/ephemera'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -65,7 +66,7 @@ export const connect = async (token: any) => {
 export const handler = async (event: any, context: any) => {
 
     const { connectionId, routeKey } = event.requestContext
-    const request = event.body && JSON.parse(event.body) || {}
+    const request = (event.body && (JSON.parse(event.body) as EphemeraAPIMessage)) || {}
 
     internalCache.clear()
     internalCache.set({ category: 'Global', key: 'ConnectionId', value: connectionId })
@@ -81,20 +82,18 @@ export const handler = async (event: any, context: any) => {
     if (routeKey === '$disconnect') {
         await disconnect(connectionId)
     }
-    const requestCast = request as EphemeraAPIMessage
-    if (isRegisterCharacterAPIMessage(requestCast)) {
-        if (requestCast.CharacterId) {
+    if (isRegisterCharacterAPIMessage(request)) {
+        if (request.CharacterId) {
             messageBus.send({
                 type: 'RegisterCharacter',
-                characterId: requestCast.CharacterId
+                characterId: request.CharacterId
             })
         }
     }
-    if (isFetchEphemeraAPIMessage(requestCast)) {
-        if (requestCast.CharacterId) {
+    if (isFetchEphemeraAPIMessage(request)) {
+        if (request.CharacterId) {
             const ephemera = await fetchEphemeraForCharacter({
-                RequestId: requestCast.RequestId,
-                CharacterId: requestCast.CharacterId
+                CharacterId: request.CharacterId
             })
             messageBus.send({
                 type: 'ReturnValue',
@@ -107,44 +106,44 @@ export const handler = async (event: any, context: any) => {
             })
         }
     }
-    if (isFetchImportDefaultsAPIMessage(requestCast)) {
-        if (requestCast.importsByAssetId && requestCast.assetId) {
+    if (isFetchImportDefaultsAPIMessage(request)) {
+        if (request.importsByAssetId && request.assetId) {
             messageBus.send({
                 type: 'FetchImportDefaults',
-                importsByAssetId: requestCast.importsByAssetId,
-                assetId: requestCast.assetId
+                importsByAssetId: request.importsByAssetId,
+                assetId: request.assetId
             })
         }
     }
-    if (isWhoAmIAPIMessage(requestCast)) {
+    if (isWhoAmIAPIMessage(request)) {
         messageBus.send({
             type: 'WhoAmI'
         })
     }
-    if (isSyncAPIMessage(requestCast)) {
+    if (isSyncAPIMessage(request)) {
         messageBus.send({
             type: 'Sync',
-            targetId: requestCast.CharacterId,
-            startingAt: requestCast.startingAt,
-            limit: requestCast.limit
+            targetId: request.CharacterId,
+            startingAt: request.startingAt,
+            limit: request.limit
         })
     }
-    if (isActionAPIMessage(requestCast)) {
-        await executeAction(requestCast)
+    if (isActionAPIMessage(request)) {
+        await executeAction(request)
     }
-    if (isLinkAPIMessage(requestCast)) {
-        switch(requestCast.targetTag) {
+    if (isLinkAPIMessage(request)) {
+        switch(request.targetTag) {
             case 'Action':
                 const { RoomId } = (await internalCache.get({
                     category: 'CharacterMeta',
-                    key: requestCast.CharacterId
+                    key: request.CharacterId
                 })) || {}
         
                 //
                 // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
                 // the action Links
                 //
-                const { executeMessageQueue = [] } = await executeActionFromDB({ action: requestCast.Action, assetId: requestCast.AssetId, RoomId, CharacterId: requestCast.CharacterId })
+                const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
                 executeMessageQueue.forEach((message, index) => {
                     messageBus.send({
                         type: 'PublishMessage',
@@ -160,31 +159,24 @@ export const handler = async (event: any, context: any) => {
             case 'Feature':
                 messageBus.send({
                     type: 'Perception',
-                    characterId: requestCast.CharacterId,
-                    ephemeraId: `FEATURE#${requestCast.FeatureId}`
+                    characterId: request.CharacterId,
+                    ephemeraId: `FEATURE#${request.FeatureId}`
                 })
                 break
             case 'Character':
                 messageBus.send({
                     type: 'Perception',
-                    characterId: requestCast.viewCharacterId,
-                    ephemeraId: `CHARACTERINPLAY#${requestCast.CharacterId}`
+                    characterId: request.viewCharacterId,
+                    ephemeraId: `CHARACTERINPLAY#${request.CharacterId}`
                 })
                 break
         }
     }
-    switch(request.message) {
-        case 'command':
-            const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
-            if (actionPayload?.actionType) {
-                await executeAction(actionPayload)
-            }
-            //
-            // TODO: Build more elaborate error-handling pass-backs
-            //
-            break;
-        default:
-            break
+    if (isCommandAPIMessage(request)) {
+        const actionPayload = await parseCommand({ CharacterId: request.CharacterId, command: request.command })
+        if (actionPayload?.actionType) {
+            await executeAction(actionPayload)
+        }
     }
     await messageBus.flush()
     return extractReturnValue(messageBus)
