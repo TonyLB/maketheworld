@@ -22,7 +22,8 @@ import {
     isFetchAssetAPIMessage,
     isUploadAssetLinkAPIMessage,
     isUploadImageLinkAPIMessage,
-    isAssetCheckinAPIMessage
+    isAssetCheckinAPIMessage,
+    isAssetCheckoutAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset'
 
 const params = { region: process.env.AWS_REGION }
@@ -189,15 +190,16 @@ export const handler = async (event, context) => {
             }
         }
     }
-    switch(request.message) {
-        case 'checkout':
-            if (player) {
-                await libraryCheckout(player)({ s3Client })(request.AssetId)
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "Success", RequestId: request.RequestId })
-                }
+    if (isAssetCheckoutAPIMessage(requestCast)) {
+        if (player) {
+            await libraryCheckout(player)({ s3Client })(requestCast.AssetId)
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ messageType: "Success", RequestId: requestCast.RequestId })
             }
+        }
+    }
+    switch(request.message) {
         case 'subscribe':
             return await subscribe({
                 connectionId,
