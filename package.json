@@ -1,7 +1,8 @@
 {
   "name": "mtw-packages",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "charcoal-client"
   ],
   "scripts": {
     "clean": "tsc --build --clean",
