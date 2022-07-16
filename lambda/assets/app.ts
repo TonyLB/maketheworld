@@ -18,7 +18,8 @@ import internalCache from "./internalCache"
 
 import {
     AssetAPIMessage,
-    isFetchLibraryAPIMessage
+    isFetchLibraryAPIMessage,
+    isFetchAssetAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset'
 
 const params = { region: process.env.AWS_REGION }
@@ -135,20 +136,20 @@ export const handler = async (event, context) => {
             body: JSON.stringify(libraryEphemera)
         }
     }
-    switch(request.message) {
-        case 'fetch':
-            if (player) {
-                const presignedURL = await createFetchLink({ s3Client })({
-                    PlayerName: player,
-                    fileName: request.fileName,
-                    AssetId: request.AssetId
-                })
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "FetchURL", RequestId: request.RequestId, url: presignedURL })
-                }
+    if (isFetchAssetAPIMessage(requestCast)) {
+        if (player) {
+            const presignedURL = await createFetchLink({ s3Client })({
+                PlayerName: player,
+                fileName: requestCast.fileName,
+                AssetId: requestCast.AssetId
+            })
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ messageType: "FetchURL", RequestId: requestCast.RequestId, url: presignedURL })
             }
-            break
+        }
+    }
+    switch(request.message) {
         case 'upload':
             if (player) {
                 const presignedURL = await createUploadLink({ s3Client })({
