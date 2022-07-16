@@ -70,7 +70,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
         <CardActions>
             { personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkin', { service: 'asset' })({ AssetId: `ASSET#${AssetId}` }))
+                        dispatch(socketDispatchPromise({ message: 'checkin', AssetId: `ASSET#${AssetId}` }, { service: 'asset' }))
                         clearPreview()
                     }}
                 >
@@ -79,7 +79,7 @@ const PreviewAsset: FunctionComponent<PlayerAsset & PreviewPaneMeta> = ({ person
             }
             { !personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkout', { service: 'asset' })({ AssetId: `ASSET#${AssetId}` }))
+                        dispatch(socketDispatchPromise({ message: 'checkout', AssetId: `ASSET#${AssetId}` }, { service: 'asset' }))
                         clearPreview()
                     }}
                 >
@@ -159,7 +159,7 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
         <CardActions>
             { personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkin', { service: 'asset' })({ AssetId: `CHARACTER#${CharacterId}` }))
+                        dispatch(socketDispatchPromise({ message: 'checkin', AssetId: `CHARACTER#${CharacterId}` }, { service: 'asset' }))
                         clearPreview()
                     }}
                 >
@@ -168,7 +168,7 @@ const PreviewCharacter: FunctionComponent<PlayerCharacter & { personal: boolean,
             }
             { !personal && <Button
                     onClick={() => {
-                        dispatch(socketDispatchPromise('checkout', { service: 'asset' })({ AssetId: `CHARACTER#${CharacterId}` }))
+                        dispatch(socketDispatchPromise({ message: 'checkout', AssetId: `CHARACTER#${CharacterId}` }, { service: 'asset' }))
                         clearPreview()
                     }}
                 >

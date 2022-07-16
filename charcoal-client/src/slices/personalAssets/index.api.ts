@@ -18,9 +18,10 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
 }
 
 export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    const { url } = await dispatch(socketDispatchPromise('fetch', { service: 'asset' })({
+    const { url } = await dispatch(socketDispatchPromise({
+        message: 'fetch',
         AssetId: id
-    }))
+    }, { service: 'asset' }))
 
     return { internalData: { fetchURL: url } }
 }
@@ -59,7 +60,7 @@ export const fetchDefaultsAction: PersonalAssetsAction = ({ publicData: { curren
                 }), {})
         }), {} as ImportsByAssets)
 
-    const { importDefaults } = await dispatch(socketDispatchPromise('fetchImportDefaults')({ importsByAssetId, assetId: assetKey }))
+    const { importDefaults } = await dispatch(socketDispatchPromise({ message: 'fetchImportDefaults', importsByAssetId, assetId: assetKey || '' }))
 
     return {
         publicData: {
@@ -74,11 +75,12 @@ export const getSaveURL: PersonalAssetsAction = ({ internalData: { id } }) => as
         const uploadRequestId = uuidv4()
         const assetType = id?.split('#')?.[0] === 'CHARACTER' ? 'Character' : 'Asset'
         const assetKey = id?.split('#').slice(1).join('#')
-        const { url } = await dispatch(socketDispatchPromise('upload', { service: 'asset' })({
+        const { url } = await dispatch(socketDispatchPromise({
+            message: 'upload',
             fileName: `${assetKey}.wml`,
             tag: assetType,
             uploadRequestId
-        }))
+        }, { service: 'asset' }))
     
         return { internalData: { saveURL: url, uploadRequestId } }    
     }

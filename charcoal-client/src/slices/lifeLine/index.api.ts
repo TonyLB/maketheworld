@@ -92,7 +92,6 @@ export function socketDispatch(payload: any, { service = 'ephemera' }: { service
         if (webSocket && status === 'CONNECTED') {
             webSocket.send(JSON.stringify({
                 service,
-                message: payload.message,
                 ...payload
             }))
         }
@@ -152,39 +151,42 @@ export const backoffAction: LifeLineAction = ({ internalData: { incrementalBacko
 // This lets some message types associate an expected round-trip and return a Promise that watches
 // for that (similar to how HTTP calls are processed).
 //
-export const socketDispatchPromise = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping' } = {}) => (payload: any): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> => (dispatch, getState) => {
-    const { status, webSocket }: any = getLifeLine(getState()) || {}
-    if (webSocket && status === 'CONNECTED') {
-        const RequestId = uuidv4()
-        return new Promise((resolve, reject) => {
-            LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
-                const { RequestId: compareRequestId, ...rest } = payload
-                if (compareRequestId === RequestId) {
-                    unsubscribe()
-                    if (payload.messageType === 'Error') {
-                        reject(rest)
+export function socketDispatchPromise(payload: EphemeraAPIMessage, options?: { service: 'ephemera' }): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>;
+export function socketDispatchPromise(payload: any, options: { service?: 'ephemera' | 'asset' | 'ping'}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction>
+export function socketDispatchPromise(payload: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping' } = {}): ThunkAction<Promise<LifeLinePubSubData>, RootState, unknown, AnyAction> {
+    return (dispatch, getState) => {
+        const { status, webSocket }: any = getLifeLine(getState()) || {}
+        if (webSocket && status === 'CONNECTED') {
+            const RequestId = uuidv4()
+            return new Promise((resolve, reject) => {
+                LifeLinePubSub.subscribe(({ payload, unsubscribe }) => {
+                    const { RequestId: compareRequestId, ...rest } = payload
+                    if (compareRequestId === RequestId) {
+                        unsubscribe()
+                        if (payload.messageType === 'Error') {
+                            reject(rest)
+                        }
+                        else {
+                            resolve(rest)
+                        }
                     }
-                    else {
-                        resolve(rest)
-                    }
-                }
+                })
+                webSocket.send(JSON.stringify({
+                    service,
+                    RequestId,
+                    ...payload
+                }))
             })
-            webSocket.send(JSON.stringify({
-                service,
-                message: messageType,
-                RequestId,
-                ...payload
-            }))
-        })
-    }
-    else {
-        //
-        // TODO: Don't immediately reject on unconnected websocket:  Cache the
-        // data in a way that will get flushed when the socket reopens
-        //
-        return Promise.reject({
-            messageType
-        })
+        }
+        else {
+            //
+            // TODO: Don't immediately reject on unconnected websocket:  Cache the
+            // data in a way that will get flushed when the socket reopens
+            //
+            return Promise.reject({
+                message: payload.message
+            })
+        }
     }
 }
 

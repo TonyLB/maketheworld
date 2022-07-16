@@ -27,7 +27,7 @@ export const syncAction: PlayerAction = () => async (dispatch) => {
     // TODO: Update values based on return value of socketDispatchPromise, rather
     // than counting implicitly on the subscription to receive that data
     //
-    await dispatch(socketDispatchPromise('whoAmI')({}))
+    await dispatch(socketDispatchPromise({ message: 'whoAmI' }))
     return {}
 }
 
