@@ -32,13 +32,18 @@ export type AssetCheckoutAPIMessage = {
     AssetId: string;
 }
 
+export type AssetSubscribeAPIMessage = {
+    message: 'subscribe';
+}
+
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
     UploadImageLinkAPIMessage |
     AssetCheckinAPIMessage |
-    AssetCheckoutAPIMessage
+    AssetCheckoutAPIMessage |
+    AssetSubscribeAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
@@ -47,3 +52,4 @@ export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message i
 export const isUploadImageLinkAPIMessage = (message: AssetAPIMessage): message is UploadImageLinkAPIMessage => (message.message === 'uploadImage')
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
 export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
+export const isAssetSubscribeAPIMessage = (message: AssetAPIMessage): message is AssetSubscribeAPIMessage => (message.message === 'subscribe')

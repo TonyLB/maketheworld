@@ -23,7 +23,8 @@ import {
     isUploadAssetLinkAPIMessage,
     isUploadImageLinkAPIMessage,
     isAssetCheckinAPIMessage,
-    isAssetCheckoutAPIMessage
+    isAssetCheckoutAPIMessage,
+    isAssetSubscribeAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset'
 
 const params = { region: process.env.AWS_REGION }
@@ -127,86 +128,88 @@ export const handler = async (event, context) => {
                 toPath: event.toPath
             })
     }
-    const request = event.body && JSON.parse(event.body) || {}
-    if (request.RequestId) {
-        internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
-    }
+    const request = event.body && JSON.parse(event.body) || undefined
     const player = await internalCache.get({ category: 'Lookup', key: 'player' })
-    const requestCast = request as AssetAPIMessage
-    if (isFetchLibraryAPIMessage(requestCast)) {
-        const libraryEphemera = await fetchLibrary(requestCast.RequestId || '')
-        return {
-            statusCode: 200,
-            body: JSON.stringify(libraryEphemera)
-        }
+    if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe'].includes(request.message)) {
+        context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
-    if (isFetchAssetAPIMessage(requestCast)) {
-        if (player) {
-            const presignedURL = await createFetchLink({ s3Client })({
-                PlayerName: player,
-                fileName: requestCast.fileName,
-                AssetId: requestCast.AssetId
-            })
+    else {
+        if (request.RequestId) {
+            internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
+        }
+        const RequestId = request.RequestId
+        if (isFetchLibraryAPIMessage(request)) {
+            const libraryEphemera = await fetchLibrary(RequestId || '')
             return {
                 statusCode: 200,
-                body: JSON.stringify({ messageType: "FetchURL", RequestId: requestCast.RequestId, url: presignedURL })
+                body: JSON.stringify(libraryEphemera)
             }
         }
-    }
-    if (isUploadAssetLinkAPIMessage(requestCast)) {
-        if (player) {
-            const presignedURL = await createUploadLink({ s3Client })({
-                PlayerName: player,
-                fileName: requestCast.fileName,
-                tag: requestCast.tag,
-                RequestId: requestCast.uploadRequestId
-            })
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ messageType: "UploadURL", RequestId: requestCast.RequestId, url: presignedURL })
+        if (isFetchAssetAPIMessage(request)) {
+            if (player) {
+                const presignedURL = await createFetchLink({ s3Client })({
+                    PlayerName: player,
+                    fileName: request.fileName,
+                    AssetId: request.AssetId
+                })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "FetchURL", RequestId, url: presignedURL })
+                }
             }
         }
-    }
-    if (isUploadImageLinkAPIMessage(requestCast)) {
-        if (player) {
-            const presignedURL = await createUploadImageLink({ s3Client })({
-                PlayerName: player,
-                fileExtension: requestCast.fileExtension,
-                tag: requestCast.tag,
-                RequestId: requestCast.uploadRequestId
-            })
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ messageType: "UploadURL", RequestId: requestCast.RequestId, url: presignedURL })
+        if (isUploadAssetLinkAPIMessage(request)) {
+            if (player) {
+                const presignedURL = await createUploadLink({ s3Client })({
+                    PlayerName: player,
+                    fileName: request.fileName,
+                    tag: request.tag,
+                    RequestId: request.uploadRequestId
+                })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "UploadURL", RequestId, url: presignedURL })
+                }
             }
         }
-    }
-    if (isAssetCheckinAPIMessage(requestCast)) {
-        if (player) {
-            await libraryCheckin({ s3Client })(requestCast.AssetId)
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ messageType: "Success", RequestId: requestCast.RequestId })
+        if (isUploadImageLinkAPIMessage(request)) {
+            if (player) {
+                const presignedURL = await createUploadImageLink({ s3Client })({
+                    PlayerName: player,
+                    fileExtension: request.fileExtension,
+                    tag: request.tag,
+                    RequestId: request.uploadRequestId
+                })
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "UploadURL", RequestId, url: presignedURL })
+                }
             }
         }
-    }
-    if (isAssetCheckoutAPIMessage(requestCast)) {
-        if (player) {
-            await libraryCheckout(player)({ s3Client })(requestCast.AssetId)
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ messageType: "Success", RequestId: requestCast.RequestId })
+        if (isAssetCheckinAPIMessage(request)) {
+            if (player) {
+                await libraryCheckin({ s3Client })(request.AssetId)
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "Success", RequestId })
+                }
             }
         }
-    }
-    switch(request.message) {
-        case 'subscribe':
+        if (isAssetCheckoutAPIMessage(request)) {
+            if (player) {
+                await libraryCheckout(player)({ s3Client })(request.AssetId)
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageType: "Success", RequestId })
+                }
+            }
+        }
+        if (isAssetSubscribeAPIMessage(request)) {
             return await subscribe({
                 connectionId,
-                RequestId: request.RequestId
+                RequestId
             })
-        default:
-            context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
+        }
     }
 
 }
