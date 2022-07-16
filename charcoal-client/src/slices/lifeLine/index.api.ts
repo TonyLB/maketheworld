@@ -20,6 +20,8 @@ import delayPromise from '../../lib/delayPromise'
 import { cacheMessages } from '../messages'
 import { getMyCharacterById  } from '../player'
 
+import { EphemeraAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
+
 export const LifeLinePubSub = new PubSub<LifeLinePubSubData>()
 
 export const unsubscribeMessages: LifeLineAction = ({ internalData: { messageSubscription } }) => async () => {
@@ -82,14 +84,18 @@ export const subscribeMessages: LifeLineAction = () => async (dispatch) => {
 // TODO:  Enqueue messages that come in when status is not connected, and flush the
 //   queue through the lifeline when status returns to connected.
 //
-export const socketDispatch = (messageType: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping'} = {}) => (payload: any): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch: AppDispatch, getState: AppGetState): void => {
-    const { status, webSocket }: any = getLifeLine(getState()) || {}
-    if (webSocket && status === 'CONNECTED') {
-        webSocket.send(JSON.stringify({
-            service,
-            message: messageType,
-            ...payload
-        }))
+export function socketDispatch(payload: EphemeraAPIMessage, options?: { service: 'ephemera' }): ThunkAction<void, RootState, unknown, AnyAction>;
+export function socketDispatch(payload: any, options: { service?: 'ephemera' | 'asset' | 'ping'}): ThunkAction<void, RootState, unknown, AnyAction>
+export function socketDispatch(payload: any, { service = 'ephemera' }: { service?: 'ephemera' | 'asset' | 'ping'} = {}): ThunkAction<void, RootState, unknown, AnyAction> {
+    return (dispatch: AppDispatch, getState: AppGetState): void => {
+        const { status, webSocket }: any = getLifeLine(getState()) || {}
+        if (webSocket && status === 'CONNECTED') {
+            webSocket.send(JSON.stringify({
+                service,
+                message: payload.message,
+                ...payload
+            }))
+        }
     }
 }
 
@@ -108,7 +114,7 @@ export const establishWebSocket: LifeLineAction = ({ publicData: { webSocket }, 
                 if (webSocket) {
                     dispatch(disconnectWebSocket)
                 }
-                const pingInterval = setInterval(() => { dispatch(socketDispatch('ping', { service: 'ping' })({})) }, 300000)
+                const pingInterval = setInterval(() => { dispatch(socketDispatch({ messageType: 'ping' }, { service: 'ping' })) }, 300000)
                 const refreshTimeout = setTimeout(() => { dispatch(internalStateChange({ newState: 'STALE' })) }, 3600000 )
                 resolve({
                     internalData: {
@@ -210,19 +216,19 @@ export const apiDispatchPromise = (url: string, RequestId: string) => (payload: 
 }
 
 export const moveCharacter = (CharacterId: string) => ({ ExitName, RoomId }: { ExitName: string; RoomId: string }): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch) => {
-    dispatch(socketDispatch('action')({ actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
+    dispatch(socketDispatch({ message: 'action', actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
 }
 
 export const parseCommand = (CharacterId: string) => ({ mode, entry }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
     if (mode === 'Command') {
-        dispatch(socketDispatch('command')({ CharacterId, command: entry }))
+        dispatch(socketDispatch({ message: 'command', CharacterId, command: entry }))
         //
         // TODO: Use raiseError to handle return errors from the back-end command parser
         //
         return true
     }
     else{
-        dispatch(socketDispatch('action')({ actionType: mode, payload: { CharacterId, Message: entry } }))
+        dispatch(socketDispatch({ message: 'action', actionType: mode, payload: { CharacterId, Message: entry } }))
         return true
     }
 }
