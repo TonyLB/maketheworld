@@ -21,7 +21,8 @@ import {
     isFetchLibraryAPIMessage,
     isFetchAssetAPIMessage,
     isUploadAssetLinkAPIMessage,
-    isUploadImageLinkAPIMessage
+    isUploadImageLinkAPIMessage,
+    isAssetCheckinAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset'
 
 const params = { region: process.env.AWS_REGION }
@@ -179,15 +180,16 @@ export const handler = async (event, context) => {
             }
         }
     }
-    switch(request.message) {
-        case 'checkin':
-            if (player) {
-                await libraryCheckin({ s3Client })(request.AssetId)
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "Success", RequestId: request.RequestId })
-                }
+    if (isAssetCheckinAPIMessage(requestCast)) {
+        if (player) {
+            await libraryCheckin({ s3Client })(requestCast.AssetId)
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ messageType: "Success", RequestId: requestCast.RequestId })
             }
+        }
+    }
+    switch(request.message) {
         case 'checkout':
             if (player) {
                 await libraryCheckout(player)({ s3Client })(request.AssetId)
