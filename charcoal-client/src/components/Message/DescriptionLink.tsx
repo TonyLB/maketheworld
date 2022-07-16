@@ -102,11 +102,12 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
             return <DescriptionLinkActionChip
                 text={link.text}
                 onClick={() => {
-                    dispatch(socketDispatchPromise('link')({
+                    dispatch(socketDispatchPromise({
+                        message: 'link',
                         targetTag: 'Action',
                         Action: link.toAction,
                         AssetId: link.toAssetId,
-                        RoomId: link.RoomId,
+                        // RoomId: link.RoomId,
                         CharacterId
                     }))
                 }}
@@ -115,10 +116,11 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
             return <DescriptionLinkFeatureChip
                 text={link.text}
                 onClick={() => {
-                    dispatch(socketDispatchPromise('link')({
+                    dispatch(socketDispatchPromise({
+                        message: 'link',
                         targetTag: 'Feature',
                         FeatureId: link.toFeatureId,
-                        RoomId: link.RoomId,
+                        // RoomId: link.RoomId,
                         CharacterId
                     }))
                 }}

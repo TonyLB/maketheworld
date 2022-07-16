@@ -21,7 +21,7 @@ export const subscribeAction: EphemeraAction = ({ actions: { receiveEphemera } }
 }
 
 export const syncAction: EphemeraAction = () => async (dispatch) => {
-    await dispatch(socketDispatchPromise('fetchEphemera')({}))
+    await dispatch(socketDispatchPromise({ message: 'fetchEphemera' }))
     return {}
 }
 

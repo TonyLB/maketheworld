@@ -30,9 +30,10 @@ export const getURL: CharacterEditAction = ({ internalData: { id } }) => async (
     // as part of a more comprehensive asset scoping system)
     //
     const fileName = character.fileName.split('/').slice(-1)[0].split('.')[0]
-    const { url } = await dispatch(socketDispatchPromise('fetch')({
+    const { url } = await dispatch(socketDispatchPromise({
+        message: 'fetch',
         fileName: `${fileName}.wml`
-    }))
+    }, { service: 'asset' }))
 
     return { internalData: { fetchURL: url } }
 }
@@ -52,10 +53,11 @@ export const getPostURL: CharacterEditAction = ({ internalData: { id } }) => asy
     //
     const uploadRequestId = uuidv4()
     const fileName = character.fileName.split('/').slice(-1)[0].split('.')[0]
-    const { url } = await dispatch(socketDispatchPromise('upload')({
+    const { url } = await dispatch(socketDispatchPromise({
+        message: 'upload',
         fileName: `${fileName}.wml`,
         uploadRequestId
-    }))
+    }, { service: 'asset' }))
 
     return { internalData: {
         postURL: url,

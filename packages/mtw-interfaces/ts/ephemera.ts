@@ -21,7 +21,7 @@ export type WhoAmIAPIMessage = {
 export type SyncAPIMessage = {
     message: 'sync';
     CharacterId: string;
-    startingAt: number;
+    startingAt?: number;
     limit?: number;
 }
 

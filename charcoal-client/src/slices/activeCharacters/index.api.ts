@@ -48,8 +48,8 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
                 })
         }
     })
-    await dispatch(socketDispatchPromise('fetchEphemera')({ CharacterId: id }))
-    await dispatch(socketDispatchPromise('registercharacter')({ CharacterId: id }))
+    await dispatch(socketDispatchPromise({ message: 'fetchEphemera', CharacterId: id }))
+    await dispatch(socketDispatchPromise({ message: 'registercharacter', CharacterId: id || '' }))
     return { internalData: { subscription: lifeLineSubscription } }
 }
 
@@ -62,7 +62,7 @@ export const registerAction: ActiveCharacterAction = (incoming) => async (dispat
 //
 export const syncAction: ActiveCharacterAction = ({ internalData: { id, LastMessageSync, incrementalBackoff = 0.5 } }) => async (dispatch) => {
     if (LastMessageSync) {
-        return await dispatch(socketDispatchPromise('sync')({ syncType: 'Delta', CharacterId: id, startingAt: LastMessageSync - 30000 }))
+        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: id || '', startingAt: LastMessageSync - 30000 }))
             .then(() => ({ incrementalBackoff: 0.5 }))
             .catch(async (e: any) => {
                 dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
@@ -70,7 +70,7 @@ export const syncAction: ActiveCharacterAction = ({ internalData: { id, LastMess
             })
     }
     else {
-        return await dispatch(socketDispatchPromise('sync')({ syncType: 'Raw', CharacterId: id }))
+        return await dispatch(socketDispatchPromise({ message: 'sync', CharacterId: id || '' }))
             .then(() => ({ incrementalBackoff: 0.5 }))
             .catch(async (e: any) => {
                 dispatch(pushFeedback('Failed to synchronize messages, retrying...'))
