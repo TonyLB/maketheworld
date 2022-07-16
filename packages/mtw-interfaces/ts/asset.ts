@@ -22,14 +22,20 @@ export type UploadImageLinkAPIMessage = {
     fileExtension: string;
 }
 
+export type AssetCheckinAPIMessage = {
+    message: 'checkin';
+    AssetId: string;
+}
+
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
-    UploadImageLinkAPIMessage
+    UploadImageLinkAPIMessage | AssetCheckinAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
 export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is FetchAssetAPIMessage => (message.message === 'fetch')
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
 export const isUploadImageLinkAPIMessage = (message: AssetAPIMessage): message is UploadImageLinkAPIMessage => (message.message === 'uploadImage')
+export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
