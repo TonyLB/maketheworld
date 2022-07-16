@@ -16,6 +16,11 @@ import { handleDynamoEvent } from './dynamoEvents/index.js'
 import { fetchLibrary } from "./assetLibrary/fetch.js"
 import internalCache from "./internalCache"
 
+import {
+    AssetAPIMessage,
+    isFetchLibraryAPIMessage
+} from '@tonylb/mtw-interfaces/dist/asset'
+
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
@@ -91,6 +96,7 @@ export const handler = async (event, context) => {
     if (event.instantiate) {
         const fileName = await instantiateAsset({
             assetId: event.instantiate,
+            instanceId: '',
             options: { instantiateRooms: true }
         })
 
@@ -121,13 +127,15 @@ export const handler = async (event, context) => {
         internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
     }
     const player = await internalCache.get({ category: 'Lookup', key: 'player' })
+    const requestCast = request as AssetAPIMessage
+    if (isFetchLibraryAPIMessage(requestCast)) {
+        const libraryEphemera = await fetchLibrary(requestCast.RequestId || '')
+        return {
+            statusCode: 200,
+            body: JSON.stringify(libraryEphemera)
+        }
+    }
     switch(request.message) {
-        case 'fetchLibrary':
-            const libraryEphemera = await fetchLibrary(request.RequestId)
-            return {
-                statusCode: 200,
-                body: JSON.stringify(libraryEphemera)
-            }
         case 'fetch':
             if (player) {
                 const presignedURL = await createFetchLink({ s3Client })({

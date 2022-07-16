@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Handler lambda for S3 events in the MakeTheWorld asset storage system",
-  "main": "app.js",
+  "main": "app.ts",
   "scripts": {
     "test": "jest"
   },
@@ -17,13 +17,15 @@
     "@aws-sdk/s3-request-presigner": "^3.44.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
+    "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "immer": "^9.0.12",
     "ohm-js": "^16.0.0",
     "sharp": "^0.30.3",
     "uuid": "^8.3.2"
   },
   "files": [
-    "mtw-utilities"
+    "mtw-utilities",
+    "mtw-interfaces"
   ],
   "devDependencies": {
     "@ohm-js/cli": "^1.1.0",
