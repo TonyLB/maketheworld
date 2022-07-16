@@ -27,11 +27,18 @@ export type AssetCheckinAPIMessage = {
     AssetId: string;
 }
 
+export type AssetCheckoutAPIMessage = {
+    message: 'checkout';
+    AssetId: string;
+}
+
 export type AssetAPIMessage = { RequestId?: string } & (
     FetchLibraryAPIMessage |
     FetchAssetAPIMessage |
     UploadAssetLinkAPIMessage |
-    UploadImageLinkAPIMessage | AssetCheckinAPIMessage
+    UploadImageLinkAPIMessage |
+    AssetCheckinAPIMessage |
+    AssetCheckoutAPIMessage
 )
 
 export const isFetchLibraryAPIMessage = (message: AssetAPIMessage): message is FetchLibraryAPIMessage => (message.message === 'fetchLibrary')
@@ -39,3 +46,4 @@ export const isFetchAssetAPIMessage = (message: AssetAPIMessage): message is Fet
 export const isUploadAssetLinkAPIMessage = (message: AssetAPIMessage): message is UploadAssetLinkAPIMessage => (message.message === 'upload')
 export const isUploadImageLinkAPIMessage = (message: AssetAPIMessage): message is UploadImageLinkAPIMessage => (message.message === 'uploadImage')
 export const isAssetCheckinAPIMessage = (message: AssetAPIMessage): message is AssetCheckinAPIMessage => (message.message === 'checkin')
+export const isAssetCheckoutAPIMessage = (message: AssetAPIMessage): message is AssetCheckoutAPIMessage => (message.message === 'checkout')
