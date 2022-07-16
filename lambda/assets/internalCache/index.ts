@@ -17,6 +17,7 @@ type CacheConstructor = Constructor<{
 
 type CacheGlobalData = {
     connectionId: string;
+    RequestId: string;
 }
 
 export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
@@ -37,7 +38,7 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
             super.clear()
         }
 
-        set(props: { category: 'Global', key: 'connectionId', value: string }): void
+        set(props: { category: 'Global', key: 'connectionId' | 'RequestId', value: string }): void
         set({ key, value }: { category: 'Global', key: keyof CacheGlobalData, value: any }): void {
             this.Global[key] = value
         }
