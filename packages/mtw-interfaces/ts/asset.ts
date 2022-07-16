@@ -4,8 +4,8 @@ export type FetchLibraryAPIMessage = {
 
 export type FetchAssetAPIMessage = {
     message: 'fetch';
-    AssetId: string;
-    fileName: string;
+    AssetId?: string;
+    fileName?: string;
 }
 
 export type UploadAssetLinkAPIMessage = {

@@ -56,6 +56,7 @@ export const getPostURL: CharacterEditAction = ({ internalData: { id } }) => asy
     const { url } = await dispatch(socketDispatchPromise({
         message: 'upload',
         fileName: `${fileName}.wml`,
+        tag: 'Character',
         uploadRequestId
     }, { service: 'asset' }))
 
