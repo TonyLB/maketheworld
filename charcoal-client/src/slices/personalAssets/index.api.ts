@@ -20,7 +20,7 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
 export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
     const { url } = await dispatch(socketDispatchPromise({
         message: 'fetch',
-        AssetId: id
+        AssetId: id || ''
     }, { service: 'asset' }))
 
     return { internalData: { fetchURL: url } }
