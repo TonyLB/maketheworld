@@ -1,103 +1,71 @@
-import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
+import { CacheConstructor, CacheBase } from './baseClasses'
+import CacheLibrary from './library'
 
-export class CacheBase {
-    async get(props: { category: never; key: never }) {
-        return undefined
-    }
-    async clear() {}
-}
-
-type Constructor<T = {}> = new (...args: any[]) => T;
-
-type CacheConstructor = Constructor<{
-    get(props: { category: never; key: never; }): Promise<undefined>;
-    clear(): void;
-}>
-
-type CacheGlobalData = {
-    connectionId: string;
-    RequestId: string;
-}
-
-export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
-    return class CacheGlobal extends Base {
-        Global: Partial<CacheGlobalData> = {}
-
-        override get(props: { category: 'Global'; key: keyof CacheGlobalData}): Promise<CacheGlobalData[typeof props["key"]]>
-        override get(...args: Parameters<InstanceType<GBase>["get"]>): ReturnType<InstanceType<GBase>["get"]>
-        override async get(props: any) {
-            if (props.category === 'Global') {
-                return this.Global[props.key]
-            }
-            return await super.get(props)
-        }
-
-        override clear() {
-            this.Global = {}
-            super.clear()
-        }
-
-        set(props: { category: 'Global', key: 'connectionId' | 'RequestId', value: string }): void
-        set({ key, value }: { category: 'Global', key: keyof CacheGlobalData, value: any }): void {
-            this.Global[key] = value
-        }
-    }
-}
-
-type CacheLookupOnceData = {
-    player: string;
-}
-
-export const CacheLookupOnce = <GBase extends Constructor<{ get(props: { category: 'Global', key: 'connectionId' }): Promise<string>; clear(): void; }>>(Base: GBase) => {
-    return class CacheGlobal extends Base {
-        Lookup: CacheLookupOnceData | undefined = undefined
-
-        override get(props: { category: 'Lookup'; key: 'player'}): Promise<string>
-        override get(...args: Parameters<InstanceType<GBase>["get"]>): ReturnType<InstanceType<GBase>["get"]>
-        override async get(props: any) {
-            if (props.category === 'Lookup') {
-                if (this.Lookup === undefined) {
-                    const connectionId = await super.get({
-                        category: 'Global',
-                        key: 'connectionId'
-                    })
-                    if (connectionId) {
-                        //
-                        // TODO: Replace repeated attempts with exponential backoff by
-                        // refactoring connectionDB.getItem to allow a consistent argument
-                        // that can actviate strongly-consistent reads
-                        //
-                        let attempts = 0
-                        let exponentialBackoff = 50
-                        while(attempts < 5) {
-                            const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                                ConnectionId: connectionId,
-                                DataCategory: 'Meta::Connection',
-                                ProjectionFields: ['player']
-                            }) || {}
-                            if (player) {
-                                return { player }
-                            }
-                            attempts += 1
-                            await delayPromise(exponentialBackoff)
-                            exponentialBackoff = exponentialBackoff * 2
+type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player'
+class CacheConnectionData {
+    connectionId?: string;
+    RequestId?: string;
+    player?: string;
+    async get(key: CacheConnectionKeys) {
+        switch(key) {
+            case 'connectionId':
+                return this.connectionId
+            case 'RequestId':
+                return this.RequestId
+            case 'player':
+                if (!this.player && this.connectionId) {
+                    //
+                    // TODO: Replace repeated attempts with exponential backoff by
+                    // refactoring connectionDB.getItem to allow a consistent argument
+                    // that can actviate strongly-consistent reads
+                    //
+                    let attempts = 0
+                    let exponentialBackoff = 50
+                    while(attempts < 5) {
+                        const { player = '' } = await connectionDB.getItem<{ player: string }>({
+                            ConnectionId: this.connectionId,
+                            DataCategory: 'Meta::Connection',
+                            ProjectionFields: ['player']
+                        }) || {}
+                        if (player) {
+                            this.player = player
+                            return player
                         }
+                        attempts += 1
+                        await delayPromise(exponentialBackoff)
+                        exponentialBackoff = exponentialBackoff * 2
                     }
                 }
-                return this.Lookup?.[props.key]
-            }
-            return await super.get(props)
+                return this.player
+            default:
+                return undefined
         }
+    }
 
-        override clear() {
-            this.Lookup = undefined
-            super.clear()
-        }
+    clear() {
+        this.connectionId = undefined
+        this.RequestId = undefined
+        this.player = undefined
+    }
 
+    set({ key, value }: { key: CacheConnectionKeys, value: string }): void {
+        this[key] = value
     }
 }
 
-const InternalCache = CacheLookupOnce(CacheGlobal(CacheBase))
+export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => {
+    return class CacheConnection extends Base {
+        Connection: CacheConnectionData = new CacheConnectionData()
+
+        override clear() {
+            this.Connection.clear()
+            super.clear()
+        }
+    }
+}
+
+const InternalCache = CacheLibrary(CacheConnection(CacheBase))
 export const internalCache = new InternalCache()
 export default internalCache

@@ -1,19 +1,20 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 
-import { CacheBase, CacheGlobal, CacheLookupOnce } from '.'
+import { CacheBase } from './baseClasses'
+import { CacheConnection } from '.'
 
-const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
+const connectionDBMock = jest.mocked(connectionDB)
 
 describe('Internal Cache', () => {
     it('should handle mixins', async () => {
-        const MixedCache = CacheLookupOnce(CacheGlobal(CacheBase))
-        assetDBMock.getItem.mockResolvedValue({
+        const MixedCache = CacheConnection(CacheBase)
+        connectionDBMock.getItem.mockResolvedValue({
             player: 'TestPlayer'
         })
         const cache = new MixedCache()
-        cache.set({ category: 'Global', key: 'connectionId', value: 'Test' })
-        expect(await cache.get({ category: 'Global', key: 'connectionId' })).toEqual('Test')
-        expect(await cache.get({ category: 'Lookup', key: 'player' })).toEqual('TestPlayer')
+        cache.Connection.set({ key: 'connectionId', value: 'Test' })
+        expect(await cache.Connection.get('connectionId')).toEqual('Test')
+        expect(await cache.Connection.get('player')).toEqual('TestPlayer')
     })
 })

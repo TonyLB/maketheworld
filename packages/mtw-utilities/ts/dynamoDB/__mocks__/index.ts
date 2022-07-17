@@ -9,6 +9,7 @@ const dbMock = () => ({
 
 export const assetDB = dbMock()
 export const ephemeraDB = dbMock()
+export const connectionDB = dbMock()
 
 export const mergeIntoDataRange = jest.fn()
 export const batchWriteDispatcher = jest.fn()
