@@ -1,4 +1,4 @@
-import { ephemeraDB, assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { ephemeraDB, connectionDB, assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 
@@ -118,25 +118,27 @@ const initialCache: CacheStorageType = {
                 category: 'Global',
                 key: 'ConnectionId'
             })
-            //
-            // TODO: Replace repeated attempts with exponential backoff by
-            // refactoring ephemeraDB.getItem to allow a consistent argument
-            // that can actviate strongly-consistent reads
-            //
-            let attempts = 0
-            let exponentialBackoff = 50
-            while(attempts < 5) {
-                const { player = '' } = await ephemeraDB.getItem<{ player: string }>({
-                    EphemeraId: `CONNECTION#${connectionId}`,
-                    DataCategory: 'Meta::Connection',
-                    ProjectionFields: ['player']
-                }) || {}
-                if (player) {
-                    return { player }
+            if (connectionId) {
+                //
+                // TODO: Replace repeated attempts with exponential backoff by
+                // refactoring connectionDB.getItem to allow a consistent argument
+                // that can actviate strongly-consistent reads
+                //
+                let attempts = 0
+                let exponentialBackoff = 50
+                while(attempts < 5) {
+                    const { player = '' } = await connectionDB.getItem<{ player: string }>({
+                        ConnectionId: connectionId,
+                        DataCategory: 'Meta::Connection',
+                        ProjectionFields: ['player']
+                    }) || {}
+                    if (player) {
+                        return { player }
+                    }
+                    attempts += 1
+                    await delayPromise(exponentialBackoff)
+                    exponentialBackoff = exponentialBackoff * 2
                 }
-                attempts += 1
-                await delayPromise(exponentialBackoff)
-                exponentialBackoff = exponentialBackoff * 2
             }
             return { player: '' }
         }

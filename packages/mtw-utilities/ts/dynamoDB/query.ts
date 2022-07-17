@@ -9,6 +9,7 @@ import { asyncSuppressExceptions } from '../errors'
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
+const connectionsTable = `${TABLE_PREFIX}_connections`
 const messageTable = `${TABLE_PREFIX}_messages`
 
 type QueryExtendedProps = Partial<{
@@ -129,6 +130,26 @@ export const ephemeraExtractKeyInfo = (props: EphemeraQueryKeyProps): ExtractKey
     }    
 }
 
+export type ConnectionQueryKeyProps = {
+    IndexName?: '';
+    ConnectionId: string;
+} | QueryKeyPropsDataCategoryIndex
+
+export const connectionExtractKeyInfo = (props: ConnectionQueryKeyProps): ExtractKeyReturn => {
+    switch(props.IndexName) {
+        case 'DataCategoryIndex':
+            return {
+                KeyConditionExpression: 'DataCategory = :keyId',
+                keyId: props.DataCategory
+            }
+        default:
+            return {
+                KeyConditionExpression: 'ConnectionId = :keyId',
+                keyId: props.ConnectionId
+            }
+    }    
+}
+
 export const abstractQueryExtended = <QueryInferredProps extends QueryExtendedProps & { IndexName?: string }>(dbClient: DynamoDBClient, table: string, extractKeyInfo: (props: QueryInferredProps) => ExtractKeyReturn) => async (props: QueryInferredProps) => {
     const {
         IndexName = '',
@@ -144,7 +165,8 @@ export const abstractQueryExtended = <QueryInferredProps extends QueryExtendedPr
                 ? [
                     table === assetsTable && 'AssetId',
                     table === ephemeraTable && 'EphemeraId',
-                    table === messageTable && 'MessageId'
+                    table === messageTable && 'MessageId',
+                    table === connectionsTable && 'ConnectionId'
                 ].filter((value) => (value)) 
                 : ['DataCategory'])
         const { KeyConditionExpression: baseExpression, keyId } = extractKeyInfo(props)
@@ -181,4 +203,5 @@ export const abstractQuery = <QueryInferredProps extends QueryExtendedProps & { 
 }
 
 export const assetsQueryFactory = (dbClient: DynamoDBClient): (<T extends Record<string, any>[]>(props: AssetQueryKeyProps & QueryExtendedProps) => Promise<T>) => (abstractQuery<AssetQueryKeyProps & QueryExtendedProps>(dbClient, assetsTable, assetExtractKeyInfo))
+export const connectionsQueryFactory = (dbClient: DynamoDBClient): (<T extends Record<string, any>[]>(props: ConnectionQueryKeyProps & QueryExtendedProps) => Promise<T>) => (abstractQuery<ConnectionQueryKeyProps & QueryExtendedProps>(dbClient, connectionsTable, connectionExtractKeyInfo))
 export const ephemeraQueryFactory = (dbClient: DynamoDBClient): (<T extends Record<string, any>[]>(props: EphemeraQueryKeyProps & QueryExtendedProps) => Promise<T>) => (abstractQuery<EphemeraQueryKeyProps & QueryExtendedProps>(dbClient, ephemeraTable, ephemeraExtractKeyInfo))

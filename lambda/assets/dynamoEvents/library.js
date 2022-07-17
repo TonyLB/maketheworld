@@ -1,6 +1,6 @@
 import { generateLibrary } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 import { SocketQueue } from '@tonylb/mtw-utilities/dist/apiManagement/index'
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
+import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
 export const handleLibraryEvents = async ({ events }) => {
     const anyLibraryUpdates = (events
@@ -8,8 +8,8 @@ export const handleLibraryEvents = async ({ events }) => {
             .filter(({ oldImage, newImage }) => ((oldImage.zone || '') !== (newImage.zone || '')))).length > 0
 
     if (anyLibraryUpdates) {
-        const { ConnectionIds: librarySubscriptions = []} = (await assetDB.getItem({
-            AssetId: 'Library',
+        const { ConnectionIds: librarySubscriptions = []} = (await connectionDB.getItem({
+            ConnectionId: 'Library',
             DataCategory: 'Subscriptions',
             ProjectionFields: ['ConnectionIds']
         })) || {}

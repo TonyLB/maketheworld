@@ -1,11 +1,10 @@
-import { splitType } from '../types'
-import { ephemeraDB, assetDB } from '../dynamoDB'
+import { ephemeraDB, connectionDB } from '../dynamoDB'
 
 const disconnectOneCharacter = async (ConnectionId: string, CharacterId: string) => {
     const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
     const DataCategory = `CONNECTION#${ConnectionId}`
-    const activeConnectionQuery = await ephemeraDB.query({
-        EphemeraId,
+    const activeConnectionQuery = await connectionDB.query({
+        ConnectionId: CharacterId,
         KeyConditionExpression: 'begins_with(DataCategory, :dc)',
         ExpressionAttributeValues: {
             ':dc': 'CONNECTION#'
@@ -16,8 +15,8 @@ const disconnectOneCharacter = async (ConnectionId: string, CharacterId: string)
     const assignedConnections = activeConnections.filter((value) => (value !== DataCategory))
     await Promise.all([
         ...(activeConnections.includes(DataCategory)
-            ? [ephemeraDB.deleteItem({
-                EphemeraId,
+            ? [connectionDB.deleteItem({
+                ConnectionId: CharacterId,
                 DataCategory
             })]
             : []),
@@ -34,29 +33,28 @@ const disconnectOneCharacter = async (ConnectionId: string, CharacterId: string)
 }
 
 export const forceDisconnect = async (ConnectionId) => {
-    const Items = await ephemeraDB.query({
+    const Items = await connectionDB.query({
         IndexName: 'DataCategoryIndex',
         DataCategory: `CONNECTION#${ConnectionId}`
     })
     const connectedCharacterIds = Items
-        .filter(({ EphemeraId }) => (splitType(EphemeraId)[0] === 'CHARACTERINPLAY'))
-        .map(({ EphemeraId }) => (splitType(EphemeraId)[1]))
+        .map(({ ConnectionId }) => (ConnectionId))
 
-    const { ConnectionIds: oldLibrarySubscription = [] } = (await assetDB.getItem<{
+    const { ConnectionIds: oldLibrarySubscription = [] } = (await connectionDB.getItem<{
         ConnectionIds: string[]
     }>({
-        AssetId: 'Library',
+        ConnectionId: 'Library',
         DataCategory: 'Subscriptions',
         ProjectionFields: ['ConnectionIds']
     }) as { ConnectionIds: string[] }) || {}
 
     await Promise.all([
-        ephemeraDB.deleteItem({
-            EphemeraId: `CONNECTION#${ConnectionId}`,
+        connectionDB.deleteItem({
+            ConnectionId,
             DataCategory: 'Meta::Connection'
         }),
-        ephemeraDB.update({
-            EphemeraId: 'Global',
+        connectionDB.update({
+            ConnectionId: 'Global',
             DataCategory: 'Connections',
             UpdateExpression: 'REMOVE connections.#connectionId',
             ExpressionAttributeNames: {
@@ -67,8 +65,8 @@ export const forceDisconnect = async (ConnectionId) => {
             // callback here to heal global connections
             //
         }),
-        assetDB.update({
-            AssetId: 'Library',
+        connectionDB.update({
+            ConnectionId: 'Library',
             DataCategory: 'Subscriptions',
             UpdateExpression: 'SET ConnectionIds = :connectionIds',
             ExpressionAttributeValues: {

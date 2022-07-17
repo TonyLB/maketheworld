@@ -1,4 +1,4 @@
-import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
+import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 
 export class CacheBase {
@@ -62,26 +62,27 @@ export const CacheLookupOnce = <GBase extends Constructor<{ get(props: { categor
                         category: 'Global',
                         key: 'connectionId'
                     })
-                    //
-                    // TODO: Replace repeated attempts with exponential backoff by
-                    // refactoring ephemeraDB.getItem to allow a consistent argument
-                    // that can actviate strongly-consistent reads
-                    //
-                    let attempts = 0
-                    let exponentialBackoff = 50
-                    while(attempts < 5) {
-                        const { player = '' } = await assetDB.getItem<{ player: string }>({
-                            AssetId: `CONNECTION#${connectionId}`,
-                            DataCategory: 'Meta::Connection',
-                            ProjectionFields: ['player']
-                        }) || {}
-                        if (player) {
-                            this.Lookup = { player }
-                            break
+                    if (connectionId) {
+                        //
+                        // TODO: Replace repeated attempts with exponential backoff by
+                        // refactoring connectionDB.getItem to allow a consistent argument
+                        // that can actviate strongly-consistent reads
+                        //
+                        let attempts = 0
+                        let exponentialBackoff = 50
+                        while(attempts < 5) {
+                            const { player = '' } = await connectionDB.getItem<{ player: string }>({
+                                ConnectionId: connectionId,
+                                DataCategory: 'Meta::Connection',
+                                ProjectionFields: ['player']
+                            }) || {}
+                            if (player) {
+                                return { player }
+                            }
+                            attempts += 1
+                            await delayPromise(exponentialBackoff)
+                            exponentialBackoff = exponentialBackoff * 2
                         }
-                        attempts += 1
-                        await delayPromise(exponentialBackoff)
-                        exponentialBackoff = exponentialBackoff * 2
                     }
                 }
                 return this.Lookup?.[props.key]

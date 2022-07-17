@@ -15,13 +15,14 @@ import { produce } from 'immer'
 
 import { asyncSuppressExceptions } from '../errors'
 import { DEVELOPER_MODE } from '../constants'
-import { assetsQueryFactory, ephemeraQueryFactory } from './query'
+import { assetsQueryFactory, ephemeraQueryFactory, connectionsQueryFactory } from './query'
 import delayPromise from "./delayPromise"
 import { stringify } from "uuid"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
 const assetsTable = `${TABLE_PREFIX}_assets`
+const connectionsTable = `${TABLE_PREFIX}_connections`
 const messageTable = `${TABLE_PREFIX}_messages`
 const deltaTable = `${TABLE_PREFIX}_message_delta`
 
@@ -200,13 +201,16 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
         AssetId,
         EphemeraId,
         MessageId,
+        ConnectionId,
         DataCategory,
         ProjectionFields = [
             table === assetsTable
                 ? 'AssetId'
                 : table === ephemeraTable
                     ? 'EphemeraId'
-                    : 'MessageId'
+                    : table === connectionsTable
+                        ? 'ConnectionId'
+                        : 'MessageId'
         ],
         ExpressionAttributeNames
     } = props as any
@@ -217,6 +221,7 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
                 AssetId,
                 EphemeraId,
                 MessageId,
+                ConnectionId,
                 DataCategory
             }, { removeUndefinedValues: true }),
             ProjectionExpression: ProjectionFields.join(', '),
@@ -263,6 +268,7 @@ export const abstractUpdate = <Key extends { DataCategory: string }>(table: stri
         AssetId,
         EphemeraId,
         MessageId,
+        ConnectionId,
         DataCategory,
         UpdateExpression,
         ExpressionAttributeNames,
@@ -277,6 +283,7 @@ export const abstractUpdate = <Key extends { DataCategory: string }>(table: stri
                 AssetId,
                 EphemeraId,
                 MessageId,
+                ConnectionId,
                 DataCategory
             }, { removeUndefinedValues: true }),
             UpdateExpression,
@@ -305,6 +312,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             AssetId,
             EphemeraId,
             MessageId,
+            ConnectionId,
             DataCategory    
         },
         updateKeys,
@@ -321,6 +329,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
         AssetId,
         EphemeraId,
         MessageId,
+        ConnectionId,
         DataCategory
     }, { removeUndefinedValues: true })
     let retries = 0
@@ -333,6 +342,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             AssetId,
             EphemeraId,
             MessageId,
+            ConnectionId,
             DataCategory,
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
@@ -422,6 +432,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                         AssetId,
                         EphemeraId,
                         MessageId,
+                        ConnectionId,
                         DataCategory
                     }, { removeUndefinedValues: true }),
                     ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
@@ -433,6 +444,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                 AssetId,
                 EphemeraId,
                 MessageId,
+                ConnectionId,
                 DataCategory
             }
         }
@@ -506,6 +518,21 @@ export const assetDB = {
     optimisticUpdate: abstractOptimisticUpdate(assetsTable),
     putItem: abstractPutItem<AssetDBKey>(assetsTable),
     deleteItem: abstractDeleteItem<AssetDBKey>(assetsTable)
+}
+
+type ConnectionDBKey = {
+    ConnectionId: string;
+    DataCategory: string;
+}
+
+export const connectionDB = {
+    getItem: abstractGetItem<ConnectionDBKey>(connectionsTable),
+    batchGetItem: abstractBatchGet<ConnectionDBKey>(connectionsTable),
+    query: connectionsQueryFactory(dbClient),
+    update: abstractUpdate<ConnectionDBKey>(connectionsTable),
+    optimisticUpdate: abstractOptimisticUpdate(connectionsTable),
+    putItem: abstractPutItem<ConnectionDBKey>(connectionsTable),
+    deleteItem: abstractDeleteItem<ConnectionDBKey>(connectionsTable)
 }
 
 export const publishMessage = async (Item) => {

@@ -20,9 +20,7 @@ import {
 import publishMessage from '../publishMessage'
 import ephemeraUpdate from '../ephemeraUpdate'
 import disconnectMessage from '../disconnectMessage'
-import discconnectForAssetsMessage from '../disconnectMessage/deregisterForAssets'
 import connectMessage from '../connectMessage'
-import connectForAssetsMessage from '../connectMessage/registerForAsset'
 import whoAmIMessage from '../whoAmI'
 import { syncRequest, syncResponse } from '../syncHandler'
 import registerCharacter from '../registerCharacter'
@@ -51,22 +49,10 @@ messageBus.subscribe({
     callback: disconnectMessage
 })
 messageBus.subscribe({
-    tag: 'DisconnectForAsset',
-    priority: 1,
-    filter: isDisconnectMessage,
-    callback: discconnectForAssetsMessage
-})
-messageBus.subscribe({
     tag: 'Connect',
     priority: 1,
     filter: isConnectMessage,
     callback: connectMessage
-})
-messageBus.subscribe({
-    tag: 'ConnectForAsset',
-    priority: 1,
-    filter: isConnectMessage,
-    callback: connectForAssetsMessage
 })
 messageBus.subscribe({
     tag: 'WhoAmI',

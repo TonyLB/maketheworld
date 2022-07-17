@@ -1,6 +1,6 @@
 import { healGlobalValues } from '/opt/utilities/selfHealing/index.js'
 import { splitType } from '/opt/utilities/types.js'
-import { ephemeraDB } from '/opt/utilities/dynamoDB/index.js'
+import { ephemeraDB, connectionDB } from '/opt/utilities/dynamoDB/index.js'
 
 //
 // When connections get removed explicitly, this DBStream event
@@ -18,7 +18,7 @@ export const checkForDisconnect = async ({ oldImage }) => {
     const { DataCategory } = oldImage
     if (DataCategory.startsWith('CONNECTION#')) {
         const ConnectionId = splitType(DataCategory)[1]
-        const { ConnectionIds: oldLibrarySubscription = [] } = await assetDB.getItem({
+        const { ConnectionIds: oldLibrarySubscription = [] } = await connectionDB.getItem({
             AssetId: 'Library',
             DataCategory: 'Subscriptions',
             ProjectionFields: ['ConnectionIds']
@@ -33,8 +33,8 @@ export const checkForDisconnect = async ({ oldImage }) => {
                 },
                 catchException: healGlobalValues
             }),
-            assetDB.update({
-                AssetId: 'Library',
+            connectionDB.update({
+                ConnectionId: 'Library',
                 DataCategory: 'Subscriptions',
                 UpdateExpression: 'SET ConnectionIds = :connectionIds',
                 ExpressionAttributeValues: {

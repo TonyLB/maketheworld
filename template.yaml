@@ -136,6 +136,8 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
         - DynamoDBCrudPolicy:
+            TableName: !Sub '${TablePrefix}_connections'
+        - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_messages'
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_message_delta'
@@ -460,6 +462,30 @@ Resources:
         TableName: !Sub '${TablePrefix}_ephemera'
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
+  ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "ConnectionId"
+            AttributeType: "S"
+          - AttributeName: "DataCategory"
+            AttributeType: "S"
+        BillingMode: "PAY_PER_REQUEST"
+        KeySchema:
+          - AttributeName: "ConnectionId"
+            KeyType: "HASH"
+          - AttributeName: "DataCategory"
+            KeyType: "RANGE"
+        GlobalSecondaryIndexes:
+          - IndexName: DataCategoryIndex
+            KeySchema:
+              - AttributeName: DataCategory
+                KeyType: HASH
+              - AttributeName: ConnectionId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        TableName: !Sub '${TablePrefix}_connections'
   MessagesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -657,6 +683,8 @@ Resources:
                 TableName: !Sub '${TablePrefix}_assets'
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_ephemera'
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_connections'
             - Statement:
               - Effect: Allow
                 Action: execute-api:ManageConnections
