@@ -28,6 +28,7 @@ import {
 } from '@tonylb/mtw-interfaces/dist/asset'
 
 import messageBus from "./messageBus/index.js"
+import { extractReturnValue } from './returnValue'
 
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
@@ -95,7 +96,7 @@ export const handler = async (event, context) => {
     const { message = '' } = event
     const { connectionId } = event.requestContext
     internalCache.clear()
-    internalCache.set({ category: 'Global', key: 'connectionId', value: connectionId })
+    internalCache.Connection.set({ key: 'connectionId', value: connectionId })
     messageBus.clear()
 
     if (event.cache) {
@@ -133,21 +134,19 @@ export const handler = async (event, context) => {
             })
     }
     const request = event.body && JSON.parse(event.body) || undefined
-    const player = await internalCache.get({ category: 'Lookup', key: 'player' })
+    const player = await internalCache.Connection.get('player')
     if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
         if (request.RequestId) {
-            internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
+            internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
         }
         const RequestId = request.RequestId
         if (isFetchLibraryAPIMessage(request)) {
-            const libraryEphemera = await fetchLibrary(RequestId || '')
-            return {
-                statusCode: 200,
-                body: JSON.stringify(libraryEphemera)
-            }
+            messageBus.send({
+                type: 'FetchLibrary'
+            })
         }
         if (isFetchAssetAPIMessage(request)) {
             if (player) {
@@ -215,5 +214,7 @@ export const handler = async (event, context) => {
             })
         }
     }
+    await messageBus.flush()
+    return extractReturnValue(messageBus)
 
 }
