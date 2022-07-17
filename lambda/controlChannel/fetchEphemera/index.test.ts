@@ -2,6 +2,8 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('@tonylb/mtw-utilities/dist/perception')
 import { render } from '@tonylb/mtw-utilities/dist/perception'
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
 
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
@@ -9,6 +11,7 @@ import messageBus from '../messageBus'
 import { fetchEphemeraForCharacter, fetchPlayerEphemera } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
 const renderMock = render as jest.Mock
 
 describe('fetchPlayerEphemera', () => {
@@ -66,8 +69,8 @@ describe('fetchEphemeraForCharacter', () => {
             return {}
         })
         ephemeraDBMock.query.mockResolvedValue([])
+        internalCacheMock.get.mockResolvedValue('1234')
         const output = await fetchEphemeraForCharacter({
-            RequestId: '1234',
             CharacterId: 'TEST'
         })
         expect(ephemeraDB.query).toHaveBeenCalledTimes(2)
@@ -132,8 +135,8 @@ describe('fetchEphemeraForCharacter', () => {
                 fountainSquare: { x: -50, y: 0 }
             }
         }])
+        internalCacheMock.get.mockResolvedValue('1234')
         const output = await fetchEphemeraForCharacter({
-            RequestId: '1234',
             CharacterId: 'TEST'
         })
         expect(renderMock).toHaveBeenCalledWith({

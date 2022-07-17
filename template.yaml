@@ -136,6 +136,8 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_ephemera'
         - DynamoDBCrudPolicy:
+            TableName: !Sub '${TablePrefix}_connections'
+        - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_messages'
         - DynamoDBReadPolicy:
             TableName: !Sub '${TablePrefix}_message_delta'
@@ -681,6 +683,8 @@ Resources:
                 TableName: !Sub '${TablePrefix}_assets'
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_ephemera'
+            - DynamoDBCrudPolicy:
+                TableName: !Sub '${TablePrefix}_connections'
             - Statement:
               - Effect: Allow
                 Action: execute-api:ManageConnections

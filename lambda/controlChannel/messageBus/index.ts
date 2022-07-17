@@ -62,12 +62,12 @@ messageBus.subscribe({
     filter: isConnectMessage,
     callback: connectMessage
 })
-messageBus.subscribe({
-    tag: 'ConnectForAsset',
-    priority: 1,
-    filter: isConnectMessage,
-    callback: connectForAssetsMessage
-})
+// messageBus.subscribe({
+//     tag: 'ConnectForAsset',
+//     priority: 1,
+//     filter: isConnectMessage,
+//     callback: connectForAssetsMessage
+// })
 messageBus.subscribe({
     tag: 'WhoAmI',
     priority: 1,

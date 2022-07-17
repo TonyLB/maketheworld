@@ -1,5 +1,5 @@
 import { ConnectMessage, MessageBus } from "../messageBus/baseClasses"
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 
@@ -10,27 +10,30 @@ export const connectMessage = async ({ payloads, messageBus }: { payloads: Conne
     if (connectionId) {
         const aggregatePromises = payloads.reduce((previous, payload) => ([
             ...previous,
-            ephemeraDB.putItem({
-                EphemeraId: `CONNECTION#${connectionId}`,
+            connectionDB.putItem({
+                ConnectionId: connectionId,
                 DataCategory: 'Meta::Connection',
                 player: payload.userName
             }),
-            ephemeraDB.update({
-                EphemeraId: 'Global',
-                DataCategory: 'Connections',
-                UpdateExpression: 'SET connections.#connection = :player',
-                ExpressionAttributeValues: {
-                    ':player': payload.userName
+        ]), [
+            connectionDB.optimisticUpdate({
+                key: {
+                    ConnectionId: 'Global',
+                    DataCategory: 'Connections'    
                 },
-                ExpressionAttributeNames: {
-                    '#connection': connectionId
+                updateKeys: ['connections'],
+                updateReducer: (draft: { connections?: Record<string, string> }) => {
+                    payloads.forEach((payload) => {
+                        if (draft.connections === undefined) {
+                            draft.connections = {}
+                        }
+                        if (payload.userName) {
+                            draft.connections[connectionId] = payload.userName
+                        }
+                    })
                 },
-                //
-                // TODO: Activate when selfHeal is in the utility layer
-                //
-                // catchException: healGlobalValues
             })
-        ]), [] as Promise<any>[])
+        ] as Promise<any>[])
     
         await Promise.all(aggregatePromises)
 

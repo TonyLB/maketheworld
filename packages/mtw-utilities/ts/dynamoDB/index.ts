@@ -201,13 +201,16 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
         AssetId,
         EphemeraId,
         MessageId,
+        ConnectionId,
         DataCategory,
         ProjectionFields = [
             table === assetsTable
                 ? 'AssetId'
                 : table === ephemeraTable
                     ? 'EphemeraId'
-                    : 'MessageId'
+                    : table === connectionsTable
+                        ? 'ConnectionId'
+                        : 'MessageId'
         ],
         ExpressionAttributeNames
     } = props as any
@@ -218,6 +221,7 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
                 AssetId,
                 EphemeraId,
                 MessageId,
+                ConnectionId,
                 DataCategory
             }, { removeUndefinedValues: true }),
             ProjectionExpression: ProjectionFields.join(', '),
@@ -264,6 +268,7 @@ export const abstractUpdate = <Key extends { DataCategory: string }>(table: stri
         AssetId,
         EphemeraId,
         MessageId,
+        ConnectionId,
         DataCategory,
         UpdateExpression,
         ExpressionAttributeNames,
@@ -278,6 +283,7 @@ export const abstractUpdate = <Key extends { DataCategory: string }>(table: stri
                 AssetId,
                 EphemeraId,
                 MessageId,
+                ConnectionId,
                 DataCategory
             }, { removeUndefinedValues: true }),
             UpdateExpression,
@@ -306,6 +312,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             AssetId,
             EphemeraId,
             MessageId,
+            ConnectionId,
             DataCategory    
         },
         updateKeys,
@@ -322,6 +329,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
         AssetId,
         EphemeraId,
         MessageId,
+        ConnectionId,
         DataCategory
     }, { removeUndefinedValues: true })
     let retries = 0
@@ -330,15 +338,19 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
     let completed = false
     while(!completed && retries <= maxRetries) {
         completed = true
+        console.log(`Getting state ${table} x (${JSON.stringify(Key, null, 4)})`)
         const state = (await abstractGetItem(table)({
             AssetId,
             EphemeraId,
             MessageId,
+            ConnectionId,
             DataCategory,
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         } as any)) || {}
+        console.log(`Old state: ${JSON.stringify(state, null, 4)}`)
         const newState = produce(state, updateReducer)
+        console.log(`New state: ${JSON.stringify(newState, null, 4)}`)
         if (newState === state) {
             returnValue = state || returnValue
             break
@@ -398,6 +410,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     returnValue = state
                     break
                 }
+                console.log(`Updating key: ${JSON.stringify(Key, null, 4)}`)
                 const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
                     TableName: table,
                     Key,
@@ -409,6 +422,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
                     ReturnValues
                 }))
+                console.log(`Updated`)
                 returnValue = unmarshall(Attributes)
                 break
             }
@@ -416,6 +430,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                 //
                 // Putting a new record
                 //
+                console.log(`Putting new record`)
                 await dbClient.send(new PutItemCommand({
                     TableName: table,
                     Item: marshall({
@@ -423,17 +438,20 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                         AssetId,
                         EphemeraId,
                         MessageId,
+                        ConnectionId,
                         DataCategory
                     }, { removeUndefinedValues: true }),
                     ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
                     ConditionExpression: "attribute_not_exists(DataCategory)"
                 }))
+                console.log(`Put`)
             }
             returnValue = {
                 ...newState,
                 AssetId,
                 EphemeraId,
                 MessageId,
+                ConnectionId,
                 DataCategory
             }
         }
