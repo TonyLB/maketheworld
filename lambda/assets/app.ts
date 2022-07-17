@@ -27,6 +27,8 @@ import {
     isAssetSubscribeAPIMessage
 } from '@tonylb/mtw-interfaces/dist/asset'
 
+import messageBus from "./messageBus/index.js"
+
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
@@ -94,6 +96,8 @@ export const handler = async (event, context) => {
     const { connectionId } = event.requestContext
     internalCache.clear()
     internalCache.set({ category: 'Global', key: 'connectionId', value: connectionId })
+    messageBus.clear()
+
     if (event.cache) {
         const fileName = await cacheAsset(event.cache)
 
