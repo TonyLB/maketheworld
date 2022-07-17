@@ -1,10 +1,10 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 
-import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
+import { connectionDB, assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { SocketQueue } from "@tonylb/mtw-utilities/dist/apiManagement/index"
 
 export const getConnectionsByPlayerName = async (PlayerName) => {
-    const Items = await ephemeraDB.query({
+    const Items = await connectionDB.query({
         IndexName: 'DataCategoryIndex',
         DataCategory: 'Meta::Connection',
         FilterExpression: 'player = :player',
@@ -12,14 +12,8 @@ export const getConnectionsByPlayerName = async (PlayerName) => {
             ':player': PlayerName
         },
     })
-    const returnVal = Items
-        .reduce((previous, { EphemeraId }) => {
-            const [ itemType, itemKey ] = splitType(EphemeraId)
-            if (itemType === 'CONNECTION') {
-                return [...previous, itemKey]
-            }
-            return previous
-        }, [])
+    const returnVal = Items.map(({ ConnectionId }) => (ConnectionId))
+        
     return returnVal
 }
 

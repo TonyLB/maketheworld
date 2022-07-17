@@ -121,7 +121,7 @@ const initialCache: CacheStorageType = {
             if (connectionId) {
                 //
                 // TODO: Replace repeated attempts with exponential backoff by
-                // refactoring ephemeraDB.getItem to allow a consistent argument
+                // refactoring connectionDB.getItem to allow a consistent argument
                 // that can actviate strongly-consistent reads
                 //
                 let attempts = 0

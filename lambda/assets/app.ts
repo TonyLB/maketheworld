@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
 
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
+import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
 import { unique } from "@tonylb/mtw-utilities/dist/lists.js"
 
 import { cacheAsset } from './cache/index.js'
@@ -31,9 +31,9 @@ const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
 const subscribe = async ({ connectionId, RequestId }) => {
-    await assetDB.optimisticUpdate({
+    await connectionDB.optimisticUpdate({
         key: {
-            AssetId: 'Library',
+            ConnectionId: 'Library',
             DataCategory: 'Subscriptions'
         },
         updateKeys: ['ConnectionIds'],
