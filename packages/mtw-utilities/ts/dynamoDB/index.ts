@@ -338,7 +338,6 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
     let completed = false
     while(!completed && retries <= maxRetries) {
         completed = true
-        console.log(`Getting state ${table} x (${JSON.stringify(Key, null, 4)})`)
         const state = (await abstractGetItem(table)({
             AssetId,
             EphemeraId,
@@ -348,9 +347,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         } as any)) || {}
-        console.log(`Old state: ${JSON.stringify(state, null, 4)}`)
         const newState = produce(state, updateReducer)
-        console.log(`New state: ${JSON.stringify(newState, null, 4)}`)
         if (newState === state) {
             returnValue = state || returnValue
             break
@@ -410,7 +407,6 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     returnValue = state
                     break
                 }
-                console.log(`Updating key: ${JSON.stringify(Key, null, 4)}`)
                 const { Attributes = {} } = await dbClient.send(new UpdateItemCommand({
                     TableName: table,
                     Key,
@@ -422,7 +418,6 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
                     ReturnValues
                 }))
-                console.log(`Updated`)
                 returnValue = unmarshall(Attributes)
                 break
             }
@@ -430,7 +425,6 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                 //
                 // Putting a new record
                 //
-                console.log(`Putting new record`)
                 await dbClient.send(new PutItemCommand({
                     TableName: table,
                     Item: marshall({
@@ -444,7 +438,6 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
                     ConditionExpression: "attribute_not_exists(DataCategory)"
                 }))
-                console.log(`Put`)
             }
             returnValue = {
                 ...newState,

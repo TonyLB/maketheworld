@@ -165,7 +165,8 @@ export const abstractQueryExtended = <QueryInferredProps extends QueryExtendedPr
                 ? [
                     table === assetsTable && 'AssetId',
                     table === ephemeraTable && 'EphemeraId',
-                    table === messageTable && 'MessageId'
+                    table === messageTable && 'MessageId',
+                    table === connectionsTable && 'ConnectionId'
                 ].filter((value) => (value)) 
                 : ['DataCategory'])
         const { KeyConditionExpression: baseExpression, keyId } = extractKeyInfo(props)
