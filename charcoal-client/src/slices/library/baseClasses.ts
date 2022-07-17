@@ -1,32 +1,9 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { LibraryAsset, LibraryCharacter } from '@tonylb/mtw-interfaces/dist/library'
 
 export interface LibraryInternal {
     subscription?: any;
     incrementalBackoff: number;
-}
-
-export type LibraryAsset = {
-    AssetId: string;
-    Story?: boolean;
-    instance?: boolean;
-}
-
-export type LibraryCharacter = {
-    CharacterId: string;
-    Name: string;
-    scopedId: string;
-    fileName: string;
-    fileURL?: string;
-    FirstImpression?: string;
-    Pronouns?: {
-        subject: string;
-        object: string;
-        reflexive: string;
-        possessive: string;
-        adjective: string;
-    };
-    OneCoolThing?: string;
-    Outfit?: string;
 }
 
 export interface LibraryPublic {

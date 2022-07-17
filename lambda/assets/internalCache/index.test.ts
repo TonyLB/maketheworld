@@ -1,7 +1,8 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 
-import { CacheBase, CacheConnection } from '.'
+import { CacheBase } from './baseClasses'
+import { CacheConnection } from '.'
 
 const connectionDBMock = jest.mocked(connectionDB)
 

@@ -1,15 +1,7 @@
 import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
-
-export class CacheBase {
-    async clear() {}
-}
-
-type Constructor<T = {}> = new (...args: any[]) => T;
-
-type CacheConstructor = Constructor<{
-    clear(): void;
-}>
+import { CacheConstructor, CacheBase } from './baseClasses'
+import CacheLibrary from './library'
 
 type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player'
 class CacheConnectionData {
@@ -54,7 +46,8 @@ class CacheConnectionData {
 
     clear() {
         this.connectionId = undefined
-        this.RequestId = undefined;
+        this.RequestId = undefined
+        this.player = undefined
     }
 
     set({ key, value }: { key: CacheConnectionKeys, value: string }): void {
@@ -70,10 +63,9 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
             this.Connection.clear()
             super.clear()
         }
-
     }
 }
 
-const InternalCache = CacheConnection(CacheBase)
+const InternalCache = CacheLibrary(CacheConnection(CacheBase))
 export const internalCache = new InternalCache()
 export default internalCache
