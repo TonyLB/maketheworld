@@ -17,7 +17,8 @@ export const returnValueMessage = async ({ payloads }: { payloads: ReturnValueMe
 
 export default returnValueMessage
 
-export const extractReturnValue = (messageBus: MessageBus) => {
+export const extractReturnValue = async (messageBus: MessageBus) => {
+    const RequestId = await internalCache.Connection.get('RequestId')
     const returnValueMessages = messageBus._stream
         .map(({ payload }) => (payload))
         .filter(isReturnValueMessage)
@@ -25,7 +26,7 @@ export const extractReturnValue = (messageBus: MessageBus) => {
     const body = returnValueMessages.reduce((previous, { body }) => ({
         ...previous,
         ...body
-    }), {} as Record<string, any>)
+    }), { RequestId } as Record<string, any>)
 
     return {
         statusCode: 200,

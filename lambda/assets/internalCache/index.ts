@@ -2,18 +2,18 @@ import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
+import { S3Client } from "@aws-sdk/client-s3"
 
-type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player'
+type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client'
 class CacheConnectionData {
     connectionId?: string;
     RequestId?: string;
+    s3Client?: S3Client;
     player?: string;
+    get(key: 'connectionId' | 'RequestId' | 'player'): Promise<string | undefined>
+    get(key: 's3Client'): Promise<S3Client | undefined>
     async get(key: CacheConnectionKeys) {
         switch(key) {
-            case 'connectionId':
-                return this.connectionId
-            case 'RequestId':
-                return this.RequestId
             case 'player':
                 if (!this.player && this.connectionId) {
                     //
@@ -40,17 +40,20 @@ class CacheConnectionData {
                 }
                 return this.player
             default:
-                return undefined
+                return this[key]
         }
     }
 
     clear() {
         this.connectionId = undefined
         this.RequestId = undefined
+        this.s3Client = undefined
         this.player = undefined
     }
 
-    set({ key, value }: { key: CacheConnectionKeys, value: string }): void {
+    set(props: { key: 'connectionId' | 'RequestId', value: string; }): void
+    set(props: { key: 's3Client', value: S3Client; }): void
+    set({ key, value }: { key: CacheConnectionKeys, value: any }): void {
         this[key] = value
     }
 }
