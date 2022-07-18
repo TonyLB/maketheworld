@@ -10,10 +10,8 @@ import { healAsset } from "./selfHealing/index.js"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
 import { handleUpload, createUploadLink, createUploadImageLink } from './upload/index.js'
-import { createFetchLink } from './fetch/index.js'
 import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
-import { fetchLibrary } from "./assetLibrary/fetch.js"
 import internalCache from "./internalCache"
 
 import {
@@ -97,6 +95,7 @@ export const handler = async (event, context) => {
     const { connectionId } = event.requestContext
     internalCache.clear()
     internalCache.Connection.set({ key: 'connectionId', value: connectionId })
+    internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
 
     if (event.cache) {
@@ -133,7 +132,7 @@ export const handler = async (event, context) => {
                 toPath: event.toPath
             })
     }
-    const request = event.body && JSON.parse(event.body) || undefined
+    const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
     const player = await internalCache.Connection.get('player')
     if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
@@ -149,17 +148,11 @@ export const handler = async (event, context) => {
             })
         }
         if (isFetchAssetAPIMessage(request)) {
-            if (player) {
-                const presignedURL = await createFetchLink({ s3Client })({
-                    PlayerName: player,
-                    fileName: request.fileName,
-                    AssetId: request.AssetId
-                })
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "FetchURL", RequestId, url: presignedURL })
-                }
-            }
+            messageBus.send({
+                type: 'FetchAsset',
+                fileName: request.fileName,
+                AssetId: request.AssetId
+            })
         }
         if (isUploadAssetLinkAPIMessage(request)) {
             if (player) {
@@ -215,6 +208,6 @@ export const handler = async (event, context) => {
         }
     }
     await messageBus.flush()
-    return extractReturnValue(messageBus)
+    return await extractReturnValue(messageBus)
 
 }
