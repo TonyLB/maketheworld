@@ -14,7 +14,7 @@ import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
-import uploadResponse from "./uploadResponse.js"
+import uploadResponse from "./uploadResponse"
 
 const { S3_BUCKET } = process.env;
 
