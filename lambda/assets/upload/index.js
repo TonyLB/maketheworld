@@ -14,7 +14,7 @@ import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
-import uploadResponse from "./uploadResponse"
+import messageBus from "../messageBus"
 
 const { S3_BUCKET } = process.env;
 
@@ -103,10 +103,10 @@ export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
 
     }
     catch {
-        await uploadResponse({
-            uploadId: objectNameItems.join('/'),
-            messageType: 'Error',
-            operation: 'Upload'
+        messageBus.send({
+            type: 'UploadResponse',
+            uploadId: key,
+            messageType: 'Error'
         })
     }
     await s3Client.send(new DeleteObjectCommand({
@@ -188,17 +188,17 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                     await cacheAsset(asset.key)
                 }
             }
-            await uploadResponse({
+            messageBus.send({
+                type: 'UploadResponse',
                 uploadId: objectNameItems.join('/'),
-                messageType: 'Success',
-                operation: 'Upload'
+                messageType: 'Success'
             })
         }
         catch {
-            await uploadResponse({
+            messageBus.send({
+                type: 'UploadResponse',
                 uploadId: objectNameItems.join('/'),
-                messageType: 'Error',
-                operation: 'Upload'
+                messageType: 'Error'
             })
         }
     }

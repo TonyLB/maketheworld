@@ -12,7 +12,12 @@ import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.j
 jest.mock('../serialize/dbRegister.js')
 import { dbRegister } from '../serialize/dbRegister.js'
 
+jest.mock('../messageBus')
+import messageBus from '../messageBus'
+
 import { handleUpload } from './index.js'
+
+const messageBusMock = jest.mocked(messageBus, true)
 
 describe('handleUpload', () => {
     beforeEach(() => {
@@ -94,9 +99,9 @@ describe('handleUpload', () => {
             },
             translateFile: 'Personal/Test.translate.json'
         })
-        expect(uploadResponse).toHaveBeenCalledWith({
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'UploadResponse',
             messageType: 'Success',
-            operation: 'Upload',
             uploadId: 'Test.wml'
         })
 

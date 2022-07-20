@@ -1,6 +1,7 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
+import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
 import { SocketQueue } from "@tonylb/mtw-utilities/dist/apiManagement/index"
 
 import { UploadResponseMessage } from "../messageBus/baseClasses"
@@ -52,16 +53,14 @@ export const uploadResponseMessage = async ({ payloads, messageBus }: { payloads
                     .map(async (subscription) => {
                         await Promise.all((subscription.connections || [])
                             .map(async (ConnectionId) => {
-                                const socketQueue = new SocketQueue()
-                                socketQueue.send({
-                                    ConnectionId, 
-                                    Message: {
+                                await apiClient.send({
+                                    ConnectionId,
+                                    Data: JSON.stringify({
                                         messageType: payload.messageType,
                                         operation: 'Upload',
                                         RequestId: subscription.RequestId
-                                    }
+                                    })
                                 })
-                                await socketQueue.flush()
                             })
                         )
                     })
