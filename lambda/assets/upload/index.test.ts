@@ -1,8 +1,8 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('sharp', () => ({}))
-jest.mock('../serialize/s3Assets.js')
-import { getAssets } from '../serialize/s3Assets.js'
+jest.mock('../serialize/s3Assets')
+import { getAssets } from '../serialize/s3Assets'
 jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
 jest.mock('./uploadResponse')
@@ -15,9 +15,13 @@ import { dbRegister } from '../serialize/dbRegister.js'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
-import { handleUpload } from './index.js'
+import { handleUpload } from '.'
 
 const messageBusMock = jest.mocked(messageBus, true)
+const getAssetsMock = getAssets as jest.Mock
+const getTranslateFileMock = getTranslateFile as jest.Mock
+const importedAssetIdsMock = importedAssetIds as jest.Mock
+const putTranslateFileMock = putTranslateFile as jest.Mock
 
 describe('handleUpload', () => {
     beforeEach(() => {
@@ -28,7 +32,7 @@ describe('handleUpload', () => {
     it('should correctly route incoming information', async () => {
         const schemaMock = jest.fn()
         const normalizeMock = jest.fn()
-        getAssets.mockResolvedValue({
+        getAssetsMock.mockResolvedValue({
             schema: schemaMock,
             normalize: normalizeMock,
             isMatched: jest.fn().mockReturnValue(true)
@@ -43,12 +47,12 @@ describe('handleUpload', () => {
                 fileName: 'Test'
             }
         })
-        getTranslateFile.mockResolvedValue({
+        getTranslateFileMock.mockResolvedValue({
             scopeMap: {
                 test: 'ROOM#123'
             }
         })
-        importedAssetIds.mockResolvedValue({
+        importedAssetIdsMock.mockResolvedValue({
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'ROOM#VORTEX'
@@ -60,17 +64,17 @@ describe('handleUpload', () => {
                 }
             }
         })
-        putTranslateFile.mockResolvedValue({})
+        putTranslateFileMock.mockResolvedValue({})
         await handleUpload({ s3Client: { send: jest.fn() } })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
         const matchS3 = { send: expect.any(Function) }
-        expect(getAssets).toHaveBeenCalledWith(matchS3, "TestPlayer/Test.wml")
-        expect(getTranslateFile).toHaveBeenCalledWith(
+        expect(getAssetsMock).toHaveBeenCalledWith(matchS3, "TestPlayer/Test.wml")
+        expect(getTranslateFileMock).toHaveBeenCalledWith(
             matchS3,
             {
                 name: 'Personal/Test.translate.json'
             }
         )
-        expect(putTranslateFile).toHaveBeenCalledWith(
+        expect(putTranslateFileMock).toHaveBeenCalledWith(
             matchS3,
             {
                 assetKey: 'TestAsset',

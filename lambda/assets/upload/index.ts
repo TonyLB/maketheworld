@@ -6,7 +6,7 @@ import path from 'path'
 
 import { streamToBuffer } from '@tonylb/mtw-utilities/dist/stream'
 
-import { getAssets } from '../serialize/s3Assets.js'
+import { getAssets } from '../serialize/s3Assets'
 import { putTranslateFile } from "../serialize/translateFile.js"
 import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
@@ -15,6 +15,7 @@ import { cacheAsset } from "../cache/index.js"
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
 import messageBus from "../messageBus"
+import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "../wml/normalize.js"
 
 const { S3_BUCKET } = process.env;
 
@@ -126,21 +127,24 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
         return handleImageUpload({ s3Client })({ bucket, key })
     }
     const assetWorkspace = await getAssets(s3Client, key)
+    if (!assetWorkspace) {
+        return {}
+    }
 
     if (assetWorkspace.isMatched()) {
         try {
-            const asset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+            const asset = Object.values(assetWorkspace.normalize()).find((item) => (isNormalAsset(item) || isNormalCharacter(item))) as NormalAsset | NormalCharacter | undefined
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 let translateFile
                 const scopeMap = new ScopeMap({})
-                if (!asset.instance) {
+                if (isNormalAsset(asset) && !asset.instance) {
                     translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
                     await scopeMap.getTranslateFile(s3Client, { name: translateFile })
                 }
                 const normalized = assetWorkspace.normalize()
                 const importMap = Object.values(normalized)
-                    .filter(({ tag }) => (tag === 'Import'))
+                    .filter(isNormalImport)
                     .reduce((previous, { mapping = {}, from }) => {
                         return {
                             ...previous,
@@ -167,7 +171,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         namespaceMap: scopeMap.namespaceMap,
                         assets: normalized
                     }),
-                    ...(asset.instance
+                    ...((asset as NormalAsset).instance
                         ? []
                         : [
                             putTranslateFile(s3Client, {
@@ -184,7 +188,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         Key: fileName
                     }))
                 ])
-                if (['Asset'].includes(asset.tag) && (!asset.Story) && ['Canon', 'Personal'].includes(asset.zone)) {
+                if (isNormalAsset(asset) && (!asset.Story) && ['Canon', 'Personal'].includes(asset.zone || '')) {
                     await cacheAsset(asset.key)
                 }
             }

@@ -2,8 +2,8 @@ import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@aws-sdk/client-s3')
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
-jest.mock('../serialize/s3Assets.js')
-import { getAssets } from '../serialize/s3Assets.js'
+jest.mock('../serialize/s3Assets')
+import { getAssets } from '../serialize/s3Assets'
 jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
 jest.mock('../wml/index.js')

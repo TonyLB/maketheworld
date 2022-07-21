@@ -8,6 +8,9 @@ import { splitType } from "@tonylb/mtw-utilities/dist/types"
 const { S3_BUCKET } = process.env;
 
 export class AssetWorkspace {
+    wmlQuery: WMLQuery
+    cachedContent?: string;
+    cachedSchema?: any;
     constructor(contents) {
         this.wmlQuery = new WMLQuery(contents)
     }
@@ -49,11 +52,11 @@ export const fileNameFromAssetId = async (AssetId) => {
             dataCategory = 'Meta::Character'
             break
     }
-    const { fileName } = await assetDB.getItem({
+    const { fileName } = (await assetDB.getItem<{ fileName: string }>({
         AssetId,
         DataCategory: dataCategory,
         ProjectionFields: ['fileName']
-    })
+    })) || {}
     return fileName
 }
 

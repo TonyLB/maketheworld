@@ -1,7 +1,7 @@
 import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from "../serialize/dbRegister.js"
 import { putTranslateFile } from "../serialize/translateFile.js"
-import { getAssets } from "../serialize/s3Assets.js"
+import { getAssets } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from '@tonylb/mtw-utilities/dist/errors'
 
 export const healAsset = async ({ s3Client }, fileName) => {

@@ -465,5 +465,8 @@ export const isNormalExit = (arg) => (arg?.tag === 'Exit')
 export const isNormalImage = (arg) => (arg?.tag === 'Image')
 export const isNormalComponent = (arg) => (['Room', 'Feature'].includes(arg?.tag))
 export const isNormalMap = (arg) => (arg?.tag === 'Map')
+export const isNormalAsset = (arg) => (arg?.tag === 'Asset')
+export const isNormalCharacter = (arg) => (arg?.tag === 'Character')
+export const isNormalImport = (arg) => (arg?.tag === 'Import')
 
 export default normalize

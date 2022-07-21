@@ -34,6 +34,8 @@ export type NormalAsset = {
     Story?: boolean;
     instance?: boolean;
     appearances: BaseAppearance[];
+    fileName?: string;
+    zone?: string;
 } & NormalBase
 
 export type NormalCharacterPronouns = {
@@ -51,6 +53,7 @@ export type NormalCharacter = {
     FirstImpression: string;
     OneCoolThing: string;
     Outfit: string;
+    fileName?: string;
 } & NormalBase
 
 export type ComponentRenderItem = {
@@ -184,5 +187,9 @@ export function isNormalExit(arg: NormalItem): arg is NormalExit
 export function isNormalImage(arg: NormalItem): arg is NormalImage
 export function isNormalComponent(arg: NormalItem): arg is NormalComponent
 export function isNormalMap(arg: NormalItem): arg is NormalMap
+export function isNormalAsset(arg: NormalAsset | NormalCharacter): arg is NormalAsset
+export function isNormalAsset(arg: NormalItem): arg is NormalAsset
+export function isNormalCharacter(arg: NormalItem): arg is NormalCharacter
+export function isNormalImport(arg: NormalItem): arg is NormalImport
 
 export default normalize
