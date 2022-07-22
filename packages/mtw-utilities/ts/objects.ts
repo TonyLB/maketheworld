@@ -30,7 +30,8 @@ export const reduceArrayToObject = (previous: ObjectMap, [key, value]: [string, 
 //
 // Applies filter to the values of a key/value object
 //
-export const objectFilter = <T, V extends (value: T) => boolean>(obj: ConstrainedMap<T>, condition: V): V extends ((value: T) => value is infer G extends T) ? ConstrainedMap<G> : ConstrainedMap<T> => (Object.entries(obj) as [string, T][])
+type TypeGuard<T, G extends T> = (value: T) => value is G
+export const objectFilter = <T, V extends (value: T) => boolean>(obj: ConstrainedMap<T>, condition: V): V extends TypeGuard<T, infer G> ? ConstrainedMap<G> : ConstrainedMap<T> => (Object.entries(obj) as [string, T][])
     .filter(([_, value]) => (condition(value)))
     .reduce(reduceArrayToObject, {}) as V extends ((value: T) => value is infer G extends T) ? ConstrainedMap<G> : ConstrainedMap<T>
 

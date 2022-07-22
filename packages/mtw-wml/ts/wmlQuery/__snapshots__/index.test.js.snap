@@ -1,0 +1,753 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`wmlQuery add method should correctly add filter tag matches 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 195,
+        "start": 191,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "contentsEnd": 195,
+    "contentsStart": 191,
+    "end": 202,
+    "props": Object {
+      "to": Object {
+        "end": 190,
+        "start": 181,
+        "value": "Test",
+        "valueEnd": 189,
+        "valueStart": 185,
+      },
+    },
+    "start": 175,
+    "tag": "Exit",
+    "tagEnd": 180,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery add method should correctly add first filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "end": 144,
+            "start": 117,
+            "type": "string",
+            "value": "First Room
+                ",
+          },
+        ],
+        "contentsEnd": 144,
+        "contentsStart": 96,
+        "end": 158,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 195,
+            "start": 191,
+            "type": "string",
+            "value": "test",
+          },
+        ],
+        "contentsEnd": 195,
+        "contentsStart": 191,
+        "end": 202,
+        "props": Object {
+          "to": Object {
+            "end": 190,
+            "start": 181,
+            "value": "Test",
+            "valueEnd": 189,
+            "valueStart": 185,
+          },
+        },
+        "start": 175,
+        "tag": "Exit",
+        "tagEnd": 180,
+        "type": "tag",
+      },
+    ],
+    "contentsEnd": 215,
+    "contentsStart": 66,
+    "end": 222,
+    "props": Object {
+      "global": Object {
+        "end": 65,
+        "start": 59,
+        "value": true,
+      },
+      "key": Object {
+        "end": 58,
+        "start": 46,
+        "value": "VORTEX",
+        "valueEnd": 57,
+        "valueStart": 51,
+      },
+    },
+    "start": 40,
+    "tag": "Room",
+    "tagEnd": 45,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery add method should correctly add nested filters 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 332,
+        "start": 326,
+        "type": "string",
+        "value": "Nested",
+      },
+    ],
+    "contentsEnd": 332,
+    "contentsStart": 326,
+    "end": 339,
+    "props": Object {},
+    "start": 320,
+    "tag": "Name",
+    "tagEnd": 325,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery add method should correctly add property filters 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "end": 254,
+    "props": Object {
+      "key": Object {
+        "end": 251,
+        "start": 241,
+        "value": "test",
+        "valueEnd": 250,
+        "valueStart": 246,
+      },
+    },
+    "start": 235,
+    "tag": "Room",
+    "tagEnd": 240,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery addElement method should correctly add node 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit><Name>Vortex</Name>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery addElement method should correctly add node before contents 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Name>Vortex</Name><Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery addElement method should correctly add node to empty tag 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)><Name>Test</Name></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery addElement method should correctly add node to self-closing tag 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test)><Name>Test</Name></Room>
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery children method should correctly aggregate child nodes 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "end": 150,
+        "start": 117,
+        "type": "string",
+        "value": "Test Render:
+                    ",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 183,
+            "start": 172,
+            "type": "string",
+            "value": "Clock Tower",
+          },
+        ],
+        "contentsEnd": 183,
+        "contentsStart": 172,
+        "end": 190,
+        "props": Object {
+          "to": Object {
+            "end": 171,
+            "start": 156,
+            "value": "clockTower",
+            "valueEnd": 170,
+            "valueStart": 160,
+          },
+        },
+        "start": 150,
+        "tag": "Link",
+        "tagEnd": 155,
+        "type": "tag",
+      },
+    ],
+    "contentsEnd": 207,
+    "contentsStart": 96,
+    "end": 221,
+    "props": Object {},
+    "start": 83,
+    "tag": "Description",
+    "tagEnd": 95,
+    "type": "tag",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "end": 258,
+        "start": 254,
+        "type": "string",
+        "value": "test",
+      },
+    ],
+    "contentsEnd": 258,
+    "contentsStart": 254,
+    "end": 265,
+    "props": Object {
+      "to": Object {
+        "end": 253,
+        "start": 244,
+        "value": "Test",
+        "valueEnd": 252,
+        "valueStart": 248,
+      },
+    },
+    "start": 238,
+    "tag": "Exit",
+    "tagEnd": 243,
+    "type": "tag",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "end": 450,
+        "start": 411,
+        "type": "string",
+        "value": "Conditional Render
+                    ",
+      },
+    ],
+    "contentsEnd": 450,
+    "contentsStart": 386,
+    "end": 464,
+    "props": Object {},
+    "start": 373,
+    "tag": "Description",
+    "tagEnd": 385,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery extend method should correctly update base query from filter extension 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    First Room
+                </Description>
+                
+            </Room>
+            <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                    <Exit from=(Test)>vortex</Exit>
+                </Room>
+            </Condition>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery extend method should not impact base search on extension 1`] = `
+"
+        <Asset key=(BASE)>
+            
+            <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
+            <Condition>
+                
+            </Condition>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery not method should correctly chain multiple not operations 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                </Room>
+                <Room key=(Test)>
+                    <Name>Test</Name>
+                </Room>
+            </Condition>
+            <Map>
+                <Room key=(Test) x=\\"100\\" y=\\"100\\" />
+            </Map>
+            
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery not method should correctly remove nodes from result-set 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "end": 150,
+            "start": 117,
+            "type": "string",
+            "value": "Test Render:
+                    ",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "end": 183,
+                "start": 172,
+                "type": "string",
+                "value": "Clock Tower",
+              },
+            ],
+            "contentsEnd": 183,
+            "contentsStart": 172,
+            "end": 190,
+            "props": Object {
+              "to": Object {
+                "end": 171,
+                "start": 156,
+                "value": "clockTower",
+                "valueEnd": 170,
+                "valueStart": 160,
+              },
+            },
+            "start": 150,
+            "tag": "Link",
+            "tagEnd": 155,
+            "type": "tag",
+          },
+        ],
+        "contentsEnd": 207,
+        "contentsStart": 96,
+        "end": 221,
+        "props": Object {},
+        "start": 83,
+        "tag": "Description",
+        "tagEnd": 95,
+        "type": "tag",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "end": 258,
+            "start": 254,
+            "type": "string",
+            "value": "test",
+          },
+        ],
+        "contentsEnd": 258,
+        "contentsStart": 254,
+        "end": 265,
+        "props": Object {
+          "to": Object {
+            "end": 253,
+            "start": 244,
+            "value": "Test",
+            "valueEnd": 252,
+            "valueStart": 248,
+          },
+        },
+        "start": 238,
+        "tag": "Exit",
+        "tagEnd": 243,
+        "type": "tag",
+      },
+    ],
+    "contentsEnd": 278,
+    "contentsStart": 66,
+    "end": 285,
+    "props": Object {
+      "global": Object {
+        "end": 65,
+        "start": 59,
+        "value": true,
+      },
+      "key": Object {
+        "end": 58,
+        "start": 46,
+        "value": "VORTEX",
+        "valueEnd": 57,
+        "valueStart": 51,
+      },
+    },
+    "start": 40,
+    "tag": "Room",
+    "tagEnd": 45,
+    "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery prepend method should correctly aggregate child nodes 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Name>Vortex</Name><Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                </Room>
+            </Condition>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery remove method should correctly remove nodes from source 1`] = `
+"
+        <Asset key=(BASE)>
+            
+            <Condition>
+                
+            </Condition>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery render method should (temporarily) ignore render updates on self-closed tags 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery render method should correctly extract renders 1`] = `
+Array [
+  "Test Render:
+                    ",
+  Object {
+    "tag": "Link",
+    "targetTag": "Feature",
+    "text": "Clock Tower",
+    "to": "clockTower",
+  },
+]
+`;
+
+exports[`wmlQuery render method should correctly update an empty description 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery render method should correctly update multiple renders in a set 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery render method should correctly update renders 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>Test Render Two: <Link to=(clockTower)>(clock tower)</Link></Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+            <Room key=(emptyTest)>
+                <Description></Description>
+            </Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 1`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 2`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) global />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 3`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update expression prop 1`] = `
+"
+            <Asset key=(BASE)>
+                <Condition if={false}></Condition>
+            </Asset>
+        "
+`;
