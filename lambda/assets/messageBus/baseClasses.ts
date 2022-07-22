@@ -35,12 +35,27 @@ export type UploadResponseMessage = {
     messageType: 'Success' | 'Error';
 }
 
+export type MoveAssetMessage = {
+    type: 'MoveAsset';
+    fromPath: string;
+    fileName: string;
+    toPath: string;
+}
+
+export type MoveByAssetIdMessage = {
+    type: 'MoveByAssetId',
+    AssetId: string;
+    toPath: string;
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchAssetMessage |
     UploadURLMessage |
     UploadImageURLMessage |
-    UploadResponseMessage
+    UploadResponseMessage |
+    MoveAssetMessage |
+    MoveByAssetIdMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -48,5 +63,7 @@ export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMes
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
 export const isUploadImageURLMessage = (prop: MessageType): prop is UploadImageURLMessage => (prop.type === 'UploadImageURL')
 export const isUploadResponseMessage = (prop: MessageType): prop is UploadResponseMessage => (prop.type === 'UploadResponse')
+export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
+export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
