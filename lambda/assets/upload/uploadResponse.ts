@@ -4,10 +4,10 @@ import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { apiClient } from "@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient"
 import { SocketQueue } from "@tonylb/mtw-utilities/dist/apiManagement/index"
 
-import { UploadResponseMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import { MessageBus } from "../messageBus/baseClasses"
+import { MessageBus, UploadResponseMessage } from "../messageBus/baseClasses"
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
+import { CacheUploadSubscriptionItem } from '../internalCache/uploadSubscriptions'
 
 //
 // uploadResponse forwards a processing response from an Upload to the players that have
@@ -70,11 +70,12 @@ export const uploadResponseMessage = async ({ payloads, messageBus }: { payloads
                 // with something in the next promise out, which reduces all of the found players after
                 // running the internalCache gets, and then runs unique across the whole batch
                 //
-                ...(unique(subscriptions.map(({ player }) => (player)) || [])
+                ...((unique(subscriptions) || []) as CacheUploadSubscriptionItem[])
+                    .map(({ player }) => (player))
                     .map((player) => (assetDB.deleteItem({
                         AssetId: `UPLOAD#${payload.uploadId}`,
                         DataCategory: `PLAYER#${player}`
-                    })))
+                    }))
                 )
             ])
         })

@@ -1,4 +1,4 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
@@ -14,8 +14,9 @@ import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
-import messageBus from "../messageBus"
+import { MessageBus, UploadURLMessage } from "../messageBus/baseClasses"
 import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "../wml/normalize.js"
+import internalCache from "../internalCache"
 
 const { S3_BUCKET } = process.env;
 
@@ -38,6 +39,37 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
         })
     ])
     return presignedOutput
+}
+
+export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: UploadURLMessage[], messageBus: MessageBus }): Promise<void> => {
+    const player = await internalCache.Connection.get('player')
+    const s3Client = await internalCache.Connection.get('s3Client')
+    if (s3Client) {
+        await Promise.all(
+            payloads.map(async (payload) => {
+                const putCommand = new PutObjectCommand({
+                    Bucket: S3_BUCKET,
+                    Key: `upload/${player}/${payload.tag}s/${payload.fileName}`,
+                    ContentType: 'text/plain'
+                })
+                const [presignedOutput] = await Promise.all([
+                    getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
+                    assetDB.putItem({
+                        AssetId: `UPLOAD#${player}/${payload.tag}s/${payload.fileName}`,
+                        DataCategory: `PLAYER#${player}`,
+                        RequestId: payload.uploadRequestId
+                    })
+                ])
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'UploadURL',
+                        url: presignedOutput
+                    }
+                })
+            })
+        )
+    }
 }
 
 export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, fileExtension, tag = 'Character', RequestId }) => {
@@ -72,7 +104,7 @@ export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, file
     return presignedOutput
 }
 
-export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
+export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async({ bucket, key }) => {
     const { dir: directory, name: fileName } = path.parse(key)
     const lastDirectory = directory.split('/').slice(-1)
 
@@ -117,7 +149,7 @@ export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
     return {}
 }
 
-export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
+export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`

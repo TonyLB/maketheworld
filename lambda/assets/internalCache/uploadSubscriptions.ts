@@ -2,7 +2,7 @@ import { connectionDB, assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 
-type CacheUploadSubscriptionItem = {
+export type CacheUploadSubscriptionItem = {
     connections: string[];
     player: string;
     RequestId: string;

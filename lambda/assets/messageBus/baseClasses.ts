@@ -15,6 +15,13 @@ export type FetchAssetMessage = {
     fileName?: string;
 }
 
+export type UploadURLMessage = {
+    type: 'UploadURL';
+    fileName: string;
+    tag: 'Character' | 'Asset';
+    uploadRequestId: string;
+}
+
 export type UploadResponseMessage = {
     type: 'UploadResponse';
     uploadId: string;
@@ -24,11 +31,13 @@ export type UploadResponseMessage = {
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchAssetMessage |
+    UploadURLMessage |
     UploadResponseMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
+export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
 export const isUploadResponseMessage = (prop: MessageType): prop is UploadResponseMessage => (prop.type === 'UploadResponse')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
