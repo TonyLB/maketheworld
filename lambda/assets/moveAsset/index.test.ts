@@ -11,13 +11,19 @@ jest.mock('../serialize/translateFile.js')
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
 jest.mock('../serialize/dbRegister.js')
 import { dbRegister } from '../serialize/dbRegister.js'
+jest.mock('../messageBus')
+import messageBus from '../messageBus'
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
 
-import { moveAsset } from '.'
+import { moveAssetMessage } from '.'
 
 const getAssetsMock = getAssets as jest.Mock
 const getTranslateFileMock = getTranslateFile as jest.Mock
 const importedAssetIdsMock = importedAssetIds as jest.Mock
 const putTranslateFileMock = putTranslateFile as jest.Mock
+const messageBusMock = jest.mocked(messageBus)
+const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('moveAsset', () => {
     const schemaMock = jest.fn()
@@ -41,6 +47,7 @@ describe('moveAsset', () => {
     })
 
     it('should correctly move asset files and update DB', async () => {
+        internalCacheMock.Connection.get.mockResolvedValue({ send: jest.fn() } as any)
         getAssetsMock.mockResolvedValue({
             schema: schemaMock,
             normalize: normalizeMock,
@@ -68,10 +75,14 @@ describe('moveAsset', () => {
             namespaceMap: { VORTEX: 'BASE#VORTEX' }
         })
         putTranslateFileMock.mockResolvedValue({})
-        await moveAsset({ s3Client: { send: jest.fn() } })({
-            fromPath: 'Personal/',
-            fileName: 'Test',
-            toPath: 'Library/'
+        await moveAssetMessage({
+            payloads: [{
+                type: 'MoveAsset',
+                fromPath: 'Personal/',
+                fileName: 'Test',
+                toPath: 'Library/'    
+            }],
+            messageBus
         })
         const matchS3 = { send: expect.any(Function) }
         expect(getAssetsMock).toHaveBeenCalledWith(matchS3, "Personal/Test.wml")
@@ -106,6 +117,10 @@ describe('moveAsset', () => {
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
             Key: 'Personal/Test.translate.json'
+        })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'ReturnValue',
+            body: { messageType: 'Success' }
         })
     })
 
