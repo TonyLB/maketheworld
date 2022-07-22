@@ -3,12 +3,13 @@ import {
     isFetchLibraryAPIMessage,
     isFetchAssetAPIMessage,
     isUploadURLMessage,
+    isUploadImageURLMessage,
     isUploadResponseMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
 import { uploadResponseMessage } from "../upload/uploadResponse"
-import { uploadURLMessage } from "../upload"
+import { uploadURLMessage, uploadImageURLMessage } from "../upload"
 
 export const messageBus = new MessageBus()
 
@@ -29,6 +30,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isUploadURLMessage,
     callback: uploadURLMessage
+})
+messageBus.subscribe({
+    tag: 'UploadImageURL',
+    priority: 5,
+    filter: isUploadImageURLMessage,
+    callback: uploadImageURLMessage
 })
 messageBus.subscribe({
     tag: 'UploadResponse',

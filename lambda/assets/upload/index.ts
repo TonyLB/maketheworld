@@ -14,7 +14,7 @@ import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
-import { MessageBus, UploadURLMessage } from "../messageBus/baseClasses"
+import { MessageBus, UploadURLMessage, UploadImageURLMessage } from "../messageBus/baseClasses"
 import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "../wml/normalize.js"
 import internalCache from "../internalCache"
 
@@ -56,6 +56,52 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
                     getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
                     assetDB.putItem({
                         AssetId: `UPLOAD#${player}/${payload.tag}s/${payload.fileName}`,
+                        DataCategory: `PLAYER#${player}`,
+                        RequestId: payload.uploadRequestId
+                    })
+                ])
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'UploadURL',
+                        url: presignedOutput
+                    }
+                })
+            })
+        )
+    }
+}
+
+export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads: UploadImageURLMessage[], messageBus: MessageBus }): Promise<void> => {
+    const player = await internalCache.Connection.get('player')
+    const s3Client = await internalCache.Connection.get('s3Client')
+    if (s3Client) {
+        await Promise.all(
+            payloads.map(async (payload) => {
+                if (!['jpg', 'jpeg', 'jpe', 'gif', 'png'].includes(payload.fileExtension)) {
+                    return
+                }
+                let contentType = 'image/png'
+                switch(payload.fileExtension) {
+                    case 'jpg':
+                    case 'jpe':
+                    case 'jpeg':
+                        contentType = 'image/jpeg'
+                        break
+                    case 'gif':
+                        contentType = 'image/gif'
+                        break
+                }
+                const fileName = `${uuidv4()}.${payload.fileExtension}`
+                        const putCommand = new PutObjectCommand({
+                    Bucket: S3_BUCKET,
+                    Key: `upload/images/${player}/${payload.tag}s/${fileName}`,
+                    ContentType: 'text/plain'
+                })
+                const [presignedOutput] = await Promise.all([
+                    getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
+                    assetDB.putItem({
+                        AssetId: `UPLOAD#images/${player}/${payload.tag}s/${fileName}`,
                         DataCategory: `PLAYER#${player}`,
                         RequestId: payload.uploadRequestId
                     })
@@ -156,7 +202,7 @@ export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, mes
         : ''
 
     if (objectNameItems[0] === 'images') {
-        return handleImageUpload({ s3Client })({ bucket, key })
+        return handleImageUpload({ s3Client, messageBus })({ bucket, key })
     }
     const assetWorkspace = await getAssets(s3Client, key)
     if (!assetWorkspace) {

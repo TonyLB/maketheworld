@@ -65,7 +65,7 @@ describe('handleUpload', () => {
             }
         })
         putTranslateFileMock.mockResolvedValue({})
-        await handleUpload({ s3Client: { send: jest.fn() } })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
+        await handleUpload({ s3Client: { send: jest.fn() } as any, messageBus: messageBusMock })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
         const matchS3 = { send: expect.any(Function) }
         expect(getAssetsMock).toHaveBeenCalledWith(matchS3, "TestPlayer/Test.wml")
         expect(getTranslateFileMock).toHaveBeenCalledWith(

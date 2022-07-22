@@ -175,6 +175,13 @@ export const handler = async (event, context) => {
             // }
         }
         if (isUploadImageLinkAPIMessage(request)) {
+            messageBus.send({
+                type: 'UploadImageURL',
+                fileExtension: request.fileExtension,
+                tag: request.tag,
+                uploadRequestId: request.uploadRequestId
+            })
+
             if (player) {
                 const presignedURL = await createUploadImageLink({ s3Client })({
                     PlayerName: player,
