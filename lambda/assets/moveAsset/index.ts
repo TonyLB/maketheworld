@@ -230,6 +230,4 @@ const moveByAssetId = (toPath: string) => ({ s3Client }: { s3Client: S3Client}) 
 
 export const canonize = moveByAssetId('Canon/')
 
-export const libraryCheckin = moveByAssetId('Library/')
-
 export const libraryCheckout = (player: string) => moveByAssetId(`Personal/${player}/`)

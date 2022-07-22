@@ -10,7 +10,7 @@ import { healAsset } from "./selfHealing/index.js"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
 import { handleUpload } from './upload/index.js'
-import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
+import { moveAsset, canonize } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
 import internalCache from "./internalCache"
 
@@ -176,21 +176,15 @@ export const handler = async (event, context) => {
                 AssetId: request.AssetId,
                 toPath: 'Library/'
             })
-            // if (player) {
-            //     await libraryCheckin({ s3Client })(request.AssetId)
-            //     return {
-            //         statusCode: 200,
-            //         body: JSON.stringify({ messageType: "Success", RequestId })
-            //     }
-            // }
         }
         if (isAssetCheckoutAPIMessage(request)) {
+            const player = await internalCache.Connection.get('player')
             if (player) {
-                await libraryCheckout(player)({ s3Client })(request.AssetId)
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "Success", RequestId })
-                }
+                messageBus.send({
+                    type: 'MoveByAssetId',
+                    AssetId: request.AssetId,
+                    toPath: `Personal/${player}/`
+                })
             }
         }
         if (isAssetSubscribeAPIMessage(request)) {
