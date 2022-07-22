@@ -1,4 +1,4 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
+import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
@@ -6,7 +6,7 @@ import path from 'path'
 
 import { streamToBuffer } from '@tonylb/mtw-utilities/dist/stream'
 
-import { getAssets } from '../serialize/s3Assets.js'
+import { getAssets } from '../serialize/s3Assets'
 import { putTranslateFile } from "../serialize/translateFile.js"
 import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister.js'
@@ -14,7 +14,9 @@ import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
-import uploadResponse from "./uploadResponse.js"
+import { MessageBus, UploadURLMessage } from "../messageBus/baseClasses"
+import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "../wml/normalize.js"
+import internalCache from "../internalCache"
 
 const { S3_BUCKET } = process.env;
 
@@ -37,6 +39,37 @@ export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName,
         })
     ])
     return presignedOutput
+}
+
+export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: UploadURLMessage[], messageBus: MessageBus }): Promise<void> => {
+    const player = await internalCache.Connection.get('player')
+    const s3Client = await internalCache.Connection.get('s3Client')
+    if (s3Client) {
+        await Promise.all(
+            payloads.map(async (payload) => {
+                const putCommand = new PutObjectCommand({
+                    Bucket: S3_BUCKET,
+                    Key: `upload/${player}/${payload.tag}s/${payload.fileName}`,
+                    ContentType: 'text/plain'
+                })
+                const [presignedOutput] = await Promise.all([
+                    getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
+                    assetDB.putItem({
+                        AssetId: `UPLOAD#${player}/${payload.tag}s/${payload.fileName}`,
+                        DataCategory: `PLAYER#${player}`,
+                        RequestId: payload.uploadRequestId
+                    })
+                ])
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'UploadURL',
+                        url: presignedOutput
+                    }
+                })
+            })
+        )
+    }
 }
 
 export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, fileExtension, tag = 'Character', RequestId }) => {
@@ -71,7 +104,7 @@ export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, file
     return presignedOutput
 }
 
-export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
+export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async({ bucket, key }) => {
     const { dir: directory, name: fileName } = path.parse(key)
     const lastDirectory = directory.split('/').slice(-1)
 
@@ -103,10 +136,10 @@ export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
 
     }
     catch {
-        await uploadResponse({
-            uploadId: objectNameItems.join('/'),
-            messageType: 'Error',
-            operation: 'Upload'
+        messageBus.send({
+            type: 'UploadResponse',
+            uploadId: key,
+            messageType: 'Error'
         })
     }
     await s3Client.send(new DeleteObjectCommand({
@@ -116,7 +149,7 @@ export const handleImageUpload = ({ s3Client }) => async({ bucket, key }) => {
     return {}
 }
 
-export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
+export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async ({ bucket, key }) => {
     const objectNameItems = key.split('/').slice(1)
     const objectPrefix = objectNameItems.length > 1
         ? `${objectNameItems.slice(0, -1).join('/')}/`
@@ -126,21 +159,24 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
         return handleImageUpload({ s3Client })({ bucket, key })
     }
     const assetWorkspace = await getAssets(s3Client, key)
+    if (!assetWorkspace) {
+        return {}
+    }
 
     if (assetWorkspace.isMatched()) {
         try {
-            const asset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
+            const asset = Object.values(assetWorkspace.normalize()).find((item) => (isNormalAsset(item) || isNormalCharacter(item))) as NormalAsset | NormalCharacter | undefined
             if (asset && asset.key) {
                 const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
                 let translateFile
                 const scopeMap = new ScopeMap({})
-                if (!asset.instance) {
+                if (isNormalAsset(asset) && !asset.instance) {
                     translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
                     await scopeMap.getTranslateFile(s3Client, { name: translateFile })
                 }
                 const normalized = assetWorkspace.normalize()
                 const importMap = Object.values(normalized)
-                    .filter(({ tag }) => (tag === 'Import'))
+                    .filter(isNormalImport)
                     .reduce((previous, { mapping = {}, from }) => {
                         return {
                             ...previous,
@@ -167,7 +203,7 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         namespaceMap: scopeMap.namespaceMap,
                         assets: normalized
                     }),
-                    ...(asset.instance
+                    ...((asset as NormalAsset).instance
                         ? []
                         : [
                             putTranslateFile(s3Client, {
@@ -184,21 +220,21 @@ export const handleUpload = ({ s3Client }) => async ({ bucket, key }) => {
                         Key: fileName
                     }))
                 ])
-                if (['Asset'].includes(asset.tag) && (!asset.Story) && ['Canon', 'Personal'].includes(asset.zone)) {
+                if (isNormalAsset(asset) && (!asset.Story) && ['Canon', 'Personal'].includes(asset.zone || '')) {
                     await cacheAsset(asset.key)
                 }
             }
-            await uploadResponse({
+            messageBus.send({
+                type: 'UploadResponse',
                 uploadId: objectNameItems.join('/'),
-                messageType: 'Success',
-                operation: 'Upload'
+                messageType: 'Success'
             })
         }
         catch {
-            await uploadResponse({
+            messageBus.send({
+                type: 'UploadResponse',
                 uploadId: objectNameItems.join('/'),
-                messageType: 'Error',
-                operation: 'Upload'
+                messageType: 'Error'
             })
         }
     }

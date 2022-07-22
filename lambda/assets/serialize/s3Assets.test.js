@@ -1,6 +1,6 @@
 import { jest, describe, expect, it } from '@jest/globals'
 
-import { AssetWorkspace } from './s3Assets.js'
+import { AssetWorkspace } from './s3Assets'
 
 describe('AssetWorkspace class', () => {
     beforeEach(() => {

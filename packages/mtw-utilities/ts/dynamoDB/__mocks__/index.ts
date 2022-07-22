@@ -4,7 +4,8 @@ const dbMock = () => ({
     query: jest.fn(),
     update: jest.fn(),
     optimisticUpdate: jest.fn(),
-    putItem: jest.fn()
+    putItem: jest.fn(),
+    deleteItem: jest.fn()
 })
 
 export const assetDB = dbMock()

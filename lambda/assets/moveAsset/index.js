@@ -1,7 +1,7 @@
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { dbRegister } from '../serialize/dbRegister.js'
-import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets.js"
+import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import ScopeMap from '../serialize/scopeMap.js'
 

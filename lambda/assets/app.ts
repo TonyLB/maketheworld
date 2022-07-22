@@ -59,7 +59,7 @@ const handleS3Event = async (event) => {
 
     const keyPrefix = key.split('/').slice(0, 1).join('/')
     if (keyPrefix === 'upload') {
-        return await handleUpload({ s3Client })({ bucket, key })
+        return await handleUpload({ s3Client, messageBus })({ bucket, key })
     }
     else {
         const errorMsg = JSON.stringify(`Error: Unknown S3 target: ${JSON.stringify(event, null, 4) }`)
@@ -155,18 +155,24 @@ export const handler = async (event, context) => {
             })
         }
         if (isUploadAssetLinkAPIMessage(request)) {
-            if (player) {
-                const presignedURL = await createUploadLink({ s3Client })({
-                    PlayerName: player,
-                    fileName: request.fileName,
-                    tag: request.tag,
-                    RequestId: request.uploadRequestId
-                })
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "UploadURL", RequestId, url: presignedURL })
-                }
-            }
+            messageBus.send({
+                type: 'UploadURL',
+                fileName: request.fileName,
+                tag: request.tag,
+                uploadRequestId: request.uploadRequestId
+            })
+            // if (player) {
+            //     const presignedURL = await createUploadLink({ s3Client })({
+            //         PlayerName: player,
+            //         fileName: request.fileName,
+            //         tag: request.tag,
+            //         RequestId: request.uploadRequestId
+            //     })
+            //     return {
+            //         statusCode: 200,
+            //         body: JSON.stringify({ messageType: "UploadURL", RequestId, url: presignedURL })
+            //     }
+            // }
         }
         if (isUploadImageLinkAPIMessage(request)) {
             if (player) {
