@@ -6,13 +6,15 @@ import {
     isUploadImageURLMessage,
     isUploadResponseMessage,
     isMoveAssetMessage,
-    isMoveByAssetIdMessage
+    isMoveByAssetIdMessage,
+    isLibrarySubscribeMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
 import { uploadResponseMessage } from "../upload/uploadResponse"
 import { uploadURLMessage, uploadImageURLMessage } from "../upload"
 import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
+import { librarySubscribeMessage } from "../subscribe"
 
 export const messageBus = new MessageBus()
 
@@ -51,6 +53,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isMoveAssetMessage,
     callback: moveAssetMessage
+})
+messageBus.subscribe({
+    tag: 'LibrarySubscribe',
+    priority: 5,
+    filter: isLibrarySubscribeMessage,
+    callback: librarySubscribeMessage
 })
 messageBus.subscribe({
     tag: 'UploadResponse',
