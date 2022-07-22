@@ -9,7 +9,7 @@ import { instantiateAsset } from './cache/instantiate/index.js'
 import { healAsset } from "./selfHealing/index.js"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
-import { handleUpload, createUploadLink, createUploadImageLink } from './upload/index.js'
+import { handleUpload } from './upload/index.js'
 import { moveAsset, canonize, libraryCheckin, libraryCheckout } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
 import internalCache from "./internalCache"
@@ -161,18 +161,6 @@ export const handler = async (event, context) => {
                 tag: request.tag,
                 uploadRequestId: request.uploadRequestId
             })
-            // if (player) {
-            //     const presignedURL = await createUploadLink({ s3Client })({
-            //         PlayerName: player,
-            //         fileName: request.fileName,
-            //         tag: request.tag,
-            //         RequestId: request.uploadRequestId
-            //     })
-            //     return {
-            //         statusCode: 200,
-            //         body: JSON.stringify({ messageType: "UploadURL", RequestId, url: presignedURL })
-            //     }
-            // }
         }
         if (isUploadImageLinkAPIMessage(request)) {
             messageBus.send({
@@ -181,28 +169,20 @@ export const handler = async (event, context) => {
                 tag: request.tag,
                 uploadRequestId: request.uploadRequestId
             })
-
-            if (player) {
-                const presignedURL = await createUploadImageLink({ s3Client })({
-                    PlayerName: player,
-                    fileExtension: request.fileExtension,
-                    tag: request.tag,
-                    RequestId: request.uploadRequestId
-                })
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "UploadURL", RequestId, url: presignedURL })
-                }
-            }
         }
         if (isAssetCheckinAPIMessage(request)) {
-            if (player) {
-                await libraryCheckin({ s3Client })(request.AssetId)
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ messageType: "Success", RequestId })
-                }
-            }
+            messageBus.send({
+                type: 'MoveByAssetId',
+                AssetId: request.AssetId,
+                toPath: 'Library/'
+            })
+            // if (player) {
+            //     await libraryCheckin({ s3Client })(request.AssetId)
+            //     return {
+            //         statusCode: 200,
+            //         body: JSON.stringify({ messageType: "Success", RequestId })
+            //     }
+            // }
         }
         if (isAssetCheckoutAPIMessage(request)) {
             if (player) {

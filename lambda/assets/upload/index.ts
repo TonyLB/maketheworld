@@ -24,23 +24,6 @@ const { S3_BUCKET } = process.env;
 // TODO: Add a tag verification step in upload handling, to prevent people from (e.g.) asking for a character
 // link and uploading an Asset
 //
-export const createUploadLink = ({ s3Client }) => async ({ PlayerName, fileName, tag = 'Character', RequestId }) => {
-    const putCommand = new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: `upload/${PlayerName}/${tag}s/${fileName}`,
-        ContentType: 'text/plain'
-    })
-    const [presignedOutput] = await Promise.all([
-        getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-        assetDB.putItem({
-            AssetId: `UPLOAD#${PlayerName}/${tag}s/${fileName}`,
-            DataCategory: `PLAYER#${PlayerName}`,
-            RequestId
-        })
-    ])
-    return presignedOutput
-}
-
 export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: UploadURLMessage[], messageBus: MessageBus }): Promise<void> => {
     const player = await internalCache.Connection.get('player')
     const s3Client = await internalCache.Connection.get('s3Client')
@@ -96,7 +79,7 @@ export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads
                         const putCommand = new PutObjectCommand({
                     Bucket: S3_BUCKET,
                     Key: `upload/images/${player}/${payload.tag}s/${fileName}`,
-                    ContentType: 'text/plain'
+                    ContentType: contentType
                 })
                 const [presignedOutput] = await Promise.all([
                     getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
@@ -116,38 +99,6 @@ export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads
             })
         )
     }
-}
-
-export const createUploadImageLink = ({ s3Client }) => async ({ PlayerName, fileExtension, tag = 'Character', RequestId }) => {
-    if (!['jpg', 'jpeg', 'jpe', 'png'].includes(fileExtension)) {
-        return null
-    }
-    let contentType = 'image/png'
-    switch(fileExtension) {
-        case 'jpg':
-        case 'jpe':
-        case 'jpeg':
-            contentType = 'image/jpeg'
-            break
-        case 'gif':
-            contentType = 'image/gif'
-            break
-    }
-    const fileName = `${uuidv4()}.${fileExtension}`
-    const putCommand = new PutObjectCommand({
-        Bucket: S3_BUCKET,
-        Key: `upload/images/${PlayerName}/${tag}s/${fileName}`,
-        ContentType: contentType
-    })
-    const [presignedOutput] = await Promise.all([
-        getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-        assetDB.putItem({
-            AssetId: `UPLOAD#images/${PlayerName}/${tag}s/${fileName}`,
-            DataCategory: `PLAYER#${PlayerName}`,
-            RequestId
-        })
-    ])
-    return presignedOutput
 }
 
 export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async({ bucket, key }) => {

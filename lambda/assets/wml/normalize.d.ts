@@ -47,7 +47,7 @@ export type NormalCharacterPronouns = {
 }
 
 export type NormalCharacter = {
-    type: 'Character';
+    tag: 'Character';
     Name: string;
     Pronouns: NormalCharacterPronouns;
     FirstImpression: string;

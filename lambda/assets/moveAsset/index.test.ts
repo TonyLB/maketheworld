@@ -12,7 +12,12 @@ import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.j
 jest.mock('../serialize/dbRegister.js')
 import { dbRegister } from '../serialize/dbRegister.js'
 
-import { moveAsset } from './index.js'
+import { moveAsset } from '.'
+
+const getAssetsMock = getAssets as jest.Mock
+const getTranslateFileMock = getTranslateFile as jest.Mock
+const importedAssetIdsMock = importedAssetIds as jest.Mock
+const putTranslateFileMock = putTranslateFile as jest.Mock
 
 describe('moveAsset', () => {
     const schemaMock = jest.fn()
@@ -36,7 +41,7 @@ describe('moveAsset', () => {
     })
 
     it('should correctly move asset files and update DB', async () => {
-        getAssets.mockResolvedValue({
+        getAssetsMock.mockResolvedValue({
             schema: schemaMock,
             normalize: normalizeMock,
             contents: jest.fn().mockReturnValue('Test'),
@@ -50,31 +55,31 @@ describe('moveAsset', () => {
                 tag: 'Asset'
             }
         })
-        getTranslateFile.mockResolvedValue({
+        getTranslateFileMock.mockResolvedValue({
             scopeMap: {
                 test: '123'
             }
         })
-        importedAssetIds.mockResolvedValue({
+        importedAssetIdsMock.mockResolvedValue({
             importTree: ['BASE'],
             scopeMap: {
                 VORTEX: 'VORTEX'
             },
             namespaceMap: { VORTEX: 'BASE#VORTEX' }
         })
-        putTranslateFile.mockResolvedValue({})
+        putTranslateFileMock.mockResolvedValue({})
         await moveAsset({ s3Client: { send: jest.fn() } })({
             fromPath: 'Personal/',
             fileName: 'Test',
             toPath: 'Library/'
         })
         const matchS3 = { send: expect.any(Function) }
-        expect(getAssets).toHaveBeenCalledWith(matchS3, "Personal/Test.wml")
+        expect(getAssetsMock).toHaveBeenCalledWith(matchS3, "Personal/Test.wml")
         expect(searchMock).toHaveBeenCalledWith('Asset, Character, Story')
         expect(wmlPropMock).toHaveBeenCalledWith('zone', 'Library')
         expect(wmlPropMock).toHaveBeenCalledWith('subFolder', '/Assets')
         expect(wmlRemovePropMock).toHaveBeenCalledWith('player')
-        expect(getTranslateFile).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test.translate.json' })
+        expect(getTranslateFileMock).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test.translate.json' })
         expect(CopyObjectCommand).toHaveBeenCalledWith({
             CopySource: 'undefined/Personal/Test.translate.json',
             Key: 'Library/Assets/Test.translate.json'
