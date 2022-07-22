@@ -18,7 +18,7 @@ export type UploadAssetLinkAPIMessage = {
 export type UploadImageLinkAPIMessage = {
     message: 'uploadImage';
     uploadRequestId: string;
-    tag: 'Image';
+    tag: 'Character' | 'Map';
     fileExtension: string;
 }
 
