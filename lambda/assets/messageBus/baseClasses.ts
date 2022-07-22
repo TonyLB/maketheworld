@@ -48,6 +48,10 @@ export type MoveByAssetIdMessage = {
     toPath: string;
 }
 
+export type LibrarySubscribeMessage = {
+    type: 'LibrarySubscribe';
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchAssetMessage |
@@ -55,7 +59,8 @@ export type MessageType = ReturnValueMessage |
     UploadImageURLMessage |
     UploadResponseMessage |
     MoveAssetMessage |
-    MoveByAssetIdMessage
+    MoveByAssetIdMessage |
+    LibrarySubscribeMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -65,5 +70,6 @@ export const isUploadImageURLMessage = (prop: MessageType): prop is UploadImageU
 export const isUploadResponseMessage = (prop: MessageType): prop is UploadResponseMessage => (prop.type === 'UploadResponse')
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
+export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

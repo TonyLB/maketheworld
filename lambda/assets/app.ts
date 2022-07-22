@@ -31,28 +31,6 @@ import { extractReturnValue } from './returnValue'
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
-const subscribe = async ({ connectionId, RequestId }) => {
-    await connectionDB.optimisticUpdate({
-        key: {
-            ConnectionId: 'Library',
-            DataCategory: 'Subscriptions'
-        },
-        updateKeys: ['ConnectionIds'],
-        updateReducer: (draft) => {
-            if (draft.ConnectionIds === undefined) {
-                draft.ConnectionIds = []
-            }
-            if (connectionId) {
-                draft.ConnectionIds = unique(draft.ConnectionIds, [connectionId])
-            }
-        },
-    })
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ RequestId })
-    }
-}
-
 const handleS3Event = async (event) => {
     const bucket = event.bucket.name;
     const key = decodeURIComponent(event.object.key.replace(/\+/g, ' '));
@@ -133,7 +111,6 @@ export const handler = async (event, context) => {
             })
     }
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    const player = await internalCache.Connection.get('player')
     if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
@@ -188,9 +165,8 @@ export const handler = async (event, context) => {
             }
         }
         if (isAssetSubscribeAPIMessage(request)) {
-            return await subscribe({
-                connectionId,
-                RequestId
+            messageBus.send({
+                type: 'LibrarySubscribe'
             })
         }
     }
