@@ -3,9 +3,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
-import { validatedSchema } from "../../../wml"
-import normalize, { NormalItem, NormalCharacter } from '../../../wml/normalize.js'
-import wmlGrammar from '../../../wml/wmlGrammar/wml.ohm-bundle'
+import { validatedSchema } from "@tonylb/mtw-wml/dist"
+import normalize, { NormalItem, NormalCharacter } from '@tonylb/mtw-wml/dist/normalize'
+import wmlGrammar from '@tonylb/mtw-wml/dist/wmlGrammar/wml.ohm-bundle'
 import { getStatus } from '../../lifeLine'
 
 export const lifelineCondition: CharacterEditCondition = ({ internalData: { id } }, getState) => {

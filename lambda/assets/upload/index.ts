@@ -15,7 +15,7 @@ import { cacheAsset } from "../cache/index.js"
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
 import { MessageBus, UploadURLMessage, UploadImageURLMessage } from "../messageBus/baseClasses"
-import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "../wml/normalize.js"
+import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "@tonylb/mtw-wml/dist/normalize"
 import internalCache from "../internalCache"
 
 const { S3_BUCKET } = process.env;

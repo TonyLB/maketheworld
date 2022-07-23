@@ -10,5 +10,8 @@
       {
         "path": "./packages/mtw-interfaces/tsconfig.ref.json"
       },
+      {
+        "path": "./packages/mtw-wml/tsconfig.ref.json"
+      },
     ],
 }

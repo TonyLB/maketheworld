@@ -2,8 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 
 import { PersonalAssetsNodes, PersonalAssetsPublic } from './baseClasses'
 import { InheritedExit, InheritedComponent } from './inheritedData'
-import { WMLQuery, WMLQueryUpdate } from '../../wml/wmlQuery'
-import { NormalForm, ComponentAppearance } from '../../wml/normalize'
+import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
+import { NormalForm, ComponentAppearance } from '@tonylb/mtw-wml/dist/normalize'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache';
 
 export type PublicSelectors = {
@@ -19,7 +19,6 @@ const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 const getWMLKey = ({ key }: PersonalAssetsPublic & { key: string }) => (key)
 
 const getWMLQuery = createSelector(getWMLKey, (key) => {
-    console.log(`Fetching wmlQuery: ${key}`)
     return wmlQueryFromCache({ key })
 })
 

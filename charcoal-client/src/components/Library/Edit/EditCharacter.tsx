@@ -29,8 +29,8 @@ import {
     getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalCharacter, NormalCharacterPronouns } from '../../../wml/normalize'
-import { WMLQuery } from '../../../wml/wmlQuery'
+import { NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize'
+import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 
 import WMLEdit from './WMLEdit'
 import LibraryBanner from './LibraryBanner'

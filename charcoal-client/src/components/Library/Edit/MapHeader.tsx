@@ -8,7 +8,7 @@ import {
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 
-import { NormalMap } from '../../../wml/normalize'
+import { NormalMap } from '@tonylb/mtw-wml/dist/normalize'
 import { getDefaultAppearances } from '../../../slices/personalAssets'
 
 interface MapHeaderProps {

@@ -1,8 +1,8 @@
 import { Descendant, Point, Node } from "slate"
-import { WMLQuery } from "../../../wml/wmlQuery"
+import { WMLQuery } from "@tonylb/mtw-wml/dist/wmlQuery"
 
 export const wmlQueryToSlate = (wmlQuery: WMLQuery): Descendant[] => {
-    const source = wmlQuery.source
+    const source = wmlQuery.source as string
 
     return source.split('\n').map((text) => ({ type: 'line', children: [{ text }] }))
 }

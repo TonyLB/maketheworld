@@ -9,7 +9,7 @@ import {
     SxProps
 } from '@mui/material'
 
-import { NormalItem } from '../../../wml/normalize'
+import { NormalItem } from '@tonylb/mtw-wml/dist/normalize'
 import { AssetComponent, useLibraryAsset } from './LibraryAsset'
 import { InheritedComponent } from '../../../slices/personalAssets/inheritedData'
 

@@ -27,8 +27,8 @@ import {
     setIntent
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { WMLQuery } from '../../../wml/wmlQuery'
-import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '../../../wml/normalize'
+import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
+import { NormalForm, NormalComponent, ComponentAppearance, ComponentRenderItem, NormalExit, isNormalExit, isNormalComponent } from '@tonylb/mtw-wml/dist/normalize'
 import { InheritedExit, InheritedComponent } from '../../../slices/personalAssets/inheritedData'
 import { objectFilter } from '../../../lib/objects'
 

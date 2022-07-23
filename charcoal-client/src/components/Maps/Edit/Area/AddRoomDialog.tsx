@@ -9,7 +9,7 @@ import {
     List
 } from '@mui/material'
 import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
-import { isNormalMap } from '../../../../wml/normalize'
+import { isNormalMap } from '@tonylb/mtw-wml/dist/normalize'
 import { objectFilterEntries, objectMap } from '../../../../lib/objects'
 import WMLComponentHeader from '../../../Library/Edit/WMLComponentHeader'
 

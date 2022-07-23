@@ -4,7 +4,7 @@ import { dbRegister } from '../serialize/dbRegister.js'
 import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import ScopeMap from '../serialize/scopeMap.js'
-import { isNormalAsset, isNormalImport, NormalAsset, NormalCharacter } from "../wml/normalize.js"
+import { isNormalAsset, isNormalImport, NormalAsset, NormalCharacter } from "@tonylb/mtw-wml/dist/normalize"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 
