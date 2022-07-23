@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`commentTokenizer should error on unbounded comment 1`] = `
+Object {
+  "endIdx": 36,
+  "message": "Unbounded comment",
+  "source": "/* Test comment
+    Multiline comment",
+  "startIdx": 0,
+  "type": "Error",
+}
+`;
+
+exports[`commentTokenizer should tokenize a bounded comment 1`] = `
+Object {
+  "endIdx": 39,
+  "source": "/* Test comment
+    Multiline comment */",
+  "startIdx": 0,
+  "type": "Comment",
+}
+`;
+
+exports[`commentTokenizer should tokenize a comment-to-end-of-line 1`] = `
+Object {
+  "endIdx": 14,
+  "source": "// Test comment",
+  "startIdx": 0,
+  "type": "Comment",
+}
+`;
+
+exports[`commentTokenizer should tokenize a comment-to-end-of-source 1`] = `
+Object {
+  "endIdx": 14,
+  "source": "// Test comment",
+  "startIdx": 0,
+  "type": "Comment",
+}
+`;

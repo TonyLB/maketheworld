@@ -1,3 +1,5 @@
+import SourceStream from "./sourceStream";
+
 export type TokenBase = {
     source: string;
     startIdx: number;
@@ -44,6 +46,11 @@ export type TokenDescription = {
     type: 'Description';
 } & TokenBase
 
+export type TokenError = {
+    type: 'Error';
+    message: string;
+} & TokenBase
+
 export type Token = TokenComment |
     TokenWhitespace |
     TokenExpressionValue |
@@ -53,4 +60,9 @@ export type Token = TokenComment |
     TokenBeginTagOpen |
     TokenBeginTagClose |
     TokenEndTag |
-    TokenDescription
+    TokenDescription |
+    TokenError
+
+export type Tokenizer<T extends Token> = {
+    (sourceStream: SourceStream): T | TokenError | undefined
+}
