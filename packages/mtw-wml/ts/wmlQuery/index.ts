@@ -1,14 +1,37 @@
+import { NormalForm, ComponentRenderItem } from '../normalize'
+import { Matcher } from 'ohm-js'
+
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
-import { validatedSchema, wmlSemantics } from '../'
+import { validatedSchema, wmlSemantics } from '../index'
 import { normalize } from '../normalize'
+
+export interface WMLQueryUpdateReplace {
+    type: 'replace';
+    startIdx: number;
+    endIdx: number;
+    text: string;
+    wmlQuery: WMLQuery;
+}
+
+export interface WMLQueryUpdateSet {
+    type: 'set';
+    text: string;
+    wmlQuery: WMLQuery;
+}
+
+export type WMLQueryUpdate = WMLQueryUpdateReplace | WMLQueryUpdateSet
+
+type WMLQueryOptions = {
+    onChange?: (update: WMLQueryUpdate) => void;
+}
 
 const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, contents = [] }) => {
     switch(type) {
         case 'tag':
-            const flattenedProps = Object.entries(props)
-                .reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {})
+            const flattenedProps = (Object.entries(props) as [string, { value: any }][])
+                .reduce((previous, [key, { value }]) => ({ ...previous, [key]: value }), {} as Record<string, any>)
             return {
                 tag,
                 ...flattenedProps,
@@ -21,7 +44,11 @@ const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, con
 }
 
 export class WMLQueryResult {
-    constructor(wmlQuery, { search, extendsResult }) {
+    search: { search?: string; not?: string }[] = []
+    extendsResult?: WMLQueryResult
+    wmlQuery: WMLQuery
+    _nodes: any[] = []
+    constructor(wmlQuery: WMLQuery, { search, extendsResult }: { search?: string, extendsResult?: WMLQueryResult }) {
         this.wmlQuery = wmlQuery
         if (search) {
             this.search = [{
@@ -35,19 +62,19 @@ export class WMLQueryResult {
         this.refresh()
     }
 
-    refresh() {
+    refresh(): void {
         const match = this.wmlQuery.matcher.match()
         if (match.succeeded()) {
             this._nodes = this.search.reduce((previous, { search, not }) => {
                 if (search) {
-                    return wmlSelectorFactory(match, { currentNodes: previous })(search)
+                    return wmlSelectorFactory(match, { currentNodes: previous })(search) as any[]
                 }
                 if (not) {
                     const excludeResults = new WMLQueryResult(this.wmlQuery, { search: not })
                     const excludeStarts = excludeResults.nodes().map(({ start }) => (start))
                     return (previous || []).filter(({ start }) => (!excludeStarts.includes(start)))
                 }
-            }, undefined) || []
+            }, undefined as (any[] | undefined)) || []
         }
         else {
             this._nodes = []
@@ -57,7 +84,7 @@ export class WMLQueryResult {
         }
     }
 
-    not(searchString) {
+    not(searchString: string): WMLQueryResult {
         this.search = [
             ...this.search,
             {
@@ -68,7 +95,7 @@ export class WMLQueryResult {
         return this
     }
 
-    add(searchString) {
+    add(searchString: string): WMLQueryResult {
         this.search = [
             ...this.search,
             {
@@ -79,23 +106,23 @@ export class WMLQueryResult {
         return this
     }
 
-    replaceInputRange(startIdx, endIdx, value) {
+    replaceInputRange(startIdx: number, endIdx: number, value: string): void {
         this.wmlQuery.replaceInputRange(startIdx, endIdx, value)
     }
 
-    get source() {
+    get source(): string {
         return this.wmlQuery.source
     }
 
-    nodes() {
+    nodes(): any[] {
         return this._nodes || []
     }
 
-    get count() {
-        return (this._nodes || []).count
+    get count(): number {
+        return (this._nodes || []).length
     }
 
-    expand() {
+    expand(): void {
         let offset = 0
         this._nodes.forEach(({ type, tag, end }) => {
             if (type !== 'tag') {
@@ -116,7 +143,7 @@ export class WMLQueryResult {
         this.refresh()
     }
 
-    addElement(source, options) {
+    addElement(source: string, options: { position: 'before' | 'after' }): WMLQueryResult {
         this.expand()
         const { position = 'after' } = options || {}
         this._nodes.forEach(({ type, tag, tagEnd, contentsStart, end, contents = [] }) => {
@@ -145,7 +172,7 @@ export class WMLQueryResult {
         return this
     }
 
-    remove() {
+    remove(): WMLQueryResult {
         let offset = 0
         this._nodes.forEach(({ start, end }) => {
             this.replaceInputRange(start - offset, end - offset, '')
@@ -155,12 +182,12 @@ export class WMLQueryResult {
         return this
     }
 
-    children() {
+    children(): WMLQueryResult {
         this._nodes = this._nodes.reduce((previous, { contents = [] }) => ([...previous, ...contents]), [])
         return this
     }
 
-    prepend(sourceString) {
+    prepend(sourceString: string): WMLQueryResult {
         if (this._nodes.length) {
             this.replaceInputRange(this._nodes[0].start, this._nodes[0].start, sourceString)
             this.refresh()
@@ -168,7 +195,7 @@ export class WMLQueryResult {
         return this
     }
 
-    prop(key, value, options = { type: 'literal' }) {
+    prop(key: string, value: any, options: { type: 'literal' | 'boolean' | 'expression' } = { type: 'literal' }): WMLQueryResult | any {
         if (value !== undefined) {
             const { type } = options
             this._nodes.forEach((node) => {
@@ -189,8 +216,8 @@ export class WMLQueryResult {
                     }
                 }
                 else {
-                    const insertAfter = Object.values(node.props || {})
-                        .reduce((previous, { end }) => (Math.max(previous, end)), node.tagEnd)
+                    const insertAfter = (Object.values(node.props || {}) as { end: number }[])
+                        .reduce((previous, { end }: { end: number }) => (Math.max(previous, end)), node.tagEnd as number)
                     const newProp = type === 'boolean'
                         ? value ? ` ${key}` : ''
                         : type === 'expression'
@@ -210,7 +237,7 @@ export class WMLQueryResult {
         }
     }
 
-    removeProp(key) {
+    removeProp(key: string): WMLQueryResult {
         this._nodes.forEach((node) => {
             if (node.props[key]) {
                 const { start, end } = node.props[key]
@@ -223,7 +250,7 @@ export class WMLQueryResult {
         return this
     }
 
-    contents(value) {
+    contents(value: any): WMLQueryResult | any[] {
         this.expand()
         if (value !== undefined) {
             let offset = 0
@@ -242,7 +269,7 @@ export class WMLQueryResult {
         }
     }
 
-    render(value) {
+    render(value: ComponentRenderItem[]): WMLQueryResult | ComponentRenderItem[] {
         if (value !== undefined) {
             const renderContents = value.map((item) => {
                 switch(item.tag) {
@@ -275,13 +302,13 @@ export class WMLQueryResult {
         }
     }
 
-    prettyPrint() {
+    prettyPrint(): WMLQueryResult {
         this.wmlQuery.prettyPrint()
         this.refresh()
         return this
     }
 
-    clone() {
+    clone(): WMLQueryResult {
         const newQuery = this.wmlQuery.clone()
         const newQueryResult = newQuery.search('')
         newQueryResult.search = this.search
@@ -289,24 +316,27 @@ export class WMLQueryResult {
         return newQueryResult
     }
 
-    extend() {
+    extend(): WMLQueryResult {
         return new WMLQueryResult(this.wmlQuery, { extendsResult: this })
     }
 
 }
 
 export class WMLQuery {
-    constructor(sourceString, options = {}) {
+    onChange: (value: any) => void
+    matcher: Matcher
+
+    constructor(sourceString: string, options: WMLQueryOptions = {}) {
         const { onChange = () => {} } = options
         this.onChange = onChange
         this.matcher = wmlGrammar.matcher()
         this.matcher.setInput(sourceString)
     }
 
-    get source() {
+    get source(): string {
         return this.matcher.getInput()
     }
-    setInput(str) {
+    setInput(str: string): void {
         this.matcher.setInput(str)
         this.onChange({
             type: 'set',
@@ -314,7 +344,7 @@ export class WMLQuery {
             wmlQuery: this
         })
     }
-    normalize() {
+    normalize(): NormalForm {
         if (this.matcher.match().succeeded()) {
             const schema = validatedSchema(this.matcher.match())
             return normalize(schema)    
@@ -323,14 +353,14 @@ export class WMLQuery {
             return {}
         }
     }
-    prettyPrint() {
+    prettyPrint(): WMLQuery {
         if (this.matcher.match().succeeded()) {
             const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
             this.matcher.setInput(prettyPrinted)
         }
         return this
     }
-    replaceInputRange(startIdx, endIdx, str) {
+    replaceInputRange(startIdx: number, endIdx: number, str: string): void {
         this.matcher.replaceInputRange(startIdx, endIdx, str)
         this.onChange({
             type: 'replace',
@@ -341,11 +371,11 @@ export class WMLQuery {
         })
     }
 
-    search(searchString) {
+    search(searchString: string): WMLQueryResult {
         return new WMLQueryResult(this, { search: searchString })
     }
 
-    clone() {
+    clone(): WMLQuery {
         return new WMLQuery(this.source)
     }
 

@@ -8,7 +8,7 @@ import {
     Box
 } from '@mui/material'
 
-import { WMLQuery, WMLQueryUpdate } from '../../../wml/wmlQuery'
+import { WMLQuery, WMLQueryUpdate } from '@tonylb/mtw-wml/dist/wmlQuery'
 import wmlQueryToSlate, { indexToSlatePoint, sourceStringFromSlate } from './wmlQueryToSlate'
 import { setDraftWML } from '../../../slices/personalAssets'
 

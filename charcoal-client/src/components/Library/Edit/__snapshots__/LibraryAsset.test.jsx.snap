@@ -106,7 +106,6 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
         ]
     },
     \\"Import-0\\": {
-        \\"key\\": \\"Import-0\\",
         \\"tag\\": \\"Import\\",
         \\"from\\": \\"BASE\\",
         \\"mapping\\": {
@@ -119,6 +118,7 @@ exports[`LibraryAsset context provider should provide normalForm 1`] = `
                 \\"type\\": \\"Room\\"
             }
         },
+        \\"key\\": \\"Import-0\\",
         \\"appearances\\": [
             {
                 \\"contextStack\\": [

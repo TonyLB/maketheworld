@@ -1,5 +1,5 @@
 // import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { WMLQuery } from './index.js'
+import { WMLQuery } from './index'
 
 describe('wmlQuery', () => {
 

@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
-import { objectEntryMap } from '@tonylb/mtw-utilities/ts/objects'
+import { objectEntryMap } from './lib/objects'
 
 type TagType = 'Asset' |
     'Story' |

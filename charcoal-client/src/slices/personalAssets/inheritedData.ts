@@ -1,4 +1,4 @@
-import { ComponentAppearance, ComponentRenderItem } from '../../wml/normalize'
+import { ComponentAppearance, ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize'
 
 type InheritedDataTypes = 'Component' | 'Map' | 'Exit'
 

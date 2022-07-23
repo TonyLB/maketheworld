@@ -1,5 +1,4 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
-import { ComponentAppearance } from '../../wml/normalize'
 import { InheritedExit, InheritedComponent } from './inheritedData';
 
 export interface PersonalAssetsInternal {

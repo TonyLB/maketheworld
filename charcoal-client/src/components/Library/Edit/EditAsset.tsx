@@ -26,7 +26,7 @@ import {
     getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalAsset, NormalRoom, NormalMap, NormalFeature } from '../../../wml/normalize'
+import { NormalAsset, NormalRoom, NormalMap, NormalFeature } from '@tonylb/mtw-wml/dist/normalize'
 
 import WMLEdit from './WMLEdit'
 import WMLComponentHeader from './WMLComponentHeader'

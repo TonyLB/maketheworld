@@ -1,5 +1,5 @@
 import normalToTree from './normalToTree'
-import { NormalForm } from '../../../wml/normalize'
+import { NormalForm } from '@tonylb/mtw-wml/dist/normalize'
 
 describe('normalToTree', () => {
     it('should convert empty cache to empty tree', () => {

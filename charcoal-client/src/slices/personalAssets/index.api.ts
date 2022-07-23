@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { WMLQuery } from '../../wml/wmlQuery'
+import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 import { PersonalAssetsCondition, PersonalAssetsAction } from './baseClasses'
 import {
     socketDispatchPromise,
@@ -7,7 +7,7 @@ import {
     getStatus
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
-import { NormalImport } from '../../wml/normalize'
+import { NormalImport } from '@tonylb/mtw-wml/dist/normalize'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
