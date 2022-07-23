@@ -1,6 +1,6 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
-jest.mock('sharp', () => ({}))
+// jest.mock('sharp', () => ({}))
 jest.mock('../serialize/s3Assets')
 import { getAssets } from '../serialize/s3Assets'
 jest.mock('../serialize/importedAssets.js')
@@ -14,10 +14,14 @@ import { dbRegister } from '../serialize/dbRegister.js'
 
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
 
 import { handleUpload } from '.'
+import { S3Client } from '@aws-sdk/client-s3'
 
 const messageBusMock = jest.mocked(messageBus, true)
+const internalCacheMock = jest.mocked(internalCache, true)
 const getAssetsMock = getAssets as jest.Mock
 const getTranslateFileMock = getTranslateFile as jest.Mock
 const importedAssetIdsMock = importedAssetIds as jest.Mock
@@ -27,6 +31,7 @@ describe('handleUpload', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        internalCacheMock.Connection.get.mockResolvedValue({ send: jest.fn() } as unknown as S3Client)
     })
 
     it('should correctly route incoming information', async () => {

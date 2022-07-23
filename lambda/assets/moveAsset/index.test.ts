@@ -6,7 +6,7 @@ jest.mock('../serialize/s3Assets')
 import { getAssets } from '../serialize/s3Assets'
 jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
-jest.mock('../wml/index.js')
+jest.mock('@tonylb/mtw-wml/dist/')
 jest.mock('../serialize/translateFile.js')
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
 jest.mock('../serialize/dbRegister.js')

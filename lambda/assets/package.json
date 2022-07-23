@@ -19,6 +19,7 @@
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
+    "@tonylb/mtw-wml": "file:./mtw-wml",
     "immer": "^9.0.12",
     "ohm-js": "^16.0.0",
     "sharp": "^0.30.3",
@@ -27,7 +28,8 @@
   "files": [
     "mtw-utilities",
     "mtw-interfaces",
-    "mtw-internal-bus"
+    "mtw-internal-bus",
+    "mtw-wml"
   ],
   "devDependencies": {
     "@ohm-js/cli": "^1.1.0",

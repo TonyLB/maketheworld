@@ -1,7 +1,7 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
-import { validatedSchema } from "../wml/index.js"
-import { WMLQuery } from '../wml/wmlQuery/index.js'
+import { validatedSchema } from "@tonylb/mtw-wml/dist/"
+import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 

@@ -1,18 +1,20 @@
 import { jest, expect } from '@jest/globals'
 
-jest.mock('../clients.js')
 jest.mock('@tonylb/mtw-utilities/dist/stream')
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
 
 import {
     parseWMLFile
 } from './parseWMLFile.js'
-import { s3Client } from '../clients.js'
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
 
 describe('parseWMLFile', () => {
+    let s3Client = { send: jest.fn() }
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        internalCache.Connection.get.mockResolvedValue(s3Client)
     })
     it('should return parsed output', async () => {
         s3Client.send.mockResolvedValue({})

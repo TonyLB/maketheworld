@@ -11,6 +11,7 @@ jest.mock("@tonylb/mtw-utilities/dist/dynamoDB")
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import { uploadResponseMessage } from "./uploadResponse"
+import { S3Client } from "@aws-sdk/client-s3"
 
 const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -27,6 +28,7 @@ describe('UploadResponseMessage', () => {
             RequestId: '1234',
             connections: ['ABCD']
         }])
+        internalCacheMock.Connection.get.mockResolvedValue({ send: jest.fn() } as unknown as S3Client)
     })
 
     it('should call apiClient against registered connectionId', async () => {
