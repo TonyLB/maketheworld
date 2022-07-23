@@ -14,6 +14,11 @@ describe('SourceStream', () => {
         expect(testStream.lookAhead('<Asset')).toBe(true)
         expect(testStream.lookAhead('<Room')).toBe(false)
     })
+    it('should return lookAhead for number input', () => {
+        const testStream = new SourceStream(testSource)
+        testStream.consume(7)
+        expect(testStream.lookAhead(4)).toEqual('key=')
+    })
     it('should consume successfully when given string', () => {
         const testStream = new SourceStream(testSource)
         testStream.consume('<Asset ')
@@ -23,6 +28,11 @@ describe('SourceStream', () => {
         const testStream = new SourceStream(testSource)
         expect(testStream.consume(6)).toEqual('<Asset')
         expect(testStream.consume(4)).toEqual(' key')
+    })
+    it('should successfully consume the last character', () => {
+        const testStream = new SourceStream('x')
+        expect(testStream.consume(1)).toEqual('x')
+        expect(testStream.isEndOfSource).toBe(true)
     })
     it('should successfully consume the entire source', () => {
         const testStream = new SourceStream(testSource)

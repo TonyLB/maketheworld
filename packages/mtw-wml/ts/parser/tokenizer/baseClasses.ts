@@ -63,6 +63,6 @@ export type Token = TokenComment |
     TokenDescription |
     TokenError
 
-export type Tokenizer<T extends Token> = {
+export type Tokenizer<T extends TokenBase> = {
     (sourceStream: SourceStream): T | TokenError | undefined
 }

@@ -4,13 +4,20 @@ export class SourceStream {
     constructor(source: string) {
         this.source = source
     }
-    lookAhead(compare: string, position?: number): boolean {
+    lookAhead(length: number, position?: number): string
+    lookAhead(compare: string, position?: number): boolean
+    lookAhead(compare: string | number, position?: number): boolean | string {
         const currentPosition = (position !== undefined) ? position : this.position
-        if (currentPosition + compare.length > this.source.length) {
-            return false
+        if (typeof compare === 'string') {
+            if (currentPosition + compare.length > this.source.length) {
+                return false
+            }
+            const chars = [...compare]
+            return chars.reduce((previous, character, index) => (previous && (character === this.source[currentPosition + index])), true)
         }
-        const chars = [...compare]
-        return chars.reduce((previous, character, index) => (previous && (character === this.source[currentPosition + index])), true)
+        else {
+            return this.source.slice(currentPosition, currentPosition + compare)
+        }
     }
     consume(compare: undefined): string
     consume(compare: string): void
@@ -22,7 +29,7 @@ export class SourceStream {
             return returnValue
         }
         if (typeof compare === 'number') {
-            const adjustedLength = (compare + this.position >= this.source.length) ? (this.source.length - (this.position + 1)) : compare
+            const adjustedLength = (compare + this.position > this.source.length) ? (this.source.length - this.position) : compare
             const returnValue = this.source.slice(this.position, this.position + adjustedLength)
             this.position += adjustedLength
             return returnValue
