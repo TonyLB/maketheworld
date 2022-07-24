@@ -20,7 +20,7 @@ export type TokenExpressionValue = {
 
 export type TokenKeyValue = {
     type: 'KeyValue';
-    key: string;
+    value: string;
 } & TokenBase
 
 export type TokenLiteralValue = {
@@ -29,7 +29,8 @@ export type TokenLiteralValue = {
 } & TokenBase
 
 export type TokenProperty = {
-    type: 'Property'
+    type: 'Property';
+    key: string;
 } & TokenBase
 
 export type TokenBeginTagOpen = {

@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`tagPropertyTokenizer should fail with whitespace within value 1`] = `
+Object {
+  "endIdx": 5,
+  "key": "Test",
+  "source": "Test =",
+  "startIdx": 0,
+  "type": "Property",
+}
+`;
+
+exports[`tagPropertyTokenizer should reject illegal characters 1`] = `
+Object {
+  "endIdx": 4,
+  "message": "Unexpected token",
+  "source": "-",
+  "startIdx": 4,
+  "type": "Error",
+}
+`;
+
+exports[`tagPropertyTokenizer should tokenize without whitespace 1`] = `
+Object {
+  "endIdx": 4,
+  "key": "Test",
+  "source": "Test=",
+  "startIdx": 0,
+  "type": "Property",
+}
+`;

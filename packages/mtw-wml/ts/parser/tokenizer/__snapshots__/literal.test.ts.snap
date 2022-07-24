@@ -10,16 +10,6 @@ Object {
 }
 `;
 
-exports[`literalValueTokenizer should reject single-quoted expressions 1`] = `
-Object {
-  "endIdx": 5,
-  "source": "'Test'",
-  "startIdx": 0,
-  "type": "LiteralValue",
-  "value": "Test",
-}
-`;
-
 exports[`literalValueTokenizer stringLiteralSubTokenizer should not break on escaped quotes 1`] = `
 Object {
   "endIdx": 9,
