@@ -1,10 +1,12 @@
 import {
     TokenBase,
     Tokenizer,
-    TokenExpressionValue
+    TokenExpressionValue,
+    TokenLiteralValue,
+    TokenKeyValue
 } from "./baseClasses"
 import { expressionStringLiteralSubTokenizer } from "./literal"
-import { checkSubTokenizer } from "./utils"
+import { checkSubTokenizers } from "./utils"
 
 type TokenTemplateString = {
     type: 'TemplateString'
@@ -23,17 +25,17 @@ export const expressionTemplateStringSubTokenizer: Tokenizer<TokenTemplateString
             else {
                 returnValue = returnValue + sourceStream.consume(1)
                 if (nextChar === '$') {
-                    const checkExpressionToken = checkSubTokenizer({
-                        currentBuffer: returnValue,
-                        startIdx,
-                        subTokenizer: expressionValueTokenizer,
-                        sourceStream
+                    const checkExpressionToken = checkSubTokenizers({
+                        subTokenizers: [expressionValueTokenizer],
+                        sourceStream,
+                        callback: (token) => {
+                            returnValue = returnValue + token.source
+                        }
                     })
-                    if (checkExpressionToken.error) {
-                        return checkExpressionToken.error
-                    }
-                    else if (checkExpressionToken.returnBuffer) {
-                        returnValue = checkExpressionToken.returnBuffer
+                    if (checkExpressionToken) {
+                        if (checkExpressionToken.success === false) {
+                            return checkExpressionToken.error
+                        }
                     }
                     else {
                         returnValue = returnValue + sourceStream.consume(1)
@@ -71,43 +73,17 @@ export const expressionValueTokenizer: Tokenizer<TokenExpressionValue> = (source
     const startIdx = sourceStream.position
     returnValue = returnValue + sourceStream.consume(1)
     while(!sourceStream.lookAhead('}')) {
-        const checkLiteral = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: expressionStringLiteralSubTokenizer,
-            sourceStream
+        const checkSubTokens = checkSubTokenizers<TokenLiteralValue | TokenTemplateString | TokenExpressionValue>({
+            sourceStream,
+            subTokenizers: [expressionStringLiteralSubTokenizer, expressionTemplateStringSubTokenizer, expressionValueTokenizer],
+            callback: (token) => {
+                returnValue = returnValue + token.source
+            }
         })
-        if (checkLiteral.error) {
-            return checkLiteral.error
-        }
-        if (checkLiteral.returnBuffer) {
-            returnValue = checkLiteral.returnBuffer
-            continue
-        }
-        const checkTemplate = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: expressionTemplateStringSubTokenizer,
-            sourceStream
-        })
-        if (checkTemplate.error) {
-            return checkTemplate.error
-        }
-        if (checkTemplate.returnBuffer) {
-            returnValue = checkTemplate.returnBuffer
-            continue
-        }
-        const checkExpression = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: expressionValueTokenizer,
-            sourceStream
-        })
-        if (checkExpression.error) {
-            return checkExpression.error
-        }
-        if (checkExpression.returnBuffer) {
-            returnValue = checkExpression.returnBuffer
+        if (checkSubTokens) {
+            if (checkSubTokens.success === false) {
+                return checkSubTokens.error
+            }
             continue
         }
         returnValue = returnValue + sourceStream.consume(1)

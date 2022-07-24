@@ -28,5 +28,17 @@ describe('tokenizer', () => {
         const testStream = new SourceStream(testSource)
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
+    xit('should perform quickly (only activate when performance-tuning)', () => {
+        const testSource = `<Asset key=(Test)>
+            <Room key=(ABC)>
+                <Feature key=(DEF) />
+            </Room>
+        </Asset>`
+        const testStream = new SourceStream(testSource)
+        const start = Date.now()
+        const returnValue = tokenizer(testStream)
+        const duration = Date.now() - start
+        expect(duration < 10).toBe(true)
+    })
 
 })

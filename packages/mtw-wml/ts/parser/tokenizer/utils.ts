@@ -1,47 +1,53 @@
 import { TokenBase, Tokenizer, TokenError, isTokenError } from './baseClasses'
 import SourceStream from './sourceStream'
 
-type CheckSubTokenizerProps<T extends TokenBase & { type: string }> = {
-    currentBuffer: string;
-    startIdx: number;
-    subTokenizer: Tokenizer<T>,
-    sourceStream: SourceStream
+type CheckSubTokenizersProps<T extends TokenBase & { type: string }> = {
+    subTokenizers: Tokenizer<T>[];
+    sourceStream: SourceStream;
+    callback: (prop: T) => void;
 }
 
-type CheckSubTokenizerReturn = {
-    returnBuffer?: string;
-    error?: TokenError;
+type CheckSubTokenizersSuccessReturn = {
+    success: true
 }
 
-export const checkSubTokenizer = <T extends TokenBase & { type: string }>({
-    currentBuffer, startIdx, subTokenizer, sourceStream
-}: CheckSubTokenizerProps<T>): CheckSubTokenizerReturn => {
-    const checkSubTokens = subTokenizer(sourceStream)
-    if (checkSubTokens) {
-        if (isTokenError(checkSubTokens)) {
-            return {
-                error: {
-                    type: 'Error',
-                    source: currentBuffer + checkSubTokens.source,
-                    startIdx,
-                    endIdx: checkSubTokens.endIdx,
-                    message: checkSubTokens.message
+type CheckSubTokenizersErrorReturn = {
+    success: false;
+    error: TokenError;
+}
+
+type CheckSubTokenizersReturn = CheckSubTokenizersSuccessReturn | CheckSubTokenizersErrorReturn | undefined
+
+export const checkSubTokenizers = <T extends TokenBase & { type: string }>({
+    sourceStream,
+    subTokenizers,
+    callback
+}: CheckSubTokenizersProps<T>): CheckSubTokenizersReturn => {
+    const startIdx = sourceStream.position
+    return subTokenizers.reduce<CheckSubTokenizersReturn>((previous, subTokenizer) => {
+        if (!previous) {
+            const checkSubTokens = subTokenizer(sourceStream)
+            if (checkSubTokens) {
+                if (isTokenError(checkSubTokens)) {
+                    return {
+                        success: false,
+                        error: {
+                            type: 'Error',
+                            source: sourceStream.source.slice(startIdx, checkSubTokens.endIdx),
+                            startIdx,
+                            endIdx: checkSubTokens.endIdx,
+                            message: checkSubTokens.message
+                        }
+                    }
+                }
+                else {
+                    callback(checkSubTokens)
+                    return {
+                        success: true
+                    }
                 }
             }
         }
-        else {
-            return {
-                returnBuffer: currentBuffer + checkSubTokens.source
-            }
-        }
-    }
-    else {
-        return {}
-    }
+        return previous
+    }, undefined as CheckSubTokenizersReturn)
 }
-
-//
-// TODO: Abstract checkSubTokenizer into checkSubTokenizers utility which takes
-// a list of tokenizers and a success callback, and return either success (after
-// invoking the callback), an error with a TokenError, or undefined
-//

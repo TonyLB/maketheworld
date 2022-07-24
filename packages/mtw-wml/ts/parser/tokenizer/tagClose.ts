@@ -1,6 +1,6 @@
 import { Tokenizer, TokenTagClose } from "./baseClasses"
 import whiteSpaceTokenizer from "./whiteSpace"
-import { checkSubTokenizer } from "./utils"
+import { checkSubTokenizers } from "./utils"
 
 export const tagCloseTokenizer: Tokenizer<TokenTagClose> = (sourceStream) => {
     if (sourceStream.lookAhead('</')) {
@@ -20,17 +20,15 @@ export const tagCloseTokenizer: Tokenizer<TokenTagClose> = (sourceStream) => {
             }
         }
         returnValue = returnValue + tag
-        const checkWhitespace = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: whiteSpaceTokenizer,
-            sourceStream
+        const checkWhitespace = checkSubTokenizers({
+            sourceStream,
+            subTokenizers: [whiteSpaceTokenizer],
+            callback: (token) => {
+                returnValue = returnValue + token.source
+            }
         })
-        if (checkWhitespace.error) {
+        if (checkWhitespace && (checkWhitespace.success === false)) {
             return checkWhitespace.error
-        }
-        if (checkWhitespace.returnBuffer) {
-            returnValue = checkWhitespace.returnBuffer
         }
         if (sourceStream.lookAhead('>')) {
             returnValue = returnValue + sourceStream.consume(1)

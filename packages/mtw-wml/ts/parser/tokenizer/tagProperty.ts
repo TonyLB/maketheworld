@@ -1,6 +1,6 @@
 import { Tokenizer, TokenProperty } from "./baseClasses"
 import whiteSpaceTokenizer from "./whiteSpace"
-import { checkSubTokenizer } from "./utils"
+import { checkSubTokenizers } from "./utils"
 
 export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => {
     const firstChar = sourceStream.lookAhead(1)
@@ -12,17 +12,15 @@ export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => 
             key = key + sourceStream.consume(1)
         }
         returnValue = returnValue + key
-        const checkWhitespace = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: whiteSpaceTokenizer,
-            sourceStream
+        const checkWhitespace = checkSubTokenizers({
+            sourceStream,
+            subTokenizers: [whiteSpaceTokenizer],
+            callback: (token) => {
+                returnValue = returnValue + token.source
+            }
         })
-        if (checkWhitespace.error) {
+        if (checkWhitespace && (checkWhitespace.success === false)) {
             return checkWhitespace.error
-        }
-        if (checkWhitespace.returnBuffer) {
-            returnValue = checkWhitespace.returnBuffer
         }
         if (!sourceStream.lookAhead('=')) {
             return {

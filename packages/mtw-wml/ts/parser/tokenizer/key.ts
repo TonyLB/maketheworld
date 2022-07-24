@@ -1,6 +1,6 @@
 import { Tokenizer, TokenKeyValue } from "./baseClasses"
 import whiteSpaceTokenizer from "./whiteSpace"
-import { checkSubTokenizer } from "./utils"
+import { checkSubTokenizers } from "./utils"
 
 export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
     const firstChar = sourceStream.lookAhead(1)
@@ -8,17 +8,15 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
         const startIdx = sourceStream.position
         let returnValue = sourceStream.consume(1)
         let value = ''
-        const checkWhitespaceOne = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: whiteSpaceTokenizer,
-            sourceStream
+        const checkWhitespaceOne = checkSubTokenizers({
+            sourceStream,
+            subTokenizers: [whiteSpaceTokenizer],
+            callback: (token) => {
+                returnValue = returnValue + token.source
+            }
         })
-        if (checkWhitespaceOne.error) {
+        if (checkWhitespaceOne && (checkWhitespaceOne.success === false)) {
             return checkWhitespaceOne.error
-        }
-        if (checkWhitespaceOne.returnBuffer) {
-            returnValue = checkWhitespaceOne.returnBuffer
         }
         if (sourceStream.lookAhead(1).match(/[A-Za-z\_]/)) {
             value = value + sourceStream.consume(1)
@@ -27,17 +25,15 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
             }    
         }
         returnValue = returnValue + value
-        const checkWhitespaceTwo = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: whiteSpaceTokenizer,
-            sourceStream
+        const checkWhitespaceTwo = checkSubTokenizers({
+            sourceStream,
+            subTokenizers: [whiteSpaceTokenizer],
+            callback: (token) => {
+                returnValue = returnValue + token.source
+            }
         })
-        if (checkWhitespaceTwo.error) {
+        if (checkWhitespaceTwo && (checkWhitespaceTwo.success === false)) {
             return checkWhitespaceTwo.error
-        }
-        if (checkWhitespaceTwo.returnBuffer) {
-            returnValue = checkWhitespaceTwo.returnBuffer
         }
         if (!sourceStream.lookAhead(')')) {
             return {
