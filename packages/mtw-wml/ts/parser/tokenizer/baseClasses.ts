@@ -43,7 +43,7 @@ export type TokenTagOpenEnd = {
     selfClosing: boolean;
 } & TokenBase
 
-export type TokenEndTag = {
+export type TokenTagClose = {
     type: 'TagClose';
 } & TokenBase
 
@@ -64,7 +64,7 @@ export type Token = TokenComment |
     TokenProperty |
     TokenTagOpenBegin |
     TokenTagOpenEnd |
-    TokenEndTag |
+    TokenTagClose |
     TokenDescription |
     TokenError
 
