@@ -33,17 +33,18 @@ export type TokenProperty = {
     key: string;
 } & TokenBase
 
-export type TokenBeginTagOpen = {
-    type: 'BeginTagOpen',
+export type TokenTagOpenBegin = {
+    type: 'TagOpenBegin',
     tag: string;
 } & TokenBase
 
-export type TokenBeginTagClose = {
-    type: 'BeginTagClose';
+export type TokenTagOpenEnd = {
+    type: 'TagOpenEnd';
+    selfClosing: boolean;
 } & TokenBase
 
 export type TokenEndTag = {
-    type: 'EndTag';
+    type: 'TagClose';
 } & TokenBase
 
 export type TokenDescription = {
@@ -61,8 +62,8 @@ export type Token = TokenComment |
     TokenKeyValue |
     TokenLiteralValue |
     TokenProperty |
-    TokenBeginTagOpen |
-    TokenBeginTagClose |
+    TokenTagOpenBegin |
+    TokenTagOpenEnd |
     TokenEndTag |
     TokenDescription |
     TokenError
