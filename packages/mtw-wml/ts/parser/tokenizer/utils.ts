@@ -4,7 +4,7 @@ import SourceStream from './sourceStream'
 type CheckSubTokenizersProps<T extends TokenBase & { type: string }> = {
     subTokenizers: Tokenizer<T>[];
     sourceStream: SourceStream;
-    callback: (prop: T) => void;
+    callback: (prop: T) => void | CheckSubTokenizersReturn;
 }
 
 type CheckSubTokenizersSuccessReturn = {
@@ -41,8 +41,7 @@ export const checkSubTokenizers = <T extends TokenBase & { type: string }>({
                     }
                 }
                 else {
-                    callback(checkSubTokens)
-                    return {
+                    return callback(checkSubTokens) || {
                         success: true
                     }
                 }

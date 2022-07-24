@@ -1,5 +1,17 @@
-import { liftContents } from "../../semantics/schema/processUp"
-import { isTokenError, Token, TokenDescription } from "./baseClasses"
+import {
+    isTokenError,
+    Token,
+    TokenDescription,
+    TokenTagClose,
+    TokenTagOpenBegin,
+    TokenTagOpenEnd,
+    TokenWhitespace,
+    TokenProperty,
+    TokenBooleanProperty,
+    TokenLiteralValue,
+    TokenKeyValue,
+    TokenExpressionValue
+} from "./baseClasses"
 import booleanPropertyTokenizer from "./boolean"
 import expressionValueTokenizer from "./expression"
 import keyValueTokenizer from "./key"
@@ -10,6 +22,7 @@ import tagCloseTokenizer from "./tagClose"
 import { tagOpenBeginTokenizer, tagOpenEndTokenizer } from "./tagOpen"
 import tagPropertyTokenizer from "./tagProperty"
 import whiteSpaceTokenizer from "./whiteSpace"
+import { checkSubTokenizers } from "./utils"
 
 enum TokenizerMode {
     Contents,
@@ -23,29 +36,20 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
 
     while(!sourceStream.isEndOfSource) {
         if (mode === TokenizerMode.Contents) {
-            const checkWhitespace = whiteSpaceTokenizer(sourceStream)
-            if (checkWhitespace) {
-                if (isTokenError(checkWhitespace)) {
-                    return [checkWhitespace]
+            const checkSubTokens = checkSubTokenizers<TokenWhitespace | TokenTagClose | TokenTagOpenBegin>({
+                sourceStream,
+                subTokenizers: [whiteSpaceTokenizer, tagCloseTokenizer, tagOpenBeginTokenizer],
+                callback: (token) => {
+                    returnValue.push(token)
+                    if (token.type === 'TagOpenBegin') {
+                        mode = TokenizerMode.Tag
+                    }
                 }
-                returnValue.push(checkWhitespace)
-                continue
-            }
-            const checkTagClose = tagCloseTokenizer(sourceStream)
-            if (checkTagClose) {
-                if (isTokenError(checkTagClose)) {
-                    return [checkTagClose]
+            })
+            if (checkSubTokens) {
+                if (checkSubTokens.success === false) {
+                    return [checkSubTokens.error]
                 }
-                returnValue.push(checkTagClose)
-                continue
-            }
-            const checkTagOpen = tagOpenBeginTokenizer(sourceStream)
-            if (checkTagOpen) {
-                if (isTokenError(checkTagOpen)) {
-                    return [checkTagOpen]
-                }
-                returnValue.push(checkTagOpen)
-                mode = TokenizerMode.Tag
                 continue
             }
             return [{
@@ -57,74 +61,62 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             }]
         }
         else {
-            const checkTagEnd = tagOpenEndTokenizer(sourceStream)
-            if (checkTagEnd) {
-                if (isTokenError(checkTagEnd)) {
-                    return [checkTagEnd]
-                }
-                returnValue.push(checkTagEnd)
-                mode = TokenizerMode.Contents
-                continue
-            }
-            const checkWhitespace = whiteSpaceTokenizer(sourceStream)
-            if (checkWhitespace) {
-                if (isTokenError(checkWhitespace)) {
-                    return [checkWhitespace]
-                }
-                returnValue.push(checkWhitespace)
-                continue
-            }
-            const checkTagProp = tagPropertyTokenizer(sourceStream)
-            if (checkTagProp) {
-                if (isTokenError(checkTagProp)) {
-                    return [checkTagProp]
-                }
-                returnValue.push(checkTagProp)
-                const checkWhitespace = whiteSpaceTokenizer(sourceStream)
-                if (checkWhitespace) {
-                    if (isTokenError(checkWhitespace)) {
-                        return [checkWhitespace]
+            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenWhitespace | TokenProperty | TokenBooleanProperty>({
+                sourceStream,
+                subTokenizers: [tagOpenEndTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer, booleanPropertyTokenizer],
+                callback: (token) => {
+                    returnValue.push(token)
+                    if (token.type === 'TagOpenEnd') {
+                        mode = TokenizerMode.Contents
                     }
-                    returnValue.push(checkWhitespace)
-                }
-                const checkLiteral = literalValueTokenizer(sourceStream)
-                if (checkLiteral) {
-                    if (isTokenError(checkLiteral)) {
-                        return [checkLiteral]
+                    if (token.type === 'Property') {
+                        //
+                        // Consume any whitespace first...
+                        //
+                        const checkWhitespace = whiteSpaceTokenizer(sourceStream)
+                        if (checkWhitespace) {
+                            if (isTokenError(checkWhitespace)) {
+                                return {
+                                    success: false,
+                                    error: checkWhitespace
+                                }
+                            }
+                            returnValue.push(checkWhitespace)
+                        }
+                        //
+                        // ... and then confirm that a value follows the key
+                        //
+                        const checkValue = checkSubTokenizers<TokenLiteralValue | TokenKeyValue | TokenExpressionValue>({
+                            sourceStream,
+                            subTokenizers: [literalValueTokenizer, keyValueTokenizer, expressionValueTokenizer],
+                            callback: (token) => {
+                                returnValue.push(token)
+                            }
+                        })
+                        if (checkValue) {
+                            if (checkValue.success === false) {
+                                return checkValue
+                            }
+                        }
+                        else {
+                            return {
+                                success: false,
+                                error: {
+                                    type: 'Error',
+                                    source: sourceStream.lookAhead(1),
+                                    startIdx: sourceStream.position,
+                                    endIdx: sourceStream.position,
+                                    message: 'Unexpected token'
+                                }
+                            }
+                        }
                     }
-                    returnValue.push(checkLiteral)
-                    continue
                 }
-                const checkKey = keyValueTokenizer(sourceStream)
-                if (checkKey) {
-                    if (isTokenError(checkKey)) {
-                        return [checkKey]
-                    }
-                    returnValue.push(checkKey)
-                    continue
+            })
+            if (checkSubTokens) {
+                if (checkSubTokens.success === false) {
+                    return [checkSubTokens.error]
                 }
-                const checkExpression = expressionValueTokenizer(sourceStream)
-                if (checkExpression) {
-                    if (isTokenError(checkExpression)) {
-                        return [checkExpression]
-                    }
-                    returnValue.push(checkExpression)
-                    continue
-                }
-                return [{
-                    type: 'Error',
-                    source: sourceStream.lookAhead(1),
-                    startIdx: sourceStream.position,
-                    endIdx: sourceStream.position,
-                    message: 'Unexpected token'
-                }]
-            }
-            const checkBooleanProp = booleanPropertyTokenizer(sourceStream)
-            if (checkBooleanProp) {
-                if (isTokenError(checkBooleanProp)) {
-                    return [checkBooleanProp]
-                }
-                returnValue.push(checkBooleanProp)
                 continue
             }
             return [{
