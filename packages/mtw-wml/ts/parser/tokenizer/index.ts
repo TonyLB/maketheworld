@@ -65,8 +65,7 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentDescription.startIdx,
-                                endIdx: token.endIdx,
-                                source: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
+                                endIdx: token.endIdx
                             }
                         }
                         else {
@@ -78,16 +77,14 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentDescription.startIdx,
-                                endIdx: token.endIdx,
-                                source: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
+                                endIdx: token.endIdx
                             }
                         }
                         else if (currentWhitespace) {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentWhitespace.startIdx,
-                                endIdx: token.endIdx,
-                                source: sourceStream.source.slice(currentWhitespace.startIdx, token.endIdx)
+                                endIdx: token.endIdx
                             }
                             currentWhitespace = undefined
                         }
@@ -107,7 +104,6 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                 type: 'Error',
                 startIdx: sourceStream.position,
                 endIdx: sourceStream.position,
-                source: sourceStream.lookAhead(1),
                 message: 'Unexpected token'
             }]
         }
@@ -172,7 +168,6 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             }
             return [{
                 type: 'Error',
-                source: sourceStream.lookAhead(1),
                 startIdx: sourceStream.position,
                 endIdx: sourceStream.position,
                 message: 'Unexpected token'

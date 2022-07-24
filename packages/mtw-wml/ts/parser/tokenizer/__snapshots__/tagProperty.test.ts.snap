@@ -5,7 +5,6 @@ Object {
   "endIdx": 5,
   "isBoolean": false,
   "key": "Test",
-  "source": "Test =",
   "startIdx": 0,
   "type": "Property",
 }
@@ -28,7 +27,6 @@ Object {
   "endIdx": 4,
   "isBoolean": true,
   "key": "Test",
-  "source": "Test ",
   "startIdx": 0,
   "type": "Property",
   "value": true,
@@ -40,7 +38,6 @@ Object {
   "endIdx": 4,
   "isBoolean": false,
   "key": "Test",
-  "source": "Test=",
   "startIdx": 0,
   "type": "Property",
 }

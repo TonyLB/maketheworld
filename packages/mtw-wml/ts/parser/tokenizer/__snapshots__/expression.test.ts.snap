@@ -3,7 +3,6 @@
 exports[`expressionTokenizer should properly nest expressions 1`] = `
 Object {
   "endIdx": 62,
-  "source": "{ if (value === 'A') { return 'Test' } else { return 'Fail' } }",
   "startIdx": 0,
   "type": "ExpressionValue",
 }
@@ -12,7 +11,6 @@ Object {
 exports[`expressionTokenizer should properly nest string literals 1`] = `
 Object {
   "endIdx": 28,
-  "source": "{ return 'Test' + \\" value}\\" }",
   "startIdx": 0,
   "type": "ExpressionValue",
 }
@@ -21,7 +19,6 @@ Object {
 exports[`expressionTokenizer should properly nest template literals 1`] = `
 Object {
   "endIdx": 26,
-  "source": "{ return \`Test: \${value}\` }",
   "startIdx": 0,
   "type": "ExpressionValue",
 }
@@ -30,7 +27,6 @@ Object {
 exports[`expressionTokenizer templateStringSubTokenizer should not break on escaped quotes 1`] = `
 Object {
   "endIdx": 9,
-  "source": "\`\\\\\`Test\\\\\`\`",
   "startIdx": 0,
   "type": "TemplateString",
 }
@@ -40,7 +36,6 @@ exports[`expressionTokenizer templateStringSubTokenizer should return error on u
 Object {
   "endIdx": 8,
   "message": "Unbounded template string",
-  "source": "\`Testing'",
   "startIdx": 0,
   "type": "Error",
 }
@@ -49,7 +44,6 @@ Object {
 exports[`expressionTokenizer templateStringSubTokenizer should tokenize nested template strings 1`] = `
 Object {
   "endIdx": 19,
-  "source": "\`Test\${value + \`}\`}\`",
   "startIdx": 0,
   "type": "TemplateString",
 }

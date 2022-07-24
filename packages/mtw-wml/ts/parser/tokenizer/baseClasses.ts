@@ -1,7 +1,6 @@
 import SourceStream from "./sourceStream";
 
 export type TokenBase = {
-    source: string;
     startIdx: number;
     endIdx: number;
 }

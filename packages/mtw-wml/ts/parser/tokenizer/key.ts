@@ -6,31 +6,27 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
     const firstChar = sourceStream.lookAhead(1)
     if (firstChar === '(') {
         const startIdx = sourceStream.position
-        let returnValue = sourceStream.consume(1)
-        let value = ''
+        sourceStream.consume(1)
         const checkWhitespaceOne = checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
-            callback: (token) => {
-                returnValue = returnValue + token.source
-            }
+            callback: (token) => {}
         })
         if (checkWhitespaceOne && (checkWhitespaceOne.success === false)) {
             return checkWhitespaceOne.error
         }
+        const valueStartIdx = sourceStream.position
         if (sourceStream.lookAhead(1).match(/[A-Za-z\_]/)) {
-            value = value + sourceStream.consume(1)
+            sourceStream.consume(1)
             while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\_]/)) {
-                value = value + sourceStream.consume(1)
+                sourceStream.consume(1)
             }    
         }
-        returnValue = returnValue + value
+        const value = sourceStream.source.slice(valueStartIdx, sourceStream.position)
         const checkWhitespaceTwo = checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
-            callback: (token) => {
-                returnValue = returnValue + token.source
-            }
+            callback: (token) => {}
         })
         if (checkWhitespaceTwo && (checkWhitespaceTwo.success === false)) {
             return checkWhitespaceTwo.error
@@ -44,11 +40,10 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
                 message: 'Unexpected token'
             }
         }
-        returnValue = returnValue + sourceStream.consume(1)
-        if (returnValue) {
+        sourceStream.consume(1)
+        if (sourceStream.position !== startIdx) {
             return {
                 type: 'KeyValue',
-                source: returnValue,
                 value,
                 startIdx,
                 endIdx: sourceStream.position - 1

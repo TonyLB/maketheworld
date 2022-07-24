@@ -3,7 +3,6 @@
 exports[`tagOpenBeginTokenizer should tokenize tag open 1`] = `
 Object {
   "endIdx": 4,
-  "source": "<Room",
   "startIdx": 0,
   "tag": "Room",
   "type": "TagOpenBegin",
@@ -14,7 +13,6 @@ exports[`tagOpenEndTokenizer should tokenize non-self-closing tag close 1`] = `
 Object {
   "endIdx": 0,
   "selfClosing": false,
-  "source": ">",
   "startIdx": 0,
   "type": "TagOpenEnd",
 }
@@ -24,7 +22,6 @@ exports[`tagOpenEndTokenizer should tokenize self-closing tag close 1`] = `
 Object {
   "endIdx": 1,
   "selfClosing": true,
-  "source": "/>",
   "startIdx": 0,
   "type": "TagOpenEnd",
 }

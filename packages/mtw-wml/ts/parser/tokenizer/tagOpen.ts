@@ -3,17 +3,16 @@ import { Tokenizer, TokenTagOpenBegin, TokenTagOpenEnd } from "./baseClasses"
 export const tagOpenBeginTokenizer: Tokenizer<TokenTagOpenBegin> = (sourceStream) => {
     if (sourceStream.lookAhead('<')) {
         const startIdx = sourceStream.position
-        let returnValue = sourceStream.consume(1)
-        let tag = ''
+        sourceStream.consume(1)
+        const tagStartIdx = sourceStream.position
         while(sourceStream.lookAhead(1).match(/[A-Za-z]/)) {
-            tag = tag + sourceStream.consume(1)
+            sourceStream.consume(1)
         }
-        returnValue = returnValue + tag
-        if (returnValue) {
+        const tag = sourceStream.source.slice(tagStartIdx, sourceStream.position)
+        if (sourceStream.position !== tagStartIdx) {
             return {
                 type: 'TagOpenBegin',
-                source: returnValue,
-                tag: tag,
+                tag,
                 startIdx,
                 endIdx: sourceStream.position - 1
             }
@@ -25,18 +24,18 @@ export const tagOpenBeginTokenizer: Tokenizer<TokenTagOpenBegin> = (sourceStream
 export const tagOpenEndTokenizer: Tokenizer<TokenTagOpenEnd> = (sourceStream) => {
     const startIdx = sourceStream.position
     if (sourceStream.lookAhead('>')) {
+        sourceStream.consume(1)
         return {
             type: 'TagOpenEnd',
-            source: sourceStream.consume(1),
             startIdx,
             endIdx: sourceStream.position - 1,
             selfClosing: false
         }
     }
     if (sourceStream.lookAhead('/>')) {
+        sourceStream.consume(2)
         return {
             type: 'TagOpenEnd',
-            source: sourceStream.consume(2),
             startIdx,
             endIdx: sourceStream.position - 1,
             selfClosing: true

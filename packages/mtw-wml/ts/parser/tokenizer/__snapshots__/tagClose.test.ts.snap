@@ -4,7 +4,6 @@ exports[`tagCloseTokenizer should error when hits end of source 1`] = `
 Object {
   "endIdx": 5,
   "message": "Unexpected token",
-  "source": "</Room",
   "startIdx": 0,
   "type": "Error",
 }
@@ -14,7 +13,6 @@ exports[`tagCloseTokenizer should error when no closing syntax 1`] = `
 Object {
   "endIdx": 8,
   "message": "Unexpected token",
-  "source": "</Room   ",
   "startIdx": 0,
   "type": "Error",
 }
@@ -24,7 +22,6 @@ exports[`tagCloseTokenizer should error when no tag label 1`] = `
 Object {
   "endIdx": 1,
   "message": "Tag closure requires tag label",
-  "source": "</",
   "startIdx": 0,
   "type": "Error",
 }
@@ -33,7 +30,6 @@ Object {
 exports[`tagCloseTokenizer should tokenize tag close with whitespace 1`] = `
 Object {
   "endIdx": 9,
-  "source": "</Room   >",
   "startIdx": 0,
   "tag": "Room",
   "type": "TagClose",
@@ -43,7 +39,6 @@ Object {
 exports[`tagCloseTokenizer should tokenize tag close without whitespace 1`] = `
 Object {
   "endIdx": 6,
-  "source": "</Room>",
   "startIdx": 0,
   "tag": "Room",
   "type": "TagClose",

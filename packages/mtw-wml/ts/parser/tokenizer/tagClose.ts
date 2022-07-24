@@ -5,36 +5,32 @@ import { checkSubTokenizers } from "./utils"
 export const tagCloseTokenizer: Tokenizer<TokenTagClose> = (sourceStream) => {
     if (sourceStream.lookAhead('</')) {
         const startIdx = sourceStream.position
-        let returnValue = sourceStream.consume(2)
-        let tag = ''
+        sourceStream.consume(2)
+        const tagStartIdx = sourceStream.position
         while(sourceStream.lookAhead(1).match(/[A-Za-z]/)) {
-            tag = tag + sourceStream.consume(1)
+            sourceStream.consume(1)
         }
+        const tag = sourceStream.source.slice(tagStartIdx, sourceStream.position)
         if (tag === '') {
             return {
                 type: 'Error',
-                source: returnValue,
                 startIdx,
                 endIdx: sourceStream.position - 1,
                 message: 'Tag closure requires tag label'
             }
         }
-        returnValue = returnValue + tag
         const checkWhitespace = checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
-            callback: (token) => {
-                returnValue = returnValue + token.source
-            }
+            callback: (token) => {}
         })
         if (checkWhitespace && (checkWhitespace.success === false)) {
             return checkWhitespace.error
         }
         if (sourceStream.lookAhead('>')) {
-            returnValue = returnValue + sourceStream.consume(1)
+            sourceStream.consume(1)
             return {
                 type: 'TagClose',
-                source: returnValue,
                 tag: tag,
                 startIdx,
                 endIdx: sourceStream.position - 1
@@ -43,7 +39,6 @@ export const tagCloseTokenizer: Tokenizer<TokenTagClose> = (sourceStream) => {
         else {
             return {
                 type: 'Error',
-                source: returnValue,
                 startIdx,
                 endIdx: sourceStream.position - 1,
                 message: 'Unexpected token'
