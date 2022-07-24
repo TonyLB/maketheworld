@@ -105,6 +105,208 @@ Array [
 ]
 `;
 
+exports[`tokenizer should tokenize descriptions 1`] = `
+Array [
+  Object {
+    "endIdx": 5,
+    "source": "<Asset",
+    "startIdx": 0,
+    "tag": "Asset",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 6,
+    "source": " ",
+    "startIdx": 6,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 10,
+    "isBoolean": false,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 7,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 16,
+    "source": "(Test)",
+    "startIdx": 11,
+    "type": "KeyValue",
+    "value": "Test",
+  },
+  Object {
+    "endIdx": 17,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 17,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 30,
+    "source": "
+            ",
+    "startIdx": 18,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 35,
+    "source": "<Room",
+    "startIdx": 31,
+    "tag": "Room",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 36,
+    "source": " ",
+    "startIdx": 36,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 40,
+    "isBoolean": false,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 37,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 45,
+    "source": "(ABC)",
+    "startIdx": 41,
+    "type": "KeyValue",
+    "value": "ABC",
+  },
+  Object {
+    "endIdx": 46,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 46,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 63,
+    "source": "
+                ",
+    "startIdx": 47,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 75,
+    "source": "<Description",
+    "startIdx": 64,
+    "tag": "Description",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 76,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 76,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 134,
+    "source": "
+                    Test description
+                   ",
+    "startIdx": 77,
+    "type": "Description",
+  },
+  Object {
+    "endIdx": 139,
+    "source": "<Link",
+    "startIdx": 135,
+    "tag": "Link",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 140,
+    "source": " ",
+    "startIdx": 140,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 144,
+    "isBoolean": false,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 141,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 149,
+    "source": "(DEF)",
+    "startIdx": 145,
+    "type": "KeyValue",
+    "value": "DEF",
+  },
+  Object {
+    "endIdx": 150,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 150,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 160,
+    "source": "link text",
+    "startIdx": 151,
+    "type": "Description",
+  },
+  Object {
+    "endIdx": 166,
+    "source": "</Link>",
+    "startIdx": 160,
+    "tag": "Link",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 215,
+    "source": "
+                    End of test
+               ",
+    "startIdx": 167,
+    "type": "Description",
+  },
+  Object {
+    "endIdx": 229,
+    "source": "</Description>",
+    "startIdx": 216,
+    "tag": "Description",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 242,
+    "source": "
+            ",
+    "startIdx": 230,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 249,
+    "source": "</Room>",
+    "startIdx": 243,
+    "tag": "Room",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 258,
+    "source": "
+        ",
+    "startIdx": 250,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 266,
+    "source": "</Asset>",
+    "startIdx": 259,
+    "tag": "Asset",
+    "type": "TagClose",
+  },
+]
+`;
+
 exports[`tokenizer should tokenize nested tags 1`] = `
 Array [
   Object {
