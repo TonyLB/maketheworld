@@ -20,9 +20,20 @@ Object {
 }
 `;
 
+exports[`keyValueTokenizer should reject keys that start with a digit 1`] = `
+Object {
+  "endIdx": 1,
+  "message": "Unexpected token",
+  "source": "1",
+  "startIdx": 1,
+  "type": "Error",
+}
+`;
+
 exports[`keyValueTokenizer should tokenize with whitespace around value 1`] = `
 Object {
   "endIdx": 7,
+  "key": "Test",
   "source": "( Test )",
   "startIdx": 1,
   "type": "KeyValue",
@@ -32,6 +43,7 @@ Object {
 exports[`keyValueTokenizer should tokenize without whitespace 1`] = `
 Object {
   "endIdx": 7,
+  "key": "Test_1",
   "source": "(Test_1)",
   "startIdx": 1,
   "type": "KeyValue",

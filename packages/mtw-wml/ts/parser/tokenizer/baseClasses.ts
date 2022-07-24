@@ -19,12 +19,14 @@ export type TokenExpressionValue = {
 } & TokenBase
 
 export type TokenKeyValue = {
-    type: 'KeyValue'
+    type: 'KeyValue';
+    key: string;
 } & TokenBase
 
 export type TokenLiteralValue = {
-    type: 'LiteralValue'
-}
+    type: 'LiteralValue';
+    value: string;
+} & TokenBase
 
 export type TokenProperty = {
     type: 'Property'

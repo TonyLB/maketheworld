@@ -3,47 +3,8 @@ import {
     Tokenizer,
     TokenExpressionValue
 } from "./baseClasses"
+import { expressionStringLiteralSubTokenizer } from "./literal"
 import { checkSubTokenizer } from "./utils"
-
-type TokenStringLiteral = {
-    type: 'StringLiteral'
-} & TokenBase
-
-export const expressionStringLiteralSubTokenizer: Tokenizer<TokenStringLiteral> = (sourceStream) => {
-    const firstChar = sourceStream.lookAhead(1)
-    if ([`'`, `"`].includes(firstChar)) {
-        const startIdx = sourceStream.position
-        let returnValue = sourceStream.consume(1)
-        while(!sourceStream.lookAhead(firstChar)) {
-            const nextChar = sourceStream.lookAhead(1)
-            if (nextChar === '\\') {
-                returnValue = returnValue + sourceStream.consume(2)
-            }
-            else {
-                returnValue = returnValue + sourceStream.consume(1)
-            }
-            if (sourceStream.isEndOfSource) {
-                return {
-                    type: 'Error',
-                    message: 'Unbounded string literal',
-                    source: returnValue,
-                    startIdx,
-                    endIdx: sourceStream.position - 1
-                }
-            }
-        }
-        returnValue = returnValue + sourceStream.consume(1)
-        return {
-            type: 'StringLiteral',
-            source: returnValue,
-            startIdx,
-            endIdx: sourceStream.position - 1
-        }
-    }
-    else {
-        return undefined
-    }
-}
 
 type TokenTemplateString = {
     type: 'TemplateString'

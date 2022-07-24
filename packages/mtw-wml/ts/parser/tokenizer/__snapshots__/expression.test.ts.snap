@@ -27,52 +27,6 @@ Object {
 }
 `;
 
-exports[`expressionTokenizer stringLiteralSubTokenizer should not break on escaped quotes 1`] = `
-Object {
-  "endIdx": 9,
-  "source": "'\\\\'Test\\\\''",
-  "startIdx": 0,
-  "type": "StringLiteral",
-}
-`;
-
-exports[`expressionTokenizer stringLiteralSubTokenizer should not break on other-numbered quotes 1`] = `
-Object {
-  "endIdx": 6,
-  "source": "'\\"Test'",
-  "startIdx": 0,
-  "type": "StringLiteral",
-}
-`;
-
-exports[`expressionTokenizer stringLiteralSubTokenizer should return error on unbounded string literal 1`] = `
-Object {
-  "endIdx": 8,
-  "message": "Unbounded string literal",
-  "source": "'Testing\\"",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
-exports[`expressionTokenizer stringLiteralSubTokenizer should tokenize bounded double-quote string literal 1`] = `
-Object {
-  "endIdx": 5,
-  "source": "\\"Test\\"",
-  "startIdx": 0,
-  "type": "StringLiteral",
-}
-`;
-
-exports[`expressionTokenizer stringLiteralSubTokenizer should tokenize bounded single-quote string literal 1`] = `
-Object {
-  "endIdx": 5,
-  "source": "'Test'",
-  "startIdx": 0,
-  "type": "StringLiteral",
-}
-`;
-
 exports[`expressionTokenizer templateStringSubTokenizer should not break on escaped quotes 1`] = `
 Object {
   "endIdx": 9,

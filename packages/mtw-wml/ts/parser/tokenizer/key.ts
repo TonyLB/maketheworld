@@ -6,6 +6,7 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
     const firstChar = sourceStream.lookAhead(1)
     if (firstChar === '(') {
         let returnValue = sourceStream.consume(1)
+        let key = ''
         const startIdx = sourceStream.position
         const checkWhitespaceOne = checkSubTokenizer({
             currentBuffer: returnValue,
@@ -19,9 +20,13 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
         if (checkWhitespaceOne.returnBuffer) {
             returnValue = checkWhitespaceOne.returnBuffer
         }
-        while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\_]/)) {
-            returnValue = returnValue + sourceStream.consume(1)
+        if (sourceStream.lookAhead(1).match(/[A-Za-z\_]/)) {
+            key = key + sourceStream.consume(1)
+            while(sourceStream.lookAhead(1).match(/[A-Za-z0-9\_]/)) {
+                key = key + sourceStream.consume(1)
+            }    
         }
+        returnValue = returnValue + key
         const checkWhitespaceTwo = checkSubTokenizer({
             currentBuffer: returnValue,
             startIdx,
@@ -48,6 +53,7 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
             return {
                 type: 'KeyValue',
                 source: returnValue,
+                key,
                 startIdx,
                 endIdx: sourceStream.position - 1
             }

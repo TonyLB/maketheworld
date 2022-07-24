@@ -27,5 +27,8 @@ describe('keyValueTokenizer', () => {
         const testStream = new SourceStream('(Test-1)></Room>')
         expect(keyValueTokenizer(testStream)).toMatchSnapshot()
     })
-
+    it('should reject keys that start with a digit', () => {
+        const testStream = new SourceStream('(1_Test)></Room>')
+        expect(keyValueTokenizer(testStream)).toMatchSnapshot()
+    })
 })
