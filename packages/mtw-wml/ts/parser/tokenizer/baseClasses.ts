@@ -66,3 +66,5 @@ export type Token = TokenComment |
 export type Tokenizer<T extends TokenBase> = {
     (sourceStream: SourceStream): T | TokenError | undefined
 }
+
+export const isTokenError = (item: TokenBase & { type: string }): item is TokenError => (item.type === 'Error')
