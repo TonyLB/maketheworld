@@ -3,8 +3,6 @@
 exports[`whiteSpaceTokenizer should tokenize whitespace between tags 1`] = `
 Object {
   "endIdx": 5,
-  "source": " 
-    ",
   "startIdx": 0,
   "type": "Whitespace",
 }
@@ -13,8 +11,6 @@ Object {
 exports[`whiteSpaceTokenizer should tokenize whitespace to end of source 1`] = `
 Object {
   "endIdx": 6,
-  "source": "    
-		",
   "startIdx": 0,
   "type": "Whitespace",
 }

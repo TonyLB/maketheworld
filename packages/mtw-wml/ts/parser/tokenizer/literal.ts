@@ -7,30 +7,29 @@ export const expressionStringLiteralSubTokenizer: Tokenizer<TokenLiteralValue> =
     const firstChar = sourceStream.lookAhead(1)
     if ([`'`, `"`].includes(firstChar)) {
         const startIdx = sourceStream.position
-        let returnValue = sourceStream.consume(1)
-        let value = ''
+        sourceStream.consume(1)
+        const valueStartIdx = sourceStream.position
         while(!sourceStream.lookAhead(firstChar)) {
             const nextChar = sourceStream.lookAhead(1)
             if (nextChar === '\\') {
-                value = value + sourceStream.consume(2)
+                sourceStream.consume(2)
             }
             else {
-                value = value + sourceStream.consume(1)
+                sourceStream.consume(1)
             }
             if (sourceStream.isEndOfSource) {
                 return {
                     type: 'Error',
                     message: 'Unbounded string literal',
-                    source: returnValue + value,
                     startIdx,
                     endIdx: sourceStream.position - 1
                 }
             }
         }
-        returnValue = returnValue + value + sourceStream.consume(1)
+        const value = sourceStream.source.slice(valueStartIdx, sourceStream.position)
+        sourceStream.consume(1)
         return {
             type: 'LiteralValue',
-            source: returnValue,
             value,
             startIdx,
             endIdx: sourceStream.position - 1

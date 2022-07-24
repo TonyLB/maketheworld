@@ -23,7 +23,6 @@ export const descriptionTokenizer: Tokenizer<TokenDescription> = (sourceStream) 
     else {
         return {
             type: 'Description',
-            source: sourceStream.source.slice(startIdx, endIdx),
             startIdx,
             endIdx
         }

@@ -6,18 +6,14 @@ export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => 
     const firstChar = sourceStream.lookAhead(1)
     if (firstChar.match(/[A-Za-z]/)) {
         const startIdx = sourceStream.position
-        let returnValue = ''
-        let key = sourceStream.consume(1)
         while(sourceStream.lookAhead(1).match(/[A-Za-z]/)) {
-            key = key + sourceStream.consume(1)
+            sourceStream.consume(1)
         }
-        returnValue = returnValue + key
+        const key = sourceStream.source.slice(startIdx, sourceStream.position)
         const checkWhitespace = checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
-            callback: (token) => {
-                returnValue = returnValue + token.source
-            }
+            callback: (token) => {}
         })
         if (checkWhitespace && (checkWhitespace.success === false)) {
             return checkWhitespace.error
@@ -26,23 +22,19 @@ export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => 
             return {
                 type: 'Property',
                 isBoolean: true,
-                source: returnValue,
                 key,
                 value: true,
                 startIdx,
                 endIdx: sourceStream.position - 1
             }
         }
-        returnValue = returnValue + sourceStream.consume(1)
-        if (returnValue) {
-            return {
-                type: 'Property',
-                isBoolean: false,
-                source: returnValue,
-                key,
-                startIdx,
-                endIdx: sourceStream.position - 1
-            }
+        sourceStream.consume(1)
+        return {
+            type: 'Property',
+            isBoolean: false,
+            key,
+            startIdx,
+            endIdx: sourceStream.position - 1
         }
     }
     if (firstChar === '!') {
