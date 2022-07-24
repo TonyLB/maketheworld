@@ -32,6 +32,19 @@ describe('tokenizer', () => {
         const testStream = new SourceStream('<Room key= >')
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
+    it('should tokenize descriptions', () => {
+        const testSource = `<Asset key=(Test)>
+            <Room key=(ABC)>
+                <Description>
+                    Test description
+                    <Link key=(DEF)>link text</Link>
+                    End of test
+                </Description>
+            </Room>
+        </Asset>`
+        const testStream = new SourceStream(testSource)
+        expect(tokenizer(testStream)).toMatchSnapshot()
+    })
     xit('should perform quickly (only activate when performance-tuning)', () => {
         const testSource = `<Asset key=(Test)>
             <Room key=(ABC)>

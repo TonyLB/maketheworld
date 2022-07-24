@@ -9,13 +9,14 @@ import {
     TokenProperty,
     TokenLiteralValue,
     TokenKeyValue,
-    TokenExpressionValue
+    TokenExpressionValue,
 } from "./baseClasses"
 import expressionValueTokenizer from "./expression"
 import keyValueTokenizer from "./key"
 import literalValueTokenizer from "./literal"
 import SourceStream from "./sourceStream"
 import tagCloseTokenizer from "./tagClose"
+import descriptionTokenizer from "./description"
 
 import { tagOpenBeginTokenizer, tagOpenEndTokenizer } from "./tagOpen"
 import tagPropertyTokenizer from "./tagProperty"
@@ -29,18 +30,68 @@ enum TokenizerMode {
 
 export const tokenizer = (sourceStream: SourceStream): Token[] => {
     let mode: TokenizerMode = TokenizerMode.Contents
-    let currentDescription: TokenDescription | undefined
     let returnValue: Token[] = []
 
+    let currentDescription: TokenDescription | undefined
+    let currentWhitespace: TokenWhitespace | undefined
     while(!sourceStream.isEndOfSource) {
         if (mode === TokenizerMode.Contents) {
-            const checkSubTokens = checkSubTokenizers<TokenWhitespace | TokenTagClose | TokenTagOpenBegin>({
+            //
+            // TODO: Parse and buffer Descriptions, merging together whitespace as you go,
+            // and checking for \-escaped characters, instead of regarding other data as an error.
+            //
+            const checkSubTokens = checkSubTokenizers<TokenWhitespace | TokenTagClose | TokenTagOpenBegin | TokenDescription>({
                 sourceStream,
-                subTokenizers: [whiteSpaceTokenizer, tagCloseTokenizer, tagOpenBeginTokenizer],
+                subTokenizers: [whiteSpaceTokenizer, tagCloseTokenizer, tagOpenBeginTokenizer, descriptionTokenizer],
                 callback: (token) => {
-                    returnValue.push(token)
-                    if (token.type === 'TagOpenBegin') {
-                        mode = TokenizerMode.Tag
+                    if (token.type === 'TagClose' || token.type === 'TagOpenBegin') {
+                        if (currentDescription) {
+                            returnValue.push(currentDescription)
+                            currentDescription = undefined
+                        }
+                        if (currentWhitespace) {
+                            returnValue.push(currentWhitespace)
+                            currentWhitespace = undefined
+                        }
+                        returnValue.push(token)
+                        if (token.type === 'TagOpenBegin') {
+                            mode = TokenizerMode.Tag
+                        }
+                    }
+                    if (token.type === 'Whitespace') {
+                        if (currentDescription) {
+                            currentDescription = {
+                                type: 'Description',
+                                startIdx: currentDescription.startIdx,
+                                endIdx: token.endIdx,
+                                source: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
+                            }
+                        }
+                        else {
+                            currentWhitespace = token
+                        }
+                    }
+                    if (token.type === 'Description') {
+                        if (currentDescription) {
+                            currentDescription = {
+                                type: 'Description',
+                                startIdx: currentDescription.startIdx,
+                                endIdx: token.endIdx,
+                                source: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
+                            }
+                        }
+                        else if (currentWhitespace) {
+                            currentDescription = {
+                                type: 'Description',
+                                startIdx: currentWhitespace.startIdx,
+                                endIdx: token.endIdx,
+                                source: sourceStream.source.slice(currentWhitespace.startIdx, token.endIdx)
+                            }
+                            currentWhitespace = undefined
+                        }
+                        else {
+                            currentDescription = token
+                        }
                     }
                 }
             })
