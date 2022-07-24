@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`booleanPropertyTokenizer should tokenize false value 1`] = `
+Object {
+  "endIdx": 4,
+  "key": "Test",
+  "source": "!Test",
+  "startIdx": 0,
+  "type": "BooleanValue",
+  "value": false,
+}
+`;
+
+exports[`booleanPropertyTokenizer should tokenize true value 1`] = `
+Object {
+  "endIdx": 3,
+  "key": "Test",
+  "source": "Test",
+  "startIdx": 0,
+  "type": "BooleanValue",
+  "value": true,
+}
+`;

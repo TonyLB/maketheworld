@@ -28,6 +28,12 @@ export type TokenLiteralValue = {
     value: string;
 } & TokenBase
 
+export type TokenBooleanProperty = {
+    type: 'BooleanValue';
+    key: string;
+    value: boolean;
+} & TokenBase
+
 export type TokenProperty = {
     type: 'Property';
     key: string;
@@ -61,6 +67,7 @@ export type Token = TokenComment |
     TokenExpressionValue |
     TokenKeyValue |
     TokenLiteralValue |
+    TokenBooleanProperty |
     TokenProperty |
     TokenTagOpenBegin |
     TokenTagOpenEnd |
