@@ -1,0 +1,247 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`tokenizer should tokenize a single non-self-closing tag 1`] = `
+Array [
+  Object {
+    "endIdx": 4,
+    "source": "<Room",
+    "startIdx": 0,
+    "tag": "Room",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 5,
+    "source": " ",
+    "startIdx": 5,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 9,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 6,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 14,
+    "source": "(ABC)",
+    "startIdx": 10,
+    "type": "KeyValue",
+    "value": "ABC",
+  },
+  Object {
+    "endIdx": 15,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 15,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 22,
+    "source": "</Room>",
+    "startIdx": 16,
+    "tag": "Room",
+    "type": "TagClose",
+  },
+]
+`;
+
+exports[`tokenizer should tokenize a single self-closing tag 1`] = `
+Array [
+  Object {
+    "endIdx": 4,
+    "source": "<Room",
+    "startIdx": 0,
+    "tag": "Room",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 5,
+    "source": " ",
+    "startIdx": 5,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 9,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 6,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 14,
+    "source": "(ABC)",
+    "startIdx": 10,
+    "type": "KeyValue",
+    "value": "ABC",
+  },
+  Object {
+    "endIdx": 15,
+    "source": " ",
+    "startIdx": 15,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 17,
+    "selfClosing": true,
+    "source": "/>",
+    "startIdx": 16,
+    "type": "TagOpenEnd",
+  },
+]
+`;
+
+exports[`tokenizer should tokenize nested tags 1`] = `
+Array [
+  Object {
+    "endIdx": 5,
+    "source": "<Asset",
+    "startIdx": 0,
+    "tag": "Asset",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 6,
+    "source": " ",
+    "startIdx": 6,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 10,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 7,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 16,
+    "source": "(Test)",
+    "startIdx": 11,
+    "type": "KeyValue",
+    "value": "Test",
+  },
+  Object {
+    "endIdx": 17,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 17,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 30,
+    "source": "
+            ",
+    "startIdx": 18,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 35,
+    "source": "<Room",
+    "startIdx": 31,
+    "tag": "Room",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 36,
+    "source": " ",
+    "startIdx": 36,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 40,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 37,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 45,
+    "source": "(ABC)",
+    "startIdx": 41,
+    "type": "KeyValue",
+    "value": "ABC",
+  },
+  Object {
+    "endIdx": 46,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 46,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 63,
+    "source": "
+                ",
+    "startIdx": 47,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 71,
+    "source": "<Feature",
+    "startIdx": 64,
+    "tag": "Feature",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 72,
+    "source": " ",
+    "startIdx": 72,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 76,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 73,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 81,
+    "source": "(DEF)",
+    "startIdx": 77,
+    "type": "KeyValue",
+    "value": "DEF",
+  },
+  Object {
+    "endIdx": 82,
+    "source": " ",
+    "startIdx": 82,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 84,
+    "selfClosing": true,
+    "source": "/>",
+    "startIdx": 83,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 97,
+    "source": "
+            ",
+    "startIdx": 85,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 104,
+    "source": "</Room>",
+    "startIdx": 98,
+    "tag": "Room",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 113,
+    "source": "
+        ",
+    "startIdx": 105,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 121,
+    "source": "</Asset>",
+    "startIdx": 114,
+    "tag": "Asset",
+    "type": "TagClose",
+  },
+]
+`;

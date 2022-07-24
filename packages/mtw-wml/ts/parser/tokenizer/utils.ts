@@ -39,3 +39,9 @@ export const checkSubTokenizer = <T extends TokenBase & { type: string }>({
         return {}
     }
 }
+
+//
+// TODO: Abstract checkSubTokenizer into checkSubTokenizers utility which takes
+// a list of tokenizers and a success callback, and return either success (after
+// invoking the callback), an error with a TokenError, or undefined
+//
