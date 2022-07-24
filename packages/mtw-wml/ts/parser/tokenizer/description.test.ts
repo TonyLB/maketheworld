@@ -23,4 +23,8 @@ describe('descriptionTokenizer', () => {
         const testStream = new SourceStream('Test')
         expect(descriptionTokenizer(testStream)).toMatchSnapshot()
     })
+    it('should break description for comments', () => {
+        expect(descriptionTokenizer(new SourceStream('Test/*Comment*/'))).toMatchSnapshot()
+        expect(descriptionTokenizer(new SourceStream('AnotherTest// Comment'))).toMatchSnapshot()
+    })
 })

@@ -10,6 +10,7 @@ import {
     TokenLiteralValue,
     TokenKeyValue,
     TokenExpressionValue,
+    TokenComment
 } from "./baseClasses"
 import expressionValueTokenizer from "./expression"
 import keyValueTokenizer from "./key"
@@ -22,6 +23,7 @@ import { tagOpenBeginTokenizer, tagOpenEndTokenizer } from "./tagOpen"
 import tagPropertyTokenizer from "./tagProperty"
 import whiteSpaceTokenizer from "./whiteSpace"
 import { checkSubTokenizers } from "./utils"
+import commentTokenizer from "./comments"
 
 enum TokenizerMode {
     Contents,
@@ -40,11 +42,11 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             // TODO: Parse and buffer Descriptions, merging together whitespace as you go,
             // and checking for \-escaped characters, instead of regarding other data as an error.
             //
-            const checkSubTokens = checkSubTokenizers<TokenWhitespace | TokenTagClose | TokenTagOpenBegin | TokenDescription>({
+            const checkSubTokens = checkSubTokenizers<TokenComment | TokenWhitespace | TokenTagClose | TokenTagOpenBegin | TokenDescription>({
                 sourceStream,
-                subTokenizers: [whiteSpaceTokenizer, tagCloseTokenizer, tagOpenBeginTokenizer, descriptionTokenizer],
+                subTokenizers: [commentTokenizer, whiteSpaceTokenizer, tagCloseTokenizer, tagOpenBeginTokenizer, descriptionTokenizer],
                 callback: (token) => {
-                    if (token.type === 'TagClose' || token.type === 'TagOpenBegin') {
+                    if (token.type === 'TagClose' || token.type === 'TagOpenBegin' || token.type === 'Comment') {
                         if (currentDescription) {
                             returnValue.push(currentDescription)
                             currentDescription = undefined
@@ -110,9 +112,9 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             }]
         }
         else {
-            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenWhitespace | TokenProperty>({
+            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenComment | TokenWhitespace | TokenProperty>({
                 sourceStream,
-                subTokenizers: [tagOpenEndTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer],
+                subTokenizers: [tagOpenEndTokenizer, commentTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer],
                 callback: (token) => {
                     returnValue.push(token)
                     if (token.type === 'TagOpenEnd') {

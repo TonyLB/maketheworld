@@ -3,6 +3,9 @@ import { Tokenizer, TokenDescription } from "./baseClasses"
 export const descriptionTokenizer: Tokenizer<TokenDescription> = (sourceStream) => {
     const startIdx = sourceStream.position
     while (![' ', '\n', '\t', '<'].includes(sourceStream.lookAhead(1))) {
+        if (['/*', '//'].includes(sourceStream.lookAhead(2))) {
+            break
+        }
         if (sourceStream.isEndOfSource) {
             break
         }
