@@ -29,15 +29,19 @@ export type TokenLiteralValue = {
 } & TokenBase
 
 export type TokenBooleanProperty = {
-    type: 'BooleanValue';
+    type: 'Property';
+    isBoolean: true;
     key: string;
     value: boolean;
 } & TokenBase
 
-export type TokenProperty = {
+export type TokenEqualsProperty = {
     type: 'Property';
+    isBoolean: false;
     key: string;
 } & TokenBase
+
+export type TokenProperty = TokenBooleanProperty | TokenEqualsProperty
 
 export type TokenTagOpenBegin = {
     type: 'TagOpenBegin',
@@ -67,7 +71,6 @@ export type Token = TokenComment |
     TokenExpressionValue |
     TokenKeyValue |
     TokenLiteralValue |
-    TokenBooleanProperty |
     TokenProperty |
     TokenTagOpenBegin |
     TokenTagOpenEnd |

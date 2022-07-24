@@ -24,22 +24,43 @@ export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => 
         }
         if (!sourceStream.lookAhead('=')) {
             return {
-                type: 'Error',
-                source: sourceStream.lookAhead(1),
-                startIdx: sourceStream.position,
-                endIdx: sourceStream.position,
-                message: 'Unexpected token'
+                type: 'Property',
+                isBoolean: true,
+                source: returnValue,
+                key,
+                value: true,
+                startIdx,
+                endIdx: sourceStream.position - 1
             }
         }
         returnValue = returnValue + sourceStream.consume(1)
         if (returnValue) {
             return {
                 type: 'Property',
+                isBoolean: false,
                 source: returnValue,
                 key,
                 startIdx,
                 endIdx: sourceStream.position - 1
             }
+        }
+    }
+    if (firstChar === '!') {
+        const startIdx = sourceStream.position
+        let returnValue = sourceStream.consume(1)
+        let key = ''
+        while(sourceStream.lookAhead(1).match(/[A-Za-z]/)) {
+            key = key + sourceStream.consume(1)
+        }
+        returnValue = returnValue + key
+        return {
+            type: 'Property',
+            isBoolean: true,
+            source: returnValue,
+            key,
+            value: false,
+            startIdx,
+            endIdx: sourceStream.position - 1
         }
     }
     return undefined

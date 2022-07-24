@@ -7,12 +7,10 @@ import {
     TokenTagOpenEnd,
     TokenWhitespace,
     TokenProperty,
-    TokenBooleanProperty,
     TokenLiteralValue,
     TokenKeyValue,
     TokenExpressionValue
 } from "./baseClasses"
-import booleanPropertyTokenizer from "./boolean"
 import expressionValueTokenizer from "./expression"
 import keyValueTokenizer from "./key"
 import literalValueTokenizer from "./literal"
@@ -61,15 +59,15 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
             }]
         }
         else {
-            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenWhitespace | TokenProperty | TokenBooleanProperty>({
+            const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenWhitespace | TokenProperty>({
                 sourceStream,
-                subTokenizers: [tagOpenEndTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer, booleanPropertyTokenizer],
+                subTokenizers: [tagOpenEndTokenizer, whiteSpaceTokenizer, tagPropertyTokenizer],
                 callback: (token) => {
                     returnValue.push(token)
                     if (token.type === 'TagOpenEnd') {
                         mode = TokenizerMode.Contents
                     }
-                    if (token.type === 'Property') {
+                    if (token.type === 'Property' && !token.isBoolean) {
                         //
                         // Consume any whitespace first...
                         //

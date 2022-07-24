@@ -1,5 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`tokenizer should reject tag property with no value specified 1`] = `
+Array [
+  Object {
+    "endIdx": 11,
+    "message": "Unexpected token",
+    "source": ">",
+    "startIdx": 11,
+    "type": "Error",
+  },
+]
+`;
+
 exports[`tokenizer should tokenize a single non-self-closing tag 1`] = `
 Array [
   Object {
@@ -17,6 +29,7 @@ Array [
   },
   Object {
     "endIdx": 9,
+    "isBoolean": false,
     "key": "key",
     "source": "key=",
     "startIdx": 6,
@@ -63,6 +76,7 @@ Array [
   },
   Object {
     "endIdx": 9,
+    "isBoolean": false,
     "key": "key",
     "source": "key=",
     "startIdx": 6,
@@ -108,6 +122,7 @@ Array [
   },
   Object {
     "endIdx": 10,
+    "isBoolean": false,
     "key": "key",
     "source": "key=",
     "startIdx": 7,
@@ -148,98 +163,109 @@ Array [
     "type": "Whitespace",
   },
   Object {
-    "endIdx": 40,
+    "endIdx": 43,
+    "isBoolean": true,
+    "key": "global",
+    "source": "global ",
+    "startIdx": 37,
+    "type": "Property",
+    "value": true,
+  },
+  Object {
+    "endIdx": 47,
+    "isBoolean": false,
     "key": "key",
     "source": "key=",
-    "startIdx": 37,
+    "startIdx": 44,
     "type": "Property",
   },
   Object {
-    "endIdx": 45,
+    "endIdx": 52,
     "source": "(ABC)",
-    "startIdx": 41,
+    "startIdx": 48,
     "type": "KeyValue",
     "value": "ABC",
   },
   Object {
-    "endIdx": 46,
+    "endIdx": 53,
     "selfClosing": false,
     "source": ">",
-    "startIdx": 46,
+    "startIdx": 53,
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 63,
+    "endIdx": 70,
     "source": "
                 ",
-    "startIdx": 47,
+    "startIdx": 54,
     "type": "Whitespace",
   },
   Object {
-    "endIdx": 71,
+    "endIdx": 78,
     "source": "<Feature",
-    "startIdx": 64,
+    "startIdx": 71,
     "tag": "Feature",
     "type": "TagOpenBegin",
   },
   Object {
-    "endIdx": 72,
+    "endIdx": 79,
     "source": " ",
-    "startIdx": 72,
+    "startIdx": 79,
     "type": "Whitespace",
   },
   Object {
-    "endIdx": 76,
+    "endIdx": 83,
+    "isBoolean": false,
     "key": "key",
     "source": "key=",
-    "startIdx": 73,
+    "startIdx": 80,
     "type": "Property",
   },
   Object {
-    "endIdx": 81,
+    "endIdx": 88,
     "source": "(DEF)",
-    "startIdx": 77,
+    "startIdx": 84,
     "type": "KeyValue",
     "value": "DEF",
   },
   Object {
-    "endIdx": 82,
+    "endIdx": 89,
     "source": " ",
-    "startIdx": 82,
+    "startIdx": 89,
     "type": "Whitespace",
   },
   Object {
-    "endIdx": 84,
+    "endIdx": 91,
     "selfClosing": true,
     "source": "/>",
-    "startIdx": 83,
+    "startIdx": 90,
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 97,
+    "endIdx": 104,
     "source": "
             ",
-    "startIdx": 85,
+    "startIdx": 92,
     "type": "Whitespace",
   },
   Object {
-    "endIdx": 104,
+    "endIdx": 111,
     "source": "</Room>",
-    "startIdx": 98,
+    "startIdx": 105,
     "tag": "Room",
     "type": "TagClose",
   },
   Object {
-    "endIdx": 113,
+    "endIdx": 120,
     "source": "
         ",
-    "startIdx": 105,
+    "startIdx": 112,
     "type": "Whitespace",
   },
   Object {
-    "endIdx": 121,
+    "endIdx": 128,
     "source": "</Asset>",
-    "startIdx": 114,
+    "startIdx": 121,
     "tag": "Asset",
     "type": "TagClose",
   },

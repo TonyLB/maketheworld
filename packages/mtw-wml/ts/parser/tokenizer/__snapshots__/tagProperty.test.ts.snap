@@ -3,6 +3,7 @@
 exports[`tagPropertyTokenizer should fail with whitespace within value 1`] = `
 Object {
   "endIdx": 5,
+  "isBoolean": false,
   "key": "Test",
   "source": "Test =",
   "startIdx": 0,
@@ -10,19 +11,34 @@ Object {
 }
 `;
 
-exports[`tagPropertyTokenizer should reject illegal characters 1`] = `
+exports[`tagPropertyTokenizer should tokenize false boolean properties 1`] = `
 Object {
   "endIdx": 4,
-  "message": "Unexpected token",
-  "source": "-",
-  "startIdx": 4,
-  "type": "Error",
+  "isBoolean": true,
+  "key": "Test",
+  "source": "!Test",
+  "startIdx": 0,
+  "type": "Property",
+  "value": false,
+}
+`;
+
+exports[`tagPropertyTokenizer should tokenize true boolean properties 1`] = `
+Object {
+  "endIdx": 4,
+  "isBoolean": true,
+  "key": "Test",
+  "source": "Test ",
+  "startIdx": 0,
+  "type": "Property",
+  "value": true,
 }
 `;
 
 exports[`tagPropertyTokenizer should tokenize without whitespace 1`] = `
 Object {
   "endIdx": 4,
+  "isBoolean": false,
   "key": "Test",
   "source": "Test=",
   "startIdx": 0,
