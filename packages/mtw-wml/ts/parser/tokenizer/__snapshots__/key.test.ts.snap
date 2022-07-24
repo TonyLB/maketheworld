@@ -33,19 +33,19 @@ Object {
 exports[`keyValueTokenizer should tokenize with whitespace around value 1`] = `
 Object {
   "endIdx": 7,
-  "key": "Test",
   "source": "( Test )",
-  "startIdx": 1,
+  "startIdx": 0,
   "type": "KeyValue",
+  "value": "Test",
 }
 `;
 
 exports[`keyValueTokenizer should tokenize without whitespace 1`] = `
 Object {
   "endIdx": 7,
-  "key": "Test_1",
   "source": "(Test_1)",
-  "startIdx": 1,
+  "startIdx": 0,
   "type": "KeyValue",
+  "value": "Test_1",
 }
 `;
