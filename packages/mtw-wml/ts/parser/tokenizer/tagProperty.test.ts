@@ -19,8 +19,12 @@ describe('tagPropertyTokenizer', () => {
         const testStream = new SourceStream('Test=(ABC)></Room>')
         expect(tagPropertyTokenizer(testStream)).toMatchSnapshot()
     })
-    it('should reject illegal characters', () => {
-        const testStream = new SourceStream('Test-1=(ABC)></Room>')
+    it('should tokenize true boolean properties', () => {
+        const testStream = new SourceStream('Test ></Room>')
+        expect(tagPropertyTokenizer(testStream)).toMatchSnapshot()
+    })
+    it('should tokenize false boolean properties', () => {
+        const testStream = new SourceStream('!Test ></Room>')
         expect(tagPropertyTokenizer(testStream)).toMatchSnapshot()
     })
 })

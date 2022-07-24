@@ -1,6 +1,6 @@
 import { Tokenizer, TokenProperty } from "./baseClasses"
 import whiteSpaceTokenizer from "./whiteSpace"
-import { checkSubTokenizer } from "./utils"
+import { checkSubTokenizers } from "./utils"
 
 export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => {
     const firstChar = sourceStream.lookAhead(1)
@@ -12,36 +12,55 @@ export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => 
             key = key + sourceStream.consume(1)
         }
         returnValue = returnValue + key
-        const checkWhitespace = checkSubTokenizer({
-            currentBuffer: returnValue,
-            startIdx,
-            subTokenizer: whiteSpaceTokenizer,
-            sourceStream
+        const checkWhitespace = checkSubTokenizers({
+            sourceStream,
+            subTokenizers: [whiteSpaceTokenizer],
+            callback: (token) => {
+                returnValue = returnValue + token.source
+            }
         })
-        if (checkWhitespace.error) {
+        if (checkWhitespace && (checkWhitespace.success === false)) {
             return checkWhitespace.error
-        }
-        if (checkWhitespace.returnBuffer) {
-            returnValue = checkWhitespace.returnBuffer
         }
         if (!sourceStream.lookAhead('=')) {
             return {
-                type: 'Error',
-                source: sourceStream.lookAhead(1),
-                startIdx: sourceStream.position,
-                endIdx: sourceStream.position,
-                message: 'Unexpected token'
+                type: 'Property',
+                isBoolean: true,
+                source: returnValue,
+                key,
+                value: true,
+                startIdx,
+                endIdx: sourceStream.position - 1
             }
         }
         returnValue = returnValue + sourceStream.consume(1)
         if (returnValue) {
             return {
                 type: 'Property',
+                isBoolean: false,
                 source: returnValue,
                 key,
                 startIdx,
                 endIdx: sourceStream.position - 1
             }
+        }
+    }
+    if (firstChar === '!') {
+        const startIdx = sourceStream.position
+        let returnValue = sourceStream.consume(1)
+        let key = ''
+        while(sourceStream.lookAhead(1).match(/[A-Za-z]/)) {
+            key = key + sourceStream.consume(1)
+        }
+        returnValue = returnValue + key
+        return {
+            type: 'Property',
+            isBoolean: true,
+            source: returnValue,
+            key,
+            value: false,
+            startIdx,
+            endIdx: sourceStream.position - 1
         }
     }
     return undefined
