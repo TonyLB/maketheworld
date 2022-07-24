@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`beginTagOpenTokenizer should tokenize tag open 1`] = `
+Object {
+  "endIdx": 4,
+  "source": "<Room",
+  "startIdx": 0,
+  "tag": "Room",
+  "type": "BeginTagOpen",
+}
+`;
