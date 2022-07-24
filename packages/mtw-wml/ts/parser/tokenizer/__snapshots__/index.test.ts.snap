@@ -105,6 +105,190 @@ Array [
 ]
 `;
 
+exports[`tokenizer should tokenize comments 1`] = `
+Array [
+  Object {
+    "endIdx": 5,
+    "source": "<Asset",
+    "startIdx": 0,
+    "tag": "Asset",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 6,
+    "source": " ",
+    "startIdx": 6,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 10,
+    "isBoolean": false,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 7,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 16,
+    "source": "(Test)",
+    "startIdx": 11,
+    "type": "KeyValue",
+    "value": "Test",
+  },
+  Object {
+    "endIdx": 17,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 17,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 30,
+    "source": "
+            ",
+    "startIdx": 18,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 35,
+    "source": "<Room",
+    "startIdx": 31,
+    "tag": "Room",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 36,
+    "source": " ",
+    "startIdx": 36,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 49,
+    "source": "/* Comment */",
+    "startIdx": 37,
+    "type": "Comment",
+  },
+  Object {
+    "endIdx": 50,
+    "source": " ",
+    "startIdx": 50,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 54,
+    "isBoolean": false,
+    "key": "key",
+    "source": "key=",
+    "startIdx": 51,
+    "type": "Property",
+  },
+  Object {
+    "endIdx": 59,
+    "source": "(ABC)",
+    "startIdx": 55,
+    "type": "KeyValue",
+    "value": "ABC",
+  },
+  Object {
+    "endIdx": 60,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 60,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 77,
+    "source": "
+                ",
+    "startIdx": 61,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 89,
+    "source": "<Description",
+    "startIdx": 78,
+    "tag": "Description",
+    "type": "TagOpenBegin",
+  },
+  Object {
+    "endIdx": 90,
+    "selfClosing": false,
+    "source": ">",
+    "startIdx": 90,
+    "type": "TagOpenEnd",
+  },
+  Object {
+    "endIdx": 128,
+    "source": "
+                    Test description",
+    "startIdx": 91,
+    "type": "Description",
+  },
+  Object {
+    "endIdx": 136,
+    "source": "//Comment",
+    "startIdx": 128,
+    "type": "Comment",
+  },
+  Object {
+    "endIdx": 157,
+    "source": "
+                    ",
+    "startIdx": 137,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 170,
+    "source": "/* Comment */",
+    "startIdx": 158,
+    "type": "Comment",
+  },
+  Object {
+    "endIdx": 219,
+    "source": "
+                    End of test
+               ",
+    "startIdx": 171,
+    "type": "Description",
+  },
+  Object {
+    "endIdx": 233,
+    "source": "</Description>",
+    "startIdx": 220,
+    "tag": "Description",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 246,
+    "source": "
+            ",
+    "startIdx": 234,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 253,
+    "source": "</Room>",
+    "startIdx": 247,
+    "tag": "Room",
+    "type": "TagClose",
+  },
+  Object {
+    "endIdx": 262,
+    "source": "
+        ",
+    "startIdx": 254,
+    "type": "Whitespace",
+  },
+  Object {
+    "endIdx": 270,
+    "source": "</Asset>",
+    "startIdx": 263,
+    "tag": "Asset",
+    "type": "TagClose",
+  },
+]
+`;
+
 exports[`tokenizer should tokenize descriptions 1`] = `
 Array [
   Object {

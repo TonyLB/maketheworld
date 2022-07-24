@@ -1,5 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`descriptionTokenizer should break description for comments 1`] = `
+Object {
+  "endIdx": 4,
+  "source": "Test",
+  "startIdx": 0,
+  "type": "Description",
+}
+`;
+
+exports[`descriptionTokenizer should break description for comments 2`] = `
+Object {
+  "endIdx": 11,
+  "source": "AnotherTest",
+  "startIdx": 0,
+  "type": "Description",
+}
+`;
+
 exports[`descriptionTokenizer should tokenize to end of source 1`] = `
 Object {
   "endIdx": 4,

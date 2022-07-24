@@ -45,6 +45,19 @@ describe('tokenizer', () => {
         const testStream = new SourceStream(testSource)
         expect(tokenizer(testStream)).toMatchSnapshot()
     })
+    it('should tokenize comments', () => {
+        const testSource = `<Asset key=(Test)>
+            <Room /* Comment */ key=(ABC)>
+                <Description>
+                    Test description//Comment
+                    /* Comment */
+                    End of test
+                </Description>
+            </Room>
+        </Asset>`
+        const testStream = new SourceStream(testSource)
+        expect(tokenizer(testStream)).toMatchSnapshot()
+    })
     xit('should perform quickly (only activate when performance-tuning)', () => {
         const testSource = `<Asset key=(Test)>
             <Room key=(ABC)>
