@@ -1,38 +1,10 @@
 import SourceStream from './sourceStream'
-import expressionValueTokenizer, { expressionStringLiteralSubTokenizer, expressionTemplateStringSubTokenizer } from './expression'
+import expressionValueTokenizer, { expressionTemplateStringSubTokenizer } from './expression'
 
 describe('expressionTokenizer', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-    })
-
-    describe('stringLiteralSubTokenizer', () => {
-        it('should return undefined when no match', () => {
-            const testStream = new SourceStream('Testing')
-            expect(expressionStringLiteralSubTokenizer(testStream)).toBe(undefined)
-        })
-        it('should tokenize bounded single-quote string literal', () => {
-            const testStream = new SourceStream(`'Test'<Room key=(Test)>`)
-            expect(expressionStringLiteralSubTokenizer(testStream)).toMatchSnapshot()
-        })
-        it('should tokenize bounded double-quote string literal', () => {
-            const testStream = new SourceStream(`"Test"<Room key=(Test)>`)
-            expect(expressionStringLiteralSubTokenizer(testStream)).toMatchSnapshot()
-        })
-        it('should not break on escaped quotes', () => {
-            const testStream = new SourceStream("'\\'Test\\''<Room key=(Test)>")
-            expect(expressionStringLiteralSubTokenizer(testStream)).toMatchSnapshot()
-        })
-        it('should not break on other-numbered quotes', () => {
-            const testStream = new SourceStream(`'"Test'<Room key=(Test)>`)
-            expect(expressionStringLiteralSubTokenizer(testStream)).toMatchSnapshot()
-        })
-        it('should return error on unbounded string literal', () => {
-            const testStream = new SourceStream(`'Testing"`)
-            expect(expressionStringLiteralSubTokenizer(testStream)).toMatchSnapshot()
-            expect(testStream.isEndOfSource).toBe(true)
-        })
     })
 
     describe('templateStringSubTokenizer', () => {
