@@ -34,7 +34,8 @@ export type TokenProperty = {
 } & TokenBase
 
 export type TokenBeginTagOpen = {
-    type: 'BeginTagOpen'
+    type: 'BeginTagOpen',
+    tag: string;
 } & TokenBase
 
 export type TokenBeginTagClose = {
