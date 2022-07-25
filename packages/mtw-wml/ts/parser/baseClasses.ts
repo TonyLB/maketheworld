@@ -153,6 +153,25 @@ export type ParseFeatureTag = {
     global: boolean;
 } & ParseNestingBase
 
+export type ParseStringTag = {
+    tag: 'String';
+    value: string;
+} & ParseTagBase
+
+export type ParseWhitespaceTag = {
+    tag: 'Whitespace';
+} & ParseTagBase
+
+export type ParseCommentTag = {
+    tag: 'Comment';
+} & ParseTagBase
+
+export type ParseError = {
+    tag: 'Error';
+    message: string;
+    token: Token;
+}
+
 export type ParseTag = ParseAssetTag |
     ParseStoryTag |
     ParseCharacterTag |
@@ -174,4 +193,7 @@ export type ParseTag = ParseAssetTag |
     ParseLineBreakTag |
     ParseLinkTag |
     ParseRoomTag |
-    ParseFeatureTag
+    ParseFeatureTag |
+    ParseStringTag |
+    ParseWhitespaceTag |
+    ParseCommentTag

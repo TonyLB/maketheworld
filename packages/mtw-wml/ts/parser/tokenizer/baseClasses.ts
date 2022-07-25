@@ -58,6 +58,7 @@ export type TokenTagClose = {
 
 export type TokenDescription = {
     type: 'Description';
+    value: string;
 } & TokenBase
 
 export type TokenError = {
@@ -82,3 +83,11 @@ export type Tokenizer<T extends TokenBase> = {
 }
 
 export const isTokenError = (item: TokenBase & { type: string }): item is TokenError => (item.type === 'Error')
+export const isTokenProperty = (item: Token): item is TokenProperty => (item.type === 'Property')
+export const isTokenValue = (item: Token): item is (TokenKeyValue | TokenLiteralValue | TokenExpressionValue) => (['KeyValue', 'LiteralValue', 'ExpressionValue'].includes(item.type))
+export const isTokenPropertyOrValue = (item: Token): item is (TokenProperty | TokenKeyValue | TokenLiteralValue | TokenExpressionValue) => (isTokenProperty(item) || isTokenValue(item))
+
+export const isTokenWhitespace = (item: Token): item is TokenWhitespace => (item.type === 'Whitespace')
+export const isTokenComment = (item: Token): item is TokenComment => (item.type === 'Comment')
+export const isTokenDescription = (item: Token): item is TokenDescription => (item.type === 'Description')
+export const isLegalBareToken = (item: Token): item is (TokenWhitespace | TokenComment | TokenDescription) => (['Whitespace', 'Comment', 'Description'].includes(item.type))

@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`wml parser should parse a single tag 1`] = `
+Array [
+  Object {
+    "endTagToken": 5,
+    "startTagToken": 0,
+    "tag": "Comment",
+  },
+]
+`;

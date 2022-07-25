@@ -2,7 +2,7 @@
 
 exports[`commentTokenizer should error on unbounded comment 1`] = `
 Object {
-  "endIdx": -1,
+  "endIdx": 36,
   "message": "Unbounded comment",
   "startIdx": 0,
   "type": "Error",
@@ -27,7 +27,7 @@ Object {
 
 exports[`commentTokenizer should tokenize a comment-to-end-of-source 1`] = `
 Object {
-  "endIdx": -1,
+  "endIdx": 14,
   "startIdx": 0,
   "type": "Comment",
 }

@@ -65,7 +65,8 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentDescription.startIdx,
-                                endIdx: token.endIdx
+                                endIdx: token.endIdx,
+                                value: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
                             }
                         }
                         else {
@@ -77,14 +78,16 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentDescription.startIdx,
-                                endIdx: token.endIdx
+                                endIdx: token.endIdx,
+                                value: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
                             }
                         }
                         else if (currentWhitespace) {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentWhitespace.startIdx,
-                                endIdx: token.endIdx
+                                endIdx: token.endIdx,
+                                value: sourceStream.source.slice(currentWhitespace.startIdx, token.endIdx)
                             }
                             currentWhitespace = undefined
                         }

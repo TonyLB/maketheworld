@@ -7,6 +7,9 @@ export const commentTokenizer: Tokenizer<TokenComment> = (sourceStream) => {
         if (nextInstance > 1) {
             sourceStream.consume(nextInstance)
         }
+        else {
+            sourceStream.consume(sourceStream.source.length - sourceStream.position)
+        }
         const endIdx = sourceStream.position - 1
         return {
             type: 'Comment',
@@ -19,6 +22,9 @@ export const commentTokenizer: Tokenizer<TokenComment> = (sourceStream) => {
         const startIdx = sourceStream.position
         if (nextInstance > 1) {
             sourceStream.consume(nextInstance + 2)
+        }
+        else {
+            sourceStream.consume(sourceStream.source.length - sourceStream.position)
         }
         const endIdx = sourceStream.position - 1
         if (nextInstance === -1) {

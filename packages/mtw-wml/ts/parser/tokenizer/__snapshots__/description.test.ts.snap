@@ -5,6 +5,7 @@ Object {
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
+  "value": "Test",
 }
 `;
 
@@ -13,6 +14,7 @@ Object {
   "endIdx": 11,
   "startIdx": 0,
   "type": "Description",
+  "value": "AnotherTest",
 }
 `;
 
@@ -21,6 +23,7 @@ Object {
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
+  "value": "Test",
 }
 `;
 
@@ -29,6 +32,7 @@ Object {
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
+  "value": "Test",
 }
 `;
 
@@ -37,5 +41,6 @@ Object {
   "endIdx": 4,
   "startIdx": 0,
   "type": "Description",
+  "value": "Test",
 }
 `;
