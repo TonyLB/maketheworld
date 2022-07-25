@@ -3,9 +3,11 @@
 exports[`wml parser should parse a single tag 1`] = `
 Array [
   Object {
+    "contents": Array [],
     "endTagToken": 5,
+    "key": "Test",
     "startTagToken": 0,
-    "tag": "Comment",
+    "tag": "Asset",
   },
 ]
 `;

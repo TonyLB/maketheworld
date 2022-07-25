@@ -1,4 +1,9 @@
-import { Token } from './tokenizer/baseClasses'
+import {
+    Token,
+    TokenExpressionValue,
+    TokenKeyValue,
+    TokenLiteralValue,
+} from './tokenizer/baseClasses'
 
 type ParseTagBase = {
     startTagToken: number;
@@ -169,7 +174,7 @@ export type ParseCommentTag = {
 export type ParseError = {
     tag: 'Error';
     message: string;
-    token: Token;
+    token?: Token;
 }
 
 export type ParseTag = ParseAssetTag |
@@ -197,3 +202,33 @@ export type ParseTag = ParseAssetTag |
     ParseStringTag |
     ParseWhitespaceTag |
     ParseCommentTag
+
+export type ParseStackTagOpenPendingEntry = {
+    type: 'TagOpenPending';
+    tag: string;
+    startTagToken: number;
+}
+
+export type ParseStackTagOpenEntry = {
+    type: 'TagOpen';
+    tag: string;
+    startTagToken: number;
+    properties: Record<string, (TokenExpressionValue | TokenKeyValue | TokenLiteralValue | boolean)>;
+}
+
+export type ParseStackTagEntry<T extends ParseTag | ParseError> = {
+    type: 'Tag';
+    tag: T;
+}
+
+export type ParseStackTokenEntry = {
+    type: 'Token';
+    index: number;
+    token: Token
+}
+
+export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry
+
+export type ParseTagFactory<T extends ParseTag> = (value: { open: ParseStackTagOpenEntry, contents: ParseTag[], endTagToken: number }) => ParseStackTagEntry<T> | ParseStackTagEntry<ParseError>
+
+export const isParseStackTagError = <T extends ParseTag>(value: ParseStackTagEntry<T> | ParseStackTagEntry<ParseError>): value is ParseStackTagEntry<ParseError> => (value.tag.tag === 'Error')

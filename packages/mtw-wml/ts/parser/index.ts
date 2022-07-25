@@ -1,50 +1,31 @@
 import {
     Token,
-    TokenWhitespace,
-    TokenComment,
-    TokenDescription,
     isTokenPropertyOrValue,
     TokenProperty,
     TokenExpressionValue,
     TokenKeyValue,
     TokenLiteralValue,
-    TokenTagClose,
     isLegalBareToken,
     isTokenComment,
     isTokenWhitespace,
-    isTokenDescription
+    isTokenDescription,
+    isTokenError
 } from './tokenizer/baseClasses'
 
-import { ParseTag, ParseError } from './baseClasses'
+import {
+    ParseTag,
+    ParseError,
+    ParseTagFactory,
+    ParseStackEntry,
+    isParseStackTagError
+} from './baseClasses'
 
-type ParseStackTagOpenPendingEntry = {
-    type: 'TagOpenPending';
-    tag: string;
-    startTagToken: number;
-}
+import { parseAssetFactory } from './asset'
 
-type ParseStackTagOpenEntry = {
-    type: 'TagOpen';
-    tag: string;
-    startTagToken: number;
-    properties: Record<string, (TokenExpressionValue | TokenKeyValue | TokenLiteralValue | boolean)>;
-}
-
-type ParseStackTagEntry = {
-    type: 'Tag';
-    tag: ParseTag;
-}
-
-type ParseStackTokenEntry = {
-    type: 'Token';
-    index: number;
-    token: Token
-}
-
-type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry | ParseStackTokenEntry
-
-export const createParseTag = ({ open, contents, endTagToken }: { open: ParseStackTagOpenEntry, contents: ParseTag[], endTagToken: number }): ParseStackTagEntry => {
+export const createParseTag: ParseTagFactory<ParseTag> = ({ open, contents, endTagToken }) => {
     switch(open.tag) {
+        case 'Asset':
+            return parseAssetFactory({ open, contents, endTagToken })
         default:
             return {
                 type: 'Tag',
@@ -147,11 +128,16 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                                 contents: [],
                                 endTagToken: index
                             })
-                            if (stack.length > 0) {
-                                stack.push(stackTag)
+                            if (isParseStackTagError(stackTag)) {
+                                error = stackTag.tag
                             }
                             else {
-                                returnValue.push(stackTag.tag)
+                                if (stack.length > 0) {
+                                    stack.push(stackTag)
+                                }
+                                else {
+                                    returnValue.push(stackTag.tag)
+                                }    
                             }
                         }
                         else {
@@ -211,13 +197,18 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                             contents,
                             endTagToken: index
                         })
-                        if (stack.length > 0) {
-                            stack.push(stackTag)
+                        if (isParseStackTagError(stackTag)) {
+                            error = stackTag.tag
+                            break
                         }
                         else {
-                            returnValue.push(stackTag.tag)
+                            if (stack.length > 0) {
+                                stack.push(stackTag)
+                            }
+                            else {
+                                returnValue.push(stackTag.tag)
+                            }
                         }
-                        break
                     }
                 }
                 break
