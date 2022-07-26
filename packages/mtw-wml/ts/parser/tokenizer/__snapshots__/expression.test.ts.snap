@@ -5,6 +5,7 @@ Object {
   "endIdx": 62,
   "startIdx": 0,
   "type": "ExpressionValue",
+  "value": "{ if (value === 'A') { return 'Test' } else { return 'Fail' } ",
 }
 `;
 
@@ -13,6 +14,7 @@ Object {
   "endIdx": 28,
   "startIdx": 0,
   "type": "ExpressionValue",
+  "value": "{ return 'Test' + \\" value}\\" ",
 }
 `;
 
@@ -21,6 +23,7 @@ Object {
   "endIdx": 26,
   "startIdx": 0,
   "type": "ExpressionValue",
+  "value": "{ return \`Test: \${value}\` ",
 }
 `;
 

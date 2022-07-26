@@ -1,28 +1,37 @@
 import { ParseTagFactory, ParseAssetTag } from "./baseClasses"
-import { isTokenKeyValue } from "./tokenizer/baseClasses"
+import { validateProperties, isValidateError, ExtractProperties } from "./utils"
 
 export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, contents, endTagToken }) => {
-    if (open.properties.key && isTokenKeyValue(open.properties.key)) {
+    const validate = validateProperties<ExtractProperties<ParseAssetTag>>({
+        open,
+        required: {
+            key: ['key']
+        },
+        optional: {
+            fileName: ['literal'],
+            zone: ['literal'],
+            subFolder: ['literal'],
+            player: ['literal']
+        }
+    })
+    if (isValidateError(validate)) {
         return {
             type: 'Tag',
-            tag: {
-                tag: 'Asset',
-                startTagToken: open.startTagToken,
-                endTagToken,
-                key: open.properties.key.value,
-                contents
-            }
-        }    
+            tag: validate
+        }
     }
     else {
         return {
             type: 'Tag',
             tag: {
-                tag: 'Error',
+                ...validate,
+                tag: 'Asset',
                 startTagToken: open.startTagToken,
                 endTagToken,
-                message: 'Key must be specified for Asset',
+                contents
             }
-        }
+        }    
     }
 }
+
+export default parseAssetFactory

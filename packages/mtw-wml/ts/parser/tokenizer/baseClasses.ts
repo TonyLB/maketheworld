@@ -14,7 +14,8 @@ export type TokenWhitespace = {
 } & TokenBase
 
 export type TokenExpressionValue = {
-    type: 'ExpressionValue'
+    type: 'ExpressionValue';
+    value: string;
 } & TokenBase
 
 export type TokenKeyValue = {

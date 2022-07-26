@@ -20,19 +20,22 @@ import {
     isParseStackTagError
 } from './baseClasses'
 
-import { parseAssetFactory } from './asset'
+import parseAssetFactory from './asset'
+import parseRoomFactory from './room'
 
-export const createParseTag: ParseTagFactory<ParseTag> = ({ open, contents, endTagToken }) => {
-    switch(open.tag) {
+export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
+    switch(props.open.tag) {
         case 'Asset':
-            return parseAssetFactory({ open, contents, endTagToken })
+            return parseAssetFactory(props)
+        case 'Room':
+            return parseRoomFactory(props)
         default:
             return {
                 type: 'Tag',
                 tag: {
                     tag: 'Comment',
-                    startTagToken: open.startTagToken,
-                    endTagToken
+                    startTagToken: props.open.startTagToken,
+                    endTagToken: props.endTagToken
                 }
             }
     }
@@ -167,21 +170,21 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                     if (stackItem.type === 'Token') {
                         if (isLegalBareToken(stackItem.token)) {
                             if (isTokenComment(stackItem.token)) {
-                                contents.push({
+                                contents.unshift({
                                     tag: 'Comment',
                                     startTagToken: stackItem.index,
                                     endTagToken: stackItem.index
                                 })
                             }
                             if (isTokenWhitespace(stackItem.token)) {
-                                contents.push({
+                                contents.unshift({
                                     tag: 'Whitespace',
                                     startTagToken: stackItem.index,
                                     endTagToken: stackItem.index
                                 })
                             }
                             if (isTokenDescription(stackItem.token)) {
-                                contents.push({
+                                contents.unshift({
                                     tag: 'String',
                                     startTagToken: stackItem.index,
                                     endTagToken: stackItem.index,
@@ -189,6 +192,10 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                                 })
                             }
                         }
+                        continue
+                    }
+                    if (stackItem.type === 'Tag') {
+                        contents.unshift(stackItem.tag)
                         continue
                     }
                     if (stackItem.type === 'TagOpen') {
@@ -199,7 +206,6 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                         })
                         if (isParseStackTagError(stackTag)) {
                             error = stackTag.tag
-                            break
                         }
                         else {
                             if (stack.length > 0) {
@@ -209,16 +215,22 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                                 returnValue.push(stackTag.tag)
                             }
                         }
+                        break
                     }
                 }
                 break
 
             default:
-                stack.push({
-                    type: 'Token',
-                    token,
-                    index
-                })
+                //
+                // Ignore whitespace outside of tags
+                //
+                if (!isTokenWhitespace(token) || stack.length) {
+                    stack.push({
+                        type: 'Token',
+                        token,
+                        index
+                    })
+                }
         }
     })
     if (error) {
