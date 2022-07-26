@@ -1,35 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`keyValueTokenizer should fail with whitespace within value 1`] = `
-Object {
-  "endIdx": 4,
-  "message": "Unexpected token",
-  "source": "s",
-  "startIdx": 4,
-  "type": "Error",
-}
-`;
-
-exports[`keyValueTokenizer should reject illegal characters 1`] = `
-Object {
-  "endIdx": 5,
-  "message": "Unexpected token",
-  "source": "-",
-  "startIdx": 5,
-  "type": "Error",
-}
-`;
-
-exports[`keyValueTokenizer should reject keys that start with a digit 1`] = `
-Object {
-  "endIdx": 1,
-  "message": "Unexpected token",
-  "source": "1",
-  "startIdx": 1,
-  "type": "Error",
-}
-`;
-
 exports[`keyValueTokenizer should tokenize with whitespace around value 1`] = `
 Object {
   "endIdx": 7,

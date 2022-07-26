@@ -67,6 +67,17 @@ export type TokenError = {
     message: string;
 } & TokenBase
 
+export class TokenizeException extends Error {
+    startIdx: number
+    endIdx: number
+    constructor(message: string, startIdx: number, endIdx: number) {
+        super(message)
+        this.name = 'TokenizeException'
+        this.startIdx = startIdx
+        this.endIdx = endIdx
+    }
+}
+
 export type Token = TokenComment |
     TokenWhitespace |
     TokenExpressionValue |
@@ -80,7 +91,7 @@ export type Token = TokenComment |
     TokenError
 
 export type Tokenizer<T extends TokenBase> = {
-    (sourceStream: SourceStream): T | TokenError | undefined
+    (sourceStream: SourceStream): T | undefined
 }
 
 export const isTokenError = (item: TokenBase & { type: string }): item is TokenError => (item.type === 'Error')

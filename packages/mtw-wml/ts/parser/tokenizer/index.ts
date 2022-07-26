@@ -1,5 +1,4 @@
 import {
-    isTokenError,
     Token,
     TokenDescription,
     TokenTagClose,
@@ -10,7 +9,8 @@ import {
     TokenLiteralValue,
     TokenKeyValue,
     TokenExpressionValue,
-    TokenComment
+    TokenComment,
+    TokenizeException
 } from "./baseClasses"
 import expressionValueTokenizer from "./expression"
 import keyValueTokenizer from "./key"
@@ -98,9 +98,6 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                 }
             })
             if (checkSubTokens) {
-                if (checkSubTokens.success === false) {
-                    return [checkSubTokens.error]
-                }
                 continue
             }
             return [{
@@ -125,12 +122,6 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                         //
                         const checkWhitespace = whiteSpaceTokenizer(sourceStream)
                         if (checkWhitespace) {
-                            if (isTokenError(checkWhitespace)) {
-                                return {
-                                    success: false,
-                                    error: checkWhitespace
-                                }
-                            }
                             returnValue.push(checkWhitespace)
                         }
                         //
@@ -143,38 +134,15 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                                 returnValue.push(token)
                             }
                         })
-                        if (checkValue) {
-                            if (checkValue.success === false) {
-                                return checkValue
-                            }
-                        }
-                        else {
-                            return {
-                                success: false,
-                                error: {
-                                    type: 'Error',
-                                    source: sourceStream.lookAhead(1),
-                                    startIdx: sourceStream.position,
-                                    endIdx: sourceStream.position,
-                                    message: 'Unexpected token'
-                                }
-                            }
+                        if (!checkValue) {
+                            throw new TokenizeException('Unexpected token', sourceStream.position, sourceStream.position)
                         }
                     }
                 }
             })
-            if (checkSubTokens) {
-                if (checkSubTokens.success === false) {
-                    return [checkSubTokens.error]
-                }
-                continue
+            if (!checkSubTokens) {
+                throw new TokenizeException('Unexpected token', sourceStream.position, sourceStream.position)
             }
-            return [{
-                type: 'Error',
-                startIdx: sourceStream.position,
-                endIdx: sourceStream.position,
-                message: 'Unexpected token'
-            }]
         }
     }
     return returnValue

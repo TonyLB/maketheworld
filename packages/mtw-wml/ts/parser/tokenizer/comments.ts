@@ -1,4 +1,4 @@
-import { Tokenizer, TokenComment } from "./baseClasses"
+import { Tokenizer, TokenComment, TokenizeException } from "./baseClasses"
 
 export const commentTokenizer: Tokenizer<TokenComment> = (sourceStream) => {
     if (sourceStream.lookAhead('//')) {
@@ -28,12 +28,7 @@ export const commentTokenizer: Tokenizer<TokenComment> = (sourceStream) => {
         }
         const endIdx = sourceStream.position - 1
         if (nextInstance === -1) {
-            return {
-                type: 'Error',
-                message: 'Unbounded comment',
-                startIdx,
-                endIdx
-            }
+            throw new TokenizeException('Unbounded comment', startIdx, endIdx)
         }
         else {
             return {

@@ -1,17 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`tokenizer should reject tag property with no value specified 1`] = `
-Array [
-  Object {
-    "endIdx": 11,
-    "message": "Unexpected token",
-    "source": ">",
-    "startIdx": 11,
-    "type": "Error",
-  },
-]
-`;
-
 exports[`tokenizer should tokenize a single non-self-closing tag 1`] = `
 Array [
   Object {

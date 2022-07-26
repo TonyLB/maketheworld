@@ -1,5 +1,6 @@
 import SourceStream from './sourceStream'
 import tagCloseTokenizer from './tagClose'
+import { TokenizeException } from './baseClasses'
 
 describe('tagCloseTokenizer', () => {
     beforeEach(() => {
@@ -21,14 +22,14 @@ describe('tagCloseTokenizer', () => {
     })
     it('should error when no closing syntax', () => {
         const testStream = new SourceStream('</Room   <Room key=(ABC)>')
-        expect(tagCloseTokenizer(testStream)).toMatchSnapshot()
+        expect(() => { tagCloseTokenizer(testStream) }).toThrow(TokenizeException)
     })
     it('should error when no tag label', () => {
         const testStream = new SourceStream('</ ><Room key=(ABC)>')
-        expect(tagCloseTokenizer(testStream)).toMatchSnapshot()
+        expect(() => { tagCloseTokenizer(testStream) }).toThrow(TokenizeException)
     })
     it('should error when hits end of source', () => {
         const testStream = new SourceStream('</Room')
-        expect(tagCloseTokenizer(testStream)).toMatchSnapshot()
+        expect(() => { tagCloseTokenizer(testStream) }).toThrow(TokenizeException)
     })
 })

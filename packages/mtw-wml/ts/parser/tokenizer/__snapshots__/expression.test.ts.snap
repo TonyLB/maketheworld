@@ -35,15 +35,6 @@ Object {
 }
 `;
 
-exports[`expressionTokenizer templateStringSubTokenizer should return error on unbounded string literal 1`] = `
-Object {
-  "endIdx": 8,
-  "message": "Unbounded template string",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
 exports[`expressionTokenizer templateStringSubTokenizer should tokenize nested template strings 1`] = `
 Object {
   "endIdx": 19,

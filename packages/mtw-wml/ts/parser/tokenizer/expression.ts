@@ -3,7 +3,7 @@ import {
     Tokenizer,
     TokenExpressionValue,
     TokenLiteralValue,
-    TokenKeyValue
+    TokenizeException
 } from "./baseClasses"
 import { expressionStringLiteralSubTokenizer } from "./literal"
 import { checkSubTokenizers } from "./utils"
@@ -30,23 +30,13 @@ export const expressionTemplateStringSubTokenizer: Tokenizer<TokenTemplateString
                         sourceStream,
                         callback: (token) => {}
                     })
-                    if (checkExpressionToken) {
-                        if (checkExpressionToken.success === false) {
-                            return checkExpressionToken.error
-                        }
-                    }
-                    else {
+                    if (!checkExpressionToken) {
                         sourceStream.consume(1)
                     }
                 }
             }
             if (sourceStream.isEndOfSource) {
-                return {
-                    type: 'Error',
-                    message: 'Unbounded template string',
-                    startIdx,
-                    endIdx: sourceStream.position - 1
-                }
+                throw new TokenizeException('Unbounded template string', startIdx, sourceStream.position - 1)
             }
         }
         sourceStream.consume(1)
@@ -74,9 +64,6 @@ export const expressionValueTokenizer: Tokenizer<TokenExpressionValue> = (source
             callback: (token) => {}
         })
         if (checkSubTokens) {
-            if (checkSubTokens.success === false) {
-                return checkSubTokens.error
-            }
             continue
         }
         sourceStream.consume(1)
