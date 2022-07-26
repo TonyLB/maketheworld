@@ -2,7 +2,7 @@ import { ParseTagFactory, ParseAssetTag } from "./baseClasses"
 import { validateProperties, isValidateError, ExtractProperties } from "./utils"
 
 export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, contents, endTagToken }) => {
-    const validate = validateProperties<ExtractProperties<ParseAssetTag>>({
+    const validate = validateProperties<ExtractProperties<ParseAssetTag, never>>({
         open,
         required: {
             key: ['key']

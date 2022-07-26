@@ -1,14 +1,11 @@
-import { ParseTagFactory, ParseFeatureTag } from "./baseClasses"
+import { ParseTagFactory, ParseConditionTag } from "./baseClasses"
 import { validateProperties, isValidateError, ExtractProperties } from "./utils"
 
-export const parseFeatureFactory: ParseTagFactory<ParseFeatureTag> = ({ open, contents, endTagToken }) => {
-    const validate = validateProperties<ExtractProperties<ParseFeatureTag, never>>({
+export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open, contents, endTagToken }) => {
+    const validate = validateProperties<ExtractProperties<ParseConditionTag, 'dependencies'>>({
         open,
         required: {
-            key: ['key']
-        },
-        optional: {
-            global: ['boolean']
+            if: ['expression']
         }
     })
     if (isValidateError(validate)) {
@@ -22,13 +19,14 @@ export const parseFeatureFactory: ParseTagFactory<ParseFeatureTag> = ({ open, co
             type: 'Tag',
             tag: {
                 ...validate,
-                tag: 'Feature',
+                tag: 'Condition',
                 startTagToken: open.startTagToken,
                 endTagToken,
-                contents
+                contents,
+                dependencies: []
             }
         }    
     }
 }
 
-export default parseFeatureFactory
+export default parseConditionFactory

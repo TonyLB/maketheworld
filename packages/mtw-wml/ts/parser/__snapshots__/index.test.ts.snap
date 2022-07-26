@@ -94,9 +94,58 @@ Array [
         "tag": "Whitespace",
       },
       Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 80,
+            "startTagToken": 80,
+            "tag": "Whitespace",
+          },
+          Object {
+            "endTagToken": 86,
+            "startTagToken": 81,
+            "tag": "Comment",
+          },
+          Object {
+            "endTagToken": 87,
+            "startTagToken": 87,
+            "tag": "Whitespace",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 93,
+                "startTagToken": 93,
+                "tag": "Whitespace",
+              },
+              Object {
+                "endTagToken": 100,
+                "startTagToken": 94,
+                "tag": "Comment",
+              },
+              Object {
+                "endTagToken": 101,
+                "startTagToken": 101,
+                "tag": "Whitespace",
+              },
+            ],
+            "endTagToken": 102,
+            "key": "ABC",
+            "startTagToken": 88,
+            "tag": "Room",
+            "x": undefined,
+            "y": undefined,
+          },
+          Object {
+            "endTagToken": 103,
+            "startTagToken": 103,
+            "tag": "Whitespace",
+          },
+        ],
+        "dependencies": Array [],
         "endTagToken": 104,
+        "if": "open",
         "startTagToken": 75,
-        "tag": "Comment",
+        "tag": "Condition",
       },
       Object {
         "endTagToken": 105,

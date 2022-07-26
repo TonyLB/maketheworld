@@ -2,7 +2,7 @@ import { ParseTagFactory, ParseRoomTag } from "./baseClasses"
 import { validateProperties, isValidateError, ExtractProperties } from "./utils"
 
 export const parseRoomFactory: ParseTagFactory<ParseRoomTag> = ({ open, contents, endTagToken }) => {
-    const validate = validateProperties<ExtractProperties<ParseRoomTag> & { x?: string; y?: string }>({
+    const validate = validateProperties<ExtractProperties<ParseRoomTag, never> & { x?: string; y?: string }>({
         open,
         required: {
             key: ['key']

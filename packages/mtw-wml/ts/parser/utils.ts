@@ -61,4 +61,4 @@ export const validateProperties = <T extends Record<string, string | boolean>>({
 
 export const isValidateError = (value: Record<string, string | boolean> | ParseError): value is ParseError => (value.tag === 'Error')
 
-export type ExtractProperties<T extends ParseTag> = Omit<T, 'tag' | 'contents' | 'startTagToken' | 'endTagToken' | 'startContentsToken' | 'endContentsToken' | 'closeToken'>
+export type ExtractProperties<T extends ParseTag, omit extends string> = Omit<T, 'tag' | 'contents' | 'startTagToken' | 'endTagToken' | 'startContentsToken' | 'endContentsToken' | 'closeToken' | omit>
