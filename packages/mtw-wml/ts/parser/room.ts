@@ -10,8 +10,7 @@ export const parseRoomFactory: ParseTagFactory<ParseRoomTag> = ({ open, contents
         optional: {
             global: ['boolean'],
             x: ['literal'],
-            y: ['literal'],
-            display: ['literal']
+            y: ['literal']
         }
     })
     if (isValidateError(validate)) {

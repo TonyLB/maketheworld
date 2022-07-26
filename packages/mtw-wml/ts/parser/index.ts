@@ -22,6 +22,7 @@ import {
 
 import parseAssetFactory from './asset'
 import parseRoomFactory from './room'
+import parseFeatureFactory from './feature'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -29,6 +30,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseAssetFactory(props)
         case 'Room':
             return parseRoomFactory(props)
+        case 'Feature':
+            return parseFeatureFactory(props)
         default:
             return {
                 type: 'Tag',
