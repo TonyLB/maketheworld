@@ -1,3 +1,4 @@
+import { ParseStackTokenEntry } from "../baseClasses";
 import SourceStream from "./sourceStream";
 
 export type TokenBase = {
@@ -62,11 +63,6 @@ export type TokenDescription = {
     value: string;
 } & TokenBase
 
-export type TokenError = {
-    type: 'Error';
-    message: string;
-} & TokenBase
-
 export class TokenizeException extends Error {
     startIdx: number
     endIdx: number
@@ -87,18 +83,17 @@ export type Token = TokenComment |
     TokenTagOpenBegin |
     TokenTagOpenEnd |
     TokenTagClose |
-    TokenDescription |
-    TokenError
+    TokenDescription
 
 export type Tokenizer<T extends TokenBase> = {
     (sourceStream: SourceStream): T | undefined
 }
 
-export const isTokenError = (item: TokenBase & { type: string }): item is TokenError => (item.type === 'Error')
 export const isTokenProperty = (item: Token): item is TokenProperty => (item.type === 'Property')
 export const isTokenKeyValue = (item: Token | boolean): item is TokenKeyValue => (typeof item === 'object' && item.type === 'KeyValue')
 export const isTokenValue = (item: Token): item is (TokenKeyValue | TokenLiteralValue | TokenExpressionValue) => (['KeyValue', 'LiteralValue', 'ExpressionValue'].includes(item.type))
-export const isTokenPropertyOrValue = (item: Token): item is (TokenProperty | TokenKeyValue | TokenLiteralValue | TokenExpressionValue) => (isTokenProperty(item) || isTokenValue(item))
+
+export const isStackTokenPropertyOrValue = (item: ParseStackTokenEntry<Token>): item is ParseStackTokenEntry<TokenProperty | TokenKeyValue | TokenLiteralValue | TokenExpressionValue> => (isTokenProperty(item.token) || isTokenValue(item.token))
 
 export const isTokenWhitespace = (item: Token): item is TokenWhitespace => (item.type === 'Whitespace')
 export const isTokenComment = (item: Token): item is TokenComment => (item.type === 'Comment')

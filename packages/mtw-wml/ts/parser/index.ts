@@ -1,6 +1,6 @@
 import {
     Token,
-    isTokenPropertyOrValue,
+    isStackTokenPropertyOrValue,
     TokenProperty,
     TokenExpressionValue,
     TokenKeyValue,
@@ -8,8 +8,7 @@ import {
     isLegalBareToken,
     isTokenComment,
     isTokenWhitespace,
-    isTokenDescription,
-    isTokenError
+    isTokenDescription
 } from './tokenizer/baseClasses'
 
 import {
@@ -17,7 +16,8 @@ import {
     ParseError,
     ParseTagFactory,
     ParseStackEntry,
-    isParseStackTagError
+    ParseStackTokenEntry,
+    ParseException
 } from './baseClasses'
 
 import parseAssetFactory from './asset'
@@ -50,11 +50,7 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
 export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
     let returnValue: (ParseTag | ParseError)[] = []
     let stack: ParseStackEntry[] = []
-    let error: ParseError | undefined = undefined
     tokens.forEach((token, index) => {
-        if (error) {
-            return
-        }
         switch(token.type) {
             case 'TagOpenBegin':
                 stack.push({
@@ -64,28 +60,18 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                 })
                 break
             case 'TagOpenEnd':
-                let propertyTags: (TokenProperty | TokenExpressionValue | TokenKeyValue | TokenLiteralValue)[] = []
+                let propertyTags: ParseStackTokenEntry<TokenProperty | TokenExpressionValue | TokenKeyValue | TokenLiteralValue>[] = []
                 while(stack.length > 0) {
                     const stackItem = stack.pop()
                     if (stackItem.type === 'Tag') {
-                        error = {
-                            tag: 'Error',
-                            message: 'Unexpected tag-end',
-                            token
-                        }
-                        break
+                        throw new ParseException('Unexpected tag-end', index, index)
                     }
                     if (stackItem.type === 'TagOpen') {
-                        error = {
-                            tag: 'Error',
-                            message: 'Illegal nested tag opening',
-                            token
-                        }
-                        break
+                        throw new ParseException('Illegal nested tag opening', index, index)
                     }
                     if (stackItem.type === 'Token') {
-                        if (isTokenPropertyOrValue(stackItem.token)) {
-                            propertyTags.push(stackItem.token)
+                        if (isStackTokenPropertyOrValue(stackItem)) {
+                            propertyTags.push(stackItem)
                         }
                         continue
                     }
@@ -97,32 +83,22 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                         let properties: Record<string, (TokenExpressionValue | TokenKeyValue | TokenLiteralValue | boolean)> = {}
                         while(propertyTags.length > 0) {
                             const firstTag = propertyTags.pop()
-                            if (firstTag.type !== 'Property') {
-                                error = {
-                                    tag: 'Error',
-                                    message: 'Unexpected value token',
-                                    token: firstTag
-                                }
-                                break
+                            if (firstTag.token.type !== 'Property') {
+                                throw new ParseException('Unexpected value token', firstTag.index, firstTag.index)
                             }
                             //
                             // TODO: Validate that no key is assigned twice
                             //
-                            if (firstTag.isBoolean) {
-                                properties[firstTag.key] = firstTag.value
+                            if (firstTag.token.isBoolean) {
+                                properties[firstTag.token.key] = firstTag.token.value
                             }
                             else {
                                 const secondTag = propertyTags.pop()
-                                if (secondTag.type === 'Property') {
-                                    error = {
-                                        tag: 'Error',
-                                        message: 'Unexpected property token',
-                                        token: secondTag
-                                    }
-                                    break
+                                if (secondTag.token.type === 'Property') {
+                                    throw new ParseException('Unexpected property token', secondTag.index, secondTag.index)
                                 }
                                 else {
-                                    properties[firstTag.key] = secondTag
+                                    properties[firstTag.token.key] = secondTag.token
                                 }
                             }
                         }
@@ -137,17 +113,12 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                                 contents: [],
                                 endTagToken: index
                             })
-                            if (isParseStackTagError(stackTag)) {
-                                error = stackTag.tag
+                            if (stack.length > 0) {
+                                stack.push(stackTag)
                             }
                             else {
-                                if (stack.length > 0) {
-                                    stack.push(stackTag)
-                                }
-                                else {
-                                    returnValue.push(stackTag.tag)
-                                }    
-                            }
+                                returnValue.push(stackTag.tag)
+                            }    
                         }
                         else {
                             stack.push({
@@ -166,12 +137,7 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                 while(stack.length > 0) {
                     const stackItem = stack.pop()
                     if (stackItem.type === 'TagOpenPending') {
-                        error = {
-                            tag: 'Error',
-                            message: 'Unexpected tag-close',
-                            token
-                        }
-                        break
+                        throw new ParseException('Unexpected tag-close', index, index)
                     }
                     if (stackItem.type === 'Token') {
                         if (isLegalBareToken(stackItem.token)) {
@@ -210,16 +176,11 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                             contents,
                             endTagToken: index
                         })
-                        if (isParseStackTagError(stackTag)) {
-                            error = stackTag.tag
+                        if (stack.length > 0) {
+                            stack.push(stackTag)
                         }
                         else {
-                            if (stack.length > 0) {
-                                stack.push(stackTag)
-                            }
-                            else {
-                                returnValue.push(stackTag.tag)
-                            }
+                            returnValue.push(stackTag.tag)
                         }
                         break
                     }
@@ -239,9 +200,6 @@ export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
                 }
         }
     })
-    if (error) {
-        return [error]
-    }
     return returnValue
 }
 

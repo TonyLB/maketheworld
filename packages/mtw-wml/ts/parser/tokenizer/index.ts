@@ -97,15 +97,9 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                     }
                 }
             })
-            if (checkSubTokens) {
-                continue
+            if (!checkSubTokens) {
+                throw new TokenizeException('Unexpected token', sourceStream.position, sourceStream.position)
             }
-            return [{
-                type: 'Error',
-                startIdx: sourceStream.position,
-                endIdx: sourceStream.position,
-                message: 'Unexpected token'
-            }]
         }
         else {
             const checkSubTokens = checkSubTokenizers<TokenTagOpenEnd | TokenComment | TokenWhitespace | TokenProperty>({

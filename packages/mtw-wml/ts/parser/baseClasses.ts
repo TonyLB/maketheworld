@@ -221,14 +221,23 @@ export type ParseStackTagEntry<T extends ParseTag | ParseError> = {
     tag: T;
 }
 
-export type ParseStackTokenEntry = {
+export type ParseStackTokenEntry<T extends Token> = {
     type: 'Token';
     index: number;
-    token: Token
+    token: T
 }
 
-export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry
+export class ParseException extends Error {
+    startToken: number
+    endToken: number
+    constructor(message: string, startToken: number, endToken: number) {
+        super(message)
+        this.name = 'TokenizeException'
+        this.startToken = startToken
+        this.endToken = endToken
+    }
+}
 
-export type ParseTagFactory<T extends ParseTag> = (value: { open: ParseStackTagOpenEntry, contents: ParseTag[], endTagToken: number }) => ParseStackTagEntry<T> | ParseStackTagEntry<ParseError>
+export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 
-export const isParseStackTagError = <T extends ParseTag>(value: ParseStackTagEntry<T> | ParseStackTagEntry<ParseError>): value is ParseStackTagEntry<ParseError> => (value.tag.tag === 'Error')
+export type ParseTagFactory<T extends ParseTag> = (value: { open: ParseStackTagOpenEntry, contents: ParseTag[], endTagToken: number }) => ParseStackTagEntry<T>
