@@ -13,7 +13,6 @@ import {
 
 import {
     ParseTag,
-    ParseError,
     ParseTagFactory,
     ParseStackEntry,
     ParseStackTokenEntry,
@@ -24,6 +23,8 @@ import parseAssetFactory from './asset'
 import parseRoomFactory from './room'
 import parseFeatureFactory from './feature'
 import parseConditionFactory from './condition'
+import parseLinkFactory from './link'
+import parseLineBreakFactory from './lineBreak'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -35,6 +36,18 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseFeatureFactory(props)
         case 'Condition':
             return parseConditionFactory(props)
+        case 'Link':
+            return parseLinkFactory(props)
+        case 'br':
+            return parseLineBreakFactory(props)
+        case 'Description':
+        case 'Exit':
+        case 'Depend':
+        case 'Variable':
+        case 'Computed':
+        case 'Action':
+        case 'Use':
+        case 'Import':
         default:
             return {
                 type: 'Tag',
@@ -47,8 +60,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     }
 }
 
-export const parse = (tokens: Token[]): (ParseTag | ParseError)[] => {
-    let returnValue: (ParseTag | ParseError)[] = []
+export const parse = (tokens: Token[]): ParseTag[] => {
+    let returnValue: ParseTag[] = []
     let stack: ParseStackEntry[] = []
     tokens.forEach((token, index) => {
         switch(token.type) {

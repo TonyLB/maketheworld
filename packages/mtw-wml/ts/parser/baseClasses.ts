@@ -171,12 +171,6 @@ export type ParseCommentTag = {
     tag: 'Comment';
 } & ParseTagBase
 
-export type ParseError = {
-    tag: 'Error';
-    message: string;
-    token?: Token;
-}
-
 export type ParseTag = ParseAssetTag |
     ParseStoryTag |
     ParseCharacterTag |
@@ -216,7 +210,7 @@ export type ParseStackTagOpenEntry = {
     properties: Record<string, (TokenExpressionValue | TokenKeyValue | TokenLiteralValue | boolean)>;
 }
 
-export type ParseStackTagEntry<T extends ParseTag | ParseError> = {
+export type ParseStackTagEntry<T extends ParseTag> = {
     type: 'Tag';
     tag: T;
 }
