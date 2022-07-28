@@ -1,5 +1,5 @@
-import { ParseTagFactory, ParseLineBreakTag } from "./baseClasses"
-import { validateProperties, ExtractProperties } from "./utils"
+import { ParseTagFactory, ParseLineBreakTag, ParseCommentTag } from "./baseClasses"
+import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 export const parseLineBreakFactory: ParseTagFactory<ParseLineBreakTag> = ({ open, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<ParseLineBreakTag, never>>({
@@ -7,6 +7,11 @@ export const parseLineBreakFactory: ParseTagFactory<ParseLineBreakTag> = ({ open
         endTagToken,
         required: {},
         optional: {}
+    })
+    validateContents<ParseCommentTag>({
+        contents,
+        legalTags: [],
+        ignoreTags: ['Whitespace', 'Comment']
     })
     return {
         type: 'Tag',

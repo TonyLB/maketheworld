@@ -1,4 +1,5 @@
 import parse from '.'
+import { ParseException } from './baseClasses'
 import tokenizer from './tokenizer'
 import SourceStream from './tokenizer/sourceStream'
 
@@ -55,5 +56,11 @@ describe('wml parser', () => {
             </Asset>
         `))
         expect(parse(testTokens)).toMatchSnapshot()
+    })
+    it('should error on illegal contents', () => {
+        const testTokens = tokenizer(new SourceStream('<Asset key=(Test)><Link to=(ABC)>test</Link></Asset>'))
+        expect(() => {
+            parse(testTokens)
+        }).toThrow(ParseException)
     })
 })

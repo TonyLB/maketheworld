@@ -46,3 +46,21 @@ export const validateProperties = <T extends Record<string, string | boolean>>({
 }
 
 export type ExtractProperties<T extends ParseTag, omit extends string> = Omit<T, 'tag' | 'contents' | 'startTagToken' | 'endTagToken' | 'startContentsToken' | 'endContentsToken' | 'closeToken' | omit>
+
+type ValidateContentsProps<T extends ParseTag> = {
+    contents: ParseTag[];
+    legalTags: T["tag"][];
+    ignoreTags: ParseTag["tag"][];
+}
+
+export const validateContents = <T extends ParseTag>({ contents, legalTags, ignoreTags }: ValidateContentsProps<T>): T[] => {
+    return contents.reduce<T[]>((previous, contentItem) => {
+        if (legalTags.includes(contentItem.tag)) {
+            return [...previous, contentItem as T]
+        }
+        if (!ignoreTags.includes(contentItem.tag)) {
+            throw new ParseException(`'${contentItem.tag}' tag not allowed in this context`, contentItem.startTagToken, contentItem.endTagToken)
+        }
+        return previous
+    }, [])
+}

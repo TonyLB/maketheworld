@@ -1,5 +1,5 @@
-import { ParseTagFactory, ParseAssetTag } from "./baseClasses"
-import { validateProperties, ExtractProperties } from "./utils"
+import { ParseTagFactory, ParseAssetTag, ParseActionTag, ParseComputedTag, ParseException, ParseExitTag, ParseFeatureTag, ParseImportTag, ParseRoomTag, ParseVariableTag, ParseConditionTag } from "./baseClasses"
+import { validateProperties, validateContents, ExtractProperties } from "./utils"
 
 export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<ParseAssetTag, never>>({
@@ -15,6 +15,11 @@ export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, conten
             player: ['literal']
         }
     })
+    const parseContents = validateContents<ParseActionTag | ParseComputedTag | ParseConditionTag | ParseExitTag | ParseFeatureTag | ParseImportTag | ParseRoomTag | ParseVariableTag>({
+        contents,
+        legalTags: ['Action', 'Computed', 'Condition', 'Exit', 'Feature', 'Import', 'Room', 'Variable'],
+        ignoreTags: ['Whitespace', 'Comment']
+    })
     return {
         type: 'Tag',
         tag: {
@@ -22,7 +27,7 @@ export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, conten
             tag: 'Asset',
             startTagToken: open.startTagToken,
             endTagToken,
-            contents
+            contents: parseContents
         }
     }    
 }

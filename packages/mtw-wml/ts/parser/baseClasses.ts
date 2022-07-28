@@ -13,6 +13,11 @@ type ParseTagBase = {
     closeToken?: number;
 }
 
+//
+// TODO: Make ParseNestingBase a generic that allows specificity, and make
+// an extract type that takes a nesting parse base and returns the legal types
+// of contents
+//
 type ParseNestingBase = {
     contents: ParseTag[];
 } & ParseTagBase

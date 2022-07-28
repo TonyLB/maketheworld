@@ -9,6 +9,11 @@ export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open
             if: ['expression']
         }
     })
+    //
+    // TODO: Map validateContents from different parseFactories into a central dispatcher that knows
+    // about each of the different contents, and then use that dispatcher to map condition contents
+    // within the context of their nearest wrapping parent.
+    //
     return {
         type: 'Tag',
         tag: {

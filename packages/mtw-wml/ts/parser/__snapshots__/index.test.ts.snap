@@ -29,69 +29,13 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "endTagToken": 9,
-        "startTagToken": 9,
-        "tag": "Whitespace",
-      },
-      Object {
-        "endTagToken": 39,
-        "startTagToken": 10,
-        "tag": "Comment",
-      },
-      Object {
-        "endTagToken": 40,
-        "startTagToken": 40,
-        "tag": "Whitespace",
-      },
-      Object {
-        "contents": Array [
-          Object {
-            "endTagToken": 46,
-            "startTagToken": 46,
-            "tag": "Whitespace",
-          },
-          Object {
-            "endTagToken": 50,
-            "startTagToken": 47,
-            "tag": "Comment",
-          },
-          Object {
-            "endTagToken": 51,
-            "startTagToken": 51,
-            "tag": "Whitespace",
-          },
-          Object {
-            "endTagToken": 63,
-            "startTagToken": 52,
-            "tag": "Comment",
-          },
-          Object {
-            "endTagToken": 64,
-            "startTagToken": 64,
-            "tag": "Whitespace",
-          },
-          Object {
-            "endTagToken": 71,
-            "startTagToken": 65,
-            "tag": "Comment",
-          },
-          Object {
-            "endTagToken": 72,
-            "startTagToken": 72,
-            "tag": "Whitespace",
-          },
-        ],
+        "contents": Array [],
         "endTagToken": 73,
         "key": "ABC",
         "startTagToken": 41,
         "tag": "Room",
         "x": undefined,
         "y": undefined,
-      },
-      Object {
-        "endTagToken": 74,
-        "startTagToken": 74,
-        "tag": "Whitespace",
       },
       Object {
         "contents": Array [
@@ -111,23 +55,7 @@ Array [
             "tag": "Whitespace",
           },
           Object {
-            "contents": Array [
-              Object {
-                "endTagToken": 93,
-                "startTagToken": 93,
-                "tag": "Whitespace",
-              },
-              Object {
-                "endTagToken": 100,
-                "startTagToken": 94,
-                "tag": "Comment",
-              },
-              Object {
-                "endTagToken": 101,
-                "startTagToken": 101,
-                "tag": "Whitespace",
-              },
-            ],
+            "contents": Array [],
             "endTagToken": 102,
             "key": "ABC",
             "startTagToken": 88,
@@ -148,69 +76,13 @@ Array [
         "tag": "Condition",
       },
       Object {
-        "endTagToken": 105,
-        "startTagToken": 105,
-        "tag": "Whitespace",
-      },
-      Object {
-        "contents": Array [
-          Object {
-            "endTagToken": 111,
-            "startTagToken": 111,
-            "tag": "Whitespace",
-          },
-          Object {
-            "endTagToken": 115,
-            "startTagToken": 112,
-            "tag": "Comment",
-          },
-          Object {
-            "endTagToken": 116,
-            "startTagToken": 116,
-            "tag": "Whitespace",
-          },
-        ],
+        "contents": Array [],
         "endTagToken": 117,
         "key": "DEF",
         "startTagToken": 106,
         "tag": "Room",
         "x": undefined,
         "y": undefined,
-      },
-      Object {
-        "endTagToken": 118,
-        "startTagToken": 118,
-        "tag": "Whitespace",
-      },
-      Object {
-        "endTagToken": 127,
-        "startTagToken": 119,
-        "tag": "Comment",
-      },
-      Object {
-        "endTagToken": 128,
-        "startTagToken": 128,
-        "tag": "Whitespace",
-      },
-      Object {
-        "endTagToken": 137,
-        "startTagToken": 129,
-        "tag": "Comment",
-      },
-      Object {
-        "endTagToken": 138,
-        "startTagToken": 138,
-        "tag": "Whitespace",
-      },
-      Object {
-        "endTagToken": 155,
-        "startTagToken": 139,
-        "tag": "Comment",
-      },
-      Object {
-        "endTagToken": 156,
-        "startTagToken": 156,
-        "tag": "Whitespace",
       },
     ],
     "endTagToken": 157,
