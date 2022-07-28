@@ -25,6 +25,7 @@ import parseFeatureFactory from './feature'
 import parseConditionFactory from './condition'
 import parseLinkFactory from './link'
 import parseLineBreakFactory from './lineBreak'
+import parseDescriptionFactory from './description'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -41,12 +42,13 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
         case 'br':
             return parseLineBreakFactory(props)
         case 'Description':
+            return parseDescriptionFactory(props)
         case 'Exit':
+        case 'Use':
         case 'Depend':
         case 'Variable':
         case 'Computed':
         case 'Action':
-        case 'Use':
         case 'Import':
         default:
             return {

@@ -29,7 +29,42 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "contents": Array [],
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 54,
+                "startTagToken": 54,
+                "tag": "String",
+                "value": "
+                        Vortex
+                       ",
+              },
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 60,
+                    "startTagToken": 60,
+                    "tag": "String",
+                    "value": "(toggle)",
+                  },
+                ],
+                "endTagToken": 61,
+                "startTagToken": 55,
+                "tag": "Link",
+                "to": "toggleOpen",
+              },
+              Object {
+                "endTagToken": 62,
+                "startTagToken": 62,
+                "tag": "Whitespace",
+              },
+            ],
+            "endTagToken": 63,
+            "startTagToken": 52,
+            "tag": "Description",
+          },
+        ],
         "endTagToken": 73,
         "key": "ABC",
         "startTagToken": 41,
