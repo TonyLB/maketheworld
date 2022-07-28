@@ -64,6 +64,20 @@ Array [
             "startTagToken": 52,
             "tag": "Description",
           },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 70,
+                "startTagToken": 70,
+                "tag": "String",
+                "value": "vortex",
+              },
+            ],
+            "endTagToken": 71,
+            "from": "DEF",
+            "startTagToken": 65,
+            "tag": "Exit",
+          },
         ],
         "endTagToken": 73,
         "key": "ABC",
@@ -90,7 +104,22 @@ Array [
             "tag": "Whitespace",
           },
           Object {
-            "contents": Array [],
+            "contents": Array [
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 99,
+                    "startTagToken": 99,
+                    "tag": "String",
+                    "value": "welcome",
+                  },
+                ],
+                "endTagToken": 100,
+                "startTagToken": 94,
+                "tag": "Exit",
+                "to": "DEF",
+              },
+            ],
             "endTagToken": 102,
             "key": "ABC",
             "startTagToken": 88,
