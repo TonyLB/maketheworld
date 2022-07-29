@@ -8,7 +8,7 @@ import {
     isLegalBareToken,
     isTokenComment,
     isTokenWhitespace,
-    isTokenDescription
+    isTokenDescription,
 } from './tokenizer/baseClasses'
 
 import {
@@ -16,7 +16,9 @@ import {
     ParseTagFactory,
     ParseStackEntry,
     ParseStackTokenEntry,
-    ParseException
+    ParseException,
+    ParseStackTagOpenEntry,
+    isParseStackTagOpenEntry
 } from './baseClasses'
 
 import parseAssetFactory from './asset'
@@ -82,6 +84,7 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
 export const parse = (tokens: Token[]): ParseTag[] => {
     let returnValue: ParseTag[] = []
     let stack: ParseStackEntry[] = []
+    let context: ParseStackTagOpenEntry[] = []
     tokens.forEach((token, index) => {
         switch(token.type) {
             case 'TagOpenBegin':
@@ -142,6 +145,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                                     startTagToken: stackItem.startTagToken,
                                     properties
                                 },
+                                context: stack.filter(isParseStackTagOpenEntry),
                                 contents: [],
                                 endTagToken: index
                             })
@@ -205,6 +209,7 @@ export const parse = (tokens: Token[]): ParseTag[] => {
                     if (stackItem.type === 'TagOpen') {
                         const stackTag = createParseTag({
                             open: stackItem,
+                            context: stack.filter(isParseStackTagOpenEntry),
                             contents,
                             endTagToken: index
                         })

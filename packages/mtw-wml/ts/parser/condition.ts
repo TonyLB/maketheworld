@@ -1,7 +1,7 @@
-import { ParseTagFactory, ParseConditionTag } from "./baseClasses"
-import { validateProperties, ExtractProperties } from "./utils"
+import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseExitTag, ParseFeatureTag, ParseRoomTag } from "./baseClasses"
+import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
-export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open, contents, endTagToken }) => {
+export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open, context, contents, endTagToken }) => {
     const validate = validateProperties<ExtractProperties<ParseConditionTag, 'dependencies'>>({
         open,
         endTagToken,
@@ -9,22 +9,32 @@ export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open
             if: ['expression']
         }
     })
-    //
-    // TODO: Map validateContents from different parseFactories into a central dispatcher that knows
-    // about each of the different contents, and then use that dispatcher to map condition contents
-    // within the context of their nearest wrapping parent.
-    //
-    return {
-        type: 'Tag',
-        tag: {
-            ...validate,
-            tag: 'Condition',
-            startTagToken: open.startTagToken,
-            endTagToken,
-            contents,
-            dependencies: []
-        }
-    }    
+    const dependencies = contents.filter(isParseTagDependency)
+    const nonDependencyContents = contents.filter((value) => (!isParseTagDependency(value)))
+    const closestTag = context.length > 0 ? context[context.length - 1] : open
+    switch(closestTag.tag) {
+        //
+        // TODO: Allow Conditions in different contexts, where they can allow different things (i.e., inside a
+        // description context, allowing strings, links, etc.)
+        //
+        default:
+            const parsedContents = validateContents<ParseExitTag | ParseFeatureTag | ParseRoomTag>({
+                contents: nonDependencyContents,
+                legalTags: ['Exit', 'Feature', 'Room'],
+                ignoreTags: ['Whitespace', 'Comment']
+            })
+            return {
+                type: 'Tag',
+                tag: {
+                    ...validate,
+                    tag: 'Condition',
+                    startTagToken: open.startTagToken,
+                    endTagToken,
+                    contents: parsedContents,
+                    dependencies
+                }
+            }
+    }
 }
 
 export default parseConditionFactory
