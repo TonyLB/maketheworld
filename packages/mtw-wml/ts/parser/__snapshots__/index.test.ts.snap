@@ -51,6 +51,51 @@ Array [
 ]
 `;
 
+exports[`wml parser should parse a map tag correctly 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 20,
+            "startTagToken": 17,
+            "tag": "Name",
+            "value": "Test Map",
+          },
+          Object {
+            "endTagToken": 30,
+            "fileURL": "https://test.com/imageTest.png",
+            "key": "ImageTest",
+            "startTagToken": 22,
+            "tag": "Image",
+          },
+          Object {
+            "contents": Array [],
+            "endTagToken": 43,
+            "key": "ABC",
+            "startTagToken": 32,
+            "tag": "Room",
+            "x": 200,
+            "y": 150,
+          },
+        ],
+        "endTagToken": 45,
+        "key": "TestMap",
+        "startTagToken": 11,
+        "tag": "Map",
+      },
+    ],
+    "endTagToken": 47,
+    "fileName": "test",
+    "instance": true,
+    "key": "Test",
+    "startTagToken": 1,
+    "tag": "Story",
+  },
+]
+`;
+
 exports[`wml parser should parse a single tag 1`] = `
 Array [
   Object {
