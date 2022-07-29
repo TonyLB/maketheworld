@@ -179,6 +179,21 @@ Array [
         "startTagToken": 119,
         "tag": "Variable",
       },
+      Object {
+        "dependencies": Array [
+          Object {
+            "endTagToken": 153,
+            "on": "open",
+            "startTagToken": 148,
+            "tag": "Depend",
+          },
+        ],
+        "endTagToken": 155,
+        "key": "closed",
+        "src": "!open",
+        "startTagToken": 139,
+        "tag": "Computed",
+      },
     ],
     "endTagToken": 157,
     "fileName": "test",
