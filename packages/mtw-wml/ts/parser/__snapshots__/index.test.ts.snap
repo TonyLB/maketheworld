@@ -118,22 +118,6 @@ Array [
       Object {
         "contents": Array [
           Object {
-            "endTagToken": 80,
-            "startTagToken": 80,
-            "tag": "Whitespace",
-          },
-          Object {
-            "endTagToken": 86,
-            "on": "open",
-            "startTagToken": 81,
-            "tag": "Depend",
-          },
-          Object {
-            "endTagToken": 87,
-            "startTagToken": 87,
-            "tag": "Whitespace",
-          },
-          Object {
             "contents": Array [
               Object {
                 "contents": Array [
@@ -157,13 +141,15 @@ Array [
             "x": undefined,
             "y": undefined,
           },
+        ],
+        "dependencies": Array [
           Object {
-            "endTagToken": 103,
-            "startTagToken": 103,
-            "tag": "Whitespace",
+            "endTagToken": 86,
+            "on": "open",
+            "startTagToken": 81,
+            "tag": "Depend",
           },
         ],
-        "dependencies": Array [],
         "endTagToken": 104,
         "if": "open",
         "startTagToken": 75,
