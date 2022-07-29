@@ -31,6 +31,29 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "as": "power",
+            "endTagToken": 27,
+            "key": "basePower",
+            "startTagToken": 16,
+            "tag": "Use",
+            "type": "Variable",
+          },
+          Object {
+            "endTagToken": 37,
+            "key": "overview",
+            "startTagToken": 29,
+            "tag": "Use",
+            "type": "Room",
+          },
+        ],
+        "endTagToken": 39,
+        "from": "BASE",
+        "startTagToken": 10,
+        "tag": "Import",
+      },
+      Object {
+        "contents": Array [
+          Object {
             "contents": Array [
               Object {
                 "endTagToken": 54,
@@ -95,8 +118,9 @@ Array [
           },
           Object {
             "endTagToken": 86,
+            "on": "open",
             "startTagToken": 81,
-            "tag": "Comment",
+            "tag": "Depend",
           },
           Object {
             "endTagToken": 87,
@@ -147,6 +171,13 @@ Array [
         "tag": "Room",
         "x": undefined,
         "y": undefined,
+      },
+      Object {
+        "default": "false",
+        "endTagToken": 127,
+        "key": "open",
+        "startTagToken": 119,
+        "tag": "Variable",
       },
     ],
     "endTagToken": 157,

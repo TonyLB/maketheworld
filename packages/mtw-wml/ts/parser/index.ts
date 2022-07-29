@@ -28,6 +28,9 @@ import parseLineBreakFactory from './lineBreak'
 import parseDescriptionFactory from './description'
 import parseExitFactory from './exit'
 import parseUseFactory from './use'
+import parseImportFactory from './import'
+import parseDependFactory from './depend'
+import parseVariableFactory from './variable'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -49,11 +52,14 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseExitFactory(props)
         case 'Use':
             return parseUseFactory(props)
+        case 'Import':
+            return parseImportFactory(props)
         case 'Depend':
+            return parseDependFactory(props)
         case 'Variable':
+            return parseVariableFactory(props)
         case 'Computed':
         case 'Action':
-        case 'Import':
         default:
             return {
                 type: 'Tag',
