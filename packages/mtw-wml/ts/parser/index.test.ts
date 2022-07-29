@@ -63,4 +63,21 @@ describe('wml parser', () => {
             parse(testTokens)
         }).toThrow(ParseException)
     })
+    it('should parse a character tag correctly', () => {
+        const testTokens = tokenizer(new SourceStream(`
+            <Character key=(Tess) fileName="Tess" player="testy" zone="Library">
+                <Image key=(icon) fileURL="testIcon.png" />
+                <Name>Tess</Name>
+                <Pronouns
+                    subject="she"
+                    object="her"
+                    possessive="her"
+                    adjective="hers"
+                    reflexive="herself"
+                />
+            </Character>
+        `))
+        expect(parse(testTokens)).toMatchSnapshot()
+    })
+
 })

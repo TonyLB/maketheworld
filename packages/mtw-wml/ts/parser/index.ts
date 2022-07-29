@@ -36,9 +36,21 @@ import parseVariableFactory from './variable'
 import parseComputedFactory from './computed'
 import parseActionFactory from './action'
 import parseNameFactory from './name'
+import parseCharacterFactory, { parsePronounsFactory, parseOutfitFactory, parseOneCoolThingFactory } from './character'
+import parseImageFactory from './image'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
+        case 'Character':
+            return parseCharacterFactory(props)
+        case 'Pronouns':
+            return parsePronounsFactory(props)
+        case 'Outfit':
+            return parseOutfitFactory(props)
+        case 'OneCoolThing':
+            return parseOneCoolThingFactory(props)
+        case 'Image':
+            return parseImageFactory(props)
         case 'Asset':
             return parseAssetFactory(props)
         case 'Room':

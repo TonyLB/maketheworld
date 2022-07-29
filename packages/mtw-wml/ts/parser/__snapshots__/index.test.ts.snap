@@ -12,6 +12,45 @@ Array [
 ]
 `;
 
+exports[`wml parser should parse a character tag correctly 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "endTagToken": 24,
+        "fileURL": "testIcon.png",
+        "key": "icon",
+        "startTagToken": 16,
+        "tag": "Image",
+      },
+      Object {
+        "endTagToken": 29,
+        "startTagToken": 26,
+        "tag": "Name",
+        "value": "Tess",
+      },
+      Object {
+        "adjective": "hers",
+        "endTagToken": 48,
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "startTagToken": 31,
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+    ],
+    "endTagToken": 50,
+    "fileName": "Tess",
+    "key": "Tess",
+    "player": "testy",
+    "startTagToken": 1,
+    "tag": "Character",
+    "zone": "Library",
+  },
+]
+`;
+
 exports[`wml parser should parse a single tag 1`] = `
 Array [
   Object {
