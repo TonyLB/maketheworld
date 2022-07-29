@@ -163,6 +163,11 @@ export type ParseFeatureTag = {
     global: boolean;
 } & ParseNestingBase
 
+export type ParseMapTag = {
+    tag: 'Map';
+    key: string;
+} & ParseNestingBase
+
 export type ParseStringTag = {
     tag: 'String';
     value: string;
@@ -198,6 +203,7 @@ export type ParseTag = ParseAssetTag |
     ParseLinkTag |
     ParseRoomTag |
     ParseFeatureTag |
+    ParseMapTag |
     ParseStringTag |
     ParseWhitespaceTag |
     ParseCommentTag

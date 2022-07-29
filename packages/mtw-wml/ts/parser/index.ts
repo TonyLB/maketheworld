@@ -24,6 +24,7 @@ import {
 import parseAssetFactory, { parseStoryFactory } from './asset'
 import parseRoomFactory from './room'
 import parseFeatureFactory from './feature'
+import parseMapFactory from './map'
 import parseConditionFactory from './condition'
 import parseLinkFactory from './link'
 import parseLineBreakFactory from './lineBreak'
@@ -69,6 +70,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseDescriptionFactory(props)
         case 'Exit':
             return parseExitFactory(props)
+        case 'Map':
+            return parseMapFactory(props)
         case 'Use':
             return parseUseFactory(props)
         case 'Import':
