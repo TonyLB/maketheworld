@@ -1,4 +1,4 @@
-import { Tokenizer, TokenKeyValue } from "./baseClasses"
+import { Tokenizer, TokenKeyValue, TokenizeException } from "./baseClasses"
 import whiteSpaceTokenizer from "./whiteSpace"
 import { checkSubTokenizers } from "./utils"
 
@@ -7,14 +7,11 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
     if (firstChar === '(') {
         const startIdx = sourceStream.position
         sourceStream.consume(1)
-        const checkWhitespaceOne = checkSubTokenizers({
+        checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
             callback: (token) => {}
         })
-        if (checkWhitespaceOne && (checkWhitespaceOne.success === false)) {
-            return checkWhitespaceOne.error
-        }
         const valueStartIdx = sourceStream.position
         if (sourceStream.lookAhead(1).match(/[A-Za-z\_]/)) {
             sourceStream.consume(1)
@@ -23,22 +20,13 @@ export const keyValueTokenizer: Tokenizer<TokenKeyValue> = (sourceStream) => {
             }    
         }
         const value = sourceStream.source.slice(valueStartIdx, sourceStream.position)
-        const checkWhitespaceTwo = checkSubTokenizers({
+        checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
             callback: (token) => {}
         })
-        if (checkWhitespaceTwo && (checkWhitespaceTwo.success === false)) {
-            return checkWhitespaceTwo.error
-        }
         if (!sourceStream.lookAhead(')')) {
-            return {
-                type: 'Error',
-                source: sourceStream.lookAhead(1),
-                startIdx: sourceStream.position,
-                endIdx: sourceStream.position,
-                message: 'Unexpected token'
-            }
+            throw new TokenizeException('Unexpected token', sourceStream.position, sourceStream.position)
         }
         sourceStream.consume(1)
         if (sourceStream.position !== startIdx) {

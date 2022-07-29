@@ -1,14 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`commentTokenizer should error on unbounded comment 1`] = `
-Object {
-  "endIdx": -1,
-  "message": "Unbounded comment",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
 exports[`commentTokenizer should tokenize a bounded comment 1`] = `
 Object {
   "endIdx": 39,
@@ -27,7 +18,7 @@ Object {
 
 exports[`commentTokenizer should tokenize a comment-to-end-of-source 1`] = `
 Object {
-  "endIdx": -1,
+  "endIdx": 14,
   "startIdx": 0,
   "type": "Comment",
 }

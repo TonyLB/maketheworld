@@ -1,4 +1,4 @@
-import { Tokenizer, TokenTagClose } from "./baseClasses"
+import { Tokenizer, TokenTagClose, TokenizeException } from "./baseClasses"
 import whiteSpaceTokenizer from "./whiteSpace"
 import { checkSubTokenizers } from "./utils"
 
@@ -12,21 +12,13 @@ export const tagCloseTokenizer: Tokenizer<TokenTagClose> = (sourceStream) => {
         }
         const tag = sourceStream.source.slice(tagStartIdx, sourceStream.position)
         if (tag === '') {
-            return {
-                type: 'Error',
-                startIdx,
-                endIdx: sourceStream.position - 1,
-                message: 'Tag closure requires tag label'
-            }
+            throw new TokenizeException('Tag closure requires tag label', startIdx, sourceStream.position - 1)
         }
-        const checkWhitespace = checkSubTokenizers({
+        checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
             callback: (token) => {}
         })
-        if (checkWhitespace && (checkWhitespace.success === false)) {
-            return checkWhitespace.error
-        }
         if (sourceStream.lookAhead('>')) {
             sourceStream.consume(1)
             return {
@@ -37,12 +29,7 @@ export const tagCloseTokenizer: Tokenizer<TokenTagClose> = (sourceStream) => {
             }
         }
         else {
-            return {
-                type: 'Error',
-                startIdx,
-                endIdx: sourceStream.position - 1,
-                message: 'Unexpected token'
-            }
+            throw new TokenizeException('Unexpected Token', startIdx, sourceStream.position - 1)
         }
     }
     return undefined

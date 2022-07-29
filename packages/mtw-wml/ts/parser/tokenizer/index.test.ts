@@ -1,5 +1,6 @@
 import SourceStream from './sourceStream'
 import tokenizer from '.'
+import { TokenizeException } from './baseClasses'
 
 describe('tokenizer', () => {
     beforeEach(() => {
@@ -30,7 +31,9 @@ describe('tokenizer', () => {
     })
     it('should reject tag property with no value specified', () => {
         const testStream = new SourceStream('<Room key= >')
-        expect(tokenizer(testStream)).toMatchSnapshot()
+        expect(() => {
+            tokenizer(testStream)
+        }).toThrow(TokenizeException)
     })
     it('should tokenize descriptions', () => {
         const testSource = `<Asset key=(Test)>

@@ -10,14 +10,11 @@ export const tagPropertyTokenizer: Tokenizer<TokenProperty> = (sourceStream) => 
             sourceStream.consume(1)
         }
         const key = sourceStream.source.slice(startIdx, sourceStream.position)
-        const checkWhitespace = checkSubTokenizers({
+        checkSubTokenizers({
             sourceStream,
             subTokenizers: [whiteSpaceTokenizer],
             callback: (token) => {}
         })
-        if (checkWhitespace && (checkWhitespace.success === false)) {
-            return checkWhitespace.error
-        }
         if (!sourceStream.lookAhead('=')) {
             return {
                 type: 'Property',

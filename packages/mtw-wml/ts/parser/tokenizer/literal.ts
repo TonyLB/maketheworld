@@ -1,6 +1,7 @@
 import {
     Tokenizer,
-    TokenLiteralValue
+    TokenLiteralValue,
+    TokenizeException
 } from "./baseClasses"
 
 export const expressionStringLiteralSubTokenizer: Tokenizer<TokenLiteralValue> = (sourceStream) => {
@@ -18,12 +19,7 @@ export const expressionStringLiteralSubTokenizer: Tokenizer<TokenLiteralValue> =
                 sourceStream.consume(1)
             }
             if (sourceStream.isEndOfSource) {
-                return {
-                    type: 'Error',
-                    message: 'Unbounded string literal',
-                    startIdx,
-                    endIdx: sourceStream.position - 1
-                }
+                throw new TokenizeException('Unbounded string literal', startIdx, sourceStream.position - 1)
             }
         }
         const value = sourceStream.source.slice(valueStartIdx, sourceStream.position)

@@ -24,7 +24,11 @@ export const descriptionTokenizer: Tokenizer<TokenDescription> = (sourceStream) 
         return {
             type: 'Description',
             startIdx,
-            endIdx
+            endIdx,
+            //
+            // TODO: Remove excess whitespace in value
+            //
+            value: sourceStream.source.slice(startIdx, endIdx)
         }
     }
 }

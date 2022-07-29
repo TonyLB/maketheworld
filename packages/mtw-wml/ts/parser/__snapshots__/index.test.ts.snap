@@ -1,0 +1,247 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`wml parser should ignore whitespace outside tags 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "endTagToken": 6,
+    "key": "Test",
+    "startTagToken": 1,
+    "tag": "Asset",
+  },
+]
+`;
+
+exports[`wml parser should parse a single tag 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "endTagToken": 5,
+    "key": "Test",
+    "startTagToken": 0,
+    "tag": "Asset",
+  },
+]
+`;
+
+exports[`wml parser should parse elements correctly 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "as": "power",
+            "endTagToken": 27,
+            "key": "basePower",
+            "startTagToken": 16,
+            "tag": "Use",
+            "type": "Variable",
+          },
+          Object {
+            "endTagToken": 37,
+            "key": "overview",
+            "startTagToken": 29,
+            "tag": "Use",
+            "type": "Room",
+          },
+        ],
+        "endTagToken": 39,
+        "from": "BASE",
+        "startTagToken": 10,
+        "tag": "Import",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 50,
+            "startTagToken": 47,
+            "tag": "Name",
+            "value": "Vortex",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 54,
+                "startTagToken": 54,
+                "tag": "String",
+                "value": "
+                        Vortex
+                       ",
+              },
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 60,
+                    "startTagToken": 60,
+                    "tag": "String",
+                    "value": "(toggle)",
+                  },
+                ],
+                "endTagToken": 61,
+                "startTagToken": 55,
+                "tag": "Link",
+                "to": "toggleOpen",
+              },
+              Object {
+                "endTagToken": 62,
+                "startTagToken": 62,
+                "tag": "Whitespace",
+              },
+            ],
+            "endTagToken": 63,
+            "startTagToken": 52,
+            "tag": "Description",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 70,
+                "startTagToken": 70,
+                "tag": "String",
+                "value": "vortex",
+              },
+            ],
+            "endTagToken": 71,
+            "from": "DEF",
+            "startTagToken": 65,
+            "tag": "Exit",
+          },
+        ],
+        "endTagToken": 73,
+        "key": "ABC",
+        "startTagToken": 41,
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 80,
+            "startTagToken": 80,
+            "tag": "Whitespace",
+          },
+          Object {
+            "endTagToken": 86,
+            "on": "open",
+            "startTagToken": 81,
+            "tag": "Depend",
+          },
+          Object {
+            "endTagToken": 87,
+            "startTagToken": 87,
+            "tag": "Whitespace",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "contents": Array [
+                  Object {
+                    "endTagToken": 99,
+                    "startTagToken": 99,
+                    "tag": "String",
+                    "value": "welcome",
+                  },
+                ],
+                "endTagToken": 100,
+                "startTagToken": 94,
+                "tag": "Exit",
+                "to": "DEF",
+              },
+            ],
+            "endTagToken": 102,
+            "key": "ABC",
+            "startTagToken": 88,
+            "tag": "Room",
+            "x": undefined,
+            "y": undefined,
+          },
+          Object {
+            "endTagToken": 103,
+            "startTagToken": 103,
+            "tag": "Whitespace",
+          },
+        ],
+        "dependencies": Array [],
+        "endTagToken": 104,
+        "if": "open",
+        "startTagToken": 75,
+        "tag": "Condition",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 115,
+            "startTagToken": 112,
+            "tag": "Name",
+            "value": "Welcome",
+          },
+        ],
+        "endTagToken": 117,
+        "key": "DEF",
+        "startTagToken": 106,
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+      Object {
+        "default": "false",
+        "endTagToken": 127,
+        "key": "open",
+        "startTagToken": 119,
+        "tag": "Variable",
+      },
+      Object {
+        "endTagToken": 137,
+        "key": "toggleOpen",
+        "src": "open = !open",
+        "startTagToken": 129,
+        "tag": "Action",
+      },
+      Object {
+        "dependencies": Array [
+          Object {
+            "endTagToken": 153,
+            "on": "open",
+            "startTagToken": 148,
+            "tag": "Depend",
+          },
+        ],
+        "endTagToken": 155,
+        "key": "closed",
+        "src": "!open",
+        "startTagToken": 139,
+        "tag": "Computed",
+      },
+    ],
+    "endTagToken": 157,
+    "fileName": "test",
+    "key": "Test",
+    "startTagToken": 1,
+    "tag": "Asset",
+  },
+]
+`;
+
+exports[`wml parser should parse one level of nesting 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [],
+        "endTagToken": 10,
+        "key": "ABC",
+        "startTagToken": 5,
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+    ],
+    "endTagToken": 11,
+    "key": "Test",
+    "startTagToken": 0,
+    "tag": "Asset",
+  },
+]
+`;

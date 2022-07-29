@@ -1,5 +1,6 @@
 import SourceStream from './sourceStream'
 import literalValueTokenizer, { expressionStringLiteralSubTokenizer } from './literal'
+import { TokenizeException } from './baseClasses'
 
 describe('literalValueTokenizer', () => {
     beforeEach(() => {
@@ -30,7 +31,7 @@ describe('literalValueTokenizer', () => {
         })
         it('should return error on unbounded string literal', () => {
             const testStream = new SourceStream(`'Testing"`)
-            expect(expressionStringLiteralSubTokenizer(testStream)).toMatchSnapshot()
+            expect(() => { expressionStringLiteralSubTokenizer(testStream) }).toThrow(TokenizeException)
             expect(testStream.isEndOfSource).toBe(true)
         })
     })

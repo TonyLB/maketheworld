@@ -1,32 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`tagCloseTokenizer should error when hits end of source 1`] = `
-Object {
-  "endIdx": 5,
-  "message": "Unexpected token",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
-exports[`tagCloseTokenizer should error when no closing syntax 1`] = `
-Object {
-  "endIdx": 8,
-  "message": "Unexpected token",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
-exports[`tagCloseTokenizer should error when no tag label 1`] = `
-Object {
-  "endIdx": 1,
-  "message": "Tag closure requires tag label",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
 exports[`tagCloseTokenizer should tokenize tag close with whitespace 1`] = `
 Object {
   "endIdx": 9,

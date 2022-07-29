@@ -1,4 +1,9 @@
-import { Token } from './tokenizer/baseClasses'
+import {
+    Token,
+    TokenExpressionValue,
+    TokenKeyValue,
+    TokenLiteralValue,
+} from './tokenizer/baseClasses'
 
 type ParseTagBase = {
     startTagToken: number;
@@ -8,6 +13,11 @@ type ParseTagBase = {
     closeToken?: number;
 }
 
+//
+// TODO: Make ParseNestingBase a generic that allows specificity, and make
+// an extract type that takes a nesting parse base and returns the legal types
+// of contents
+//
 type ParseNestingBase = {
     contents: ParseTag[];
 } & ParseTagBase
@@ -89,7 +99,7 @@ export type ParseComputedTag = {
     key: string;
     src: string;
     dependencies: ParseDependencyTag[];
-} & ParseNestingBase
+} & ParseTagBase
 
 export type ParseActionTag = {
     tag: 'Action';
@@ -153,6 +163,19 @@ export type ParseFeatureTag = {
     global: boolean;
 } & ParseNestingBase
 
+export type ParseStringTag = {
+    tag: 'String';
+    value: string;
+} & ParseTagBase
+
+export type ParseWhitespaceTag = {
+    tag: 'Whitespace';
+} & ParseTagBase
+
+export type ParseCommentTag = {
+    tag: 'Comment';
+} & ParseTagBase
+
 export type ParseTag = ParseAssetTag |
     ParseStoryTag |
     ParseCharacterTag |
@@ -174,4 +197,46 @@ export type ParseTag = ParseAssetTag |
     ParseLineBreakTag |
     ParseLinkTag |
     ParseRoomTag |
-    ParseFeatureTag
+    ParseFeatureTag |
+    ParseStringTag |
+    ParseWhitespaceTag |
+    ParseCommentTag
+
+export type ParseStackTagOpenPendingEntry = {
+    type: 'TagOpenPending';
+    tag: string;
+    startTagToken: number;
+}
+
+export type ParseStackTagOpenEntry = {
+    type: 'TagOpen';
+    tag: string;
+    startTagToken: number;
+    properties: Record<string, (TokenExpressionValue | TokenKeyValue | TokenLiteralValue | boolean)>;
+}
+
+export type ParseStackTagEntry<T extends ParseTag> = {
+    type: 'Tag';
+    tag: T;
+}
+
+export type ParseStackTokenEntry<T extends Token> = {
+    type: 'Token';
+    index: number;
+    token: T
+}
+
+export class ParseException extends Error {
+    startToken: number
+    endToken: number
+    constructor(message: string, startToken: number, endToken: number) {
+        super(message)
+        this.name = 'TokenizeException'
+        this.startToken = startToken
+        this.endToken = endToken
+    }
+}
+
+export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
+
+export type ParseTagFactory<T extends ParseTag> = (value: { open: ParseStackTagOpenEntry, contents: ParseTag[], endTagToken: number }) => ParseStackTagEntry<T>

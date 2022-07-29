@@ -27,15 +27,6 @@ Object {
 }
 `;
 
-exports[`literalValueTokenizer stringLiteralSubTokenizer should return error on unbounded string literal 1`] = `
-Object {
-  "endIdx": 8,
-  "message": "Unbounded string literal",
-  "startIdx": 0,
-  "type": "Error",
-}
-`;
-
 exports[`literalValueTokenizer stringLiteralSubTokenizer should tokenize bounded double-quote string literal 1`] = `
 Object {
   "endIdx": 5,
