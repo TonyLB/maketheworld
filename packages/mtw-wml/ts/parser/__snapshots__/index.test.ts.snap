@@ -54,6 +54,12 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "endTagToken": 50,
+            "startTagToken": 47,
+            "tag": "Name",
+            "value": "Vortex",
+          },
+          Object {
             "contents": Array [
               Object {
                 "endTagToken": 54,
@@ -164,7 +170,14 @@ Array [
         "tag": "Condition",
       },
       Object {
-        "contents": Array [],
+        "contents": Array [
+          Object {
+            "endTagToken": 115,
+            "startTagToken": 112,
+            "tag": "Name",
+            "value": "Welcome",
+          },
+        ],
         "endTagToken": 117,
         "key": "DEF",
         "startTagToken": 106,
