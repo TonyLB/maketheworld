@@ -32,6 +32,7 @@ import parseImportFactory from './import'
 import parseDependFactory from './depend'
 import parseVariableFactory from './variable'
 import parseComputedFactory from './computed'
+import parseActionFactory from './action'
 
 export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
     switch(props.open.tag) {
@@ -62,6 +63,7 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
         case 'Computed':
             return parseComputedFactory(props)
         case 'Action':
+            return parseActionFactory(props)
         default:
             return {
                 type: 'Tag',

@@ -180,6 +180,13 @@ Array [
         "tag": "Variable",
       },
       Object {
+        "endTagToken": 137,
+        "key": "toggleOpen",
+        "src": "open = !open",
+        "startTagToken": 129,
+        "tag": "Action",
+      },
+      Object {
         "dependencies": Array [
           Object {
             "endTagToken": 153,
