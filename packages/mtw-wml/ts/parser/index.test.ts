@@ -79,5 +79,16 @@ describe('wml parser', () => {
         `))
         expect(parse(testTokens)).toMatchSnapshot()
     })
+    it('should parse a story tag correctly', () => {
+        const testTokens = tokenizer(new SourceStream(`
+            <Story key=(Test) instance fileName="test">
+                <Room key=(ABC)>
+                    <Name>Vortex</Name>
+                    <Description>Vortex</Description>
+                </Room>
+            </Story>
+        `))
+        expect(parse(testTokens)).toMatchSnapshot()
+    })
 
 })

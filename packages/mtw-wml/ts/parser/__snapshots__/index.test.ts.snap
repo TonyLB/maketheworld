@@ -63,6 +63,50 @@ Array [
 ]
 `;
 
+exports[`wml parser should parse a story tag correctly 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 20,
+            "startTagToken": 17,
+            "tag": "Name",
+            "value": "Vortex",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 24,
+                "startTagToken": 24,
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
+            "endTagToken": 25,
+            "startTagToken": 22,
+            "tag": "Description",
+          },
+        ],
+        "endTagToken": 27,
+        "key": "ABC",
+        "startTagToken": 11,
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+    ],
+    "endTagToken": 29,
+    "fileName": "test",
+    "instance": true,
+    "key": "Test",
+    "startTagToken": 1,
+    "tag": "Story",
+  },
+]
+`;
+
 exports[`wml parser should parse elements correctly 1`] = `
 Array [
   Object {

@@ -21,7 +21,7 @@ import {
     isParseStackTagOpenEntry
 } from './baseClasses'
 
-import parseAssetFactory from './asset'
+import parseAssetFactory, { parseStoryFactory } from './asset'
 import parseRoomFactory from './room'
 import parseFeatureFactory from './feature'
 import parseConditionFactory from './condition'
@@ -53,6 +53,8 @@ export const createParseTag: ParseTagFactory<ParseTag> = (props) => {
             return parseImageFactory(props)
         case 'Asset':
             return parseAssetFactory(props)
+        case 'Story':
+            return parseStoryFactory(props)
         case 'Room':
             return parseRoomFactory(props)
         case 'Feature':
