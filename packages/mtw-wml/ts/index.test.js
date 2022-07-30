@@ -4,10 +4,6 @@ import {
 } from '.'
 import { NormalizeTagMismatchError } from './normalize'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
-import { depthFirstParseTagGenerator } from '.'
-import SourceStream from './parser/tokenizer/sourceStream'
-import parser from './parser'
-import tokenizer from './parser/tokenizer'
 
 const testSchema = {
     tag: 'Asset',
@@ -358,23 +354,4 @@ describe('WML validateSchema', () => {
         expect(errors).toEqual([`To: 'DEF' is not a key in this asset.`])
     })
 
-})
-
-describe('depthFirstParseTagGenerator', () => {
-    beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks()
-    })
-
-    it('should properly spool out nested tags', () => {
-        const tags = parser(tokenizer(new SourceStream(`
-            <Story key=(Test) instance fileName="test">
-                <Room key=(ABC)>
-                    <Name>Vortex</Name>
-                    <Description>Vortex</Description>
-                </Room>
-            </Story>
-        `)))
-        expect([...depthFirstParseTagGenerator(tags)]).toMatchSnapshot()
-    })
 })
