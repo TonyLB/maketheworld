@@ -237,7 +237,7 @@ export class ParseException extends Error {
     endToken: number
     constructor(message: string, startToken: number, endToken: number) {
         super(message)
-        this.name = 'TokenizeException'
+        this.name = 'ParseException'
         this.startToken = startToken
         this.endToken = endToken
     }
