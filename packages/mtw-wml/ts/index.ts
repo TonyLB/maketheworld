@@ -8,10 +8,13 @@ import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/proc
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseRoomTag, ParseTag } from './parser/baseClasses'
-import { LegalAssetContents, SchemaException, SchemaTag, SchemaUseTag } from './baseClasses'
+import { LegalAssetContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureTag, SchemaNameTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './baseClasses'
 import { transformWithContext } from './utils'
 import schemaFromAsset from './schema/asset'
 import schemaFromImport from './schema/import'
+import schemaFromUse from './schema/use'
+import schemaFromExit from './schema/exit'
+import schemaFromRoom from './schema/room'
 
 export { wmlGrammar }
 
@@ -179,6 +182,12 @@ const schemaFromParseItem = (item: ParseTag): SchemaTag => {
             return schemaFromAsset(item, schemaContents as LegalAssetContents[])
         case 'Import':
             return schemaFromImport(item, schemaContents as SchemaUseTag[])
+        case 'Use':
+            return schemaFromUse(item)
+        case 'Exit':
+            return schemaFromExit(item, schemaContents as SchemaStringTag[])
+        case 'Room':
+            return schemaFromRoom(item, schemaContents as (SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag)[])
         default:
             return {
                 tag: 'String',

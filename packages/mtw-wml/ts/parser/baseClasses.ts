@@ -253,6 +253,7 @@ export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | Par
 )
 export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
+export const isParseString = (value: ParseTag): value is ParseStringTag => (value.tag === 'String')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 
