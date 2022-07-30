@@ -81,7 +81,7 @@ export type ParseCharacterTag = {
     oneCoolThing?: ParseOneCoolThingTag;
     outfit?: ParseOutfitTag;
     image?: ParseImageTag;
-} & ParseTagBase
+} & ParseNestingBase
 
 export type ParseVariableTag = {
     tag: 'Variable';
@@ -237,13 +237,16 @@ export class ParseException extends Error {
     endToken: number
     constructor(message: string, startToken: number, endToken: number) {
         super(message)
-        this.name = 'TokenizeException'
+        this.name = 'ParseException'
         this.startToken = startToken
         this.endToken = endToken
     }
 }
 
 export const isParseTagDependency = (value: ParseTag): value is ParseDependencyTag => (value.tag === 'Depend')
+export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag) => (
+    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map'].includes(value.tag)
+)
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 

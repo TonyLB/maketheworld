@@ -7,6 +7,7 @@ import { wmlProcessDown, assignExitContext } from './semantics/schema/processDow
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
+import { isParseTagNesting, ParseTag } from './parser/baseClasses'
 
 export { wmlGrammar }
 
