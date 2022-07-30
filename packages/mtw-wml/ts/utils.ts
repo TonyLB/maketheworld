@@ -8,3 +8,26 @@ export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseT
         yield node
     }
 }
+
+type TransformWithContextCallback = {
+    (item: ParseTag, context: ParseTag[]): ParseTag
+}
+
+export const transformWithContext = (tree: ParseTag[], callback: TransformWithContextCallback, context: ParseTag[] = []): ParseTag[] => {
+    return tree.reduce<ParseTag[]>((previous, item) => {
+        const transformedItem = callback(item, context)
+        if (isParseTagNesting(item)) {
+            return [
+                ...previous,
+                {
+                    ...transformedItem,
+                    contents: transformWithContext(item.contents, callback, [...context, transformedItem])
+                }
+            ]
+        }
+        return [
+            ...previous,
+            transformedItem
+        ]
+    }, [])
+}

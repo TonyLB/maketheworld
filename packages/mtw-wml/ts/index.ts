@@ -7,7 +7,11 @@ import { wmlProcessDown, assignExitContext } from './semantics/schema/processDow
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
-import { isParseTagNesting, ParseTag } from './parser/baseClasses'
+import { isParseExit, isParseRoom, isParseTagNesting, ParseRoomTag, ParseTag } from './parser/baseClasses'
+import { LegalAssetContents, SchemaException, SchemaTag, SchemaUseTag } from './baseClasses'
+import { transformWithContext } from './utils'
+import schemaFromAsset from './schema/asset'
+import schemaFromImport from './schema/import'
 
 export { wmlGrammar }
 
@@ -163,4 +167,51 @@ export const dbEntries = (schema) => {
                 return { ...previous, [key]: rest }
             }
         }, {})
+}
+
+const schemaFromParseItem = (item: ParseTag): SchemaTag => {
+    let schemaContents: SchemaTag[] = []
+    if (isParseTagNesting(item)) {
+        schemaContents = item.contents.map(schemaFromParseItem)
+    }
+    switch(item.tag) {
+        case 'Asset':
+            return schemaFromAsset(item, schemaContents as LegalAssetContents[])
+        case 'Import':
+            return schemaFromImport(item, schemaContents as SchemaUseTag[])
+        default:
+            return {
+                tag: 'String',
+                value: ''
+            }
+    }
+}
+
+const exitContextCallback = (item: ParseTag, context: ParseTag[]): ParseTag => {
+    if (isParseExit(item)) {
+        const closestRoomTag = context.reduceRight<ParseRoomTag | undefined>((previous, contextItem) => (previous ? previous : (isParseRoom(contextItem) ? contextItem : undefined)), undefined)
+        if (closestRoomTag) {
+            const newTo = item.to || closestRoomTag.key
+            const newFrom = item.from || closestRoomTag.key
+            const newKey = item.key || `${newFrom}#${newTo}`
+            if (newTo !== closestRoomTag.key && newFrom !== closestRoomTag.key) {
+                throw new SchemaException(`Cannot assign both to (${newTo}) and from (${newFrom}) different from containing room (${closestRoomTag.key}) in Exit tag.`, item)
+            }
+            if (!(newTo && newFrom)) {
+                throw new SchemaException('Exits must have both to and from properties (or be able to derive them from context)', item)
+            }
+            return {
+                ...item,
+                to: newTo,
+                from: newFrom,
+                key: newKey
+            }
+        }
+    }
+    return item
+}
+
+export const schemaFromParse = (tags: ParseTag[]): SchemaTag[] => {
+    const firstPass = transformWithContext(tags, exitContextCallback)
+    return firstPass.map(schemaFromParseItem)
 }

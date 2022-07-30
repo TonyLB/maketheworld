@@ -1,11 +1,19 @@
+import { ParseTag } from "./parser/baseClasses";
+
 type SchemaNestingBase<T extends SchemaTag> = {
     contents: T[];
 }
 
-type LegalSchemaContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
+export type LegalAssetContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
+export type LegalConditionContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
+
 type SchemaAssetBase = {
     key: string;
-} & SchemaNestingBase<LegalSchemaContents>
+    fileName?: string;
+    zone?: string;
+    subFolder?: string;
+    player?: string;
+} & SchemaNestingBase<LegalAssetContents>
 
 export type SchemaAssetTag = {
     tag: 'Asset';
@@ -77,11 +85,15 @@ export type SchemaImportTag = {
     mapping: Record<string, SchemaImportMapping>;
 }
 
+//
+// TODO:  Figure out how to define limits on schemaConditionTag contents
+// without causing circular reference
+//
 export type SchemaConditionTag = {
     tag: 'Condition';
     if: string;
     dependencies: string[];
-} & SchemaNestingBase<LegalSchemaContents>
+} & SchemaNestingBase<any>
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -158,10 +170,10 @@ export type SchemaTag = SchemaAssetTag |
     SchemaStringTag
 
 export class SchemaException extends Error {
-    startToken: number
-    endToken: number
-    constructor(message: string) {
+    parseTag: ParseTag;
+    constructor(message: string, parseTag: ParseTag) {
         super(message)
         this.name = 'WMLSchemaException'
+        this.parseTag = parseTag
     }
 }

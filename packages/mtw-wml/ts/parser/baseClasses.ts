@@ -28,6 +28,10 @@ type ParseValueBase = {
 
 type ParseAssetBase = {
     key: string;
+    fileName?: string;
+    zone?: string;
+    subFolder?: string;
+    player?: string;
 } & ParseNestingBase
 
 export type ParseAssetTag = {
@@ -126,7 +130,7 @@ export type ParseConditionTag = {
 
 export type ParseExitTag = {
     tag: 'Exit';
-    key: string;
+    key?: string;
     name: string;
     to?: string;
     from?: string;
@@ -247,6 +251,8 @@ export const isParseTagDependency = (value: ParseTag): value is ParseDependencyT
 export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag) => (
     ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map'].includes(value.tag)
 )
+export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
+export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 
