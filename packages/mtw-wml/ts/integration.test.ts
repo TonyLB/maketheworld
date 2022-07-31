@@ -42,5 +42,6 @@ describe('parallel validateSchema integration test (temporary)', () => {
     const match = wmlGrammar.match(testSource)
     const schema = validatedSchema(match)
     const newSchema = schemaFromParse(parser(tokenizer(new SourceStream(testSource))))
+    console.log(`Schema: ${JSON.stringify(newSchema[0], null, 4)}`)
     expect(newSchema[0]).toEqual(schema)
 })

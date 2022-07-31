@@ -152,6 +152,8 @@ export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
     global: boolean;
+    name: string;
+    render: SchemaDescriptionLegalContents[];
     contents: SchemaFeatureLegalContents[];
 }
 
