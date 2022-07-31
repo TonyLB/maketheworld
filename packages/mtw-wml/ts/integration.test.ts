@@ -66,4 +66,20 @@ describe('parallel validateSchema integration test (temporary)', () => {
         expect(newSchema[0]).toEqual(schema)
     })
 
+    it('should correctly validate a map schema', () => {
+        const testSource = `
+            <Story key=(Test) instance fileName="test">
+                <Map key=(TestMap)>
+                    <Name>Test Map</Name>
+                    <Image key=(ImageTest) fileURL="https://test.com/imageTest.png" />
+                    <Room key=(ABC) x="200" y="150" />
+                </Map>
+            </Story>
+        `
+        const match = wmlGrammar.match(testSource)
+        const schema = validatedSchema(match)
+        const newSchema = schemaFromParse(parser(tokenizer(new SourceStream(testSource))))
+        expect(newSchema[0]).toEqual(schema)
+    })
+
 })

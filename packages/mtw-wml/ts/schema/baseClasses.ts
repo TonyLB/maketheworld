@@ -14,10 +14,12 @@ type SchemaAssetBase = {
 
 export type SchemaAssetTag = {
     tag: 'Asset';
+    Story: undefined;
 } & SchemaAssetBase
 
 export type SchemaStoryTag = {
-    tag: 'Story';
+    tag: 'Asset';
+    Story: true;
     instance: boolean;
 } & SchemaAssetBase
 
@@ -187,6 +189,8 @@ export type SchemaMapTag = {
     key: string;
     name: string;
     contents: SchemaMapLegalContents[];
+    rooms: Record<string, { x: number; y: number; }>;
+    images: string[];
 }
 
 export type SchemaStringTag = {
@@ -233,6 +237,7 @@ export const isSchemaDescriptionContents = (value: SchemaTag): value is SchemaDe
 export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
+export const isSchemaRoom = (value: SchemaTag): value is SchemaRoomTag => (value.tag === 'Room')
 export const isSchemaExitOrFeature = (value: SchemaTag): value is (SchemaExitTag | SchemaFeatureTag) => (isSchemaExit(value) || isSchemaFeature(value))
 export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature'].includes(value.tag))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room'].includes(value.tag))

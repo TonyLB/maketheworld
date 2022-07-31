@@ -7,10 +7,10 @@ import { wmlProcessDown, assignExitContext } from './semantics/schema/processDow
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
-import { isParseExit, isParseRoom, isParseTagNesting, ParseAssetTag, ParseExitTag, ParseImportTag, ParseNameTag, ParseRoomTag, ParseStringTag, ParseTag, ParseUseTag } from './parser/baseClasses'
-import { isSchemaString, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './schema/baseClasses'
+import { isParseExit, isParseRoom, isParseTagNesting, ParseActionTag, ParseAssetTag, ParseCharacterLegalContents, ParseCharacterTag, ParseComputedTag, ParseConditionTag, ParseDescriptionTag, ParseExitTag, ParseFeatureTag, ParseFirstImpressionTag, ParseImageTag, ParseImportTag, ParseLinkTag, ParseMapTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseRoomTag, ParseStoryTag, ParseStringTag, ParseTag, ParseUseTag, ParseVariableTag } from './parser/baseClasses'
+import { isSchemaString, SchemaActionTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaLinkTag, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaUseTag, SchemaVariableTag } from './schema/baseClasses'
 import { transformWithContext, TransformWithContextCallback } from './utils'
-import schemaFromAsset from './schema/asset'
+import schemaFromAsset, { schemaFromStory } from './schema/asset'
 import schemaFromImport from './schema/import'
 import schemaFromUse from './schema/use'
 import schemaFromExit from './schema/exit'
@@ -26,6 +26,7 @@ import schemaFromComputed from './schema/computed'
 import schemaFromImage from './schema/image'
 import schemaFromVariable from './schema/variable'
 import schemaFromCharacter, { schemaFromPronouns, schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit } from './schema/character'
+import schemaFromMap from './schema/map'
 
 export { wmlGrammar }
 
@@ -184,12 +185,27 @@ export const dbEntries = (schema) => {
 }
 
 function schemaFromParseItem(item: ParseAssetTag): SchemaAssetTag
+function schemaFromParseItem(item: ParseStoryTag): SchemaStoryTag
+function schemaFromParseItem(item: ParseMapTag): SchemaMapTag
 function schemaFromParseItem(item: ParseImportTag): SchemaImportTag
 function schemaFromParseItem(item: ParseUseTag): SchemaUseTag
 function schemaFromParseItem(item: ParseExitTag): SchemaExitTag
 function schemaFromParseItem(item: ParseRoomTag): SchemaRoomTag
 function schemaFromParseItem(item: ParseNameTag): SchemaNameTag
 function schemaFromParseItem(item: ParseStringTag): SchemaStringTag
+function schemaFromParseItem(item: ParseDescriptionTag): SchemaDescriptionTag
+function schemaFromParseItem(item: ParseFeatureTag): SchemaFeatureTag
+function schemaFromParseItem(item: ParseLinkTag): SchemaLinkTag
+function schemaFromParseItem(item: ParseConditionTag): SchemaConditionTag
+function schemaFromParseItem(item: ParseActionTag): SchemaActionTag
+function schemaFromParseItem(item: ParseComputedTag): SchemaComputedTag
+function schemaFromParseItem(item: ParseImageTag): SchemaImageTag
+function schemaFromParseItem(item: ParseVariableTag): SchemaVariableTag
+function schemaFromParseItem(item: ParsePronounsTag): SchemaPronounsTag
+function schemaFromParseItem(item: ParseFirstImpressionTag): SchemaFirstImpressionTag
+function schemaFromParseItem(item: ParseOneCoolThingTag): SchemaOneCoolThingTag
+function schemaFromParseItem(item: ParseOutfitTag): SchemaOutfitTag
+function schemaFromParseItem(item: ParseCharacterTag): SchemaCharacterTag
 function schemaFromParseItem(item: ParseTag): SchemaTag {
     let schemaContents: SchemaTag[] = []
     if (isParseTagNesting(item)) {
@@ -198,12 +214,16 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
     switch(item.tag) {
         case 'Asset':
             return schemaFromAsset(item, schemaContents as SchemaAssetLegalContents[])
+        case 'Story':
+            return schemaFromStory(item, schemaContents as SchemaAssetLegalContents[])
+        case 'Map':
+            return schemaFromMap(item, schemaContents as SchemaMapLegalContents[])
         case 'Import':
             return schemaFromImport(item, schemaContents as SchemaUseTag[])
         case 'Use':
             return schemaFromUse(item)
         case 'Exit':
-            return schemaFromExit(item, item.contents.map(schemaFromParseItem))
+            return schemaFromExit(item, schemaContents as SchemaStringTag[])
         case 'Room':
             return schemaFromRoom(item, schemaContents as SchemaRoomLegalContents[])
         case 'String':
@@ -211,11 +231,11 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Name':
             return schemaFromName(item)
         case 'Description':
-            return schemaFromDescription(item, item.contents.map(schemaFromParseItem))
+            return schemaFromDescription(item, schemaContents as SchemaDescriptionLegalContents[])
         case 'Feature':
             return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
         case 'Link':
-            return schemaFromLink(item, item.contents.map(schemaFromParseItem))
+            return schemaFromLink(item, schemaContents as SchemaStringTag[])
         case 'Condition':
             return schemaFromCondition(item, schemaContents as SchemaAssetLegalContents[])
         case 'Action':

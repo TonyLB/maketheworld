@@ -1,4 +1,4 @@
-import { SchemaMapTag, isSchemaName, SchemaMapLegalContents, isSchemaMapContents, SchemaNameTag } from "./baseClasses";
+import { SchemaMapTag, isSchemaName, SchemaMapLegalContents, isSchemaMapContents, SchemaNameTag, isSchemaRoom, isSchemaImage } from "./baseClasses";
 import { ParseMapTag } from "../parser/baseClasses";
 
 //
@@ -11,7 +11,9 @@ export const schemaFromMap = (item: ParseMapTag, contents: (SchemaMapLegalConten
         tag: 'Map',
         key: item.key,
         name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
-        contents: componentContents
+        contents: componentContents,
+        rooms: contents.filter(isSchemaRoom).reduce<Record<string, { x: number; y: number }>>((previous, { key, x, y }) => ({ ...previous, [key]: { x, y } }), {}),
+        images: contents.filter(isSchemaImage).map(({ key }) => (key))
     }
 }
 
