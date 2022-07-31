@@ -84,13 +84,11 @@ export type ParseImageTag = {
 export type ParseCharacterLegalContents = ParseNameTag | ParsePronounsTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag | ParseImageTag
 export type ParseCharacterTag = {
     tag: 'Character';
+    key: string;
     player?: string;
-    name: ParseNameTag;
-    pronouns: ParsePronounsTag;
-    firstImpression?: ParseFirstImpressionTag;
-    oneCoolThing?: ParseOneCoolThingTag;
-    outfit?: ParseOutfitTag;
-    image?: ParseImageTag;
+    fileName?: string;
+    zone?: string;
+    subFolder?: string;
     contents: ParseCharacterLegalContents[];
 } & ParseTagBase
 

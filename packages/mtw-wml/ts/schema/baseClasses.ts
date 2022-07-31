@@ -35,15 +35,42 @@ type SchemaPronouns = {
     reflexive: string;
 }
 
+export type SchemaPronounsTag = {
+    tag: 'Pronouns';
+} & SchemaPronouns
+
+export type SchemaFirstImpressionTag = {
+    tag: 'FirstImpression';
+    value: string;
+}
+
+export type SchemaOneCoolThingTag = {
+    tag: 'OneCoolThing';
+    value: string;
+}
+
+export type SchemaOutfitTag = {
+    tag: 'Outfit';
+    value: string;
+}
+
+export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag
+//
+// TODO: Refactor unnecessary capitalization on schema fields
+//
 export type SchemaCharacterTag = {
     tag: 'Character';
+    key: string;
     player?: string;
-    name: string;
-    pronouns: SchemaPronouns;
-    firstImpression?: string;
-    oneCoolThing?: string;
-    outfit?: string;
-    image?: SchemaImageTag;
+    fileName?: string;
+    zone?: string;
+    subFolder?: string;
+    Name: string;
+    Pronouns: SchemaPronouns;
+    FirstImpression?: string;
+    OneCoolThing?: string;
+    Outfit?: string;
+    fileURL: string;
 }
 
 export type SchemaVariableTag = {
@@ -169,6 +196,10 @@ export type SchemaStringTag = {
 
 export type SchemaTag = SchemaAssetTag |
     SchemaStoryTag |
+    SchemaFirstImpressionTag |
+    SchemaPronounsTag |
+    SchemaOneCoolThingTag |
+    SchemaOutfitTag |
     SchemaCharacterTag |
     SchemaImageTag |
     SchemaVariableTag |
@@ -205,3 +236,9 @@ export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => 
 export const isSchemaExitOrFeature = (value: SchemaTag): value is (SchemaExitTag | SchemaFeatureTag) => (isSchemaExit(value) || isSchemaFeature(value))
 export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature'].includes(value.tag))
 export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room'].includes(value.tag))
+
+export const isSchemaFirstImpression = (value: SchemaTag): value is SchemaFirstImpressionTag => (value.tag === 'FirstImpression')
+export const isSchemaOneCoolThing = (value: SchemaTag): value is SchemaOneCoolThingTag => (value.tag === 'OneCoolThing')
+export const isSchemaPronouns = (value: SchemaTag): value is SchemaPronounsTag => (value.tag === 'Pronouns')
+export const isSchemaOutfit = (value: SchemaTag): value is SchemaOutfitTag => (value.tag === 'Outfit')
+export const isSchemaImage = (value: SchemaTag): value is SchemaImageTag => (value.tag === 'Image')

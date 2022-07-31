@@ -8,7 +8,7 @@ import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/proc
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseAssetTag, ParseExitTag, ParseImportTag, ParseNameTag, ParseRoomTag, ParseStringTag, ParseTag, ParseUseTag } from './parser/baseClasses'
-import { isSchemaString, SchemaAssetLegalContents, SchemaAssetTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './schema/baseClasses'
+import { isSchemaString, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './schema/baseClasses'
 import { transformWithContext, TransformWithContextCallback } from './utils'
 import schemaFromAsset from './schema/asset'
 import schemaFromImport from './schema/import'
@@ -25,6 +25,7 @@ import schemaFromAction from './schema/action'
 import schemaFromComputed from './schema/computed'
 import schemaFromImage from './schema/image'
 import schemaFromVariable from './schema/variable'
+import schemaFromCharacter, { schemaFromPronouns, schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit } from './schema/character'
 
 export { wmlGrammar }
 
@@ -225,6 +226,16 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromImage(item)
         case 'Variable':
             return schemaFromVariable(item)
+        case 'Pronouns':
+            return schemaFromPronouns(item)
+        case 'FirstImpression':
+            return schemaFromFirstImpression(item)
+        case 'OneCoolThing':
+            return schemaFromOneCoolThing(item)
+        case 'Outfit':
+            return schemaFromOutfit(item)
+        case 'Character':
+            return schemaFromCharacter(item, schemaContents as SchemaCharacterLegalContents[])
         default:
             return {
                 tag: 'String',
