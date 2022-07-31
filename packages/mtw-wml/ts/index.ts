@@ -20,6 +20,7 @@ import schemaFromString from './schema/string'
 import schemaFromName from './schema/name'
 import schemaFromDescription from './schema/description'
 import schemaFromLink from './schema/link'
+import schemaFromCondition from './schema/condition'
 
 export { wmlGrammar }
 
@@ -210,6 +211,8 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromFeature(item, schemaContents as SchemaFeatureLegalContents[])
         case 'Link':
             return schemaFromLink(item, item.contents.map(schemaFromParseItem))
+        case 'Condition':
+            return schemaFromCondition(item, schemaContents as SchemaAssetLegalContents[])
         default:
             return {
                 tag: 'String',
