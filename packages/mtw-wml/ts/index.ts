@@ -24,6 +24,7 @@ import schemaFromCondition from './schema/condition'
 import schemaFromAction from './schema/action'
 import schemaFromComputed from './schema/computed'
 import schemaFromImage from './schema/image'
+import schemaFromVariable from './schema/variable'
 
 export { wmlGrammar }
 
@@ -222,6 +223,8 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromComputed(item)
         case 'Image':
             return schemaFromImage(item)
+        case 'Variable':
+            return schemaFromVariable(item)
         default:
             return {
                 tag: 'String',
