@@ -1,6 +1,9 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
-import { validatedSchema } from "@tonylb/mtw-wml/dist/"
+import { schemaFromParse } from '@tonylb/mtw-wml/dist/'
+import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/'
+import parse from '@tonylb/mtw-wml/dist/parser/'
+import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -26,10 +29,7 @@ export class AssetWorkspace {
     schema() {
         if (!this.cachedContent || this.cachedContent !== this.contents()) {
             this.cachedContent = this.contents()
-            if (!this.isMatched()) {
-                return []
-            }
-            this.cachedSchema = validatedSchema(this.match())
+            this.cachedSchema = schemaFromParse(parse(tokenizer(new SourceStream(this.contents()))))
         }
         return this.cachedSchema
     }
