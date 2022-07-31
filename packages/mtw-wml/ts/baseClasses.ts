@@ -4,8 +4,8 @@ type SchemaNestingBase<T extends SchemaTag> = {
     contents: T[];
 }
 
-export type LegalAssetContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
-export type LegalConditionContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
+export type SchemaAssetLegalContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
+export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag
 
 type SchemaAssetBase = {
     key: string;
@@ -13,7 +13,7 @@ type SchemaAssetBase = {
     zone?: string;
     subFolder?: string;
     player?: string;
-    contents: LegalAssetContents[];
+    contents: SchemaAssetLegalContents[];
 }
 
 export type SchemaAssetTag = {
@@ -94,7 +94,7 @@ export type SchemaConditionTag = {
     tag: 'Condition';
     if: string;
     dependencies: string[];
-    contents: LegalAssetContents[];
+    contents: SchemaAssetLegalContents[];
 }
 
 export type SchemaExitTag = {
@@ -111,14 +111,14 @@ export type SchemaLinkTag = {
     contents: SchemaStringTag[];
 }
 
-export type LegalDescriptionContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag
+export type SchemaDescriptionLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
     display: 'before' | 'after' | 'replace';
     spaceBefore: boolean;
     spaceAfter: boolean;
-    contents: LegalDescriptionContents[];
+    contents: SchemaDescriptionLegalContents[];
 }
 
 export type SchemaLineBreakTag = {
@@ -134,31 +134,32 @@ export type SchemaNameTag = {
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
 // and render properties
 //
-export type LegalRoomContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaNameTag
+export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaNameTag
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
     name: string;
+    render: SchemaDescriptionLegalContents[];
     global: boolean;
     display?: string;
     x?: number;
     y?: number;
-    contents: LegalRoomContents[];
+    contents: SchemaRoomLegalContents[];
 }
 
-export type LegalFeatureContents = SchemaDescriptionTag | SchemaNameTag
+export type SchemaFeatureLegalContents = SchemaDescriptionTag | SchemaNameTag
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
     global: boolean;
-    contents: LegalFeatureContents[];
+    contents: SchemaFeatureLegalContents[];
 }
 
-export type LegalMapContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag
+export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
-    contents: LegalMapContents[];
+    contents: SchemaMapLegalContents[];
 }
 
 export type SchemaStringTag = {
@@ -197,6 +198,8 @@ export class SchemaException extends Error {
 
 export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
+export const isSchemaDescriptionContents = (value: SchemaTag): value is SchemaDescriptionLegalContents => (['Whitespae', 'String', 'Link', 'br'].includes(value.tag))
+export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptionTag => (value.tag === 'Description')
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaExitOrFeature = (value: SchemaTag): value is (SchemaExitTag | SchemaFeatureTag) => (isSchemaExit(value) || isSchemaFeature(value))

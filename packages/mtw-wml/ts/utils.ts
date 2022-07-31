@@ -1,4 +1,4 @@
-import { LegalAssetContents } from "./baseClasses";
+import { SchemaAssetLegalContents } from "./baseClasses";
 import {
     ParseTag,
     isParseTagNesting,

@@ -1,4 +1,4 @@
-import { SchemaRoomTag, SchemaNameTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureTag, isSchemaExitOrFeature, isSchemaName } from "../baseClasses";
+import { SchemaRoomTag, SchemaNameTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureTag, isSchemaExitOrFeature, isSchemaName, isSchemaDescriptionContents, isSchemaDescription } from "../baseClasses";
 import { ParseRoomTag } from "../parser/baseClasses";
 
 //
@@ -15,6 +15,7 @@ export const schemaFromRoom = (item: ParseRoomTag, contents: (SchemaNameTag | Sc
         x: item.x,
         y: item.y,
         name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
+        render: contents.filter(isSchemaDescription).reduce((previous, description) => ([...previous, ...description.contents]), []),
         contents: componentContents
     }
 }

@@ -8,7 +8,7 @@ import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/proc
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseAssetTag, ParseExitTag, ParseImportTag, ParseNameTag, ParseRoomTag, ParseStringTag, ParseTag, ParseUseTag } from './parser/baseClasses'
-import { isSchemaString, LegalAssetContents, SchemaAssetTag, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './baseClasses'
+import { isSchemaString, SchemaAssetLegalContents, SchemaAssetTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './baseClasses'
 import { transformWithContext, TransformWithContextCallback } from './utils'
 import schemaFromAsset from './schema/asset'
 import schemaFromImport from './schema/import'
@@ -17,6 +17,7 @@ import schemaFromExit from './schema/exit'
 import schemaFromRoom from './schema/room'
 import schemaFromString from './schema/string'
 import schemaFromName from './schema/name'
+import schemaFromDescription from './schema/description'
 
 export { wmlGrammar }
 
@@ -188,7 +189,7 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
     }
     switch(item.tag) {
         case 'Asset':
-            return schemaFromAsset(item, schemaContents as LegalAssetContents[])
+            return schemaFromAsset(item, schemaContents as SchemaAssetLegalContents[])
         case 'Import':
             return schemaFromImport(item, schemaContents as SchemaUseTag[])
         case 'Use':
@@ -196,11 +197,13 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Exit':
             return schemaFromExit(item, item.contents.map(schemaFromParseItem))
         case 'Room':
-            return schemaFromRoom(item, schemaContents as (SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag)[])
+            return schemaFromRoom(item, schemaContents as SchemaRoomLegalContents[])
         case 'String':
             return schemaFromString(item)
         case 'Name':
             return schemaFromName(item)
+        case 'Description':
+            return schemaFromDescription(item, item.contents.map(schemaFromParseItem))
         default:
             return {
                 tag: 'String',
