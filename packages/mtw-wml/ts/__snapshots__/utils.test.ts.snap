@@ -97,3 +97,48 @@ Array [
   },
 ]
 `;
+
+exports[`transformWithContext should properly transform down the context tree 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 0,
+                "startTagToken": 0,
+                "tag": "String",
+                "value": "TestExit",
+              },
+            ],
+            "endTagToken": 0,
+            "from": "ABC",
+            "key": "ABC#DEF",
+            "name": "TestExit",
+            "startTagToken": 0,
+            "tag": "Exit",
+            "to": "DEF",
+          },
+          Object {
+            "endTagToken": 0,
+            "startTagToken": 0,
+            "tag": "Name",
+            "value": "TestRoom",
+          },
+        ],
+        "endTagToken": 0,
+        "global": false,
+        "key": "ABC",
+        "startTagToken": 0,
+        "tag": "Room",
+      },
+    ],
+    "endTagToken": 0,
+    "key": "Test",
+    "startTagToken": 0,
+    "tag": "Asset",
+  },
+]
+`;

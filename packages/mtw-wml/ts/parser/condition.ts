@@ -1,4 +1,4 @@
-import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseExitTag, ParseFeatureTag, ParseRoomTag } from "./baseClasses"
+import { ParseTagFactory, ParseConditionTag, isParseTagDependency, ParseAssetLegalContents } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open, context, contents, endTagToken }) => {
@@ -18,9 +18,9 @@ export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open
         // description context, allowing strings, links, etc.)
         //
         default:
-            const parsedContents = validateContents<ParseExitTag | ParseFeatureTag | ParseRoomTag>({
+            const parsedContents = validateContents<ParseAssetLegalContents>({
                 contents: nonDependencyContents,
-                legalTags: ['Exit', 'Feature', 'Room'],
+                legalTags: ['Exit', 'Feature', 'Room', 'Condition', 'Image'],
                 ignoreTags: ['Whitespace', 'Comment']
             })
             return {

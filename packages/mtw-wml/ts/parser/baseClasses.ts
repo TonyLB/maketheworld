@@ -13,22 +13,31 @@ type ParseTagBase = {
     closeToken?: number;
 }
 
-//
-// TODO: Make ParseNestingBase a generic that allows specificity, and make
-// an extract type that takes a nesting parse base and returns the legal types
-// of contents
-//
-type ParseNestingBase = {
-    contents: ParseTag[];
-} & ParseTagBase
-
 type ParseValueBase = {
     value: string;
 } & ParseTagBase
 
+export type ParseAssetLegalContents = ParseActionTag |
+    ParseCommentTag |
+    ParseComputedTag |
+    ParseConditionTag |
+    ParseExitTag |
+    ParseFeatureTag |
+    ParseImageTag |
+    ParseImportTag |
+    ParseMapTag |
+    ParseRoomTag |
+    ParseVariableTag |
+    ParseWhitespaceTag
+
 type ParseAssetBase = {
     key: string;
-} & ParseNestingBase
+    fileName?: string;
+    zone?: string;
+    subFolder?: string;
+    player?: string;
+    contents: ParseAssetLegalContents[];
+} & ParseTagBase
 
 export type ParseAssetTag = {
     tag: 'Asset';
@@ -72,16 +81,16 @@ export type ParseImageTag = {
     fileURL?: string;
 } & ParseTagBase
 
+export type ParseCharacterLegalContents = ParseNameTag | ParsePronounsTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag | ParseImageTag
 export type ParseCharacterTag = {
     tag: 'Character';
+    key: string;
     player?: string;
-    name: ParseNameTag;
-    pronouns: ParsePronounsTag;
-    firstImpression?: ParseFirstImpressionTag;
-    oneCoolThing?: ParseOneCoolThingTag;
-    outfit?: ParseOutfitTag;
-    image?: ParseImageTag;
-} & ParseNestingBase
+    fileName?: string;
+    zone?: string;
+    subFolder?: string;
+    contents: ParseCharacterLegalContents[];
+} & ParseTagBase
 
 export type ParseVariableTag = {
     tag: 'Variable';
@@ -103,6 +112,7 @@ export type ParseComputedTag = {
 
 export type ParseActionTag = {
     tag: 'Action';
+    key: string;
     src: string;
 } & ParseTagBase
 
@@ -113,41 +123,50 @@ export type ParseUseTag = {
     type?: string;
 } & ParseTagBase
 
+export type ParseImportLegalContents = ParseUseTag
 export type ParseImportTag = {
     tag: 'Import';
     from: string;
-} & ParseNestingBase
+    contents: ParseImportLegalContents[];
+} & ParseTagBase
 
 export type ParseConditionTag = {
     tag: 'Condition';
     if: string;
     dependencies: ParseDependencyTag[];
-} & ParseNestingBase
+    contents: ParseAssetLegalContents[];
+} & ParseTagBase
 
 export type ParseExitTag = {
     tag: 'Exit';
-    key: string;
+    key?: string;
     name: string;
     to?: string;
     from?: string;
+    contents: ParseStringTag[];
 } & ParseTagBase
 
+export type ParseLinkLegalContents = ParseStringTag | ParseWhitespaceTag
 export type ParseLinkTag = {
     tag: 'Link';
     to: string;
-} & ParseNestingBase
+    contents: ParseLinkLegalContents[];
+} & ParseTagBase
 
+export type ParseDescriptionLegalContents = ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag
 export type ParseDescriptionTag = {
     tag: 'Description';
     display: 'before' | 'after' | 'replace';
     spaceBefore: boolean;
     spaceAfter: boolean;
-} & ParseNestingBase
+    contents: ParseDescriptionLegalContents[];
+} & ParseTagBase
 
 export type ParseLineBreakTag = {
     tag: 'br';
 } & ParseTagBase
 
+export type ParseRoomLegalContents = ParseDescriptionTag | ParseNameTag | ParseExitTag | ParseFeatureTag
 export type ParseRoomTag = {
     tag: 'Room';
     key: string;
@@ -155,18 +174,23 @@ export type ParseRoomTag = {
     display?: string;
     x?: number;
     y?: number;
-} & ParseNestingBase
+    contents: ParseRoomLegalContents[];
+} & ParseTagBase
 
+export type ParseFeatureLegalContents = ParseDescriptionTag | ParseNameTag
 export type ParseFeatureTag = {
     tag: 'Feature';
     key: string;
     global: boolean;
-} & ParseNestingBase
+    contents: ParseFeatureLegalContents[];
+} & ParseTagBase
 
+export type ParseMapLegalContents = ParseNameTag | ParseRoomTag | ParseImageTag | ParseExitTag
 export type ParseMapTag = {
     tag: 'Map';
     key: string;
-} & ParseNestingBase
+    contents: ParseMapLegalContents[];
+} & ParseTagBase
 
 export type ParseStringTag = {
     tag: 'String';
@@ -244,9 +268,12 @@ export class ParseException extends Error {
 }
 
 export const isParseTagDependency = (value: ParseTag): value is ParseDependencyTag => (value.tag === 'Depend')
-export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag) => (
-    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map'].includes(value.tag)
+export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag | ParseExitTag) => (
+    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map', 'Exit'].includes(value.tag)
 )
+export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
+export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
+export const isParseString = (value: ParseTag): value is ParseStringTag => (value.tag === 'String')
 
 export type ParseStackEntry = ParseStackTagOpenPendingEntry | ParseStackTagOpenEntry | ParseStackTagEntry<ParseTag> | ParseStackTokenEntry<Token>
 
