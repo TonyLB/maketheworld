@@ -4,8 +4,11 @@ import { Matcher } from 'ohm-js'
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 
 import { wmlSelectorFactory } from './selector.js'
-import { validatedSchema, wmlSemantics } from '../index'
+import { schemaFromParse, validatedSchema, wmlSemantics } from '../index'
 import { normalize } from '../normalize'
+import parse from '../parser'
+import tokenizer from '../parser/tokenizer'
+import SourceStream from '../parser/tokenizer/sourceStream'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -345,6 +348,10 @@ export class WMLQuery {
         })
     }
     normalize(): NormalForm {
+        // if (this.matcher.getInput()) {
+        //     const schema = schemaFromParse(parse(tokenizer(new SourceStream(this.matcher.getInput()))))
+        //     return normalize(schema)
+        // }
         if (this.matcher.match().succeeded()) {
             const schema = validatedSchema(this.matcher.match())
             return normalize(schema)    

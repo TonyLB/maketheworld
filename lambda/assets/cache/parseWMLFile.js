@@ -1,4 +1,7 @@
-import { wmlGrammar, validatedSchema } from '@tonylb/mtw-wml/dist/'
+import { schemaFromParse } from '@tonylb/mtw-wml/dist/'
+import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/'
+import parse from '@tonylb/mtw-wml/dist/parser/'
+import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
 import { normalize } from '@tonylb/mtw-wml/dist/normalize'
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
 import { GetObjectCommand } from '../clients.js'
@@ -16,8 +19,9 @@ export const parseWMLFile = async (fileName) => {
     //
     // TODO: Error-handling in case the files have become corrupt
     //
-    const match = wmlGrammar.match(contents)
-    const schema = validatedSchema(match)
+    // TODO: Create better handling for multiple top-level tags in a single WML file
+    //
+    const schema = schemaFromParse(parse(tokenizer(new SourceStream(contents))))[0]
     const normalized = normalize(schema)
     return normalized
 }
