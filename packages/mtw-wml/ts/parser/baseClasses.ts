@@ -26,13 +26,27 @@ type ParseValueBase = {
     value: string;
 } & ParseTagBase
 
+export type LegalParseAssetContents = ParseActionTag |
+    ParseCommentTag |
+    ParseComputedTag |
+    ParseConditionTag |
+    ParseExitTag |
+    ParseFeatureTag |
+    ParseImageTag |
+    ParseImportTag |
+    ParseMapTag |
+    ParseRoomTag |
+    ParseVariableTag |
+    ParseWhitespaceTag
+
 type ParseAssetBase = {
     key: string;
     fileName?: string;
     zone?: string;
     subFolder?: string;
     player?: string;
-} & ParseNestingBase
+    contents: LegalParseAssetContents[];
+} & ParseTagBase
 
 export type ParseAssetTag = {
     tag: 'Asset';

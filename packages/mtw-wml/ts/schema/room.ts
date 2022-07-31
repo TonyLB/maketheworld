@@ -1,14 +1,22 @@
-import { SchemaRoomTag, SchemaNameTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureTag } from "../baseClasses";
+import { SchemaRoomTag, SchemaNameTag, SchemaDescriptionTag, SchemaExitTag, SchemaFeatureTag, isSchemaExitOrFeature, isSchemaName } from "../baseClasses";
 import { ParseRoomTag } from "../parser/baseClasses";
 
-export const schemaFromRoom = (item: ParseRoomTag, contents: (SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag)[]): SchemaRoomTag => ({
-    tag: 'Room',
-    key: item.key,
-    global: item.global,
-    display: item.display,
-    x: item.x,
-    y: item.y,
-    contents
-})
+//
+// TODO: Refactor room schema formation to keep name and description tags not folded into name
+// and render properties
+//
+export const schemaFromRoom = (item: ParseRoomTag, contents: (SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag)[]): SchemaRoomTag => {
+    const componentContents = contents.filter(isSchemaExitOrFeature)
+    return {
+        tag: 'Room',
+        key: item.key,
+        global: item.global,
+        display: item.display,
+        x: item.x,
+        y: item.y,
+        name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
+        contents: componentContents
+    }
+}
 
 export default schemaFromRoom

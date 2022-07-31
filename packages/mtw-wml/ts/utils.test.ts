@@ -1,4 +1,4 @@
-import { depthFirstParseTagGenerator, transformWithContext } from './utils'
+import { depthFirstParseTagGenerator, transformWithContext, TransformWithContextCallback } from './utils'
 import SourceStream from './parser/tokenizer/sourceStream'
 import parser from './parser'
 import tokenizer from './parser/tokenizer'
@@ -64,9 +64,9 @@ describe('transformWithContext', () => {
                 endTagToken: 0
             }
         ]
-        const testCallback = (item: ParseTag, context: ParseTag[]): ParseTag => {
+        const testCallback: TransformWithContextCallback = (item, context) => {
             if (isParseExit(item)) {
-                const closestRoomTag = context.reduceRight<ParseRoomTag | undefined>((previous, contextItem) => (previous ? previous : (isParseRoom(contextItem) ? contextItem : undefined)), undefined)
+                const closestRoomTag: ParseRoomTag | undefined = context.reduceRight((previous: ParseRoomTag | undefined, contextItem) => (previous ? previous : (isParseRoom(contextItem) ? contextItem : undefined)), undefined)
                 if (closestRoomTag) {
                     const newTo = item.to || closestRoomTag.key
                     const newFrom = item.from || closestRoomTag.key

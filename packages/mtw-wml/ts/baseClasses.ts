@@ -13,7 +13,8 @@ type SchemaAssetBase = {
     zone?: string;
     subFolder?: string;
     player?: string;
-} & SchemaNestingBase<LegalAssetContents>
+    contents: LegalAssetContents[];
+}
 
 export type SchemaAssetTag = {
     tag: 'Asset';
@@ -93,7 +94,8 @@ export type SchemaConditionTag = {
     tag: 'Condition';
     if: string;
     dependencies: string[];
-} & SchemaNestingBase<any>
+    contents: LegalAssetContents[];
+}
 
 export type SchemaExitTag = {
     tag: 'Exit';
@@ -106,14 +108,18 @@ export type SchemaExitTag = {
 export type SchemaLinkTag = {
     tag: 'Link';
     to: string;
-} & SchemaNestingBase<SchemaStringTag>
+    contents: SchemaStringTag[];
+}
+
+export type LegalDescriptionContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
     display: 'before' | 'after' | 'replace';
     spaceBefore: boolean;
     spaceAfter: boolean;
-} & SchemaNestingBase<SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag>
+    contents: LegalDescriptionContents[];
+}
 
 export type SchemaLineBreakTag = {
     tag: 'br';
@@ -124,25 +130,36 @@ export type SchemaNameTag = {
     name: string;
 }
 
+//
+// TODO: Refactor room schema formation to keep name and description tags not folded into name
+// and render properties
+//
+export type LegalRoomContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaNameTag
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
+    name: string;
     global: boolean;
     display?: string;
     x?: number;
     y?: number;
-} & SchemaNestingBase<SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaNameTag>
+    contents: LegalRoomContents[];
+}
 
+export type LegalFeatureContents = SchemaDescriptionTag | SchemaNameTag
 export type SchemaFeatureTag = {
     tag: 'Feature';
     key: string;
     global: boolean;
-}& SchemaNestingBase<SchemaDescriptionTag | SchemaNameTag>
+    contents: LegalFeatureContents[];
+}
 
+export type LegalMapContents = SchemaExitTag | SchemaImageTag | SchemaRoomTag
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
-} & SchemaNestingBase<SchemaExitTag | SchemaImageTag | SchemaRoomTag>
+    contents: LegalMapContents[];
+}
 
 export type SchemaStringTag = {
     tag: 'String';
@@ -178,4 +195,8 @@ export class SchemaException extends Error {
     }
 }
 
+export const isSchemaName = (value: SchemaTag): value is SchemaNameTag => (value.tag === 'Name')
 export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')
+export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
+export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
+export const isSchemaExitOrFeature = (value: SchemaTag): value is (SchemaExitTag | SchemaFeatureTag) => (isSchemaExit(value) || isSchemaFeature(value))

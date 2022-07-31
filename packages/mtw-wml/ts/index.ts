@@ -7,15 +7,16 @@ import { wmlProcessDown, assignExitContext } from './semantics/schema/processDow
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
-import { isParseExit, isParseRoom, isParseTagNesting, ParseRoomTag, ParseTag } from './parser/baseClasses'
-import { isSchemaString, LegalAssetContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureTag, SchemaNameTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './baseClasses'
-import { transformWithContext } from './utils'
+import { isParseExit, isParseRoom, isParseTagNesting, ParseAssetTag, ParseExitTag, ParseImportTag, ParseNameTag, ParseRoomTag, ParseStringTag, ParseTag, ParseUseTag } from './parser/baseClasses'
+import { isSchemaString, LegalAssetContents, SchemaAssetTag, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './baseClasses'
+import { transformWithContext, TransformWithContextCallback } from './utils'
 import schemaFromAsset from './schema/asset'
 import schemaFromImport from './schema/import'
 import schemaFromUse from './schema/use'
 import schemaFromExit from './schema/exit'
 import schemaFromRoom from './schema/room'
 import schemaFromString from './schema/string'
+import schemaFromName from './schema/name'
 
 export { wmlGrammar }
 
@@ -173,10 +174,17 @@ export const dbEntries = (schema) => {
         }, {})
 }
 
-const schemaFromParseItem = (item: ParseTag): SchemaTag => {
+function schemaFromParseItem(item: ParseAssetTag): SchemaAssetTag
+function schemaFromParseItem(item: ParseImportTag): SchemaImportTag
+function schemaFromParseItem(item: ParseUseTag): SchemaUseTag
+function schemaFromParseItem(item: ParseExitTag): SchemaExitTag
+function schemaFromParseItem(item: ParseRoomTag): SchemaRoomTag
+function schemaFromParseItem(item: ParseNameTag): SchemaNameTag
+function schemaFromParseItem(item: ParseStringTag): SchemaStringTag
+function schemaFromParseItem(item: ParseTag): SchemaTag {
     let schemaContents: SchemaTag[] = []
     if (isParseTagNesting(item)) {
-        schemaContents = item.contents.map(schemaFromParseItem)
+        schemaContents = (item.contents as any).map(schemaFromParseItem)
     }
     switch(item.tag) {
         case 'Asset':
@@ -186,11 +194,13 @@ const schemaFromParseItem = (item: ParseTag): SchemaTag => {
         case 'Use':
             return schemaFromUse(item)
         case 'Exit':
-            return schemaFromExit(item, schemaContents.filter(isSchemaString))
+            return schemaFromExit(item, item.contents.map(schemaFromParseItem))
         case 'Room':
             return schemaFromRoom(item, schemaContents as (SchemaNameTag | SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag)[])
         case 'String':
             return schemaFromString(item)
+        case 'Name':
+            return schemaFromName(item)
         default:
             return {
                 tag: 'String',
@@ -199,7 +209,7 @@ const schemaFromParseItem = (item: ParseTag): SchemaTag => {
     }
 }
 
-const exitContextCallback = (item: ParseTag, context: ParseTag[]): ParseTag => {
+const exitContextCallback: TransformWithContextCallback = ((item: ParseTag, context: ParseTag[]): ParseTag => {
     if (isParseExit(item)) {
         const closestRoomTag = context.reduceRight<ParseRoomTag | undefined>((previous, contextItem) => (previous ? previous : (isParseRoom(contextItem) ? contextItem : undefined)), undefined)
         if (closestRoomTag) {
@@ -221,7 +231,7 @@ const exitContextCallback = (item: ParseTag, context: ParseTag[]): ParseTag => {
         }
     }
     return item
-}
+}) as TransformWithContextCallback
 
 export const schemaFromParse = (tags: ParseTag[]): SchemaTag[] => {
     const firstPass = transformWithContext(tags, exitContextCallback)
