@@ -1,4 +1,4 @@
-import { SchemaFeatureTag, isSchemaExitOrFeature, isSchemaName, isSchemaDescription, SchemaFeatureLegalContents } from "../baseClasses";
+import { SchemaFeatureTag, isSchemaExitOrFeature, isSchemaName, isSchemaDescription, SchemaFeatureLegalContents } from "./baseClasses";
 import { ParseFeatureTag } from "../parser/baseClasses";
 
 //

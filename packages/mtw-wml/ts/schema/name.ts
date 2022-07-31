@@ -1,4 +1,4 @@
-import { SchemaNameTag } from "../baseClasses";
+import { SchemaNameTag } from "./baseClasses";
 import { ParseNameTag } from "../parser/baseClasses";
 
 export const schemaFromName = (item: ParseNameTag): SchemaNameTag => {

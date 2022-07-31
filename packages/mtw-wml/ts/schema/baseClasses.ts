@@ -1,8 +1,4 @@
-import { ParseTag } from "./parser/baseClasses";
-
-type SchemaNestingBase<T extends SchemaTag> = {
-    contents: T[];
-}
+import { ParseTag } from "../parser/baseClasses";
 
 export type SchemaAssetLegalContents = SchemaActionTag | SchemaComputedTag | SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaImportTag | SchemaMapTag | SchemaRoomTag | SchemaVariableTag
 export type SchemaConditionLegalContents =  SchemaConditionTag | SchemaExitTag | SchemaFeatureTag | SchemaImageTag | SchemaMapTag | SchemaRoomTag

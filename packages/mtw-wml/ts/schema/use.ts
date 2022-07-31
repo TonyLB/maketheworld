@@ -1,4 +1,4 @@
-import { SchemaUseTag } from "../baseClasses";
+import { SchemaUseTag } from "./baseClasses";
 import { ParseUseTag } from "../parser/baseClasses";
 
 export const schemaFromUse = (item: ParseUseTag): SchemaUseTag => {

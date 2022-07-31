@@ -1,4 +1,4 @@
-import { SchemaRoomTag, isSchemaExitOrFeature, isSchemaName, isSchemaDescription, SchemaRoomLegalContents } from "../baseClasses";
+import { SchemaRoomTag, isSchemaExitOrFeature, isSchemaName, isSchemaDescription, SchemaRoomLegalContents } from "./baseClasses";
 import { ParseRoomTag } from "../parser/baseClasses";
 
 //

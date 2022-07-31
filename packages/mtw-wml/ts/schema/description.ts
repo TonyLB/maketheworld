@@ -1,4 +1,4 @@
-import { SchemaDescriptionTag, SchemaDescriptionLegalContents } from "../baseClasses";
+import { SchemaDescriptionTag, SchemaDescriptionLegalContents } from "./baseClasses";
 import { ParseDescriptionTag } from "../parser/baseClasses";
 
 export const schemaFromDescription = (item: ParseDescriptionTag, contents: SchemaDescriptionLegalContents[]): SchemaDescriptionTag => {

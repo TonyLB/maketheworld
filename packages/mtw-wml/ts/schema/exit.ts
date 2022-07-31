@@ -1,4 +1,4 @@
-import { SchemaExitTag, SchemaStringTag } from "../baseClasses";
+import { SchemaExitTag, SchemaStringTag } from "./baseClasses";
 import { ParseExitTag } from "../parser/baseClasses";
 
 export const schemaFromExit = (item: ParseExitTag, contents: SchemaStringTag[]): SchemaExitTag => {

@@ -8,7 +8,7 @@ import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/proc
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseAssetTag, ParseExitTag, ParseImportTag, ParseNameTag, ParseRoomTag, ParseStringTag, ParseTag, ParseUseTag } from './parser/baseClasses'
-import { isSchemaString, SchemaAssetLegalContents, SchemaAssetTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './baseClasses'
+import { isSchemaString, SchemaAssetLegalContents, SchemaAssetTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaImportTag, SchemaNameTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStringTag, SchemaTag, SchemaUseTag } from './schema/baseClasses'
 import { transformWithContext, TransformWithContextCallback } from './utils'
 import schemaFromAsset from './schema/asset'
 import schemaFromImport from './schema/import'

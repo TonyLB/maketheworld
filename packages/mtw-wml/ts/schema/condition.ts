@@ -1,4 +1,4 @@
-import { SchemaAssetLegalContents, SchemaConditionTag } from "../baseClasses";
+import { SchemaAssetLegalContents, SchemaConditionTag } from "./baseClasses";
 import { ParseConditionTag } from "../parser/baseClasses";
 
 export const schemaFromCondition = (item: ParseConditionTag, contents: SchemaAssetLegalContents[]): SchemaConditionTag => ({

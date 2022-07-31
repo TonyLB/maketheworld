@@ -1,4 +1,4 @@
-import { SchemaImportTag, SchemaUseTag } from "../baseClasses";
+import { SchemaImportTag, SchemaUseTag } from "./baseClasses";
 import { ParseImportTag } from "../parser/baseClasses";
 
 export const schemaFromImport = (item: ParseImportTag, contents: SchemaUseTag[]): SchemaImportTag => {

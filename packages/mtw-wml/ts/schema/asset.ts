@@ -1,4 +1,4 @@
-import { SchemaAssetLegalContents, SchemaAssetTag } from "../baseClasses";
+import { SchemaAssetLegalContents, SchemaAssetTag } from "./baseClasses";
 import { ParseAssetTag } from "../parser/baseClasses";
 
 export const schemaFromAsset = (item: ParseAssetTag, contents: SchemaAssetLegalContents[]): SchemaAssetTag => ({
