@@ -131,7 +131,7 @@ export type SchemaNameTag = {
 // TODO: Refactor room schema formation to keep name and description tags not folded into name
 // and render properties
 //
-export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag | SchemaNameTag
+export type SchemaRoomLegalContents = SchemaDescriptionTag | SchemaExitTag | SchemaFeatureTag
 export type SchemaRoomTag = {
     tag: 'Room';
     key: string;
@@ -158,6 +158,7 @@ export type SchemaMapLegalContents = SchemaExitTag | SchemaImageTag | SchemaRoom
 export type SchemaMapTag = {
     tag: 'Map';
     key: string;
+    name: string;
     contents: SchemaMapLegalContents[];
 }
 
@@ -202,3 +203,5 @@ export const isSchemaDescription = (value: SchemaTag): value is SchemaDescriptio
 export const isSchemaExit = (value: SchemaTag): value is SchemaExitTag => (value.tag === 'Exit')
 export const isSchemaFeature = (value: SchemaTag): value is SchemaFeatureTag => (value.tag === 'Feature')
 export const isSchemaExitOrFeature = (value: SchemaTag): value is (SchemaExitTag | SchemaFeatureTag) => (isSchemaExit(value) || isSchemaFeature(value))
+export const isSchemaRoomContents = (value: SchemaTag): value is SchemaRoomLegalContents => (['Image', 'Exit', 'Feature'].includes(value.tag))
+export const isSchemaMapContents = (value: SchemaTag): value is SchemaMapLegalContents => (['Image', 'Exit', 'Room'].includes(value.tag))
