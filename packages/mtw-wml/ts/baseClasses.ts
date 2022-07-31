@@ -108,7 +108,7 @@ export type SchemaExitTag = {
 export type SchemaLinkTag = {
     tag: 'Link';
     to: string;
-    contents: SchemaStringTag[];
+    text: string;
 }
 
 export type SchemaDescriptionLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag
