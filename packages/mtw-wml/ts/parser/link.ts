@@ -1,4 +1,4 @@
-import { ParseTagFactory, ParseLinkTag, ParseWhitespaceTag, ParseStringTag } from "./baseClasses"
+import { ParseTagFactory, ParseLinkTag, ParseLinkLegalContents } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 export const parseLinkFactory: ParseTagFactory<ParseLinkTag> = ({ open, contents, endTagToken }) => {
@@ -11,7 +11,7 @@ export const parseLinkFactory: ParseTagFactory<ParseLinkTag> = ({ open, contents
         optional: {
         }
     })
-    const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag>({
+    const parseContents = validateContents<ParseLinkLegalContents>({
         contents,
         legalTags: ['Whitespace', 'String'],
         ignoreTags: ['Comment']

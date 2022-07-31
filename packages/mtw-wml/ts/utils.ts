@@ -28,7 +28,13 @@ import {
     ParseStringTag,
     ParseWhitespaceTag,
     ParseCommentTag,
-    LegalParseAssetContents
+    ParseAssetLegalContents,
+    ParseCharacterLegalContents,
+    ParseDescriptionLegalContents,
+    ParseRoomLegalContents,
+    ParseFeatureLegalContents,
+    ParseMapLegalContents,
+    ParseImportLegalContents
 } from "./parser/baseClasses"
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
@@ -84,7 +90,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...assetItem,
-                        contents: transformWithContext(item.contents, callback, [...context, assetItem]) as LegalParseAssetContents[]
+                        contents: transformWithContext(item.contents, callback, [...context, assetItem]) as ParseAssetLegalContents[]
                     }
                 ]
             case 'Story':
@@ -93,7 +99,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...storyItem,
-                        contents: transformWithContext(item.contents, callback, [...context, storyItem]) as LegalParseAssetContents[]
+                        contents: transformWithContext(item.contents, callback, [...context, storyItem]) as ParseAssetLegalContents[]
                     }
                 ]
             case 'Character':
@@ -102,7 +108,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...characterItem,
-                        contents: transformWithContext(item.contents, callback, [...context, characterItem])
+                        contents: transformWithContext(item.contents, callback, [...context, characterItem]) as ParseCharacterLegalContents[]
                     }
                 ]
             case 'Name':
@@ -166,7 +172,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...importItem,
-                        contents: transformWithContext(item.contents, callback, [...context, importItem])
+                        contents: transformWithContext(item.contents, callback, [...context, importItem]) as ParseImportLegalContents[]
                     }
                 ]
             case 'Condition':
@@ -175,7 +181,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...conditionItem,
-                        contents: transformWithContext(item.contents, callback, [...context, conditionItem])
+                        contents: transformWithContext(item.contents, callback, [...context, conditionItem]) as ParseAssetLegalContents[]
                     }
                 ]
             case 'Exit':
@@ -184,7 +190,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...exitItem,
-                        contents: transformWithContext(item.contents, callback, [...context, exitItem])
+                        contents: transformWithContext(item.contents, callback, [...context, exitItem]) as ParseStringTag[]
                     }
                 ]
             case 'Description':
@@ -193,7 +199,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...descriptionItem,
-                        contents: transformWithContext(item.contents, callback, [...context, descriptionItem])
+                        contents: transformWithContext(item.contents, callback, [...context, descriptionItem]) as ParseDescriptionLegalContents[]
                     }
                 ]
             case 'br':
@@ -207,7 +213,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...linkItem,
-                        contents: transformWithContext(item.contents, callback, [...context, linkItem])
+                        contents: transformWithContext(item.contents, callback, [...context, linkItem]) as ParseStringTag[]
                     }
                 ]
             case 'Room':
@@ -216,7 +222,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...roomItem,
-                        contents: transformWithContext(item.contents, callback, [...context, roomItem])
+                        contents: transformWithContext(item.contents, callback, [...context, roomItem]) as ParseRoomLegalContents[]
                     }
                 ]
             case 'Feature':
@@ -225,7 +231,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...featureItem,
-                        contents: transformWithContext(item.contents, callback, [...context, featureItem])
+                        contents: transformWithContext(item.contents, callback, [...context, featureItem]) as ParseFeatureLegalContents[]
                     }
                 ]
             case 'Map':
@@ -234,7 +240,7 @@ export function transformWithContext(tree: ParseTag[], callback: TransformWithCo
                     ...previous,
                     {
                         ...mapItem,
-                        contents: transformWithContext(item.contents, callback, [...context, mapItem])
+                        contents: transformWithContext(item.contents, callback, [...context, mapItem]) as ParseMapLegalContents[]
                     }
                 ]
             case 'String':

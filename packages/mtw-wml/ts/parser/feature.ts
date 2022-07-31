@@ -1,4 +1,4 @@
-import { ParseTagFactory, ParseFeatureTag, ParseDescriptionTag, ParseNameTag, ParseWhitespaceTag } from "./baseClasses"
+import { ParseTagFactory, ParseFeatureTag, ParseFeatureLegalContents } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 export const parseFeatureFactory: ParseTagFactory<ParseFeatureTag> = ({ open, contents, endTagToken }) => {
@@ -12,7 +12,7 @@ export const parseFeatureFactory: ParseTagFactory<ParseFeatureTag> = ({ open, co
             global: ['boolean']
         }
     })
-    const parseContents = validateContents<ParseDescriptionTag | ParseNameTag | ParseWhitespaceTag>({
+    const parseContents = validateContents<ParseFeatureLegalContents>({
         contents,
         legalTags: ['Name', 'Description'],
         ignoreTags: ['Whitespace', 'Comment']

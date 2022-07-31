@@ -1,4 +1,4 @@
-import { ParseTagFactory, ParseAssetTag, ParseStoryTag, ParseActionTag, ParseComputedTag, ParseExitTag, ParseFeatureTag, ParseImportTag, ParseRoomTag, ParseVariableTag, ParseConditionTag, ParseMapTag } from "./baseClasses"
+import { ParseTagFactory, ParseAssetTag, ParseStoryTag, ParseAssetLegalContents } from "./baseClasses"
 import { validateProperties, validateContents, ExtractProperties } from "./utils"
 
 export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, contents, endTagToken }) => {
@@ -15,7 +15,7 @@ export const parseAssetFactory: ParseTagFactory<ParseAssetTag> = ({ open, conten
             player: ['literal']
         }
     })
-    const parseContents = validateContents<ParseActionTag | ParseComputedTag | ParseConditionTag | ParseExitTag | ParseFeatureTag | ParseImportTag | ParseRoomTag | ParseMapTag | ParseVariableTag>({
+    const parseContents = validateContents<ParseAssetLegalContents>({
         contents,
         legalTags: ['Action', 'Computed', 'Condition', 'Exit', 'Feature', 'Import', 'Room', 'Variable', 'Map'],
         ignoreTags: ['Whitespace', 'Comment']
@@ -47,7 +47,7 @@ export const parseStoryFactory: ParseTagFactory<ParseStoryTag> = ({ open, conten
             instance: ['boolean']
         }
     })
-    const parseContents = validateContents<ParseActionTag | ParseComputedTag | ParseConditionTag | ParseExitTag | ParseFeatureTag | ParseImportTag | ParseRoomTag | ParseMapTag | ParseVariableTag>({
+    const parseContents = validateContents<ParseAssetLegalContents>({
         contents,
         legalTags: ['Action', 'Computed', 'Condition', 'Exit', 'Feature', 'Import', 'Room', 'Variable', 'Map'],
         ignoreTags: ['Whitespace', 'Comment']

@@ -1,4 +1,4 @@
-import { ParseTagFactory, ParseRoomTag, ParseException, ParseDescriptionTag, ParseFeatureTag, ParseExitTag, ParseNameTag } from "./baseClasses"
+import { ParseTagFactory, ParseRoomTag, ParseException, ParseRoomLegalContents } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
 export const parseRoomFactory: ParseTagFactory<ParseRoomTag> = ({ open, contents, endTagToken }) => {
@@ -22,7 +22,7 @@ export const parseRoomFactory: ParseTagFactory<ParseRoomTag> = ({ open, contents
     if (y === NaN) {
         throw new ParseException(`Property 'y' in Room tag must be a number`, open.startTagToken, endTagToken)
     }
-    const parseContents = validateContents<ParseDescriptionTag | ParseNameTag | ParseFeatureTag | ParseExitTag>({
+    const parseContents = validateContents<ParseRoomLegalContents>({
         contents,
         legalTags: ['Description', 'Name', 'Feature', 'Exit'],
         ignoreTags: ['Whitespace', 'Comment']
