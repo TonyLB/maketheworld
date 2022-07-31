@@ -114,6 +114,7 @@ export type ParseComputedTag = {
 
 export type ParseActionTag = {
     tag: 'Action';
+    key: string;
     src: string;
 } & ParseTagBase
 

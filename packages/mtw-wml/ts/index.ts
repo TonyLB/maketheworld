@@ -21,6 +21,7 @@ import schemaFromName from './schema/name'
 import schemaFromDescription from './schema/description'
 import schemaFromLink from './schema/link'
 import schemaFromCondition from './schema/condition'
+import schemaFromAction from './schema/action'
 
 export { wmlGrammar }
 
@@ -213,6 +214,8 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromLink(item, item.contents.map(schemaFromParseItem))
         case 'Condition':
             return schemaFromCondition(item, schemaContents as SchemaAssetLegalContents[])
+        case 'Action':
+            return schemaFromAction(item)
         default:
             return {
                 tag: 'String',

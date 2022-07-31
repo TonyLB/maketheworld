@@ -61,6 +61,7 @@ export type SchemaComputedTag = {
 
 export type SchemaActionTag = {
     tag: 'Action';
+    key: string;
     src: string;
 }
 
