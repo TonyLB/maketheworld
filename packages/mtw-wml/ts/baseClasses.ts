@@ -177,3 +177,5 @@ export class SchemaException extends Error {
         this.parseTag = parseTag
     }
 }
+
+export const isSchemaString = (value: SchemaTag): value is SchemaStringTag => (value.tag === 'String')

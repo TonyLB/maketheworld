@@ -45,7 +45,13 @@ describe('transformWithContext', () => {
                         to: 'DEF',
                         startTagToken: 0,
                         endTagToken: 0,
-                        name: 'TestExit'
+                        name: 'TestExit',
+                        contents: [{
+                            tag: 'String',
+                            value: 'TestExit',
+                            startTagToken: 0,
+                            endTagToken: 0
+                        }]
                     },
                     {
                         tag: 'Name',

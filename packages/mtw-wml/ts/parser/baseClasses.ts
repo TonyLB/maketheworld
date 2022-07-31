@@ -134,7 +134,7 @@ export type ParseExitTag = {
     name: string;
     to?: string;
     from?: string;
-} & ParseTagBase
+} & ParseNestingBase
 
 export type ParseLinkTag = {
     tag: 'Link';
@@ -248,8 +248,8 @@ export class ParseException extends Error {
 }
 
 export const isParseTagDependency = (value: ParseTag): value is ParseDependencyTag => (value.tag === 'Depend')
-export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag) => (
-    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map'].includes(value.tag)
+export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag | ParseExitTag) => (
+    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map', 'Exit'].includes(value.tag)
 )
 export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')

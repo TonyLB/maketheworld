@@ -105,6 +105,14 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 0,
+                "startTagToken": 0,
+                "tag": "String",
+                "value": "TestExit",
+              },
+            ],
             "endTagToken": 0,
             "from": "ABC",
             "key": "ABC#DEF",
