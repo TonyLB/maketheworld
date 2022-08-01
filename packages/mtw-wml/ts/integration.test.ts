@@ -8,7 +8,7 @@ import SourceStream from './parser/tokenizer/sourceStream'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import normalize from './normalize'
 
-xdescribe('parallel validateSchema integration test (temporary)', () => {
+describe('parallel validateSchema integration test (temporary)', () => {
     it('should correctly validate an asset schema', () => {
         const testSource = `
             <Asset key=(Test) fileName="test">

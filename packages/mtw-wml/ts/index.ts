@@ -27,6 +27,7 @@ import schemaFromImage from './schema/image'
 import schemaFromVariable from './schema/variable'
 import schemaFromCharacter, { schemaFromPronouns, schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit } from './schema/character'
 import schemaFromMap from './schema/map'
+import { schemaFromWhitespace, schemaFromLineBreak } from './schema/whiteSpace'
 
 export { wmlGrammar }
 
@@ -256,6 +257,10 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
             return schemaFromOutfit(item)
         case 'Character':
             return schemaFromCharacter(item, schemaContents as SchemaCharacterLegalContents[])
+        case 'Whitespace':
+            return schemaFromWhitespace(item)
+        case 'br':
+            return schemaFromLineBreak(item)
         default:
             return {
                 tag: 'String',
