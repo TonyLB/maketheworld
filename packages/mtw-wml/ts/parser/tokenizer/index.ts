@@ -62,34 +62,17 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                     }
                     if (token.type === 'Whitespace') {
                         if (currentDescription) {
-                            currentDescription = {
-                                type: 'Description',
-                                startIdx: currentDescription.startIdx,
-                                endIdx: token.endIdx,
-                                value: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
-                            }
-                        }
-                        else {
                             currentWhitespace = token
                         }
                     }
                     if (token.type === 'Description') {
-                        if (currentDescription) {
+                        if (currentDescription && currentWhitespace) {
                             currentDescription = {
                                 type: 'Description',
                                 startIdx: currentDescription.startIdx,
                                 endIdx: token.endIdx,
-                                value: sourceStream.source.slice(currentDescription.startIdx, token.endIdx)
+                                value: `${currentDescription.value} ${sourceStream.source.slice(token.startIdx, token.endIdx)}`
                             }
-                        }
-                        else if (currentWhitespace) {
-                            currentDescription = {
-                                type: 'Description',
-                                startIdx: currentWhitespace.startIdx,
-                                endIdx: token.endIdx,
-                                value: sourceStream.source.slice(currentWhitespace.startIdx, token.endIdx)
-                            }
-                            currentWhitespace = undefined
                         }
                         else {
                             currentDescription = token

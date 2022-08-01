@@ -135,8 +135,11 @@ export type SchemaLinkTag = {
     tag: 'Link';
     to: string;
     text: string;
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
 }
 
+export type SchemaDescriptionIncomingContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag | SchemaWhitespaceTag
 export type SchemaDescriptionLegalContents = SchemaStringTag | SchemaLinkTag | SchemaLineBreakTag
 
 export type SchemaDescriptionTag = {
@@ -196,6 +199,12 @@ export type SchemaMapTag = {
 export type SchemaStringTag = {
     tag: 'String';
     value: string;
+    spaceBefore?: boolean;
+    spaceAfter?: boolean;
+}
+
+export type SchemaWhitespaceTag = {
+    tag: 'Whitespace';
 }
 
 export type SchemaTag = SchemaAssetTag |
@@ -220,7 +229,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaRoomTag |
     SchemaFeatureTag |
     SchemaMapTag |
-    SchemaStringTag
+    SchemaStringTag |
+    SchemaWhitespaceTag
 
 export class SchemaException extends Error {
     parseTag: ParseTag;
@@ -247,3 +257,7 @@ export const isSchemaOneCoolThing = (value: SchemaTag): value is SchemaOneCoolTh
 export const isSchemaPronouns = (value: SchemaTag): value is SchemaPronounsTag => (value.tag === 'Pronouns')
 export const isSchemaOutfit = (value: SchemaTag): value is SchemaOutfitTag => (value.tag === 'Outfit')
 export const isSchemaImage = (value: SchemaTag): value is SchemaImageTag => (value.tag === 'Image')
+
+export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value.tag === 'Link')
+export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
+export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')

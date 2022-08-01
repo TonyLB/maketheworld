@@ -6,7 +6,10 @@ export const parseDescriptionFactory: ParseTagFactory<ParseDescriptionTag> = ({ 
         open,
         endTagToken,
         required: {},
-        optional: {}
+        optional: {
+            spaceBefore: ['boolean'],
+            spaceAfter: ['boolean']
+        }
     })
     const parseContents = validateContents<ParseWhitespaceTag | ParseStringTag | ParseLinkTag | ParseLineBreakTag>({
         contents,
@@ -17,6 +20,8 @@ export const parseDescriptionFactory: ParseTagFactory<ParseDescriptionTag> = ({ 
         type: 'Tag',
         tag: {
             ...validate,
+            spaceAfter: validate.spaceAfter || false,
+            spaceBefore: validate.spaceBefore || false,
             tag: 'Description',
             startTagToken: open.startTagToken,
             endTagToken,

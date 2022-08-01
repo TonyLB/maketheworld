@@ -114,11 +114,6 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 30,
-    "startIdx": 18,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 35,
     "startIdx": 31,
     "tag": "Room",
@@ -159,11 +154,6 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 77,
-    "startIdx": 61,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 89,
     "startIdx": 78,
     "tag": "Description",
@@ -177,10 +167,14 @@ Array [
   },
   Object {
     "endIdx": 128,
-    "startIdx": 91,
+    "startIdx": 112,
     "type": "Description",
-    "value": "
-                    Test description",
+    "value": "Test description",
+  },
+  Object {
+    "endIdx": 116,
+    "startIdx": 116,
+    "type": "Whitespace",
   },
   Object {
     "endIdx": 136,
@@ -188,22 +182,20 @@ Array [
     "type": "Comment",
   },
   Object {
-    "endIdx": 157,
-    "startIdx": 137,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 170,
     "startIdx": 158,
     "type": "Comment",
   },
   Object {
-    "endIdx": 219,
-    "startIdx": 171,
+    "endIdx": 203,
+    "startIdx": 192,
     "type": "Description",
-    "value": "
-                    End of test
-               ",
+    "value": "End of test",
+  },
+  Object {
+    "endIdx": 219,
+    "startIdx": 203,
+    "type": "Whitespace",
   },
   Object {
     "endIdx": 233,
@@ -212,20 +204,10 @@ Array [
     "type": "TagClose",
   },
   Object {
-    "endIdx": 246,
-    "startIdx": 234,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 253,
     "startIdx": 247,
     "tag": "Room",
     "type": "TagClose",
-  },
-  Object {
-    "endIdx": 262,
-    "startIdx": 254,
-    "type": "Whitespace",
   },
   Object {
     "endIdx": 270,
@@ -269,11 +251,6 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 30,
-    "startIdx": 18,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 35,
     "startIdx": 31,
     "tag": "Room",
@@ -304,11 +281,6 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 63,
-    "startIdx": 47,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 75,
     "startIdx": 64,
     "tag": "Description",
@@ -321,12 +293,15 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 134,
-    "startIdx": 77,
+    "endIdx": 114,
+    "startIdx": 98,
     "type": "Description",
-    "value": "
-                    Test description
-                   ",
+    "value": "Test description",
+  },
+  Object {
+    "endIdx": 134,
+    "startIdx": 114,
+    "type": "Whitespace",
   },
   Object {
     "endIdx": 139,
@@ -365,18 +340,26 @@ Array [
     "value": "link text",
   },
   Object {
+    "endIdx": 155,
+    "startIdx": 155,
+    "type": "Whitespace",
+  },
+  Object {
     "endIdx": 166,
     "startIdx": 160,
     "tag": "Link",
     "type": "TagClose",
   },
   Object {
-    "endIdx": 215,
-    "startIdx": 167,
+    "endIdx": 199,
+    "startIdx": 188,
     "type": "Description",
-    "value": "
-                    End of test
-               ",
+    "value": "End of test",
+  },
+  Object {
+    "endIdx": 215,
+    "startIdx": 199,
+    "type": "Whitespace",
   },
   Object {
     "endIdx": 229,
@@ -385,20 +368,10 @@ Array [
     "type": "TagClose",
   },
   Object {
-    "endIdx": 242,
-    "startIdx": 230,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 249,
     "startIdx": 243,
     "tag": "Room",
     "type": "TagClose",
-  },
-  Object {
-    "endIdx": 258,
-    "startIdx": 250,
-    "type": "Whitespace",
   },
   Object {
     "endIdx": 266,
@@ -442,11 +415,6 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 30,
-    "startIdx": 18,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 35,
     "startIdx": 31,
     "tag": "Room",
@@ -485,11 +453,6 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 70,
-    "startIdx": 54,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 78,
     "startIdx": 71,
     "tag": "Feature",
@@ -525,20 +488,10 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
-    "endIdx": 104,
-    "startIdx": 92,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 111,
     "startIdx": 105,
     "tag": "Room",
     "type": "TagClose",
-  },
-  Object {
-    "endIdx": 120,
-    "startIdx": 112,
-    "type": "Whitespace",
   },
   Object {
     "endIdx": 128,
