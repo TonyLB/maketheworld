@@ -1,3 +1,5 @@
+import SourceStream from "../../parser/tokenizer/sourceStream"
+
 export type SearchTokenWhitespace = {
     type: 'Whitespace';
 }
@@ -64,6 +66,10 @@ export type SearchToken = SearchTokenTag |
     SearchTokenGroupClose |
     SearchTokenComma |
     SearchTokenWhitespace
+
+export type SearchTokenizer<T extends { type: string }> = {
+    (sourceStream: SourceStream): T | undefined
+}    
 
 export type SearchParseTag = {
     type: 'Tag';

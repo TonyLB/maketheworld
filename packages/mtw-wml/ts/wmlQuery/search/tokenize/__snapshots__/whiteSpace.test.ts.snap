@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`whiteSpaceTokenizer should tokenize whitespace between tags 1`] = `
+Object {
+  "endIdx": 5,
+  "startIdx": 0,
+  "type": "Whitespace",
+}
+`;
+
+exports[`whiteSpaceTokenizer should tokenize whitespace to end of source 1`] = `
+Object {
+  "endIdx": 6,
+  "startIdx": 0,
+  "type": "Whitespace",
+}
+`;
