@@ -1,8 +1,10 @@
+import SourceStream from "../../parser/tokenizer/sourceStream"
+
 export type SearchTokenWhitespace = {
     type: 'Whitespace';
 }
 
-type SearchTokenTagLegal = "Asset" |
+export type SearchTokenTagLegal = "Asset" |
     "Story" |
     "Character" |
     "Name" |
@@ -28,10 +30,11 @@ export type SearchTokenString = {
     value: string;
 }
 
-type SearchTokenPropertyLegal = 'key' | 'to' | 'from'
+export type SearchTokenPropertyLegal = 'key' | 'to' | 'from'
 export type SearchTokenProperty = {
     type: 'Property';
-    value: SearchTokenPropertyLegal
+    key: SearchTokenPropertyLegal;
+    value: string;
 }
 
 export type SearchTokenFirst = {
@@ -64,6 +67,10 @@ export type SearchToken = SearchTokenTag |
     SearchTokenGroupClose |
     SearchTokenComma |
     SearchTokenWhitespace
+
+export type SearchTokenizer<T extends { type: string }> = {
+    (sourceStream: SourceStream): T | undefined
+}    
 
 export type SearchParseTag = {
     type: 'Tag';

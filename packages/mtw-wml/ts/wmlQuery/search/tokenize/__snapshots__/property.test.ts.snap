@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`propertyTokenizer should tokenize nthChild to end of source 1`] = `
+Object {
+  "endIdx": 14,
+  "key": "key",
+  "startIdx": 0,
+  "type": "Property",
+  "value": "test",
+}
+`;
+
+exports[`propertyTokenizer should tokenize property 1`] = `
+Object {
+  "endIdx": 11,
+  "key": "key",
+  "startIdx": 0,
+  "type": "Property",
+  "value": "test",
+}
+`;

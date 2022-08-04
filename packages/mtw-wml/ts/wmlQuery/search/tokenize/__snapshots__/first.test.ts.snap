@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`firstTokenizer should tokenize first 1`] = `
+Object {
+  "endIdx": 5,
+  "startIdx": 0,
+  "type": "First",
+}
+`;
+
+exports[`firstTokenizer should tokenize first to end of source 1`] = `
+Object {
+  "endIdx": 5,
+  "startIdx": 0,
+  "type": "First",
+}
+`;
