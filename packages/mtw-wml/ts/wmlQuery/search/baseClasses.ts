@@ -30,10 +30,11 @@ export type SearchTokenString = {
     value: string;
 }
 
-type SearchTokenPropertyLegal = 'key' | 'to' | 'from'
+export type SearchTokenPropertyLegal = 'key' | 'to' | 'from'
 export type SearchTokenProperty = {
     type: 'Property';
-    value: SearchTokenPropertyLegal
+    key: SearchTokenPropertyLegal;
+    value: string;
 }
 
 export type SearchTokenFirst = {
