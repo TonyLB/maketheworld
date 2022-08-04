@@ -29,12 +29,11 @@ export const tagTokenizer: SearchTokenizer<SearchTokenTag> = (sourceStream) => {
         sourceStream.consume(1)
     }
     const tagCheck: string = sourceStream.source.slice(startIdx, sourceStream.position)
-    console.log(`Tag: ${tagCheck}`)
     if (isLegalTagString(tagCheck)) {
         return {
             type: 'Tag',
             startIdx,
-            endIdx: sourceStream.position,
+            endIdx: sourceStream.position - 1,
             tag: tagCheck
         }    
     }

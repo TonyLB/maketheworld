@@ -2,7 +2,7 @@
 
 exports[`tagTokenizer should tokenize tag 1`] = `
 Object {
-  "endIdx": 4,
+  "endIdx": 3,
   "startIdx": 0,
   "tag": "Room",
   "type": "Tag",
