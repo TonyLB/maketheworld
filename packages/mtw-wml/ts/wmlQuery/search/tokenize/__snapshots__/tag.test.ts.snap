@@ -1,0 +1,10 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`tagTokenizer should tokenize tag 1`] = `
+Object {
+  "endIdx": 4,
+  "startIdx": 0,
+  "tag": "Room",
+  "type": "Tag",
+}
+`;

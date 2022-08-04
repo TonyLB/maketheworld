@@ -4,7 +4,7 @@ export type SearchTokenWhitespace = {
     type: 'Whitespace';
 }
 
-type SearchTokenTagLegal = "Asset" |
+export type SearchTokenTagLegal = "Asset" |
     "Story" |
     "Character" |
     "Name" |

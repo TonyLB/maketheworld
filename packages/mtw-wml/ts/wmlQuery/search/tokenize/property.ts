@@ -42,7 +42,7 @@ const expressionStringLiteralSubTokenizer: SearchTokenizer<SearchTokenLiteralVal
 export const propertyTokenizer: SearchTokenizer<SearchTokenProperty> = (sourceStream) => {
     const startIdx = sourceStream.position
     let key: SearchTokenPropertyLegal
-    console.log(`sourceStream 1: ${sourceStream.lookAhead(1)}`)
+
     if (!sourceStream.lookAhead('[')) {
         return undefined
     }
