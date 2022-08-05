@@ -2,7 +2,7 @@ import { SearchTokenizer, SearchTokenComma } from "../baseClasses"
 
 export const commaTokenizer: SearchTokenizer<SearchTokenComma> = (sourceStream) => {
     const startIdx = sourceStream.position
-    if (!sourceStream.lookAhead(',')) {
+    if (sourceStream.lookAhead(',')) {
         sourceStream.consume(1)
         return {
             type: 'Comma',

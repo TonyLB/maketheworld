@@ -2,7 +2,7 @@ import { SearchTokenizer, SearchTokenGroupOpen, SearchTokenGroupClose } from "..
 
 export const groupOpenTokenizer: SearchTokenizer<SearchTokenGroupOpen> = (sourceStream) => {
     const startIdx = sourceStream.position
-    if (!sourceStream.lookAhead('(')) {
+    if (sourceStream.lookAhead('(')) {
         sourceStream.consume(1)
         return {
             type: 'GroupOpen',
@@ -15,7 +15,7 @@ export const groupOpenTokenizer: SearchTokenizer<SearchTokenGroupOpen> = (source
 
 export const groupCloseTokenizer: SearchTokenizer<SearchTokenGroupClose> = (sourceStream) => {
     const startIdx = sourceStream.position
-    if (!sourceStream.lookAhead(')')) {
+    if (sourceStream.lookAhead(')')) {
         sourceStream.consume(1)
         return {
             type: 'GroupClose',
