@@ -1,5 +1,4 @@
 import tokenizer from '.'
-import { TokenizeException } from '../../../parser/tokenizer/baseClasses'
 import SourceStream from '../../../parser/tokenizer/sourceStream'
 
 describe('wmlQuery select tokenizer', () => {
