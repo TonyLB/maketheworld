@@ -12,6 +12,7 @@ import SourceStream from '../parser/tokenizer/sourceStream'
 import { SearchParse } from './search/baseClasses'
 import { ParseTag } from '../parser/baseClasses'
 import { Token } from '../parser/tokenizer/baseClasses'
+import { SchemaTag } from '../schema/baseClasses'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -59,7 +60,8 @@ export class NewWMLQueryResult {
     wmlQuery: WMLQuery;
     _tokens: Token[] = [];
     _parse: ParseTag[] = [];
-    _nodes: ParseTag[] = [];
+    _schema: SchemaTag[] = [];
+    _nodes: SchemaTag[] = [];
     constructor(wmlQuery: WMLQuery, { search, extendsResult }: { search?: SearchParse[], extendsResult?: NewWMLQueryResult }) {
         this.wmlQuery = wmlQuery
         if (search) {
@@ -77,6 +79,7 @@ export class NewWMLQueryResult {
     refresh(): void {
         this._tokens = tokenizer(new SourceStream(this.wmlQuery.source))
         this._parse = parse(this._tokens)
+        this._schema = schemaFromParse(this._parse)
         // if (this._parse.length) {
         //     this._nodes = this.search.reduce((previous, { search, not }) => {
         //         if (search) {

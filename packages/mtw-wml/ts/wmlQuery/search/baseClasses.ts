@@ -13,7 +13,6 @@ export type SearchTokenTagLegal = "Asset" |
     "Outfit" |
     "FirstImpression" |
     "Condition" |
-    "Layer" |
     "Exit" |
     "Description" |
     "Room" |

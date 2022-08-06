@@ -264,7 +264,8 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         default:
             return {
                 tag: 'String',
-                value: ''
+                value: '',
+                parse: item
             }
     }
 }

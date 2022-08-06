@@ -1,0 +1,477 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`newWMLQuery selector should correctly select ancestor chain 1`] = `
+Array [
+  Object {
+    "name": "Tess",
+    "tag": "Name",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should correctly select leaf node 1`] = `
+Array [
+  Object {
+    "name": "Tess",
+    "tag": "Name",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should correctly select root node 1`] = `
+Array [
+  Object {
+    "FirstImpression": undefined,
+    "Name": "Tess",
+    "OneCoolThing": "Fuchsia eyes",
+    "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+    "Pronouns": Object {
+      "adjective": "hers",
+      "object": "her",
+      "parse": Object {
+        "adjective": "hers",
+        "endTagToken": 33,
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "startTagToken": 15,
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+      "possessive": "her",
+      "reflexive": "herself",
+      "subject": "she",
+    },
+    "contents": Array [
+      Object {
+        "name": "Tess",
+        "tag": "Name",
+      },
+      Object {
+        "adjective": "hers",
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+      Object {
+        "tag": "OneCoolThing",
+        "value": "Fuchsia eyes",
+      },
+      Object {
+        "tag": "Outfit",
+        "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+      },
+    ],
+    "fileName": "Tess",
+    "fileURL": undefined,
+    "key": "TESS",
+    "player": "TonyLB",
+    "subFolder": undefined,
+    "tag": "Character",
+    "zone": undefined,
+  },
+]
+`;
+
+exports[`newWMLQuery selector should correctly subset by property 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "spaceAfter": true,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Test Render:",
+          },
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": true,
+            "tag": "Link",
+            "text": "Clock Tower",
+            "to": "clockTower",
+          },
+        ],
+        "display": undefined,
+        "spaceAfter": false,
+        "spaceBefore": false,
+        "tag": "Description",
+      },
+      Object {
+        "from": "VORTEX",
+        "key": "VORTEX#Test",
+        "name": "test",
+        "tag": "Exit",
+        "to": "Test",
+      },
+      Object {
+        "from": "Test",
+        "key": "Test#VORTEX",
+        "name": "vortex",
+        "tag": "Exit",
+        "to": "VORTEX",
+      },
+    ],
+    "display": undefined,
+    "global": true,
+    "key": "VORTEX",
+    "name": "",
+    "render": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Test Render:",
+        },
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Test Render:",
+      },
+      Object {
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+            Object {
+              "endTagToken": 22,
+              "startTagToken": 22,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 23,
+          "startTagToken": 16,
+          "tag": "Link",
+          "to": "clockTower",
+        },
+        "spaceAfter": false,
+        "spaceBefore": true,
+        "tag": "Link",
+        "text": "Clock Tower",
+        "to": "clockTower",
+      },
+    ],
+    "tag": "Room",
+    "x": undefined,
+    "y": undefined,
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly chain complex predicates 1`] = `
+Array [
+  Object {
+    "from": "VORTEX",
+    "key": "VORTEX#Test",
+    "name": "test",
+    "tag": "Exit",
+    "to": "Test",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly select :first filter 1`] = `
+Array [
+  Object {
+    "from": "VORTEX",
+    "key": "VORTEX#Test",
+    "name": "test",
+    "tag": "Exit",
+    "to": "Test",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly select boolean or 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Test Render:",
+      },
+      Object {
+        "spaceAfter": false,
+        "spaceBefore": true,
+        "tag": "Link",
+        "text": "Clock Tower",
+        "to": "clockTower",
+      },
+    ],
+    "display": undefined,
+    "spaceAfter": false,
+    "spaceBefore": false,
+    "tag": "Description",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Clocktower test on multiple lines",
+      },
+    ],
+    "display": undefined,
+    "spaceAfter": false,
+    "spaceBefore": false,
+    "tag": "Description",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly select boolean or of chained selectors 1`] = `
+Array [
+  Object {
+    "from": "VORTEX",
+    "key": "VORTEX#Test",
+    "name": "test",
+    "tag": "Exit",
+    "to": "Test",
+  },
+  Object {
+    "from": "Test",
+    "key": "Test#VORTEX",
+    "name": "vortex",
+    "tag": "Exit",
+    "to": "VORTEX",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Clocktower test on multiple lines",
+      },
+    ],
+    "display": undefined,
+    "spaceAfter": false,
+    "spaceBefore": false,
+    "tag": "Description",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly select grouped operators 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Test Render:",
+      },
+      Object {
+        "spaceAfter": false,
+        "spaceBefore": true,
+        "tag": "Link",
+        "text": "Clock Tower",
+        "to": "clockTower",
+      },
+    ],
+    "display": undefined,
+    "spaceAfter": false,
+    "spaceBefore": false,
+    "tag": "Description",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly select nested :nthChild filters 1`] = `
+Array [
+  Object {
+    "from": "Test",
+    "key": "Test#VORTEX",
+    "name": "vortex",
+    "tag": "Exit",
+    "to": "VORTEX",
+  },
+]
+`;
+
+exports[`newWMLQuery selector should properly select one level :nthChild filter 1`] = `
+Array [
+  Object {
+    "contents": Array [],
+    "display": undefined,
+    "global": undefined,
+    "key": "Test",
+    "name": "",
+    "render": Array [],
+    "tag": "Room",
+    "x": undefined,
+    "y": undefined,
+  },
+]
+`;
+
+exports[`newWMLQuery selector should return a list for multiple matches 1`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "spaceAfter": true,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Test Render:",
+          },
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": true,
+            "tag": "Link",
+            "text": "Clock Tower",
+            "to": "clockTower",
+          },
+        ],
+        "display": undefined,
+        "spaceAfter": false,
+        "spaceBefore": false,
+        "tag": "Description",
+      },
+      Object {
+        "from": "VORTEX",
+        "key": "VORTEX#Test",
+        "name": "test",
+        "tag": "Exit",
+        "to": "Test",
+      },
+      Object {
+        "from": "Test",
+        "key": "Test#VORTEX",
+        "name": "vortex",
+        "tag": "Exit",
+        "to": "VORTEX",
+      },
+    ],
+    "display": undefined,
+    "global": true,
+    "key": "VORTEX",
+    "name": "",
+    "render": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Test Render:",
+        },
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Test Render:",
+      },
+      Object {
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+            Object {
+              "endTagToken": 22,
+              "startTagToken": 22,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 23,
+          "startTagToken": 16,
+          "tag": "Link",
+          "to": "clockTower",
+        },
+        "spaceAfter": false,
+        "spaceBefore": true,
+        "tag": "Link",
+        "text": "Clock Tower",
+        "to": "clockTower",
+      },
+    ],
+    "tag": "Room",
+    "x": undefined,
+    "y": undefined,
+  },
+  Object {
+    "contents": Array [],
+    "display": undefined,
+    "global": undefined,
+    "key": "Test",
+    "name": "",
+    "render": Array [],
+    "tag": "Room",
+    "x": undefined,
+    "y": undefined,
+  },
+]
+`;
+
+exports[`newWMLQuery selector should select root node when passed empty string 1`] = `
+Array [
+  Object {
+    "FirstImpression": undefined,
+    "Name": "Tess",
+    "OneCoolThing": "Fuchsia eyes",
+    "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+    "Pronouns": Object {
+      "adjective": "hers",
+      "object": "her",
+      "parse": Object {
+        "adjective": "hers",
+        "endTagToken": 33,
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "startTagToken": 15,
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+      "possessive": "her",
+      "reflexive": "herself",
+      "subject": "she",
+    },
+    "contents": Array [
+      Object {
+        "name": "Tess",
+        "tag": "Name",
+      },
+      Object {
+        "adjective": "hers",
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+      Object {
+        "tag": "OneCoolThing",
+        "value": "Fuchsia eyes",
+      },
+      Object {
+        "tag": "Outfit",
+        "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+      },
+    ],
+    "fileName": "Tess",
+    "fileURL": undefined,
+    "key": "TESS",
+    "player": "TonyLB",
+    "subFolder": undefined,
+    "tag": "Character",
+    "zone": undefined,
+  },
+]
+`;

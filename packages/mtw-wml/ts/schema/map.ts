@@ -13,7 +13,8 @@ export const schemaFromMap = (item: ParseMapTag, contents: (SchemaMapLegalConten
         name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
         contents: componentContents,
         rooms: contents.filter(isSchemaRoom).reduce<Record<string, { x: number; y: number }>>((previous, { key, x, y }) => ({ ...previous, [key]: { x, y } }), {}),
-        images: contents.filter(isSchemaImage).map(({ key }) => (key))
+        images: contents.filter(isSchemaImage).map(({ key }) => (key)),
+        parse: item
     }
 }
 

@@ -11,7 +11,8 @@ export const schemaFromImport = (item: ParseImportTag, contents: SchemaUseTag[])
                 key,
                 type
             }
-        }), {})
+        }), {}),
+        parse: item
     }
 }
 

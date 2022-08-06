@@ -5,7 +5,8 @@ export const schemaFromCondition = (item: ParseConditionTag, contents: SchemaAss
     tag: 'Condition',
     if: item.if,
     dependencies: item.dependencies.map(({ on }) => (on)),
-    contents
+    contents,
+    parse: item
 })
 
 export default schemaFromCondition

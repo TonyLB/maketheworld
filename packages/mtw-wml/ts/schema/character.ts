@@ -7,22 +7,26 @@ export const schemaFromPronouns = (item: ParsePronounsTag): SchemaPronounsTag =>
     object: item.object,
     possessive: item.possessive,
     adjective: item.adjective,
-    reflexive: item.reflexive
+    reflexive: item.reflexive,
+    parse: item
 })
 
 export const schemaFromFirstImpression = (item: ParseFirstImpressionTag): SchemaFirstImpressionTag => ({
     tag: 'FirstImpression',
-    value: item.value
+    value: item.value,
+    parse: item
 })
 
 export const schemaFromOneCoolThing = (item: ParseOneCoolThingTag): SchemaOneCoolThingTag => ({
     tag: 'OneCoolThing',
-    value: item.value
+    value: item.value,
+    parse: item
 })
 
 export const schemaFromOutfit = (item: ParseOutfitTag): SchemaOutfitTag => ({
     tag: 'Outfit',
-    value: item.value
+    value: item.value,
+    parse: item
 })
 
 export const schemaFromCharacter = (item: ParseCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => ({
@@ -38,12 +42,15 @@ export const schemaFromCharacter = (item: ParseCharacterTag, contents: SchemaCha
         object: 'them',
         possessive: 'theirs',
         adjective: 'their',
-        reflexive: 'themself'
+        reflexive: 'themself',
+        parse: item
     }),
     FirstImpression: contents.filter(isSchemaFirstImpression).length ? contents.filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
     OneCoolThing: contents.filter(isSchemaOneCoolThing).length ? contents.filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,
     Outfit: contents.filter(isSchemaOutfit).length ? contents.filter(isSchemaOutfit).map(({ value }) => (value)).join('') : undefined,
-    fileURL: contents.filter(isSchemaImage).reduce<string | undefined>((previous, { fileURL }) => (fileURL), undefined)
+    fileURL: contents.filter(isSchemaImage).reduce<string | undefined>((previous, { fileURL }) => (fileURL), undefined),
+    contents,
+    parse: item
 })
 
 export default schemaFromCharacter

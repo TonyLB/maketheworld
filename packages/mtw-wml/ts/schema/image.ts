@@ -5,7 +5,8 @@ export const schemaFromImage = (item: ParseImageTag): SchemaImageTag => {
     return {
         tag: 'Image',
         key: item.key,
-        fileURL: item.fileURL
+        fileURL: item.fileURL,
+        parse: item
     }
 }
 

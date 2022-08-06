@@ -7,7 +7,8 @@ export const schemaFromExit = (item: ParseExitTag, contents: SchemaStringTag[]):
         name: contents.map(({ value }) => (value)).join(''),
         key: item.key,
         from: item.from,
-        to: item.to
+        to: item.to,
+        parse: item
     }
 }
 

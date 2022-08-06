@@ -4,7 +4,8 @@ import { ParseNameTag } from "../parser/baseClasses";
 export const schemaFromName = (item: ParseNameTag): SchemaNameTag => {
     return {
         tag: 'Name',
-        name: item.value
+        name: item.value,
+        parse: item
     }
 }
 

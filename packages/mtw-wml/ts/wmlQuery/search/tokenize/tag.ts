@@ -8,7 +8,6 @@ const legalTags: SearchTokenTagLegal[] = [
     'Description',
     'Exit',
     'Feature',
-    'Layer',
     'Map',
     'Name',
     'OneCoolThing',
