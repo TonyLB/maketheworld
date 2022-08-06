@@ -9,6 +9,9 @@ import { normalize } from '../normalize'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
+import { SearchParse } from './search/baseClasses'
+import { ParseTag } from '../parser/baseClasses'
+import { Token } from '../parser/tokenizer/baseClasses'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -44,6 +47,56 @@ const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, con
         default:
             return value
     }
+}
+
+const isSameParseTag = (a: ParseTag) => (b: ParseTag) => (
+    (a.startTagToken === b.startTagToken) && (a.endTagToken === b.endTagToken)
+)
+
+export class NewWMLQueryResult {
+    search: { search?: SearchParse[]; not?: SearchParse[] }[] = []
+    extendsResult?: NewWMLQueryResult;
+    wmlQuery: WMLQuery;
+    _tokens: Token[] = [];
+    _parse: ParseTag[] = [];
+    _nodes: ParseTag[] = [];
+    constructor(wmlQuery: WMLQuery, { search, extendsResult }: { search?: SearchParse[], extendsResult?: NewWMLQueryResult }) {
+        this.wmlQuery = wmlQuery
+        if (search) {
+            this.search = [{
+                search
+            }]
+        }
+        if (extendsResult) {
+            this.extendsResult = extendsResult
+            this.search = extendsResult.search
+        }
+        this.refresh()
+    }
+
+    refresh(): void {
+        this._tokens = tokenizer(new SourceStream(this.wmlQuery.source))
+        this._parse = parse(this._tokens)
+        // if (this._parse.length) {
+        //     this._nodes = this.search.reduce((previous, { search, not }) => {
+        //         if (search) {
+        //             return wmlSelectorFactory(match, { currentNodes: previous })(search) as any[]
+        //         }
+        //         if (not) {
+        //             const excludeResults = new WMLQueryResult(this.wmlQuery, { search: not })
+        //             const excludeStarts = excludeResults.nodes().map(({ start }) => (start))
+        //             return (previous || []).filter(({ start }) => (!excludeStarts.includes(start)))
+        //         }
+        //     }, undefined as (any[] | undefined)) || []
+        // }
+        // else {
+        //     this._nodes = []
+        // }
+        // if (this.extendsResult) {
+        //     this.extendsResult.refresh()
+        // }
+    }
+
 }
 
 export class WMLQueryResult {
