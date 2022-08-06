@@ -5,6 +5,8 @@ import tokenizer from '../parser/tokenizer/index'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaWithContents, SchemaTag } from '../schema/baseClasses'
 import { newWMLSelectorFactory } from './newSelector'
+import searchParse from './search/parse'
+import searchTokenizer from './search/tokenize'
 
 describe('newWMLQuery selector', () => {
 
@@ -37,7 +39,9 @@ describe('newWMLQuery selector', () => {
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
     `))))
-    let characterQuery = newWMLSelectorFactory(characterMatch)
+    let characterQuery = (search: string) => (
+        ignoreParse(newWMLSelectorFactory(characterMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+    )
 
     const assetMatch = schemaFromParse(parse(tokenizer(new SourceStream(`
         <Asset key=(BASE)>
@@ -59,13 +63,19 @@ describe('newWMLQuery selector', () => {
             </Feature>
         </Asset>
     `))))
-    let assetQuery = newWMLSelectorFactory(assetMatch)
+    let assetQuery = (search: string) => (
+        ignoreParse(newWMLSelectorFactory(assetMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+    )
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        characterQuery = newWMLSelectorFactory(characterMatch)
-        assetQuery = newWMLSelectorFactory(assetMatch)
+        characterQuery = (search: string) => (
+            ignoreParse(newWMLSelectorFactory(characterMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+        )
+        assetQuery = (search: string) => (
+            ignoreParse(newWMLSelectorFactory(assetMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+        )
     })
 
     it('should throw error on illegal selector', () => {
@@ -73,58 +83,58 @@ describe('newWMLQuery selector', () => {
     })
 
     it('should correctly select root node', () => {
-        expect(ignoreParse(characterQuery('Character'))).toMatchSnapshot()
+        expect(characterQuery('Character')).toMatchSnapshot()
     })
 
     it('should select root node when passed empty string', () => {
-        expect(ignoreParse(characterQuery(''))).toMatchSnapshot()
+        expect(characterQuery('')).toMatchSnapshot()
     })
 
     it('should correctly select leaf node', () => {
-        expect(ignoreParse(characterQuery('Name'))).toMatchSnapshot()
+        expect(characterQuery('Name')).toMatchSnapshot()
     })
 
     it('should correctly select ancestor chain', () => {
-        expect(ignoreParse(characterQuery('Character Name'))).toMatchSnapshot()
+        expect(characterQuery('Character Name')).toMatchSnapshot()
     })
 
     it('should select nothing on a nonmatching chain', () => {
-        expect(ignoreParse(characterQuery('Name Outfit'))).toEqual([])
+        expect(characterQuery('Name Outfit')).toEqual([])
     })
 
     it('should return a list for multiple matches', () => {
-        expect(ignoreParse(assetQuery('Room'))).toMatchSnapshot()
+        expect(assetQuery('Room')).toMatchSnapshot()
     })
 
     it('should correctly subset by property', () => {
-        expect(ignoreParse(assetQuery('Room[key="VORTEX"]'))).toMatchSnapshot()
+        expect(assetQuery('Room[key="VORTEX"]')).toMatchSnapshot()
     })
 
     it('should properly chain complex predicates', () => {
-        expect(ignoreParse(assetQuery('Room[key="VORTEX"] Exit[to="Test"]'))).toMatchSnapshot()
+        expect(assetQuery('Room[key="VORTEX"] Exit[to="Test"]')).toMatchSnapshot()
     })
 
     it('should properly select :first filter', () => {
-        expect(ignoreParse(assetQuery('Room Exit:first'))).toMatchSnapshot()
+        expect(assetQuery('Room Exit:first')).toMatchSnapshot()
     })
 
     it('should properly select one level :nthChild filter', () => {
-        expect(ignoreParse(assetQuery('Asset:nthChild(1)'))).toMatchSnapshot()
+        expect(assetQuery('Asset:nthChild(1)')).toMatchSnapshot()
     })
 
     it('should properly select nested :nthChild filters', () => {
-        expect(ignoreParse(assetQuery('Asset:nthChild(0):nthChild(2)'))).toMatchSnapshot()
+        expect(assetQuery('Asset:nthChild(0):nthChild(2)')).toMatchSnapshot()
     })
 
     it('should properly select grouped operators', () => {
-        expect(ignoreParse(assetQuery('(Asset Room) Description'))).toMatchSnapshot()
+        expect(assetQuery('(Asset Room) Description')).toMatchSnapshot()
     })
 
     it('should properly select boolean or', () => {
-        expect(ignoreParse(assetQuery('Asset (Room, Feature) Description'))).toMatchSnapshot()
+        expect(assetQuery('Asset (Room, Feature) Description')).toMatchSnapshot()
     })
 
     it('should properly select boolean or of chained selectors', () => {
-        expect(ignoreParse(assetQuery('Room Exit, Feature Description'))).toMatchSnapshot()
+        expect(assetQuery('Room Exit, Feature Description')).toMatchSnapshot()
     })
 })

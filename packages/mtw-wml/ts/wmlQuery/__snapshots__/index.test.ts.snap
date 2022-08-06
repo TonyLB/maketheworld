@@ -641,7 +641,7 @@ exports[`wmlQuery render method should correctly update an empty description 1`]
                 </Description>
             </Feature>
             <Room key=(emptyTest)>
-                <Description></Description>
+                <Description>Test</Description>
             </Room>
         </Asset>
     "

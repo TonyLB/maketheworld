@@ -13,6 +13,7 @@ import { SearchParse } from './search/baseClasses'
 import { ParseTag } from '../parser/baseClasses'
 import { Token } from '../parser/tokenizer/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
+import { newWMLSelectorFactory } from './newSelector'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -50,8 +51,8 @@ const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, con
     }
 }
 
-const isSameParseTag = (a: ParseTag) => (b: ParseTag) => (
-    (a.startTagToken === b.startTagToken) && (a.endTagToken === b.endTagToken)
+const isSameSchemaTag = (a: SchemaTag) => (b: SchemaTag) => (
+    (a.parse.startTagToken === b.parse.startTagToken) && (a.parse.endTagToken === b.parse.endTagToken)
 )
 
 export class NewWMLQueryResult {
@@ -80,26 +81,29 @@ export class NewWMLQueryResult {
         this._tokens = tokenizer(new SourceStream(this.wmlQuery.source))
         this._parse = parse(this._tokens)
         this._schema = schemaFromParse(this._parse)
-        // if (this._parse.length) {
-        //     this._nodes = this.search.reduce((previous, { search, not }) => {
-        //         if (search) {
-        //             return wmlSelectorFactory(match, { currentNodes: previous })(search) as any[]
-        //         }
-        //         if (not) {
-        //             const excludeResults = new WMLQueryResult(this.wmlQuery, { search: not })
-        //             const excludeStarts = excludeResults.nodes().map(({ start }) => (start))
-        //             return (previous || []).filter(({ start }) => (!excludeStarts.includes(start)))
-        //         }
-        //     }, undefined as (any[] | undefined)) || []
-        // }
-        // else {
-        //     this._nodes = []
-        // }
-        // if (this.extendsResult) {
-        //     this.extendsResult.refresh()
-        // }
+        if (this._schema.length) {
+            this._nodes = this.search.reduce((previous, { search, not }) => {
+                if (search) {
+                    return newWMLSelectorFactory(this._schema, { currentNodes: previous })(search)
+                }
+                if (not) {
+                    const excludeResults = new NewWMLQueryResult(this.wmlQuery, { search: not })
+                    const excludeStarts = excludeResults.nodes()
+                    return (previous || []).filter((potential) => (!excludeStarts.find(isSameSchemaTag(potential))))
+                }
+            }, undefined as (SchemaTag[] | undefined)) || []
+        }
+        else {
+            this._nodes = []
+        }
+        if (this.extendsResult) {
+            this.extendsResult.refresh()
+        }
     }
 
+    nodes(): SchemaTag[] {
+        return this._nodes || []
+    }
 }
 
 export class WMLQueryResult {
@@ -202,7 +206,7 @@ export class WMLQueryResult {
         this.refresh()
     }
 
-    addElement(source: string, options: { position: 'before' | 'after' }): WMLQueryResult {
+    addElement(source: string, options?: { position: 'before' | 'after' }): WMLQueryResult {
         this.expand()
         const { position = 'after' } = options || {}
         this._nodes.forEach(({ type, tag, tagEnd, contentsStart, end, contents = [] }) => {
@@ -254,7 +258,7 @@ export class WMLQueryResult {
         return this
     }
 
-    prop(key: string, value: any, options: { type: 'literal' | 'boolean' | 'expression' } = { type: 'literal' }): WMLQueryResult | any {
+    prop(key: string, value?: any, options: { type: 'literal' | 'boolean' | 'expression' } = { type: 'literal' }): WMLQueryResult | any {
         if (value !== undefined) {
             const { type } = options
             this._nodes.forEach((node) => {
@@ -309,7 +313,9 @@ export class WMLQueryResult {
         return this
     }
 
-    contents(value: any): WMLQueryResult | any[] {
+    contents(value?: undefined): any[]
+    contents(value: any): WMLQueryResult
+    contents(value?: any): WMLQueryResult | any[] {
         this.expand()
         if (value !== undefined) {
             let offset = 0
@@ -328,7 +334,9 @@ export class WMLQueryResult {
         }
     }
 
-    render(value: ComponentRenderItem[]): WMLQueryResult | ComponentRenderItem[] {
+    render(value?: undefined): ComponentRenderItem[]
+    render(value: ComponentRenderItem[]): WMLQueryResult
+    render(value?: ComponentRenderItem[]): WMLQueryResult | ComponentRenderItem[] {
         if (value !== undefined) {
             const renderContents = value.map((item) => {
                 switch(item.tag) {

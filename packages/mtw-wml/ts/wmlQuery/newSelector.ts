@@ -100,7 +100,6 @@ const searchReducer = (previous: SchemaTag[], term: SearchParse): SchemaTag[] =>
     return previous
 }
 
-export const newWMLSelectorFactory = (schema: SchemaTag[]) => (search: string): SchemaTag[] => {
-    const parsedSearch: SearchParse[] = searchParse(searchTokenizer(new SourceStream(search)))
-    return parsedSearch.reduce(searchReducer, schema)
+export const newWMLSelectorFactory = (schema: SchemaTag[], options: { currentNodes?: SchemaTag[] } = {}) => (search: SearchParse[]): SchemaTag[] => {
+    return search.reduce(searchReducer, options.currentNodes || schema)
 }
