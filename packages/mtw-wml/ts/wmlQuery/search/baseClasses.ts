@@ -92,13 +92,35 @@ export type SearchParseNthChild = {
     n: number;
 }
 
-export type SearchParseGroup = {
-    type: 'Group';
+export type SearchParseParallelGroup = {
+    type: 'Parallel';
     items: SearchParse[];
+}
+
+export type SearchParseSerialGroup = {
+    type: 'Serial';
+    items: SearchParse[];
+}
+
+export type SearchParseExplicitGroupOpen = {
+    type: 'ExplicitOpen';
+    token: number;
+}
+
+export type SearchParseParallelGroupOpen = {
+    type: 'ParallelOpen';
+    items: SearchParse[];
+}
+
+export type SearchParseComma = {
+    type: 'Comma';
 }
 
 export type SearchParse = SearchParseTag |
     SearchParseProperty |
     SearchParseFirst |
     SearchParseNthChild |
-    SearchParseGroup
+    SearchParseParallelGroup |
+    SearchParseSerialGroup
+
+export type SearchParseEvaluation = SearchParse | SearchParseParallelGroupOpen | SearchParseExplicitGroupOpen | SearchParseComma

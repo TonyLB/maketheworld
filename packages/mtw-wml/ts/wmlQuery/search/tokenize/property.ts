@@ -91,7 +91,6 @@ export const propertyTokenizer: SearchTokenizer<SearchTokenProperty> = (sourceSt
         subTokenizers: [whiteSpaceTokenizer],
         callback: (token) => {}
     })
-    console.log(`sourceStream: ${JSON.stringify(sourceStream, null, 4)}`)
     if (!sourceStream.lookAhead(']')) {
         throw new TokenizeException('Unexpected token', sourceStream.position, sourceStream.position)
     }

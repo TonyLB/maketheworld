@@ -38,7 +38,7 @@ export const tagTokenizer: SearchTokenizer<SearchTokenTag> = (sourceStream) => {
         }    
     }
     else {
-        throw new TokenizeException('Unexpected token', startIdx, sourceStream.position)
+        throw new TokenizeException(`Unexpected token: "${sourceStream.source.slice(startIdx, sourceStream.position)}"`, startIdx, sourceStream.position)
     }
 }
 
