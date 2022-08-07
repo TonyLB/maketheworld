@@ -664,7 +664,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -674,14 +674,17 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })
+        let newChildrenQuery = new NewWMLQuery(childrenMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })
+            newChildrenQuery = new NewWMLQuery(childrenMatch, { onChange: onChangeMock })
         })
 
         it('should correctly aggregate child nodes', () => {
             expect(childrenQuery.search('Room[key="VORTEX"]').children().nodes()).toMatchSnapshot()
+            expect(newChildrenQuery.search('Room[key="VORTEX"]').children().nodes()).toMatchSnapshot()
         })
     })
 

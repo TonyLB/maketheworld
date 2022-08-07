@@ -455,6 +455,13 @@ export class NewWMLQueryResult {
         return this
     }
 
+    children(): NewWMLQueryResult {
+        this._nodes = this._nodes
+            .filter(isSchemaWithContents)
+            .reduce((previous, { contents }) => ([...previous, ...contents]), [])
+        return this
+    }
+
 }
 
 export class WMLQueryResult {

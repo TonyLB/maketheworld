@@ -395,21 +395,186 @@ Array [
   Object {
     "contents": Array [
       Object {
-        "end": 450,
-        "start": 411,
+        "end": 460,
+        "start": 421,
         "type": "string",
         "value": "Conditional Render
                     ",
       },
     ],
-    "contentsEnd": 450,
-    "contentsStart": 386,
-    "end": 464,
+    "contentsEnd": 460,
+    "contentsStart": 396,
+    "end": 474,
     "props": Object {},
-    "start": 373,
+    "start": 383,
     "tag": "Description",
-    "tagEnd": 385,
+    "tagEnd": 395,
     "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery children method should correctly aggregate child nodes 2`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Test Render:",
+        },
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Test Render:",
+      },
+      Object {
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+            Object {
+              "endTagToken": 22,
+              "startTagToken": 22,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 23,
+          "startTagToken": 16,
+          "tag": "Link",
+          "to": "clockTower",
+        },
+        "spaceAfter": false,
+        "spaceBefore": true,
+        "tag": "Link",
+        "text": "Clock Tower",
+        "to": "clockTower",
+      },
+    ],
+    "display": undefined,
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Test Render:",
+        },
+        Object {
+          "endTagToken": 15,
+          "startTagToken": 15,
+          "tag": "Whitespace",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+            Object {
+              "endTagToken": 22,
+              "startTagToken": 22,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 23,
+          "startTagToken": 16,
+          "tag": "Link",
+          "to": "clockTower",
+        },
+      ],
+      "endTagToken": 24,
+      "spaceAfter": false,
+      "spaceBefore": false,
+      "startTagToken": 12,
+      "tag": "Description",
+    },
+    "spaceAfter": false,
+    "spaceBefore": false,
+    "tag": "Description",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 30,
+          "startTagToken": 30,
+          "tag": "String",
+          "value": "test",
+        },
+        "tag": "String",
+        "value": "test",
+      },
+    ],
+    "from": "VORTEX",
+    "key": "VORTEX#Test",
+    "name": "test",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "endTagToken": 30,
+          "startTagToken": 30,
+          "tag": "String",
+          "value": "test",
+        },
+      ],
+      "endTagToken": 31,
+      "from": "VORTEX",
+      "key": "VORTEX#Test",
+      "startTagToken": 25,
+      "tag": "Exit",
+      "to": "Test",
+    },
+    "tag": "Exit",
+    "to": "Test",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 47,
+          "startTagToken": 47,
+          "tag": "String",
+          "value": "Conditional Render",
+        },
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Conditional Render",
+      },
+    ],
+    "display": undefined,
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "endTagToken": 47,
+          "startTagToken": 47,
+          "tag": "String",
+          "value": "Conditional Render",
+        },
+        Object {
+          "endTagToken": 48,
+          "startTagToken": 48,
+          "tag": "Whitespace",
+        },
+      ],
+      "endTagToken": 49,
+      "spaceAfter": false,
+      "spaceBefore": false,
+      "startTagToken": 45,
+      "tag": "Description",
+    },
+    "spaceAfter": false,
+    "spaceBefore": false,
+    "tag": "Description",
   },
 ]
 `;
