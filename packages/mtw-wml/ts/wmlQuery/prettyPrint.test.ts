@@ -1,11 +1,30 @@
 import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { wmlSemantics } from '..'
+import { schemaFromParse, wmlSemantics } from '..'
+import prettyPrint from './prettyPrint'
+import parser from '../parser'
+import tokenizer from '../parser/tokenizer'
+import SourceStream from '../parser/tokenizer/sourceStream'
 
 describe('WMLQuery prettyPrint', () => {
 
+    const prettyPrintFromSource = (source: string): string => {
+        const tokens = tokenizer(new SourceStream(source))
+        const schema = schemaFromParse(parser(tokens))
+        return prettyPrint({ source, schema, tokens })
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+
+    })
+
     it('should indent nested elements', () => {
-        const match = wmlGrammar.match(`<Asset key=(Test) fileName="test"><Room key=(ABC)><Name>Vortex</Name></Room><Room key=(VORTEX) global /></Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="test"><Room key=(ABC)><Name>Vortex</Name></Room><Room key=(VORTEX) global /></Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
     })
 
     it('should remove previous whitespace', () => {
