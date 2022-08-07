@@ -267,7 +267,7 @@ export class NewWMLQueryResult {
 
     expand(): void {
         let offset = 0
-        this._nodes.forEach((node) => {
+        this._nodes.filter(isSchemaWithContents).forEach((node) => {
             const endTagToken = this.wmlQuery._tokens[node.parse.endTagToken]
             const selfClosed = endTagToken.type === 'TagOpenEnd' && endTagToken.selfClosing
             if (selfClosed) {
@@ -287,13 +287,31 @@ export class NewWMLQueryResult {
     contents(value: string): NewWMLQueryResult
     contents(value?: string): NewWMLQueryResult | SchemaTag[] {
         if (value !== undefined) {
-            // this.expand()
-            // let offset = 0
-            // this._nodes.forEach(({ contentsStart, contentsEnd }) => {
-            //     this.replaceInputRange(contentsStart + offset, contentsEnd + offset, value)
-            //     offset += contentsStart + value - contentsEnd
-            // })
-            // this.refresh()
+            this.expand()
+            let offset = 0
+            this._nodes
+                .filter(isSchemaWithContents)
+                .forEach(({ parse }) => {
+                    let startToken = parse.startTagToken
+                    while(startToken < parse.endTagToken - 1) {
+                        if (this.wmlQuery._tokens[startToken].type === 'TagOpenEnd') {
+                            break
+                        }
+                        startToken++
+                    }
+                    let endToken = parse.endTagToken
+                    while(endToken > startToken + 1) {
+                        if (this.wmlQuery._tokens[endToken].type === 'TagClose') {
+                            break
+                        }
+                        endToken--
+                    }
+                    const startIdx = this.wmlQuery._tokens[startToken].endIdx + 1
+                    const endIdx = this.wmlQuery._tokens[endToken].startIdx
+                    this.wmlQuery.replaceInputRange(startIdx + offset, endIdx + offset, value)
+                    offset += value.length + startIdx - endIdx
+                })
+            this.refresh()
             return this
         }
         else {

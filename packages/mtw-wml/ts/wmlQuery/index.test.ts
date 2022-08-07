@@ -228,10 +228,11 @@ describe('wmlQuery', () => {
 
     it('should no-op on failed match on contents', () => {
         expect(wmlQuery?.search('Name Outfit').contents('An olive-green pea-coat').source).toEqual(match)
+        expect(newWMLQuery?.search('Name Outfit').contents('An olive-green pea-coat').source).toEqual(match)
     })
 
     it('should update contents on match', () => {
-        expect(wmlQuery?.search('Character Name').contents('Glinda').source).toEqual(`
+        const testResult = `
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Glinda</Name>
@@ -246,10 +247,17 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
-        expect(onChangeMock).toHaveBeenCalledTimes(1)
-        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
-        expect(rest).toEqual({
+    `
+        expect(wmlQuery?.search('Character Name').contents('Glinda').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character Name').contents('Glinda').source).toEqual(testResult)
+        expect(onChangeMock).toHaveBeenCalledTimes(2)
+        checkOutput(onChangeMock.mock.calls[0][0], {
+            type: 'replace',
+            startIdx: 126,
+            endIdx: 130,
+            text: 'Glinda'
+        })
+        checkOutput(onChangeMock.mock.calls[1][0], {
             type: 'replace',
             startIdx: 126,
             endIdx: 130,

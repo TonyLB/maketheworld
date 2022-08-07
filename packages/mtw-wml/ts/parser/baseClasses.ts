@@ -8,9 +8,6 @@ import {
 type ParseTagBase = {
     startTagToken: number;
     endTagToken: number;
-    startContentsToken?: number;
-    endContentsToken?: number;
-    closeToken?: number;
 }
 
 export type ParseLiteralLegalContents = ParseStringTag
