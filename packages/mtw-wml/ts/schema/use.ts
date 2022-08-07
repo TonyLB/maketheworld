@@ -6,7 +6,8 @@ export const schemaFromUse = (item: ParseUseTag): SchemaUseTag => {
         tag: 'Use',
         key: item.key,
         as: item.as,
-        type: item.type
+        type: item.type,
+        parse: item
     }
 }
 

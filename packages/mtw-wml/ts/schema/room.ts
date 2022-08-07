@@ -16,7 +16,8 @@ export const schemaFromRoom = (item: ParseRoomTag, contents: (SchemaRoomLegalCon
         y: item.y,
         name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
         render: contents.filter(isSchemaDescription).reduce((previous, description) => ([...previous, ...description.contents]), []),
-        contents: componentContents
+        contents: componentContents,
+        parse: item
     }
 }
 

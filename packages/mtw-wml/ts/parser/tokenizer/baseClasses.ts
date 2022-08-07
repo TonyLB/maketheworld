@@ -85,13 +85,15 @@ export type Token = TokenComment |
     TokenTagClose |
     TokenDescription
 
+export type TokenValue = TokenKeyValue | TokenLiteralValue | TokenExpressionValue
+
 export type Tokenizer<T extends TokenBase> = {
     (sourceStream: SourceStream): T | undefined
 }
 
 export const isTokenProperty = (item: Token): item is TokenProperty => (item.type === 'Property')
 export const isTokenKeyValue = (item: Token | boolean): item is TokenKeyValue => (typeof item === 'object' && item.type === 'KeyValue')
-export const isTokenValue = (item: Token): item is (TokenKeyValue | TokenLiteralValue | TokenExpressionValue) => (['KeyValue', 'LiteralValue', 'ExpressionValue'].includes(item.type))
+export const isTokenValue = (item: Token): item is TokenValue => (['KeyValue', 'LiteralValue', 'ExpressionValue'].includes(item.type))
 
 export const isStackTokenPropertyOrValue = (item: ParseStackTokenEntry<Token>): item is ParseStackTokenEntry<TokenProperty | TokenKeyValue | TokenLiteralValue | TokenExpressionValue> => (isTokenProperty(item.token) || isTokenValue(item.token))
 

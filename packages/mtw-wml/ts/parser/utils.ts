@@ -45,7 +45,7 @@ export const validateProperties = <T extends Record<string, any>>({ open, requir
         .reduce<Record<string, any>>((previous, [key, value]: [string, any]) => ({ ...previous, [key]: value }), {}) as T
 }
 
-export type ExtractProperties<T extends ParseTag, omit extends string> = Omit<T, 'tag' | 'contents' | 'startTagToken' | 'endTagToken' | 'startContentsToken' | 'endContentsToken' | 'closeToken' | omit>
+export type ExtractProperties<T extends ParseTag, omit extends string> = Omit<T, 'tag' | 'contents' | 'startTagToken' | 'endTagToken' | omit>
 
 type ValidateContentsProps<T extends ParseTag> = {
     contents: ParseTag[];

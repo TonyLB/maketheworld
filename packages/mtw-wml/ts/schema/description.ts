@@ -71,7 +71,8 @@ export const schemaFromDescription = (item: ParseDescriptionTag, contents: Schem
         spaceBefore: item.spaceBefore,
         spaceAfter: item.spaceAfter,
         display: item.display,
-        contents: adjustedDescriptionContents(contents, item.spaceBefore, item.spaceAfter)
+        contents: adjustedDescriptionContents(contents, item.spaceBefore, item.spaceAfter),
+        parse: item
     }
 }
 

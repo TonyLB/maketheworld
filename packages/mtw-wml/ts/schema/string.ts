@@ -4,7 +4,8 @@ import { ParseStringTag } from "../parser/baseClasses";
 export const schemaFromString = (item: ParseStringTag): SchemaStringTag => {
     return {
         tag: 'String',
-        value: item.value
+        value: item.value,
+        parse: item
     }
 }
 

@@ -5,7 +5,8 @@ export const schemaFromVariable = (item: ParseVariableTag): SchemaVariableTag =>
     return {
         tag: 'Variable',
         key: item.key,
-        default: item.default
+        default: item.default,
+        parse: item
     }
 }
 

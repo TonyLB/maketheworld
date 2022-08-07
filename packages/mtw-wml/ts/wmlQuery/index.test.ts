@@ -1,5 +1,6 @@
 // import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { WMLQuery } from './index'
+import { TokenizeException } from '../parser/tokenizer/baseClasses'
+import { NewWMLQuery, WMLQuery } from './index'
 
 describe('wmlQuery', () => {
 
@@ -20,21 +21,28 @@ describe('wmlQuery', () => {
         </Character>
     `
 
-    let wmlQuery = null
+    let wmlQuery: WMLQuery | undefined
+    let newWMLQuery: NewWMLQuery | undefined
     const onChangeMock = jest.fn()
+
+    const checkOutput = (output: any, compare: any) => {
+        const { wmlQuery: remove, ...rest } = output
+        expect(rest).toEqual(compare)
+    }
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         wmlQuery = new WMLQuery(match, { onChange: onChangeMock })
+        newWMLQuery = new NewWMLQuery(match, { onChange: onChangeMock })
     })
 
     it('should return empty on illegal selector', () => {
-        expect(wmlQuery.search('Fraggle Rock').nodes()).toEqual([])
+        expect(wmlQuery?.search('Fraggle Rock').nodes()).toEqual([])
     })
 
     it('should correctly query nodes', () => {
-        expect(wmlQuery.search('Character Name').nodes()).toEqual([{
+        expect(wmlQuery?.search('Character Name').nodes()).toEqual([{
             type: 'tag',
             tag: 'Name',
             tagEnd: 125,
@@ -50,22 +58,26 @@ describe('wmlQuery', () => {
             start: 120,
             end: 137
         }])
+        expect(newWMLQuery?.search('Character Name').nodes()).toMatchSnapshot()
     })
 
     it('should correctly return prop when available', () => {
-        expect(wmlQuery.search('Character').prop('player')).toEqual('TonyLB')
+        expect(wmlQuery?.search('Character')?.prop('player')).toEqual('TonyLB')
+        expect(newWMLQuery?.search('Character')?.prop('player')).toEqual('TonyLB')
     })
 
     it('should correctly return undefined from prop when unavailable', () => {
-        expect(wmlQuery.search('Character').prop('origin')).toBe(undefined)
+        expect(wmlQuery?.search('Character').prop('origin')).toBe(undefined)
+        expect(newWMLQuery?.search('Character').prop('origin')).toBe(undefined)
     })
 
     it('should correctly return undefined prop when search fails', () => {
-        expect(wmlQuery.search('Fraggle Rock').prop('rhythm')).toBe(undefined)
+        expect(wmlQuery?.search('Character Name Description').prop('rhythm')).toBe(undefined)
+        expect(newWMLQuery?.search('Character Name Description').prop('rhythm')).toBe(undefined)
     })
 
     it('should correctly update existing prop', () => {
-        expect(wmlQuery.search('Character').prop('key', 'Tess').source).toEqual(`
+        const testResult = `
         <Character key=(Tess) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -80,21 +92,27 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
-        expect(onChangeMock).toHaveBeenCalledTimes(1)
-        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
-        expect(rest).toEqual({
+    `
+        expect(wmlQuery?.search('Character').prop('key', 'Tess').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character').prop('key', 'Tess', { type: 'key' }).source).toEqual(testResult)
+        expect(onChangeMock).toHaveBeenCalledTimes(2)
+        checkOutput(onChangeMock.mock.calls[0][0], {
             type: 'replace',
             startIdx: 25,
             endIdx: 29,
             text: 'Tess'
         })
-
+        checkOutput(onChangeMock.mock.calls[1][0], {
+            type: 'replace',
+            startIdx: 19,
+            endIdx: 30,
+            text: ' key=(Tess)'
+        })
     })
 
     it('should correctly remove existing prop', () => {
-        expect(wmlQuery.search('Character').removeProp('key').source).toEqual(`
-        <Character fileName="Tess" player="TonyLB">
+        const testResult = `
+        <Character key=(TESS) player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns
@@ -108,11 +126,13 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
+    `
+        expect(wmlQuery?.search('Character').removeProp('fileName').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character').removeProp('fileName').source).toEqual(testResult)
     })
 
     it('should correctly add a new prop', () => {
-        expect(wmlQuery.search('Character').prop('zone', 'Library').source).toEqual(`
+        const testResult = `
         <Character key=(TESS) fileName="Tess" player="TonyLB" zone="Library">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -127,10 +147,17 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
-        expect(onChangeMock).toHaveBeenCalledTimes(1)
-        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
-        expect(rest).toEqual({
+    `
+        expect(wmlQuery?.search('Character').prop('zone', 'Library').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character').prop('zone', 'Library').source).toEqual(testResult)
+        expect(onChangeMock).toHaveBeenCalledTimes(2)
+        checkOutput(onChangeMock.mock.calls[0][0], {
+            type: 'replace',
+            startIdx: 62,
+            endIdx: 62,
+            text: ' zone="Library"'
+        })
+        checkOutput(onChangeMock.mock.calls[1][0], {
             type: 'replace',
             startIdx: 62,
             endIdx: 62,
@@ -140,7 +167,8 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly no-op when asked to remove an absent prop', () => {
-        expect(wmlQuery.search('Name').removeProp('key').source).toEqual(match)
+        expect(wmlQuery?.search('Name').removeProp('key').source).toEqual(match)
+        expect(newWMLQuery?.search('Name').removeProp('key').source).toEqual(match)
         expect(onChangeMock).toHaveBeenCalledTimes(0)
     })
 
@@ -153,9 +181,13 @@ describe('wmlQuery', () => {
             </Asset>
         `
         let booleanQuery = new WMLQuery(booleanPropsMatch, { onChange: onChangeMock })
+        let newBooleanQuery = new NewWMLQuery(booleanPropsMatch, { onChange: onChangeMock })
         expect(booleanQuery.search('Room[key="VORTEX"]').removeProp('global').source).toMatchSnapshot()
+        expect(newBooleanQuery.search('Room[key="VORTEX"]').removeProp('global').source).toMatchSnapshot()
         expect(booleanQuery.search('Room[key="Test"]').prop('global', true, { type: 'boolean' }).source).toMatchSnapshot()
+        expect(newBooleanQuery.search('Room[key="Test"]').prop('global', true, { type: 'boolean' }).source).toMatchSnapshot()
         expect(booleanQuery.search('Room[key="Test"]').prop('global', false, { type: 'boolean' }).source).toMatchSnapshot()
+        expect(newBooleanQuery.search('Room[key="Test"]').prop('global', false, { type: 'boolean' }).source).toMatchSnapshot()
     })
 
     it('should correctly remove and update expression prop', () => {
@@ -165,28 +197,42 @@ describe('wmlQuery', () => {
             </Asset>
         `
         let expressionQuery = new WMLQuery(expressionPropsMatch, { onChange: onChangeMock })
+        let newExpressionQuery = new NewWMLQuery(expressionPropsMatch, { onChange: onChangeMock })
         expect(expressionQuery.search('Condition').prop('if', 'false', { type: 'expression' }).source).toMatchSnapshot()
+        expect(newExpressionQuery.search('Condition').prop('if', 'false', { type: 'expression' }).source).toEqual(expressionQuery.source)
     })
 
     it('should return empty array contents on failed match', () => {
-        expect(wmlQuery.search('Name Outfit').contents()).toEqual([])
+        expect(wmlQuery?.search('Name Outfit').contents()).toEqual([])
+        expect(newWMLQuery?.search('Name Outfit').contents()).toEqual([])
     })
 
     it('should correctly return contents on match', () => {
-        expect(wmlQuery.search('Character Name').contents()).toEqual([{
+        expect(wmlQuery?.search('Character Name').contents()).toEqual([{
             type: 'string',
             value: 'Tess',
             start: 126,
             end: 130
         }])
+        expect(newWMLQuery?.search('Character Name').contents()).toEqual([{
+            tag: 'String',
+            value: 'Tess',
+            parse: {
+                tag: 'String',
+                value: 'Tess',
+                startTagToken: 14,
+                endTagToken: 14
+            }
+        }])
     })
 
     it('should no-op on failed match on contents', () => {
-        expect(wmlQuery.search('Name Outfit').contents('An olive-green pea-coat').source).toEqual(match)
+        expect(wmlQuery?.search('Name Outfit').contents('An olive-green pea-coat').source).toEqual(match)
+        expect(newWMLQuery?.search('Name Outfit').contents('An olive-green pea-coat').source).toEqual(match)
     })
 
     it('should update contents on match', () => {
-        expect(wmlQuery.search('Character Name').contents('Glinda').source).toEqual(`
+        const testResult = `
         <Character key=(TESS) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Glinda</Name>
@@ -201,10 +247,17 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
-        expect(onChangeMock).toHaveBeenCalledTimes(1)
-        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
-        expect(rest).toEqual({
+    `
+        expect(wmlQuery?.search('Character Name').contents('Glinda').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character Name').contents('Glinda').source).toEqual(testResult)
+        expect(onChangeMock).toHaveBeenCalledTimes(2)
+        checkOutput(onChangeMock.mock.calls[0][0], {
+            type: 'replace',
+            startIdx: 126,
+            endIdx: 130,
+            text: 'Glinda'
+        })
+        checkOutput(onChangeMock.mock.calls[1][0], {
             type: 'replace',
             startIdx: 126,
             endIdx: 130,
@@ -217,19 +270,22 @@ describe('wmlQuery', () => {
         const contentsMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                <Exit to=(Test) />
+                <Exit to=(Test)/>
             </Room>
         </Asset>
     `
         let contentsQuery = new WMLQuery(contentsMatch, { onChange: onChangeMock })
+        let newContentsQuery = new NewWMLQuery(contentsMatch, { onChange: onChangeMock })
 
-        expect(contentsQuery.search('Room Exit').contents('test').source).toEqual(`
+        const testResult = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
                 <Exit to=(Test)>test</Exit>
             </Room>
         </Asset>
-    `)
+    `
+        expect(contentsQuery.search('Room Exit').contents('test').source).toEqual(testResult)
+        expect(newContentsQuery.search('Room Exit').contents('test').source).toEqual(testResult)
     })
 
     describe('render method', () => {
@@ -266,14 +322,17 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+        let newRenderQuery = new NewWMLQuery(renderMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+            newRenderQuery = new NewWMLQuery(renderMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly extract renders', () => {
             expect(renderQuery.search('Room[key="VORTEX"] Description').render()).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="VORTEX"] Description').render()).toMatchSnapshot()
         })
 
         it('should correctly update renders', () => {
@@ -283,7 +342,15 @@ describe('wmlQuery', () => {
                     tag: 'Link',
                     to: 'clockTower',
                     text: '(clock tower)'
-                }
+                } as any
+            ]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="VORTEX"] Description').render([
+                { tag: 'String', value: 'Test Render Two: ' },
+                {
+                    tag: 'Link',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                } as any
             ]).source).toMatchSnapshot()
         })
 
@@ -294,8 +361,17 @@ describe('wmlQuery', () => {
                     tag: 'Link',
                     to: 'clockTower',
                     text: '(clock tower)'
-                }
+                } as any
             ]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="Test"] Description').render([
+                { tag: 'String', value: 'Test Render Two: ' },
+                {
+                    tag: 'Link',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                } as any
+            ]).source).toMatchSnapshot()
+
         })
 
         it('should correctly update multiple renders in a set', () => {
@@ -304,10 +380,16 @@ describe('wmlQuery', () => {
                 value: `Much, much, longer render
                 Like, seriously, it's insane how much longer this render is
             `}]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="multipleTest"] Description').render([{
+                tag: 'String',
+                value: `Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            `}]).source).toMatchSnapshot()
         })
 
         it('should correctly update an empty description', () => {
-            expect(renderQuery.search('Room[key="emptyTest"] Description').render(['Test']).source).toMatchSnapshot()
+            expect(renderQuery.search('Room[key="emptyTest"] Description').render([{ tag: 'String', value: 'Test' }]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="emptyTest"] Description').render([{ tag: 'String', value: 'Test' }]).source).toMatchSnapshot()
         })
     })
 
@@ -321,7 +403,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -331,7 +413,7 @@ describe('wmlQuery', () => {
                     <Name>Test</Name>
                 </Room>
             </Condition>
-            <Map>
+            <Map key=(QRS)>
                 <Room key=(Test) x="100" y="100" />
             </Map>
             <Room key=(Test) />
@@ -355,18 +437,22 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let notQuery = new WMLQuery(notMatch, { onChange: onChangeMock })
+        let newNotQuery = new NewWMLQuery(notMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             notQuery = new WMLQuery(notMatch, { onChange: onChangeMock })
+            newNotQuery = new NewWMLQuery(notMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly remove nodes from result-set', () => {
             expect(notQuery.search('Room[key="VORTEX"]').not('Condition Room').nodes()).toMatchSnapshot()
+            expect(newNotQuery.search('Room[key="VORTEX"]').not('Condition Room').nodes()).toMatchSnapshot()
         })
 
         it('should correctly chain multiple not operations', () => {
             expect(notQuery.search('Room[key="Test"]').not('Condition Room').not('Map Room').remove().source).toMatchSnapshot()
+            expect(newNotQuery.search('Room[key="Test"]').not('Condition Room').not('Map Room').remove().source).toMatchSnapshot()
         })
     })
 
@@ -428,7 +514,7 @@ describe('wmlQuery', () => {
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -439,22 +525,30 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
+        let newBaseQuery = new NewWMLQuery(filterMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
+            newBaseQuery = new NewWMLQuery(filterMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly update base query from filter extension', () => {
             const firstResult = baseQuery.search('Room[key="VORTEX"]').not('Condition Room')
             firstResult.extend().add('Exit').remove()
             expect(firstResult.source).toMatchSnapshot()
+            const newFirstResult = newBaseQuery.search('Room[key="VORTEX"]').not('Condition Room')
+            newFirstResult.extend().add('Exit').remove()
+            expect(newFirstResult.source).toMatchSnapshot()
         })
 
         it('should not impact base search on extension', () => {
             const firstResult = baseQuery.search('Room[key="VORTEX"]')
             firstResult.extend().add('Exit')
             expect(firstResult.remove().source).toMatchSnapshot()
+            const newFirstResult = baseQuery.search('Room[key="VORTEX"]')
+            newFirstResult.extend().add('Exit')
+            expect(newFirstResult.remove().source).toMatchSnapshot()
         })
 
     })
@@ -469,7 +563,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -497,14 +591,17 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let removeQuery = new WMLQuery(removeMatch, { onChange: onChangeMock })
+        let newRemoveQuery = new NewWMLQuery(removeMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             removeQuery = new WMLQuery(removeMatch, { onChange: onChangeMock })
+            newRemoveQuery = new NewWMLQuery(removeMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly remove nodes from source', () => {
             expect(removeQuery.search('Room[key="VORTEX"]').remove().source).toMatchSnapshot()
+            expect(newRemoveQuery.search('Room[key="VORTEX"]').remove().source).toMatchSnapshot()
         })
     })
 
@@ -528,26 +625,32 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+        let newAddQuery = new NewWMLQuery(addMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+            newAddQuery = new NewWMLQuery(addMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly add node', () => {
             expect(addQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>').source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>').source).toMatchSnapshot()
         })
 
         it('should correctly add node before contents', () => {
             expect(addQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>', { position: 'before' }).source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>', { position: 'before' }).source).toMatchSnapshot()
         })
 
         it('should correctly add node to self-closing tag', () => {
             expect(addQuery.search('Room[key="Test"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="Test"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
         })
 
         it('should correctly add node to empty tag', () => {
             expect(addQuery.search('Room[key="emptyTest"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="emptyTest"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
         })
     })
 
@@ -561,7 +664,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -571,14 +674,17 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })
+        let newChildrenQuery = new NewWMLQuery(childrenMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             childrenQuery = new WMLQuery(childrenMatch, { onChange: onChangeMock })
+            newChildrenQuery = new NewWMLQuery(childrenMatch, { onChange: onChangeMock })
         })
 
         it('should correctly aggregate child nodes', () => {
             expect(childrenQuery.search('Room[key="VORTEX"]').children().nodes()).toMatchSnapshot()
+            expect(newChildrenQuery.search('Room[key="VORTEX"]').children().nodes()).toMatchSnapshot()
         })
     })
 

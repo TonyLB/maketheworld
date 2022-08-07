@@ -58,7 +58,6 @@ const isSearchParseOrComma = (value: SearchParseEvaluation): value is (SearchPar
 const isSearchParseExplicitOpen = (value: SearchParseEvaluation): value is SearchParseExplicitGroupOpen => (value.type === 'ExplicitOpen')
 
 export const searchParse = (tokens: SearchToken[]): SearchParse[] => {
-    console.log(`Tokens: ${JSON.stringify(tokens, null, 4)}`)
     let stack: SearchParseEvaluation[] = []
     tokens.forEach((token, index) => {
         switch(token.type) {
@@ -104,7 +103,6 @@ export const searchParse = (tokens: SearchToken[]): SearchParse[] => {
                 }
                 else {
                     const groupItems = stack.slice(groupOpenIndex + 1) || []
-                    console.log(`GroupItems: ${JSON.stringify(groupItems, null, 4)}`)
                     stack = [
                         ...(groupOpenIndex > 0 ? stack.slice(0, groupOpenIndex) : []),
                         ...reduceStack(groupItems.filter(isSearchParseOrComma), index)

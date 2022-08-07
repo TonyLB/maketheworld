@@ -2,7 +2,7 @@
 
 exports[`expressionTokenizer should properly nest expressions 1`] = `
 Object {
-  "endIdx": 63,
+  "endIdx": 62,
   "startIdx": 0,
   "type": "ExpressionValue",
   "value": " if (value === 'A') { return 'Test' } else { return 'Fail' } ",
@@ -11,7 +11,7 @@ Object {
 
 exports[`expressionTokenizer should properly nest string literals 1`] = `
 Object {
-  "endIdx": 29,
+  "endIdx": 28,
   "startIdx": 0,
   "type": "ExpressionValue",
   "value": " return 'Test' + \\" value}\\" ",
@@ -20,7 +20,7 @@ Object {
 
 exports[`expressionTokenizer should properly nest template literals 1`] = `
 Object {
-  "endIdx": 27,
+  "endIdx": 26,
   "startIdx": 0,
   "type": "ExpressionValue",
   "value": " return \`Test: \${value}\` ",

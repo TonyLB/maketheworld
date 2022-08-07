@@ -9,11 +9,12 @@ export const schemaFromAsset = (item: ParseAssetTag, contents: SchemaAssetLegalC
     fileName: item.fileName,
     zone: item.zone,
     subFolder: item.subFolder,
-    player: item.player
+    player: item.player,
+    parse: item
 })
 
 export const schemaFromStory = (item: ParseStoryTag, contents: SchemaAssetLegalContents[]): SchemaStoryTag => ({
-    tag: 'Asset',
+    tag: 'Story',
     Story: true,
     key: item.key,
     contents,
@@ -21,7 +22,8 @@ export const schemaFromStory = (item: ParseStoryTag, contents: SchemaAssetLegalC
     zone: item.zone,
     subFolder: item.subFolder,
     player: item.player,
-    instance: item.instance
+    instance: item.instance,
+    parse: item
 })
 
 export default schemaFromAsset

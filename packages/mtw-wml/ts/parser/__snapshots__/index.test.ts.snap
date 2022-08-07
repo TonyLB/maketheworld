@@ -24,6 +24,14 @@ Array [
         "tag": "Image",
       },
       Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 25,
+            "startTagToken": 25,
+            "tag": "String",
+            "value": "Tess",
+          },
+        ],
         "endTagToken": 26,
         "startTagToken": 23,
         "tag": "Name",
@@ -58,6 +66,14 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 16,
+                "startTagToken": 16,
+                "tag": "String",
+                "value": "Test Map",
+              },
+            ],
             "endTagToken": 18,
             "startTagToken": 14,
             "tag": "Name",
@@ -115,6 +131,14 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 16,
+                "startTagToken": 16,
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
             "endTagToken": 17,
             "startTagToken": 14,
             "tag": "Name",
@@ -130,6 +154,8 @@ Array [
               },
             ],
             "endTagToken": 21,
+            "spaceAfter": false,
+            "spaceBefore": false,
             "startTagToken": 18,
             "tag": "Description",
           },
@@ -182,6 +208,14 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 42,
+                "startTagToken": 42,
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
             "endTagToken": 43,
             "startTagToken": 40,
             "tag": "Name",
@@ -216,6 +250,8 @@ Array [
               },
             ],
             "endTagToken": 55,
+            "spaceAfter": false,
+            "spaceBefore": false,
             "startTagToken": 44,
             "tag": "Description",
           },
@@ -284,6 +320,14 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 96,
+                "startTagToken": 96,
+                "tag": "String",
+                "value": "Welcome",
+              },
+            ],
             "endTagToken": 97,
             "startTagToken": 94,
             "tag": "Name",

@@ -5,7 +5,8 @@ export const schemaFromAction = (item: ParseActionTag): SchemaActionTag => {
     return {
         tag: 'Action',
         key: item.key,
-        src: item.src
+        src: item.src,
+        parse: item
     }
 }
 

@@ -3,6 +3,20 @@
 exports[`depthFirstParseTagGenerator should properly spool out nested tags 1`] = `
 Array [
   Object {
+    "endTagToken": 16,
+    "startTagToken": 16,
+    "tag": "String",
+    "value": "Vortex",
+  },
+  Object {
+    "contents": Array [
+      Object {
+        "endTagToken": 16,
+        "startTagToken": 16,
+        "tag": "String",
+        "value": "Vortex",
+      },
+    ],
     "endTagToken": 17,
     "startTagToken": 14,
     "tag": "Name",
@@ -24,12 +38,22 @@ Array [
       },
     ],
     "endTagToken": 21,
+    "spaceAfter": false,
+    "spaceBefore": false,
     "startTagToken": 18,
     "tag": "Description",
   },
   Object {
     "contents": Array [
       Object {
+        "contents": Array [
+          Object {
+            "endTagToken": 16,
+            "startTagToken": 16,
+            "tag": "String",
+            "value": "Vortex",
+          },
+        ],
         "endTagToken": 17,
         "startTagToken": 14,
         "tag": "Name",
@@ -45,6 +69,8 @@ Array [
           },
         ],
         "endTagToken": 21,
+        "spaceAfter": false,
+        "spaceBefore": false,
         "startTagToken": 18,
         "tag": "Description",
       },
@@ -61,6 +87,14 @@ Array [
       Object {
         "contents": Array [
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 16,
+                "startTagToken": 16,
+                "tag": "String",
+                "value": "Vortex",
+              },
+            ],
             "endTagToken": 17,
             "startTagToken": 14,
             "tag": "Name",
@@ -76,6 +110,8 @@ Array [
               },
             ],
             "endTagToken": 21,
+            "spaceAfter": false,
+            "spaceBefore": false,
             "startTagToken": 18,
             "tag": "Description",
           },
@@ -122,6 +158,14 @@ Array [
             "to": "DEF",
           },
           Object {
+            "contents": Array [
+              Object {
+                "endTagToken": 0,
+                "startTagToken": 0,
+                "tag": "String",
+                "value": "TestRoom",
+              },
+            ],
             "endTagToken": 0,
             "startTagToken": 0,
             "tag": "Name",

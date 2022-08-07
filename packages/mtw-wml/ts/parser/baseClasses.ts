@@ -8,13 +8,12 @@ import {
 type ParseTagBase = {
     startTagToken: number;
     endTagToken: number;
-    startContentsToken?: number;
-    endContentsToken?: number;
-    closeToken?: number;
 }
 
+export type ParseLiteralLegalContents = ParseStringTag
 type ParseValueBase = {
     value: string;
+    contents: ParseLiteralLegalContents[];
 } & ParseTagBase
 
 export type ParseAssetLegalContents = ParseActionTag |
@@ -268,8 +267,8 @@ export class ParseException extends Error {
 }
 
 export const isParseTagDependency = (value: ParseTag): value is ParseDependencyTag => (value.tag === 'Depend')
-export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag | ParseExitTag) => (
-    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map', 'Exit'].includes(value.tag)
+export const isParseTagNesting = (value: ParseTag): value is (ParseRoomTag | ParseFeatureTag | ParseAssetTag | ParseStoryTag | ParseCharacterTag | ParseImportTag | ParseDescriptionTag | ParseConditionTag | ParseLinkTag | ParseMapTag | ParseExitTag | ParseNameTag | ParseFirstImpressionTag | ParseOneCoolThingTag | ParseOutfitTag) => (
+    ['Room', 'Feature', 'Asset', 'Story', 'Character', 'Import', 'Description', 'Condition', 'Link', 'Map', 'Exit', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 export const isParseExit = (value: ParseTag): value is ParseExitTag => (value.tag === 'Exit')
 export const isParseRoom = (value: ParseTag): value is ParseRoomTag => (value.tag === 'Room')
