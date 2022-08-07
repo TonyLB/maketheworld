@@ -403,6 +403,22 @@ export class NewWMLQueryResult {
         return this
     }
 
+    remove(): NewWMLQueryResult {
+        let offset = 0
+        let removes: { startIdx, endIdx }[] = []
+        this._nodes.forEach(({ parse }) => {
+            const startIdx = this.wmlQuery._tokens[parse.startTagToken].startIdx
+            const endIdx = this.wmlQuery._tokens[parse.endTagToken].endIdx
+            removes.push({ startIdx: startIdx - offset, endIdx: endIdx + 1 - offset })
+            offset += endIdx + 1 - startIdx
+        })
+        removes.forEach(({ startIdx, endIdx }) => {
+            this.wmlQuery.replaceInputRange(startIdx, endIdx, '')
+        })
+        this.refresh()
+        return this
+    }
+
 }
 
 export class WMLQueryResult {

@@ -452,6 +452,7 @@ describe('wmlQuery', () => {
 
         it('should correctly chain multiple not operations', () => {
             expect(notQuery.search('Room[key="Test"]').not('Condition Room').not('Map Room').remove().source).toMatchSnapshot()
+            expect(newNotQuery.search('Room[key="Test"]').not('Condition Room').not('Map Room').remove().source).toMatchSnapshot()
         })
     })
 
@@ -554,7 +555,7 @@ describe('wmlQuery', () => {
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -582,14 +583,17 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let removeQuery = new WMLQuery(removeMatch, { onChange: onChangeMock })
+        let newRemoveQuery = new NewWMLQuery(removeMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             removeQuery = new WMLQuery(removeMatch, { onChange: onChangeMock })
+            newRemoveQuery = new NewWMLQuery(removeMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly remove nodes from source', () => {
             expect(removeQuery.search('Room[key="VORTEX"]').remove().source).toMatchSnapshot()
+            expect(newRemoveQuery.search('Room[key="VORTEX"]').remove().source).toMatchSnapshot()
         })
     })
 

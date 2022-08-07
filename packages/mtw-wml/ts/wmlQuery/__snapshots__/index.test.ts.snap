@@ -413,6 +413,51 @@ exports[`wmlQuery not method should correctly chain multiple not operations 1`] 
     "
 `;
 
+exports[`wmlQuery not method should correctly chain multiple not operations 2`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Condition if={true}>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                </Room>
+                <Room key=(Test)>
+                    <Name>Test</Name>
+                </Room>
+            </Condition>
+            <Map key=(QRS)>
+                <Room key=(Test) x=\\"100\\" y=\\"100\\" />
+            </Map>
+            
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery not method should correctly remove nodes from result-set 1`] = `
 Array [
   Object {
@@ -781,7 +826,36 @@ exports[`wmlQuery remove method should correctly remove nodes from source 1`] = 
 "
         <Asset key=(BASE)>
             
-            <Condition>
+            <Condition if={true}>
+                
+            </Condition>
+            <Room key=(Test) />
+            <Room key=(multipleTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(multipleTest)>
+                <Description>
+                    Render Two
+                </Description>
+            </Room>
+            <Feature key=(clockTower)>
+                <Description>
+                    Clocktower
+                    test
+                    on multiple lines
+                </Description>
+            </Feature>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery remove method should correctly remove nodes from source 2`] = `
+"
+        <Asset key=(BASE)>
+            
+            <Condition if={true}>
                 
             </Condition>
             <Room key=(Test) />
