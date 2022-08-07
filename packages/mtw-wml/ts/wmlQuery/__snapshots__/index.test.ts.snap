@@ -342,7 +342,31 @@ exports[`wmlQuery extend method should correctly update base query from filter e
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition>
+            <Condition if={true}>
+                <Room key=(VORTEX) global>
+                    <Description>
+                        Conditional Render
+                    </Description>
+                    <Exit from=(Test)>vortex</Exit>
+                </Room>
+            </Condition>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery extend method should correctly update base query from filter extension 2`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    First Room
+                </Description>
+                
+            </Room>
+            <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -361,7 +385,21 @@ exports[`wmlQuery extend method should not impact base search on extension 1`] =
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition>
+            <Condition if={true}>
+                
+            </Condition>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery extend method should not impact base search on extension 2`] = `
+"
+        <Asset key=(BASE)>
+            
+            <Room key=(test) />
+            <Room key=(nested) />
+            <Room key=(nested)><Name>Nested</Name></Room>
+            <Condition if={true}>
                 
             </Condition>
         </Asset>

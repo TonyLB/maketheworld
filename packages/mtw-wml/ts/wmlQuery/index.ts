@@ -403,6 +403,18 @@ export class NewWMLQueryResult {
         return this
     }
 
+    add(searchString: string): NewWMLQueryResult {
+        const parsedSearch = searchParse(searchTokenize(new SourceStream(searchString)))
+        this.search = [
+            ...this.search,
+            {
+                search: parsedSearch
+            }
+        ]
+        this.refresh()
+        return this
+    }
+
     remove(): NewWMLQueryResult {
         let offset = 0
         let removes: { startIdx, endIdx }[] = []
@@ -417,6 +429,10 @@ export class NewWMLQueryResult {
         })
         this.refresh()
         return this
+    }
+
+    extend(): NewWMLQueryResult {
+        return new NewWMLQueryResult(this.wmlQuery, { extendsResult: this })
     }
 
 }

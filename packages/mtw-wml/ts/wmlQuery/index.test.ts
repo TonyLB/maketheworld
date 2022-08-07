@@ -514,7 +514,7 @@ describe('wmlQuery', () => {
             <Room key=(test) />
             <Room key=(nested) />
             <Room key=(nested)><Name>Nested</Name></Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -525,22 +525,30 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
+        let newBaseQuery = new NewWMLQuery(filterMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             baseQuery = new WMLQuery(filterMatch, { onChange: onChangeMock })
+            newBaseQuery = new NewWMLQuery(filterMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly update base query from filter extension', () => {
             const firstResult = baseQuery.search('Room[key="VORTEX"]').not('Condition Room')
             firstResult.extend().add('Exit').remove()
             expect(firstResult.source).toMatchSnapshot()
+            const newFirstResult = newBaseQuery.search('Room[key="VORTEX"]').not('Condition Room')
+            newFirstResult.extend().add('Exit').remove()
+            expect(newFirstResult.source).toMatchSnapshot()
         })
 
         it('should not impact base search on extension', () => {
             const firstResult = baseQuery.search('Room[key="VORTEX"]')
             firstResult.extend().add('Exit')
             expect(firstResult.remove().source).toMatchSnapshot()
+            const newFirstResult = baseQuery.search('Room[key="VORTEX"]')
+            newFirstResult.extend().add('Exit')
+            expect(newFirstResult.remove().source).toMatchSnapshot()
         })
 
     })
