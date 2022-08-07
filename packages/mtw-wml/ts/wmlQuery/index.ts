@@ -11,7 +11,7 @@ import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { SearchParse } from './search/baseClasses'
 import { ParseException, ParseTag } from '../parser/baseClasses'
-import { isTokenValue, Token, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
+import { isTokenValue, isTokenWhitespace, Token, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { newWMLSelectorFactory } from './newSelector'
 import searchParse from './search/parse'
@@ -181,8 +181,8 @@ export class NewWMLQueryResult {
                     }
                 }
             }
-            if (isTokenValue(currentToken)) {
-                insertPoint = currentToken.endIdx
+            if (isTokenValue(currentToken) || isTokenWhitespace(currentToken)) {
+                insertPoint = currentToken.endIdx + 1
             }
             if (currentToken.type === 'TagOpenEnd') {
                 return {

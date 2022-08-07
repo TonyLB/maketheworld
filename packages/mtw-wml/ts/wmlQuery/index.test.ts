@@ -25,6 +25,11 @@ describe('wmlQuery', () => {
     let newWMLQuery: NewWMLQuery | undefined
     const onChangeMock = jest.fn()
 
+    const checkOutput = (output: any, compare: any) => {
+        const { wmlQuery: remove, ...rest } = output
+        expect(rest).toEqual(compare)
+    }
+
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -91,10 +96,6 @@ describe('wmlQuery', () => {
         expect(wmlQuery?.search('Character').prop('key', 'Tess').source).toEqual(testResult)
         expect(newWMLQuery?.search('Character').prop('key', 'Tess', { type: 'key' }).source).toEqual(testResult)
         expect(onChangeMock).toHaveBeenCalledTimes(2)
-        const checkOutput = (output: any, compare: any) => {
-            const { wmlQuery: remove, ...rest } = output
-            expect(rest).toEqual(compare)
-        }
         checkOutput(onChangeMock.mock.calls[0][0], {
             type: 'replace',
             startIdx: 25,
@@ -131,7 +132,7 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly add a new prop', () => {
-        expect(wmlQuery?.search('Character').prop('zone', 'Library').source).toEqual(`
+        const testResult = `
         <Character key=(TESS) fileName="Tess" player="TonyLB" zone="Library">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -146,10 +147,17 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
-        expect(onChangeMock).toHaveBeenCalledTimes(1)
-        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
-        expect(rest).toEqual({
+    `
+        expect(wmlQuery?.search('Character').prop('zone', 'Library').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character').prop('zone', 'Library').source).toEqual(testResult)
+        expect(onChangeMock).toHaveBeenCalledTimes(2)
+        checkOutput(onChangeMock.mock.calls[0][0], {
+            type: 'replace',
+            startIdx: 62,
+            endIdx: 62,
+            text: ' zone="Library"'
+        })
+        checkOutput(onChangeMock.mock.calls[1][0], {
             type: 'replace',
             startIdx: 62,
             endIdx: 62,
@@ -160,6 +168,7 @@ describe('wmlQuery', () => {
 
     it('should correctly no-op when asked to remove an absent prop', () => {
         expect(wmlQuery?.search('Name').removeProp('key').source).toEqual(match)
+        expect(newWMLQuery?.search('Name').removeProp('key').source).toEqual(match)
         expect(onChangeMock).toHaveBeenCalledTimes(0)
     })
 
