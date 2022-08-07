@@ -12,7 +12,7 @@ import SourceStream from '../parser/tokenizer/sourceStream'
 import { SearchParse } from './search/baseClasses'
 import { ParseException, ParseTag } from '../parser/baseClasses'
 import { isTokenValue, isTokenWhitespace, Token, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
-import { isSchemaWithContents, SchemaTag } from '../schema/baseClasses'
+import { isSchemaDescription, isSchemaWithContents, SchemaLineBreakTag, SchemaLinkTag, SchemaTag, SchemaWithContents } from '../schema/baseClasses'
 import { newWMLSelectorFactory } from './newSelector'
 import searchParse from './search/parse'
 import searchTokenize from './search/tokenize'
@@ -50,6 +50,32 @@ const renderFromNode = (normalForm) => ({ tag, type, value = '', props = {}, con
             }
         default:
             return value
+    }
+}
+
+const renderFromNewNode = (normalForm) => (node: SchemaTag): ComponentRenderItem => {
+    switch(node.tag) {
+        case 'Link':
+            return {
+                tag: 'Link',
+                text: node.text,
+                to: node.to,
+                targetTag: normalForm[node.to]?.tag === 'Action' ? 'Action' : 'Feature'
+            }
+        case 'br':
+            return {
+                tag: 'LineBreak'
+            }
+        case 'String':
+            return {
+                tag: 'String',
+                value: node.value
+            }
+        default:
+            return {
+                tag: 'String',
+                value: ''
+            }
     }
 }
 
@@ -139,7 +165,6 @@ export class NewWMLQueryResult {
             throw new ParseException('Misconfigured parse values', node.parse.startTagToken, node.parse.endTagToken)
         }
         let index = 1
-        let insertPoint = searchTokens[1].endIdx
         while(index < searchTokens.length) {
             const currentToken = searchTokens[index]
             if (currentToken.type === 'Property' && currentToken.key === key) {
@@ -192,9 +217,6 @@ export class NewWMLQueryResult {
                     }
                 }
             }
-            if (isTokenValue(currentToken) || isTokenWhitespace(currentToken)) {
-                insertPoint = currentToken.endIdx + 1
-            }
             if (currentToken.type === 'TagOpenEnd') {
                 //
                 // No property has been found.  Backtrack from the TagOpenEnd for as long as you find
@@ -214,6 +236,30 @@ export class NewWMLQueryResult {
             }
             index++
         }
+    }
+
+    //
+    // findContentsRange digs into a schema tag 
+    //
+    _findContentsRange(node: SchemaWithContents): { startIdx: number; endIdx: number } {
+        const { parse } = node
+        let startToken = parse.startTagToken
+        while(startToken < parse.endTagToken - 1) {
+            if (this.wmlQuery._tokens[startToken].type === 'TagOpenEnd') {
+                break
+            }
+            startToken++
+        }
+        let endToken = parse.endTagToken
+        while(endToken > startToken + 1) {
+            if (this.wmlQuery._tokens[endToken].type === 'TagClose') {
+                break
+            }
+            endToken--
+        }
+        const startIdx = this.wmlQuery._tokens[startToken].endIdx + 1
+        const endIdx = this.wmlQuery._tokens[endToken].startIdx
+        return { startIdx, endIdx }
     }
 
     prop(key: string, value?: undefined, options?: undefined): any
@@ -266,7 +312,6 @@ export class NewWMLQueryResult {
     }
 
     expand(): void {
-        let offset = 0
         this._nodes.filter(isSchemaWithContents).forEach((node) => {
             const endTagToken = this.wmlQuery._tokens[node.parse.endTagToken]
             const selfClosed = endTagToken.type === 'TagOpenEnd' && endTagToken.selfClosing
@@ -276,11 +321,10 @@ export class NewWMLQueryResult {
                 // to insert content
                 //
                 const replaceValue = `></${node.tag}>`
-                this.wmlQuery.replaceInputRange(endTagToken.startIdx + offset, endTagToken.endIdx + offset + 1, replaceValue)
-                offset += replaceValue.length - 2
+                this.wmlQuery.replaceInputRange(endTagToken.startIdx, endTagToken.endIdx + 1, replaceValue)
+                this.refresh()
             }
         })
-        this.refresh()
     }
 
     contents(value?: undefined): SchemaTag[]
@@ -288,30 +332,13 @@ export class NewWMLQueryResult {
     contents(value?: string): NewWMLQueryResult | SchemaTag[] {
         if (value !== undefined) {
             this.expand()
-            let offset = 0
             this._nodes
                 .filter(isSchemaWithContents)
-                .forEach(({ parse }) => {
-                    let startToken = parse.startTagToken
-                    while(startToken < parse.endTagToken - 1) {
-                        if (this.wmlQuery._tokens[startToken].type === 'TagOpenEnd') {
-                            break
-                        }
-                        startToken++
-                    }
-                    let endToken = parse.endTagToken
-                    while(endToken > startToken + 1) {
-                        if (this.wmlQuery._tokens[endToken].type === 'TagClose') {
-                            break
-                        }
-                        endToken--
-                    }
-                    const startIdx = this.wmlQuery._tokens[startToken].endIdx + 1
-                    const endIdx = this.wmlQuery._tokens[endToken].startIdx
-                    this.wmlQuery.replaceInputRange(startIdx + offset, endIdx + offset, value)
-                    offset += value.length + startIdx - endIdx
+                .forEach((node) => {
+                    const { startIdx, endIdx } = this._findContentsRange(node)
+                    this.wmlQuery.replaceInputRange(startIdx, endIdx, value)
+                    this.refresh()
                 })
-            this.refresh()
             return this
         }
         else {
@@ -325,6 +352,44 @@ export class NewWMLQueryResult {
         }
     }
 
+    render(value?: undefined): ComponentRenderItem[]
+    render(value: ComponentRenderItem[]): NewWMLQueryResult
+    render(value?: ComponentRenderItem[]): NewWMLQueryResult | ComponentRenderItem[] {
+        if (value !== undefined) {
+            const renderContents = value.map((item) => {
+                switch(item.tag) {
+                    case 'Link':
+                        return `<Link to=(${item.to})>${item.text}</Link>`
+                    case 'LineBreak':
+                        return '<br />'
+                    case 'String':
+                        return item.value
+                }
+            })
+            const revisedContents = renderContents.join("")
+            this._nodes
+                .filter(isSchemaWithContents)
+                .forEach((node) => {
+                    const { startIdx, endIdx } = this._findContentsRange(node)
+                    this.wmlQuery.replaceInputRange(startIdx, endIdx, revisedContents)
+                    this.refresh()
+                })
+            return this
+        }
+        else {
+            if (this._nodes.length) {
+                const firstNode = this._nodes[0]
+                if (isSchemaDescription(firstNode)) {
+                    return (firstNode.contents || [])
+                        .filter(({ tag }) => (
+                            tag === 'String' || tag === 'Link'
+                        ))
+                        .map(renderFromNewNode(this.wmlQuery.normalize()))
+                }
+            }
+            return []
+        }
+    }
 }
 
 export class WMLQueryResult {
@@ -633,10 +698,6 @@ export class WMLQuery {
         })
     }
     normalize(): NormalForm {
-        // if (this.matcher.getInput()) {
-        //     const schema = schemaFromParse(parse(tokenizer(new SourceStream(this.matcher.getInput()))))
-        //     return normalize(schema)
-        // }
         if (this.matcher.match().succeeded()) {
             const schema = validatedSchema(this.matcher.match())
             return normalize(schema)    

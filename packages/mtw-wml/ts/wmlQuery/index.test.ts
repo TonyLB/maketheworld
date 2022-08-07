@@ -322,18 +322,29 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+        let newRenderQuery = new NewWMLQuery(renderMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             renderQuery = new WMLQuery(renderMatch, { onChange: onChangeMock })
+            newRenderQuery = new NewWMLQuery(renderMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly extract renders', () => {
             expect(renderQuery.search('Room[key="VORTEX"] Description').render()).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="VORTEX"] Description').render()).toMatchSnapshot()
         })
 
         it('should correctly update renders', () => {
             expect(renderQuery.search('Room[key="VORTEX"] Description').render([
+                { tag: 'String', value: 'Test Render Two: ' },
+                {
+                    tag: 'Link',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                } as any
+            ]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="VORTEX"] Description').render([
                 { tag: 'String', value: 'Test Render Two: ' },
                 {
                     tag: 'Link',
@@ -352,6 +363,15 @@ describe('wmlQuery', () => {
                     text: '(clock tower)'
                 } as any
             ]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="Test"] Description').render([
+                { tag: 'String', value: 'Test Render Two: ' },
+                {
+                    tag: 'Link',
+                    to: 'clockTower',
+                    text: '(clock tower)'
+                } as any
+            ]).source).toMatchSnapshot()
+
         })
 
         it('should correctly update multiple renders in a set', () => {
@@ -360,10 +380,16 @@ describe('wmlQuery', () => {
                 value: `Much, much, longer render
                 Like, seriously, it's insane how much longer this render is
             `}]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="multipleTest"] Description').render([{
+                tag: 'String',
+                value: `Much, much, longer render
+                Like, seriously, it's insane how much longer this render is
+            `}]).source).toMatchSnapshot()
         })
 
         it('should correctly update an empty description', () => {
             expect(renderQuery.search('Room[key="emptyTest"] Description').render([{ tag: 'String', value: 'Test' }]).source).toMatchSnapshot()
+            expect(newRenderQuery.search('Room[key="emptyTest"] Description').render([{ tag: 'String', value: 'Test' }]).source).toMatchSnapshot()
         })
     })
 

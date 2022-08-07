@@ -243,6 +243,20 @@ export type SchemaTag = SchemaAssetTag |
     SchemaStringTag |
     SchemaWhitespaceTag
 
+export type SchemaWithContents = SchemaAssetTag |
+    SchemaStoryTag |
+    SchemaConditionTag |
+    SchemaRoomTag |
+    SchemaFeatureTag |
+    SchemaDescriptionTag |
+    SchemaExitTag |
+    SchemaCharacterTag |
+    SchemaMapTag |
+    SchemaNameTag |
+    SchemaFirstImpressionTag |
+    SchemaOneCoolThingTag |
+    SchemaOutfitTag
+
 export class SchemaException extends Error {
     parseTag: ParseTag;
     constructor(message: string, parseTag: ParseTag) {
@@ -273,7 +287,7 @@ export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value
 export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
 export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
 
-export const isSchemaWithContents = (value: SchemaTag): value is (SchemaAssetTag | SchemaStoryTag | SchemaConditionTag | SchemaRoomTag | SchemaFeatureTag | SchemaDescriptionTag | SchemaExitTag | SchemaCharacterTag | SchemaMapTag | SchemaNameTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag) => (
+export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
     ['Asset', 'Story', 'Condition', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 export const isSchemaWithKey = (value: SchemaTag): value is (SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag) => (
