@@ -110,8 +110,8 @@ describe('wmlQuery', () => {
     })
 
     it('should correctly remove existing prop', () => {
-        expect(wmlQuery?.search('Character').removeProp('key').source).toEqual(`
-        <Character fileName="Tess" player="TonyLB">
+        const testResult = `
+        <Character key=(TESS) player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
             <Pronouns
@@ -125,7 +125,9 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
+    `
+        expect(wmlQuery?.search('Character').removeProp('fileName').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character').removeProp('fileName').source).toEqual(testResult)
     })
 
     it('should correctly add a new prop', () => {
