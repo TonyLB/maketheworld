@@ -378,7 +378,7 @@ exports[`wmlQuery not method should correctly chain multiple not operations 1`] 
                 </Description>
                 <Exit to=(Test)>test</Exit>
             </Room>
-            <Condition>
+            <Condition if={true}>
                 <Room key=(VORTEX) global>
                     <Description>
                         Conditional Render
@@ -388,7 +388,7 @@ exports[`wmlQuery not method should correctly chain multiple not operations 1`] 
                     <Name>Test</Name>
                 </Room>
             </Condition>
-            <Map>
+            <Map key=(QRS)>
                 <Room key=(Test) x=\\"100\\" y=\\"100\\" />
             </Map>
             
@@ -510,6 +510,248 @@ Array [
     "tag": "Room",
     "tagEnd": 45,
     "type": "tag",
+  },
+]
+`;
+
+exports[`wmlQuery not method should correctly remove nodes from result-set 2`] = `
+Array [
+  Object {
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 14,
+              "startTagToken": 14,
+              "tag": "String",
+              "value": "Test Render:",
+            },
+            "spaceAfter": true,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Test Render:",
+          },
+          Object {
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 21,
+                  "startTagToken": 21,
+                  "tag": "String",
+                  "value": "Clock Tower",
+                },
+                Object {
+                  "endTagToken": 22,
+                  "startTagToken": 22,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 23,
+              "startTagToken": 16,
+              "tag": "Link",
+              "to": "clockTower",
+            },
+            "spaceAfter": false,
+            "spaceBefore": true,
+            "tag": "Link",
+            "text": "Clock Tower",
+            "to": "clockTower",
+          },
+        ],
+        "display": undefined,
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 14,
+              "startTagToken": 14,
+              "tag": "String",
+              "value": "Test Render:",
+            },
+            Object {
+              "endTagToken": 15,
+              "startTagToken": 15,
+              "tag": "Whitespace",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 21,
+                  "startTagToken": 21,
+                  "tag": "String",
+                  "value": "Clock Tower",
+                },
+                Object {
+                  "endTagToken": 22,
+                  "startTagToken": 22,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 23,
+              "startTagToken": 16,
+              "tag": "Link",
+              "to": "clockTower",
+            },
+          ],
+          "endTagToken": 24,
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "startTagToken": 12,
+          "tag": "Description",
+        },
+        "spaceAfter": false,
+        "spaceBefore": false,
+        "tag": "Description",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 30,
+              "startTagToken": 30,
+              "tag": "String",
+              "value": "test",
+            },
+            "tag": "String",
+            "value": "test",
+          },
+        ],
+        "from": "VORTEX",
+        "key": "VORTEX#Test",
+        "name": "test",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 30,
+              "startTagToken": 30,
+              "tag": "String",
+              "value": "test",
+            },
+          ],
+          "endTagToken": 31,
+          "from": "VORTEX",
+          "key": "VORTEX#Test",
+          "startTagToken": 25,
+          "tag": "Exit",
+          "to": "Test",
+        },
+        "tag": "Exit",
+        "to": "Test",
+      },
+    ],
+    "display": undefined,
+    "global": true,
+    "key": "VORTEX",
+    "name": "",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 14,
+              "startTagToken": 14,
+              "tag": "String",
+              "value": "Test Render:",
+            },
+            Object {
+              "endTagToken": 15,
+              "startTagToken": 15,
+              "tag": "Whitespace",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 21,
+                  "startTagToken": 21,
+                  "tag": "String",
+                  "value": "Clock Tower",
+                },
+                Object {
+                  "endTagToken": 22,
+                  "startTagToken": 22,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 23,
+              "startTagToken": 16,
+              "tag": "Link",
+              "to": "clockTower",
+            },
+          ],
+          "endTagToken": 24,
+          "spaceAfter": false,
+          "spaceBefore": false,
+          "startTagToken": 12,
+          "tag": "Description",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 30,
+              "startTagToken": 30,
+              "tag": "String",
+              "value": "test",
+            },
+          ],
+          "endTagToken": 31,
+          "from": "VORTEX",
+          "key": "VORTEX#Test",
+          "startTagToken": 25,
+          "tag": "Exit",
+          "to": "Test",
+        },
+      ],
+      "endTagToken": 32,
+      "global": true,
+      "key": "VORTEX",
+      "startTagToken": 5,
+      "tag": "Room",
+      "x": undefined,
+      "y": undefined,
+    },
+    "render": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Test Render:",
+        },
+        "spaceAfter": true,
+        "spaceBefore": false,
+        "tag": "String",
+        "value": "Test Render:",
+      },
+      Object {
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Clock Tower",
+            },
+            Object {
+              "endTagToken": 22,
+              "startTagToken": 22,
+              "tag": "Whitespace",
+            },
+          ],
+          "endTagToken": 23,
+          "startTagToken": 16,
+          "tag": "Link",
+          "to": "clockTower",
+        },
+        "spaceAfter": false,
+        "spaceBefore": true,
+        "tag": "Link",
+        "text": "Clock Tower",
+        "to": "clockTower",
+      },
+    ],
+    "tag": "Room",
+    "x": undefined,
+    "y": undefined,
   },
 ]
 `;

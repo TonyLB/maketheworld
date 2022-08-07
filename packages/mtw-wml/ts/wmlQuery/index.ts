@@ -390,6 +390,19 @@ export class NewWMLQueryResult {
             return []
         }
     }
+
+    not(searchString: string): NewWMLQueryResult {
+        const parsedSearch = searchParse(searchTokenize(new SourceStream(searchString)))
+        this.search = [
+            ...this.search,
+            {
+                not: parsedSearch
+            }
+        ]
+        this.refresh()
+        return this
+    }
+
 }
 
 export class WMLQueryResult {
