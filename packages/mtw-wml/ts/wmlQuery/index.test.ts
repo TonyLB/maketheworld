@@ -197,7 +197,9 @@ describe('wmlQuery', () => {
             </Asset>
         `
         let expressionQuery = new WMLQuery(expressionPropsMatch, { onChange: onChangeMock })
+        let newExpressionQuery = new NewWMLQuery(expressionPropsMatch, { onChange: onChangeMock })
         expect(expressionQuery.search('Condition').prop('if', 'false', { type: 'expression' }).source).toMatchSnapshot()
+        expect(newExpressionQuery.search('Condition').prop('if', 'false', { type: 'expression' }).source).toEqual(expressionQuery.source)
     })
 
     it('should return empty array contents on failed match', () => {

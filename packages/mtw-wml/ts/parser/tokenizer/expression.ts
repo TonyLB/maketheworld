@@ -72,7 +72,7 @@ export const expressionValueTokenizer: Tokenizer<TokenExpressionValue> = (source
     return {
         type: 'ExpressionValue',
         startIdx,
-        endIdx: sourceStream.position,
+        endIdx: sourceStream.position - 1,
         value: sourceStream.source.slice(startIdx + 1, sourceStream.position - 1)
     }
 }

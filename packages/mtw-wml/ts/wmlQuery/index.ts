@@ -131,7 +131,6 @@ export class NewWMLQueryResult {
     //
     _findPropertyTokens(node: SchemaTag, key: string): (FindPropertyTokensReturn | undefined) {
         let searchTokens = this.wmlQuery._tokens.slice(node.parse.startTagToken, node.parse.endTagToken + 1)
-        console.log(`SearchTokens: ${JSON.stringify(searchTokens, null, 4)}`)
         if (searchTokens.length === 0) {
             throw new ParseException('Misconfigured parse values', node.parse.startTagToken, node.parse.endTagToken)
         }
@@ -656,7 +655,7 @@ export class NewWMLQuery {
     }
     replaceInputRange(startIdx: number, endIdx: number, str: string): void {
         const newSource = `${this._source.slice(0, startIdx)}${str}${this._source.slice(endIdx)}`
-        console.log(`newSource: ${newSource}`)
+        // console.log(`newSource: ${newSource}`)
         this._source = newSource
         //
         // TODO:  Use previous tokenizer results in recalculating tokens (earlier tokens are
