@@ -60,8 +60,10 @@ const isSameSchemaTag = (a: SchemaTag) => (b: SchemaTag) => (
 type FindPropertyTokensReturn = {
     propertyToken?: TokenProperty;
     valueToken?: TokenValue;
-    lastToken?: TokenProperty | TokenValue | TokenWhitespace;
-    insertPoint?: number;
+    replaceRange: {
+        start: number;
+        end: number;
+    }
 }
 
 export class NewWMLQueryResult {
@@ -116,34 +118,39 @@ export class NewWMLQueryResult {
     // findPropertyTokens digs into the parse data, and from there into the token data, to find property values directly (even if they
     // don't make it into the schema)
     //
-    _findPropertyTokens(node: SchemaTag, key: string, options: { trailingWhitespace?: boolean } = {}): (FindPropertyTokensReturn | undefined) {
-        let searchTokens = this.wmlQuery._tokens.slice(this._nodes[0].parse.startTagToken, this._nodes[0].parse.endTagToken)
+    // Returns:
+    //    - propertyToken: The token (if any) that defines the key
+    //    - valueToken:  The token (if any) that defines the value.  Only present if propertyToken is present (and not then, for boolean
+    //        properties)
+    //    - replaceRange:  { start, end } indexes into the source string, that tell what string should be replaced in order to remove
+    //        or update this property.
+    //            If property present:
+    //                - Starts at the start of whitespace before the property, ends at the end of the boolean property or value token
+    //            If property not present:
+    //                - Starts and ends at the start of whitespace before the TagOpenEnd token
+    //
+    _findPropertyTokens(node: SchemaTag, key: string): (FindPropertyTokensReturn | undefined) {
+        let searchTokens = this.wmlQuery._tokens.slice(node.parse.startTagToken, node.parse.endTagToken + 1)
+        console.log(`SearchTokens: ${JSON.stringify(searchTokens, null, 4)}`)
         if (searchTokens.length === 0) {
-            throw new ParseException('Misconfigured parse values', this._nodes[0].parse.startTagToken, this._nodes[0].parse.endTagToken)
+            throw new ParseException('Misconfigured parse values', node.parse.startTagToken, node.parse.endTagToken)
         }
         let index = 1
         let insertPoint = searchTokens[1].endIdx
         while(index < searchTokens.length) {
             const currentToken = searchTokens[index]
             if (currentToken.type === 'Property' && currentToken.key === key) {
+                let backTrack = index
+                while (backTrack > 1 && searchTokens[backTrack - 1].type === 'Whitespace') {
+                    backTrack--
+                }
                 if (currentToken.isBoolean) {
-                    let lastToken: TokenProperty | TokenWhitespace = currentToken
-                    if (options.trailingWhitespace) {
-                        index++
-                        while(index < searchTokens.length - 1) {
-                            const whitespaceToken =  searchTokens[index]
-                            if (whitespaceToken.type === 'Whitespace') {
-                                lastToken = whitespaceToken
-                                index++
-                            }
-                            else {
-                                break
-                            }
-                        }    
-                    }
                     return {
                         propertyToken: currentToken,
-                        lastToken
+                        replaceRange: {
+                            start: searchTokens[backTrack].startIdx,
+                            end: currentToken.endIdx + 1
+                        }
                     }
                 }
                 else {
@@ -152,31 +159,32 @@ export class NewWMLQueryResult {
                         index++
                     }
                     if (index >= searchTokens.length) {
-                        throw new ParseException('Misconfigured property values', this._nodes[0].parse.startTagToken + index, this._nodes[0].parse.startTagToken + index)
+                        throw new ParseException('Misconfigured property values', node.parse.startTagToken + index, node.parse.startTagToken + index)
                     }
                     const valueToken = searchTokens[index]
                     if (!isTokenValue(valueToken)) {
-                        throw new ParseException('Misconfigured property values', this._nodes[0].parse.startTagToken + index, this._nodes[0].parse.startTagToken + index)
+                        throw new ParseException('Misconfigured property values', node.parse.startTagToken + index, node.parse.startTagToken + index)
                     }
                     else {
                         let lastToken: TokenValue | TokenWhitespace = valueToken
-                        if (options.trailingWhitespace) {
-                            index++
-                            while((index < searchTokens.length - 1)) {
-                                const whitespaceToken =  searchTokens[index]
-                                if (whitespaceToken.type === 'Whitespace') {
-                                    lastToken = whitespaceToken
-                                    index++
-                                }
-                                else {
-                                    break
-                                }
+                        index++
+                        while((index < searchTokens.length - 1)) {
+                            const whitespaceToken =  searchTokens[index]
+                            if (whitespaceToken.type === 'Whitespace') {
+                                lastToken = whitespaceToken
+                                index++
+                            }
+                            else {
+                                break
                             }
                         }
                         return {
                             propertyToken: currentToken,
                             valueToken,
-                            lastToken
+                            replaceRange: {
+                                start: searchTokens[backTrack].startIdx,
+                                end: valueToken.endIdx + 1
+                            }
                         }
                     }
                 }
@@ -185,8 +193,20 @@ export class NewWMLQueryResult {
                 insertPoint = currentToken.endIdx + 1
             }
             if (currentToken.type === 'TagOpenEnd') {
+                //
+                // No property has been found.  Backtrack from the TagOpenEnd for as long as you find
+                // uninterrupted whitespace, and take the first point of that white space to return as
+                // a replace range
+                //
+                let backTrack = index
+                while (backTrack > 1 && searchTokens[backTrack - 1].type === 'Whitespace') {
+                    backTrack--
+                }
                 return {
-                    insertPoint
+                    replaceRange: {
+                        start: searchTokens[backTrack].startIdx,
+                        end: searchTokens[backTrack].startIdx
+                    }
                 }
             }
             index++
@@ -199,7 +219,7 @@ export class NewWMLQueryResult {
         if (value !== undefined) {
             const { type } = options
             this._nodes.forEach((node) => {
-                const { propertyToken, lastToken, insertPoint } = this._findPropertyTokens(node, key) || {}
+                const { replaceRange } = this._findPropertyTokens(node, key) || {}
                 const newProp = type === 'boolean'
                     ? value ? `${key}` : ''
                     : type === 'expression'
@@ -207,14 +227,7 @@ export class NewWMLQueryResult {
                         : type === 'key'
                             ? `${key}=(${value})`
                             : `${key}="${value}"`
-                if (propertyToken) {
-                    const startIdx = propertyToken.startIdx
-                    const endIdx = (lastToken || propertyToken).endIdx + 1
-                    this.wmlQuery.replaceInputRange(startIdx, endIdx, newProp)
-                }
-                else {
-                    this.wmlQuery.replaceInputRange(insertPoint, insertPoint, newProp ? ` ${newProp}` : '')
-                }
+                this.wmlQuery.replaceInputRange(replaceRange.start, replaceRange.end, newProp ? ` ${newProp}` : '')
             })
             this.refresh()
             return this
@@ -240,11 +253,9 @@ export class NewWMLQueryResult {
 
     removeProp(key: string): NewWMLQueryResult {
         this._nodes.forEach((node) => {
-            const { propertyToken, lastToken } = this._findPropertyTokens(node, key, { trailingWhitespace: true }) || {}
-            if (propertyToken) {
-                const startIdx = propertyToken.startIdx
-                const endIdx = (lastToken || propertyToken).endIdx + 1
-                this.wmlQuery.replaceInputRange(startIdx, endIdx, '')
+            const { replaceRange } = this._findPropertyTokens(node, key) || {}
+            if (replaceRange.start !== replaceRange.end) {
+                this.wmlQuery.replaceInputRange(replaceRange.start, replaceRange.end, '')
             }
         })
         this.refresh()
@@ -645,6 +656,7 @@ export class NewWMLQuery {
     }
     replaceInputRange(startIdx: number, endIdx: number, str: string): void {
         const newSource = `${this._source.slice(0, startIdx)}${str}${this._source.slice(endIdx)}`
+        console.log(`newSource: ${newSource}`)
         this._source = newSource
         //
         // TODO:  Use previous tokenizer results in recalculating tokens (earlier tokens are

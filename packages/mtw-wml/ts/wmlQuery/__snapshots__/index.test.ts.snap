@@ -744,7 +744,7 @@ exports[`wmlQuery should correctly remove and update boolean prop 2`] = `
             <Asset key=(BASE)>
                 <Room key=(VORTEX)>
                 </Room>
-                <Room key=(Test) global />
+                <Room key=(Test) />
             </Asset>
         "
 `;
@@ -754,7 +754,37 @@ exports[`wmlQuery should correctly remove and update boolean prop 3`] = `
             <Asset key=(BASE)>
                 <Room key=(VORTEX)>
                 </Room>
+                <Room key=(Test) global />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 4`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test) global />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 5`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
                 <Room key=(Test) />
+            </Asset>
+        "
+`;
+
+exports[`wmlQuery should correctly remove and update boolean prop 6`] = `
+"
+            <Asset key=(BASE)>
+                <Room key=(VORTEX)>
+                </Room>
+                <Room key=(Test)/>
             </Asset>
         "
 `;
