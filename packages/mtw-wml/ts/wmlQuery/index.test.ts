@@ -204,6 +204,7 @@ describe('wmlQuery', () => {
 
     it('should return empty array contents on failed match', () => {
         expect(wmlQuery?.search('Name Outfit').contents()).toEqual([])
+        expect(newWMLQuery?.search('Name Outfit').contents()).toEqual([])
     })
 
     it('should correctly return contents on match', () => {
@@ -212,6 +213,16 @@ describe('wmlQuery', () => {
             value: 'Tess',
             start: 126,
             end: 130
+        }])
+        expect(newWMLQuery?.search('Character Name').contents()).toEqual([{
+            tag: 'String',
+            value: 'Tess',
+            parse: {
+                tag: 'String',
+                value: 'Tess',
+                startTagToken: 14,
+                endTagToken: 14
+            }
         }])
     })
 

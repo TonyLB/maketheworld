@@ -47,7 +47,8 @@ export const parseOutfitFactory: ParseTagFactory<ParseOutfitTag> = ({ open, cont
             tag: 'Outfit',
             value: parseContents.map(({ value }) => (value)).join(' '),
             startTagToken: open.startTagToken,
-            endTagToken
+            endTagToken,
+            contents: parseContents
         }
     }    
 }
@@ -69,7 +70,8 @@ export const parseOneCoolThingFactory: ParseTagFactory<ParseOneCoolThingTag> = (
             tag: 'OneCoolThing',
             value: parseContents.map(({ value }) => (value)).join(' '),
             startTagToken: open.startTagToken,
-            endTagToken
+            endTagToken,
+            contents: parseContents
         }
     }    
 }

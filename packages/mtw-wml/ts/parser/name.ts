@@ -23,7 +23,8 @@ export const parseNameFactory: ParseTagFactory<ParseNameTag> = ({ open, contents
             ...validate,
             value: parseContents.map(({ value }) => (value)).join(''),
             startTagToken: open.startTagToken,
-            endTagToken
+            endTagToken,
+            contents: parseContents
         }
     }    
 }

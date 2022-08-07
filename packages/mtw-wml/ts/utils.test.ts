@@ -57,7 +57,13 @@ describe('transformWithContext', () => {
                         tag: 'Name',
                         startTagToken: 0,
                         endTagToken: 0,
-                        value: 'TestRoom'
+                        value: 'TestRoom',
+                        contents: [{
+                            tag: 'String',
+                            startTagToken: 0,
+                            endTagToken: 0,
+                            value: 'TestRoom'
+                        }]
                     }]
                 }],
                 startTagToken: 0,

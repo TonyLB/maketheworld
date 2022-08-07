@@ -1,11 +1,12 @@
-import { SchemaNameTag } from "./baseClasses";
+import { SchemaLiteralLegalContents, SchemaNameTag } from "./baseClasses";
 import { ParseNameTag } from "../parser/baseClasses";
 
-export const schemaFromName = (item: ParseNameTag): SchemaNameTag => {
+export const schemaFromName = (item: ParseNameTag, contents: SchemaLiteralLegalContents[]): SchemaNameTag => {
     return {
         tag: 'Name',
         name: item.value,
-        parse: item
+        parse: item,
+        contents
     }
 }
 

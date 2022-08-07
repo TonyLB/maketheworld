@@ -3,6 +3,12 @@
 exports[`newWMLQuery selector should correctly select ancestor chain 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "Tess",
+      },
+    ],
     "name": "Tess",
     "tag": "Name",
   },
@@ -12,6 +18,12 @@ Array [
 exports[`newWMLQuery selector should correctly select leaf node 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "Tess",
+      },
+    ],
     "name": "Tess",
     "tag": "Name",
   },
@@ -44,6 +56,12 @@ Array [
     },
     "contents": Array [
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "Tess",
+          },
+        ],
         "name": "Tess",
         "tag": "Name",
       },
@@ -56,10 +74,22 @@ Array [
         "tag": "Pronouns",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "Fuchsia eyes",
+          },
+        ],
         "tag": "OneCoolThing",
         "value": "Fuchsia eyes",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+          },
+        ],
         "tag": "Outfit",
         "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
       },
@@ -445,6 +475,12 @@ Array [
     },
     "contents": Array [
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "Tess",
+          },
+        ],
         "name": "Tess",
         "tag": "Name",
       },
@@ -457,10 +493,22 @@ Array [
         "tag": "Pronouns",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "Fuchsia eyes",
+          },
+        ],
         "tag": "OneCoolThing",
         "value": "Fuchsia eyes",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+          },
+        ],
         "tag": "Outfit",
         "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
       },

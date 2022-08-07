@@ -1,4 +1,4 @@
-import { SchemaCharacterLegalContents, SchemaCharacterTag, isSchemaName, isSchemaPronouns, isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaImage, SchemaPronounsTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag } from "./baseClasses";
+import { SchemaCharacterLegalContents, SchemaCharacterTag, isSchemaName, isSchemaPronouns, isSchemaFirstImpression, isSchemaOneCoolThing, isSchemaOutfit, isSchemaImage, SchemaPronounsTag, SchemaFirstImpressionTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaLiteralLegalContents } from "./baseClasses";
 import { ParseCharacterTag, ParseFirstImpressionTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag } from "../parser/baseClasses";
 
 export const schemaFromPronouns = (item: ParsePronounsTag): SchemaPronounsTag => ({
@@ -11,22 +11,25 @@ export const schemaFromPronouns = (item: ParsePronounsTag): SchemaPronounsTag =>
     parse: item
 })
 
-export const schemaFromFirstImpression = (item: ParseFirstImpressionTag): SchemaFirstImpressionTag => ({
+export const schemaFromFirstImpression = (item: ParseFirstImpressionTag, contents: SchemaLiteralLegalContents[]): SchemaFirstImpressionTag => ({
     tag: 'FirstImpression',
     value: item.value,
-    parse: item
+    parse: item,
+    contents
 })
 
-export const schemaFromOneCoolThing = (item: ParseOneCoolThingTag): SchemaOneCoolThingTag => ({
+export const schemaFromOneCoolThing = (item: ParseOneCoolThingTag, contents: SchemaLiteralLegalContents[]): SchemaOneCoolThingTag => ({
     tag: 'OneCoolThing',
     value: item.value,
-    parse: item
+    parse: item,
+    contents
 })
 
-export const schemaFromOutfit = (item: ParseOutfitTag): SchemaOutfitTag => ({
+export const schemaFromOutfit = (item: ParseOutfitTag, contents: SchemaLiteralLegalContents[]): SchemaOutfitTag => ({
     tag: 'Outfit',
     value: item.value,
-    parse: item
+    parse: item,
+    contents
 })
 
 export const schemaFromCharacter = (item: ParseCharacterTag, contents: SchemaCharacterLegalContents[]): SchemaCharacterTag => ({

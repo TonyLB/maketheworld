@@ -717,8 +717,28 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
 exports[`wmlQuery should correctly query nodes 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "parse": Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Tess",
+        },
+        "tag": "String",
+        "value": "Tess",
+      },
+    ],
     "name": "Tess",
     "parse": Object {
+      "contents": Array [
+        Object {
+          "endTagToken": 14,
+          "startTagToken": 14,
+          "tag": "String",
+          "value": "Tess",
+        },
+      ],
       "endTagToken": 15,
       "startTagToken": 12,
       "tag": "Name",

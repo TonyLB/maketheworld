@@ -12,7 +12,7 @@ import SourceStream from '../parser/tokenizer/sourceStream'
 import { SearchParse } from './search/baseClasses'
 import { ParseException, ParseTag } from '../parser/baseClasses'
 import { isTokenValue, isTokenWhitespace, Token, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
-import { SchemaTag } from '../schema/baseClasses'
+import { isSchemaWithContents, SchemaTag } from '../schema/baseClasses'
 import { newWMLSelectorFactory } from './newSelector'
 import searchParse from './search/parse'
 import searchTokenize from './search/tokenize'
@@ -108,6 +108,10 @@ export class NewWMLQueryResult {
 
     nodes(): SchemaTag[] {
         return this._nodes || []
+    }
+
+    get count(): number {
+        return (this._nodes || []).length
     }
 
     get source(): string {
@@ -260,6 +264,49 @@ export class NewWMLQueryResult {
         this.refresh()
         return this
     }
+
+    expand(): void {
+        let offset = 0
+        this._nodes.forEach((node) => {
+            const endTagToken = this.wmlQuery._tokens[node.parse.endTagToken]
+            const selfClosed = endTagToken.type === 'TagOpenEnd' && endTagToken.selfClosing
+            if (selfClosed) {
+                //
+                // Unwrap the self-closed tag into an explicit one before trying
+                // to insert content
+                //
+                const replaceValue = `></${node.tag}>`
+                this.wmlQuery.replaceInputRange(endTagToken.startIdx + offset, endTagToken.endIdx + offset, replaceValue)
+                offset += replaceValue.length - 2
+            }
+        })
+        this.refresh()
+    }
+
+    contents(value?: undefined): SchemaTag[]
+    contents(value: string): NewWMLQueryResult
+    contents(value?: string): NewWMLQueryResult | SchemaTag[] {
+        if (value !== undefined) {
+            // this.expand()
+            // let offset = 0
+            // this._nodes.forEach(({ contentsStart, contentsEnd }) => {
+            //     this.replaceInputRange(contentsStart + offset, contentsEnd + offset, value)
+            //     offset += contentsStart + value - contentsEnd
+            // })
+            // this.refresh()
+            return this
+        }
+        else {
+            if (this._nodes.length) {
+                const firstNode = this._nodes[0]
+                if (isSchemaWithContents(firstNode)) {
+                    return firstNode.contents
+                }
+            }
+            return []
+        }
+    }
+
 }
 
 export class WMLQueryResult {

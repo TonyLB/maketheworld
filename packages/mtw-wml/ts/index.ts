@@ -8,7 +8,7 @@ import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/proc
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseActionTag, ParseAssetTag, ParseCharacterLegalContents, ParseCharacterTag, ParseComputedTag, ParseConditionTag, ParseDescriptionTag, ParseExitTag, ParseFeatureTag, ParseFirstImpressionTag, ParseImageTag, ParseImportTag, ParseLinkTag, ParseMapTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseRoomTag, ParseStoryTag, ParseStringTag, ParseTag, ParseUseTag, ParseVariableTag } from './parser/baseClasses'
-import { isSchemaString, SchemaActionTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaLinkTag, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaUseTag, SchemaVariableTag } from './schema/baseClasses'
+import { isSchemaString, SchemaActionTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaLinkTag, SchemaLiteralLegalContents, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaUseTag, SchemaVariableTag } from './schema/baseClasses'
 import { transformWithContext, TransformWithContextCallback } from './utils'
 import schemaFromAsset, { schemaFromStory } from './schema/asset'
 import schemaFromImport from './schema/import'
@@ -230,7 +230,7 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'String':
             return schemaFromString(item)
         case 'Name':
-            return schemaFromName(item)
+            return schemaFromName(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Description':
             return schemaFromDescription(item, schemaContents as SchemaDescriptionLegalContents[])
         case 'Feature':
@@ -250,11 +250,11 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Pronouns':
             return schemaFromPronouns(item)
         case 'FirstImpression':
-            return schemaFromFirstImpression(item)
+            return schemaFromFirstImpression(item, schemaContents as SchemaLiteralLegalContents[])
         case 'OneCoolThing':
-            return schemaFromOneCoolThing(item)
+            return schemaFromOneCoolThing(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Outfit':
-            return schemaFromOutfit(item)
+            return schemaFromOutfit(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Character':
             return schemaFromCharacter(item, schemaContents as SchemaCharacterLegalContents[])
         case 'Whitespace':
