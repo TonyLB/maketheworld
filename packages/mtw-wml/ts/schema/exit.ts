@@ -8,7 +8,8 @@ export const schemaFromExit = (item: ParseExitTag, contents: SchemaStringTag[]):
         key: item.key,
         from: item.from,
         to: item.to,
-        parse: item
+        parse: item,
+        contents
     }
 }
 

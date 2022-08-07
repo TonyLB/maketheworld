@@ -138,6 +138,7 @@ export type SchemaExitTag = {
     name: string;
     to: string;
     from: string;
+    contents: SchemaLiteralLegalContents[];
 } & SchemaBase
 
 export type SchemaLinkTag = {
@@ -272,8 +273,8 @@ export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value
 export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
 export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
 
-export const isSchemaWithContents = (value: SchemaTag): value is (SchemaAssetTag | SchemaStoryTag | SchemaConditionTag | SchemaRoomTag | SchemaFeatureTag | SchemaDescriptionTag | SchemaCharacterTag | SchemaMapTag | SchemaNameTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag) => (
-    ['Asset', 'Story', 'Condition', 'Room', 'Feature', 'Description', 'Character', 'Map', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
+export const isSchemaWithContents = (value: SchemaTag): value is (SchemaAssetTag | SchemaStoryTag | SchemaConditionTag | SchemaRoomTag | SchemaFeatureTag | SchemaDescriptionTag | SchemaExitTag | SchemaCharacterTag | SchemaMapTag | SchemaNameTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag) => (
+    ['Asset', 'Story', 'Condition', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 export const isSchemaWithKey = (value: SchemaTag): value is (SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag) => (
     ['Asset', 'Story', 'Room', 'Feature', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit'].includes(value.tag)

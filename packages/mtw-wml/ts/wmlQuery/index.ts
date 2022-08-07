@@ -276,7 +276,7 @@ export class NewWMLQueryResult {
                 // to insert content
                 //
                 const replaceValue = `></${node.tag}>`
-                this.wmlQuery.replaceInputRange(endTagToken.startIdx + offset, endTagToken.endIdx + offset, replaceValue)
+                this.wmlQuery.replaceInputRange(endTagToken.startIdx + offset, endTagToken.endIdx + offset + 1, replaceValue)
                 offset += replaceValue.length - 2
             }
         })

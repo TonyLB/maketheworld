@@ -270,19 +270,22 @@ describe('wmlQuery', () => {
         const contentsMatch = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
-                <Exit to=(Test) />
+                <Exit to=(Test)/>
             </Room>
         </Asset>
     `
         let contentsQuery = new WMLQuery(contentsMatch, { onChange: onChangeMock })
+        let newContentsQuery = new NewWMLQuery(contentsMatch, { onChange: onChangeMock })
 
-        expect(contentsQuery.search('Room Exit').contents('test').source).toEqual(`
+        const testResult = `
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
                 <Exit to=(Test)>test</Exit>
             </Room>
         </Asset>
-    `)
+    `
+        expect(contentsQuery.search('Room Exit').contents('test').source).toEqual(testResult)
+        expect(newContentsQuery.search('Room Exit').contents('test').source).toEqual(testResult)
     })
 
     describe('render method', () => {

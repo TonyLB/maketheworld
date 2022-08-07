@@ -131,6 +131,12 @@ Array [
         "tag": "Description",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "test",
+          },
+        ],
         "from": "VORTEX",
         "key": "VORTEX#Test",
         "name": "test",
@@ -138,6 +144,12 @@ Array [
         "to": "Test",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "vortex",
+          },
+        ],
         "from": "Test",
         "key": "Test#VORTEX",
         "name": "vortex",
@@ -199,6 +211,12 @@ Array [
 exports[`newWMLQuery selector should properly chain complex predicates 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "test",
+      },
+    ],
     "from": "VORTEX",
     "key": "VORTEX#Test",
     "name": "test",
@@ -211,6 +229,12 @@ Array [
 exports[`newWMLQuery selector should properly select :first filter 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "test",
+      },
+    ],
     "from": "VORTEX",
     "key": "VORTEX#Test",
     "name": "test",
@@ -263,6 +287,12 @@ Array [
 exports[`newWMLQuery selector should properly select boolean or of chained selectors 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "test",
+      },
+    ],
     "from": "VORTEX",
     "key": "VORTEX#Test",
     "name": "test",
@@ -270,6 +300,12 @@ Array [
     "to": "Test",
   },
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "vortex",
+      },
+    ],
     "from": "Test",
     "key": "Test#VORTEX",
     "name": "vortex",
@@ -322,6 +358,12 @@ Array [
 exports[`newWMLQuery selector should properly select nested :nthChild filters 1`] = `
 Array [
   Object {
+    "contents": Array [
+      Object {
+        "tag": "String",
+        "value": "vortex",
+      },
+    ],
     "from": "Test",
     "key": "Test#VORTEX",
     "name": "vortex",
@@ -373,6 +415,12 @@ Array [
         "tag": "Description",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "test",
+          },
+        ],
         "from": "VORTEX",
         "key": "VORTEX#Test",
         "name": "test",
@@ -380,6 +428,12 @@ Array [
         "to": "Test",
       },
       Object {
+        "contents": Array [
+          Object {
+            "tag": "String",
+            "value": "vortex",
+          },
+        ],
         "from": "Test",
         "key": "Test#VORTEX",
         "name": "vortex",

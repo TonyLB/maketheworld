@@ -224,7 +224,7 @@ function schemaFromParseItem(item: ParseTag): SchemaTag {
         case 'Use':
             return schemaFromUse(item)
         case 'Exit':
-            return schemaFromExit(item, schemaContents as SchemaStringTag[])
+            return schemaFromExit(item, schemaContents as SchemaLiteralLegalContents[])
         case 'Room':
             return schemaFromRoom(item, schemaContents as SchemaRoomLegalContents[])
         case 'String':
