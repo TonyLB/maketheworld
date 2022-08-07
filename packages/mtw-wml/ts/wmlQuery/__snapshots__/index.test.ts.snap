@@ -714,6 +714,21 @@ exports[`wmlQuery render method should correctly update renders 1`] = `
     "
 `;
 
+exports[`wmlQuery should correctly query nodes 1`] = `
+Array [
+  Object {
+    "name": "Tess",
+    "parse": Object {
+      "endTagToken": 15,
+      "startTagToken": 12,
+      "tag": "Name",
+      "value": "Tess",
+    },
+    "tag": "Name",
+  },
+]
+`;
+
 exports[`wmlQuery should correctly remove and update boolean prop 1`] = `
 "
             <Asset key=(BASE)>

@@ -10,10 +10,12 @@ import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { SearchParse } from './search/baseClasses'
-import { ParseTag } from '../parser/baseClasses'
-import { Token } from '../parser/tokenizer/baseClasses'
+import { ParseException, ParseTag } from '../parser/baseClasses'
+import { isTokenValue, Token, TokenProperty, TokenTagOpenEnd, TokenValue } from '../parser/tokenizer/baseClasses'
 import { SchemaTag } from '../schema/baseClasses'
 import { newWMLSelectorFactory } from './newSelector'
+import searchParse from './search/parse'
+import searchTokenize from './search/tokenize'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -58,12 +60,9 @@ const isSameSchemaTag = (a: SchemaTag) => (b: SchemaTag) => (
 export class NewWMLQueryResult {
     search: { search?: SearchParse[]; not?: SearchParse[] }[] = []
     extendsResult?: NewWMLQueryResult;
-    wmlQuery: WMLQuery;
-    _tokens: Token[] = [];
-    _parse: ParseTag[] = [];
-    _schema: SchemaTag[] = [];
+    wmlQuery: NewWMLQuery;
     _nodes: SchemaTag[] = [];
-    constructor(wmlQuery: WMLQuery, { search, extendsResult }: { search?: SearchParse[], extendsResult?: NewWMLQueryResult }) {
+    constructor(wmlQuery: NewWMLQuery, { search, extendsResult }: { search?: SearchParse[], extendsResult?: NewWMLQueryResult }) {
         this.wmlQuery = wmlQuery
         if (search) {
             this.search = [{
@@ -78,13 +77,10 @@ export class NewWMLQueryResult {
     }
 
     refresh(): void {
-        this._tokens = tokenizer(new SourceStream(this.wmlQuery.source))
-        this._parse = parse(this._tokens)
-        this._schema = schemaFromParse(this._parse)
-        if (this._schema.length) {
+        if (this.wmlQuery._schema.length) {
             this._nodes = this.search.reduce((previous, { search, not }) => {
                 if (search) {
-                    return newWMLSelectorFactory(this._schema, { currentNodes: previous })(search)
+                    return newWMLSelectorFactory(this.wmlQuery._schema, { currentNodes: previous })(search)
                 }
                 if (not) {
                     const excludeResults = new NewWMLQueryResult(this.wmlQuery, { search: not })
@@ -103,6 +99,133 @@ export class NewWMLQueryResult {
 
     nodes(): SchemaTag[] {
         return this._nodes || []
+    }
+
+    get source(): string {
+        return this.wmlQuery.source
+    }
+
+    prop(key: string, value?: undefined, options?: undefined): any
+    prop(key: string, value: any, options?: { type: 'literal' | 'boolean' | 'expression' | 'key' }): WMLQueryResult
+    prop(key: string, value?: any, options: { type: 'literal' | 'boolean' | 'expression' | 'key' } = { type: 'literal' }): WMLQueryResult | any {
+        type FindPropertyTokensReturn = {
+            propertyToken?: TokenProperty;
+            valueToken?: TokenValue;
+            insertPoint?: number;
+        }
+        //
+        // findPropertyTokens digs into the parse data, and from there into the token data, to find property values directly (even if they
+        // don't make it into the schema)
+        //
+        const findPropertyTokens = (node: SchemaTag, key: string): (FindPropertyTokensReturn | undefined) => {
+            let searchTokens = this.wmlQuery._tokens.slice(this._nodes[0].parse.startTagToken, this._nodes[0].parse.endTagToken)
+            if (searchTokens.length === 0) {
+                throw new ParseException('Misconfigured parse values', this._nodes[0].parse.startTagToken, this._nodes[0].parse.endTagToken)
+            }
+            let index = 1
+            let insertPoint = searchTokens[1].endIdx
+            while(index < searchTokens.length) {
+                const currentToken = searchTokens[index]
+                if (currentToken.type === 'Property' && currentToken.key === key) {
+                    if (currentToken.isBoolean) {
+                        return {
+                            propertyToken: currentToken
+                        }
+                    }
+                    else {
+                        const valueToken = searchTokens[index + 1]
+                        if (index + 1 >= searchTokens.length || !isTokenValue(valueToken)) {
+                            throw new ParseException('Misconfigured property values', this._nodes[0].parse.startTagToken + index + 1, this._nodes[0].parse.startTagToken + index + 1)
+                        }
+                        else {
+                            return {
+                                propertyToken: currentToken,
+                                valueToken
+                            }
+                        }
+                    }
+                }
+                if (isTokenValue(currentToken)) {
+                    insertPoint = currentToken.endIdx
+                }
+                if (currentToken.type === 'TagOpenEnd') {
+                    return {
+                        insertPoint
+                    }
+                }
+                index++
+            }
+        }
+        if (value !== undefined) {
+            const { type } = options
+            // this._nodes.forEach((node) => {
+            //     if (node.props[key]) {
+            //         if (type === 'boolean') {
+            //             if (value === false) {
+            //                 const { start, end } = node.props[key]
+            //                 if (end) {
+            //                     this.replaceInputRange(start-1, end, '')
+            //                 }
+            //             }
+            //         }
+            //         else {
+            //             const { valueStart, valueEnd } = node.props[key]
+            //             if (valueEnd) {
+            //                 this.replaceInputRange(valueStart, valueEnd, value)
+            //             }
+            //         }
+            //     }
+            //     else {
+            //         const insertAfter = (Object.values(node.props || {}) as { end: number }[])
+            //             .reduce((previous, { end }: { end: number }) => (Math.max(previous, end)), node.tagEnd as number)
+            //         const newProp = type === 'boolean'
+            //             ? value ? ` ${key}` : ''
+            //             : type === 'expression'
+            //                 ? ` ${key}={${value}}`
+            //                 : ` ${key}="${value}"`
+            //         this.replaceInputRange(insertAfter, insertAfter, newProp)
+            //     }
+            // })
+            // this.refresh()
+            this._nodes.forEach((node) => {
+                const { propertyToken, valueToken, insertPoint } = findPropertyTokens(node, key) || {}
+                const newProp = type === 'boolean'
+                    ? value ? `${key}` : ''
+                    : type === 'expression'
+                        ? `${key}={${value}}`
+                        : type === 'key'
+                            ? `${key}=(${value})`
+                            : `${key}="${value}"`
+                if (propertyToken) {
+                    const startIdx = propertyToken.startIdx
+                    const endIdx = (valueToken || propertyToken).endIdx + 1
+                    this.wmlQuery.replaceInputRange(startIdx, endIdx, newProp)
+                }
+                else {
+                    this.wmlQuery.replaceInputRange(insertPoint, insertPoint, newProp ? ` ${newProp}` : '')
+                }
+                this.refresh()
+
+            })
+            return this
+        }
+        else {
+            if (this._nodes.length) {
+                const { propertyToken, valueToken } = findPropertyTokens(this._nodes[0], key) || {}
+                if (propertyToken) {
+                    if (propertyToken.isBoolean) {
+                        return true
+                    }
+                    else {
+                        return valueToken.value
+                    }
+                }
+                else {
+                    return undefined
+                }
+            }
+            return undefined
+        }
     }
 }
 
@@ -448,6 +571,81 @@ export class WMLQuery {
 
     clone(): WMLQuery {
         return new WMLQuery(this.source)
+    }
+
+}
+
+export class NewWMLQuery {
+    onChange: (value: any) => void
+    _source: string;
+    _tokens: Token[] = [];
+    _parse: ParseTag[] = [];
+    _schema: SchemaTag[] = [];
+
+    constructor(sourceString: string, options: WMLQueryOptions = {}) {
+        const { onChange = () => {} } = options
+        this.onChange = onChange
+        this._source = sourceString
+        this._tokens = tokenizer(new SourceStream(this.source))
+        this.refresh()
+    }
+
+    get source(): string {
+        return this._source
+    }
+
+    refresh(): void {
+        this._parse = parse(this._tokens)
+        this._schema = schemaFromParse(this._parse)
+    }
+
+    setInput(str: string): void {
+        this._source = str
+        this._tokens = tokenizer(new SourceStream(this.source))
+        this.refresh()
+        this.onChange({
+            type: 'set',
+            text: str,
+            wmlQuery: this
+        })
+    }
+
+    normalize(): NormalForm {
+        return normalize(this._schema)
+    }
+    prettyPrint(): NewWMLQuery {
+        // if (this.matcher.match().succeeded()) {
+        //     const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
+        //     this.matcher.setInput(prettyPrinted)
+        // }
+        return this
+    }
+    replaceInputRange(startIdx: number, endIdx: number, str: string): void {
+        const newSource = `${this._source.slice(0, startIdx)}${str}${this._source.slice(endIdx)}`
+        this._source = newSource
+        //
+        // TODO:  Use previous tokenizer results in recalculating tokens (earlier tokens are
+        // unchanged, and once the tokens start matching after leaving the new section (if they do),
+        // the new tokens are just index-shifted versions of the old)
+        //
+        this._tokens = tokenizer(new SourceStream(this.source))
+        this.refresh()
+        this.onChange({
+            type: 'replace',
+            startIdx,
+            endIdx,
+            text: str,
+            wmlQuery: this
+        })
+    }
+
+    search(search: string): NewWMLQueryResult {
+        const parsedSearch = searchParse(searchTokenize(new SourceStream(search)))
+        return new NewWMLQueryResult(this, { search: parsedSearch })
+    }
+
+    clone(): NewWMLQuery {
+        return new NewWMLQuery(this.source)
     }
 
 }

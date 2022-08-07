@@ -1,5 +1,6 @@
 // import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { WMLQuery } from './index'
+import { TokenizeException } from '../parser/tokenizer/baseClasses'
+import { NewWMLQuery, WMLQuery } from './index'
 
 describe('wmlQuery', () => {
 
@@ -20,13 +21,15 @@ describe('wmlQuery', () => {
         </Character>
     `
 
-    let wmlQuery: WMLQuery | undefined = undefined
+    let wmlQuery: WMLQuery | undefined
+    let newWMLQuery: NewWMLQuery | undefined
     const onChangeMock = jest.fn()
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         wmlQuery = new WMLQuery(match, { onChange: onChangeMock })
+        newWMLQuery = new NewWMLQuery(match, { onChange: onChangeMock })
     })
 
     it('should return empty on illegal selector', () => {
@@ -50,22 +53,26 @@ describe('wmlQuery', () => {
             start: 120,
             end: 137
         }])
+        expect(newWMLQuery?.search('Character Name').nodes()).toMatchSnapshot()
     })
 
     it('should correctly return prop when available', () => {
         expect(wmlQuery?.search('Character')?.prop('player')).toEqual('TonyLB')
+        expect(newWMLQuery?.search('Character')?.prop('player')).toEqual('TonyLB')
     })
 
     it('should correctly return undefined from prop when unavailable', () => {
         expect(wmlQuery?.search('Character').prop('origin')).toBe(undefined)
+        expect(newWMLQuery?.search('Character').prop('origin')).toBe(undefined)
     })
 
     it('should correctly return undefined prop when search fails', () => {
-        expect(wmlQuery?.search('Fraggle Rock').prop('rhythm')).toBe(undefined)
+        expect(wmlQuery?.search('Character Name Description').prop('rhythm')).toBe(undefined)
+        expect(newWMLQuery?.search('Character Name Description').prop('rhythm')).toBe(undefined)
     })
 
     it('should correctly update existing prop', () => {
-        expect(wmlQuery?.search('Character').prop('key', 'Tess').source).toEqual(`
+        const testResult = `
         <Character key=(Tess) fileName="Tess" player="TonyLB">
             // Comments should be preserved
             <Name>Tess</Name>
@@ -80,16 +87,26 @@ describe('wmlQuery', () => {
             <OneCoolThing>Fuchsia eyes</OneCoolThing>
             <Outfit>A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.</Outfit>
         </Character>
-    `)
-        expect(onChangeMock).toHaveBeenCalledTimes(1)
-        const { wmlQuery: remove, ...rest } = onChangeMock.mock.calls[0][0]
-        expect(rest).toEqual({
+    `
+        expect(wmlQuery?.search('Character').prop('key', 'Tess').source).toEqual(testResult)
+        expect(newWMLQuery?.search('Character').prop('key', 'Tess', { type: 'key' }).source).toEqual(testResult)
+        expect(onChangeMock).toHaveBeenCalledTimes(2)
+        const checkOutput = (output: any, compare: any) => {
+            const { wmlQuery: remove, ...rest } = output
+            expect(rest).toEqual(compare)
+        }
+        checkOutput(onChangeMock.mock.calls[0][0], {
             type: 'replace',
             startIdx: 25,
             endIdx: 29,
             text: 'Tess'
         })
-
+        checkOutput(onChangeMock.mock.calls[1][0], {
+            type: 'replace',
+            startIdx: 20,
+            endIdx: 30,
+            text: 'key=(Tess)'
+        })
     })
 
     it('should correctly remove existing prop', () => {
