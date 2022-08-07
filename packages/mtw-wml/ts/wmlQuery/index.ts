@@ -435,6 +435,26 @@ export class NewWMLQueryResult {
         return new NewWMLQueryResult(this.wmlQuery, { extendsResult: this })
     }
 
+    addElement(source: string, options?: { position: 'before' | 'after' }): NewWMLQueryResult {
+        this.expand()
+        const { position = 'after' } = options || {}
+        this._nodes.forEach((node) => {
+            if (isSchemaWithContents(node)) {
+                const { contents }: { contents: SchemaTag[] } = node
+                let insertPosition: number = (position === 'before')
+                    ? contents.reduce((previous: number, { parse }) => (Math.min(previous, this.wmlQuery._tokens[parse.startTagToken].startIdx)), Infinity)
+                    : contents.reduce((previous: number, { parse }) => (Math.max(previous, this.wmlQuery._tokens[parse.endTagToken].endIdx + 1)), -Infinity)
+                if (insertPosition === Infinity || insertPosition === -Infinity) {
+                    const { startIdx } = this._findContentsRange(node)
+                    insertPosition = startIdx
+                }
+                this.wmlQuery.replaceInputRange(insertPosition, insertPosition, source)
+                this.refresh()
+            }
+        })
+        return this
+    }
+
 }
 
 export class WMLQueryResult {

@@ -172,7 +172,49 @@ exports[`wmlQuery addElement method should correctly add node 1`] = `
     "
 `;
 
+exports[`wmlQuery addElement method should correctly add node 2`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit><Name>Vortex</Name>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery addElement method should correctly add node before contents 1`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Name>Vortex</Name><Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery addElement method should correctly add node before contents 2`] = `
 "
         <Asset key=(BASE)>
             <Room key=(VORTEX) global>
@@ -214,6 +256,27 @@ exports[`wmlQuery addElement method should correctly add node to empty tag 1`] =
     "
 `;
 
+exports[`wmlQuery addElement method should correctly add node to empty tag 2`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) />
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)><Name>Test</Name></Room>
+        </Asset>
+    "
+`;
+
 exports[`wmlQuery addElement method should correctly add node to self-closing tag 1`] = `
 "
         <Asset key=(BASE)>
@@ -225,6 +288,27 @@ exports[`wmlQuery addElement method should correctly add node to self-closing ta
                 <Exit to=(Test)>test</Exit>
             </Room>
             <Room key=(Test)><Name>Test</Name></Room>
+            <Room key=(otherTest)>
+                <Description>
+                    Render One
+                </Description>
+            </Room>
+            <Room key=(emptyTest)></Room>
+        </Asset>
+    "
+`;
+
+exports[`wmlQuery addElement method should correctly add node to self-closing tag 2`] = `
+"
+        <Asset key=(BASE)>
+            <Room key=(VORTEX) global>
+                <Description>
+                    Test Render:
+                    <Link to=(clockTower)>Clock Tower</Link>
+                </Description>
+                <Exit to=(Test)>test</Exit>
+            </Room>
+            <Room key=(Test) ><Name>Test</Name></Room>
             <Room key=(otherTest)>
                 <Description>
                     Render One

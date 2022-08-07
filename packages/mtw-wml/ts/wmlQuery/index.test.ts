@@ -625,26 +625,32 @@ describe('wmlQuery', () => {
         </Asset>
     `
         let addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+        let newAddQuery = new NewWMLQuery(addMatch, { onChange: onChangeMock })
         beforeEach(() => {
             jest.clearAllMocks()
             jest.resetAllMocks()
             addQuery = new WMLQuery(addMatch, { onChange: onChangeMock })
+            newAddQuery = new NewWMLQuery(addMatch, { onChange: onChangeMock })
         })    
 
         it('should correctly add node', () => {
             expect(addQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>').source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>').source).toMatchSnapshot()
         })
 
         it('should correctly add node before contents', () => {
             expect(addQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>', { position: 'before' }).source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="VORTEX"]').addElement('<Name>Vortex</Name>', { position: 'before' }).source).toMatchSnapshot()
         })
 
         it('should correctly add node to self-closing tag', () => {
             expect(addQuery.search('Room[key="Test"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="Test"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
         })
 
         it('should correctly add node to empty tag', () => {
             expect(addQuery.search('Room[key="emptyTest"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
+            expect(newAddQuery.search('Room[key="emptyTest"]').addElement('<Name>Test</Name>').source).toMatchSnapshot()
         })
     })
 
