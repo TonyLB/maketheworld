@@ -94,6 +94,58 @@ const prettyPrintIndent = (n: number) => (src: string) => (
     src.split('\n').map((value) => (`${'    '.repeat(n)}${value}`)).join('\n')
 )
 
+const measureIndentOfLine = (line: string): number => {
+    let i = 0
+    let returnValue = 0
+    while(i<line.length) {
+        if (line[i] === ' ') {
+            returnValue++
+        }
+        else if (line[i] === '\t') {
+            returnValue += 4
+        }
+        else {
+            break
+        }
+        i++
+    }
+    return returnValue
+}
+
+const removeIndentFromLine = (indent: number) => (line: string): string => {
+    const tabExpandedLine = line.replace(/\t/g, '    ')
+    return tabExpandedLine.slice(indent)
+}
+
+const removeCommonIndent = (src: string): string => {
+    const lines = src.split('\n')
+    if (lines.length <= 1) {
+        return src
+    }
+    //
+    // Ignore first line in indent calculation, since it will be on the same line as its property, and
+    // therefore will have entirely other indentation standards
+    //
+    const [firstLine, ...followingLines] = lines
+    const filteredLines = followingLines.map((value) => {
+        if (value.match(/^\s*$/)) {
+            return ''
+        }
+        return value
+    })
+    const minIndent = filteredLines
+        .filter((line) => (line))
+        .reduce((previous, line) => (Math.min(previous, measureIndentOfLine(line))), Infinity)
+    if (minIndent === Infinity) {
+        return src
+    }
+
+    //
+    // Remove all but one indent worth of common whitespace from the passed multi-line value
+    //
+    return [firstLine, ...filteredLines.map(removeIndentFromLine(Math.max(0, minIndent - 4)))].join('\n')
+}
+
 const prettyPrintTagOpen = ({
         tagOpen, mode, selfClosing, indent
     }: {
@@ -107,20 +159,17 @@ const prettyPrintTagOpen = ({
         if (value) {
             switch(value.type) {
                 case 'ExpressionValue':
-                    return `${key.key}={${value.value}}`
+                    return `${key.key}={${removeCommonIndent(value.value)}}`
                 case 'KeyValue':
-                    return `${key.key}=(${value.value})`
+                    return `${key.key}=(${removeCommonIndent(value.value)})`
                 case 'LiteralValue':
-                    return `${key.key}="${value.value}"`
+                    return `${key.key}="${removeCommonIndent(value.value)}"`
             }
         }
         else {
             return key.key
         }
     })
-    //
-    // TODO: Create alternate nested render depending upon the mode passed
-    //
     const maxLength = Math.max(80 - (indent * 4), 40)
     const testReturn = `<${tagOpenBegin.tag}${['', ...propertyStrings].join(' ')}${ selfClosing ? ' />' : '>'}`
     if (testReturn.length <= maxLength) {
@@ -196,7 +245,7 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
     else {
         return {
             tag: node,
-            evaluation: PrettyPrintEvaluations.NoNesting,
+            evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
             cached: prettyPrintTagOpen({ tagOpen: tagOpenResults, mode: PrettyPrintEvaluations.NoNesting, selfClosing: true, indent })
         } 
     }

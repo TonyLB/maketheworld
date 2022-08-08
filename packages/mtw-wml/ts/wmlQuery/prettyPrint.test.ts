@@ -64,21 +64,24 @@ describe('WMLQuery prettyPrint', () => {
     })
 
     it('should nest props on multiline expression', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Action
-                    key=(test)
-                    src={ singleLine() }
-                />
-                <Action key=(test) src={
-                    multiLine()
-                    expressions()
-                    if (true) {
-                        withPreservedIndents()
-                    }
-                } />
-            </Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `
+        <Asset key=(Test) fileName="test">
+            <Action
+                key=(test)
+                src={ singleLine() }
+            />
+            <Action key=(test) src={
+                multiLine()
+                expressions()
+                if (true) {
+                    withPreservedIndents()
+                }
+            } />
+        </Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
     })
 
     it('should word wrap descriptions', () => {
