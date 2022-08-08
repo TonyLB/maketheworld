@@ -90,7 +90,19 @@ const extractTagOpen = (items: Token[]): ExtractTagOpenResult => {
     }
 }
 
-const prettyPrintTagOpen = ({ tagOpenBegin, properties, tagOpenEnd }: { tagOpenBegin: TokenTagOpenBegin; properties: PrettyPrintProperty[]; tagOpenEnd: TokenTagOpenEnd }, mode: PrettyPrintEvaluations, selfClosing: boolean): string => {
+const prettyPrintIndent = (n: number) => (src: string) => (
+    src.split('\n').map((value) => (`${'    '.repeat(n)}${value}`)).join('\n')
+)
+
+const prettyPrintTagOpen = ({
+        tagOpen, mode, selfClosing, indent
+    }: {
+        tagOpen: { tagOpenBegin: TokenTagOpenBegin; properties: PrettyPrintProperty[]; tagOpenEnd: TokenTagOpenEnd },
+        mode: PrettyPrintEvaluations,
+        selfClosing: boolean,
+        indent: number
+    }): string => {
+    const { tagOpenBegin, properties } = tagOpen
     const propertyStrings = properties.map(({ key, value }) => {
         if (value) {
             switch(value.type) {
@@ -109,12 +121,15 @@ const prettyPrintTagOpen = ({ tagOpenBegin, properties, tagOpenEnd }: { tagOpenB
     //
     // TODO: Create alternate nested render depending upon the mode passed
     //
-    return `<${tagOpenBegin.tag}${['', ...propertyStrings].join(' ')}${ selfClosing ? ' />' : '>'}`
+    const maxLength = Math.max(80 - (indent * 4), 40)
+    const testReturn = `<${tagOpenBegin.tag}${['', ...propertyStrings].join(' ')}${ selfClosing ? ' />' : '>'}`
+    if (testReturn.length <= maxLength) {
+        return testReturn
+    }
+    else {
+        return `<${tagOpenBegin.tag}\n${prettyPrintIndent(1)(propertyStrings.join('\n'))}\n${ selfClosing ? '/>' : '>'}`
+    }
 }
-
-const prettyPrintIndent = (n: number) => (src: string) => (
-    src.split('\n').map((value) => (`${'    '.repeat(n)}${value}`)).join('\n')
-)
 
 const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token[] }) => ({ node, mode = PrettyPrintEvaluations.Unevaluated, indent = 0 }: { node: ParseTag; mode?: PrettyPrintEvaluations; indent?: number }): ParsePrettyPrintEvaluation => {
     if (node.tag === 'String') {
@@ -134,7 +149,7 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
     const tagOpenResults = extractTagOpen(tokens.slice(node.startTagToken, node.endTagToken + 1).filter((token) => (!isTokenWhitespace(token))))
     if (isParseTagNesting(node)) {
         const selfClosing = node.contents.length === 0
-        const tagOpenSrc = prettyPrintTagOpen(tagOpenResults, PrettyPrintEvaluations.NoNesting, selfClosing)
+        const tagOpenSrc = prettyPrintTagOpen({ tagOpen: tagOpenResults, mode: PrettyPrintEvaluations.NoNesting, selfClosing, indent })
         //
         // If self-closing tag, ignore possibility of contents
         //
@@ -182,7 +197,7 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
         return {
             tag: node,
             evaluation: PrettyPrintEvaluations.NoNesting,
-            cached: prettyPrintTagOpen(tagOpenResults, PrettyPrintEvaluations.NoNesting, true)
+            cached: prettyPrintTagOpen({ tagOpen: tagOpenResults, mode: PrettyPrintEvaluations.NoNesting, selfClosing: true, indent })
         } 
     }
 }
