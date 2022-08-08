@@ -28,18 +28,21 @@ describe('WMLQuery prettyPrint', () => {
     })
 
     it('should remove previous whitespace', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Room key=(ABC)>
-                    <Name>Vortex</Name>
-                    <Description>
-                        Multi-line
-                        description
-                    </Description>
-                </Room>
-                <Room key=(VORTEX) global />
-            </Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `
+        <Asset key=(Test) fileName="test">
+            <Room key=(ABC)>
+                <Name>Vortex</Name>
+                <Description>
+                    Multi-line
+                    description
+                </Description>
+            </Room>
+            <Room key=(VORTEX) global />
+        </Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
     })
 
     it('should nest props on very long tags', () => {

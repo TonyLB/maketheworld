@@ -124,7 +124,14 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
             cached: node.value
         }
     }
-    const tagOpenResults = extractTagOpen(tokens.slice(node.startTagToken, node.endTagToken + 1))
+    if (node.tag === 'Whitespace') {
+        return {
+            tag: node,
+            evaluation: PrettyPrintEvaluations.NoNesting,
+            cached: ''
+        }
+    }
+    const tagOpenResults = extractTagOpen(tokens.slice(node.startTagToken, node.endTagToken + 1).filter((token) => (!isTokenWhitespace(token))))
     if (isParseTagNesting(node)) {
         const selfClosing = node.contents.length === 0
         const tagOpenSrc = prettyPrintTagOpen(tagOpenResults, PrettyPrintEvaluations.NoNesting, selfClosing)
@@ -146,8 +153,10 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
             //
             // If one of the subordinate nodes must nest, or if it is a tag of its own, then nest all.
             //
-            if (contents.find(({ evaluation }) => ([PrettyPrintEvaluations.MustNest, PrettyPrintEvaluations.HasTagsToInheritNesting].includes(evaluation)))) {
-                const contentsSource = contents.map(({ cached }) => (cached)).join('\n')
+            // TODO: Refactor so that Description tags have much more capable pretty-printing capabilities
+            //
+            if (node.tag === 'Description' || contents.find(({ evaluation }) => ([PrettyPrintEvaluations.MustNest, PrettyPrintEvaluations.HasTagsToInheritNesting].includes(evaluation)))) {
+                const contentsSource = contents.map(({ cached }) => (cached)).filter((value) => (value)).join('\n')
                 return {
                     tag: node,
                     evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
