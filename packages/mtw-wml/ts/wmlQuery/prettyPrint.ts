@@ -191,6 +191,7 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
     let bufferFlat: string = ''
     let bufferNested: string = ''
     let displayingTagsNested: boolean = false
+    let trailingTokens: boolean = false
     let whiteSpaceBuffered: boolean = false
     const maximumLength = Math.max(40, 80 - (indent * 4))
     for (let node of contents) {
@@ -198,14 +199,21 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
             case 'Whitespace':
                 whiteSpaceBuffered = true
                 displayingTagsNested = false
+                trailingTokens = false
                 bufferNested = ''
                 break
             case 'String':
                 displayingTagsNested = false
+                trailingTokens = false
                 const stringTokens = node.value.split(/\s+/)
                 if (whiteSpaceBuffered) {
-                    yield `${bufferFlat}`
-                    bufferFlat = stringTokens[0]
+                    if (`${bufferFlat} ${stringTokens[0]}`.length < maximumLength) {
+                        bufferFlat = `${bufferFlat} ${stringTokens[0]}`
+                    }
+                    else {
+                        yield `${bufferFlat}`
+                        bufferFlat = stringTokens[0]
+                    }
                     whiteSpaceBuffered = false
                 }
                 else if (`${bufferFlat}${stringTokens[0]}`.length >= maximumLength) {
@@ -226,9 +234,11 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     if (`${bufferFlat} ${stringToken}`.length >= maximumLength) {
                         yield `${bufferFlat}`
                         bufferFlat = stringToken
+                        trailingTokens = false
                     }
                     else {
                         bufferFlat = `${bufferFlat} ${stringToken}`
+                        trailingTokens = true
                     }
                 }
                 bufferNested = ''
@@ -250,13 +260,24 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                 // start doing so
                 //
                 if (`${bufferFlat}${flatCache}`.length >= maximumLength) {
-                    const { last: lastBuffer, previous: nestedLines } = lastItem(bufferNested.split('\n'))
-                    for (let output of nestedLines) {
-                        yield output
+                    //
+                    // If the buffer has a wrappable string, see if you can fit the whole tag by pulling the last token
+                    // of that string to a new line
+                    //
+                    if (trailingTokens && `${lastItem(bufferFlat.split(' ')).last}${flatCache}`.length < maximumLength) {
+                        const { last, previous } = lastItem(bufferFlat.split(' '))
+                        yield previous.join(' ')
+                        bufferFlat = last
                     }
-                    bufferFlat = lastBuffer
-                    bufferNested = ''
-                    displayingTagsNested = true
+                    else {
+                        const { last: lastBuffer, previous: nestedLines } = lastItem(bufferNested.split('\n'))
+                        for (let output of nestedLines) {
+                            yield output
+                        }
+                        bufferFlat = lastBuffer
+                        bufferNested = ''
+                        displayingTagsNested = true
+                    }
                 }
                 if (displayingTagsNested) {
                     const { last, previous } = lastItem(nestedCache.split('\n'))
@@ -282,6 +303,16 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     bufferFlat = `${bufferFlat}${flatCache}`
                     bufferNested = `${bufferNested}${nestedCache}`
                 }
+                trailingTokens = false
+                break
+            case 'br':
+                yield bufferFlat
+                yield '<br />'
+                bufferFlat = ''
+                whiteSpaceBuffered = false
+                trailingTokens = false
+                displayingTagsNested = false
+                bufferNested = ''
                 break
         }
     }
@@ -307,7 +338,7 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
     }
     const tagOpenResults = extractTagOpen(tokens.slice(node.startTagToken, node.endTagToken + 1).filter((token) => (!isTokenWhitespace(token))))
     if (isParseTagNesting(node)) {
-        const selfClosing = node.contents.length === 0
+        const selfClosing = selfClosingTags.includes(node.tag) && node.contents.length === 0
         const tagOpenSrc = prettyPrintTagOpen({ tagOpen: tagOpenResults, mode: PrettyPrintEvaluations.NoNesting, selfClosing, indent })
         //
         // If self-closing tag, ignore possibility of contents

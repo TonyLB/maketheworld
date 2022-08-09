@@ -110,58 +110,67 @@ describe('WMLQuery prettyPrint', () => {
         const match = wmlGrammar.match(testSource)
         const holding = wmlSemantics(match).prettyPrint
         expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
         //
         // TODO: Correct tokenizer losing whitespace tokens after Link and before String
         //
     })
 
     it('should preserve whitespace around tags', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Feature key=(clockTower)>
-                    <Description>
-                        An old stone clock tower
-                    </Description>
-                </Feature>
-                <Room key=(Test)>
-                    <Description>
-                        One <Link to=(clockTower)>clockTower</Link> two.
-                        Three<Link to=(clockTower)>clockTower</Link>four.
-                        Five <Link to=(clockTower)>clockTower</Link> <Link to=(clockTower)>clockTower</Link> six.
-                    </Description>
-                </Room>
-            </Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `
+        <Asset key=(Test) fileName="test">
+            <Feature key=(clockTower)>
+                <Description>
+                    An old stone clock tower
+                </Description>
+            </Feature>
+            <Room key=(Test)>
+                <Description>
+                    One <Link to=(clockTower)>clockTower</Link> two.
+                    Three<Link to=(clockTower)>clockTower</Link>four.
+                    Five <Link to=(clockTower)>clockTower</Link> <Link to=(clockTower)>clockTower</Link> six.
+                </Description>
+            </Room>
+        </Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
     })
 
     it('should convert empty tag to self-closing', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Feature key=(clockTower)>
-                    <Name></Name>
-                </Feature>
-                <Room key=(Test)>
-                </Room>
-            </Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `
+        <Asset key=(Test) fileName="test">
+            <Feature key=(clockTower)>
+                <Name></Name>
+            </Feature>
+            <Room key=(Test)>
+            </Room>
+        </Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
     })
 
     it('should place line breaks on a separate line', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Feature key=(clockTower)>
-                    <Description>
-                        An old stone clock tower
-                    </Description>
-                </Feature>
-                <Room key=(Test)>
-                    <Description>
-                        One<Link to=(clockTower)>clockTower</Link><br /><Link to=(clockTower)>clockTower</Link>two.
-                    </Description>
-                </Room>
-            </Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `
+        <Asset key=(Test) fileName="test">
+            <Feature key=(clockTower)>
+                <Description>
+                    An old stone clock tower
+                </Description>
+            </Feature>
+            <Room key=(Test)>
+                <Description>
+                    One<Link to=(clockTower)>clockTower</Link><br /><Link to=(clockTower)>clockTower</Link>two.
+                </Description>
+            </Room>
+        </Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
     })
 
 })
