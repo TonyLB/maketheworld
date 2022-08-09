@@ -180,6 +180,110 @@ const prettyPrintTagOpen = ({
     }
 }
 
+const lastItem = <T>(list: T[]): { last: T, previous: T[] } => {
+    return {
+        last: list.length > 0 ? list.slice(-1)[0] : null,
+        previous: list.slice(0, -1)
+    }
+}
+
+function * descriptionWrap ({ source, tokens, contents, indent }: { source: string; tokens: Token[]; contents: ParseTag[], indent: number }): Generator<string> {
+    let bufferFlat: string = ''
+    let bufferNested: string = ''
+    let displayingTagsNested: boolean = false
+    let whiteSpaceBuffered: boolean = false
+    const maximumLength = Math.max(40, 80 - (indent * 4))
+    // console.log(`Description contents: ${JSON.stringify(contents, null, 4)}`)
+    for (let node of contents) {
+        switch(node.tag) {
+            case 'Whitespace':
+                whiteSpaceBuffered = true
+                displayingTagsNested = false
+                bufferNested = ''
+                break
+            case 'String':
+                displayingTagsNested = false
+                bufferNested = ''
+                const stringTokens = node.value.split(/\s+/)
+                if (whiteSpaceBuffered) {
+                    yield `${bufferFlat}`
+                    bufferFlat = stringTokens[0]
+                    whiteSpaceBuffered = false
+                }
+                else if (`${bufferFlat}${stringTokens[0]}`.length >= maximumLength) {
+                    //
+                    // If a previous tag buffer needs to be nested in order to word-wrap
+                    // because of the first token in the string, do that here
+                    //
+                    const { last, previous } = lastItem(bufferNested.split('\n'))
+                    for (let output of previous) {
+                        yield output
+                    }
+                    bufferFlat = `${last}${stringTokens[0]}`
+                }
+                else {
+                    bufferFlat = `${bufferFlat}${stringTokens[0]}`
+                }
+                for (let stringToken of stringTokens.slice(1)) {
+                    if (`${bufferFlat} ${stringToken}`.length >= maximumLength) {
+                        yield `${bufferFlat}`
+                        bufferFlat = stringToken
+                    }
+                    else {
+                        bufferFlat = `${bufferFlat} ${stringToken}`
+                    }
+                }
+                break
+            case 'Link':
+                //
+                // TODO: Hold a buffer of adjoining tags, and keep track of their *collected* length
+                // to determine whether to switch modes to displaying them all in multi-line nested
+                //
+                const { cached: flatCache } = prettyPrintEvaluate({ source, tokens })({ node, indent, mode: PrettyPrintEvaluations.NoNesting })
+                const { cached: nestedCache } = prettyPrintEvaluate({ source, tokens })({ node, indent, mode: PrettyPrintEvaluations.MustNest })
+                if (whiteSpaceBuffered) {
+                    yield `${bufferFlat}`
+                    bufferFlat = ''
+                    whiteSpaceBuffered = false
+                }
+                //
+                // If you are not already displaying tags nested then check whether you need to
+                // start doing so
+                //
+                if (`${bufferFlat}${flatCache}`.length >= maximumLength) {
+                    const { last: lastBuffer, previous: nestedLines } = lastItem(bufferNested.split('\n'))
+                    for (let output of nestedLines) {
+                        yield output
+                    }
+                    bufferFlat = lastBuffer
+                    bufferNested = ''
+                    displayingTagsNested = true
+                }
+                if (displayingTagsNested) {
+                    const { last, previous } = lastItem(nestedCache.split('\n'))
+                    if (previous.length) {
+                        yield `${bufferFlat}${previous[0]}`
+                        for (let output of previous.slice(1)) {
+                            yield output
+                        }
+                        bufferFlat = last
+                    }
+                    else {
+                        bufferFlat = `${bufferFlat}${last}`
+                    }
+                }
+                else {
+                    bufferFlat = `${bufferFlat}${flatCache}`
+                    bufferNested = `${bufferNested}${nestedCache}`
+                }
+                break
+        }
+    }
+    if (bufferFlat) {
+        yield bufferFlat
+    }
+}
+
 const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token[] }) => ({ node, mode = PrettyPrintEvaluations.Unevaluated, indent = 0 }: { node: ParseTag; mode?: PrettyPrintEvaluations; indent?: number }): ParsePrettyPrintEvaluation => {
     if (node.tag === 'String') {
         return {
@@ -213,31 +317,48 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
         // If contents exist, evaluate them for prettyPrint and then assemble the parent tag accordingly
         //
         else {
-            const contents = node.contents.map((item) => (prettyPrintEvaluate({ source, tokens })({ node: item, indent })))
-            //
-            // If one of the subordinate nodes must nest, or if it is a tag of its own, then nest all.
-            //
-            // TODO: Refactor so that Description tags have much more capable pretty-printing capabilities
-            //
-            if (node.tag === 'Description' || contents.find(({ evaluation }) => ([PrettyPrintEvaluations.MustNest, PrettyPrintEvaluations.HasTagsToInheritNesting].includes(evaluation)))) {
-                const contentsSource = contents.map(({ cached }) => (cached)).filter((value) => (value)).join('\n')
+            if (node.tag === 'Description') {
+                //
+                // TODO: Add more sophisticated word-wrap functionality on Description
+                //
+                const contents = trimWhitespaceEnds(node.contents)
+                const descriptionSource = [...descriptionWrap({
+                    source,
+                    tokens,
+                    contents,
+                    indent: indent + 1
+                })].join('\n')
                 return {
                     tag: node,
                     evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
-                    cached: `${tagOpenSrc}\n${prettyPrintIndent(1)(contentsSource)}\n</${node.tag}>`
+                    cached: `${tagOpenSrc}\n${prettyPrintIndent(1)(descriptionSource)}\n</${node.tag}>`
                 }
             }
-            //
-            // Otherwise, print on a single line.
-            //
-            // TODO: Evaluate whether item should be forced to nest because of line length
-            //
             else {
-                const contentsSource = contents.map(({ cached }) => (cached)).join('')
-                return {
-                    tag: node,
-                    evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
-                    cached: `${tagOpenSrc}${contentsSource}</${node.tag}>`
+                //
+                // If one of the subordinate nodes must nest, or if it is a tag of its own, then nest all.
+                //
+                const contents = node.contents.map((item: ParseTag) => (prettyPrintEvaluate({ source, tokens })({ node: item, indent: indent + 1 })))
+                if (contents.find(({ evaluation }) => ([PrettyPrintEvaluations.MustNest, PrettyPrintEvaluations.HasTagsToInheritNesting].includes(evaluation)))) {
+                    const contentsSource = contents.map(({ cached }) => (cached)).filter((value) => (value)).join('\n')
+                    return {
+                        tag: node,
+                        evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
+                        cached: `${tagOpenSrc}\n${prettyPrintIndent(1)(contentsSource)}\n</${node.tag}>`
+                    }
+                }
+                //
+                // Otherwise, print on a single line.
+                //
+                // TODO: Evaluate whether item should be forced to nest because of line length
+                //
+                else {
+                    const contentsSource = contents.map(({ cached }) => (cached)).join('')
+                    return {
+                        tag: node,
+                        evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
+                        cached: `${tagOpenSrc}${contentsSource}</${node.tag}>`
+                    }
                 }
             }
         }
@@ -252,6 +373,7 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
 }
 
 export const prettyPrint = ({ tokens, schema, source }: { tokens: Token[]; schema: SchemaTag[]; source: string }): string => {
+    // console.log(`Tokens: ${JSON.stringify(tokens, null, 4)}`)
     const evaluator = prettyPrintEvaluate({ tokens, source })
     return schema.map(({ parse }) => (evaluator({ node: parse }))).map(({ cached }) => (cached)).join('')
 }

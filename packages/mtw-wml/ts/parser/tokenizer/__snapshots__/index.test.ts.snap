@@ -166,6 +166,11 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
+    "endIdx": 111,
+    "startIdx": 91,
+    "type": "Whitespace",
+  },
+  Object {
     "endIdx": 128,
     "startIdx": 112,
     "type": "Description",
@@ -182,9 +187,19 @@ Array [
     "type": "Comment",
   },
   Object {
+    "endIdx": 157,
+    "startIdx": 137,
+    "type": "Whitespace",
+  },
+  Object {
     "endIdx": 170,
     "startIdx": 158,
     "type": "Comment",
+  },
+  Object {
+    "endIdx": 191,
+    "startIdx": 171,
+    "type": "Whitespace",
   },
   Object {
     "endIdx": 203,
@@ -293,6 +308,11 @@ Array [
     "type": "TagOpenEnd",
   },
   Object {
+    "endIdx": 97,
+    "startIdx": 77,
+    "type": "Whitespace",
+  },
+  Object {
     "endIdx": 114,
     "startIdx": 98,
     "type": "Description",
@@ -349,6 +369,11 @@ Array [
     "startIdx": 160,
     "tag": "Link",
     "type": "TagClose",
+  },
+  Object {
+    "endIdx": 187,
+    "startIdx": 167,
+    "type": "Whitespace",
   },
   Object {
     "endIdx": 199,

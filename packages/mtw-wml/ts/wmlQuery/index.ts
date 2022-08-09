@@ -332,13 +332,18 @@ export class NewWMLQueryResult {
     contents(value?: string): NewWMLQueryResult | SchemaTag[] {
         if (value !== undefined) {
             this.expand()
+            let replaceRanges: { startIdx: number; endIdx: number }[] = []
             this._nodes
                 .filter(isSchemaWithContents)
                 .forEach((node) => {
-                    const { startIdx, endIdx } = this._findContentsRange(node)
-                    this.wmlQuery.replaceInputRange(startIdx, endIdx, value)
-                    this.refresh()
+                    replaceRanges.push(this._findContentsRange(node))
                 })
+            let offset = 0
+            replaceRanges.forEach(({ startIdx, endIdx }) => {
+                this.wmlQuery.replaceInputRange(startIdx + offset, endIdx + offset, value)
+                offset += value.length + (startIdx - endIdx)
+            })
+            this.refresh()
             return this
         }
         else {
@@ -367,13 +372,18 @@ export class NewWMLQueryResult {
                 }
             })
             const revisedContents = renderContents.join("")
+            let replaceRanges: { startIdx: number; endIdx: number }[] = []
             this._nodes
                 .filter(isSchemaWithContents)
                 .forEach((node) => {
-                    const { startIdx, endIdx } = this._findContentsRange(node)
-                    this.wmlQuery.replaceInputRange(startIdx, endIdx, revisedContents)
-                    this.refresh()
+                    replaceRanges.push(this._findContentsRange(node))
                 })
+            let offset = 0
+            replaceRanges.forEach(({ startIdx, endIdx }) => {
+                this.wmlQuery.replaceInputRange(startIdx + offset, endIdx + offset, revisedContents)
+                offset += revisedContents.length + (startIdx - endIdx)
+            })
+            this.refresh()
             return this
         }
         else {

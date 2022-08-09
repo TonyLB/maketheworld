@@ -118,7 +118,7 @@ Array [
             "value": "Test Render:",
           },
           Object {
-            "spaceAfter": false,
+            "spaceAfter": true,
             "spaceBefore": true,
             "tag": "Link",
             "text": "Clock Tower",
@@ -164,8 +164,8 @@ Array [
     "render": Array [
       Object {
         "parse": Object {
-          "endTagToken": 14,
-          "startTagToken": 14,
+          "endTagToken": 15,
+          "startTagToken": 15,
           "tag": "String",
           "value": "Test Render:",
         },
@@ -178,23 +178,23 @@ Array [
         "parse": Object {
           "contents": Array [
             Object {
-              "endTagToken": 21,
-              "startTagToken": 21,
+              "endTagToken": 22,
+              "startTagToken": 22,
               "tag": "String",
               "value": "Clock Tower",
             },
             Object {
-              "endTagToken": 22,
-              "startTagToken": 22,
+              "endTagToken": 23,
+              "startTagToken": 23,
               "tag": "Whitespace",
             },
           ],
-          "endTagToken": 23,
-          "startTagToken": 16,
+          "endTagToken": 24,
+          "startTagToken": 17,
           "tag": "Link",
           "to": "clockTower",
         },
-        "spaceAfter": false,
+        "spaceAfter": true,
         "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
@@ -255,7 +255,7 @@ Array [
         "value": "Test Render:",
       },
       Object {
-        "spaceAfter": false,
+        "spaceAfter": true,
         "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
@@ -340,7 +340,7 @@ Array [
         "value": "Test Render:",
       },
       Object {
-        "spaceAfter": false,
+        "spaceAfter": true,
         "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
@@ -402,7 +402,7 @@ Array [
             "value": "Test Render:",
           },
           Object {
-            "spaceAfter": false,
+            "spaceAfter": true,
             "spaceBefore": true,
             "tag": "Link",
             "text": "Clock Tower",
@@ -448,8 +448,8 @@ Array [
     "render": Array [
       Object {
         "parse": Object {
-          "endTagToken": 14,
-          "startTagToken": 14,
+          "endTagToken": 15,
+          "startTagToken": 15,
           "tag": "String",
           "value": "Test Render:",
         },
@@ -462,23 +462,23 @@ Array [
         "parse": Object {
           "contents": Array [
             Object {
-              "endTagToken": 21,
-              "startTagToken": 21,
+              "endTagToken": 22,
+              "startTagToken": 22,
               "tag": "String",
               "value": "Clock Tower",
             },
             Object {
-              "endTagToken": 22,
-              "startTagToken": 22,
+              "endTagToken": 23,
+              "startTagToken": 23,
               "tag": "Whitespace",
             },
           ],
-          "endTagToken": 23,
-          "startTagToken": 16,
+          "endTagToken": 24,
+          "startTagToken": 17,
           "tag": "Link",
           "to": "clockTower",
         },
-        "spaceAfter": false,
+        "spaceAfter": true,
         "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",

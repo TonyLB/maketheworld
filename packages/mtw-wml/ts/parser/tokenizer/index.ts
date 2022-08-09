@@ -36,6 +36,7 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
 
     let currentDescription: TokenDescription | undefined
     let currentWhitespace: TokenWhitespace | undefined
+    let currentContext: TokenTagOpenBegin[] = []
     while(!sourceStream.isEndOfSource) {
         if (mode === TokenizerMode.Contents) {
             //
@@ -58,11 +59,23 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                         returnValue.push(token)
                         if (token.type === 'TagOpenBegin') {
                             mode = TokenizerMode.Tag
+                            currentContext.push(token)
+                        }
+                        if (token.type === 'TagClose') {
+                            const contextPop = currentContext.pop()
+                            if (contextPop.tag !== token.tag) {
+                                throw new TokenizeException(`Closing tag (${token.tag}) does not match open tag (${contextPop.tag})`, token.startIdx, token.endIdx)
+                            }
                         }
                     }
                     if (token.type === 'Whitespace') {
                         if (currentDescription) {
                             currentWhitespace = token
+                        }
+                        else {
+                            if (currentContext.find(({ tag }) => (tag === 'Description'))) {
+                                returnValue.push(token)
+                            }
                         }
                     }
                     if (token.type === 'Description') {
@@ -92,6 +105,9 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                     returnValue.push(token)
                     if (token.type === 'TagOpenEnd') {
                         mode = TokenizerMode.Contents
+                        if (token.selfClosing) {
+                            currentContext.pop()
+                        }
                     }
                     if (token.type === 'Property' && !token.isBoolean) {
                         //

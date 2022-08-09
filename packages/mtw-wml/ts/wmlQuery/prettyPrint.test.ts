@@ -85,29 +85,36 @@ describe('WMLQuery prettyPrint', () => {
     })
 
     it('should word wrap descriptions', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Feature key=(clockTower)>
-                    <Description>
-                        An old stone clock tower
-                    </Description>
-                </Feature>
-                <Room key=(Test)>
-                    <Description>
-                        A short first section
-                        <Link to=(clockTower)>clockTower</Link>
-                        then a long enough second section that it will start testing the
-                        word-wrap functionality at eighty characters, which is actually
-                        quite a long line indeed, eighty characters is a lot more than
-                        you might think<Link to=(clockTower)>clockTower</Link>and
-                        then a third section also snuggled up to the link, to test that
-                        wrapping functionality doesn't separate no-space connections.
-                        Then a section with two<Link to=(clockTower)>clockTower</Link><Link to=(clockTower)>clockTower</Link>tags
-                        directly adjacent.
-                    </Description>
-                </Room>
-            </Asset>`)
-        expect(wmlSemantics(match).prettyPrint).toMatchSnapshot()
+        const testSource = `
+        <Asset key=(Test) fileName="test">
+            <Feature key=(clockTower)>
+                <Description>
+                    An old stone clock tower
+                </Description>
+            </Feature>
+            <Room key=(Test)>
+                <Description>
+                    A short first section
+                    <Link to=(clockTower)>clockTower</Link>
+                    then a long enough second section that it will start testing the
+                    word-wrap functionality at eighty characters, which is actually
+                    quite a long line indeed, eighty characters is a lot more than
+                    you might think<Link to=(clockTower)>clockTower</Link>and
+                    then a third section also snuggled up to the link, to test that
+                    wrapping functionality doesn't separate no-space connections.
+                    Then a section with two<Link to=(clockTower)>clockTower</Link><Link to=(clockTower)>clockTower</Link>tags
+                    directly adjacent.
+                </Description>
+            </Room>
+        </Asset>`
+        const match = wmlGrammar.match(testSource)
+        const holding = wmlSemantics(match).prettyPrint
+        expect(holding).toMatchSnapshot()
+        console.log(prettyPrintFromSource(testSource).split('\n').map((line) => (`(${line.length}) ${line}`)).join('\n'))
+        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        //
+        // TODO: Correct tokenizer losing whitespace tokens after Link and before String
+        //
     })
 
     it('should preserve whitespace around tags', () => {
