@@ -56,6 +56,7 @@ export type TokenTagOpenEnd = {
 
 export type TokenTagClose = {
     type: 'TagClose';
+    tag: string;
 } & TokenBase
 
 export type TokenDescription = {

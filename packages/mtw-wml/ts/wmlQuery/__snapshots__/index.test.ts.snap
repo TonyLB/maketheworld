@@ -420,8 +420,8 @@ Array [
     "contents": Array [
       Object {
         "parse": Object {
-          "endTagToken": 14,
-          "startTagToken": 14,
+          "endTagToken": 15,
+          "startTagToken": 15,
           "tag": "String",
           "value": "Test Render:",
         },
@@ -434,23 +434,18 @@ Array [
         "parse": Object {
           "contents": Array [
             Object {
-              "endTagToken": 21,
-              "startTagToken": 21,
+              "endTagToken": 22,
+              "startTagToken": 22,
               "tag": "String",
               "value": "Clock Tower",
             },
-            Object {
-              "endTagToken": 22,
-              "startTagToken": 22,
-              "tag": "Whitespace",
-            },
           ],
           "endTagToken": 23,
-          "startTagToken": 16,
+          "startTagToken": 17,
           "tag": "Link",
           "to": "clockTower",
         },
-        "spaceAfter": false,
+        "spaceAfter": true,
         "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
@@ -463,35 +458,40 @@ Array [
         Object {
           "endTagToken": 14,
           "startTagToken": 14,
-          "tag": "String",
-          "value": "Test Render:",
+          "tag": "Whitespace",
         },
         Object {
           "endTagToken": 15,
           "startTagToken": 15,
+          "tag": "String",
+          "value": "Test Render:",
+        },
+        Object {
+          "endTagToken": 16,
+          "startTagToken": 16,
           "tag": "Whitespace",
         },
         Object {
           "contents": Array [
             Object {
-              "endTagToken": 21,
-              "startTagToken": 21,
+              "endTagToken": 22,
+              "startTagToken": 22,
               "tag": "String",
               "value": "Clock Tower",
             },
-            Object {
-              "endTagToken": 22,
-              "startTagToken": 22,
-              "tag": "Whitespace",
-            },
           ],
           "endTagToken": 23,
-          "startTagToken": 16,
+          "startTagToken": 17,
           "tag": "Link",
           "to": "clockTower",
         },
+        Object {
+          "endTagToken": 24,
+          "startTagToken": 24,
+          "tag": "Whitespace",
+        },
       ],
-      "endTagToken": 24,
+      "endTagToken": 25,
       "spaceAfter": false,
       "spaceBefore": false,
       "startTagToken": 12,
@@ -505,8 +505,8 @@ Array [
     "contents": Array [
       Object {
         "parse": Object {
-          "endTagToken": 30,
-          "startTagToken": 30,
+          "endTagToken": 31,
+          "startTagToken": 31,
           "tag": "String",
           "value": "test",
         },
@@ -520,16 +520,16 @@ Array [
     "parse": Object {
       "contents": Array [
         Object {
-          "endTagToken": 30,
-          "startTagToken": 30,
+          "endTagToken": 31,
+          "startTagToken": 31,
           "tag": "String",
           "value": "test",
         },
       ],
-      "endTagToken": 31,
+      "endTagToken": 32,
       "from": "VORTEX",
       "key": "VORTEX#Test",
-      "startTagToken": 25,
+      "startTagToken": 26,
       "tag": "Exit",
       "to": "Test",
     },
@@ -540,8 +540,8 @@ Array [
     "contents": Array [
       Object {
         "parse": Object {
-          "endTagToken": 47,
-          "startTagToken": 47,
+          "endTagToken": 49,
+          "startTagToken": 49,
           "tag": "String",
           "value": "Conditional Render",
         },
@@ -555,21 +555,26 @@ Array [
     "parse": Object {
       "contents": Array [
         Object {
-          "endTagToken": 47,
-          "startTagToken": 47,
-          "tag": "String",
-          "value": "Conditional Render",
-        },
-        Object {
           "endTagToken": 48,
           "startTagToken": 48,
           "tag": "Whitespace",
         },
+        Object {
+          "endTagToken": 49,
+          "startTagToken": 49,
+          "tag": "String",
+          "value": "Conditional Render",
+        },
+        Object {
+          "endTagToken": 50,
+          "startTagToken": 50,
+          "tag": "Whitespace",
+        },
       ],
-      "endTagToken": 49,
+      "endTagToken": 51,
       "spaceAfter": false,
       "spaceBefore": false,
-      "startTagToken": 45,
+      "startTagToken": 46,
       "tag": "Description",
     },
     "spaceAfter": false,
@@ -854,8 +859,8 @@ Array [
         "contents": Array [
           Object {
             "parse": Object {
-              "endTagToken": 14,
-              "startTagToken": 14,
+              "endTagToken": 15,
+              "startTagToken": 15,
               "tag": "String",
               "value": "Test Render:",
             },
@@ -868,23 +873,18 @@ Array [
             "parse": Object {
               "contents": Array [
                 Object {
-                  "endTagToken": 21,
-                  "startTagToken": 21,
+                  "endTagToken": 22,
+                  "startTagToken": 22,
                   "tag": "String",
                   "value": "Clock Tower",
                 },
-                Object {
-                  "endTagToken": 22,
-                  "startTagToken": 22,
-                  "tag": "Whitespace",
-                },
               ],
               "endTagToken": 23,
-              "startTagToken": 16,
+              "startTagToken": 17,
               "tag": "Link",
               "to": "clockTower",
             },
-            "spaceAfter": false,
+            "spaceAfter": true,
             "spaceBefore": true,
             "tag": "Link",
             "text": "Clock Tower",
@@ -897,35 +897,40 @@ Array [
             Object {
               "endTagToken": 14,
               "startTagToken": 14,
-              "tag": "String",
-              "value": "Test Render:",
+              "tag": "Whitespace",
             },
             Object {
               "endTagToken": 15,
               "startTagToken": 15,
+              "tag": "String",
+              "value": "Test Render:",
+            },
+            Object {
+              "endTagToken": 16,
+              "startTagToken": 16,
               "tag": "Whitespace",
             },
             Object {
               "contents": Array [
                 Object {
-                  "endTagToken": 21,
-                  "startTagToken": 21,
+                  "endTagToken": 22,
+                  "startTagToken": 22,
                   "tag": "String",
                   "value": "Clock Tower",
                 },
-                Object {
-                  "endTagToken": 22,
-                  "startTagToken": 22,
-                  "tag": "Whitespace",
-                },
               ],
               "endTagToken": 23,
-              "startTagToken": 16,
+              "startTagToken": 17,
               "tag": "Link",
               "to": "clockTower",
             },
+            Object {
+              "endTagToken": 24,
+              "startTagToken": 24,
+              "tag": "Whitespace",
+            },
           ],
-          "endTagToken": 24,
+          "endTagToken": 25,
           "spaceAfter": false,
           "spaceBefore": false,
           "startTagToken": 12,
@@ -939,8 +944,8 @@ Array [
         "contents": Array [
           Object {
             "parse": Object {
-              "endTagToken": 30,
-              "startTagToken": 30,
+              "endTagToken": 31,
+              "startTagToken": 31,
               "tag": "String",
               "value": "test",
             },
@@ -954,16 +959,16 @@ Array [
         "parse": Object {
           "contents": Array [
             Object {
-              "endTagToken": 30,
-              "startTagToken": 30,
+              "endTagToken": 31,
+              "startTagToken": 31,
               "tag": "String",
               "value": "test",
             },
           ],
-          "endTagToken": 31,
+          "endTagToken": 32,
           "from": "VORTEX",
           "key": "VORTEX#Test",
-          "startTagToken": 25,
+          "startTagToken": 26,
           "tag": "Exit",
           "to": "Test",
         },
@@ -982,35 +987,40 @@ Array [
             Object {
               "endTagToken": 14,
               "startTagToken": 14,
-              "tag": "String",
-              "value": "Test Render:",
+              "tag": "Whitespace",
             },
             Object {
               "endTagToken": 15,
               "startTagToken": 15,
+              "tag": "String",
+              "value": "Test Render:",
+            },
+            Object {
+              "endTagToken": 16,
+              "startTagToken": 16,
               "tag": "Whitespace",
             },
             Object {
               "contents": Array [
                 Object {
-                  "endTagToken": 21,
-                  "startTagToken": 21,
+                  "endTagToken": 22,
+                  "startTagToken": 22,
                   "tag": "String",
                   "value": "Clock Tower",
                 },
-                Object {
-                  "endTagToken": 22,
-                  "startTagToken": 22,
-                  "tag": "Whitespace",
-                },
               ],
               "endTagToken": 23,
-              "startTagToken": 16,
+              "startTagToken": 17,
               "tag": "Link",
               "to": "clockTower",
             },
+            Object {
+              "endTagToken": 24,
+              "startTagToken": 24,
+              "tag": "Whitespace",
+            },
           ],
-          "endTagToken": 24,
+          "endTagToken": 25,
           "spaceAfter": false,
           "spaceBefore": false,
           "startTagToken": 12,
@@ -1019,21 +1029,21 @@ Array [
         Object {
           "contents": Array [
             Object {
-              "endTagToken": 30,
-              "startTagToken": 30,
+              "endTagToken": 31,
+              "startTagToken": 31,
               "tag": "String",
               "value": "test",
             },
           ],
-          "endTagToken": 31,
+          "endTagToken": 32,
           "from": "VORTEX",
           "key": "VORTEX#Test",
-          "startTagToken": 25,
+          "startTagToken": 26,
           "tag": "Exit",
           "to": "Test",
         },
       ],
-      "endTagToken": 32,
+      "endTagToken": 33,
       "global": true,
       "key": "VORTEX",
       "startTagToken": 5,
@@ -1044,8 +1054,8 @@ Array [
     "render": Array [
       Object {
         "parse": Object {
-          "endTagToken": 14,
-          "startTagToken": 14,
+          "endTagToken": 15,
+          "startTagToken": 15,
           "tag": "String",
           "value": "Test Render:",
         },
@@ -1058,23 +1068,18 @@ Array [
         "parse": Object {
           "contents": Array [
             Object {
-              "endTagToken": 21,
-              "startTagToken": 21,
+              "endTagToken": 22,
+              "startTagToken": 22,
               "tag": "String",
               "value": "Clock Tower",
             },
-            Object {
-              "endTagToken": 22,
-              "startTagToken": 22,
-              "tag": "Whitespace",
-            },
           ],
           "endTagToken": 23,
-          "startTagToken": 16,
+          "startTagToken": 17,
           "tag": "Link",
           "to": "clockTower",
         },
-        "spaceAfter": false,
+        "spaceAfter": true,
         "spaceBefore": true,
         "tag": "Link",
         "text": "Clock Tower",
