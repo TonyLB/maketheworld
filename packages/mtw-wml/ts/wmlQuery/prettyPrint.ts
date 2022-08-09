@@ -197,13 +197,13 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
     for (let node of contents) {
         switch(node.tag) {
             case 'Whitespace':
+                console.log(`Whitespace: ${JSON.stringify(node, null, 4)}`)
                 whiteSpaceBuffered = true
                 displayingTagsNested = false
                 bufferNested = ''
                 break
             case 'String':
                 displayingTagsNested = false
-                bufferNested = ''
                 const stringTokens = node.value.split(/\s+/)
                 if (whiteSpaceBuffered) {
                     yield `${bufferFlat}`
@@ -215,6 +215,7 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     // If a previous tag buffer needs to be nested in order to word-wrap
                     // because of the first token in the string, do that here
                     //
+                    console.log(`Must nest in order to fit token on line (${bufferFlat} + ${stringTokens[0]})`)
                     const { last, previous } = lastItem(bufferNested.split('\n'))
                     for (let output of previous) {
                         yield output
@@ -222,6 +223,7 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     bufferFlat = `${last}${stringTokens[0]}`
                 }
                 else {
+                    console.log(`Combining without nesting (${bufferFlat} + ${stringTokens[0]})`)
                     bufferFlat = `${bufferFlat}${stringTokens[0]}`
                 }
                 for (let stringToken of stringTokens.slice(1)) {
@@ -233,15 +235,17 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                         bufferFlat = `${bufferFlat} ${stringToken}`
                     }
                 }
+                bufferNested = ''
                 break
             case 'Link':
                 //
-                // TODO: Hold a buffer of adjoining tags, and keep track of their *collected* length
-                // to determine whether to switch modes to displaying them all in multi-line nested
+                // Maintain buffers for both nested and non-nested versions of the prettyPrint, until you can either use the non-nested
+                // or need to discard it and move forward in nesting-only mode for as long as tags are connected.
                 //
                 const { cached: flatCache } = prettyPrintEvaluate({ source, tokens })({ node, indent, mode: PrettyPrintEvaluations.NoNesting })
                 const { cached: nestedCache } = prettyPrintEvaluate({ source, tokens })({ node, indent, mode: PrettyPrintEvaluations.MustNest })
                 if (whiteSpaceBuffered) {
+                    console.log(`Whitespace before Link`)
                     yield `${bufferFlat}`
                     bufferFlat = ''
                     whiteSpaceBuffered = false

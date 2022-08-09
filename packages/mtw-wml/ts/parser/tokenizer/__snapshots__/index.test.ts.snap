@@ -177,11 +177,6 @@ Array [
     "value": "Test description",
   },
   Object {
-    "endIdx": 116,
-    "startIdx": 116,
-    "type": "Whitespace",
-  },
-  Object {
     "endIdx": 136,
     "startIdx": 128,
     "type": "Comment",
@@ -358,11 +353,6 @@ Array [
     "startIdx": 151,
     "type": "Description",
     "value": "link text",
-  },
-  Object {
-    "endIdx": 155,
-    "startIdx": 155,
-    "type": "Whitespace",
   },
   Object {
     "endIdx": 166,

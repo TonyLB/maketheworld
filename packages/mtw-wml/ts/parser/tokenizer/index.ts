@@ -73,6 +73,7 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                             currentWhitespace = token
                         }
                         else {
+                            currentWhitespace = undefined
                             if (currentContext.find(({ tag }) => (tag === 'Description'))) {
                                 returnValue.push(token)
                             }
@@ -86,6 +87,7 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                                 endIdx: token.endIdx,
                                 value: `${currentDescription.value} ${sourceStream.source.slice(token.startIdx, token.endIdx)}`
                             }
+                            currentWhitespace = undefined
                         }
                         else {
                             currentDescription = token
