@@ -193,11 +193,9 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
     let displayingTagsNested: boolean = false
     let whiteSpaceBuffered: boolean = false
     const maximumLength = Math.max(40, 80 - (indent * 4))
-    // console.log(`Description contents: ${JSON.stringify(contents, null, 4)}`)
     for (let node of contents) {
         switch(node.tag) {
             case 'Whitespace':
-                console.log(`Whitespace: ${JSON.stringify(node, null, 4)}`)
                 whiteSpaceBuffered = true
                 displayingTagsNested = false
                 bufferNested = ''
@@ -215,7 +213,6 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     // If a previous tag buffer needs to be nested in order to word-wrap
                     // because of the first token in the string, do that here
                     //
-                    console.log(`Must nest in order to fit token on line (${bufferFlat} + ${stringTokens[0]})`)
                     const { last, previous } = lastItem(bufferNested.split('\n'))
                     for (let output of previous) {
                         yield output
@@ -223,7 +220,6 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     bufferFlat = `${last}${stringTokens[0]}`
                 }
                 else {
-                    console.log(`Combining without nesting (${bufferFlat} + ${stringTokens[0]})`)
                     bufferFlat = `${bufferFlat}${stringTokens[0]}`
                 }
                 for (let stringToken of stringTokens.slice(1)) {
@@ -245,7 +241,6 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                 const { cached: flatCache } = prettyPrintEvaluate({ source, tokens })({ node, indent, mode: PrettyPrintEvaluations.NoNesting })
                 const { cached: nestedCache } = prettyPrintEvaluate({ source, tokens })({ node, indent, mode: PrettyPrintEvaluations.MustNest })
                 if (whiteSpaceBuffered) {
-                    console.log(`Whitespace before Link`)
                     yield `${bufferFlat}`
                     bufferFlat = ''
                     whiteSpaceBuffered = false
@@ -277,6 +272,13 @@ function * descriptionWrap ({ source, tokens, contents, indent }: { source: stri
                     }
                 }
                 else {
+                    //
+                    // If setting bufferNested for the first time, bring in previous flat buffer contents
+                    //
+                    bufferNested = bufferNested || bufferFlat
+                    //
+                    // Then add to each buffer, flat and nested
+                    //
                     bufferFlat = `${bufferFlat}${flatCache}`
                     bufferNested = `${bufferNested}${nestedCache}`
                 }
@@ -343,11 +345,11 @@ const prettyPrintEvaluate = ({ source, tokens }: { source: string; tokens: Token
                 // If one of the subordinate nodes must nest, or if it is a tag of its own, then nest all.
                 //
                 const contents = node.contents.map((item: ParseTag) => (prettyPrintEvaluate({ source, tokens })({ node: item, indent: indent + 1 })))
-                if (contents.find(({ evaluation }) => ([PrettyPrintEvaluations.MustNest, PrettyPrintEvaluations.HasTagsToInheritNesting].includes(evaluation)))) {
+                if (mode === PrettyPrintEvaluations.MustNest || contents.find(({ evaluation }) => ([PrettyPrintEvaluations.MustNest, PrettyPrintEvaluations.HasTagsToInheritNesting].includes(evaluation)))) {
                     const contentsSource = contents.map(({ cached }) => (cached)).filter((value) => (value)).join('\n')
                     return {
                         tag: node,
-                        evaluation: PrettyPrintEvaluations.HasTagsToInheritNesting,
+                        evaluation: mode === PrettyPrintEvaluations.MustNest ? PrettyPrintEvaluations.MustNest : PrettyPrintEvaluations.HasTagsToInheritNesting,
                         cached: `${tagOpenSrc}\n${prettyPrintIndent(1)(contentsSource)}\n</${node.tag}>`
                     }
                 }

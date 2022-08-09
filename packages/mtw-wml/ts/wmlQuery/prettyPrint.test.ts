@@ -110,7 +110,6 @@ describe('WMLQuery prettyPrint', () => {
         const match = wmlGrammar.match(testSource)
         const holding = wmlSemantics(match).prettyPrint
         expect(holding).toMatchSnapshot()
-        console.log(prettyPrintFromSource(testSource).split('\n').map((line) => (`(${line.length}) ${line}`)).join('\n'))
         expect(prettyPrintFromSource(testSource)).toEqual(holding)
         //
         // TODO: Correct tokenizer losing whitespace tokens after Link and before String
