@@ -1,6 +1,7 @@
 import { produce } from 'immer'
 import { v4 as uuidv4 } from 'uuid'
-import { objectEntryMap } from './lib/objects'
+import { objectEntryMap } from '../lib/objects'
+import { isSchemaExit, isSchemaWithKey, SchemaTag } from '../schema/baseClasses'
 
 type TagType = 'Asset' |
     'Story' |
@@ -431,6 +432,89 @@ export const transformNode = (contextStack, node) => {
     return { node, contextStack }
 }
 
+export const transformSchemaNode = (contextStack: NormalReference[], node: SchemaTag): { contextStack: NormalReference[], key: string; node: SchemaTag } => {
+    if (isSchemaExit(node)) {
+        const roomIndex = contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
+        if (roomIndex === -1) {
+            return {
+                contextStack: [
+                    ...contextStack,
+                    {
+                        index: contextStack.length,
+                        key: node.from,
+                        tag: 'Room'
+                    }
+                ],
+                key: `${node.from}#${node.to}`,
+                node
+            }
+        }
+        const roomKey = contextStack[roomIndex].key
+        const { to, from, ...rest } = node
+        const returnValue = {
+            ...rest,
+            key: `${from || roomKey}#${to || roomKey}`,
+            to: to || roomKey,
+            from: from || roomKey
+        }
+        if (from && from !== roomKey) {
+            const contextStackBeforeRoom = contextStack.slice(0, roomIndex)
+            const contextStackAfterRoom = contextStack.slice(roomIndex + 1)
+            //
+            // NOTE: Context stacks within the sibling room element created do not have
+            // an index item.  addElement will need to infer the correct index (either
+            // the current for a matching element, or a created next wrapper)
+            //
+            return {
+                contextStack: [
+                    ...contextStackBeforeRoom,
+                    {
+                        index: contextStackBeforeRoom.length,
+                        key: from,
+                        tag: 'Room'
+                    },
+                    ...(contextStackAfterRoom.map(({ key, tag, index }) => ({ key, tag, index: index + 1 })))
+                ],
+                key: `${from}#${to || roomKey}`,
+                node: returnValue
+            }
+        }
+        else {   
+            return {
+                contextStack,
+                key: `${from}#${to}`,
+                node: returnValue
+            }
+        }
+    }
+    if (node.tag === 'Condition') {
+        const key = keyForValue('Condition', node.if)
+        return {
+            key,
+            node,
+            contextStack
+        }
+    }
+    if (node.tag === 'Import') {
+        const key = keyForValue('Import', node.from)
+        return {
+            key,
+            node,
+            // node: {
+            //     ...node,
+            //     key,
+            //     contents: Object.entries(node.mapping)
+            //         .map(([key, { type }]) => ({ key, tag: type }))
+            // },
+            contextStack
+        }
+    }
+    if (isSchemaWithKey(node)) {
+        return { node, key: node.key, contextStack }
+    }
+    return { node, key: '', contextStack }
+}
+
 //
 // postProcessAppearance parses through elements after all of the normal structure has been
 // created, and updates appearanes where necessary (e.g. to include locations in the rooms
@@ -633,6 +717,41 @@ export const normalize = (node: any, existingMap: any = {}, contextStack: any = 
     if (!key || !tag) {
         return existingMap
     }
+    const firstPassMap = addElement(
+        existingMap,
+        {
+            contextStack: transformedContext,
+            location,
+            node: {
+                ...transformedNode,
+                contents: []
+            }
+        })
+    const updatedContextStack = [
+        ...transformedContext,
+        {
+            key,
+            tag,
+            ...topLevelRest,
+            index: (firstPassMap[key]?.appearances || []).length - 1
+        }
+    ]
+    const secondPassMap = (contents || []).reduce((previous, node, index) => (normalize(node, previous, updatedContextStack, [...location, index])), firstPassMap)
+    const thirdPassMap = Object.entries(secondPassMap)
+        .reduce((previous, [key, normalItem]) => (
+            (normalItem as any).appearances
+                .reduce((accumulator, _, index) => (postProcessAppearance(accumulator, key, index)), previous)
+        ), secondPassMap)
+    return thirdPassMap
+}
+
+export const normalizeFromSchema = (node: SchemaTag, existingMap: Record<string, NormalItem>, contextStack: NormalReference[] = [], location: number[] = [0]): NormalForm => {
+    const { contextStack: transformedContext, node: transformedNode } = transformNode(contextStack, node)
+    if (!isSchemaWithKey(node)) {
+        return existingMap
+    }
+    const { key, tag } = node
+    const { topLevel: { key: removeKey, tag: removeTag, ...topLevelRest }, appearance: { contents } } = pullProperties(transformedNode)
     const firstPassMap = addElement(
         existingMap,
         {

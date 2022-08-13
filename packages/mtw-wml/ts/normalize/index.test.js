@@ -4,7 +4,7 @@ import normalize, {
     postProcessAppearance,
     clearGeneratedKeys,
     addElement
-} from './normalize'
+} from '.'
 
 describe('WML normalize', () => {
 

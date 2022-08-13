@@ -16,19 +16,20 @@ import { isSchemaDescription, isSchemaWithContents, SchemaLineBreakTag, SchemaLi
 import { newWMLSelectorFactory } from './newSelector'
 import searchParse from './search/parse'
 import searchTokenize from './search/tokenize'
+import prettyPrint from './prettyPrint'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
     startIdx: number;
     endIdx: number;
     text: string;
-    wmlQuery: WMLQuery;
+    wmlQuery: LegacyWMLQuery;
 }
 
 export interface WMLQueryUpdateSet {
     type: 'set';
     text: string;
-    wmlQuery: WMLQuery;
+    wmlQuery: LegacyWMLQuery;
 }
 
 export type WMLQueryUpdate = WMLQueryUpdateReplace | WMLQueryUpdateSet
@@ -95,9 +96,9 @@ type FindPropertyTokensReturn = {
 export class NewWMLQueryResult {
     search: { search?: SearchParse[]; not?: SearchParse[] }[] = []
     extendsResult?: NewWMLQueryResult;
-    wmlQuery: NewWMLQuery;
+    wmlQuery: WMLQuery;
     _nodes: SchemaTag[] = [];
-    constructor(wmlQuery: NewWMLQuery, { search, extendsResult }: { search?: SearchParse[], extendsResult?: NewWMLQueryResult }) {
+    constructor(wmlQuery: WMLQuery, { search, extendsResult }: { search?: SearchParse[], extendsResult?: NewWMLQueryResult }) {
         this.wmlQuery = wmlQuery
         if (search) {
             this.search = [{
@@ -477,9 +478,9 @@ export class NewWMLQueryResult {
 export class WMLQueryResult {
     search: { search?: string; not?: string }[] = []
     extendsResult?: WMLQueryResult
-    wmlQuery: WMLQuery
+    wmlQuery: LegacyWMLQuery
     _nodes: any[] = []
-    constructor(wmlQuery: WMLQuery, { search, extendsResult }: { search?: string, extendsResult?: WMLQueryResult }) {
+    constructor(wmlQuery: LegacyWMLQuery, { search, extendsResult }: { search?: string, extendsResult?: WMLQueryResult }) {
         this.wmlQuery = wmlQuery
         if (search) {
             this.search = [{
@@ -757,7 +758,7 @@ export class WMLQueryResult {
 
 }
 
-export class WMLQuery {
+export class LegacyWMLQuery {
     onChange: (value: any) => void
     matcher: Matcher
 
@@ -788,7 +789,7 @@ export class WMLQuery {
             return {}
         }
     }
-    prettyPrint(): WMLQuery {
+    prettyPrint(): LegacyWMLQuery {
         if (this.matcher.match().succeeded()) {
             const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
             this.matcher.setInput(prettyPrinted)
@@ -810,13 +811,13 @@ export class WMLQuery {
         return new WMLQueryResult(this, { search: searchString })
     }
 
-    clone(): WMLQuery {
-        return new WMLQuery(this.source)
+    clone(): LegacyWMLQuery {
+        return new LegacyWMLQuery(this.source)
     }
 
 }
 
-export class NewWMLQuery {
+export class WMLQuery {
     onChange: (value: any) => void
     _source: string;
     _tokens: Token[] = [];
@@ -827,7 +828,7 @@ export class NewWMLQuery {
         const { onChange = () => {} } = options
         this.onChange = onChange
         this._source = sourceString
-        this._tokens = tokenizer(new SourceStream(this.source))
+        this._tokens = tokenizer(new SourceStream(this._source))
         this.refresh()
     }
 
@@ -842,7 +843,7 @@ export class NewWMLQuery {
 
     setInput(str: string): void {
         this._source = str
-        this._tokens = tokenizer(new SourceStream(this.source))
+        this._tokens = tokenizer(new SourceStream(this._source))
         this.refresh()
         this.onChange({
             type: 'set',
@@ -854,11 +855,13 @@ export class NewWMLQuery {
     normalize(): NormalForm {
         return normalize(this._schema)
     }
-    prettyPrint(): NewWMLQuery {
+    prettyPrint(): WMLQuery {
         // if (this.matcher.match().succeeded()) {
         //     const prettyPrinted = wmlSemantics(this.matcher.match()).prettyPrint
         //     this.matcher.setInput(prettyPrinted)
         // }
+        const prettyPrintedSource = prettyPrint({ tokens: this._tokens, schema: this._schema, source: this._source })
+        this.setInput(prettyPrintedSource)
         return this
     }
     replaceInputRange(startIdx: number, endIdx: number, str: string): void {
@@ -870,7 +873,7 @@ export class NewWMLQuery {
         // unchanged, and once the tokens start matching after leaving the new section (if they do),
         // the new tokens are just index-shifted versions of the old)
         //
-        this._tokens = tokenizer(new SourceStream(this.source))
+        this._tokens = tokenizer(new SourceStream(this._source))
         this.refresh()
         this.onChange({
             type: 'replace',
@@ -886,8 +889,8 @@ export class NewWMLQuery {
         return new NewWMLQueryResult(this, { search: parsedSearch })
     }
 
-    clone(): NewWMLQuery {
-        return new NewWMLQuery(this.source)
+    clone(): WMLQuery {
+        return new WMLQuery(this._source)
     }
 
 }
