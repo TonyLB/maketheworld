@@ -2,16 +2,21 @@ import { produce } from 'immer'
 import { objectMap } from '../lib/objects';
 import {
     isSchemaCharacter,
+    isSchemaExit,
     isSchemaWithContents,
     isSchemaWithKey,
     SchemaActionTag,
+    SchemaAssetLegalContents,
     SchemaAssetTag,
     SchemaComputedTag,
     SchemaConditionTag,
+    SchemaFeatureLegalContents,
     SchemaFeatureTag,
     SchemaImageTag,
     SchemaImportTag,
+    SchemaMapLegalContents,
     SchemaMapTag,
+    SchemaRoomLegalContents,
     SchemaRoomTag,
     SchemaStoryTag,
     SchemaTag,
@@ -47,6 +52,11 @@ const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWith
 type NormalizerContext = {
     contextStack: NormalReference[];
     location: number[];
+}
+
+type NormalizeAddReturnValue = {
+    children: NormalReference[];
+    siblings: NormalReference[];
 }
 
 export class Normalizer extends Object {
@@ -88,16 +98,41 @@ export class Normalizer extends Object {
     // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
     // the client demands
     //
-    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference {
+
+    //
+    // add accepts an incoming tag and a context, and returns two lists of NormalReference returns for things
+    // that it has added to the NormalForm mapping:
+    //      * children: Elements that have been added as children of the most granular level of the context
+    //                  (i.e., if a feature is being added in a Room then that feature becomes a child of
+    //                  that room)
+    //      * siblings: Elements that should be added at the same level as the most granular item of the
+    //                  context (i.e., if a 'from' exit is written into a Room, it should be wrapped in
+    //                  a Room of that from key, and that Room in turn should be added as a sibling of the
+    //                  room that is passed as part of the context)
+    //
+    // TODO: Refactor add to return both children (array of NormalReference for children created by the add)
+    // and siblings (array of NormalReference for *siblings* created by the add), and to properly accumulate
+    // those in the contents recursion
+    //
+    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalizeAddReturnValue {
+        let returnValue: NormalizeAddReturnValue = {
+            children: [],
+            siblings: []
+        }
         if (!isSchemaTagWithNormalEquivalent(node)) {
-            return undefined
+            return returnValue
         }
         if (isSchemaCharacter(node)) {
-            return undefined
+            return returnValue
         }
         this._validateTags(node)
-        let returnValue: NormalReference
+        let appearanceIndex: number
+        let returnKey: string = node.key
         switch(node.tag) {
+            //
+            // TODO:  Simplify WML syntax around Exits, so that they can only be created in the Rooms from which they lead, and subsequently
+            // simplify all this code as well.
+            //
             case 'Exit':
                 const roomIndex = context.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
                 if (roomIndex === -1) {
@@ -105,19 +140,19 @@ export class Normalizer extends Object {
                     // The exit is being created globally, outside of any room wrapper.  For normalization, we add a room wrapper
                     // appearance for the FROM key, inside the normalize structure
                     //
-                    const exitKey = `${node.from}#${node.to}`
+                    returnKey = `${node.from}#${node.to}`
                     const wrapperRoomAppearance = this._mergeAppearance(node.from, {
                         tag: 'Room',
                         key: node.from,
                         appearances: [{
-                            contextStack: context.contextStack,
+                            contextStack: [context.contextStack[0]],
                             location: [context.location[0]],
                             contents: []
                         }]
                     })
-                    const exitAppearance = this._mergeAppearance(exitKey, {
+                    appearanceIndex = this._mergeAppearance(returnKey, {
                         tag: 'Exit',
-                        key: exitKey,
+                        key: returnKey,
                         to: node.to,
                         from: node.from,
                         name: node.name,
@@ -136,13 +171,16 @@ export class Normalizer extends Object {
                     })
                     this._updateAppearanceContents(node.from, wrapperRoomAppearance, [{
                         tag: 'Exit',
-                        key: exitKey,
-                        index: exitAppearance
+                        key: returnKey,
+                        index: appearanceIndex
                     }])
                     returnValue = {
-                        key: exitKey,
-                        tag: 'Exit',
-                        index: exitAppearance
+                        children: [{
+                            key: node.from,
+                            tag: 'Room',
+                            index: wrapperRoomAppearance
+                        }],
+                        siblings: []
                     }
                 }
                 else {
@@ -156,19 +194,19 @@ export class Normalizer extends Object {
                         //
                         const contextStackBeforeRoom = context.contextStack.slice(0, roomIndex)
                         const contextStackAfterRoom = context.contextStack.slice(roomIndex + 1)
-                        const exitKey = `${from}#${to}`
+                        returnKey = `${from}#${to}`
                         const wrapperRoomAppearance = this._mergeAppearance(from, {
                             tag: 'Room',
                             key: from,
                             appearances: [{
-                                contextStack: context.contextStack,
-                                location: context.location,
+                                contextStack: context.contextStack.slice(0, -1),
+                                location: [],
                                 contents: []
                             }]
                         })
-                        const exitAppearance = this._mergeAppearance(exitKey, {
+                        appearanceIndex = this._mergeAppearance(returnKey, {
                             tag: 'Exit',
-                            key: exitKey,
+                            key: returnKey,
                             to: node.to,
                             from: node.from,
                             name: node.name,
@@ -186,18 +224,30 @@ export class Normalizer extends Object {
                                 contents: []
                             }]
                         })
-                        returnValue = {
+                        const childReturn: NormalReference = {
                             tag: 'Exit',
-                            key: exitKey,
-                            index: exitAppearance
+                            key: returnKey,
+                            index: appearanceIndex
                         }
-                        this._updateAppearanceContents(from, wrapperRoomAppearance, [returnValue])
+                        this._updateAppearanceContents(from, wrapperRoomAppearance, [childReturn])
+                        returnValue = {
+                            children: [],
+                            siblings: [{
+                                key: node.from,
+                                tag: 'Room',
+                                index: wrapperRoomAppearance
+                            }]
+                        }
                     }
                     else {
+                        appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
                         returnValue = {
-                            tag: 'Exit',
-                            key: node.key,
-                            index: this._mergeAppearance(node.key, node)
+                            children: [{
+                                tag: 'Exit',
+                                key: node.key,
+                                index: appearanceIndex
+                            }],
+                            siblings: []
                         }
                     }
                 }
@@ -243,7 +293,7 @@ export class Normalizer extends Object {
                                         }
                                     },
                                     updatedContext
-                                )
+                                ).children[0]
                         case 'Feature':
                             return this.add(
                                     {
@@ -263,7 +313,7 @@ export class Normalizer extends Object {
                                         }
                                     },
                                     updatedContext
-                                )
+                                ).children[0]
                         case 'Variable':
                             return this.add(
                                     {
@@ -277,7 +327,7 @@ export class Normalizer extends Object {
                                         }
                                     },
                                     updatedContext
-                                )
+                                ).children[0]
                         case 'Computed':
                             return this.add(
                                     {
@@ -295,7 +345,7 @@ export class Normalizer extends Object {
                                         }
                                     },
                                     updatedContext
-                                )
+                                ).children[0]
                         case 'Action':
                             return this.add(
                                     {
@@ -311,42 +361,66 @@ export class Normalizer extends Object {
                                         }
                                     },
                                     updatedContext
-                                )
+                                ).children[0]
                         default:
                             throw new NormalizeTagMismatchError(`"${type}" tag not allowed in import`)
                     }
                 })
                 this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
                 return {
-                    key: translatedImport.key,
-                    tag: 'Import',
-                    index: importIndex
+                    children: [{
+                        key: translatedImport.key,
+                        tag: 'Import',
+                        index: importIndex
+                    }],
+                    siblings: []
                 }
             default:
                 const translatedItem = this._translate({ ...context, contents: [] }, node)
+                returnKey = translatedItem.key
+                appearanceIndex = this._mergeAppearance(returnKey, translatedItem)
                 returnValue = {
-                    key: node.key,
-                    tag: node.tag,
-                    index: this._mergeAppearance(node.key, translatedItem)
+                    children: [{
+                        key: returnKey,
+                        tag: node.tag,
+                        index: appearanceIndex
+                    }],
+                    siblings: []
                 }
         }
-        if (isSchemaWithContents(node)) {
-            const contentReferences = node.contents.map<NormalReference>((contentNode, index) => {
+        if (isSchemaWithContents(node) && !isSchemaExit(node)) {
+            let children: NormalReference[] = returnValue.children
+            const contentReferences = (node.contents as SchemaTag[]).reduce((previous, contentNode, index) => {
                 const updateContext: NormalizerContext = {
                     contextStack: [
                         ...context.contextStack,
-                        returnValue
+                        {
+                            tag: node.tag,
+                            key: returnKey,
+                            index: appearanceIndex
+                        }
                     ],
                     location: [
                         ...context.location,
                         index
                     ]
                 }
-                return this.add(contentNode, updateContext)
-            })
-            this._updateAppearanceContents(node.key, returnValue.index, contentReferences)
+                const { children: newChildren = [], siblings: newSiblings = [] } = this.add(contentNode, updateContext)
+                children = [...children, ...newSiblings]
+                return [
+                    ...previous,
+                    ...newChildren
+                ]
+            }, [] as NormalReference[])
+            this._updateAppearanceContents(returnKey, appearanceIndex, contentReferences)
+            return {
+                children,
+                siblings: returnValue.siblings
+            }
         }
-        return returnValue
+        else {
+            return returnValue
+        }
     }
 
     _validateTags(node: SchemaTag): void {
@@ -358,7 +432,7 @@ export class Normalizer extends Object {
         }
         const tagToCompare = node.tag === 'Story' ? 'Asset' : node.tag
         if (this._tags[node.key] && this._tags[node.key] !== tagToCompare) {
-            throw new NormalizeTagMismatchError(`Item (${node.key}) defined with conflicting keys: "${this._tags[node.key]}" and "${tagToCompare}"`)
+            throw new NormalizeTagMismatchError(`Key '${node.key}' is used to define elements of different tags ('${this._tags[node.key]}' and '${tagToCompare}')`)
         }
         if (!(node.key in this._tags)) {
             this._tags[node.key] = tagToCompare
@@ -372,11 +446,11 @@ export class Normalizer extends Object {
         if (node.tag === 'Import') {
             Object.entries(node.mapping).forEach(([key, { type }]) => {
                 if (this._tags[key] && this._tags[key] !== type) {
-                    throw new NormalizeTagMismatchError(`Item (${key}) defined with conflicting keys: "${this._tags[node.key]}" and "${type}"`)
+                    throw new NormalizeTagMismatchError(`Key '${key}' is used to define elements of different tags ('${this._tags[key]}' and '${type}')`)
                 }
                 if (!(key in this._tags)) {
                     this._tags[key] = type
-                }        
+                }
             })
         }
     }
@@ -458,7 +532,6 @@ export class Normalizer extends Object {
                     appearances: [appearance]
                 }
             case 'Import':
-                console.log(`Import node: ${JSON.stringify(node, null, 4)}`)
                 return {
                     key: keyForValue('Import', node.from),
                     tag: 'Import',
@@ -471,6 +544,7 @@ export class Normalizer extends Object {
                 return {
                     key: node.key,
                     tag: node.tag,
+                    global: node.global ?? false,
                     appearances: [{
                         ...appearance,
                         render: node.render.map((renderItem) => {
@@ -487,7 +561,21 @@ export class Normalizer extends Object {
                                     targetTag: targetTag as 'Action' | 'Feature'
                                 }
                             }
-                        })
+                            else if (renderItem.tag === 'br') {
+                                return {
+                                    tag: 'LineBreak' as 'LineBreak'
+                                }
+                            }
+                            else if (renderItem.tag === 'String') {
+                                return {
+                                    tag: 'String' as 'String',
+                                    value: renderItem.value
+                                }
+                            }
+                        }).filter((value) => (value)),
+                        name: node.name,
+                        spaceAfter: false,
+                        spaceBefore: false
                     }]
                 }
             case 'Map':
@@ -502,6 +590,14 @@ export class Normalizer extends Object {
                         }))),
                         images: node.images
                     }]
+                }
+            case 'Exit':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    to: node.to,
+                    from: node.from,
+                    appearances: [appearance]
                 }
             default:
                 throw new NormalizeTagMismatchError(`Tag "${node.tag}" mistakenly processed in normalizer`)

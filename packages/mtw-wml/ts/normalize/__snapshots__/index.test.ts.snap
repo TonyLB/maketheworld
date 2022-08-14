@@ -492,7 +492,67 @@ Object {
 
 exports[`WML normalize should accumulate multiple appearances of the same key 1`] = `
 Object {
-  "123": Object {
+  "Condition-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [],
+    "if": "true",
+    "key": "Condition-0",
+    "tag": "Condition",
+  },
+  "Test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+        ],
+        "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "fileName": "Test",
+    "key": "Test",
+    "player": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -503,11 +563,14 @@ Object {
             "tag": "Asset",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           1,
         ],
         "name": "Vortex",
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -516,6 +579,8 @@ Object {
             "value": "Hello, world!",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
       Object {
         "contents": Array [],
@@ -531,11 +596,14 @@ Object {
             "tag": "Condition",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           2,
           0,
         ],
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -544,18 +612,26 @@ Object {
             "value": "Vortex!",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
-    "key": "123",
+    "global": false,
+    "key": "a123",
     "tag": "Room",
   },
+}
+`;
+
+exports[`WML normalize should accumulate multiple appearances of the same key 2`] = `
+Object {
   "Condition-0": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
-            "index": 1,
-            "key": "123",
+            "index": 2,
+            "key": "a123",
             "tag": "Room",
           },
         ],
@@ -578,12 +654,18 @@ Object {
     "tag": "Condition",
   },
   "Test": Object {
+    "Story": false,
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "a123",
             "tag": "Room",
           },
           Object {
@@ -598,15 +680,13 @@ Object {
         ],
       },
     ],
+    "fileName": "Test",
+    "instance": false,
     "key": "Test",
     "tag": "Asset",
+    "zone": undefined,
   },
-}
-`;
-
-exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
-Object {
-  "123": Object {
+  "a123": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -622,14 +702,32 @@ Object {
           0,
         ],
         "name": "Vortex",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": "",
         "render": Array [
           Object {
-            "spaceAfter": false,
-            "spaceBefore": false,
             "tag": "String",
             "value": "Hello, world!",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
       Object {
         "contents": Array [],
@@ -647,9 +745,228 @@ Object {
         ],
         "location": Array [
           0,
+          2,
+          0,
+        ],
+        "name": "",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Vortex!",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+}
+`;
+
+exports[`WML normalize should correctly handle multiple and nested conditionals 1`] = `
+Object {
+  "Condition-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          1,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [
+      "strong",
+    ],
+    "if": "strong",
+    "key": "Condition-0",
+    "tag": "Condition",
+  },
+  "Condition-1": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "Condition-2",
+            "tag": "Condition",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [
+      "strong",
+    ],
+    "if": "!strong",
+    "key": "Condition-1",
+    "tag": "Condition",
+  },
+  "Condition-2": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 2,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-1",
+            "tag": "Condition",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [
+      "trendy",
+    ],
+    "if": "trendy",
+    "key": "Condition-2",
+    "tag": "Condition",
+  },
+  "Test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-1",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "strong",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "trendy",
+            "tag": "Variable",
+          },
+        ],
+        "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "fileName": "Test",
+    "key": "Test",
+    "player": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "Vortex",
+        "props": Object {},
+        "render": Array [
+          Object {
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Hello, world!",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
           1,
           0,
         ],
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -658,6 +975,8 @@ Object {
             "value": "Vortex!",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
       Object {
         "contents": Array [],
@@ -678,12 +997,15 @@ Object {
             "tag": "Condition",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           2,
           0,
           0,
         ],
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -692,18 +1014,72 @@ Object {
             "value": "V.O.R.T.E.X.",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
-    "key": "123",
+    "global": false,
+    "key": "a123",
     "tag": "Room",
   },
+  "strong": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          3,
+        ],
+        "props": Object {},
+      },
+    ],
+    "default": "false",
+    "key": "strong",
+    "tag": "Variable",
+  },
+  "trendy": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          4,
+        ],
+        "props": Object {},
+      },
+    ],
+    "default": "false",
+    "key": "trendy",
+    "tag": "Variable",
+  },
+}
+`;
+
+exports[`WML normalize should correctly handle multiple and nested conditionals 2`] = `
+Object {
   "Condition-0": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 1,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
         ],
@@ -763,7 +1139,7 @@ Object {
         "contents": Array [
           Object {
             "index": 2,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
         ],
@@ -794,12 +1170,13 @@ Object {
     "tag": "Condition",
   },
   "Test": Object {
+    "Story": false,
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
           Object {
@@ -829,8 +1206,105 @@ Object {
         ],
       },
     ],
+    "fileName": "Test",
+    "instance": false,
     "key": "Test",
     "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "Vortex",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Hello, world!",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "name": "",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Vortex!",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-1",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-2",
+            "tag": "Condition",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+          0,
+          0,
+        ],
+        "name": "",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "V.O.R.T.E.X.",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
   },
   "strong": Object {
     "appearances": Array [
@@ -890,18 +1364,23 @@ Object {
           },
         ],
         "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
         "location": Array [
           0,
         ],
+        "props": Object {},
       },
     ],
+    "fileName": "Test",
     "key": "Test",
+    "player": undefined,
     "tag": "Asset",
+    "zone": undefined,
   },
   "test": Object {
     "appearances": Array [
       Object {
-        "conditions": Array [],
         "contents": Array [],
         "contextStack": Array [
           Object {
@@ -910,10 +1389,13 @@ Object {
             "tag": "Asset",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           1,
         ],
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -928,17 +1410,48 @@ Object {
             "value": "Two",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
+    "global": false,
     "key": "test",
     "tag": "Room",
   },
 }
 `;
 
-exports[`WML normalize should create wrapping elements for exits where needed 1`] = `
+exports[`WML normalize should correctly serialize multiple unconditioned descriptions 2`] = `
 Object {
-  "123": Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "test",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "test",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "test": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -953,19 +1466,113 @@ Object {
           0,
           0,
         ],
-        "name": "Vortex",
+        "name": "",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "One",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": "",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Two",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
-    "key": "123",
+    "global": false,
+    "key": "test",
     "tag": "Room",
   },
-  "456": Object {
+}
+`;
+
+exports[`WML normalize should create wrapping elements for exits where needed 1`] = `
+Object {
+  "Test": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "456#123",
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "fileName": "Test",
+    "key": "Test",
+    "player": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          0,
+        ],
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+  "b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "b456#a123",
             "tag": "Exit",
           },
         ],
@@ -979,10 +1586,10 @@ Object {
         "location": undefined,
       },
     ],
-    "key": "456",
+    "key": "b456",
     "tag": "Room",
   },
-  "456#123": Object {
+  "b456#a123": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -994,34 +1601,43 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "456",
+            "key": "b456",
             "tag": "Room",
           },
         ],
+        "errors": Array [],
         "location": Array [
           0,
           0,
           0,
         ],
+        "props": Object {},
       },
     ],
-    "from": "456",
-    "key": "456#123",
+    "from": "b456",
+    "key": "b456#a123",
+    "name": undefined,
     "tag": "Exit",
-    "to": "123",
+    "to": "a123",
   },
+}
+`;
+
+exports[`WML normalize should create wrapping elements for exits where needed 2`] = `
+Object {
   "Test": Object {
+    "Story": false,
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
           Object {
             "index": 0,
-            "key": "456",
+            "key": "b456",
             "tag": "Room",
           },
         ],
@@ -1031,15 +1647,13 @@ Object {
         ],
       },
     ],
+    "fileName": "Test",
+    "instance": false,
     "key": "Test",
     "tag": "Asset",
+    "zone": undefined,
   },
-}
-`;
-
-exports[`WML normalize should denormalize condition dependencies into contextStack 1`] = `
-Object {
-  "123": Object {
+  "a123": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -1054,7 +1668,159 @@ Object {
           0,
           0,
         ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+  "b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "b456#a123",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [],
+      },
+    ],
+    "key": "b456",
+    "tag": "Room",
+  },
+  "b456#a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+      },
+    ],
+    "from": "b456",
+    "key": "b456#a123",
+    "name": "",
+    "tag": "Exit",
+    "to": "a123",
+  },
+}
+`;
+
+exports[`WML normalize should denormalize condition dependencies into contextStack 1`] = `
+Object {
+  "Condition-0": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 1,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          1,
+        ],
+        "props": Object {},
+      },
+    ],
+    "dependencies": Array [
+      "strong",
+    ],
+    "if": "strong",
+    "key": "Condition-0",
+    "tag": "Condition",
+  },
+  "Test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+          Object {
+            "index": 0,
+            "key": "strong",
+            "tag": "Variable",
+          },
+        ],
+        "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "fileName": "Test",
+    "key": "Test",
+    "player": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          0,
+        ],
         "name": "Vortex",
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -1063,6 +1829,8 @@ Object {
             "value": "Hello, world!",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
       Object {
         "contents": Array [],
@@ -1078,11 +1846,14 @@ Object {
             "tag": "Condition",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           1,
           0,
         ],
+        "props": Object {},
         "render": Array [
           Object {
             "spaceAfter": false,
@@ -1091,18 +1862,49 @@ Object {
             "value": "Vortex!",
           },
         ],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
-    "key": "123",
+    "global": false,
+    "key": "a123",
     "tag": "Room",
   },
+  "strong": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+        ],
+        "props": Object {},
+      },
+    ],
+    "default": "false",
+    "key": "strong",
+    "tag": "Variable",
+  },
+}
+`;
+
+exports[`WML normalize should denormalize condition dependencies into contextStack 2`] = `
+Object {
   "Condition-0": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 1,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
         ],
@@ -1127,12 +1929,13 @@ Object {
     "tag": "Condition",
   },
   "Test": Object {
+    "Story": false,
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
           Object {
@@ -1152,8 +1955,70 @@ Object {
         ],
       },
     ],
+    "fileName": "Test",
+    "instance": false,
     "key": "Test",
     "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "Vortex",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Hello, world!",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Condition-0",
+            "tag": "Condition",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "name": "",
+        "render": Array [
+          Object {
+            "tag": "String",
+            "value": "Vortex!",
+          },
+        ],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
   },
   "strong": Object {
     "appearances": Array [
@@ -1686,15 +2551,633 @@ Object {
 }
 `;
 
-exports[`WML normalize should normalize exits into their parent room where needed 1`] = `
+exports[`WML normalize should normalize every needed tag 2`] = `
 Object {
-  "123": Object {
+  "ImageTest": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "TestMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+          0,
+        ],
+      },
+    ],
+    "fileURL": "https://test.com/imageTest.png",
+    "key": "ImageTest",
+    "tag": "Image",
+  },
+  "Import-0": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "123#456",
+            "key": "power",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "overview",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+      },
+    ],
+    "from": "BASE",
+    "key": "Import-0",
+    "mapping": Object {
+      "overview": Object {
+        "key": "overview",
+        "type": "Room",
+      },
+      "power": Object {
+        "key": "basePower",
+        "type": "Variable",
+      },
+    },
+    "tag": "Import",
+  },
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "Import-0",
+            "tag": "Import",
+          },
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "TestMap",
+            "tag": "Map",
+          },
+          Object {
+            "index": 1,
+            "key": "clockTower",
+            "tag": "Feature",
+          },
+          Object {
+            "index": 0,
+            "key": "active",
+            "tag": "Variable",
+          },
+          Object {
+            "index": 0,
+            "key": "inactive",
+            "tag": "Computed",
+          },
+          Object {
+            "index": 0,
+            "key": "toggleActive",
+            "tag": "Action",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "TestMap": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "ImageTest",
+            "tag": "Image",
+          },
+          Object {
+            "index": 1,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "images": Array [
+          "ImageTest",
+        ],
+        "location": Array [
+          0,
+          2,
+        ],
+        "rooms": Object {
+          "a123": Object {
+            "location": Array [
+              0,
+              2,
+              1,
+            ],
+            "x": 200,
+            "y": 150,
+          },
+        },
+      },
+    ],
+    "key": "TestMap",
+    "tag": "Map",
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "clockTower",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "TestMap",
+            "tag": "Map",
+          },
+        ],
+        "location": Array [
+          0,
+          2,
+          1,
+        ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+  "active": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          4,
+        ],
+      },
+    ],
+    "default": "true",
+    "key": "active",
+    "tag": "Variable",
+  },
+  "b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "b456#a123",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [],
+      },
+    ],
+    "key": "b456",
+    "tag": "Room",
+  },
+  "b456#a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+      },
+    ],
+    "from": "b456",
+    "key": "b456#a123",
+    "name": "",
+    "tag": "Exit",
+    "to": "a123",
+  },
+  "clockTower": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+          1,
+        ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          3,
+        ],
+        "name": "Clock Tower",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "clockTower",
+    "tag": "Feature",
+  },
+  "inactive": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          5,
+        ],
+      },
+    ],
+    "dependencies": Array [
+      "active",
+    ],
+    "key": "inactive",
+    "src": "!active",
+    "tag": "Computed",
+  },
+  "overview": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Import-0",
+            "tag": "Import",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          1,
+        ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "overview",
+    "tag": "Room",
+  },
+  "power": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "Import-0",
+            "tag": "Import",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+      },
+    ],
+    "default": undefined,
+    "key": "power",
+    "tag": "Variable",
+  },
+  "toggleActive": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          6,
+        ],
+      },
+    ],
+    "key": "toggleActive",
+    "src": "active = !active",
+    "tag": "Action",
+  },
+}
+`;
+
+exports[`WML normalize should normalize exits into their parent room where needed 1`] = `
+Object {
+  "Test": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "fileName": "Test",
+    "key": "Test",
+    "player": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123#b456",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "Vortex",
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+  "a123#b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "from": "a123",
+    "key": "a123#b456",
+    "name": undefined,
+    "tag": "Exit",
+    "to": "b456",
+  },
+  "b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+        ],
+        "name": "Welcome",
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "b456",
+    "tag": "Room",
+  },
+}
+`;
+
+exports[`WML normalize should normalize exits into their parent room where needed 2`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123#b456",
             "tag": "Exit",
           },
         ],
@@ -1710,12 +3193,16 @@ Object {
           0,
         ],
         "name": "Vortex",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
-    "key": "123",
+    "global": false,
+    "key": "a123",
     "tag": "Room",
   },
-  "123#456": Object {
+  "a123#b456": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -1727,7 +3214,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
         ],
@@ -1738,18 +3225,18 @@ Object {
         ],
       },
     ],
-    "from": "123",
-    "key": "123#456",
+    "from": "a123",
+    "key": "a123#b456",
     "tag": "Exit",
-    "to": "456",
+    "to": "b456",
   },
-  "456": Object {
+  "b456": Object {
     "appearances": Array [
       Object {
         "contents": Array [
           Object {
             "index": 0,
-            "key": "456#123",
+            "key": "b456#a123",
             "tag": "Exit",
           },
         ],
@@ -1762,16 +3249,31 @@ Object {
         ],
         "location": Array [
           0,
+        ],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
           2,
         ],
         "name": "Welcome",
-        "render": undefined,
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
-    "key": "456",
+    "key": "b456",
     "tag": "Room",
   },
-  "456#123": Object {
+  "b456#a123": Object {
     "appearances": Array [
       Object {
         "contents": Array [],
@@ -1783,7 +3285,7 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "456",
+            "key": "b456",
             "tag": "Room",
           },
         ],
@@ -1793,34 +3295,11 @@ Object {
         ],
       },
     ],
-    "from": "456",
-    "key": "456#123",
+    "from": "b456",
+    "key": "b456#a123",
+    "name": "",
     "tag": "Exit",
-    "to": "123",
-  },
-  "Test": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 0,
-            "key": "123",
-            "tag": "Room",
-          },
-          Object {
-            "index": 0,
-            "key": "456",
-            "tag": "Room",
-          },
-        ],
-        "contextStack": Array [],
-        "location": Array [
-          0,
-        ],
-      },
-    ],
-    "key": "Test",
-    "tag": "Asset",
+    "to": "a123",
   },
 }
 `;

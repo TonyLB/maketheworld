@@ -340,243 +340,169 @@ describe('WML normalize', () => {
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
-        expect(normalizer.normal).toEqual(holding)
+        expect(normalizer.normal).toMatchSnapshot()
     })
     
     it('should create wrapping elements for exits where needed', () => {
-        expect(normalize({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-                contents: [{
-                    tag: 'Exit',
-                    from: '456'
-                }]
-            }]
-        })).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="Test" >
+            <Room key=(a123)>
+                <Exit from=(b456) />
+            </Room>
+        </Asset>`
+        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
+        expect(holding).toMatchSnapshot()
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should normalize exits into their parent room where needed', () => {
-        expect(normalize({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-                contents: [{
-                    tag: 'Exit',
-                    to: '456',
-                    from: '123'
-                }]
-            },
-            {
-                tag: 'Exit',
-                from: '456',
-                to: '123'
-            },
-            {
-                tag: 'Room',
-                key: '456',
-                name: 'Welcome',
-            }]
-        })).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(a123)>
+                <Name>Vortex</Name>
+                <Exit to=(b456) />
+            </Room>
+            <Exit from=(b456) to=(a123) />
+            <Room key=(b456)>
+                <Name>Welcome</Name>
+            </Room>
+        </Asset>`
+        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
+        expect(holding).toMatchSnapshot()
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should accumulate multiple appearances of the same key', () => {
-        expect(normalize({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-            },
-            {
-                tag: 'Room',
-                key: '123',
-                render: [{
-                    tag: 'String',
-                    value: 'Hello, world!',
-                    spaceBefore: false,
-                    spaceAfter: false
-                }]
-            },
-            {
-                tag: 'Condition',
-                if: 'true',
-                dependencies: [],
-                contents: [{
-                    tag: 'Room',
-                    key: '123',
-                    render: [{
-                        tag: 'String',
-                        value: 'Vortex!',
-                        spaceBefore: false,
-                        spaceAfter: false
-                    }]
-                }]
-            }]
-        })).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(a123)>
+                <Name>Vortex</Name>
+            </Room>
+            <Room key=(a123)>
+                <Description>
+                    Hello, world!
+                </Description>
+            </Room>
+            <Condition if={true}>
+                <Room key=(a123)>
+                    <Description>
+                        Vortex!
+                    </Description>
+                </Room>
+            </Condition>
+        </Asset>`
+        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
+        expect(holding).toMatchSnapshot()
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
+
     })
 
     it('should denormalize condition dependencies into contextStack', () => {
-        expect(normalize({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-                render: [{
-                    tag: 'String',
-                    value: 'Hello, world!',
-                    spaceBefore: false,
-                    spaceAfter: false
-                }]
-            },
-            {
-                tag: 'Condition',
-                if: 'strong',
-                dependencies: ['strong'],
-                contents: [{
-                    tag: 'Room',
-                    key: '123',
-                    render: [{
-                        tag: 'String',
-                        value: 'Vortex!',
-                        spaceBefore: false,
-                        spaceAfter: false
-                    }]
-                }]
-            },
-            {
-                tag: 'Variable',
-                key: 'strong',
-                default: 'false'
-            }]
-        })).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(a123)>
+                <Name>Vortex</Name>
+                <Description>
+                    Hello, world!
+                </Description>
+            </Room>
+            <Condition if={strong}>
+                <Depend on=(strong) />
+                <Room key=(a123)>
+                    <Description>
+                        Vortex!
+                    </Description>
+                </Room>
+            </Condition>
+            <Variable key=(strong) default={false} />
+        </Asset>`
+        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
+        expect(holding).toMatchSnapshot()
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
+
     })
 
     it('should correctly handle multiple and nested conditionals', () => {
-        expect(normalize({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: '123',
-                name: 'Vortex',
-                render: [{
-                    tag: 'String',
-                    value: 'Hello, world!',
-                    spaceBefore: false,
-                    spaceAfter: false
-                }]
-            },
-            {
-                tag: 'Condition',
-                if: 'strong',
-                dependencies: ['strong'],
-                contents: [{
-                    tag: 'Room',
-                    key: '123',
-                    render: [{
-                        tag: 'String',
-                        value: 'Vortex!',
-                        spaceBefore: false,
-                        spaceAfter: false
-                    }]
-                }]
-            },
-            {
-                tag: 'Condition',
-                if: '!strong',
-                dependencies: ['strong'],
-                contents: [{
-                    tag: 'Condition',
-                    if: 'trendy',
-                    dependencies: ['trendy'],
-                    contents: [{
-                        tag: 'Room',
-                        key: '123',
-                        render: [{
-                            tag: 'String',
-                            value: 'V.O.R.T.E.X.',
-                            spaceBefore: false,
-                            spaceAfter: false
-                        }]
-                    }]
-                }]
-            },
-            {
-                tag: 'Variable',
-                key: 'strong',
-                default: 'false'
-            },
-            {
-                tag: 'Variable',
-                key: 'trendy',
-                default: 'false'
-            }]
-        })).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(a123)>
+                <Name>Vortex</Name>
+                <Description>
+                    Hello, world!
+                </Description>
+            </Room>
+            <Condition if={strong}>
+                <Depend on=(strong) />
+                <Room key=(a123)>
+                    <Description>
+                        Vortex!
+                    </Description>
+                </Room>
+            </Condition>
+            <Condition if={!strong}>
+                <Depend on=(strong) />
+                <Condition if={trendy}>
+                    <Depend on=(trendy) />
+                    <Room key=(a123)>
+                        <Description>
+                            V.O.R.T.E.X.
+                        </Description>
+                    </Room>
+                </Condition>
+            </Condition>
+            <Variable key=(strong) default={false} />
+            <Variable key=(trendy) default={false} />
+        </Asset>`
+        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
+        expect(holding).toMatchSnapshot()
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
+
     })
 
     it('should correctly serialize multiple unconditioned descriptions', () => {
-        expect(normalize({
-            tag: 'Asset',
-            key: 'Test',
-            contents: [{
-                tag: 'Room',
-                key: 'test',
-                contents: [],
-                render: [{
-                    spaceAfter: false,
-                    spaceBefore: false,
-                    tag: "String",
-                    value: "One"
-                }],
-                conditions: []
-            },
-            {
-                tag: 'Room',
-                key: 'test',
-                contents: [],
-                render: [{
-                    spaceAfter: false,
-                    spaceBefore: false,
-                    tag: "String",
-                    value: "Two"
-                }],
-                conditions: []
-            }]
-        })).toMatchSnapshot()
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(test)>
+                <Description>
+                    One
+                </Description>
+            </Room>
+            <Room key=(test)>
+                <Description>
+                    Two
+                </Description>
+            </Room>
+        </Asset>`
+        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
+        expect(holding).toMatchSnapshot()
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
     })
 
     it('should throw an error on mismatched key use', () => {
-        expect(() => {
-            normalize({
-                tag: 'Asset',
-                key: 'Test',
-                contents: [{
-                    tag: 'Room',
-                    key: 'ABC',
-                    name: 'Vortex',
-                    render: [{
-                        tag: 'String',
-                        value: 'Hello, world!',
-                        spaceBefore: false,
-                        spaceAfter: false
-                    }]
-                },
-                {
-                    tag: 'Variable',
-                    key: 'ABC',
-                    default: 'true'
-                }]
-            })
-        }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+        const testSource = `<Asset key=(Test) fileName="Test">
+            <Room key=(ABC)>
+                <Name>Vortex</Name>
+                <Description>
+                    Hello, world!
+                </Description>
+            </Room>
+            <Variable key=(ABC) default={true} />
+        </Asset>`
+        expect(() => (normalize(validatedSchema(wmlGrammar.match(testSource))))).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        expect(() => { normalizer.add(testAsset[0], { contextStack: [], location: [0] }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
     })
 })

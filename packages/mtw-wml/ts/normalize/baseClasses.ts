@@ -89,6 +89,7 @@ type ComponentTypes = 'Room' | 'Feature'
 export type NormalComponent = {
     tag: ComponentTypes;
     appearances: ComponentAppearance[];
+    global?: boolean;
 } & NormalBase
 
 export type NormalRoom = NormalComponent & {
