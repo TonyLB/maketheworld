@@ -84,6 +84,7 @@ export type AssetComponent = {
 
 const assetComponents = ({ normalForm, defaultAppearances }: { normalForm: NormalForm, defaultAppearances: Record<string, InheritedComponent> }): Record<string, AssetComponent> => {
     const componentNormals = Object.values(normalForm).filter((item) => (isNormalComponent(item))) as NormalComponent[]
+    console.log(`ComponentNormals: ${JSON.stringify(componentNormals, null, 4)}`)
 
     const roomReturns = componentNormals
         .map((component) => {

@@ -1,6 +1,6 @@
 // import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 import { TokenizeException } from '../parser/tokenizer/baseClasses'
-import { NewWMLQuery, WMLQuery } from './index'
+import { LegacyWMLQuery as WMLQuery, WMLQuery as NewWMLQuery } from './index'
 
 describe('wmlQuery', () => {
 
