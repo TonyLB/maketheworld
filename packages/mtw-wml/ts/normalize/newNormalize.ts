@@ -49,20 +49,21 @@ type NormalizerContext = {
     location: number[];
 }
 
-export class Normalizer {
+export class Normalizer extends Object {
     _normalForm: NormalForm = {};
     _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature"> = {}
     constructor() {
+        super()
     }
 
     _mergeAppearance(key: string, item: NormalItem): number {
         if (key in this._normalForm) {
-            this._normalForm[key] = produce(this._normalForm[key], (draft) => {
+            this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
                 if (draft.tag !== item.tag) {
                     throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
                 }
                 (draft.appearances as any).push(item.appearances[0])
-            })
+            }) }
             return this._normalForm[key].appearances.length - 1
         }
         else {
@@ -78,12 +79,16 @@ export class Normalizer {
         if (appearance >= this._normalForm[key].appearances.length) {
             throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
         }
-        this._normalForm = produce(this._normalForm, (draft) => {
+        this._normalForm = { ...produce(this._normalForm, (draft) => {
             draft[key].appearances[appearance].contents = contents
-        })
+        }) }
     }
 
-    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): number {
+    //
+    // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
+    // the client demands
+    //
+    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalReference {
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return undefined
         }
@@ -91,7 +96,7 @@ export class Normalizer {
             return undefined
         }
         this._validateTags(node)
-        let appearanceIndex: number
+        let returnValue: NormalReference
         switch(node.tag) {
             case 'Exit':
                 const roomIndex = context.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
@@ -113,7 +118,9 @@ export class Normalizer {
                     const exitAppearance = this._mergeAppearance(exitKey, {
                         tag: 'Exit',
                         key: exitKey,
-                        ...node,
+                        to: node.to,
+                        from: node.from,
+                        name: node.name,
                         appearances: [{
                             contextStack: [
                                 ...context.contextStack,
@@ -132,7 +139,11 @@ export class Normalizer {
                         key: exitKey,
                         index: exitAppearance
                     }])
-                    appearanceIndex = exitAppearance
+                    returnValue = {
+                        key: exitKey,
+                        tag: 'Exit',
+                        index: exitAppearance
+                    }
                 }
                 else {
                     const roomKey = context.contextStack[roomIndex].key
@@ -158,7 +169,9 @@ export class Normalizer {
                         const exitAppearance = this._mergeAppearance(exitKey, {
                             tag: 'Exit',
                             key: exitKey,
-                            ...node,
+                            to: node.to,
+                            from: node.from,
+                            name: node.name,
                             appearances: [{
                                 contextStack: [
                                     ...contextStackBeforeRoom,
@@ -173,50 +186,167 @@ export class Normalizer {
                                 contents: []
                             }]
                         })
-                        this._updateAppearanceContents(from, wrapperRoomAppearance, [{
+                        returnValue = {
                             tag: 'Exit',
                             key: exitKey,
                             index: exitAppearance
-                        }])
-                        appearanceIndex = exitAppearance
+                        }
+                        this._updateAppearanceContents(from, wrapperRoomAppearance, [returnValue])
                     }
-                    else {   
-                        appearanceIndex = this._mergeAppearance(node.key, node)
+                    else {
+                        returnValue = {
+                            tag: 'Exit',
+                            key: node.key,
+                            index: this._mergeAppearance(node.key, node)
+                        }
                     }
                 }
                 break
             case 'Import':
-                break
+                //
+                // TODO: Refactor Import to deprecate Use tags and have direct appearances with optional 'as' property
+                //
+                const translatedImport = this._translate({ ...context, contents: [] }, node)
+                const importIndex = this._mergeAppearance(translatedImport.key, translatedImport)
+                const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
+                    const updatedContext: NormalizerContext = {
+                        contextStack: [
+                            ...context.contextStack,
+                            {
+                                key: translatedImport.key,
+                                tag: node.tag,
+                                index: importIndex
+                            }
+                        ],
+                        location: [
+                            ...context.location,
+                            index
+                        ]
+                    }    
+                    switch(type) {
+                        case 'Room':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Room',
+                                        name: '',
+                                        global: false,
+                                        contents: [],
+                                        render: [],
+                                        parse: {
+                                            key,
+                                            tag: 'Room',
+                                            contents: [],
+                                            global: false,
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                )
+                        case 'Feature':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Feature',
+                                        name: '',
+                                        global: false,
+                                        contents: [],
+                                        render: [],
+                                        parse: {
+                                            key,
+                                            tag: 'Feature',
+                                            contents: [],
+                                            global: false,
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                )
+                        case 'Variable':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Variable',
+                                        parse: {
+                                            key,
+                                            tag: 'Variable',
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                )
+                        case 'Computed':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Computed',
+                                        src: '',
+                                        dependencies: [],
+                                        parse: {
+                                            key,
+                                            tag: 'Computed',
+                                            startTagToken: 0,
+                                            endTagToken: 0,
+                                            src: '',
+                                            dependencies: []
+                                        }
+                                    },
+                                    updatedContext
+                                )
+                        case 'Action':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Action',
+                                        src: '',
+                                        parse: {
+                                            key,
+                                            tag: 'Action',
+                                            src: '',
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                )
+                        default:
+                            throw new NormalizeTagMismatchError(`"${type}" tag not allowed in import`)
+                    }
+                })
+                this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
+                return {
+                    key: translatedImport.key,
+                    tag: 'Import',
+                    index: importIndex
+                }
             default:
                 const translatedItem = this._translate({ ...context, contents: [] }, node)
-                appearanceIndex = this._mergeAppearance(node.key, translatedItem)
+                returnValue = {
+                    key: node.key,
+                    tag: node.tag,
+                    index: this._mergeAppearance(node.key, translatedItem)
+                }
         }
         if (isSchemaWithContents(node)) {
-            const contentReferences = node.contents.map((contentNode, index) => {
+            const contentReferences = node.contents.map<NormalReference>((contentNode, index) => {
                 const updateContext: NormalizerContext = {
                     contextStack: [
                         ...context.contextStack,
-                        {
-                            key: node.key,
-                            tag: node.tag,
-                            index: appearanceIndex
-                        }
+                        returnValue
                     ],
                     location: [
                         ...context.location,
                         index
                     ]
                 }
-                const referenceIndex = this.add(contentNode, updateContext)
-                return {
-                    key: contentNode.key,
-                    tag: contentNode.tag,
-                    index: referenceIndex
-                }
+                return this.add(contentNode, updateContext)
             })
-            this._updateAppearanceContents(node.key, appearanceIndex, contentReferences)
+            this._updateAppearanceContents(node.key, returnValue.index, contentReferences)
         }
-        return appearanceIndex
+        return returnValue
     }
 
     _validateTags(node: SchemaTag): void {
@@ -234,7 +364,7 @@ export class Normalizer {
             this._tags[node.key] = tagToCompare
         }
         if (isSchemaWithContents(node)) {
-            node.contents.forEach(this._validateTags)
+            node.contents.forEach(this._validateTags.bind(this))
         }
         //
         // TODO: Rationalize Import to include normal tags, rather than <Use> tags
@@ -328,10 +458,12 @@ export class Normalizer {
                     appearances: [appearance]
                 }
             case 'Import':
+                console.log(`Import node: ${JSON.stringify(node, null, 4)}`)
                 return {
                     key: keyForValue('Import', node.from),
                     tag: 'Import',
-                    ...node,
+                    from: node.from,
+                    mapping: node.mapping,
                     appearances: [appearance]
                 }
             case 'Room':

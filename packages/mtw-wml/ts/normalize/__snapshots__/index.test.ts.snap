@@ -1188,10 +1188,10 @@ Object {
     "Outfit": "A battered hoodie trimmed with lace",
     "Pronouns": Object {
       "adjective": "hers",
-      "objective": "her",
+      "object": "her",
       "possessive": "her",
       "reflexive": "herself",
-      "subjective": "she",
+      "subject": "she",
     },
     "appearances": Array [
       Object {
@@ -1206,111 +1206,12 @@ Object {
     "fileURL": "testIcon.png",
     "key": "TESS",
     "tag": "Character",
-    "zone": "Library",
   },
 }
 `;
 
 exports[`WML normalize should normalize every needed tag 1`] = `
 Object {
-  "123": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 0,
-            "key": "clockTower",
-            "tag": "Feature",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "location": Array [
-          0,
-          1,
-        ],
-        "name": "Vortex",
-      },
-      Object {
-        "contents": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "TestMap",
-            "tag": "Map",
-          },
-        ],
-        "location": Array [
-          0,
-          2,
-          1,
-        ],
-      },
-    ],
-    "key": "123",
-    "tag": "Room",
-  },
-  "456": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [
-          Object {
-            "index": 0,
-            "key": "456#123",
-            "tag": "Exit",
-          },
-        ],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-        ],
-        "location": undefined,
-      },
-    ],
-    "key": "456",
-    "tag": "Room",
-  },
-  "456#123": Object {
-    "appearances": Array [
-      Object {
-        "contents": Array [],
-        "contextStack": Array [
-          Object {
-            "index": 0,
-            "key": "Test",
-            "tag": "Asset",
-          },
-          Object {
-            "index": 0,
-            "key": "456",
-            "tag": "Room",
-          },
-        ],
-        "location": Array [
-          0,
-          1,
-          0,
-        ],
-      },
-    ],
-    "from": "456",
-    "key": "456#123",
-    "tag": "Exit",
-    "to": "123",
-  },
   "ImageTest": Object {
     "appearances": Array [
       Object {
@@ -1327,11 +1228,13 @@ Object {
             "tag": "Map",
           },
         ],
+        "errors": Array [],
         "location": Array [
           0,
           2,
           0,
         ],
+        "props": Object {},
       },
     ],
     "fileURL": "https://test.com/imageTest.png",
@@ -1360,6 +1263,7 @@ Object {
             "tag": "Asset",
           },
         ],
+        "errors": Array [],
         "location": Array [
           0,
           0,
@@ -1392,12 +1296,12 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
           Object {
             "index": 0,
-            "key": "456",
+            "key": "b456",
             "tag": "Room",
           },
           Object {
@@ -1427,13 +1331,19 @@ Object {
           },
         ],
         "contextStack": Array [],
+        "description": undefined,
+        "errors": Array [],
         "location": Array [
           0,
         ],
+        "props": Object {},
       },
     ],
+    "fileName": "Test",
     "key": "Test",
+    "player": undefined,
     "tag": "Asset",
+    "zone": undefined,
   },
   "TestMap": Object {
     "appearances": Array [
@@ -1446,7 +1356,7 @@ Object {
           },
           Object {
             "index": 1,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
         ],
@@ -1457,12 +1367,17 @@ Object {
             "tag": "Asset",
           },
         ],
+        "errors": Array [],
+        "images": Array [
+          "ImageTest",
+        ],
         "location": Array [
           0,
           2,
         ],
+        "props": Object {},
         "rooms": Object {
-          "123": Object {
+          "a123": Object {
             "location": Array [
               0,
               2,
@@ -1477,6 +1392,65 @@ Object {
     "key": "TestMap",
     "tag": "Map",
   },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "clockTower",
+            "tag": "Feature",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          1,
+        ],
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "TestMap",
+            "tag": "Map",
+          },
+        ],
+        "display": undefined,
+        "errors": Array [],
+        "location": Array [
+          0,
+          2,
+          1,
+        ],
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
   "active": Object {
     "appearances": Array [
       Object {
@@ -1488,15 +1462,71 @@ Object {
             "tag": "Asset",
           },
         ],
+        "errors": Array [],
         "location": Array [
           0,
           4,
         ],
+        "props": Object {},
       },
     ],
     "default": "true",
     "key": "active",
     "tag": "Variable",
+  },
+  "b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "b456#a123",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": undefined,
+      },
+    ],
+    "key": "b456",
+    "tag": "Room",
+  },
+  "b456#a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "errors": Array [],
+        "location": Array [
+          0,
+          1,
+          0,
+        ],
+        "props": Object {},
+      },
+    ],
+    "from": "b456",
+    "key": "b456#a123",
+    "name": undefined,
+    "tag": "Exit",
+    "to": "a123",
   },
   "clockTower": Object {
     "appearances": Array [
@@ -1510,15 +1540,21 @@ Object {
           },
           Object {
             "index": 0,
-            "key": "123",
+            "key": "a123",
             "tag": "Room",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           1,
           1,
         ],
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
       Object {
         "contents": Array [],
@@ -1529,13 +1565,20 @@ Object {
             "tag": "Asset",
           },
         ],
+        "display": undefined,
+        "errors": Array [],
         "location": Array [
           0,
           3,
         ],
         "name": "Clock Tower",
+        "props": Object {},
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
       },
     ],
+    "global": false,
     "key": "clockTower",
     "tag": "Feature",
   },
@@ -1550,10 +1593,12 @@ Object {
             "tag": "Asset",
           },
         ],
+        "errors": Array [],
         "location": Array [
           0,
           5,
         ],
+        "props": Object {},
       },
     ],
     "dependencies": Array [
@@ -1626,10 +1671,12 @@ Object {
             "tag": "Asset",
           },
         ],
+        "errors": Array [],
         "location": Array [
           0,
           6,
         ],
+        "props": Object {},
       },
     ],
     "key": "toggleActive",
