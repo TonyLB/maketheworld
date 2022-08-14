@@ -1,8 +1,9 @@
 import { produce } from 'immer'
 import { objectEntryMap } from '../lib/objects'
-import { isSchemaExit, isSchemaWithKey, SchemaTag } from '../schema/baseClasses'
 export {
     BaseAppearance,
+    ComponentAppearance,
+    ComponentRenderItem,
     NormalAsset,
     NormalCharacter,
     NormalCharacterPronouns,
@@ -33,46 +34,13 @@ export {
 } from './baseClasses'
 import {
     NormalForm,
-    NormalItem,
     NormalizeKeyMismatchError,
     NormalizeTagMismatchError,
-    NormalReference,
     isNormalComponent,
     isNormalImport,
     isNormalMap
 } from './baseClasses'
-
-
-let generatedKeys: Record<string, string> = {}
-
-export const clearGeneratedKeys = () => {
-    generatedKeys = {}
-}
-
-const nextGeneratedKey = (tag: string): string => {
-    const currentValues = Object.keys(generatedKeys)
-        .filter((key) => (key.startsWith(`${tag}-`)))
-        .map((key) => (key.slice(`${tag}-`.length)))
-    const maxValue = currentValues.reduce((previous, value) => {
-        const numericValue = parseInt(value) ?? -1
-        return (numericValue > previous) ? numericValue : previous
-    }, -1)
-    return `${tag}-${maxValue + 1}`
-}
-
-const keyForValue = (tag: string, value: string): string => {
-    const [foundKey] = Object.entries(generatedKeys)
-        .find(([key, checkValue]) => (
-            key.startsWith(`${tag}-`) &&
-            (checkValue === value)
-        )) || [null]
-    if (foundKey) {
-        return foundKey
-    }
-    const syntheticKey = nextGeneratedKey(tag)
-    generatedKeys[syntheticKey] = value
-    return syntheticKey
-}
+import { keyForValue } from './keyUtil'
 
 const getCurrentAppearance = (existingMap = {}, key: string) => {
     if ((existingMap[key]?.appearances || []).length > 0) {
@@ -85,7 +53,7 @@ const getCurrentAppearance = (existingMap = {}, key: string) => {
     return { valid: false }
 }
 
-const pullProperties = (node): { topLevel: Record<string, any>, appearance: Record<string, any> } => {
+export const pullProperties = (node): { topLevel: Record<string, any>, appearance: Record<string, any> } => {
     return Object.entries(node).reduce((previous, [key, value]) => {
         let pullTags = [
             'tag',
@@ -223,7 +191,7 @@ export const transformNode = (contextStack, node) => {
                         key: from,
                         tag: 'Room'
                     },
-                    ...(contextStackAfterRoom.map(({ key, tag }) => ({ key, tag })))
+                    ...contextStackAfterRoom
                 ],
                 node: returnValue
             }
@@ -258,89 +226,6 @@ export const transformNode = (contextStack, node) => {
         }
     }
     return { node, contextStack }
-}
-
-export const transformSchemaNode = (contextStack: NormalReference[], node: SchemaTag): { contextStack: NormalReference[], key: string; node: SchemaTag } => {
-    if (isSchemaExit(node)) {
-        const roomIndex = contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
-        if (roomIndex === -1) {
-            return {
-                contextStack: [
-                    ...contextStack,
-                    {
-                        index: contextStack.length,
-                        key: node.from,
-                        tag: 'Room'
-                    }
-                ],
-                key: `${node.from}#${node.to}`,
-                node
-            }
-        }
-        const roomKey = contextStack[roomIndex].key
-        const { to, from, ...rest } = node
-        const returnValue = {
-            ...rest,
-            key: `${from || roomKey}#${to || roomKey}`,
-            to: to || roomKey,
-            from: from || roomKey
-        }
-        if (from && from !== roomKey) {
-            const contextStackBeforeRoom = contextStack.slice(0, roomIndex)
-            const contextStackAfterRoom = contextStack.slice(roomIndex + 1)
-            //
-            // NOTE: Context stacks within the sibling room element created do not have
-            // an index item.  addElement will need to infer the correct index (either
-            // the current for a matching element, or a created next wrapper)
-            //
-            return {
-                contextStack: [
-                    ...contextStackBeforeRoom,
-                    {
-                        index: contextStackBeforeRoom.length,
-                        key: from,
-                        tag: 'Room'
-                    },
-                    ...(contextStackAfterRoom.map(({ key, tag, index }) => ({ key, tag, index: index + 1 })))
-                ],
-                key: `${from}#${to || roomKey}`,
-                node: returnValue
-            }
-        }
-        else {   
-            return {
-                contextStack,
-                key: `${from}#${to}`,
-                node: returnValue
-            }
-        }
-    }
-    if (node.tag === 'Condition') {
-        const key = keyForValue('Condition', node.if)
-        return {
-            key,
-            node,
-            contextStack
-        }
-    }
-    if (node.tag === 'Import') {
-        const key = keyForValue('Import', node.from)
-        return {
-            key,
-            node,
-            // node: {
-            //     ...node,
-            //     key,
-            //     contents: Object.entries(node.mapping)
-            //         .map(([key, { type }]) => ({ key, tag: type }))
-            // },
-            contextStack
-        }
-    }
-    if (isSchemaWithKey(node)) {
-        return { node, key: node.key, contextStack }
-    }
-    return { node, key: '', contextStack }
 }
 
 //
@@ -545,41 +430,6 @@ export const normalize = (node: any, existingMap: any = {}, contextStack: any = 
     if (!key || !tag) {
         return existingMap
     }
-    const firstPassMap = addElement(
-        existingMap,
-        {
-            contextStack: transformedContext,
-            location,
-            node: {
-                ...transformedNode,
-                contents: []
-            }
-        })
-    const updatedContextStack = [
-        ...transformedContext,
-        {
-            key,
-            tag,
-            ...topLevelRest,
-            index: (firstPassMap[key]?.appearances || []).length - 1
-        }
-    ]
-    const secondPassMap = (contents || []).reduce((previous, node, index) => (normalize(node, previous, updatedContextStack, [...location, index])), firstPassMap)
-    const thirdPassMap = Object.entries(secondPassMap)
-        .reduce((previous, [key, normalItem]) => (
-            (normalItem as any).appearances
-                .reduce((accumulator, _, index) => (postProcessAppearance(accumulator, key, index)), previous)
-        ), secondPassMap)
-    return thirdPassMap
-}
-
-export const normalizeFromSchema = (node: SchemaTag, existingMap: Record<string, NormalItem>, contextStack: NormalReference[] = [], location: number[] = [0]): NormalForm => {
-    const { contextStack: transformedContext, node: transformedNode } = transformNode(contextStack, node)
-    if (!isSchemaWithKey(node)) {
-        return existingMap
-    }
-    const { key, tag } = node
-    const { topLevel: { key: removeKey, tag: removeTag, ...topLevelRest }, appearance: { contents } } = pullProperties(transformedNode)
     const firstPassMap = addElement(
         existingMap,
         {

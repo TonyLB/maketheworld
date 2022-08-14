@@ -54,6 +54,7 @@ export type NormalCharacter = {
     OneCoolThing: string;
     Outfit: string;
     fileName?: string;
+    fileURL?: string;
 } & NormalBase
 
 export type ComponentRenderItem = {
@@ -121,7 +122,7 @@ export type ImageAppearance = {
     display?: 'replace'
 } & BaseAppearance
 
-type NormalImage = {
+export type NormalImage = {
     tag: 'Image';
     fileURL?: string;
     appearances: ImageAppearance[];
@@ -157,20 +158,20 @@ export type NormalExit = {
     appearances?: ExitAppearance[];
 } & NormalBase
 
-type NormalVariable = {
+export type NormalVariable = {
     tag: 'Variable';
     default: string;
     appearances: BaseAppearance[];
 } & NormalBase
 
-type NormalComputed = {
+export type NormalComputed = {
     tag: 'Computed';
     src: string;
     dependencies: string[];
     appearances: BaseAppearance[];
 } & NormalBase
 
-type NormalAction = {
+export type NormalAction = {
     tag: 'Action';
     src: string;
     appearances: BaseAppearance[];

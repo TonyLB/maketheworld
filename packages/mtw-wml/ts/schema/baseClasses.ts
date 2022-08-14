@@ -205,7 +205,7 @@ export type SchemaMapTag = {
     key: string;
     name: string;
     contents: SchemaMapLegalContents[];
-    rooms: Record<string, { x: number; y: number; }>;
+    rooms: Record<string, { x: number; y: number; index: number }>;
     images: string[];
 } & SchemaBase
 
@@ -289,11 +289,13 @@ export const isSchemaLink = (value: SchemaTag): value is SchemaLinkTag => (value
 export const isSchemaWhitespace = (value: SchemaTag): value is SchemaWhitespaceTag => (value.tag === 'Whitespace')
 export const isSchemaLineBreak = (value: SchemaTag): value is SchemaLineBreakTag => (value.tag === 'br')
 
+export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag => (value.tag === 'Character')
+
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
     ['Asset', 'Story', 'Condition', 'Room', 'Feature', 'Description', 'Exit', 'Character', 'Map', 'Name', 'FirstImpression', 'OneCoolThing', 'Outfit'].includes(value.tag)
 )
 
-type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag
+export type SchemaWithKey = SchemaAssetTag | SchemaStoryTag | SchemaRoomTag | SchemaFeatureTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaActionTag | SchemaVariableTag | SchemaComputedTag | SchemaExitTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
     ['Asset', 'Story', 'Room', 'Feature', 'Character', 'Map', 'Image', 'Action', 'Variable', 'Computed', 'Exit'].includes(value.tag)
 )

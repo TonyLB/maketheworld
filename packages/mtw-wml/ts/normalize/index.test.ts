@@ -2,9 +2,10 @@ import normalize, {
     NormalizeTagMismatchError,
     transformNode,
     postProcessAppearance,
-    clearGeneratedKeys,
     addElement
 } from '.'
+import { NormalForm } from './baseClasses'
+import { clearGeneratedKeys } from './keyUtil'
 
 describe('WML normalize', () => {
 
@@ -97,7 +98,7 @@ describe('WML normalize', () => {
 
     describe('postProcessAppearance', () => {
         it('should aggregate locations into Map rooms', () => {
-            const testNormalForm = {
+            const testNormalForm: NormalForm = {
                 TestAsset: {
                     key: 'TestAsset',
                     tag: 'Asset',
@@ -105,7 +106,8 @@ describe('WML normalize', () => {
                         contextStack: [],
                         contents: [{
                             key: 'TestMap',
-                            tag: 'Map'
+                            tag: 'Map',
+                            index: 0
                         }],
                         location: [0]
                     }]
@@ -125,14 +127,17 @@ describe('WML normalize', () => {
                             tag: 'Room',
                             index: 0
                         }],
+                        images: [],
                         rooms: {
                             welcomeRoom: {
                                 x: 0,
-                                y: 100
+                                y: 100,
+                                location: [0, 0, 0]
                             },
                             VORTEX: {
                                 x: 0,
-                                y: 0
+                                y: 0,
+                                location: [0, 0, 1]
                             }
                         },
                         location: [0, 0]
@@ -144,8 +149,6 @@ describe('WML normalize', () => {
                     appearances: [{
                         contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
                         contents: [],
-                        x: 0,
-                        y: 100,
                         location: [0, 0, 0]
                     }]
                 },
@@ -155,8 +158,6 @@ describe('WML normalize', () => {
                     appearances: [{
                         contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
                         contents: [],
-                        x: 0,
-                        y: 0,
                         location: [0, 0, 1]
                     }]
                 }

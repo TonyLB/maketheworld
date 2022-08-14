@@ -369,6 +369,7 @@ Object {
       Object {
         "contents": Array [
           Object {
+            "index": 0,
             "key": "TestMap",
             "tag": "Map",
           },
@@ -404,6 +405,7 @@ Object {
             "tag": "Asset",
           },
         ],
+        "images": Array [],
         "location": Array [
           0,
           0,
@@ -454,8 +456,6 @@ Object {
           0,
           1,
         ],
-        "x": 0,
-        "y": 0,
       },
     ],
     "key": "VORTEX",
@@ -482,8 +482,6 @@ Object {
           0,
           0,
         ],
-        "x": 0,
-        "y": 100,
       },
     ],
     "key": "welcomeRoom",
@@ -1892,6 +1890,7 @@ Object {
       "tag": "Room",
     },
     Object {
+      "index": 0,
       "key": "Condition-0",
       "tag": "Condition",
     },
