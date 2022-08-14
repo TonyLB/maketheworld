@@ -25,6 +25,7 @@ import {
 } from '../schema/baseClasses'
 import {
     BaseAppearance,
+    ComponentRenderItem,
     NormalAction,
     NormalAsset,
     NormalComputed,
@@ -430,12 +431,24 @@ export class Normalizer extends Object {
         if (node.tag === 'Character') {
             return 
         }
-        const tagToCompare = node.tag === 'Story' ? 'Asset' : node.tag
-        if (this._tags[node.key] && this._tags[node.key] !== tagToCompare) {
-            throw new NormalizeTagMismatchError(`Key '${node.key}' is used to define elements of different tags ('${this._tags[node.key]}' and '${tagToCompare}')`)
+        let tagToCompare = node.tag
+        let keyToCompare = node.key
+        switch(node.tag) {
+            case 'Story':
+                tagToCompare = 'Asset'
+                break
+            case 'Import':
+                keyToCompare = keyForValue('Import', node.from)
+                break
+            case 'Condition':
+                keyToCompare = keyForValue('Condition', node.if)
+                break
         }
-        if (!(node.key in this._tags)) {
-            this._tags[node.key] = tagToCompare
+        if (this._tags[keyToCompare] && this._tags[keyToCompare] !== tagToCompare) {
+            throw new NormalizeTagMismatchError(`Key '${keyToCompare}' is used to define elements of different tags ('${this._tags[keyToCompare]}' and '${tagToCompare}')`)
+        }
+        if (!(keyToCompare in this._tags)) {
+            this._tags[keyToCompare] = tagToCompare as NormalItem["tag"]
         }
         if (isSchemaWithContents(node)) {
             node.contents.forEach(this._validateTags.bind(this))
@@ -547,7 +560,7 @@ export class Normalizer extends Object {
                     global: node.global ?? false,
                     appearances: [{
                         ...appearance,
-                        render: node.render.map((renderItem) => {
+                        render: node.render.map<ComponentRenderItem>((renderItem) => {
                             if (renderItem.tag === 'Link') {
                                 if (!(renderItem.to in this._tags)) {
                                     throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
@@ -557,7 +570,11 @@ export class Normalizer extends Object {
                                     throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) referring to an invalid tag (${targetTag})`)
                                 }
                                 return {
-                                    ...renderItem,
+                                    tag: 'Link',
+                                    to: renderItem.to,
+                                    text: renderItem.text,
+                                    spaceBefore: renderItem.spaceBefore,
+                                    spaceAfter: renderItem.spaceAfter,
                                     targetTag: targetTag as 'Action' | 'Feature'
                                 }
                             }

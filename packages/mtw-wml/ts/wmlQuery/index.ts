@@ -17,6 +17,7 @@ import { newWMLSelectorFactory } from './newSelector'
 import searchParse from './search/parse'
 import searchTokenize from './search/tokenize'
 import prettyPrint from './prettyPrint'
+import Normalizer from '../normalize/newNormalize'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -853,7 +854,11 @@ export class WMLQuery {
     }
 
     normalize(): NormalForm {
-        return normalize(this._schema)
+        const normalizer = new Normalizer()
+        this._schema.forEach((tag, index) => {
+            normalizer.add(tag, { contextStack: [], location: [index] })
+        })
+        return normalizer.normal
     }
     prettyPrint(): WMLQuery {
         // if (this.matcher.match().succeeded()) {
