@@ -11,7 +11,7 @@ import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { SearchParse } from './search/baseClasses'
 import { ParseException, ParseTag } from '../parser/baseClasses'
-import { isTokenValue, isTokenWhitespace, Token, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
+import { isTokenValue, isTokenWhitespace, Token, TokenizeException, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
 import { isSchemaDescription, isSchemaWithContents, SchemaLineBreakTag, SchemaLinkTag, SchemaTag, SchemaWithContents } from '../schema/baseClasses'
 import { newWMLSelectorFactory } from './newSelector'
 import searchParse from './search/parse'
@@ -24,13 +24,13 @@ export interface WMLQueryUpdateReplace {
     startIdx: number;
     endIdx: number;
     text: string;
-    wmlQuery: LegacyWMLQuery;
+    wmlQuery: WMLQuery;
 }
 
 export interface WMLQueryUpdateSet {
     type: 'set';
     text: string;
-    wmlQuery: LegacyWMLQuery;
+    wmlQuery: WMLQuery;
 }
 
 export type WMLQueryUpdate = WMLQueryUpdateReplace | WMLQueryUpdateSet
@@ -824,17 +824,55 @@ export class WMLQuery {
     _tokens: Token[] = [];
     _parse: ParseTag[] = [];
     _schema: SchemaTag[] = [];
+    _valid: boolean = false;
+    _error: string = '';
+    _errorStart: number | undefined;
+    _errorEnd: number | undefined;
 
     constructor(sourceString: string, options: WMLQueryOptions = {}) {
         const { onChange = () => {} } = options
         this.onChange = onChange
         this._source = sourceString
-        this._tokens = tokenizer(new SourceStream(this._source))
-        this.refresh()
+        this._errorHandler(() => {
+            this._tokens = tokenizer(new SourceStream(this._source))
+            this.refresh()    
+        })
+    }
+
+    _errorHandler(callback: () => void): void {
+        try {
+            callback()
+            this._valid = true
+            this._error = ''
+            this._errorStart = undefined
+            this._errorEnd = undefined
+        }
+        catch (err) {
+            this._valid = false
+            if (err instanceof TokenizeException) {
+                this._error = err.message
+                this._errorStart = err.startIdx
+                this._errorEnd = err.endIdx
+            }
+            else if (err instanceof ParseException) {
+                this._error = err.message
+                this._errorStart = this._tokens[err.startToken].startIdx
+                this._errorEnd = this._tokens[err.endToken].endIdx
+            }
+            else {
+                this._error = 'Unknown exception'
+                this._errorStart = undefined
+                this._errorEnd = undefined
+            }
+        }
     }
 
     get source(): string {
         return this._source
+    }
+
+    get valid(): boolean {
+        return this._valid
     }
 
     refresh(): void {
@@ -844,8 +882,10 @@ export class WMLQuery {
 
     setInput(str: string): void {
         this._source = str
-        this._tokens = tokenizer(new SourceStream(this._source))
-        this.refresh()
+        this._errorHandler(() => {
+            this._tokens = tokenizer(new SourceStream(this._source))
+            this.refresh()
+        })
         this.onChange({
             type: 'set',
             text: str,
@@ -878,8 +918,10 @@ export class WMLQuery {
         // unchanged, and once the tokens start matching after leaving the new section (if they do),
         // the new tokens are just index-shifted versions of the old)
         //
-        this._tokens = tokenizer(new SourceStream(this._source))
-        this.refresh()
+        this._errorHandler(() => {
+            this._tokens = tokenizer(new SourceStream(this._source))
+            this.refresh()
+        })
         this.onChange({
             type: 'replace',
             startIdx,
