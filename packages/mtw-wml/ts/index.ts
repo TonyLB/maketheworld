@@ -1,9 +1,3 @@
-import { compileCode } from './compileCode.js'
-import { schema } from './semantics/schema/index.js'
-import { prettyPrint, prettyPrintShouldNest } from './semantics/schema/prettyPrint.js'
-import { wmlProcessDown, assignExitContext } from './semantics/schema/processDown/index.js'
-import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
-import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 import { NormalCondition, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseActionTag, ParseAssetTag, ParseCharacterLegalContents, ParseCharacterTag, ParseComputedTag, ParseConditionTag, ParseDescriptionTag, ParseExitTag, ParseFeatureTag, ParseFirstImpressionTag, ParseImageTag, ParseImportTag, ParseLinkTag, ParseMapTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseRoomTag, ParseStoryTag, ParseStringTag, ParseTag, ParseUseTag, ParseVariableTag } from './parser/baseClasses'
 import { isSchemaString, SchemaActionTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaLinkTag, SchemaLiteralLegalContents, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaUseTag, SchemaVariableTag } from './schema/baseClasses'
@@ -27,41 +21,6 @@ import schemaFromCharacter, { schemaFromPronouns, schemaFromFirstImpression, sch
 import schemaFromMap from './schema/map'
 import { schemaFromWhitespace, schemaFromLineBreak } from './schema/whiteSpace'
 import Normalizer from './normalize'
-
-export { wmlGrammar }
-
-export const wmlSemantics = wmlGrammar.createSemantics()
-    .addOperation('eval', {
-        string(node) {
-            return this.sourceString
-        },
-        embeddedJSExpression(open, contents, close) {
-            try {
-                const evaluation = compileCode(`return (${contents.sourceString})`)({
-                    name: 'world'
-                })
-                return `${evaluation}`
-    
-            }
-            catch(e) {
-                return '{#ERROR}'
-            }
-        },
-        _iter(...nodes) {
-            return nodes.map((node) => (node.eval())).join('')
-        },
-        TagExpression(open, contents, close, spacer) {
-            return `${open.sourceString}${contents.eval()}${close.sourceString}`
-        }
-    })
-    .addOperation('schema', schema)
-    .addOperation('prettyPrintShouldNest(depth)', prettyPrintShouldNest)
-    .addOperation('prettyPrintWithOptions(depth, options)', prettyPrint)
-    .addAttribute('prettyPrint', {
-        WMLFileContents(item) {
-            return this.prettyPrintWithOptions(0, {})
-        }
-    })
 
 const flattenToElements = (includeFunction) => (node) => {
     const flattenedNode = includeFunction(node) ? [node] : []
