@@ -990,6 +990,8 @@ Object {
         "render": Array [],
         "spaceAfter": false,
         "spaceBefore": false,
+        "x": 200,
+        "y": 150,
       },
     ],
     "global": false,
@@ -1315,6 +1317,7 @@ Object {
     ],
     "from": "a123",
     "key": "a123#b456",
+    "name": "",
     "tag": "Exit",
     "to": "b456",
   },
@@ -1335,9 +1338,7 @@ Object {
             "tag": "Asset",
           },
         ],
-        "location": Array [
-          0,
-        ],
+        "location": Array [],
       },
       Object {
         "contents": Array [],

@@ -178,8 +178,8 @@ export class Normalizer extends Object {
                         tag: 'Room',
                         key: node.from,
                         appearances: [{
-                            contextStack: [context.contextStack[0]],
-                            location: [context.location[0]],
+                            contextStack: context.contextStack,
+                            location: [],
                             contents: []
                         }]
                     })
@@ -624,7 +624,8 @@ export class Normalizer extends Object {
                         }).filter((value) => (value)),
                         name: node.name,
                         spaceAfter: false,
-                        spaceBefore: false
+                        spaceBefore: false,
+                        ...((node.tag === 'Room' && (node.x !== undefined || node.y !== undefined)) ? { x: node.x, y: node.y } : {})
                     }]
                 }
             case 'Map':
@@ -646,6 +647,7 @@ export class Normalizer extends Object {
                     tag: node.tag,
                     to: node.to,
                     from: node.from,
+                    name: node.name,
                     appearances: [appearance]
                 }
             default:

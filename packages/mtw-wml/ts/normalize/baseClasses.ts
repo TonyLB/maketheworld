@@ -82,6 +82,8 @@ export type NormalDescription = NormalDescriptionPayload & NormalBase
 
 export type ComponentAppearance = Omit<NormalDescriptionPayload, 'type'> & BaseAppearance & {
     name?: string;
+    x?: number;
+    y?: number;
 }
 
 type ComponentTypes = 'Room' | 'Feature'
