@@ -2,7 +2,7 @@ import { Tokenizer, TokenWhitespace } from "./baseClasses"
 
 export const whiteSpaceTokenizer: Tokenizer<TokenWhitespace> = (sourceStream) => {
     const startIdx = sourceStream.position
-    while([' ', '\t', '\n'].includes(sourceStream.lookAhead(1))) {
+    while([' ', '\t', '\n', '\r'].includes(sourceStream.lookAhead(1))) {
         sourceStream.consume(1)
     }
     if (sourceStream.position !== startIdx) {

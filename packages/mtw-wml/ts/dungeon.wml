@@ -1,0 +1,1190 @@
+<Asset key=(Dungeon) fileName="Dungeon" zone="Personal" player="TonyLB">
+    <Room global key=(VORTEX)>
+        <Exit to=(cave)>cave</Exit>
+        <Description>
+            Natural rock formations rise in a jagged cliff-face. An asymmetric
+            opening leads into a dimly lit cave. 
+            <br />
+            (You could also go literally anywhere else in the world, if any of
+            it had been created. But it hasn't)
+        </Description>
+        <Name>Cave entrance</Name>
+    </Room>
+    <Map key=(dungeonMap)>
+        <Image
+            key=(dungeonImage)
+            fileURL="https://d1f7dzls5mhmwq.cloudfront.net/DungeonTestD.png"
+        />
+        <Room key=(VORTEX) x="0" y="250" />
+        <Room key=(cave) x="0" y="150">
+            <Exit to=(curvingPassage)>passage</Exit>
+            <Exit to=(VORTEX)>out</Exit>
+        </Room>
+        <Room key=(intersection) x="-150" y="-50">
+            <Exit to=(curvingPassage)>curving passage</Exit>
+            <Exit to=(statueChamber)>chamber</Exit>
+            <Exit to=(foundry)>workspace</Exit>
+        </Room>
+        <Room key=(curvingPassage) x="-150" y="100">
+            <Exit to=(cave)>cave</Exit>
+            <Exit to=(intersection)>intersection</Exit>
+        </Room>
+        <Room key=(statueChamber) x="0" y="0">
+            <Exit to=(intersection)>intersection</Exit>
+            <Exit to=(well)>well room</Exit>
+        </Room>
+        <Room key=(well) x="150" y="-50">
+            <Exit to=(statueChamber)>chamber</Exit>
+            <Exit to=(fireCatGrotto)>grotto</Exit>
+        </Room>
+        <Room key=(fireCatGrotto) x="250" y="-150">
+            <Exit to=(well)>well room</Exit>
+        </Room>
+        <Room key=(orchard) x="100" y="-200">
+            <Exit to=(fireCatGrotto)>grotto</Exit>
+            <Exit to=(forest)>forest</Exit>
+        </Room>
+        <Room key=(forest) x="-50" y="-200">
+            <Exit to=(orchard)>orchard</Exit>
+        </Room>
+        <Room key=(foundry) x="-200" y="-150">
+            <Exit to=(intersection)>intersection</Exit>
+        </Room>
+    </Map>
+    <Room key=(cave)>
+        <Name>Shallow cave</Name>
+        <Description>Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.</Description>
+    </Room>
+    <Room key=(curvingPassage)>
+        <Name>Curving Passage</Name>
+        <Description>Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.</Description>
+    </Room>
+    <Room key=(intersection)>
+        <Name>Intersection</Name>
+        <Description>Passages lead south toward a gently curving passage, east toward a large open chamber with carved columns, and north toward what looks like some sort of workspace.</Description>
+    </Room>
+    <Feature key=(wellStatues)>
+        <Name>Stylized statues</Name>
+        <Description spaceAfter>
+            Four statues of people portrayed in sweeping geometric shapes: A
+            <Link to=(childStatue)>child</Link> with hands raised in prayer, a
+            <Link to=(robedStatue)>robed figure</Link>
+        </Description>
+    </Feature>
+    <Feature key=(childStatue)>
+        <Name>Child Statue</Name>
+        <Description>The smooth, flowing lines of the statue's shapes, its hands upraised in prayer, and its featureless face tilted toward the ceiling all give the impression of intense and impassioned piety.</Description>
+    </Feature>
+    <Variable key=(robedStatueActive) default={false} />
+    <Action
+        key=(raiseRobedStatueHead)
+        src={
+            if (!robedStatueActive) {
+                me.narrate(`${me.Name} grasps the head of the robed statue, and pushes it out of its hands and into an upright position.`)
+                well.message(`The stream of water pouring out of the well speeds up.`)
+                fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+                robedStatueActive = true
+            }
+        }
+    />
+    <Action
+        key=(lowerRobedStatueHead)
+        src={
+            if (robedStatueActive) {
+                me.narrate(`${me.Name} grasps the head of the robed statue, and pushes it down to face into its upraised hands.`)
+                well.message(`The stream of water pouring out of the well slows down.`)
+                fireCatGrotto.message('The stream of water pouring into the room slows down.')
+                robedStatueActive = false
+            }
+        }
+    />
+    <Feature key=(robedStatue)>
+        <Name>Robed Statue</Name>
+        <Description spaceAfter>
+            This robed figure holds its head
+        </Description>
+    </Feature>
+    <Feature key=(robedStatueShoulders)>
+        <Name>Statue Shoulders</Name>
+        <Description spaceAfter>
+            In the folds of the robes of this statue, there are two fine joints
+            of stonework hidden. It looks very much as if the statue has been
+            crafted so that one could, with some effort,
+        </Description>
+    </Feature>
+    <Condition if={robedStatueActive}>
+        <Depend on=(robedStatueActive) />
+        <Feature key=(wellStatues)>
+            <Description spaceBefore spaceAfter>
+                with cupped hands,
+            </Description>
+        </Feature>
+        <Feature key=(robedStatue)>
+            <Description spaceBefore spaceAfter>
+                upright, looking into the distance.
+            </Description>
+        </Feature>
+        <Feature key=(robedStatueShoulders)>
+            <Description spaceBefore>
+                <Link to=(lowerRobedStatueHead)>lower the head</Link>into its hands.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!robedStatueActive}>
+        <Depend on=(robedStatueActive) />
+        <Feature key=(wellStatues)>
+            <Description spaceBefore spaceAfter>
+                weeping,
+            </Description>
+        </Feature>
+        <Feature key=(robedStatue)>
+            <Description spaceBefore spaceAfter>
+                slumped into its cupped hands, the bend of its shoulders
+                conveying miserable weeping.
+            </Description>
+        </Feature>
+        <Feature key=(robedStatueShoulders)>
+            <Description spaceBefore>
+                <Link to=(raiseRobedStatueHead)>raise the head</Link>from its
+                weeping position.
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(wellStatues)>
+        <Description spaceBefore spaceAfter>
+            a
+            <Link to=(stoopedStatue)>stooped figure</Link>, and
+        </Description>
+    </Feature>
+    <Feature key=(robedStatue)>
+        <Description spaceBefore>
+            On close inspection, there seems something strange about how the
+            <Link to=(robedStatueShoulders)>shoulders</Link> are sculpted.
+        </Description>
+    </Feature>
+    <Feature key=(stoopedStatue)>
+        <Name>Stooped Statue</Name>
+        <Description>This statue is built from thinner, more angled, shapes than the others.  Its stooped appearance and sunken shapes convey weary old age.</Description>
+    </Feature>
+    <Variable key=(determinedStatueLeftArm) default={false} />
+    <Action
+        key=(raiseLeftArm)
+        src={
+            if (!determinedStatueLeftArm) {
+                me.narrate(`${me.Name} grasps the left arm of the striding statue and rotates it up and forward.`)
+                if (determinedStatueRightArm && determinedStatueHead) {
+                    well.message(`The stream of water pouring out of the well speeds up.`)
+                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+                }
+                determinedStatueLeftArm = true
+            }
+        }
+    />
+    <Action
+        key=(lowerLeftArm)
+        src={
+            if (determinedStatueLeftArm) {
+                me.narrate(`${me.Name} grasps the left arm of the striding statue and rotates it down and back.`)
+                if (determinedStatueRightArm && determinedStatueHead) {
+                    well.message(`The stream of water pouring out of the well slows down.`)
+                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
+                }
+                determinedStatueLeftArm = false
+            }
+        }
+    />
+    <Variable key=(determinedStatueRightArm) default={true} />
+    <Action
+        key=(raiseRightArm)
+        src={
+            if (!determinedStatueRightArm) {
+                me.narrate(`${me.Name} grasps the right arm of the striding statue, rotates it up and forward.`)
+                if (determinedStatueLeftArm && determinedStatueHead) {
+                    well.message(`The stream of water pouring out of the well speeds up.`)
+                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+                }
+                determinedStatueRightArm = true
+            }
+        }
+    />
+    <Action
+        key=(lowerRightArm)
+        src={
+            if (determinedStatueRightArm) {
+                me.narrate(`${me.Name} grasps the right arm of the striding statue, rotates it down and back.`)
+                if (determinedStatueLeftArm && determinedStatueHead) {
+                    well.message(`The stream of water pouring out of the well slows down.`)
+                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
+                }
+                determinedStatueRightArm = false
+            }
+        }
+    />
+    <Variable key=(determinedStatueHead) default={false} />
+    <Action
+        key=(turnDeterminedHead)
+        src={
+            if (determinedStatueHead) {
+                me.narrate(`${me.Name} grasps the head of the striding statue and rotates it to the side, looking away.`)
+                if (determinedStatueLeftArm && determinedStatueRightArm) {
+                    well.message(`The stream of water pouring out of the well slows down.`)
+                    fireCatGrotto.message('The stream of water pouring into the room slows down.')
+                }
+            }
+            else {
+                me.narrate(`${me.Name} grasps the head of the striding statue and rotates it to face forward.`)
+                if (determinedStatueLeftArm && determinedStatueRightArm) {
+                    well.message(`The stream of water pouring out of the well speeds up.`)
+                    fireCatGrotto.message('The stream of water pouring into the room speeds up.')
+                }
+            }
+            determinedStatueHead = !determinedStatueHead
+        }
+    />
+    <Feature key=(determinedStatue)>
+        <Name>Striding Statue</Name>
+        <Description spaceAfter>
+            Captured mid-stride, this figure is
+        </Description>
+    </Feature>
+    <Feature key=(determinedNeck)>
+        <Name>Striding statue's neck</Name>
+        <Description></Description>
+    </Feature>
+    <Feature key=(determinedNeck)>
+        <Name>Striding statue neck</Name>
+        <Description spaceAfter>
+            In several places the stone shapes are cunning carved to hide
+            joints. You could
+            <Link to=(turnDeterminedHead)>turn the head</Link>,
+        </Description>
+    </Feature>
+    <Condition if={determinedStatueHead}>
+        <Depend on=(determinedStatueHead) />
+        <Feature key=(determinedStatue)>
+            <Description spaceBefore spaceAfter>
+                gazing forward with determination.
+            </Description>
+        </Feature>
+        <Feature key=(wellStatues)>
+            <Description spaceBefore spaceAfter>
+                a determined
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!determinedStatueHead}>
+        <Depend on=(determinedStatueHead) />
+        <Feature key=(determinedStatue)>
+            <Description spaceBefore spaceAfter>
+                looking away dismissively toward the side of the room.
+            </Description>
+        </Feature>
+        <Feature key=(wellStatues)>
+            <Description spaceBefore spaceAfter>
+                an arrogant
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={determinedStatueRightArm}>
+        <Depend on=(determinedStatueRightArm) />
+        <Feature key=(determinedNeck)>
+            <Description spaceBefore spaceAfter>
+                <Link to=(lowerRightArm)>lower the right arm</Link>,
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!determinedStatueRightArm}>
+        <Depend on=(determinedStatueRightArm) />
+        <Feature key=(determinedNeck)>
+            <Description spaceBefore spaceAfter>
+                <Link to=(raiseRightArm)>raise the right arm</Link>,
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={determinedStatueLeftArm}>
+        <Depend on=(determinedStatueLeftArm) />
+        <Feature key=(determinedNeck)>
+            <Description spaceBefore>
+                or
+                <Link to=(lowerLeftArm)>lower the left arm</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!determinedStatueLeftArm}>
+        <Depend on=(determinedStatueLeftArm) />
+        <Feature key=(determinedNeck)>
+            <Description spaceBefore>
+                or
+                <Link to=(raiseLeftArm)>raise the left arm</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(wellStatues)>
+        <Description spaceBefore>
+            <Link to=(determinedStatue)>figure striding</Link>forward.
+        </Description>
+    </Feature>
+    <Feature key=(determinedStatue)>
+        <Description spaceBefore>
+            There is something strange about the carving of the figure's
+            <Link to=(determinedNeck)>neck</Link>.
+        </Description>
+    </Feature>
+    <Computed key=(determinedStatueComplete) src={determinedStatueLeftArm && determinedStatueRightArm && determinedStatueHead}>
+        <Depend on=(determinedStatueLeftArm) />
+        <Depend on=(determinedStatueRightArm) />
+        <Depend on=(determinedStatueHead) />
+    </Computed>
+    <Computed key=(waterFlow) src={(determinedStatueComplete ? 1 : 0) + (robedStatueActive ? 1 : 0)}>
+        <Depend on=(determinedStatueComplete) />
+        <Depend on=(robedStatueActive) />
+    </Computed>
+    <Room key=(well)>
+        <Name>Well Room</Name>
+        <Description spaceAfter>
+            This is a mostly finished room, opening into a passage to the west
+            and a ragged unfinished cave in its northeast corner. The room is
+            filled with
+            <Link to=(wellStatues)>statues</Link> of stylized people in strange
+            poses. In the center of the room is a well. Water
+        </Description>
+    </Room>
+    <Condition if={waterFlow === 0}>
+        <Depend on=(waterFlow) />
+        <Room key=(well)>
+            <Description spaceBefore>
+                trickles out of the well, forming a small stream headed west.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={waterFlow === 1}>
+        <Depend on=(waterFlow) />
+        <Room key=(well)>
+            <Description spaceBefore>
+                pours over the edge of the well, forming a burbling stream to
+                the west.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={waterFlow === 2}>
+        <Depend on=(waterFlow) />
+        <Room key=(well)>
+            <Description spaceBefore>
+                rushes out of the well, forming a gushing torrent to the west.
+            </Description>
+        </Room>
+    </Condition>
+    <Variable key=(gratingBlocked) default={false} />
+    <Computed key=(waterLevel) src={ waterFlow * (gratingBlocked ? 2 : 1) }>
+        <Depend on=(waterFlow) />
+        <Depend on=(gratingBlocked) />
+    </Computed>
+    <Action
+        key=(toggleGratingBlocked)
+        src={
+            if (gratingBlocked) {
+                me.narrate(`${me.Name} moves the rocks off of the grating, making it easier for water to flow through.`)
+                if (waterLevel >= 4) {
+                    here.message('The level of the pool drops, revealing paths around the edges into the cave beyond.')
+                }
+                else if (waterLevel >= 2) {
+                    here.message('The pooled water slowly pours away through the grate.')
+                }
+            }
+            else {
+                me.narrate(`${me.Name} moves rocks over the grating, cutting off some of the flow of water through it.`)
+                if (waterLevel >= 2) {
+                    here.message('The pools swells, filling the entire bottom section of the grotto, and blocking the path further into the caves.')
+                }
+                else {
+                    here.message('Water pools around the grate, faster than it can drain.  Soon the bottom of the cave is almost (but not entirely) filled with a rippling pool.')
+                }
+            }
+            gratingBlocked = !gratingBlocked
+        }
+    />
+    <Feature key=(gratingDetail)>
+        <Name>Grating</Name>
+        <Description spaceAfter>
+            Made of wrought iron and bolted into the stone, this grating covers
+            a crevasse down which water pours.
+        </Description>
+    </Feature>
+    <Condition if={gratingBlocked}>
+        <Depend on=(gratingBlocked) />
+        <Feature key=(gratingDetail)>
+            <Description spaceBefore>
+                Moss-covered rocks cover the grating. You could easily move them
+                to
+                <Link to=(toggleGratingBlocked)>open the flow</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!gratingBlocked}>
+        <Depend on=(gratingBlocked) />
+        <Feature key=(gratingDetail)>
+            <Description spaceBefore>
+                Moss-covered rocks surround the grating. You could easily move
+                them to
+                <Link to=(toggleGratingBlocked)>block the flow</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Room key=(fireCatGrotto)>
+        <Name>Grotto</Name>
+        <Description spaceAfter>
+            Moss and vines cling to the sloping floor. Midway up the cave it
+            connects to a finished room. Water pours from that room in a slow
+            stream down the cave and into a
+        </Description>
+    </Room>
+    <Room key=(orchard)>
+        <Name>Orchard</Name>
+        <Description spaceAfter>
+            Sunlight streams into this cavern from several vine-choked openings
+            in the ceiling. Someone has planted careful rows of
+            <Link to=(fruitTrees)>fruit trees</Link> here, taking advantage of
+            the sunlight. There are openings to
+        </Description>
+    </Room>
+    <Condition if={waterLevel < 4}>
+        <Room key=(fireCatGrotto)>
+            <Exit to=(orchard)>orchard</Exit>
+        </Room>
+    </Condition>
+    <Condition if={waterLevel >= 4}>
+        <Depend on=(waterLevel) />
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                a cavern on the west and a flooded passageway on the east.
+            </Description>
+        </Room>
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore spaceAfter>
+                pool of water blocking the entire bottom passage, and covering a
+                blocked
+                <Link to=(gratingDetail)>grated opening</Link>.
+            </Description>
+        </Room>
+        <Condition if={catsInOrchard}>
+            <Depend on=(catsInOrchard) />
+            <Room key=(orchard)>
+                <Description spaceBefore spaceAfter>
+                    Wild cats prowl around this space, glaring occasionally at
+                    the pool to the west.
+                </Description>
+            </Room>
+        </Condition>
+    </Condition>
+    <Condition if={waterLevel < 4}>
+        <Depend on=(waterLevel) />
+        <Room key=(orchard)>
+            <Description spaceBefore spaceAfter>
+                the east and west into other caverns.
+            </Description>
+        </Room>
+        <Condition if={catsInOrchard}>
+            <Depend on=(catsInOrchard) />
+            <Room key=(orchard)>
+                <Description spaceBefore spaceAfter>
+                    Wild cats prowl around this space, occasionally bounding
+                    back and forth from the passage to the east.
+                </Description>
+            </Room>
+        </Condition>
+    </Condition>
+    <Condition if={waterLevel < 4 && waterLevel >= 2}>
+        <Depend on=(waterLevel) />
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore spaceAfter>
+                shallow pool of water draining slowly into a
+                <Link to=(gratingDetail)>grated opening</Link>.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={waterLevel < 2}>
+        <Depend on=(waterLevel) />
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore spaceAfter>
+                <Link to=(gratingDetail)>grated opening</Link>at the low opening
+                from the bottom of this cave to the next deeper one.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={birdsInOrchard}>
+        <Depend on=(birdsInOrchard) />
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                A flock of small blue birds are happily eating fallen fruit
+                here, and singing noisily.
+            </Description>
+        </Room>
+    </Condition>
+    <Room key=(fireCatGrotto)>
+        <Description spaceBefore spaceAfter>
+            At the top of the room, a raised area has a clay wall, with several
+            holes dug into it.
+        </Description>
+    </Room>
+    <Feature key=(ironworkingTools)>
+        <Name>Iron working tools</Name>
+        <Description>A large rack of tools that, sadly, have gone so far to rust that they are now fused with the rack and each other.  There are tongs, hammers, and various chisels, but none of them can be worked free (at least not until the system code is expanded to support objects).</Description>
+    </Feature>
+    <Variable key=(bellowsRunning) default={false} />
+    <Variable key=(hearthPrimed) default={true} />
+    <Variable key=(hearthActive) default={false} />
+    <Variable key=(catsInOrchard) default={true} />
+    <Variable key=(birdsInOrchard) default={false} />
+    <Action
+        key=(toggleBellowsRunning)
+        src={
+            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+            if (bellowsRunning) {
+                me.narrate(`${me.Name} grips the handled wheel and slows it to a stop.`)
+                if (hearthActive) {
+                    here.message('The flames in the hearth die, and the noise of its low purr fades.')
+                    allRooms.forEach((room) => { room.message('The loud low purr echoing through the halls fades away.') })
+                    hearthActive = false
+                }
+                else {
+                    here.message('The loud hiss of air passing through the hearth fades.')
+                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls fades away.') })
+                    if (waterLevel < 4) {
+                        if (birdsInOrchard) {
+                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                            birdsInOrchard = false
+                        }
+                        else {
+                            orchard.message('Cats come running in from the passage to the east.')
+                        }
+                        fireCatGrotto.message('Cats leap out of their dens, pacing around the grotto.  Many of them dart down the passage to the west, avoiding the water.')
+                        catsInOrchard = true
+                    }
+                }
+                bellowsRunning = false
+            }
+            else if (hearthPrimed) {
+                me.narrate(`${me.Name} spins the handle on the bellows, and there is a sudden burst of flashing flame from the hearth, but the backwash of heat immediately jams the works of the bellows, stopping both wind and fire.`)
+            }
+            else {
+                me.narrate(`${me.Name} spins the handle on the bellows, and air flows slowly, then quickly, through the hearth.  A loud hiss echoes as wind gets sucked into the passages of the hearth, and soon the bellows starts drawing on its own, the wheel spinning without further help.`)
+                allRooms.forEach((room) => { room.message('A loud hiss starts up in the distance, echoing through the halls.') })
+                if (catsInOrchard && (waterLevel < 4)) {
+                    orchard.message('The cats flee the hissing, running down the passage to the east.')
+                    fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+                }
+                if (birdsInOrchard) {
+                    orchard.message('The birds startle at the sudden hissing, and flee back into the trees.')
+                    allRooms.message('The sound of bird-song fades away.')
+                    foundry.message('The sound of bird-song fades away.')
+                    birdsInOrchard = false
+                }
+                bellowsRunning = true
+            }
+        }
+    />
+    <Action
+        key=(toggleHearthPrimed)
+        src={
+            const allRooms = [orchard, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+            if (hearthPrimed) {
+                me.narrate(`${me.Name} grips a stone crest on the hearth and turns it so that its flames point downward.`)
+                if (hearthActive) {
+                    here.message('The fire in the hearth suddenly vanishes, and the sound of its roar changes to the hiss of wind from the bellows.')
+                    allRooms.forEach((room) => { room.message('The loud purring echoing through the halls fades, sounding now like only a loud, constant hissing.') })
+                    if (catsInOrchard && (waterLevel < 4)) {
+                        orchard.message('The cats flee the hissing, running down the passage to the east.')
+                        fireCatGrotto.message('Cats come running in from the passage to the west, and the whole tribe retreats from the hissing, scrambling up into their dens in the upper wall.')
+                        catsInOrchard = false
+                    }
+                    else {
+                        fireCatGrotto.message('The cats in the grotto retreat from the hissing, scrambling up into their dens in the upper wall.')
+                    }
+                    hearthActive = false
+                }
+                hearthPrimed = false
+            }
+            else {
+                me.narrate(`${me.Name} grips a stone crest on the hearth and turns it so that its flames point upward.`)
+                hearthPrimed = true
+                if (bellowsRunning) {
+                    here.message('There is a burst of flames, quickly fanned by the wind from the bellows, into a huge fire that fills the hearth and sheds heat throughout the room.  The loud hiss gains depth, sounding now like the furious purring of some huge cat.')
+                    allRooms.forEach((room) => { room.message('The loud hiss echoing through the halls deepens, sounding now like the furious purring of a huge cat.') })
+                    if (waterLevel < 4) {
+                        if (birdsInOrchard) {
+                            orchard.message('Cats come running in from the passage to the east.  The birds flutter off in a sudden panic, their song ending.')
+                            const nonOrchardRooms = [forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage, foundry]
+                            nonOrchardRooms.forEach((room) => { room.message('The sound of bird-song suddenly cuts off.') })
+                            birdsInOrchard = false
+                        }
+                        else {
+                            orchard.message('Cats come running in from the passage to the east.')
+                        }
+                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  Many of them dart down the passage to the west, avoiding the water.')
+                        catsInOrchard = true
+                    }
+                    else {
+                        fireCatGrotto.message('Cats leap out of their dens, running and frolicking in the purring noise.  They approach the pool of water blocking the passage to the west, but then dart away, confining their play to the grotto.')
+                    }
+                    hearthActive = true
+                }
+                else {
+                    here.message('There is a little flicker of flames in the hearth, but with little air to feed them they quickly vanish.')
+                }
+            }
+        }
+    />
+    <Feature key=(bellows)>
+        <Name>Bellows</Name>
+        <Description>
+            A large contraption of aged leather, wood, and iron. It connects by
+            a loose hose to the hearth.
+        </Description>
+    </Feature>
+    <Condition if={bellowsRunning}>
+        <Depend on=(bellowsRunning) />
+        <Feature key=(bellows)>
+            <Description spaceBefore>
+                There is a large handled wheel, spinning with the drawing power
+                of the bellows, that you could slow in order to
+                <Link to=(toggleBellowsRunning)>stop the bellows</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!bellowsRunning}>
+        <Depend on=(bellowsRunning) />
+        <Feature key=(bellows)>
+            <Description spaceBefore>
+                There is a large handled wheel, and it looks like you could spin
+                the wheel in order to
+                <Link to=(toggleBellowsRunning)>start the bellows</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(hearthCrest)>
+        <Name>Crest</Name>
+        <Description spaceAfter>
+            A plaque with an icon of a flame pointing
+        </Description>
+    </Feature>
+    <Condition if={hearthPrimed}>
+        <Depend on=(hearthPrimed) />
+        <Feature key=(hearthCrest)>
+            <Description spaceBefore spaceAfter>
+                upward.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!hearthPrimed}>
+        <Depend on=(hearthPrimed) />
+        <Feature key=(hearthCrest)>
+            <Description spaceBefore spaceAfter>
+                downward.
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(hearthCrest)>
+        <Description spaceBefore>
+            The plaque is attached loosely, and it seems that you could
+            <Link to=(toggleHearthPrimed)>turn the crest</Link>.
+        </Description>
+    </Feature>
+    <Room key=(forest)>
+        <Name>Forest</Name>
+        <Description spaceAfter>
+            A few narrow cracks in the ceiling of this cavern let in streams of
+            sunlight. Hardy trees have grown here, spreading low and squat,
+            competing for light. Their dense branches are home to many
+            <Link to=(nests)>nests</Link>. To the east, another cavern opens. In
+            the southwest wall of this forest-cave is a set of small, jagged,
+            openings
+        </Description>
+    </Room>
+    <Room key=(foundry)>
+        <Name>Foundry</Name>
+        <Description spaceAfter>
+            This room is filled with racks of
+            <Link to=(ironworkingTools)>iron-working tools</Link>, and
+            <Link to=(bellows)>strange devices</Link>. What looks like a huge
+            <Link to=(hearthDetail)>open fireplace</Link> dominates the
+            north-east corner,
+        </Description>
+    </Room>
+    <Feature key=(hearthDetail)>
+        <Name>Hearth</Name>
+        <Description spaceAfter>
+            This huge construction is made of obsidian. If has an open back with
+            various small tunnels leading further into the caves. There is a
+            mantelpiece that is bare except for a single
+            <Link to=(hearthCrest)>crest</Link> mounted on it.
+        </Description>
+    </Feature>
+    <Condition if={hearthActive} >
+        <Depend on=(hearthActive) />
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                flaming brightly.
+            </Description>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                lit from within by flame.
+            </Description>
+        </Room>
+        <Feature key=(hearthDetail)>
+            <Description spaceBefore>
+                A roaring fire crackles in the hearth.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!hearthActive} >
+        <Depend on=(hearthActive) />
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                and past the cold hearth are some jagged openings that a person
+                might squeeze through carefully.
+            </Description>
+            <Exit to=(forest)>forest</Exit>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                that a person might manage to squeeze through.
+            </Description>
+            <Exit to=(foundry)>foundry</Exit>
+        </Room>
+    </Condition>
+    <Feature key=(nests)>
+        <Name>Nests</Name>
+        <Description>The trees are filled with snug little nests built of sticks and creeper.  You occasionally get a glimpse of one of the shy little blue birds that inhabit them.</Description>
+    </Feature>
+    <Action
+        key=(shakeFruitTrees)
+        src={
+            me.narrate(`${me.Name} shakes a fruit tree, and some fruit drops from it.`)
+            if (birdsInOrchard) {
+                here.message('The birds singing and eating in the orchard flutter upward for a moment, then descend with renewed energy upon even more fruit.')
+            }
+            else {
+                if (catsInOrchard) {
+                    here.message('A few birds flutter over from the forest at the sound of dropping fruit, but seeing cats all over the orchard they quickly return to their nests.  The cats play messily with the fruit until it is little more than muddy pulp.')
+                }
+                else {
+                    here.message('A few birds flutter over from the forest at the sound of dropping fruit.  They settle in the branches and look about carefully.  Seeing no threat, they descend and start eating happily, warbling birdsong to each other.  That attracts yet more birds, and soon the cavern is filled with joyous birdsong.')
+                    const otherRooms = [foundry, forest, fireCatGrotto, well, statueChamber, intersection, curvingPassage]
+                    otherRooms.forEach((room) => { room.message('The sound of birdsong rises in the distance, echoing through the caverns.') })
+                    birdsInOrchard = true
+                }
+            }
+        }
+    />
+    <Feature key=(fruitTrees)>
+        <Name>Fruit Trees</Name>
+        <Description>
+            Gnarled fruit trees, planted in careful rows but clearly left to
+            grow on their own for some time. Their limbs are heavily burdened
+            with ripe fruit. Some would probably fall off if you
+            <Link to=(shakeFruitTrees)>shake a tree</Link>.
+        </Description>
+    </Feature>
+    <Variable key=(trapDoorOpen) default={false} />
+    <Action
+        key=(closeTrapDoor)
+        src={
+            me.narrate(`${me.Name} closes the trap door, which seals with an audible clunk.`)
+            trapDoorOpen = false
+        }
+    />
+    <Room key=(statueChamber)>
+        <Name>Column Chamber</Name>
+        <Description>
+            The ceiling of this circular room is vaulted, and three
+            <Link to=(columns)>carved columns</Link> rise to meet it. In the
+            center of the floor is a
+            <Link to=(trapDoor)>trap door</Link>. There are exits to east and
+            west.
+        </Description>
+    </Room>
+    <Feature key=(trapDoor)>
+        <Name>Trap Door</Name>
+        <Description spaceAfter>
+            A sturdy wooden door set into the floor on heavy iron hinges.
+        </Description>
+    </Feature>
+    <Condition if={trapDoorOpen}>
+        <Feature key=(trapDoor)>
+            <Description spaceBefore>
+                It is opened, resting against the floor. The opening reveals a
+                staircase descending down into darkness (and, again, room for
+                more story that has not yet been created ... but congrats on
+                solving everything!) 
+                <br />
+                You can
+                <Link to=(closeTrapDoor)>close the door</Link>.
+            </Description>
+        </Feature>
+    </Condition>
+    <Condition if={!trapDoorOpen}>
+        <Feature key=(trapDoor)>
+            <Description spaceBefore>
+                It is closed. Pulling on the circular handle shows that it is
+                firmly locked by some internal mechanism.
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(columns)>
+        <Name>Carved columns</Name>
+        <Description spaceAfter>
+            Each of the columns spaced around the perimeter of the room is
+            carved differently. There is a
+            <Link to=(singingColumn)>column with singing people</Link>, a
+        </Description>
+    </Feature>
+    <Action
+        key=(sing)
+        src={
+            me.narrate(`${me.Name} raises ${me.possessive} voice in song.  The column covered in pictures of singing people glows for as long as they do.`)
+            const glowingColumns = (birdsInOrchard ? 1 : 0) + (hearthActive ? 1 : 0)
+            switch(glowingColumns) {
+                case 1:
+                    here.message('The trap door rattles.')
+                    break
+                case 2:
+                    here.message('The trap door shakes heavily, and with a loud clunk opens entirely, flopping over to bang on the floor.')
+                    trapDoorOpen = true
+                    break
+                default:
+                    here.message('The trap door buzzes slightly.')
+            }
+        }
+    />
+    <Feature key=(singingColumn)>
+        <Name>Singing Column</Name>
+        <Description>
+            Groups of people in various sizes dominate the carvings on this
+            column. Each of the people has their heads raised, mouth open in
+            what appears to be song. You could
+            <Link to=(sing)>sing</Link> and see if it does anything.
+        </Description>
+    </Feature>
+    <Feature key=(catColumn)>
+        <Name>Cat Column</Name>
+        <Description spaceAfter>Lounging cats are carved all up and down this column, surrounding one huge cat-face in relief.</Description>
+    </Feature>
+    <Condition if={hearthActive}>
+        <Feature key=(catColumn)>
+            <Description spaceBefore>
+                Strands of glowing milky energy cling and crawl across the
+                surface of this column.
+            </Description>
+        </Feature>
+        <Feature key=(columns)>
+            <Description spaceBefore spaceAfter>
+                glowing
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(columns)>
+        <Description spaceBefore spaceAfter>
+            <Link to=(catColumn)>column with cats</Link>, and a
+        </Description>
+    </Feature>
+    <Feature key=(birdColumn)>
+        <Name>Bird Column</Name>
+        <Description spaceAfter>Birds in clusters dominate the carvings on this column.  They seem to have their beaks open in song.</Description>
+    </Feature>
+    <Condition if={birdsInOrchard}>
+        <Feature key=(birdColumn)>
+            <Description spaceBefore>
+                Strands of glowing milky energy cling and crawl across the
+                surface of this column.
+            </Description>
+        </Feature>
+        <Feature key=(columns)>
+            <Description spaceBefore spaceAfter>
+                glowing
+            </Description>
+        </Feature>
+    </Condition>
+    <Feature key=(columns)>
+        <Description spaceBefore spaceAfter>
+            <Link to=(birdColumn)>column with birds</Link>.
+        </Description>
+    </Feature>
+    <Condition if={hearthActive && birdsInOrchard}>
+        <Depend on=(hearthActive) />
+        <Depend on=(birdsInOrchard) />
+        <Room key=(statueChamber)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+        <Room key=(intersection)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+        <Room key=(well)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound and the echoes of birdsong sound through the
+                caverns.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={!hearthActive && bellowsRunning && birdsInOrchard}>
+        <Depend on=(hearthActive) />
+        <Depend on=(bellowsRunning) />
+        <Depend on=(birdsInOrchard) />
+        <Room key=(statueChamber)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+        <Room key=(intersection)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+        <Room key=(well)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss and the sound of birdsong echo through the caverns.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={!hearthActive && !bellowsRunning && birdsInOrchard}>
+        <Depend on=(hearthActive) />
+        <Depend on=(bellowsRunning) />
+        <Depend on=(birdsInOrchard) />
+        <Room key=(statueChamber)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(intersection)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(well)>
+            <Description spaceBefore>
+                
+                <br />
+                The sound of birdsong echoes through the caverns.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={!hearthActive && bellowsRunning && !birdsInOrchard}>
+        <Depend on=(hearthActive) />
+        <Depend on=(bellowsRunning) />
+        <Depend on=(birdsInOrchard) />
+        <Room key=(statueChamber)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+        <Room key=(intersection)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+        <Room key=(well)>
+            <Description spaceBefore>
+                
+                <br />
+                A loud hiss winds through the caverns.
+            </Description>
+        </Room>
+    </Condition>
+    <Condition if={hearthActive && !birdsInOrchard}>
+        <Depend on=(hearthActive) />
+        <Depend on=(birdsInOrchard) />
+        <Room key=(statueChamber)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(foundry)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(forest)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(orchard)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(fireCatGrotto)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(intersection)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+        <Room key=(well)>
+            <Description spaceBefore>
+                
+                <br />
+                A low purring sound echoes through the caverns.
+            </Description>
+        </Room>
+    </Condition>
+</Asset>
