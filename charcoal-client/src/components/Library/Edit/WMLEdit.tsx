@@ -158,6 +158,10 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     // wmlQuery
     //
     const onChange = (change: WMLQueryUpdate) => {
+        //
+        // TODO: Refactor wmlQuery to include valid() function with local variables and
+        // try/catch wrappers on the execution of parsing functions
+        //
         const match = change.wmlQuery.matcher.match()
         if (match.succeeded()) {
             if (change.wmlQuery.source !== currentWML) {

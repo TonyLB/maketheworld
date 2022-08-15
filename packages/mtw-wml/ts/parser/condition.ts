@@ -20,7 +20,7 @@ export const parseConditionFactory: ParseTagFactory<ParseConditionTag> = ({ open
         default:
             const parsedContents = validateContents<ParseAssetLegalContents>({
                 contents: nonDependencyContents,
-                legalTags: ['Exit', 'Feature', 'Room', 'Condition', 'Image'],
+                legalTags: ['Exit', 'Feature', 'Room', 'Condition', 'Image', 'Map'],
                 ignoreTags: ['Whitespace', 'Comment']
             })
             return {

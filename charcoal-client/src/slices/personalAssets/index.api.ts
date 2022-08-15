@@ -9,6 +9,8 @@ import {
 import delayPromise from '../../lib/delayPromise'
 import { NormalImport } from '@tonylb/mtw-wml/dist/normalize'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache'
+import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
+import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -33,7 +35,18 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
     if (id) {
-        wmlQueryFromCache({ key: id, value: assetWML })
+        try {
+            wmlQueryFromCache({ key: id, value: assetWML })
+        }
+        catch (err) {
+            if (err instanceof TokenizeException) {
+                console.log(`Token: Error message: ${err.message}`)
+            }
+            if (err instanceof ParseException) {
+                console.log(`Parse: Error message: ${err.message}`)
+            }
+            throw err
+        }
     }
     return { publicData: { originalWML: assetWML, currentWML: assetWML }}
 }
