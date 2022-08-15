@@ -40,7 +40,7 @@ describe('handleUpload', () => {
         getAssetsMock.mockResolvedValue({
             schema: schemaMock,
             normalize: normalizeMock,
-            isMatched: jest.fn().mockReturnValue(true)
+            valid: true
         })
         normalizeMock.mockReturnValue({
             'Import-0': {

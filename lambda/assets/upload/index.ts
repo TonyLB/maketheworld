@@ -160,7 +160,7 @@ export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, mes
         return {}
     }
 
-    if (assetWorkspace.isMatched()) {
+    if (assetWorkspace.valid) {
         try {
             const asset = Object.values(assetWorkspace.normalize()).find((item) => (isNormalAsset(item) || isNormalCharacter(item))) as NormalAsset | NormalCharacter | undefined
             if (asset && asset.key) {

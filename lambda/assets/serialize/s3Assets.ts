@@ -20,12 +20,15 @@ export class AssetWorkspace {
     contents() {
         return this.wmlQuery.source
     }
-    match() {
-        return this.wmlQuery.matcher.match()
+    get valid() {
+        return this.wmlQuery.valid
     }
-    isMatched() {
-        return this.match().succeeded()
-    }
+    // match() {
+    //     return this.wmlQuery.matcher.match()
+    // }
+    // isMatched() {
+    //     return this.match().succeeded()
+    // }
     schema() {
         if (!this.cachedContent || this.cachedContent !== this.contents()) {
             this.cachedContent = this.contents()
@@ -68,9 +71,9 @@ export const getAssets = async (s3Client, fileName) => {
     const contents = await streamToString(contentStream)
     const assetWorkspace = new AssetWorkspace(contents)
 
-    if (!assetWorkspace.isMatched()) {
+    if (!assetWorkspace.valid) {
         console.log('ERROR: Schema failed validation')
-        console.log(assetWorkspace.match().message)
+        console.log(assetWorkspace.wmlQuery._error)
         return null
     }
     //

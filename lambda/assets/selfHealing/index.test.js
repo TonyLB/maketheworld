@@ -26,7 +26,7 @@ describe('healAsset', () => {
             schema: schemaMock,
             normalize: normalizeMock,
             contents: jest.fn().mockReturnValue('Test'),
-            isMatched: jest.fn().mockReturnValue(true),
+            valid: true,
             assetId: 'Test'
         })
         normalizeMock.mockReturnValue({
