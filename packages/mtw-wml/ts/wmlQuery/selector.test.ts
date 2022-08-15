@@ -4,7 +4,7 @@ import { TokenizeException } from '../parser/tokenizer/baseClasses'
 import tokenizer from '../parser/tokenizer/index'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaWithContents, SchemaTag } from '../schema/baseClasses'
-import { newWMLSelectorFactory } from './newSelector'
+import { newWMLSelectorFactory } from './selector'
 import searchParse from './search/parse'
 import searchTokenizer from './search/tokenize'
 

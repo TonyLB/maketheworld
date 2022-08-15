@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { objectEntryMap } from '../lib/objects'
+import { objectMap } from '../lib/objects'
 export {
     BaseAppearance,
     ComponentAppearance,
@@ -33,429 +33,629 @@ export {
     isNormalVariable
 } from './baseClasses'
 import {
+    isSchemaCharacter,
+    isSchemaExit,
+    isSchemaWithContents,
+    isSchemaWithKey,
+    SchemaActionTag,
+    SchemaAssetLegalContents,
+    SchemaAssetTag,
+    SchemaComputedTag,
+    SchemaConditionTag,
+    SchemaFeatureLegalContents,
+    SchemaFeatureTag,
+    SchemaImageTag,
+    SchemaImportTag,
+    SchemaMapLegalContents,
+    SchemaMapTag,
+    SchemaRoomLegalContents,
+    SchemaRoomTag,
+    SchemaStoryTag,
+    SchemaTag,
+    SchemaVariableTag,
+    SchemaWithKey
+} from '../schema/baseClasses'
+import {
+    BaseAppearance,
+    ComponentRenderItem,
+    NormalAction,
+    NormalAsset,
+    NormalComputed,
+    NormalCondition,
+    NormalFeature,
     NormalForm,
+    NormalImage,
+    NormalImport,
+    NormalItem,
     NormalizeKeyMismatchError,
     NormalizeTagMismatchError,
-    isNormalComponent,
-    isNormalImport,
-    isNormalMap
+    NormalMap,
+    NormalReference,
+    NormalRoom,
+    NormalVariable
 } from './baseClasses'
-import { keyForValue } from './keyUtil'
+import { keyForValue } from './keyUtil';
 
-const getCurrentAppearance = (existingMap = {}, key: string) => {
-    if ((existingMap[key]?.appearances || []).length > 0) {
-        return {
-            appearance: existingMap[key].appearances[-1],
-            index: existingMap[key].appearances.length - 1,
-            valid: true
-        }
-    }
-    return { valid: false }
+export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
+
+const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
+    isSchemaWithKey(node) || (['Import', 'Condition'].includes(node.tag))
+)
+
+type NormalizerContext = {
+    contextStack: NormalReference[];
+    location: number[];
 }
 
-export const pullProperties = (node): { topLevel: Record<string, any>, appearance: Record<string, any> } => {
-    return Object.entries(node).reduce((previous, [key, value]) => {
-        let pullTags = [
-            'tag',
-            'key',
-            'global'
-        ]
+type NormalizeAddReturnValue = {
+    children: NormalReference[];
+    siblings: NormalReference[];
+}
+
+export class Normalizer extends Object {
+    _normalForm: NormalForm = {};
+    _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature"> = {}
+    constructor() {
+        super()
+    }
+
+    _mergeAppearance(key: string, item: NormalItem): number {
+        if (key in this._normalForm) {
+            this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
+                if (draft.tag !== item.tag) {
+                    throw new NormalizeTagMismatchError(`Item "${key}" is defined with conflict tags `)
+                }
+                (draft.appearances as any).push(item.appearances[0])
+            }) }
+            return this._normalForm[key].appearances.length - 1
+        }
+        else {
+            this._normalForm[key] = item
+            return 0
+        }
+    }
+
+    _updateAppearanceContents(key: string, appearance: number, contents: NormalReference[]): void {
+        if (!(key in this._normalForm)) {
+            throw new NormalizeKeyMismatchError(`Key "${key}" does not match any tag in asset`)
+        }
+        if (appearance >= this._normalForm[key].appearances.length) {
+            throw new NormalizeKeyMismatchError(`Illegal appearance referenced on key "${key}"`)
+        }
+        this._normalForm = { ...produce(this._normalForm, (draft) => {
+            draft[key].appearances[appearance].contents = contents
+        }) }
+    }
+
+    //
+    // TODO: Add a way to normalize a SchemaCharacterTag, or do some equivalent translation as
+    // the client demands
+    //
+
+    //
+    // add accepts an incoming tag and a context, and returns two lists of NormalReference returns for things
+    // that it has added to the NormalForm mapping:
+    //      * children: Elements that have been added as children of the most granular level of the context
+    //                  (i.e., if a feature is being added in a Room then that feature becomes a child of
+    //                  that room)
+    //      * siblings: Elements that should be added at the same level as the most granular item of the
+    //                  context (i.e., if a 'from' exit is written into a Room, it should be wrapped in
+    //                  a Room of that from key, and that Room in turn should be added as a sibling of the
+    //                  room that is passed as part of the context)
+    //
+    // TODO: Refactor add to return both children (array of NormalReference for children created by the add)
+    // and siblings (array of NormalReference for *siblings* created by the add), and to properly accumulate
+    // those in the contents recursion
+    //
+    add(node: SchemaTag, context: NormalizerContext = { contextStack: [], location: [] }): NormalizeAddReturnValue {
+        let returnValue: NormalizeAddReturnValue = {
+            children: [],
+            siblings: []
+        }
+        if (!isSchemaTagWithNormalEquivalent(node)) {
+            return returnValue
+        }
+        if (isSchemaCharacter(node)) {
+            return returnValue
+        }
+        this._validateTags(node)
+        let appearanceIndex: number
+        let returnKey: string = node.key
         switch(node.tag) {
+            //
+            // TODO:  Simplify WML syntax around Exits, so that they can only be created in the Rooms from which they lead, and subsequently
+            // simplify all this code as well.
+            //
             case 'Exit':
-                pullTags = [...pullTags, 'to', 'from', 'name']
-                break
-            case 'Variable':
-                pullTags.push('default')
-                break
-            case 'Computed':
-                pullTags = [...pullTags, 'src', 'dependencies']
-                break
-            case 'Action':
-                pullTags.push('src')
-                break
-            case 'Condition':
-                pullTags = [...pullTags, 'if', 'dependencies']
-                break
-            case 'Image':
-                pullTags = [...pullTags, 'fileURL', 'display']
+                const roomIndex = context.contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
+                if (roomIndex === -1) {
+                    //
+                    // The exit is being created globally, outside of any room wrapper.  For normalization, we add a room wrapper
+                    // appearance for the FROM key, inside the normalize structure
+                    //
+                    returnKey = `${node.from}#${node.to}`
+                    const wrapperRoomAppearance = this._mergeAppearance(node.from, {
+                        tag: 'Room',
+                        key: node.from,
+                        appearances: [{
+                            contextStack: [context.contextStack[0]],
+                            location: [context.location[0]],
+                            contents: []
+                        }]
+                    })
+                    appearanceIndex = this._mergeAppearance(returnKey, {
+                        tag: 'Exit',
+                        key: returnKey,
+                        to: node.to,
+                        from: node.from,
+                        name: node.name,
+                        appearances: [{
+                            contextStack: [
+                                ...context.contextStack,
+                                {
+                                    tag: 'Room',
+                                    key: node.from,
+                                    index: wrapperRoomAppearance
+                                }
+                            ],
+                            location: context.location,
+                            contents: []
+                        }]
+                    })
+                    this._updateAppearanceContents(node.from, wrapperRoomAppearance, [{
+                        tag: 'Exit',
+                        key: returnKey,
+                        index: appearanceIndex
+                    }])
+                    returnValue = {
+                        children: [{
+                            key: node.from,
+                            tag: 'Room',
+                            index: wrapperRoomAppearance
+                        }],
+                        siblings: []
+                    }
+                }
+                else {
+                    const roomKey = context.contextStack[roomIndex].key
+                    const { to, from } = node
+                    if (from && from !== roomKey) {
+                        //
+                        // This exit is being defined within the context of the room *to which* it leads.
+                        // For ease of reference, define a sibling-level room wrapper for the FROM room
+                        // and nest the exit within it
+                        //
+                        const contextStackBeforeRoom = context.contextStack.slice(0, roomIndex)
+                        const contextStackAfterRoom = context.contextStack.slice(roomIndex + 1)
+                        returnKey = `${from}#${to}`
+                        const wrapperRoomAppearance = this._mergeAppearance(from, {
+                            tag: 'Room',
+                            key: from,
+                            appearances: [{
+                                contextStack: context.contextStack.slice(0, -1),
+                                location: [],
+                                contents: []
+                            }]
+                        })
+                        appearanceIndex = this._mergeAppearance(returnKey, {
+                            tag: 'Exit',
+                            key: returnKey,
+                            to: node.to,
+                            from: node.from,
+                            name: node.name,
+                            appearances: [{
+                                contextStack: [
+                                    ...contextStackBeforeRoom,
+                                    {
+                                        index: wrapperRoomAppearance,
+                                        key: from,
+                                        tag: 'Room'
+                                    },
+                                    ...contextStackAfterRoom
+                                ],
+                                location: context.location,
+                                contents: []
+                            }]
+                        })
+                        const childReturn: NormalReference = {
+                            tag: 'Exit',
+                            key: returnKey,
+                            index: appearanceIndex
+                        }
+                        this._updateAppearanceContents(from, wrapperRoomAppearance, [childReturn])
+                        returnValue = {
+                            children: [],
+                            siblings: [{
+                                key: node.from,
+                                tag: 'Room',
+                                index: wrapperRoomAppearance
+                            }]
+                        }
+                    }
+                    else {
+                        appearanceIndex = this._mergeAppearance(node.key, this._translate({ ...context, contents: [] }, node))
+                        returnValue = {
+                            children: [{
+                                tag: 'Exit',
+                                key: node.key,
+                                index: appearanceIndex
+                            }],
+                            siblings: []
+                        }
+                    }
+                }
                 break
             case 'Import':
-                pullTags = [...pullTags, 'mapping', 'from']
-                break
-            case 'Story':
-            case 'Asset':
-                pullTags = [...pullTags, 'Story', 'instance', 'name', 'fileName', 'player', 'zone']
-                break
-            case 'Character':
-                pullTags = [...pullTags, 'Name', 'fileName', 'fileURL', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player', 'zone']
-                break
-        }
-        if (pullTags.includes(key)) {
-            if (Array.isArray(value)) {
-                return {
-                    ...previous,
-                    topLevel: {
-                        ...previous.topLevel,
-                        [key]: [
-                            ...(previous.topLevel[key] ?? []),
-                            ...value
+                //
+                // TODO: Refactor Import to deprecate Use tags and have direct appearances with optional 'as' property
+                //
+                const translatedImport = this._translate({ ...context, contents: [] }, node)
+                const importIndex = this._mergeAppearance(translatedImport.key, translatedImport)
+                const importContents = Object.entries(node.mapping).map<NormalReference>(([key, { type, key: from }], index) => {
+                    const updatedContext: NormalizerContext = {
+                        contextStack: [
+                            ...context.contextStack,
+                            {
+                                key: translatedImport.key,
+                                tag: node.tag,
+                                index: importIndex
+                            }
+                        ],
+                        location: [
+                            ...context.location,
+                            index
                         ]
+                    }    
+                    switch(type) {
+                        case 'Room':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Room',
+                                        name: '',
+                                        global: false,
+                                        contents: [],
+                                        render: [],
+                                        parse: {
+                                            key,
+                                            tag: 'Room',
+                                            contents: [],
+                                            global: false,
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                ).children[0]
+                        case 'Feature':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Feature',
+                                        name: '',
+                                        global: false,
+                                        contents: [],
+                                        render: [],
+                                        parse: {
+                                            key,
+                                            tag: 'Feature',
+                                            contents: [],
+                                            global: false,
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                ).children[0]
+                        case 'Variable':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Variable',
+                                        parse: {
+                                            key,
+                                            tag: 'Variable',
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                ).children[0]
+                        case 'Computed':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Computed',
+                                        src: '',
+                                        dependencies: [],
+                                        parse: {
+                                            key,
+                                            tag: 'Computed',
+                                            startTagToken: 0,
+                                            endTagToken: 0,
+                                            src: '',
+                                            dependencies: []
+                                        }
+                                    },
+                                    updatedContext
+                                ).children[0]
+                        case 'Action':
+                            return this.add(
+                                    {
+                                        key,
+                                        tag: 'Action',
+                                        src: '',
+                                        parse: {
+                                            key,
+                                            tag: 'Action',
+                                            src: '',
+                                            startTagToken: 0,
+                                            endTagToken: 0
+                                        }
+                                    },
+                                    updatedContext
+                                ).children[0]
+                        default:
+                            throw new NormalizeTagMismatchError(`"${type}" tag not allowed in import`)
                     }
-                }
-            }
-            //
-            // For boolean props, lift any true up above all falses
-            //
-            if (previous.topLevel[key] === true) {
-                return previous
-            }
-            if (value === true) {
+                })
+                this._updateAppearanceContents(translatedImport.key, importIndex, importContents)
                 return {
-                    ...previous,
-                    topLevel: {
-                        ...previous.topLevel,
-                        [key]: true
-                    }
+                    children: [{
+                        key: translatedImport.key,
+                        tag: 'Import',
+                        index: importIndex
+                    }],
+                    siblings: []
                 }
-            }
-            if (value !== null && typeof value === 'object') {
-                return {
-                    ...previous,
-                    topLevel: {
-                        ...previous.topLevel,
-                        [key]: {
-                            ...previous.topLevel[key] ?? {},
-                            ...value
+            default:
+                const translatedItem = this._translate({ ...context, contents: [] }, node)
+                returnKey = translatedItem.key
+                appearanceIndex = this._mergeAppearance(returnKey, translatedItem)
+                returnValue = {
+                    children: [{
+                        key: returnKey,
+                        tag: node.tag,
+                        index: appearanceIndex
+                    }],
+                    siblings: []
+                }
+        }
+        if (isSchemaWithContents(node) && !isSchemaExit(node)) {
+            let children: NormalReference[] = returnValue.children
+            const contentReferences = (node.contents as SchemaTag[]).reduce((previous, contentNode, index) => {
+                const updateContext: NormalizerContext = {
+                    contextStack: [
+                        ...context.contextStack,
+                        {
+                            tag: node.tag,
+                            key: returnKey,
+                            index: appearanceIndex
                         }
-                    }
-                }
-            }
-            return {
-                ...previous,
-                topLevel: {
-                    ...previous.topLevel,
-                    [key]: value
-                }
-            }
-        }
-        else {
-            return {
-                ...previous,
-                appearance: {
-                    ...previous.appearance,
-                    [key]: value
-                }
-            }
-        }
-    }, { topLevel: {} as Record<string, any>, appearance: {} as Record<string, any> })
-}
-
-export const transformNode = (contextStack, node) => {
-    if (node.tag === 'Exit') {
-        const roomIndex = contextStack.reduceRight((previous, { tag }, index) => (((tag === 'Room') && (previous === -1)) ? index : previous), -1)
-        if (roomIndex === -1) {
-            return {
-                contextStack: [
-                    ...contextStack,
-                    {
-                        key: node.from,
-                        tag: 'Room'
-                    }
-                ],
-                node: {
-                    key: `${node.from}#${node.to}`,
-                    ...node
-                }
-            }
-        }
-        const roomKey = contextStack[roomIndex].key
-        const { to, from, ...rest } = node
-        const returnValue = {
-            ...rest,
-            key: `${from || roomKey}#${to || roomKey}`,
-            to: to || roomKey,
-            from: from || roomKey
-        }
-        if (from && from !== roomKey) {
-            const contextStackBeforeRoom = contextStack.slice(0, roomIndex)
-            const contextStackAfterRoom = contextStack.slice(roomIndex + 1)
-            //
-            // NOTE: Context stacks within the sibling room element created do not have
-            // an index item.  addElement will need to infer the correct index (either
-            // the current for a matching element, or a created next wrapper)
-            //
-            return {
-                contextStack: [
-                    ...contextStackBeforeRoom,
-                    {
-                        key: from,
-                        tag: 'Room'
-                    },
-                    ...contextStackAfterRoom
-                ],
-                node: returnValue
-            }
-        }
-        else {   
-            return {
-                contextStack,
-                node: returnValue
-            }
-        }
-    }
-    if (node.tag === 'Condition') {
-        const key = keyForValue('Condition', node.if)
-        return {
-            node: {
-                key,
-                ...node    
-            },
-            contextStack
-        }
-    }
-    if (isNormalImport(node)) {
-        const key = keyForValue('Import', node.from)
-        return {
-            node: {
-                ...node,
-                key,
-                contents: Object.entries(node.mapping)
-                    .map(([key, { type }]) => ({ key, tag: type }))
-            },
-            contextStack
-        }
-    }
-    return { node, contextStack }
-}
-
-//
-// postProcessAppearance parses through elements after all of the normal structure has been
-// created, and updates appearanes where necessary (e.g. to include locations in the rooms
-// denormalization of Map nodes)
-//
-export const postProcessAppearance = (normalForm: NormalForm, key, index) => {
-    const node = normalForm[key]
-    if (!node) {
-        return normalForm
-    }
-    if (isNormalMap(node)) {
-        if (index >= node.appearances.length) {
-            return normalForm
-        }
-        const appearance = node.appearances[index]
-        const { rooms = {}, contents = [] } = appearance
-        const revisedRooms = objectEntryMap(rooms, (roomKey, roomPosition) => {
-            const roomContentItem = contents.find(({ key }) => (key === roomKey))
-            const roomLookup = normalForm[roomKey]
-            if (roomContentItem && isNormalComponent(roomLookup)) {
-                const roomAppearance = roomLookup.appearances?.[roomContentItem.index]
-                if (roomAppearance) {
-                    const { location } = roomAppearance
-                    if (location !== undefined) {
-                        return {
-                            ...roomPosition,
-                            location
-                        }
-                    }
-                }
-            }
-            return roomPosition
-        })
-        return produce(normalForm, (draftNormalForm) => {
-            const normalLookup = draftNormalForm[key]
-            if (normalLookup && isNormalMap(normalLookup)) {
-                const appearancesLookup = normalLookup.appearances
-                if (appearancesLookup) {
-                    appearancesLookup[index].rooms = revisedRooms
-                }
-            }
-        })
-    }
-    return normalForm
-}
-
-//
-// mergeElements tracks how to add an element into the normalized structure, given the contextStack in
-// which it is encountered.
-//
-const mergeElements = ({ previous, contextStack, node, location }) => {
-    const deepEqual = (listA, listB) => {
-        return JSON.stringify(listA) === JSON.stringify(listB)
-    }
-
-    const [currentAppearance] = previous.appearances.slice(-1)
-    const { topLevel, appearance: incomingAppearance } = pullProperties(node)
-    //
-    // Integrate the topLevel data, making sure there are no conflicts
-    //
-    if (topLevel.key !== previous.key) {
-        throw new NormalizeKeyMismatchError('Keys somehow mismatched in normalize')
-    }
-    if (topLevel.tag !== previous.tag) {
-        throw new NormalizeTagMismatchError(`Key '${topLevel.key}' is used to define elements of different tags ('${previous.tag}' and '${topLevel.tag}')`)
-    }
-
-    //
-    // If it is a sibling to a similarly keyed item, in the same context,
-    // with no similarly-keyed items in other contexts (e.g. a conditional
-    // redefining some properties after the first sibling) then its data
-    // can be folded in ... sequential siblings get merged.
-    //
-    if (deepEqual(currentAppearance.contextStack, contextStack)) {
-        const priorAppearances = previous.appearances.slice(0, -1)
-        const renderJoin = [
-            ...(currentAppearance.render || []),
-            ...(incomingAppearance.render || [])
-        ]
-        return {
-            ...previous,
-            ...topLevel,
-            appearances: [
-                ...priorAppearances,
-                {
-                    ...currentAppearance,
-                    ...incomingAppearance,
-                    contents: [
-                        ...(currentAppearance.contents || []),
-                        ...(incomingAppearance.contents || [])
                     ],
-                    render: renderJoin.length ? renderJoin : undefined,
-                    location
+                    location: [
+                        ...context.location,
+                        index
+                    ]
                 }
-            ]
-        }
-    }
-    //
-    // Otherwise, create a new appearance for the item
-    //
-    else {
-        return {
-            ...previous,
-            ...topLevel,
-            appearances: [
-                ...previous.appearances,
-                {
-                    contextStack,
-                    location,
-                    ...incomingAppearance
-                }
-            ]
-        }
-    }
-}
-
-export const addElement = (existingMap: Record<string, any> = {}, { contextStack = [], node, location }: { contextStack: { key: string; tag: string; index?: number }[]; node: any; location?: number[] }) => {
-    const { key } = node
-    const { contextFilledMap, filledContext } = contextStack.reduce<{ contextFilledMap: Record<string, any>, filledContext: any }>((previous, { key, tag, index }) => {
-        if (index !== undefined) {
-            return {
-                ...previous,
-                filledContext: [...previous.filledContext, { key, tag, index }]
-            }
-        }
-        else {
-            const newMap = addElement(
-                previous.contextFilledMap,
-                {
-                    contextStack: previous.filledContext,
-                    node: {
-                        key,
-                        tag
-                    }
-                }
-            )
-            return {
-                contextFilledMap: newMap,
-                filledContext: [
-                    ...previous.filledContext,
-                    {
-                        key,
-                        tag,
-                        index: newMap[key].appearances.length - 1
-                    }
+                const { children: newChildren = [], siblings: newSiblings = [] } = this.add(contentNode, updateContext)
+                children = [...children, ...newSiblings]
+                return [
+                    ...previous,
+                    ...newChildren
                 ]
-            }
-        }
-    }, { contextFilledMap: existingMap, filledContext: [] })
-    return produce(contextFilledMap, (draftMap) => {
-        let merged = false
-        if (draftMap[key]) {
-            //
-            // If the item has already appeared, check whether to merge
-            // with a same-level sibling, or add a new appearance
-            //
-            const priorAppearances = draftMap[key].appearances.length
-            draftMap[key] = mergeElements({ previous: draftMap[key], contextStack: filledContext, node, location })
-            if (draftMap[key].appearances.length === priorAppearances) {
-                merged = true
+            }, [] as NormalReference[])
+            this._updateAppearanceContents(returnKey, appearanceIndex, contentReferences)
+            return {
+                children,
+                siblings: returnValue.siblings
             }
         }
         else {
-            //
-            // If this is the first appearance of the item, add it to the
-            // map fresh.
-            //
-            const { topLevel, appearance } = pullProperties(node)
-            draftMap[key] = {
-                ...topLevel,
-                appearances: [{
-                    contextStack: filledContext,
-                    location,
-                    ...appearance
-                }]
-            }
+            return returnValue
+        }
+    }
+
+    _validateTags(node: SchemaTag): void {
+        if (!isSchemaTagWithNormalEquivalent(node)) {
+            return
+        }
+        if (node.tag === 'Character') {
+            return 
+        }
+        let tagToCompare = node.tag
+        let keyToCompare = node.key
+        switch(node.tag) {
+            case 'Story':
+                tagToCompare = 'Asset'
+                break
+            case 'Import':
+                keyToCompare = keyForValue('Import', node.from)
+                break
+            case 'Condition':
+                keyToCompare = keyForValue('Condition', node.if)
+                break
+        }
+        if (this._tags[keyToCompare] && this._tags[keyToCompare] !== tagToCompare) {
+            throw new NormalizeTagMismatchError(`Key '${keyToCompare}' is used to define elements of different tags ('${this._tags[keyToCompare]}' and '${tagToCompare}')`)
+        }
+        if (!(keyToCompare in this._tags)) {
+            this._tags[keyToCompare] = tagToCompare as NormalItem["tag"]
+        }
+        if (isSchemaWithContents(node)) {
+            node.contents.forEach(this._validateTags.bind(this))
         }
         //
-        // If a new element is added in a context, the parent item needs to have its
-        // contents updated to reflect that.
+        // TODO: Rationalize Import to include normal tags, rather than <Use> tags
         //
-        if (filledContext.length > 0 && !merged) {
-            const { key, index } = filledContext.slice(-1)[0]
-            const { index: nodeIndex } = getCurrentAppearance(draftMap, node.key)
-            draftMap[key].appearances[index].contents = [
-                ...(draftMap[key].appearances[index].contents || []),
-                {
+        if (node.tag === 'Import') {
+            Object.entries(node.mapping).forEach(([key, { type }]) => {
+                if (this._tags[key] && this._tags[key] !== type) {
+                    throw new NormalizeTagMismatchError(`Key '${key}' is used to define elements of different tags ('${this._tags[key]}' and '${type}')`)
+                }
+                if (!(key in this._tags)) {
+                    this._tags[key] = type
+                }
+            })
+        }
+    }
+
+    //
+    // _translate:  A cross-talk function between Schema types and Normal types, for the cases where they map
+    //              one-to-one as they are added.  Does some preliminary translation of appearances based
+    //              on what is now known about the mapping of keys to tags
+    //
+    _translate(appearance: BaseAppearance, node: SchemaAssetTag): NormalAsset
+    _translate(appearance: BaseAppearance, node: SchemaStoryTag): NormalAsset
+    _translate(appearance: BaseAppearance, node: SchemaImageTag): NormalImage
+    _translate(appearance: BaseAppearance, node: SchemaVariableTag): NormalVariable
+    _translate(appearance: BaseAppearance, node: SchemaComputedTag): NormalComputed
+    _translate(appearance: BaseAppearance, node: SchemaActionTag): NormalAction
+    _translate(appearance: BaseAppearance, node: SchemaConditionTag): NormalCondition
+    _translate(appearance: BaseAppearance, node: SchemaImportTag): NormalImport
+    _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
+    _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
+    _translate(appearance: BaseAppearance, node: SchemaMapTag): NormalMap
+    _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem
+    _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem {
+        switch(node.tag) {
+            case 'Asset':
+                return {
+                    key: node.key,
+                    tag: 'Asset',
+                    instance: false,
+                    Story: false,
+                    fileName: node.fileName,
+                    zone: node.zone,
+                    appearances: [appearance]
+                }
+            case 'Story':
+                return {
+                    key: node.key,
+                    tag: 'Asset',
+                    instance: node.instance,
+                    Story: true,
+                    fileName: node.fileName,
+                    zone: node.zone,
+                    appearances: [appearance]
+                }
+            case 'Image':
+                return {
+                    key: node.key,
+                    tag: 'Image',
+                    fileURL: node.fileURL,
+                    appearances: [appearance]
+                }
+            case 'Variable':
+                return {
+                    key: node.key,
+                    tag: 'Variable',
+                    default: node.default,
+                    appearances: [appearance]
+                }
+            case 'Computed':
+                return {
+                    key: node.key,
+                    tag: 'Computed',
+                    src: node.src,
+                    dependencies: node.dependencies,
+                    appearances: [appearance]
+                }
+            case 'Action':
+                return {
+                    key: node.key,
+                    tag: 'Action',
+                    src: node.src,
+                    appearances: [appearance]
+                }
+            case 'Condition':
+                return {
+                    key: keyForValue('Condition', node.if),
+                    tag: 'Condition',
+                    if: node.if,
+                    dependencies: node.dependencies,
+                    appearances: [appearance]
+                }
+            case 'Import':
+                return {
+                    key: keyForValue('Import', node.from),
+                    tag: 'Import',
+                    from: node.from,
+                    mapping: node.mapping,
+                    appearances: [appearance]
+                }
+            case 'Room':
+            case 'Feature':
+                return {
                     key: node.key,
                     tag: node.tag,
-                    index: nodeIndex
+                    global: node.global ?? false,
+                    appearances: [{
+                        ...appearance,
+                        render: node.render.map<ComponentRenderItem>((renderItem) => {
+                            if (renderItem.tag === 'Link') {
+                                if (!(renderItem.to in this._tags)) {
+                                    throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) with no matching key`)
+                                }
+                                const targetTag = this._tags[renderItem.to]
+                                if (!['Action', 'Feature'].includes(targetTag)) {
+                                    throw new NormalizeTagMismatchError(`Link specifies "to" property (${renderItem.to}) referring to an invalid tag (${targetTag})`)
+                                }
+                                return {
+                                    tag: 'Link',
+                                    to: renderItem.to,
+                                    text: renderItem.text,
+                                    spaceBefore: renderItem.spaceBefore,
+                                    spaceAfter: renderItem.spaceAfter,
+                                    targetTag: targetTag as 'Action' | 'Feature'
+                                }
+                            }
+                            else if (renderItem.tag === 'br') {
+                                return {
+                                    tag: 'LineBreak' as 'LineBreak'
+                                }
+                            }
+                            else if (renderItem.tag === 'String') {
+                                return {
+                                    tag: 'String' as 'String',
+                                    value: renderItem.value
+                                }
+                            }
+                        }).filter((value) => (value)),
+                        name: node.name,
+                        spaceAfter: false,
+                        spaceBefore: false
+                    }]
                 }
-            ]
+            case 'Map':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    appearances: [{
+                        ...appearance,
+                        rooms: objectMap(node.rooms, (({ index, ...room }) => ({
+                            ...room,
+                            location: [...appearance.location, index]
+                        }))),
+                        images: node.images
+                    }]
+                }
+            case 'Exit':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    to: node.to,
+                    from: node.from,
+                    appearances: [appearance]
+                }
+            default:
+                throw new NormalizeTagMismatchError(`Tag "${node.tag}" mistakenly processed in normalizer`)
         }
-    })
-}
-
-export const normalize = (node: any, existingMap: any = {}, contextStack: any = [], location: number[] = [0]): NormalForm => {
-    const { contextStack: transformedContext, node: transformedNode } = transformNode(contextStack, node)
-    const { topLevel: { key, tag, ...topLevelRest }, appearance: { contents } } = pullProperties(transformedNode)
-    if (!key || !tag) {
-        return existingMap
     }
-    const firstPassMap = addElement(
-        existingMap,
-        {
-            contextStack: transformedContext,
-            location,
-            node: {
-                ...transformedNode,
-                contents: []
-            }
-        })
-    const updatedContextStack = [
-        ...transformedContext,
-        {
-            key,
-            tag,
-            ...topLevelRest,
-            index: (firstPassMap[key]?.appearances || []).length - 1
-        }
-    ]
-    const secondPassMap = (contents || []).reduce((previous, node, index) => (normalize(node, previous, updatedContextStack, [...location, index])), firstPassMap)
-    const thirdPassMap = Object.entries(secondPassMap)
-        .reduce((previous, [key, normalItem]) => (
-            (normalItem as any).appearances
-                .reduce((accumulator, _, index) => (postProcessAppearance(accumulator, key, index)), previous)
-        ), secondPassMap)
-    return thirdPassMap
+
+    get normal() {
+        return this._normalForm
+    }
 }
 
-export default normalize
+export default Normalizer

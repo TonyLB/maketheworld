@@ -1,9 +1,6 @@
 import {
-    dbEntries,
-    validatedSchema
+    dbEntries
 } from '.'
-import { NormalizeTagMismatchError } from './normalize'
-import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
 
 const testSchema = {
     tag: 'Asset',
@@ -99,10 +96,7 @@ const assetProps = {
 
 describe('WML dbEntries', () => {
     it('should return empty record when passed empty asset', () => {
-        expect(dbEntries({
-            tag: 'Asset',
-            contents: []
-        })).toEqual({})
+        expect(dbEntries([])).toEqual({})
     })
 
     it('should serialize Rooms, Exits, Variables, Computes, and Actions', () => {
@@ -307,51 +301,4 @@ describe('WML dbEntries', () => {
             }
         })
     })
-})
-
-describe('WML validateSchema', () => {
-    it('should pass a valid schema', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Room key=(ABC)>
-                    <Name>Vortex</Name>
-                    <Description>Vortex</Description>
-                    <Exit from=(DEF)>vortex</Exit>
-                </Room>
-                <Room key=(DEF)>
-                    <Name>Welcome</Name>
-                </Room>
-            </Asset>
-        `)
-        const schema = validatedSchema(match)
-        expect(schema.errors.length).toBe(0)
-    })
-
-    it('should reject mismatched tags', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Room key=(ABC)>
-                    <Description>Vortex</Description>
-                </Room>
-                <Variable key=(ABC) default={"Vortex"} />
-            </Asset>
-        `)
-        expect(() => (validatedSchema(match))).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
-    })
-
-    it('should reject mismatched keys', () => {
-        const match = wmlGrammar.match(`
-            <Asset key=(Test) fileName="test">
-                <Room key=(ABC)>
-                    <Description>Vortex</Description>
-                    <Exit to=(DEF)>welcome</Exit>
-                </Room>
-            </Asset>
-        `)
-        const schema = validatedSchema(match)
-        const { errors } = schema
-        expect(errors.length).toBe(1)
-        expect(errors).toEqual([`To: 'DEF' is not a key in this asset.`])
-    })
-
 })

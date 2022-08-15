@@ -1,17 +1,12 @@
-import normalize, {
-    NormalizeTagMismatchError,
-    transformNode,
-    postProcessAppearance,
-    addElement
-} from '.'
-import { NormalCharacter, NormalForm } from './baseClasses'
-import { clearGeneratedKeys } from './keyUtil'
-import Normalizer from './newNormalize'
 import {
-    schemaFromParse,
-    validatedSchema
+    NormalizeTagMismatchError
+} from '.'
+import { NormalCharacter } from './baseClasses'
+import { clearGeneratedKeys } from './keyUtil'
+import Normalizer from '.'
+import {
+    schemaFromParse
 } from '..'
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'
@@ -21,295 +16,9 @@ describe('WML normalize', () => {
     beforeEach(() => {
         clearGeneratedKeys()
     })
-    describe('transformNode', () => {
-        it('should pass room key unchanged', () => {
-            expect(transformNode(
-                [{ key: 'Test', tag: 'Asset', index: 0 }],
-                {
-                    key: 'ABC',
-                    tag: 'Room',
-                    name: 'Vortex',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-        })
-
-        it('should synthesize a key for condition tag', () => {
-            expect(transformNode(
-                [{ key: 'Test', tag: 'Asset', index: 0 }],
-                {
-                    tag: 'Condition',
-                    if: 'true',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-        })
-
-        it('should pass a global exit in a room wrapper, with synthetic key', () => {
-            expect(transformNode(
-                [{ key: 'Test', tag: 'Asset', index: 0 }],
-                {
-                    tag: 'Exit',
-                    to: 'ABC',
-                    from: 'DEF',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-        })
-
-        it('should pass a local from exit at same level, with synthetic key', () => {
-            expect(transformNode(
-                [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'ABC', tag: 'Room', index: 0 }],
-                {
-                    tag: 'Exit',
-                    to: 'DEF',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-            expect(transformNode(
-                [
-                    { key: 'Test', tag: 'Asset', index: 0 },
-                    { key: 'ABC', tag: 'Room', index: 0 },
-                    { key: 'Condition-0', tag: 'Condition', index: 0 }
-                ],
-                {
-                    tag: 'Exit',
-                    to: 'DEF',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-        })
-
-        it('should pass a local to exit in a sibling room wrapper, with synthetic key', () => {
-            expect(transformNode(
-                [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'ABC', tag: 'Room', index: 0 }],
-                {
-                    tag: 'Exit',
-                    from: 'DEF',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-            expect(transformNode(
-                [
-                    { key: 'Test', tag: 'Asset', index: 0 },
-                    { key: 'ABC', tag: 'Room', index: 0 },
-                    { key: 'Condition-0', tag: 'Condition', index: 0 }
-                ],
-                {
-                    tag: 'Exit',
-                    from: 'DEF',
-                    contents: []
-                }
-            )).toMatchSnapshot()
-        })
-
-    })
-
-    describe('postProcessAppearance', () => {
-        it('should aggregate locations into Map rooms', () => {
-            const testNormalForm: NormalForm = {
-                TestAsset: {
-                    key: 'TestAsset',
-                    tag: 'Asset',
-                    appearances: [{
-                        contextStack: [],
-                        contents: [{
-                            key: 'TestMap',
-                            tag: 'Map',
-                            index: 0
-                        }],
-                        location: [0]
-                    }]
-                },
-                TestMap: {
-                    key: 'TestMap',
-                    tag: 'Map',
-                    appearances: [{
-                        contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }],
-                        contents: [{
-                            key: 'welcomeRoom',
-                            tag: 'Room',
-                            index: 0
-                        },
-                        {
-                            key: 'VORTEX',
-                            tag: 'Room',
-                            index: 0
-                        }],
-                        images: [],
-                        rooms: {
-                            welcomeRoom: {
-                                x: 0,
-                                y: 100,
-                                location: [0, 0, 0]
-                            },
-                            VORTEX: {
-                                x: 0,
-                                y: 0,
-                                location: [0, 0, 1]
-                            }
-                        },
-                        location: [0, 0]
-                    }]
-                },
-                welcomeRoom: {
-                    key: 'welcomeRoom',
-                    tag: 'Room',
-                    appearances: [{
-                        contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
-                        contents: [],
-                        location: [0, 0, 0]
-                    }]
-                },
-                VORTEX: {
-                    key: 'VORTEX',
-                    tag: 'Room',
-                    appearances: [{
-                        contextStack: [{ key: 'TestAsset', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
-                        contents: [],
-                        location: [0, 0, 1]
-                    }]
-                }
-            }
-            expect(postProcessAppearance(testNormalForm, 'TestMap', 0)).toMatchSnapshot()
-        })
-    })
-
-    describe('addElement', () => {
-        const testMap = {
-            Test: {
-                key: 'Test',
-                tag: 'Asset',
-                appearances: [{
-                    contextStack: [],
-                    contents: [{
-                        tag: 'Room',
-                        key: 'ABC',
-                        index: 0
-                    },
-                    {
-                        tag: 'Condition',
-                        key: 'Condition-0',
-                        index: 0
-                    }],
-                }]
-            },
-            ABC: {
-                key: 'ABC',
-                tag: 'Room',
-                appearances: [{
-                    contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                    name: 'Vortex',
-                    contents: [{
-                        tag: 'Exit',
-                        key: 'ABC#DEF',
-                        index: 0
-                    }]
-                }]
-            },
-            'ABC#DEF': {
-                key: 'ABC#DEF',
-                tag: 'Exit',
-                appearances: [{
-                    contextStack: [{
-                        key: 'Test',
-                        tag: 'Asset',
-                        index: 0
-                    },
-                    {
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    }]
-                }]
-            },
-            'Condition-0': {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'true',
-                appearances: [{
-                    contextStack: [{
-                        key: 'Test',
-                        tag: 'Asset',
-                        index: 0
-                    }],
-                    contents: []
-                }]
-            }
-        }
-
-        it('should add an element with matching contextStack', () => {
-            expect(addElement(testMap, {
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }],
-                node: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    render: [{
-                        tag: 'String',
-                        value: 'Vortex!',
-                        spaceBefore: false,
-                        spaceAfter: false
-                    }],
-                    contents: []
-                }
-            })).toMatchSnapshot()
-        })
-
-        it('should add an element with differing contextStack', () => {
-            expect(addElement(testMap, {
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                node: {
-                    key: 'ABC',
-                    tag: 'Room',
-                    render: [{
-                        tag: 'String',
-                        value: 'Vortex!',
-                        spaceBefore: false,
-                        spaceAfter: false
-                    }],
-                    contents: []
-                }
-            })).toMatchSnapshot()
-        })
-
-        it('should add an element with unspecified indices in the context-stack', () => {
-            expect(addElement(testMap, {
-                contextStack: [{ key: 'Test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition' }, { key: 'DEF', tag: 'Room' }],
-                node: {
-                    key: 'DEF#ABC',
-                    tag: 'Exit',
-                    to: 'ABC',
-                    from: 'DEF',
-                    contents: []
-                }
-            })).toMatchSnapshot()
-        })
-    })
 
     it('should return empty map on empty schema', () => {
-        expect(normalize({})).toEqual({})
         expect((new Normalizer()).normal).toEqual({})
-    })
-
-    it('should normalize a character asset', () => {
-        const testCharacter: NormalCharacter = {
-            tag: 'Character',
-            key: 'TESS',
-            Name: 'Tess',
-            fileURL: 'testIcon.png',
-            Pronouns: {
-                subject: 'she',
-                object: 'her',
-                possessive: 'her',
-                adjective: 'hers',
-                reflexive: 'herself'
-            },
-            FirstImpression: 'Frumpy Goth',
-            OneCoolThing: 'Fuchsia eyes',
-            Outfit: 'A battered hoodie trimmed with lace',
-            fileName: 'test.wml',
-        }
-        expect(normalize(testCharacter)).toMatchSnapshot()
     })
 
     it('should normalize every needed tag', () => {
@@ -335,8 +44,6 @@ describe('WML normalize', () => {
             </Computed>
             <Action key=(toggleActive) src={active = !active} />
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -349,8 +56,6 @@ describe('WML normalize', () => {
                 <Exit from=(b456) />
             </Room>
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -368,8 +73,6 @@ describe('WML normalize', () => {
                 <Name>Welcome</Name>
             </Room>
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -394,8 +97,6 @@ describe('WML normalize', () => {
                 </Room>
             </Condition>
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -421,8 +122,6 @@ describe('WML normalize', () => {
             </Condition>
             <Variable key=(strong) default={false} />
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -460,8 +159,6 @@ describe('WML normalize', () => {
             <Variable key=(strong) default={false} />
             <Variable key=(trendy) default={false} />
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -482,8 +179,6 @@ describe('WML normalize', () => {
                 </Description>
             </Room>
         </Asset>`
-        const holding = normalize(validatedSchema(wmlGrammar.match(testSource)))
-        expect(holding).toMatchSnapshot()
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
@@ -500,7 +195,6 @@ describe('WML normalize', () => {
             </Room>
             <Variable key=(ABC) default={true} />
         </Asset>`
-        expect(() => (normalize(validatedSchema(wmlGrammar.match(testSource))))).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
         expect(() => { normalizer.add(testAsset[0], { contextStack: [], location: [0] }) }).toThrowError(new NormalizeTagMismatchError(`Key 'ABC' is used to define elements of different tags ('Room' and 'Variable')`))

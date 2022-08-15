@@ -1,12 +1,10 @@
-import { produce } from 'immer'
-
 import { compileCode } from './compileCode.js'
 import { schema } from './semantics/schema/index.js'
 import { prettyPrint, prettyPrintShouldNest } from './semantics/schema/prettyPrint.js'
 import { wmlProcessDown, assignExitContext } from './semantics/schema/processDown/index.js'
 import { wmlProcessUp, aggregateErrors, validate } from './semantics/schema/processUp/index.js'
 import wmlGrammar from './wmlGrammar/wml.ohm-bundle.js'
-import { NormalCondition, normalize, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
+import { NormalCondition, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize'
 import { isParseExit, isParseRoom, isParseTagNesting, ParseActionTag, ParseAssetTag, ParseCharacterLegalContents, ParseCharacterTag, ParseComputedTag, ParseConditionTag, ParseDescriptionTag, ParseExitTag, ParseFeatureTag, ParseFirstImpressionTag, ParseImageTag, ParseImportTag, ParseLinkTag, ParseMapTag, ParseNameTag, ParseOneCoolThingTag, ParseOutfitTag, ParsePronounsTag, ParseRoomTag, ParseStoryTag, ParseStringTag, ParseTag, ParseUseTag, ParseVariableTag } from './parser/baseClasses'
 import { isSchemaString, SchemaActionTag, SchemaAssetLegalContents, SchemaAssetTag, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaComputedTag, SchemaConditionTag, SchemaDescriptionLegalContents, SchemaDescriptionTag, SchemaException, SchemaExitTag, SchemaFeatureLegalContents, SchemaFeatureTag, SchemaFirstImpressionTag, SchemaImageTag, SchemaImportTag, SchemaLinkTag, SchemaLiteralLegalContents, SchemaMapLegalContents, SchemaMapTag, SchemaNameTag, SchemaOneCoolThingTag, SchemaOutfitTag, SchemaPronounsTag, SchemaRoomLegalContents, SchemaRoomTag, SchemaStoryTag, SchemaStringTag, SchemaTag, SchemaUseTag, SchemaVariableTag } from './schema/baseClasses'
 import { transformWithContext, TransformWithContextCallback } from './utils'
@@ -28,6 +26,7 @@ import schemaFromVariable from './schema/variable'
 import schemaFromCharacter, { schemaFromPronouns, schemaFromFirstImpression, schemaFromOneCoolThing, schemaFromOutfit } from './schema/character'
 import schemaFromMap from './schema/map'
 import { schemaFromWhitespace, schemaFromLineBreak } from './schema/whiteSpace'
+import Normalizer from './normalize'
 
 export { wmlGrammar }
 
@@ -64,8 +63,6 @@ export const wmlSemantics = wmlGrammar.createSemantics()
         }
     })
 
-const tagCondition = (tagList) => ({ tag }) => (tagList.includes(tag))
-
 const flattenToElements = (includeFunction) => (node) => {
     const flattenedNode = includeFunction(node) ? [node] : []
     return node.contents.reduce(
@@ -74,29 +71,12 @@ const flattenToElements = (includeFunction) => (node) => {
     )
 }
 
-export const validatedSchema = (match) => {
-    const firstPass = wmlSemantics(match).schema()
-    const secondPass = wmlProcessDown([
-        assignExitContext
-    ])(firstPass)
-    const normalized = normalize(secondPass)
-    const thirdPass = wmlProcessUp([
-        //
-        // TODO: Refactor exit validation to assign roomId context as in processDown, then do the calculation (and better error message) knowing all three of
-        // to, from and roomId.
-        //
-        validate(({ tag, to, from }) => ((tag === 'Exit' && !(to && from)) ? ['Exits must have both to and from properties (or be able to derive them from context)'] : [])),
-        validate(({ to, from, tag }) => ([
-            ...((normalized[to] || !to) ? [] : [`To: '${to}' is not a key in this asset.`]),
-            ...(((tag !== 'Exit') || (normalized[from] || !from)) ? [] : [`From: '${from}' is not a key in this asset.`])
-        ])),
-        aggregateErrors
-    ])(secondPass)
-    return thirdPass
-}
-
-export const dbEntries = (schema) => {
-    const normalForm = normalize(schema)
+export const dbEntries = (schema: SchemaTag[]) => {
+    const normalizer = new Normalizer()
+    schema.forEach((schemaItem) => {
+        normalizer.add(schemaItem)
+    })
+    const normalForm = normalizer.normal
     const mapContextStackToConditions = <T extends { contextStack: { key: string, tag: string }[] }>({ contextStack, ...rest }: T): { conditions: { if: string; dependencies: any[] }[] } & Omit<T, 'contextStack'> => ({
         conditions: contextStack.reduce((previous, { key, tag }) => {
             if (tag !== 'Condition') {
