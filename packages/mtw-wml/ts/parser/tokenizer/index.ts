@@ -136,7 +136,6 @@ export const tokenizer = (sourceStream: SourceStream): Token[] => {
                 }
             })
             if (!checkSubTokens) {
-                console.log(`returnValue: ${JSON.stringify(returnValue, null, 4)}`)
                 throw new TokenizeException('Unexpected token', sourceStream.position, sourceStream.position)
             }
         }

@@ -14,8 +14,6 @@ import { setDraftWML } from '../../../slices/personalAssets'
 
 import LibraryBanner from './LibraryBanner'
 import { useLibraryAsset } from './LibraryAsset'
-import { TokenizeException } from '@tonylb/mtw-wml/dist/parser/tokenizer/baseClasses'
-import { ParseException } from '@tonylb/mtw-wml/dist/parser/baseClasses'
 
 interface WMLEditProps {}
 
@@ -129,24 +127,12 @@ const decorateWithError = ({ editor, errorRange }: { editor: Editor; errorRange:
 }
 
 const generateErrorPosition = (wmlQuery: WMLQuery, value: Descendant[]): Point | undefined => {
-    let startIdx: number | undefined = undefined
-    try {
-        wmlQuery.setInput(sourceStringFromSlate(value))
-    }
-    catch (err) {
-        if (err instanceof TokenizeException) {
-            startIdx = err.startIdx
-        }
-        if (err instanceof ParseException) {
-            startIdx = wmlQuery._tokens[err.startToken].startIdx
-        }
-        throw err
-    }
-    if (startIdx === undefined) {
+    wmlQuery.setInput(sourceStringFromSlate(value))
+    if (wmlQuery._errorStart === undefined) {
         return undefined
     }
     else {
-        return indexToSlatePoint(wmlQuery, startIdx)
+        return indexToSlatePoint(wmlQuery, wmlQuery._errorStart)
     }
 }
 
@@ -162,8 +148,8 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
         // TODO: Refactor wmlQuery to include valid() function with local variables and
         // try/catch wrappers on the execution of parsing functions
         //
-        const match = change.wmlQuery.matcher.match()
-        if (match.succeeded()) {
+        
+        if (change.wmlQuery.valid) {
             if (change.wmlQuery.source !== currentWML) {
                 updateWML(change.wmlQuery.source, { prettyPrint: false })
                 globalQuery.setInput(change.wmlQuery.source)
@@ -191,26 +177,11 @@ export const WMLEdit: FunctionComponent<WMLEditProps> = () => {
     }, [debounceTimeout, setDebounceTimeout])
     const generateStatusMessage = useCallback(() => {
         if (wmlQuery) {
-            let startIdx: number | undefined = undefined
-            let message: string = ''
-            try {
-                wmlQuery.setInput(sourceStringFromSlate(value))
-            }
-            catch (err) {
-                if (err instanceof TokenizeException) {
-                    startIdx = err.startIdx
-                    message = err.message
-                }
-                if (err instanceof ParseException) {
-                    startIdx = wmlQuery._tokens[err.startToken].startIdx
-                    message = err.message
-                }
-                throw err
-            }
-            if (startIdx === undefined) {
+            wmlQuery.setInput(sourceStringFromSlate(value))
+            if (wmlQuery.valid) {
                 return 'Success!'
             }
-            return `Failure at (${startIdx}): ${message}`
+            return `Failure at (${wmlQuery._errorStart}): ${wmlQuery._error}`
         }
         return 'WMLQuery initiating'
     }, [wmlQuery])
