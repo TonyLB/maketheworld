@@ -13,7 +13,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
             getAssets(s3Client, fileName),
             scopeMap.getTranslateFile(s3Client, { name: translateName })
         ])
-        if (!assetWorkspace.isMatched()) {
+        if (!assetWorkspace.valid) {
             return
         }
         const asset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character'].includes(tag)))
