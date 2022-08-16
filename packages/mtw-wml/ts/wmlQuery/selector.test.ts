@@ -1,10 +1,10 @@
-import { schemaFromParse } from '../index'
-import parse from '../parser/index'
+import { schemaFromParse } from '../schema'
+import parse from '../parser/'
 import { TokenizeException } from '../parser/tokenizer/baseClasses'
-import tokenizer from '../parser/tokenizer/index'
+import tokenizer from '../parser/tokenizer/'
 import SourceStream from '../parser/tokenizer/sourceStream'
 import { isSchemaWithContents, SchemaTag } from '../schema/baseClasses'
-import { newWMLSelectorFactory } from './selector'
+import { wmlSelectorFactory } from './selector'
 import searchParse from './search/parse'
 import searchTokenizer from './search/tokenize'
 
@@ -40,7 +40,7 @@ describe('newWMLQuery selector', () => {
         </Character>
     `))))
     let characterQuery = (search: string) => (
-        ignoreParse(newWMLSelectorFactory(characterMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+        ignoreParse(wmlSelectorFactory(characterMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
     )
 
     const assetMatch = schemaFromParse(parse(tokenizer(new SourceStream(`
@@ -64,17 +64,17 @@ describe('newWMLQuery selector', () => {
         </Asset>
     `))))
     let assetQuery = (search: string) => (
-        ignoreParse(newWMLSelectorFactory(assetMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+        ignoreParse(wmlSelectorFactory(assetMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
     )
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         characterQuery = (search: string) => (
-            ignoreParse(newWMLSelectorFactory(characterMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+            ignoreParse(wmlSelectorFactory(characterMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
         )
         assetQuery = (search: string) => (
-            ignoreParse(newWMLSelectorFactory(assetMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
+            ignoreParse(wmlSelectorFactory(assetMatch)(searchParse(searchTokenizer(new SourceStream(search)))))
         )
     })
 

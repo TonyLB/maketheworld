@@ -1,12 +1,10 @@
 import {
-    NormalizeTagMismatchError
-} from '.'
-import { NormalCharacter } from './baseClasses'
+    NormalizeTagMismatchError,
+    NormalCharacter
+} from './baseClasses'
 import { clearGeneratedKeys } from './keyUtil'
-import Normalizer from '.'
-import {
-    schemaFromParse
-} from '..'
+import { Normalizer } from '.'
+import { schemaFromParse } from '../schema'
 import parse from '../parser'
 import tokenizer from '../parser/tokenizer'
 import SourceStream from '../parser/tokenizer/sourceStream'

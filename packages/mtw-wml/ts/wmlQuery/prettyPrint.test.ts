@@ -1,4 +1,4 @@
-import { schemaFromParse } from '..'
+import { schemaFromParse } from '../schema'
 import prettyPrint from './prettyPrint'
 import parser from '../parser'
 import tokenizer from '../parser/tokenizer'

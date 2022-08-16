@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
-import { schemaFromParse } from "@tonylb/mtw-wml/dist"
+import { schemaFromParse } from "@tonylb/mtw-wml/dist/schema"
 import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import parser from "@tonylb/mtw-wml/dist/parser"

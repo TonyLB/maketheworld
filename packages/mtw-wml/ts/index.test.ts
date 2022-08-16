@@ -1,6 +1,5 @@
-import {
-    dbEntries, schemaFromParse
-} from '.'
+import { dbEntries } from '.'
+import { schemaFromParse } from './schema'
 import parse from './parser'
 import tokenizer from './parser/tokenizer'
 import SourceStream from './parser/tokenizer/sourceStream'

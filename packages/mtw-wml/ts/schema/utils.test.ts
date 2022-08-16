@@ -1,8 +1,8 @@
 import { depthFirstParseTagGenerator, transformWithContext, TransformWithContextCallback } from './utils'
-import SourceStream from './parser/tokenizer/sourceStream'
-import parser from './parser'
-import tokenizer from './parser/tokenizer'
-import { isParseExit, isParseRoom, ParseRoomTag, ParseTag } from './parser/baseClasses'
+import SourceStream from '../parser/tokenizer/sourceStream'
+import parser from '../parser'
+import tokenizer from '../parser/tokenizer'
+import { isParseExit, isParseRoom, ParseRoomTag, ParseTag } from '../parser/baseClasses'
 
 describe('depthFirstParseTagGenerator', () => {
     beforeEach(() => {

@@ -1,37 +1,5 @@
 import { produce } from 'immer'
 import { objectMap } from '../lib/objects'
-export {
-    BaseAppearance,
-    ComponentAppearance,
-    ComponentRenderItem,
-    NormalAsset,
-    NormalCharacter,
-    NormalCharacterPronouns,
-    NormalComponent,
-    NormalCondition,
-    NormalDescription,
-    NormalDescriptionPayload,
-    NormalExit,
-    NormalFeature,
-    NormalForm,
-    NormalImport,
-    NormalItem,
-    NormalMap,
-    NormalRoom,
-    NormalizeKeyMismatchError,
-    NormalizeTagMismatchError,
-    isNormalAction,
-    isNormalAsset,
-    isNormalCharacter,
-    isNormalComponent,
-    isNormalComputed,
-    isNormalCondition,
-    isNormalExit,
-    isNormalImage,
-    isNormalImport,
-    isNormalMap,
-    isNormalVariable
-} from './baseClasses'
 import {
     isSchemaCharacter,
     isSchemaExit,
@@ -76,6 +44,39 @@ import {
 } from './baseClasses'
 import { keyForValue } from './keyUtil';
 
+export {
+    BaseAppearance,
+    ComponentAppearance,
+    ComponentRenderItem,
+    NormalAsset,
+    NormalCharacter,
+    NormalCharacterPronouns,
+    NormalComponent,
+    NormalCondition,
+    NormalDescription,
+    NormalDescriptionPayload,
+    NormalExit,
+    NormalFeature,
+    NormalForm,
+    NormalImport,
+    NormalItem,
+    NormalMap,
+    NormalRoom,
+    NormalizeKeyMismatchError,
+    NormalizeTagMismatchError,
+    isNormalAction,
+    isNormalAsset,
+    isNormalCharacter,
+    isNormalComponent,
+    isNormalComputed,
+    isNormalCondition,
+    isNormalExit,
+    isNormalImage,
+    isNormalImport,
+    isNormalMap,
+    isNormalVariable
+} from './baseClasses'
+
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
 const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
@@ -92,12 +93,9 @@ type NormalizeAddReturnValue = {
     siblings: NormalReference[];
 }
 
-export class Normalizer extends Object {
+export class Normalizer {
     _normalForm: NormalForm = {};
     _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature"> = {}
-    constructor() {
-        super()
-    }
 
     _mergeAppearance(key: string, item: NormalItem): number {
         if (key in this._normalForm) {
@@ -659,5 +657,3 @@ export class Normalizer extends Object {
         return this._normalForm
     }
 }
-
-export default Normalizer

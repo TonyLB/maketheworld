@@ -1,6 +1,6 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
-import { schemaFromParse } from '@tonylb/mtw-wml/dist/'
+import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/'
 import parse from '@tonylb/mtw-wml/dist/parser/'
 import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'

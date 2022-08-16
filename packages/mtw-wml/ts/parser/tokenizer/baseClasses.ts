@@ -1,4 +1,3 @@
-import { ParseStackTokenEntry } from "../baseClasses";
 import SourceStream from "./sourceStream";
 
 export type TokenBase = {
@@ -90,6 +89,12 @@ export type TokenValue = TokenKeyValue | TokenLiteralValue | TokenExpressionValu
 
 export type Tokenizer<T extends TokenBase> = {
     (sourceStream: SourceStream): T | undefined
+}
+
+export type ParseStackTokenEntry<T extends Token> = {
+    type: 'Token';
+    index: number;
+    token: T
 }
 
 export const isTokenProperty = (item: Token): item is TokenProperty => (item.type === 'Property')

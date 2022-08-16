@@ -1,17 +1,21 @@
-import { NormalForm, ComponentRenderItem } from '../normalize'
-import { schemaFromParse } from '../index'
+import { Normalizer } from '../normalize'
+import { NormalForm, ComponentRenderItem } from '../normalize/baseClasses'
+
 import parse from '../parser'
-import tokenizer from '../parser/tokenizer'
-import SourceStream from '../parser/tokenizer/sourceStream'
-import { SearchParse } from './search/baseClasses'
 import { ParseException, ParseTag } from '../parser/baseClasses'
-import { isTokenValue, isTokenWhitespace, Token, TokenizeException, TokenProperty, TokenTagOpenEnd, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
+import tokenizer from '../parser/tokenizer'
+import { isTokenValue, Token, TokenizeException, TokenProperty, TokenValue, TokenWhitespace } from '../parser/tokenizer/baseClasses'
+import SourceStream from '../parser/tokenizer/sourceStream'
+
+import { schemaFromParse } from '../schema'
 import { isSchemaDescription, isSchemaWithContents, SchemaLineBreakTag, SchemaLinkTag, SchemaTag, SchemaWithContents } from '../schema/baseClasses'
-import { newWMLSelectorFactory } from './selector'
+
+import { SearchParse } from './search/baseClasses'
 import searchParse from './search/parse'
 import searchTokenize from './search/tokenize'
+
+import { wmlSelectorFactory } from './selector'
 import prettyPrint from './prettyPrint'
-import Normalizer from '../normalize'
 
 export interface WMLQueryUpdateReplace {
     type: 'replace';
@@ -111,7 +115,7 @@ export class WMLQueryResult {
         if (this.wmlQuery._schema.length) {
             this._nodes = this.search.reduce((previous, { search, not }) => {
                 if (search) {
-                    return newWMLSelectorFactory(this.wmlQuery._schema, { currentNodes: previous })(search)
+                    return wmlSelectorFactory(this.wmlQuery._schema, { currentNodes: previous })(search)
                 }
                 if (not) {
                     const excludeResults = new WMLQueryResult(this.wmlQuery, { search: not })

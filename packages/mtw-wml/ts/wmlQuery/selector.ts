@@ -1,8 +1,5 @@
-import SourceStream from "../parser/tokenizer/sourceStream"
 import { isSchemaExit, isSchemaWithContents, isSchemaWithKey, SchemaTag } from "../schema/baseClasses"
 import { SearchParse, SearchTokenPropertyLegal } from "./search/baseClasses"
-import searchParse from "./search/parse"
-import searchTokenizer from './search/tokenize'
 
 const recursiveTagSearchReduce = (tag: SchemaTag["tag"]) => (previous: SchemaTag[], node: SchemaTag): SchemaTag[] => {
     if (node.tag === tag) {
@@ -100,6 +97,6 @@ const searchReducer = (previous: SchemaTag[], term: SearchParse): SchemaTag[] =>
     return previous
 }
 
-export const newWMLSelectorFactory = (schema: SchemaTag[], options: { currentNodes?: SchemaTag[] } = {}) => (search: SearchParse[]): SchemaTag[] => {
+export const wmlSelectorFactory = (schema: SchemaTag[], options: { currentNodes?: SchemaTag[] } = {}) => (search: SearchParse[]): SchemaTag[] => {
     return search.reduce(searchReducer, options.currentNodes || schema)
 }
