@@ -1,20 +1,21 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
-import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
-import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/'
-import parse from '@tonylb/mtw-wml/dist/parser/'
-import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'
+import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream.js'
+import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index.js'
+import parse from '@tonylb/mtw-wml/dist/parser/index.js'
+import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index.js'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
+
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 const { S3_BUCKET } = process.env;
 
 export class AssetWorkspace {
-    wmlQuery: WMLQuery
+    wmlQuery: WMLQuery;
     cachedContent?: string;
     cachedSchema?: any;
-    constructor(contents) {
+    constructor(contents: string) {
         this.wmlQuery = new WMLQuery(contents)
     }
     contents() {

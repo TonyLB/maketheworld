@@ -1,4 +1,4 @@
-import { Normalizer } from './normalize'
+import Normalizer from './normalize'
 import { NormalCondition, NormalExit, isNormalComponent, isNormalVariable, isNormalComputed, isNormalAction } from './normalize/baseClasses'
 import { SchemaTag } from './schema/baseClasses'
 

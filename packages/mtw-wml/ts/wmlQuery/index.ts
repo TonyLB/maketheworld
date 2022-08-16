@@ -1,4 +1,4 @@
-import { Normalizer } from '../normalize'
+import Normalizer from '../normalize/index'
 import { NormalForm, ComponentRenderItem } from '../normalize/baseClasses'
 
 import parse from '../parser'
@@ -597,3 +597,5 @@ export class WMLQuery {
     }
 
 }
+
+export default WMLQuery

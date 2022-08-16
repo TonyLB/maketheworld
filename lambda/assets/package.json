@@ -16,9 +16,9 @@
     "@aws-sdk/client-s3": "^3.42.0",
     "@aws-sdk/s3-request-presigner": "^3.44.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
-    "@tonylb/mtw-utilities": "file:./mtw-utilities",
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
+    "@tonylb/mtw-utilities": "file:./mtw-utilities",
     "@tonylb/mtw-wml": "file:./mtw-wml",
     "immer": "^9.0.12",
     "ohm-js": "^16.0.0",
@@ -36,6 +36,7 @@
     "@types/jest": "^28.1.4",
     "esbuild": "^0.14.46",
     "jest": "^28.1.2",
+    "madge": "^5.0.1",
     "ts-jest": "^28.0.5",
     "typescript": "^4.7.4"
   }

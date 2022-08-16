@@ -657,3 +657,5 @@ export class Normalizer {
         return this._normalForm
     }
 }
+
+export default Normalizer
