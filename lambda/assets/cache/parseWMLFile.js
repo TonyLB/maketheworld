@@ -1,4 +1,4 @@
-import { schemaFromParse } from '@tonylb/mtw-wml/dist/'
+import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/'
 import parse from '@tonylb/mtw-wml/dist/parser/'
 import SourceStream from '@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream'

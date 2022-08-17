@@ -1,4 +1,3 @@
-import { SchemaAssetLegalContents } from "./schema/baseClasses";
 import {
     ParseTag,
     isParseTagNesting,
@@ -35,7 +34,7 @@ import {
     ParseFeatureLegalContents,
     ParseMapLegalContents,
     ParseImportLegalContents
-} from "./parser/baseClasses"
+} from "../parser/baseClasses"
 
 export function *depthFirstParseTagGenerator(tree: ParseTag[]): Generator<ParseTag> {
     for (const node of tree) {

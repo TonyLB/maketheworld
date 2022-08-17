@@ -4,8 +4,8 @@ import * as path from "path"
 import parse from './parser'
 import tokenize from './parser/tokenizer'
 import SourceStream from "./parser/tokenizer/sourceStream"
-import { schemaFromParse } from '.'
-import Normalizer from './normalize/newNormalize'
+import { schemaFromParse } from './schema'
+import Normalizer from './normalize/'
 
 const file = path.join(__dirname, "./", "dungeon.wml")
 const fdr = fs.readFileSync(file, "utf8")

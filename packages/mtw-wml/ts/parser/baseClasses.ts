@@ -3,6 +3,7 @@ import {
     TokenExpressionValue,
     TokenKeyValue,
     TokenLiteralValue,
+    ParseStackTokenEntry
 } from './tokenizer/baseClasses'
 
 type ParseTagBase = {
@@ -247,12 +248,6 @@ export type ParseStackTagOpenEntry = {
 export type ParseStackTagEntry<T extends ParseTag> = {
     type: 'Tag';
     tag: T;
-}
-
-export type ParseStackTokenEntry<T extends Token> = {
-    type: 'Token';
-    index: number;
-    token: T
 }
 
 export class ParseException extends Error {

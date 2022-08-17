@@ -1,5 +1,4 @@
-import wmlGrammar from '../wmlGrammar/wml.ohm-bundle.js'
-import { schemaFromParse, wmlSemantics } from '..'
+import { schemaFromParse } from '../schema'
 import prettyPrint from './prettyPrint'
 import parser from '../parser'
 import tokenizer from '../parser/tokenizer'
@@ -21,10 +20,7 @@ describe('WMLQuery prettyPrint', () => {
 
     it('should indent nested elements', () => {
         const testSource = `<Asset key=(Test) fileName="test"><Room key=(ABC)><Name>Vortex</Name></Room><Room key=(VORTEX) global /></Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
     it('should remove previous whitespace', () => {
@@ -39,10 +35,7 @@ describe('WMLQuery prettyPrint', () => {
             </Room>
             <Room key=(VORTEX) global />
         </Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
     it('should nest props on very long tags', () => {
@@ -57,10 +50,7 @@ describe('WMLQuery prettyPrint', () => {
                 reflexive="ridiculously long pronoun"
             />
         </Character>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
     it('should nest props on multiline expression', () => {
@@ -78,10 +68,7 @@ describe('WMLQuery prettyPrint', () => {
                 }
             } />
         </Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
     it('should word wrap descriptions', () => {
@@ -107,9 +94,6 @@ describe('WMLQuery prettyPrint', () => {
                 </Description>
             </Room>
         </Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
         expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
         //
         // TODO: Correct tokenizer losing whitespace tokens after Link and before String
@@ -132,10 +116,7 @@ describe('WMLQuery prettyPrint', () => {
                 </Description>
             </Room>
         </Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
     it('should convert empty tag to self-closing', () => {
@@ -147,10 +128,7 @@ describe('WMLQuery prettyPrint', () => {
             <Room key=(Test)>
             </Room>
         </Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
     it('should place line breaks on a separate line', () => {
@@ -167,10 +145,7 @@ describe('WMLQuery prettyPrint', () => {
                 </Description>
             </Room>
         </Asset>`
-        const match = wmlGrammar.match(testSource)
-        const holding = wmlSemantics(match).prettyPrint
-        expect(holding).toMatchSnapshot()
-        expect(prettyPrintFromSource(testSource)).toEqual(holding)
+        expect(prettyPrintFromSource(testSource)).toMatchSnapshot()
     })
 
 })

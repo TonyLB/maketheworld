@@ -3,12 +3,11 @@ import { v4 as uuidv4 } from 'uuid'
 import { socketDispatchPromise, apiDispatchPromise } from '../../lifeLine'
 import { CharacterEditAction, CharacterEditCondition, CharacterEditPublic } from './baseClasses'
 import { getMyCharacterByKey, getPlayer } from '../../player'
-import { schemaFromParse } from "@tonylb/mtw-wml/dist"
+import { schemaFromParse } from "@tonylb/mtw-wml/dist/schema"
 import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import parser from "@tonylb/mtw-wml/dist/parser"
 import normalize, { NormalItem, NormalCharacter } from '@tonylb/mtw-wml/dist/normalize'
-import wmlGrammar from '@tonylb/mtw-wml/dist/wmlGrammar/wml.ohm-bundle'
 import { getStatus } from '../../lifeLine'
 
 export const lifelineCondition: CharacterEditCondition = ({ internalData: { id } }, getState) => {
@@ -87,11 +86,6 @@ export const parseCharacterWML: CharacterEditAction = ({ internalData: { id, cha
     if (!characterWML) {
         throw new Error()
     }
-    // const match = wmlGrammar.match(characterWML)
-    // if (!match.succeeded()) {
-    //     console.log('ERROR: Schema failed validation')
-    //     throw new Error('Schema failed validation')
-    // }
     const schema = schemaFromParse(parser(tokenizer(new SourceStream(characterWML))))
 
     const evaluated = (Object.values(normalize(schema)) as NormalItem[]).find(({ tag }: { tag?: string } = {}) => (tag === 'Character')) as unknown as NormalCharacter

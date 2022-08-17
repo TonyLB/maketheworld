@@ -9,13 +9,13 @@ import {
     isTokenComment,
     isTokenWhitespace,
     isTokenDescription,
+    ParseStackTokenEntry
 } from './tokenizer/baseClasses'
 
 import {
     ParseTag,
     ParseTagFactory,
     ParseStackEntry,
-    ParseStackTokenEntry,
     ParseException,
     ParseStackTagOpenEntry,
     isParseStackTagOpenEntry
