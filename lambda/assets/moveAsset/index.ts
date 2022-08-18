@@ -45,7 +45,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         const finalKey = `${toPath}${incomingTag === 'Character' ? 'Characters' : 'Assets'}/${fileName}`
                         if (isScopedAsset) {
                             await Promise.all([
-                                scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}.translate.json` }),
+                                scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}` }),
                                 s3Client.send(new CopyObjectCommand({
                                     Bucket: S3_BUCKET,
                                     CopySource: `${S3_BUCKET}/${fromPath}${fileName}.translate.json`,
@@ -143,7 +143,7 @@ export const moveAsset = ({ s3Client }) => async ({ fromPath, fileName, toPath }
             const finalKey = `${toPath}${incomingTag === 'Character' ? 'Characters' : 'Assets'}/${fileName}`
             if (isScopedAsset) {
                 await Promise.all([
-                    scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}.translate.json` }),
+                    scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}` }),
                     s3Client.send(new CopyObjectCommand({
                         Bucket: S3_BUCKET,
                         CopySource: `${S3_BUCKET}/${fromPath}${fileName}.translate.json`,

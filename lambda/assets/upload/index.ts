@@ -169,7 +169,7 @@ export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, mes
                 const scopeMap = new ScopeMap({})
                 if (isNormalAsset(asset) && !asset.instance) {
                     translateFile = `Personal/${objectPrefix}${asset.fileName}.translate.json`
-                    await scopeMap.getTranslateFile(s3Client, { name: translateFile })
+                    await scopeMap.getTranslateFile(s3Client, { name: `Personal/${objectPrefix}${asset.fileName}` })
                 }
                 const normalized = assetWorkspace.normalize()
                 const importMap = Object.values(normalized)

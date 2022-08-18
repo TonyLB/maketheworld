@@ -62,7 +62,7 @@ describe('healAsset', () => {
         )
         const matchS3 = { send: expect.any(Function) }
         expect(getAssets).toHaveBeenCalledWith(matchS3, "Personal/healTest.wml")
-        expect(getTranslateFile).toHaveBeenCalledWith(matchS3, { name: 'Personal/healTest.translate.json' })
+        expect(getTranslateFile).toHaveBeenCalledWith(matchS3, { name: 'Personal/healTest' })
         expect(putTranslateFile).toHaveBeenCalledWith(matchS3, {
             assetKey: 'TestAsset',
             importTree: ['BASE'],

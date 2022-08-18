@@ -90,7 +90,7 @@ describe('moveAsset', () => {
         expect(wmlPropMock).toHaveBeenCalledWith('zone', 'Library')
         expect(wmlPropMock).toHaveBeenCalledWith('subFolder', '/Assets')
         expect(wmlRemovePropMock).toHaveBeenCalledWith('player')
-        expect(getTranslateFileMock).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test.translate.json' })
+        expect(getTranslateFileMock).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test' })
         expect(CopyObjectCommand).toHaveBeenCalledWith({
             CopySource: 'undefined/Personal/Test.translate.json',
             Key: 'Library/Assets/Test.translate.json'
