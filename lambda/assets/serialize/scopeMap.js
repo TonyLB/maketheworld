@@ -25,7 +25,7 @@ export class ScopeMap extends Object {
     }
 
     async getTranslateFile(s3Client, props) {
-        const { scopeMap, ...rest } = await getTranslateFile(s3Client, props)
+        const { namespaceToDBId: scopeMap, ...rest } = await getTranslateFile(s3Client, props)
         this.scopeMap = {
             ...this.scopeMap,
             ...scopeMap
