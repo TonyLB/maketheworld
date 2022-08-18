@@ -50,7 +50,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
                 ? []
                 : [
                     putTranslateFile(s3Client, {
-                        name: translateName,
+                        name: baseFileName,
                         importTree,
                         scopeMap: scopeMap.serialize(),
                         assetKey

@@ -83,7 +83,7 @@ describe('handleUpload', () => {
             matchS3,
             {
                 assetKey: 'TestAsset',
-                name: 'Personal/Test.translate.json',
+                name: 'Personal/Test',
                 importTree: ['BASE'],
                 scopeMap: {}
             }
