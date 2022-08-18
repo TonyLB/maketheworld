@@ -66,7 +66,7 @@ describe('healAsset', () => {
         expect(putTranslateFile).toHaveBeenCalledWith(matchS3, {
             assetKey: 'TestAsset',
             importTree: ['BASE'],
-            name: 'Personal/healTest.translate.json',
+            name: 'Personal/healTest',
             scopeMap: {}
         })
         expect(dbRegister).toHaveBeenCalledWith({

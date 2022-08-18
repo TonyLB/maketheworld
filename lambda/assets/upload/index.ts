@@ -204,7 +204,7 @@ export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, mes
                         ? []
                         : [
                             putTranslateFile(s3Client, {
-                                name: translateFile,
+                                name: `Personal/${objectPrefix}${asset.fileName}`,
                                 importTree,
                                 scopeMap: scopeMap.serialize(),
                                 assetKey: asset.key
