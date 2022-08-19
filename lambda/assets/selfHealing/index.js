@@ -11,7 +11,7 @@ export const healAsset = async ({ s3Client }, fileName) => {
     return asyncSuppressExceptions(async () => {
         const [assetWorkspace, currentScopeMap] = await Promise.all([
             getAssets(s3Client, fileName),
-            scopeMap.getTranslateFile(s3Client, { name: translateName })
+            scopeMap.getTranslateFile(s3Client, { name: `${baseFileName}` })
         ])
         if (!assetWorkspace.valid) {
             return

@@ -30,11 +30,15 @@ export const getTranslateFile = async (s3Client, { name }) => {
     try {
         const { Body: scopeStream } = await s3Client.send(new GetObjectCommand({
             Bucket: S3_BUCKET,
-            Key: name
+            Key: `${name}.json`
         }))
         const scopeContents = await streamToString(scopeStream)
         const scopeItem = JSON.parse(scopeContents)
-        return scopeItem    
+        return {
+            importTree: {},
+            scopeMap: scopeItem.namespaceToDB,
+            namespaceMap: {}
+        }
     }
     catch {
         return {}

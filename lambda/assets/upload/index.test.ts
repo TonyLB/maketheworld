@@ -76,7 +76,7 @@ describe('handleUpload', () => {
         expect(getTranslateFileMock).toHaveBeenCalledWith(
             matchS3,
             {
-                name: 'Personal/Test.translate.json'
+                name: 'Personal/Test'
             }
         )
         expect(putTranslateFileMock).toHaveBeenCalledWith(
