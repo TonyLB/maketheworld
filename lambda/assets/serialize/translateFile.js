@@ -34,7 +34,11 @@ export const getTranslateFile = async (s3Client, { name }) => {
         }))
         const scopeContents = await streamToString(scopeStream)
         const scopeItem = JSON.parse(scopeContents)
-        return scopeItem    
+        return {
+            importTree: {},
+            scopeMap: scopeItem.namespaceToDB,
+            namespaceMap: {}
+        }
     }
     catch {
         return {}
