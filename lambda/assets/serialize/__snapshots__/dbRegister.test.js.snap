@@ -19,7 +19,7 @@ Object {
   "fileURL": "testIcon.png",
   "player": "TEST",
   "scopedId": "TESS",
-  "translateFile": "test.translate.json",
+  "translateFile": "test.json",
   "zone": "Library",
 }
 `;
@@ -47,7 +47,7 @@ Object {
   "name": "Test",
   "namespaceMap": undefined,
   "player": undefined,
-  "translateFile": "test.translate.json",
+  "translateFile": "test.json",
   "zone": "Library",
 }
 `;
@@ -129,7 +129,7 @@ Object {
   "name": "Test",
   "namespaceMap": undefined,
   "player": undefined,
-  "translateFile": "test.translate.json",
+  "translateFile": "test.json",
   "zone": "Library",
 }
 `;
@@ -196,7 +196,7 @@ Object {
   "name": "Test",
   "namespaceMap": undefined,
   "player": undefined,
-  "translateFile": "test.translate.json",
+  "translateFile": "test.json",
   "zone": "Library",
 }
 `;
@@ -232,7 +232,7 @@ Object {
   "name": "Test",
   "namespaceMap": undefined,
   "player": undefined,
-  "translateFile": "test.translate.json",
+  "translateFile": "test.json",
   "zone": "Library",
 }
 `;
@@ -299,7 +299,7 @@ Object {
   "name": "Test",
   "namespaceMap": undefined,
   "player": undefined,
-  "translateFile": "test.translate.json",
+  "translateFile": "test.json",
   "zone": "Library",
 }
 `;

@@ -6,7 +6,7 @@ import { asyncSuppressExceptions } from '@tonylb/mtw-utilities/dist/errors'
 
 export const healAsset = async ({ s3Client }, fileName) => {
     const baseFileName = fileName.replace(/\.wml$/, '')
-    const translateName = `${baseFileName}.translate.json`
+    const translateName = `${baseFileName}.json`
     const scopeMap = new ScopeMap({})
     return asyncSuppressExceptions(async () => {
         const [assetWorkspace, currentScopeMap] = await Promise.all([

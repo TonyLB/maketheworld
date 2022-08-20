@@ -13,7 +13,7 @@ describe('dbRegister', () => {
     it('should put a single element for a Character file', async () => {
         await dbRegister({
             fileName: 'test.wml',
-            translateFile: 'test.translate.json',
+            translateFile: 'test.json',
             scopeMap: { TESS: 'CHARACTER#12345' },
             assets: {
                 TESS: {
@@ -42,7 +42,7 @@ describe('dbRegister', () => {
     it('should save meta, rooms for Asset type', async () => {
         await dbRegister({
             fileName: 'test.wml',
-            translateFile: 'test.translate.json',
+            translateFile: 'test.json',
             scopeMap: {
                 Welcome: 'ROOM#12345'
             },
@@ -135,7 +135,7 @@ describe('dbRegister', () => {
     it('should save meta, rooms for Story type', async () => {
         await dbRegister({
             fileName: 'test.wml',
-            translateFile: 'test.translate.json',
+            translateFile: 'test.json',
             scopeMap: {
                 Welcome: 'ROOM#12345'
             },
@@ -200,7 +200,7 @@ describe('dbRegister', () => {
     it('should save meta only for instanced Story type', async () => {
         await dbRegister({
             fileName: 'test.wml',
-            translateFile: 'test.translate.json',
+            translateFile: 'test.json',
             scopeMap: {
                 Welcome: 'ROOM#12345'
             },
@@ -270,7 +270,7 @@ describe('dbRegister', () => {
     it('should save correct default appearance for Rooms and Features', async () => {
         await dbRegister({
             fileName: 'test.wml',
-            translateFile: 'test.translate.json',
+            translateFile: 'test.json',
             scopeMap: {
                 Welcome: 'ROOM#12345'
             },
@@ -359,7 +359,7 @@ describe('dbRegister', () => {
     it('should save exits in default appearance for Rooms', async () => {
         await dbRegister({
             fileName: 'test.wml',
-            translateFile: 'test.translate.json',
+            translateFile: 'test.json',
             scopeMap: {
                 Welcome: 'ROOM#12345'
             },

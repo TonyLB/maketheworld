@@ -92,8 +92,8 @@ describe('moveAsset', () => {
         expect(wmlRemovePropMock).toHaveBeenCalledWith('player')
         expect(getTranslateFileMock).toHaveBeenCalledWith(matchS3, { name: 'Personal/Test' })
         expect(CopyObjectCommand).toHaveBeenCalledWith({
-            CopySource: 'undefined/Personal/Test.translate.json',
-            Key: 'Library/Assets/Test.translate.json'
+            CopySource: 'undefined/Personal/Test.json',
+            Key: 'Library/Assets/Test.json'
         })
         expect(PutObjectCommand).toHaveBeenCalledWith({
             Key: 'Library/Assets/Test.wml',
@@ -110,13 +110,13 @@ describe('moveAsset', () => {
                 VORTEX: 'VORTEX',
             },
             namespaceMap: { VORTEX: 'BASE#VORTEX' },
-            translateFile: 'Library/Assets/Test.translate.json'
+            translateFile: 'Library/Assets/Test.json'
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
             Key: 'Personal/Test.wml'
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
-            Key: 'Personal/Test.translate.json'
+            Key: 'Personal/Test.json'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',

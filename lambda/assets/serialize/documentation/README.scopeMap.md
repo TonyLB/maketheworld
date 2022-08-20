@@ -53,7 +53,7 @@ Looks up the translate file from S3 and imports the key mappings into the ScopeM
 Returns non-scope contents of the translateFile.
 
 ```ts
-    const { asset, importTree } = await scopeMap.getTranslateFile(s3Client, { name: '/Player/Test/Assets/ImportTest.translate.json' })
+    const { asset, importTree } = await scopeMap.getTranslateFile(s3Client, { name: '/Player/Test/Assets/ImportTest.json' })
 ```
 
 ### translateNormalForm
