@@ -77,8 +77,9 @@ the asset ID specified in the "instantiate" argument
 
 Expects incoming files in WML Format, with ".wml" extensions
 
-Generates (and later uses) ".translate.json" extension files on the same root name, to track how
-local scopedId keys are mapped to global UUID internal DB keys.
+Generates (and later uses) ".json" extension files on the same root name, to track how
+local scopedId keys are mapped to global UUID internal DB keys, and what the normal form of the
+asset contains
 
 ---
 
@@ -93,10 +94,12 @@ local scopedId keys are mapped to global UUID internal DB keys.
 
 ### *S3 Meta-Data*
 
-- fileName: The fully qualified filename at which the WML data for the asset is stored in S3
-- translateFile: The fully qualified filename at which the translation JSON file for the asset is stored in S3
+- fileName: The base filename at which data for the asset is stored in S3
+    - Base fileName plus ".wml" is the original WML file for the asset
+    - Base fileName plus ".json" is the parsed output
+- zone:  The zone ('Personal', 'Library', or 'Canon') in which the asset is stored and published
 - player: The internal ID of the player (if any) for whom this is a personal asset
-- zone:  The zone ('Personal', 'Library', or 'Canon') in which the asset is stored and published.
+- subFolder:  Any subFolder between the zone and the fileName
 
 ### *Namespace Meta-Data*
 
