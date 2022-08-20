@@ -10,7 +10,6 @@ import { healAsset } from "./selfHealing/index.js"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
 import { handleUpload } from './upload/index.js'
-import { moveAsset, canonize } from './moveAsset/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
 import internalCache from "./internalCache"
 
@@ -97,18 +96,6 @@ export const handler = async (event, context) => {
     if (event.heal) {
         const returnVal = await healPlayers()
         return JSON.stringify(returnVal, null, 4)
-    }
-    if (event.canonize) {
-        const returnVal = await canonize({ s3Client })(event.canonize)
-        return JSON.stringify(returnVal, null, 4)
-    }
-    switch(message) {
-        case 'move':
-            return await moveAsset({ s3Client })({
-                fromPath: event.fromPath,
-                fileName: event.fileName,
-                toPath: event.toPath
-            })
     }
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
     if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe'].includes(request.message)) {

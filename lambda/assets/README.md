@@ -50,12 +50,12 @@ assigned in the Asset DB.
 - ***healAsset***: Accepts an AssetID, looks it up based on current meta-data stored in the DB,
 and reprocesses its WML file
 - ***move***: Manually moves an asset file (specified by fileName argument) from the fromPath argument
-to the toPath argument (May be candidate for deprecation)
+to the toPath argument (DEPRECATED)
 - ***checkout***: Moves an asset (specified by checkout) from the Library to the personal assets
 of a player (specified by PlayerName)
 - ***checkin***: Moves an asset (specified by checkin) from the Personal assets of a player into
 the Library
-- ***canonize***: Moves an asset (specified by canonize) from the Library into Canon
+- ***canonize***: Moves an asset (specified by canonize) from the Library into Canon (DEPRECATED)
 - ***upload***: Generates a pre-signed S3 URL to upload an asset of type "tag" into "fileName" in
 the personal assets of "PlayerName", and return updates on "RequestId"
 - ***uploadImage***: Generates a pre-signed S3 URL to upload an Image of type "fileExtension" in
