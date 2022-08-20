@@ -48,8 +48,8 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                                 scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}` }),
                                 s3Client.send(new CopyObjectCommand({
                                     Bucket: S3_BUCKET,
-                                    CopySource: `${S3_BUCKET}/${fromPath}${fileName}.translate.json`,
-                                    Key: `${finalKey}.translate.json`
+                                    CopySource: `${S3_BUCKET}/${fromPath}${fileName}.json`,
+                                    Key: `${finalKey}.json`
                                 }))
                             ])
                         }
@@ -79,7 +79,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         const importTree = await scopeMap.importAssetIds(importMap || {})
                         await dbRegister({
                             fileName: `${finalKey}.wml`,
-                            translateFile: `${finalKey}.translate.json`,
+                            translateFile: `${finalKey}.json`,
                             importTree,
                             scopeMap: scopeMap.serialize(),
                             namespaceMap: scopeMap.namespaceMap,
@@ -92,7 +92,7 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                         if (isScopedAsset) {
                             await s3Client.send(new DeleteObjectCommand({
                                 Bucket: S3_BUCKET,
-                                Key: `${fromPath}${fileName}.translate.json`,
+                                Key: `${fromPath}${fileName}.json`,
                             }))
                         }
                     }

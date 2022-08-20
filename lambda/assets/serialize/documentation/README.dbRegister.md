@@ -25,7 +25,7 @@ the Asset DynamoDB table
 ```ts
     await dbRegister({
         fileName: 'Player/Test/Assets/ImportTest.wml',
-        translateFile: 'Player/Test/Assets/ImportTest.translate.json',
+        translateFile: 'Player/Test/Assets/ImportTest.json',
         scopeMap: {
             VORTEX: 'ROOM#VORTEX',
             Bookshelves: 'FEATURE#Bookshelves',
@@ -47,7 +47,7 @@ the Asset DynamoDB table
 
 | AssetId | DataCategory | fileName | translateFile | name | zone | defaultExits | defaultNames |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ASSET#ImportTest | Meta::Asset | Player/Test/Assets/ImportTest.wml | Player/Test/Assets/ImportTest.translate.json | ImportTest | Personal | [{ name: 'welcome', from: 'VORTEX', to: 'layerAWelcomeRoom' }] | { Welcome: 'Welcome', ... } |
+| ASSET#ImportTest | Meta::Asset | Player/Test/Assets/ImportTest.wml | Player/Test/Assets/ImportTest.json | ImportTest | Personal | [{ name: 'welcome', from: 'VORTEX', to: 'layerAWelcomeRoom' }] | { Welcome: 'Welcome', ... } |
 
 *Item records*
 

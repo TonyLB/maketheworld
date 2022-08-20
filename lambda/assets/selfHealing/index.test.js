@@ -86,7 +86,7 @@ describe('healAsset', () => {
                     assetId: 'ROOM#VORTEX'
                 }
             },
-            translateFile: 'Personal/healTest.translate.json'
+            translateFile: 'Personal/healTest.json'
         })
     })
 

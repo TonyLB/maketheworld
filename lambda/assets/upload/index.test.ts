@@ -106,7 +106,7 @@ describe('handleUpload', () => {
                     assetId: 'ROOM#VORTEX'
                 }
             },
-            translateFile: 'Personal/Test.translate.json'
+            translateFile: 'Personal/Test.json'
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'UploadResponse',
