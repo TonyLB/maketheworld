@@ -10,20 +10,14 @@ export const putTranslateFile = async (s3Client, { name, importTree, scopeMap, a
         scopeMap
     }, null, 4)
     const newContents = JSON.stringify({
-        namespaceToDB: scopeMap
+        namespaceToDB: scopeMap,
+        importTree
     }, null, 4)
-    await Promise.all([
-        s3Client.send(new PutObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `${name}.translate.json`,
-            Body: contents
-        })),
-        s3Client.send(new PutObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `${name}.json`,
-            Body: newContents
-        }))
-    ])
+    await s3Client.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: `${name}.json`,
+        Body: newContents
+    }))
 }
 
 export const getTranslateFile = async (s3Client, { name }) => {
@@ -35,7 +29,7 @@ export const getTranslateFile = async (s3Client, { name }) => {
         const scopeContents = await streamToString(scopeStream)
         const scopeItem = JSON.parse(scopeContents)
         return {
-            importTree: {},
+            importTree: scopeItem.importTree,
             scopeMap: scopeItem.namespaceToDB,
             namespaceMap: {}
         }

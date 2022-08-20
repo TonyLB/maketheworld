@@ -53,6 +53,7 @@ need to be published to those subscribed to that content.
 Each asset file is a JSON file with the same base fileName as that assigned to the .wml file.  The JSON
 contains the following properties:
 - namespaceToDBId:  A mapping from internal namespaced IDs to the DB ID assigned to that same entry.
+- importTree: A nested-recursive tree of imports
 - normal: A NormalForm representation of the WML asset, per WML
 
 ---
