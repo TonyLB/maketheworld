@@ -24,12 +24,6 @@ export class AssetWorkspace {
     get valid() {
         return this.wmlQuery.valid
     }
-    // match() {
-    //     return this.wmlQuery.matcher.match()
-    // }
-    // isMatched() {
-    //     return this.match().succeeded()
-    // }
     schema() {
         if (!this.cachedContent || this.cachedContent !== this.contents()) {
             this.cachedContent = this.contents()
