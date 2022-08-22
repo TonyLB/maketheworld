@@ -1,3 +1,12 @@
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+
+import { NormalForm } from '@tonylb/mtw-wml/dist/normalize'
+import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
+
+const { S3_BUCKET } = process.env;
+const params = { region: process.env.AWS_REGION }
+const s3Client = new S3Client(params)
+
 type AssetWorkspaceConstructorBase = {
     fileName: string;
     subFolder?: string;
@@ -27,6 +36,7 @@ export class AssetWorkspace {
     player?: string;
     error?: string;
     status: AssetWorkspaceStatus = 'Initial';
+    normal?: NormalForm;
     
     constructor(args: AssetWorkspaceConstructorArgs) {
         if (!args.fileName) {
@@ -42,7 +52,23 @@ export class AssetWorkspace {
         }
     }
 
-    loadJSON() {
+    async loadJSON() {
+        const subFolderElements = (this.subFolder || '').split('/')
+        const subFolderOutput = subFolderElements.length > 0 ? `${subFolderElements.join('/')}/` : ''
+
+        const filePath = this.zone === 'Personal'
+            ? `${this.zone}/${subFolderOutput}${this.player}/${this.fileName}.json`
+            : `${this.zone}/${subFolderOutput}${this.fileName}.json`
+        
+        //
+        // TODO: Wrap S3 command in try/catch and smoothly handle instance where there is
+        // no such file
+        //
+        const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: filePath
+        }))
+        const contents = await streamToString(contentStream)
         
     }
 }

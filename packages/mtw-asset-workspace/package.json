@@ -10,6 +10,8 @@
   "author": "Tony Lower-Basch",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.154.0",
+    "@tonylb/mtw-utilities": "^1.0.0",
     "@tonylb/mtw-wml": "^1.0.0"
   }
 }
