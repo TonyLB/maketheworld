@@ -27,6 +27,7 @@ export class AssetWorkspace {
     player?: string;
     error?: string;
     status: AssetWorkspaceStatus = 'Initial';
+    
     constructor(args: AssetWorkspaceConstructorArgs) {
         if (!args.fileName) {
             this.fileName = ''
