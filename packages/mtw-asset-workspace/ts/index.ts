@@ -29,6 +29,10 @@ type AssetWorkspaceConstructorArgs = AssetWorkspaceConstructorCanon | AssetWorks
 
 type AssetWorkspaceStatus = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
+type ImportTree = {
+    [name: string]: ImportTree
+}
+
 export class AssetWorkspace {
     fileName: string;
     zone: 'Canon' | 'Library' | 'Personal';
@@ -37,6 +41,7 @@ export class AssetWorkspace {
     error?: string;
     status: AssetWorkspaceStatus = 'Initial';
     normal?: NormalForm;
+    importTree: ImportTree = {}
     
     constructor(args: AssetWorkspaceConstructorArgs) {
         if (!args.fileName) {
@@ -70,5 +75,9 @@ export class AssetWorkspace {
         }))
         const contents = await streamToString(contentStream)
         
+        const { importTree = {}, normalForm = {} } = JSON.parse(contents)
+
+        this.normal = normalForm as NormalForm
+        this.importTree = importTree as ImportTree
     }
 }
