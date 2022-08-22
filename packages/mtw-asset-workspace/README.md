@@ -22,7 +22,7 @@ at an abstracted level.
 - zone: 'Canon' | 'Library' | 'Personal'
 - subFolder?: string
 - player?: string
-- status: 'Initial' | 'Synced' | 'Dirty' | 'Error'
+- status: 'Initial' | 'Clean' | 'Dirty' | 'Error'
 - error?: string
 
 ---
