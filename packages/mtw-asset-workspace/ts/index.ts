@@ -75,6 +75,7 @@ export class AssetWorkspace {
             if (err instanceof NotFound) {
                 this.normal = {}
                 this.importTree = {}
+                this.status = 'Clean'
                 return
             }
             throw err
@@ -84,6 +85,7 @@ export class AssetWorkspace {
 
         this.normal = normalForm as NormalForm
         this.importTree = importTree as ImportTree
+        this.status = 'Clean'
     }
 }
 
