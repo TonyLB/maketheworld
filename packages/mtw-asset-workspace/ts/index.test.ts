@@ -1,4 +1,5 @@
 import AssetWorkspace from '.'
+import { NotFound } from '@aws-sdk/client-s3'
 
 jest.mock('./clients')
 import { s3Client } from './clients'
@@ -35,5 +36,19 @@ describe('AssetWorkspace', () => {
         await testWorkspace.loadJSON()
         expect(testWorkspace.normal).toMatchSnapshot()
         expect(testWorkspace.importTree).toMatchSnapshot()
+    })
+
+    it('should return empty on no JSON file', async () => {
+        (s3ClientMock.send as any).mockImplementation(() => {
+            throw new NotFound({ $metadata: {} })
+        })
+
+        const testWorkspace = new AssetWorkspace({
+            fileName: 'Test',
+            zone: 'Personal',
+            player: 'Test'
+        })
+        await testWorkspace.loadJSON()
+        expect(testWorkspace.normal).toEqual({})
     })
 })

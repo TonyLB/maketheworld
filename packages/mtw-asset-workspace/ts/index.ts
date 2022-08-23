@@ -65,12 +65,10 @@ export class AssetWorkspace {
         
         let contents = ''
         try {
-            const temp = await s3Client.send(new GetObjectCommand({
+            const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
                 Bucket: S3_BUCKET,
                 Key: filePath
             }))
-            console.log(`Temp: ${JSON.stringify(temp, null, 4)}`)
-            const { Body: contentStream } = temp
             contents = await streamToString(contentStream)
         }
         catch(err) {
