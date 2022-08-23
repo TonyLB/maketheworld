@@ -1,13 +1,12 @@
-import { S3Client, GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
+import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
 
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize'
-import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
 
-import { AssetWorkspaceException } from "./errors";
+import { AssetWorkspaceException } from "./errors"
+import { streamToString } from "./stream"
+import { s3Client } from "./clients"
 
-const { S3_BUCKET } = process.env;
-const params = { region: process.env.AWS_REGION }
-const s3Client = new S3Client(params)
+const { S3_BUCKET = 'Test' } = process.env;
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;
@@ -66,10 +65,12 @@ export class AssetWorkspace {
         
         let contents = ''
         try {
-            const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
+            const temp = await s3Client.send(new GetObjectCommand({
                 Bucket: S3_BUCKET,
                 Key: filePath
             }))
+            console.log(`Temp: ${JSON.stringify(temp, null, 4)}`)
+            const { Body: contentStream } = temp
             contents = await streamToString(contentStream)
         }
         catch(err) {

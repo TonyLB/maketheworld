@@ -1,14 +1,18 @@
 import AssetWorkspace from '.'
 
-jest.mock('@tonylb/mtw-utilities/dist/stream')
-import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
+jest.mock('./clients')
+import { s3Client } from './clients'
+jest.mock('./stream')
+import { streamToString } from './stream'
 
+const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const streamToStringMock = streamToString as jest.Mock
 
 describe('AssetWorkspace', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.resetAllMocks()
+        jest.resetAllMocks();
+        (s3ClientMock.send as any).mockResolvedValue({} as any)
     })
 
     it('should correctly parse and assign JSON properties', async () => {
