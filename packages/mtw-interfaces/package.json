@@ -1,8 +1,8 @@
 {
-  "name": "@tonylb/mtw-asset-workspace",
+  "name": "@tonylb/mtw-interface",
   "type": "module",
   "version": "1.0.0",
-  "description": "AssetWorkspace class for dealing with S3 asset files",
+  "description": "Typescript interfaces for shared type constraints",
   "main": "ts/index.ts",
   "scripts": {
     "test": "jest"

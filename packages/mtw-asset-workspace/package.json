@@ -1,12 +1,22 @@
 {
-  "name": "@tonylb/mtw-interfaces",
+  "name": "@tonylb/mtw-asset-workspace",
   "type": "module",
   "version": "1.0.0",
-  "description": "Typescript interfaces shared across multiple MTW subsystems",
+  "description": "Asset Workspace utility class for shared S3 assets",
   "main": "ts/index.ts",
   "scripts": {
     "test": "jest"
   },
   "author": "Tony Lower-Basch",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.154.0",
+    "@tonylb/mtw-wml": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^28.1.7",
+    "jest": "^28.1.3",
+    "ts-jest": "^28.0.8",
+    "typescript": "^4.7.4"
+  }
 }
