@@ -97,6 +97,7 @@ export class Normalizer {
     _normalForm: NormalForm = {};
     _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature"> = {}
 
+    constructor() {}
     _mergeAppearance(key: string, item: NormalItem): number {
         if (key in this._normalForm) {
             this._normalForm[key] = { ...produce(this._normalForm[key], (draft) => {
