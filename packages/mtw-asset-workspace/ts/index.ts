@@ -1,8 +1,8 @@
 import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
 
-import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema'
-import parser from '@tonylb/mtw-wml/dist/parser'
-import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer'
+import { schemaFromParse } from '@tonylb/mtw-wml/ts/schema/index'
+import parser from '@tonylb/mtw-wml/dist/parser/index'
+import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
 import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"

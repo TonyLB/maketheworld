@@ -16,39 +16,43 @@ describe('AssetWorkspace', () => {
         (s3ClientMock.send as any).mockResolvedValue({} as any)
     })
 
-    it('should correctly parse and assign JSON properties', async () => {
-        streamToStringMock.mockReturnValue(`{
-            "importTree": { "BASE": {} },
-            "normalForm": {
-                "Test": {
-                    "tag": "Asset",
-                    "key": "Test",
-                    "fileName": "Test"
+    describe('loadJSON', () => {
+        it('should correctly parse and assign JSON properties', async () => {
+            streamToStringMock.mockReturnValue(`{
+                "importTree": { "BASE": {} },
+                "normalForm": {
+                    "Test": {
+                        "tag": "Asset",
+                        "key": "Test",
+                        "fileName": "Test"
+                    }
                 }
-            }
-        }`)
-
-        const testWorkspace = new AssetWorkspace({
-            fileName: 'Test',
-            zone: 'Personal',
-            player: 'Test'
+            }`)
+    
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            await testWorkspace.loadJSON()
+            expect(testWorkspace.normal).toMatchSnapshot()
+            expect(testWorkspace.importTree).toMatchSnapshot()
         })
-        await testWorkspace.loadJSON()
-        expect(testWorkspace.normal).toMatchSnapshot()
-        expect(testWorkspace.importTree).toMatchSnapshot()
+    
+        it('should return empty on no JSON file', async () => {
+            (s3ClientMock.send as any).mockImplementation(() => {
+                throw new NotFound({ $metadata: {} })
+            })
+    
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            await testWorkspace.loadJSON()
+            expect(testWorkspace.normal).toEqual({})
+        })
+
     })
 
-    it('should return empty on no JSON file', async () => {
-        (s3ClientMock.send as any).mockImplementation(() => {
-            throw new NotFound({ $metadata: {} })
-        })
-
-        const testWorkspace = new AssetWorkspace({
-            fileName: 'Test',
-            zone: 'Personal',
-            player: 'Test'
-        })
-        await testWorkspace.loadJSON()
-        expect(testWorkspace.normal).toEqual({})
-    })
 })
