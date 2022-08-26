@@ -3,13 +3,10 @@ import { NotFound } from '@aws-sdk/client-s3'
 
 jest.mock('./clients')
 import { s3Client } from './clients'
-jest.mock('./stream')
-import { streamToString } from './stream'
 jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
-const streamToStringMock = streamToString as jest.Mock
 const uuidv4Mock = uuidv4 as jest.Mock
 
 const uuidMockFactory = () => {
@@ -25,12 +22,12 @@ describe('AssetWorkspace', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks();
-        (s3ClientMock.send as any).mockResolvedValue({} as any)
+        s3ClientMock.get.mockResolvedValue('')
     })
 
     describe('loadJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
-            streamToStringMock.mockReturnValue(`{
+            s3ClientMock.get.mockResolvedValue(`{
                 "namespaceIdToDB": { "a123": "Test" },
                 "normalForm": {
                     "Test": {
@@ -52,7 +49,7 @@ describe('AssetWorkspace', () => {
         })
     
         it('should return empty on no JSON file', async () => {
-            (s3ClientMock.send as any).mockImplementation(() => {
+            s3ClientMock.get.mockImplementation(() => {
                 throw new NotFound({ $metadata: {} })
             })
     
