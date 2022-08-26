@@ -31,7 +31,7 @@ describe('AssetWorkspace', () => {
     describe('loadJSON', () => {
         it('should correctly parse and assign JSON properties', async () => {
             streamToStringMock.mockReturnValue(`{
-                "importTree": { "BASE": {} },
+                "namespaceIdToDB": { "a123": "Test" },
                 "normalForm": {
                     "Test": {
                         "tag": "Asset",
@@ -48,7 +48,7 @@ describe('AssetWorkspace', () => {
             })
             await testWorkspace.loadJSON()
             expect(testWorkspace.normal).toMatchSnapshot()
-            expect(testWorkspace.importTree).toMatchSnapshot()
+            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
     
         it('should return empty on no JSON file', async () => {

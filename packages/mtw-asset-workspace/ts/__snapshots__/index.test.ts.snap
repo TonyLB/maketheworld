@@ -12,7 +12,7 @@ Object {
 
 exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 2`] = `
 Object {
-  "BASE": Object {},
+  "a123": "Test",
 }
 `;
 

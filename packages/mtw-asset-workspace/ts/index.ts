@@ -36,10 +36,6 @@ type AssetWorkspaceConstructorArgs = AssetWorkspaceConstructorCanon | AssetWorks
 
 type AssetWorkspaceStatus = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
-type ImportTree = {
-    [name: string]: ImportTree
-}
-
 type NamespaceMapping = {
     [name: string]: string
 }
@@ -54,7 +50,7 @@ export class AssetWorkspace {
     status: AssetWorkspaceStatus = 'Initial';
     normal?: NormalForm;
     namespaceIdToDB: NamespaceMapping = {};
-    importTree: ImportTree = {};
+    wml?: string;
     
     constructor(args: AssetWorkspaceConstructorArgs) {
         if (!args.fileName) {
@@ -87,17 +83,18 @@ export class AssetWorkspace {
         catch(err) {
             if (err instanceof NotFound) {
                 this.normal = {}
-                this.importTree = {}
+                this.wml = ''
+                this.namespaceIdToDB = {}
                 this.status = 'Clean'
                 return
             }
             throw err
         }
         
-        const { importTree = {}, normalForm = {} } = JSON.parse(contents)
+        const { namespaceIdToDB = {}, normalForm = {} } = JSON.parse(contents)
 
         this.normal = normalForm as NormalForm
-        this.importTree = importTree as ImportTree
+        this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
         this.status = 'Clean'
     }
 
@@ -119,6 +116,7 @@ export class AssetWorkspace {
                     this.namespaceIdToDB[key] = uuidv4()
                 }
             })
+        this.wml = source
         this.status = 'Clean'
     }
 

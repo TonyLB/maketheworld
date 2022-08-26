@@ -14,6 +14,9 @@ each lambda that might need the data
 - Developers need to code lambdas that can deal with the data stored in the underlying asset file pairs,
 at an abstracted level.
 
+*Asset Workspace **DOES NOT** address the need to maintain an importTree of how assets relate to each*
+*other.  That is stored in Asset DB and constructed (and updated) live as needed.*
+
 ---
 
 ## AssetWorksapce class properties
@@ -24,6 +27,9 @@ at an abstracted level.
 - player?: string
 - status: 'Initial' | 'Clean' | 'Dirty' | 'Error'
 - error?: string
+- namespaceIdToDB: Record<string, string>
+- normal: NormalForm
+- wml: string
 
 ---
 
