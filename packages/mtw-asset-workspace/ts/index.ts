@@ -1,4 +1,4 @@
-import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
+import { NotFound } from "@aws-sdk/client-s3"
 import { v4 as uuidv4 } from 'uuid'
 
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
@@ -9,10 +9,7 @@ import { NormalCharacter, NormalFeature, NormalForm, NormalItem, NormalMap, Norm
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
-import { streamToString } from "./stream"
 import { s3Client } from "./clients"
-
-const { S3_BUCKET = 'Test' } = process.env;
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;
@@ -64,21 +61,21 @@ export class AssetWorkspace {
         }
     }
 
-    async loadJSON() {
-        const subFolderElements = (this.subFolder || '').split('/')
-        const subFolderOutput = subFolderElements.length > 0 ? `${subFolderElements.join('/')}/` : ''
+    get fileNameBase(): string {
+        const subFolderElements = (this.subFolder || '').split('/').filter((value) => (value))
+        const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
 
         const filePath = this.zone === 'Personal'
-            ? `${this.zone}/${subFolderOutput}${this.player}/${this.fileName}.json`
-            : `${this.zone}/${subFolderOutput}${this.fileName}.json`
+            ? `${this.zone}/${subFolderOutput}${this.player}/${this.fileName}`
+            : `${this.zone}/${subFolderOutput}${this.fileName}`
+        return filePath
+    }
+    async loadJSON() {
+        const filePath = `${this.fileNameBase}.json`
         
         let contents = ''
         try {
-            const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: filePath
-            }))
-            contents = await streamToString(contentStream)
+            contents = await s3Client.get({ Key: filePath })
         }
         catch(err) {
             if (err instanceof NotFound) {
@@ -109,6 +106,9 @@ export class AssetWorkspace {
             normalizer.add(item, { contextStack: [], location: [index] })
         })
         this.normal = normalizer.normal
+        //
+        // TODO: Add any imported-but-not-yet-mapped keys to the namespaceToDB mapping
+        //
         Object.values(this.normal)
             .filter(isMappableNormalItem)
             .forEach(({ key }) => {
@@ -121,20 +121,11 @@ export class AssetWorkspace {
     }
 
     async loadWML(): Promise<void> {
-        const subFolderElements = (this.subFolder || '').split('/')
-        const subFolderOutput = subFolderElements.length > 0 ? `${subFolderElements.join('/')}/` : ''
-
-        const filePath = this.zone === 'Personal'
-            ? `${this.zone}/${subFolderOutput}${this.player}/${this.fileName}.wml`
-            : `${this.zone}/${subFolderOutput}${this.fileName}.wml`
+        const filePath = `${this.fileNameBase}.wml`
         
         let contents = ''
         try {
-            const { Body: contentStream } = await s3Client.send(new GetObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: filePath
-            }))
-            contents = await streamToString(contentStream)
+            contents = await s3Client.get({ Key: filePath })
         }
         catch(err) {
             if (err instanceof NotFound) {
@@ -145,18 +136,30 @@ export class AssetWorkspace {
         }
 
         this.setWML(contents)
-        //
-        // TODO: Check ScopeMap class and figure out what needs to be refactored to work here
-        //
-
-        //
-        // TODO: Add any imported-but-not-yet-mapped keys to the namespaceToDB mapping
-        //
-
-        //
-        // TODO: Add any newly created keys to the namespaceToDB mapping
-        //
     }
+
+    async pushJSON(): Promise<void> {
+        const filePath = `${this.fileNameBase}.json`
+        const contents = JSON.stringify({
+            namespaceIdToDB: this.namespaceIdToDB,
+            normal: this.normal || {}
+        }, null, 4)
+        await s3Client.put({
+            Key: filePath,
+            Body: contents
+        })
+        this.status = 'Clean'
+    }
+
+    async pushWML(): Promise<void> {
+        const filePath = `${this.fileNameBase}.wml`
+        await s3Client.put({
+            Key: filePath,
+            Body: this.wml || ''
+        })
+        this.status = 'Clean'
+    }
+
 }
 
 export default AssetWorkspace
