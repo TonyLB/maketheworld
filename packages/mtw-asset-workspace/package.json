@@ -5,7 +5,8 @@
   "description": "Asset Workspace utility class for shared S3 assets",
   "main": "ts/index.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "clearJest": "jest --clearCache"
   },
   "author": "Tony Lower-Basch",
   "license": "MIT",

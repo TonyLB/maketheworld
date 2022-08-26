@@ -1,6 +1,6 @@
 import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
 
-import { schemaFromParse } from '@tonylb/mtw-wml/ts/schema/index'
+import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
 import parser from '@tonylb/mtw-wml/dist/parser/index'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'

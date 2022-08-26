@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AssetWorkspace should correctly parse and assign JSON properties 1`] = `
+exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 1`] = `
 Object {
   "Test": Object {
     "fileName": "Test",
@@ -10,7 +10,7 @@ Object {
 }
 `;
 
-exports[`AssetWorkspace should correctly parse and assign JSON properties 2`] = `
+exports[`AssetWorkspace loadJSON should correctly parse and assign JSON properties 2`] = `
 Object {
   "BASE": Object {},
 }
