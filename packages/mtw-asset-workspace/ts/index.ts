@@ -62,8 +62,8 @@ export class AssetWorkspace {
     }
 
     get fileNameBase(): string {
-        const subFolderElements = (this.subFolder || '').split('/')
-        const subFolderOutput = subFolderElements.length > 0 ? `${subFolderElements.join('/')}/` : ''
+        const subFolderElements = (this.subFolder || '').split('/').filter((value) => (value))
+        const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
 
         const filePath = this.zone === 'Personal'
             ? `${this.zone}/${subFolderOutput}${this.player}/${this.fileName}`
@@ -140,11 +140,15 @@ export class AssetWorkspace {
 
     async pushJSON(): Promise<void> {
         const filePath = `${this.fileNameBase}.json`
-        const contents = JSON.stringify({}, null, 4)
+        const contents = JSON.stringify({
+            namespaceIdToDB: this.namespaceIdToDB,
+            normal: this.normal || {}
+        }, null, 4)
         await s3Client.put({
             Key: filePath,
             Body: contents
         })
+        this.status = 'Clean'
     }
 
 }

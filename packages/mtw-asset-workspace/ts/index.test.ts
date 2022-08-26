@@ -23,6 +23,7 @@ describe('AssetWorkspace', () => {
         jest.clearAllMocks()
         jest.resetAllMocks();
         s3ClientMock.get.mockResolvedValue('')
+        s3ClientMock.put.mockResolvedValue()
     })
 
     describe('loadJSON', () => {
@@ -88,6 +89,42 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
     
+    })
+
+    describe('putJSON', () => {
+        it('should correctly push JSON content to player zone', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            testWorkspace.normal = {
+                Test: {
+                    tag: "Asset",
+                    key: "Test",
+                    fileName: "Test",
+                    appearances: []
+                }
+            }
+            testWorkspace.namespaceIdToDB = {}
+            testWorkspace.status = 'Dirty'
+            await testWorkspace.pushJSON()
+            expect(testWorkspace.status).toEqual('Clean')
+            expect(s3Client.put).toHaveBeenCalledWith({
+                Key: 'Personal/Test/Test.json',
+                Body: `{
+    "namespaceIdToDB": {},
+    "normal": {
+        "Test": {
+            "tag": "Asset",
+            "key": "Test",
+            "fileName": "Test",
+            "appearances": []
+        }
+    }
+}`
+            })
+        })
     })
 
 })
