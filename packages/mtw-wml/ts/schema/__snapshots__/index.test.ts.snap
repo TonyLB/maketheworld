@@ -1,0 +1,947 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`schemaFromParse should make a schema for a character correctly 1`] = `
+Array [
+  Object {
+    "FirstImpression": undefined,
+    "Name": "Tess",
+    "OneCoolThing": "Fuchsia eyes",
+    "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+    "Pronouns": Object {
+      "adjective": "hers",
+      "object": "her",
+      "parse": Object {
+        "adjective": "hers",
+        "endTagToken": 41,
+        "object": "her",
+        "possessive": "her",
+        "reflexive": "herself",
+        "startTagToken": 23,
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+      "possessive": "her",
+      "reflexive": "herself",
+      "subject": "she",
+    },
+    "contents": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 13,
+              "startTagToken": 13,
+              "tag": "String",
+              "value": "Tess",
+            },
+            "tag": "String",
+            "value": "Tess",
+          },
+        ],
+        "name": "Tess",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 13,
+              "startTagToken": 13,
+              "tag": "String",
+              "value": "Tess",
+            },
+          ],
+          "endTagToken": 14,
+          "startTagToken": 11,
+          "tag": "Name",
+          "value": "Tess",
+        },
+        "tag": "Name",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Fuchsia eyes",
+            },
+            "tag": "String",
+            "value": "Fuchsia eyes",
+          },
+        ],
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Fuchsia eyes",
+            },
+          ],
+          "endTagToken": 22,
+          "startTagToken": 19,
+          "tag": "OneCoolThing",
+          "value": "Fuchsia eyes",
+        },
+        "tag": "OneCoolThing",
+        "value": "Fuchsia eyes",
+      },
+      Object {
+        "adjective": "hers",
+        "object": "her",
+        "parse": Object {
+          "adjective": "hers",
+          "endTagToken": 41,
+          "object": "her",
+          "possessive": "her",
+          "reflexive": "herself",
+          "startTagToken": 23,
+          "subject": "she",
+          "tag": "Pronouns",
+        },
+        "possessive": "her",
+        "reflexive": "herself",
+        "subject": "she",
+        "tag": "Pronouns",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 44,
+              "startTagToken": 44,
+              "tag": "String",
+              "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+            },
+            "tag": "String",
+            "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+          },
+        ],
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 44,
+              "startTagToken": 44,
+              "tag": "String",
+              "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+            },
+          ],
+          "endTagToken": 45,
+          "startTagToken": 42,
+          "tag": "Outfit",
+          "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+        },
+        "tag": "Outfit",
+        "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+      },
+      Object {
+        "fileURL": "https://musique.opus-31.fr/images/aaa.png",
+        "key": "testIcon",
+        "parse": Object {
+          "endTagToken": 54,
+          "fileURL": "https://musique.opus-31.fr/images/aaa.png",
+          "key": "testIcon",
+          "startTagToken": 46,
+          "tag": "Image",
+        },
+        "tag": "Image",
+      },
+    ],
+    "fileName": "Tess",
+    "fileURL": "https://musique.opus-31.fr/images/aaa.png",
+    "key": "TESS",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 13,
+              "startTagToken": 13,
+              "tag": "String",
+              "value": "Tess",
+            },
+          ],
+          "endTagToken": 14,
+          "startTagToken": 11,
+          "tag": "Name",
+          "value": "Tess",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 21,
+              "startTagToken": 21,
+              "tag": "String",
+              "value": "Fuchsia eyes",
+            },
+          ],
+          "endTagToken": 22,
+          "startTagToken": 19,
+          "tag": "OneCoolThing",
+          "value": "Fuchsia eyes",
+        },
+        Object {
+          "adjective": "hers",
+          "endTagToken": 41,
+          "object": "her",
+          "possessive": "her",
+          "reflexive": "herself",
+          "startTagToken": 23,
+          "subject": "she",
+          "tag": "Pronouns",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "endTagToken": 44,
+              "startTagToken": 44,
+              "tag": "String",
+              "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+            },
+          ],
+          "endTagToken": 45,
+          "startTagToken": 42,
+          "tag": "Outfit",
+          "value": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
+        },
+        Object {
+          "endTagToken": 54,
+          "fileURL": "https://musique.opus-31.fr/images/aaa.png",
+          "key": "testIcon",
+          "startTagToken": 46,
+          "tag": "Image",
+        },
+      ],
+      "endTagToken": 55,
+      "fileName": "Tess",
+      "key": "TESS",
+      "player": "TonyLB",
+      "startTagToken": 0,
+      "tag": "Character",
+    },
+    "player": "TonyLB",
+    "subFolder": undefined,
+    "tag": "Character",
+    "zone": undefined,
+  },
+]
+`;
+
+exports[`schemaFromParse should make a schema from parse elements correctly 1`] = `
+Array [
+  Object {
+    "Story": undefined,
+    "contents": Array [
+      Object {
+        "from": "BASE",
+        "mapping": Object {
+          "overview": Object {
+            "key": "overview",
+            "type": "Room",
+          },
+          "power": Object {
+            "key": "basePower",
+            "type": "Variable",
+          },
+        },
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "as": "power",
+              "endTagToken": 24,
+              "key": "basePower",
+              "startTagToken": 13,
+              "tag": "Use",
+              "type": "Variable",
+            },
+            Object {
+              "endTagToken": 33,
+              "key": "overview",
+              "startTagToken": 25,
+              "tag": "Use",
+              "type": "Room",
+            },
+          ],
+          "endTagToken": 34,
+          "from": "BASE",
+          "startTagToken": 8,
+          "tag": "Import",
+        },
+        "tag": "Import",
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 47,
+                  "startTagToken": 47,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                "spaceAfter": true,
+                "spaceBefore": false,
+                "tag": "String",
+                "value": "Vortex",
+              },
+              Object {
+                "parse": Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 54,
+                      "startTagToken": 54,
+                      "tag": "String",
+                      "value": "(toggle)",
+                    },
+                  ],
+                  "endTagToken": 55,
+                  "startTagToken": 49,
+                  "tag": "Link",
+                  "to": "toggleOpen",
+                },
+                "spaceAfter": true,
+                "spaceBefore": true,
+                "tag": "Link",
+                "text": "(toggle)",
+                "to": "toggleOpen",
+              },
+            ],
+            "display": undefined,
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 46,
+                  "startTagToken": 46,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "endTagToken": 47,
+                  "startTagToken": 47,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                Object {
+                  "endTagToken": 48,
+                  "startTagToken": 48,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 54,
+                      "startTagToken": 54,
+                      "tag": "String",
+                      "value": "(toggle)",
+                    },
+                  ],
+                  "endTagToken": 55,
+                  "startTagToken": 49,
+                  "tag": "Link",
+                  "to": "toggleOpen",
+                },
+                Object {
+                  "endTagToken": 56,
+                  "startTagToken": 56,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 57,
+              "spaceAfter": false,
+              "spaceBefore": false,
+              "startTagToken": 44,
+              "tag": "Description",
+            },
+            "spaceAfter": false,
+            "spaceBefore": false,
+            "tag": "Description",
+          },
+          Object {
+            "contents": Array [
+              Object {
+                "parse": Object {
+                  "endTagToken": 63,
+                  "startTagToken": 63,
+                  "tag": "String",
+                  "value": "vortex",
+                },
+                "tag": "String",
+                "value": "vortex",
+              },
+            ],
+            "from": "DEF",
+            "key": "DEF#ABC",
+            "name": "vortex",
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 63,
+                  "startTagToken": 63,
+                  "tag": "String",
+                  "value": "vortex",
+                },
+              ],
+              "endTagToken": 64,
+              "from": "DEF",
+              "key": "DEF#ABC",
+              "startTagToken": 58,
+              "tag": "Exit",
+              "to": "ABC",
+            },
+            "tag": "Exit",
+            "to": "ABC",
+          },
+        ],
+        "display": undefined,
+        "global": undefined,
+        "key": "ABC",
+        "name": "Vortex",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 42,
+                  "startTagToken": 42,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              ],
+              "endTagToken": 43,
+              "startTagToken": 40,
+              "tag": "Name",
+              "value": "Vortex",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 46,
+                  "startTagToken": 46,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "endTagToken": 47,
+                  "startTagToken": 47,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                Object {
+                  "endTagToken": 48,
+                  "startTagToken": 48,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 54,
+                      "startTagToken": 54,
+                      "tag": "String",
+                      "value": "(toggle)",
+                    },
+                  ],
+                  "endTagToken": 55,
+                  "startTagToken": 49,
+                  "tag": "Link",
+                  "to": "toggleOpen",
+                },
+                Object {
+                  "endTagToken": 56,
+                  "startTagToken": 56,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 57,
+              "spaceAfter": false,
+              "spaceBefore": false,
+              "startTagToken": 44,
+              "tag": "Description",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 63,
+                  "startTagToken": 63,
+                  "tag": "String",
+                  "value": "vortex",
+                },
+              ],
+              "endTagToken": 64,
+              "from": "DEF",
+              "key": "DEF#ABC",
+              "startTagToken": 58,
+              "tag": "Exit",
+              "to": "ABC",
+            },
+          ],
+          "endTagToken": 65,
+          "key": "ABC",
+          "startTagToken": 35,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        "render": Array [
+          Object {
+            "parse": Object {
+              "endTagToken": 47,
+              "startTagToken": 47,
+              "tag": "String",
+              "value": "Vortex",
+            },
+            "spaceAfter": true,
+            "spaceBefore": false,
+            "tag": "String",
+            "value": "Vortex",
+          },
+          Object {
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 54,
+                  "startTagToken": 54,
+                  "tag": "String",
+                  "value": "(toggle)",
+                },
+              ],
+              "endTagToken": 55,
+              "startTagToken": 49,
+              "tag": "Link",
+              "to": "toggleOpen",
+            },
+            "spaceAfter": true,
+            "spaceBefore": true,
+            "tag": "Link",
+            "text": "(toggle)",
+            "to": "toggleOpen",
+          },
+        ],
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+      Object {
+        "contents": Array [
+          Object {
+            "contents": Array [
+              Object {
+                "contents": Array [
+                  Object {
+                    "parse": Object {
+                      "endTagToken": 87,
+                      "startTagToken": 87,
+                      "tag": "String",
+                      "value": "welcome",
+                    },
+                    "tag": "String",
+                    "value": "welcome",
+                  },
+                ],
+                "from": "ABC",
+                "key": "ABC#DEF",
+                "name": "welcome",
+                "parse": Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 87,
+                      "startTagToken": 87,
+                      "tag": "String",
+                      "value": "welcome",
+                    },
+                  ],
+                  "endTagToken": 88,
+                  "from": "ABC",
+                  "key": "ABC#DEF",
+                  "startTagToken": 82,
+                  "tag": "Exit",
+                  "to": "DEF",
+                },
+                "tag": "Exit",
+                "to": "DEF",
+              },
+            ],
+            "display": undefined,
+            "global": undefined,
+            "key": "ABC",
+            "name": "",
+            "parse": Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 87,
+                      "startTagToken": 87,
+                      "tag": "String",
+                      "value": "welcome",
+                    },
+                  ],
+                  "endTagToken": 88,
+                  "from": "ABC",
+                  "key": "ABC#DEF",
+                  "startTagToken": 82,
+                  "tag": "Exit",
+                  "to": "DEF",
+                },
+              ],
+              "endTagToken": 89,
+              "key": "ABC",
+              "startTagToken": 77,
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+            "render": Array [],
+            "tag": "Room",
+            "x": undefined,
+            "y": undefined,
+          },
+        ],
+        "dependencies": Array [
+          "open",
+        ],
+        "if": "open",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 87,
+                      "startTagToken": 87,
+                      "tag": "String",
+                      "value": "welcome",
+                    },
+                  ],
+                  "endTagToken": 88,
+                  "from": "ABC",
+                  "key": "ABC#DEF",
+                  "startTagToken": 82,
+                  "tag": "Exit",
+                  "to": "DEF",
+                },
+              ],
+              "endTagToken": 89,
+              "key": "ABC",
+              "startTagToken": 77,
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+          ],
+          "dependencies": Array [
+            Object {
+              "endTagToken": 76,
+              "on": "open",
+              "startTagToken": 71,
+              "tag": "Depend",
+            },
+          ],
+          "endTagToken": 90,
+          "if": "open",
+          "startTagToken": 66,
+          "tag": "Condition",
+        },
+        "tag": "Condition",
+      },
+      Object {
+        "contents": Array [],
+        "display": undefined,
+        "global": undefined,
+        "key": "DEF",
+        "name": "Welcome",
+        "parse": Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 98,
+                  "startTagToken": 98,
+                  "tag": "String",
+                  "value": "Welcome",
+                },
+              ],
+              "endTagToken": 99,
+              "startTagToken": 96,
+              "tag": "Name",
+              "value": "Welcome",
+            },
+          ],
+          "endTagToken": 100,
+          "key": "DEF",
+          "startTagToken": 91,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        "render": Array [],
+        "tag": "Room",
+        "x": undefined,
+        "y": undefined,
+      },
+      Object {
+        "default": "false",
+        "key": "open",
+        "parse": Object {
+          "default": "false",
+          "endTagToken": 109,
+          "key": "open",
+          "startTagToken": 101,
+          "tag": "Variable",
+        },
+        "tag": "Variable",
+      },
+      Object {
+        "key": "toggleOpen",
+        "parse": Object {
+          "endTagToken": 118,
+          "key": "toggleOpen",
+          "src": "open = !open",
+          "startTagToken": 110,
+          "tag": "Action",
+        },
+        "src": "open = !open",
+        "tag": "Action",
+      },
+      Object {
+        "dependencies": Array [
+          "open",
+        ],
+        "key": "closed",
+        "parse": Object {
+          "dependencies": Array [
+            Object {
+              "endTagToken": 132,
+              "on": "open",
+              "startTagToken": 127,
+              "tag": "Depend",
+            },
+          ],
+          "endTagToken": 133,
+          "key": "closed",
+          "src": "!open",
+          "startTagToken": 119,
+          "tag": "Computed",
+        },
+        "src": "!open",
+        "tag": "Computed",
+      },
+    ],
+    "fileName": "test",
+    "key": "Test",
+    "parse": Object {
+      "contents": Array [
+        Object {
+          "contents": Array [
+            Object {
+              "as": "power",
+              "endTagToken": 24,
+              "key": "basePower",
+              "startTagToken": 13,
+              "tag": "Use",
+              "type": "Variable",
+            },
+            Object {
+              "endTagToken": 33,
+              "key": "overview",
+              "startTagToken": 25,
+              "tag": "Use",
+              "type": "Room",
+            },
+          ],
+          "endTagToken": 34,
+          "from": "BASE",
+          "startTagToken": 8,
+          "tag": "Import",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 42,
+                  "startTagToken": 42,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+              ],
+              "endTagToken": 43,
+              "startTagToken": 40,
+              "tag": "Name",
+              "value": "Vortex",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 46,
+                  "startTagToken": 46,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "endTagToken": 47,
+                  "startTagToken": 47,
+                  "tag": "String",
+                  "value": "Vortex",
+                },
+                Object {
+                  "endTagToken": 48,
+                  "startTagToken": 48,
+                  "tag": "Whitespace",
+                },
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 54,
+                      "startTagToken": 54,
+                      "tag": "String",
+                      "value": "(toggle)",
+                    },
+                  ],
+                  "endTagToken": 55,
+                  "startTagToken": 49,
+                  "tag": "Link",
+                  "to": "toggleOpen",
+                },
+                Object {
+                  "endTagToken": 56,
+                  "startTagToken": 56,
+                  "tag": "Whitespace",
+                },
+              ],
+              "endTagToken": 57,
+              "spaceAfter": false,
+              "spaceBefore": false,
+              "startTagToken": 44,
+              "tag": "Description",
+            },
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 63,
+                  "startTagToken": 63,
+                  "tag": "String",
+                  "value": "vortex",
+                },
+              ],
+              "endTagToken": 64,
+              "from": "DEF",
+              "key": "DEF#ABC",
+              "startTagToken": 58,
+              "tag": "Exit",
+              "to": "ABC",
+            },
+          ],
+          "endTagToken": 65,
+          "key": "ABC",
+          "startTagToken": 35,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "contents": Array [
+                    Object {
+                      "endTagToken": 87,
+                      "startTagToken": 87,
+                      "tag": "String",
+                      "value": "welcome",
+                    },
+                  ],
+                  "endTagToken": 88,
+                  "from": "ABC",
+                  "key": "ABC#DEF",
+                  "startTagToken": 82,
+                  "tag": "Exit",
+                  "to": "DEF",
+                },
+              ],
+              "endTagToken": 89,
+              "key": "ABC",
+              "startTagToken": 77,
+              "tag": "Room",
+              "x": undefined,
+              "y": undefined,
+            },
+          ],
+          "dependencies": Array [
+            Object {
+              "endTagToken": 76,
+              "on": "open",
+              "startTagToken": 71,
+              "tag": "Depend",
+            },
+          ],
+          "endTagToken": 90,
+          "if": "open",
+          "startTagToken": 66,
+          "tag": "Condition",
+        },
+        Object {
+          "contents": Array [
+            Object {
+              "contents": Array [
+                Object {
+                  "endTagToken": 98,
+                  "startTagToken": 98,
+                  "tag": "String",
+                  "value": "Welcome",
+                },
+              ],
+              "endTagToken": 99,
+              "startTagToken": 96,
+              "tag": "Name",
+              "value": "Welcome",
+            },
+          ],
+          "endTagToken": 100,
+          "key": "DEF",
+          "startTagToken": 91,
+          "tag": "Room",
+          "x": undefined,
+          "y": undefined,
+        },
+        Object {
+          "default": "false",
+          "endTagToken": 109,
+          "key": "open",
+          "startTagToken": 101,
+          "tag": "Variable",
+        },
+        Object {
+          "endTagToken": 118,
+          "key": "toggleOpen",
+          "src": "open = !open",
+          "startTagToken": 110,
+          "tag": "Action",
+        },
+        Object {
+          "dependencies": Array [
+            Object {
+              "endTagToken": 132,
+              "on": "open",
+              "startTagToken": 127,
+              "tag": "Depend",
+            },
+          ],
+          "endTagToken": 133,
+          "key": "closed",
+          "src": "!open",
+          "startTagToken": 119,
+          "tag": "Computed",
+        },
+      ],
+      "endTagToken": 134,
+      "fileName": "test",
+      "key": "Test",
+      "startTagToken": 0,
+      "tag": "Asset",
+    },
+    "player": undefined,
+    "subFolder": undefined,
+    "tag": "Asset",
+    "zone": undefined,
+  },
+]
+`;

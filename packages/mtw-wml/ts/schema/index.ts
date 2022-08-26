@@ -101,6 +101,7 @@ function schemaFromParseItem(item: ParseFirstImpressionTag): SchemaFirstImpressi
 function schemaFromParseItem(item: ParseOneCoolThingTag): SchemaOneCoolThingTag
 function schemaFromParseItem(item: ParseOutfitTag): SchemaOutfitTag
 function schemaFromParseItem(item: ParseCharacterTag): SchemaCharacterTag
+function schemaFromParseItem(item: ParseTag): SchemaTag
 function schemaFromParseItem(item: ParseTag): SchemaTag {
     let schemaContents: SchemaTag[] = []
     if (isParseTagNesting(item)) {
