@@ -151,6 +151,15 @@ export class AssetWorkspace {
         this.status = 'Clean'
     }
 
+    async pushWML(): Promise<void> {
+        const filePath = `${this.fileNameBase}.wml`
+        await s3Client.put({
+            Key: filePath,
+            Body: this.wml || ''
+        })
+        this.status = 'Clean'
+    }
+
 }
 
 export default AssetWorkspace
