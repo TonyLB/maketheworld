@@ -5,9 +5,21 @@ jest.mock('./clients')
 import { s3Client } from './clients'
 jest.mock('./stream')
 import { streamToString } from './stream'
+jest.mock('uuid')
+import { v4 as uuidv4 } from 'uuid'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const streamToStringMock = streamToString as jest.Mock
+const uuidv4Mock = uuidv4 as jest.Mock
+
+const uuidMockFactory = () => {
+    let index = 0
+    return () => {
+        const returnValue = `UUID-${index}`
+        index += 1
+        return returnValue
+    }
+}
 
 describe('AssetWorkspace', () => {
     beforeEach(() => {
@@ -53,6 +65,32 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.normal).toEqual({})
         })
 
+    })
+
+    describe('setWML', () => {
+        it('should correctly parse WML input', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            testWorkspace.namespaceIdToDB = {
+                'a123': 'TestA'
+            }
+            uuidv4Mock.mockImplementation(uuidMockFactory())
+            testWorkspace.setWML(`
+                <Asset key=(Test) fileName="Test">
+                    <Room key=(a123)>
+                        <Exit to=(a123) from=(b456)>vortex</Exit>
+                        <Exit to=(b456)>welcome</Exit>
+                    </Room>
+                    <Room key=(b456) />
+                </Asset>
+            `)
+            expect(testWorkspace.normal).toMatchSnapshot()
+            expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
+        })
+    
     })
 
 })

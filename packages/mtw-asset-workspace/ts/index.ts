@@ -1,10 +1,11 @@
 import { GetObjectCommand, NotFound } from "@aws-sdk/client-s3"
+import { v4 as uuidv4 } from 'uuid'
 
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
 import parser from '@tonylb/mtw-wml/dist/parser/index'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalCharacter, NormalFeature, NormalForm, NormalItem, NormalMap, NormalRoom } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
@@ -39,6 +40,12 @@ type ImportTree = {
     [name: string]: ImportTree
 }
 
+type NamespaceMapping = {
+    [name: string]: string
+}
+
+const isMappableNormalItem = (item: NormalItem | NormalCharacter): item is (NormalRoom | NormalFeature | NormalMap | NormalCharacter) => (['Room', 'Feature', 'Map', 'Character'].includes(item.tag))
+
 export class AssetWorkspace {
     fileName: string;
     zone: 'Canon' | 'Library' | 'Personal';
@@ -46,7 +53,8 @@ export class AssetWorkspace {
     player?: string;
     status: AssetWorkspaceStatus = 'Initial';
     normal?: NormalForm;
-    importTree: ImportTree = {}
+    namespaceIdToDB: NamespaceMapping = {};
+    importTree: ImportTree = {};
     
     constructor(args: AssetWorkspaceConstructorArgs) {
         if (!args.fileName) {
@@ -93,7 +101,28 @@ export class AssetWorkspace {
         this.status = 'Clean'
     }
 
-    async loadWML() {
+    //
+    // TODO: Refactor tokenizer, parser, and schema to accept generators, then make setWML capable of
+    // reading in a stream, and processing it as it arrives
+    //
+    setWML(source: string): void {
+        const schema = schemaFromParse(parser(tokenizer(new SourceStream(source))))
+        const normalizer = new Normalizer()
+        schema.forEach((item, index) => {
+            normalizer.add(item, { contextStack: [], location: [index] })
+        })
+        this.normal = normalizer.normal
+        Object.values(this.normal)
+            .filter(isMappableNormalItem)
+            .forEach(({ key }) => {
+                if (!(key in this.namespaceIdToDB)) {
+                    this.namespaceIdToDB[key] = uuidv4()
+                }
+            })
+        this.status = 'Clean'
+    }
+
+    async loadWML(): Promise<void> {
         const subFolderElements = (this.subFolder || '').split('/')
         const subFolderOutput = subFolderElements.length > 0 ? `${subFolderElements.join('/')}/` : ''
 
@@ -117,12 +146,7 @@ export class AssetWorkspace {
             throw err
         }
 
-        const schema = schemaFromParse(parser(tokenizer(new SourceStream(contents))))
-        const normalizer = new Normalizer()
-        schema.forEach((item, index) => {
-            normalizer.add(item, { contextStack: [], location: [index] })
-        })
-        this.normal = normalizer.normal
+        this.setWML(contents)
         //
         // TODO: Check ScopeMap class and figure out what needs to be refactored to work here
         //

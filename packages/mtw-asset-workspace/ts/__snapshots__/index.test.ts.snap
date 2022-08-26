@@ -15,3 +15,178 @@ Object {
   "BASE": Object {},
 }
 `;
+
+exports[`AssetWorkspace setWML should correctly parse WML input 1`] = `
+Object {
+  "Test": Object {
+    "Story": false,
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+          Object {
+            "index": 1,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "contextStack": Array [],
+        "location": Array [
+          0,
+        ],
+      },
+    ],
+    "fileName": "Test",
+    "instance": false,
+    "key": "Test",
+    "tag": "Asset",
+    "zone": undefined,
+  },
+  "a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "a123#b456",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+        ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "global": false,
+    "key": "a123",
+    "tag": "Room",
+  },
+  "a123#b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "a123",
+            "tag": "Room",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          1,
+        ],
+      },
+    ],
+    "from": "a123",
+    "key": "a123#b456",
+    "name": "welcome",
+    "tag": "Exit",
+    "to": "b456",
+  },
+  "b456": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [
+          Object {
+            "index": 0,
+            "key": "b456#a123",
+            "tag": "Exit",
+          },
+        ],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [],
+      },
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+        ],
+        "location": Array [
+          0,
+          1,
+        ],
+        "name": "",
+        "render": Array [],
+        "spaceAfter": false,
+        "spaceBefore": false,
+      },
+    ],
+    "key": "b456",
+    "tag": "Room",
+  },
+  "b456#a123": Object {
+    "appearances": Array [
+      Object {
+        "contents": Array [],
+        "contextStack": Array [
+          Object {
+            "index": 0,
+            "key": "Test",
+            "tag": "Asset",
+          },
+          Object {
+            "index": 0,
+            "key": "b456",
+            "tag": "Room",
+          },
+        ],
+        "location": Array [
+          0,
+          0,
+          0,
+        ],
+      },
+    ],
+    "from": "b456",
+    "key": "b456#a123",
+    "name": "vortex",
+    "tag": "Exit",
+    "to": "a123",
+  },
+}
+`;
+
+exports[`AssetWorkspace setWML should correctly parse WML input 2`] = `
+Object {
+  "a123": "TestA",
+  "b456": "UUID-0",
+}
+`;
