@@ -1,10 +1,11 @@
-import AssetWorkspace from '.'
+import AssetWorkspace, { parseAssetWorkspaceAddress } from '.'
 import { NotFound } from '@aws-sdk/client-s3'
 
 jest.mock('./clients')
 import { s3Client } from './clients'
 jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
+import { AssetWorkspaceException } from './errors'
 
 const s3ClientMock = s3Client as jest.Mocked<typeof s3Client>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -17,6 +18,55 @@ const uuidMockFactory = () => {
         return returnValue
     }
 }
+
+describe('parseAssetWorkspaceAddress', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks();
+    })
+    
+    it('should reject a Personal zone address without player', () => {
+        expect(() => { parseAssetWorkspaceAddress('Personal/Test')}).toThrow(AssetWorkspaceException)
+    })
+
+    it('should reject address without fileName', () => {
+        expect(() => { parseAssetWorkspaceAddress('Library/')}).toThrow(AssetWorkspaceException)
+    })
+
+    it('should reject illegal zone', () => {
+        expect(() => { parseAssetWorkspaceAddress('Wrong/Test/TestB')}).toThrow(AssetWorkspaceException)
+    })
+
+    it('should properly parse Personal zone address', () => {
+        expect(parseAssetWorkspaceAddress('Personal/Test/TestB')).toEqual({
+            zone: 'Personal',
+            player: 'Test',
+            fileName: 'TestB'
+        })
+    })
+
+    it('should properly parse Library zone address', () => {
+        expect(parseAssetWorkspaceAddress('Library/TestB')).toEqual({
+            zone: 'Library',
+            fileName: 'TestB'
+        })
+    })
+
+    it('should properly extract subfolders', () => {
+        expect(parseAssetWorkspaceAddress('Library/Test/Another/TestB')).toEqual({
+            zone: 'Library',
+            subFolder: 'Test/Another',
+            fileName: 'TestB'
+        })
+        expect(parseAssetWorkspaceAddress('Personal/Test/Another/TestB')).toEqual({
+            zone: 'Personal',
+            player: 'Test',
+            subFolder: 'Another',
+            fileName: 'TestB'
+        })
+    })
+
+})
 
 describe('AssetWorkspace', () => {
     beforeEach(() => {

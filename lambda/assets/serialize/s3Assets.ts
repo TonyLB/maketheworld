@@ -5,6 +5,7 @@ import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index.js'
 import parse from '@tonylb/mtw-wml/dist/parser/index.js'
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index.js'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
+import NewAssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/index"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -42,7 +43,7 @@ export class AssetWorkspace {
     }
 }
 
-export const fileNameFromAssetId = async (AssetId) => {
+export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAssetWorkspace | undefined> => {
     const [type] = splitType(AssetId)
     let dataCategory = 'Meta::Asset'
     switch(type) {
@@ -50,12 +51,18 @@ export const fileNameFromAssetId = async (AssetId) => {
             dataCategory = 'Meta::Character'
             break
     }
-    const { fileName } = (await assetDB.getItem<{ fileName: string }>({
+    const address = (await assetDB.getItem<AssetWorkspaceAddress>({
         AssetId,
         DataCategory: dataCategory,
-        ProjectionFields: ['fileName']
+        ProjectionFields: ['fileName', ':zone', 'player', 'subFolder'],
+        ExpressionAttributeNames: {
+            ':zone': 'zone'
+        }
     })) || {}
-    return fileName
+    if (!isAssetWorkspaceAddress(address)) {
+        return undefined
+    }
+    return new NewAssetWorkspace(address)
 }
 
 export const getAssets = async (s3Client, fileName) => {
