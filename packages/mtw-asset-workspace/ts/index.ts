@@ -69,15 +69,20 @@ export class AssetWorkspace {
         }
     }
 
-    get fileNameBase(): string {
+    get filePath(): string {
         const subFolderElements = (this.subFolder || '').split('/').filter((value) => (value))
         const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
 
         const filePath = this.zone === 'Personal'
-            ? `${this.zone}/${subFolderOutput}${this.player}/${this.fileName}`
-            : `${this.zone}/${subFolderOutput}${this.fileName}`
+            ? `${this.zone}/${this.player}/${subFolderOutput}`
+            : `${this.zone}/${subFolderOutput}`
         return filePath
     }
+
+    get fileNameBase(): string {
+        return `${this.filePath}${this.fileName}`
+    }
+
     async loadJSON() {
         const filePath = `${this.fileNameBase}.json`
         

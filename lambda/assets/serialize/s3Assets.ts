@@ -5,6 +5,7 @@ import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index.js'
 import parse from '@tonylb/mtw-wml/dist/parser/index.js'
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index.js'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
+import NewAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/index"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -56,6 +57,45 @@ export const fileNameFromAssetId = async (AssetId) => {
         ProjectionFields: ['fileName']
     })) || {}
     return fileName
+}
+
+export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAssetWorkspace | undefined> => {
+    const [type] = splitType(AssetId)
+    let dataCategory = 'Meta::Asset'
+    switch(type) {
+        case 'CHARACTER':
+            dataCategory = 'Meta::Character'
+            break
+    }
+    const { fileName, zone, player, subFolder } = (await assetDB.getItem<{ fileName: string; zone: 'Canon' | 'Library' | 'Personal'; player: string; subFolder: string; }>({
+        AssetId,
+        DataCategory: dataCategory,
+        ProjectionFields: ['fileName', ':zone', 'player', 'subFolder'],
+        ExpressionAttributeNames: {
+            ':zone': 'zone'
+        }
+    })) || {}
+    if (!fileName || !zone) {
+        return undefined
+    }
+    if (zone === 'Personal') {
+        if (!player) {
+            return undefined
+        }
+        return new NewAssetWorkspace({
+            zone,
+            player,
+            subFolder,
+            fileName
+        })
+    }
+    else {
+        return new NewAssetWorkspace({
+            zone,
+            subFolder,
+            fileName
+        })
+    }
 }
 
 export const getAssets = async (s3Client, fileName) => {

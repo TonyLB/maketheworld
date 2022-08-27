@@ -1,12 +1,13 @@
 import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
 import { dbRegister } from '../serialize/dbRegister.js'
-import { getAssets, fileNameFromAssetId } from "../serialize/s3Assets"
+import { getAssets, assetWorkspaceFromAssetId } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import ScopeMap from '../serialize/scopeMap.js'
 import { isNormalAsset, isNormalImport, NormalAsset, NormalCharacter } from "@tonylb/mtw-wml/dist/normalize"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace"
 
 const { S3_BUCKET } = process.env;
 
@@ -116,10 +117,10 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
 export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads: MoveByAssetIdMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
         payloads.map(async (payload) => {
-            const fullFileName = await fileNameFromAssetId(payload.AssetId)
-            if (fullFileName) {
-                const fromPath = `${fullFileName.split('/').slice(0, -1).join('/')}/`
-                const fileName = (fullFileName.split('/').slice(-1)[0] || '').replace(/\.wml$/, '')
+            const assetWorkspace: AssetWorkspace | undefined = await assetWorkspaceFromAssetId(payload.AssetId)
+            if (assetWorkspace) {
+                const fromPath = assetWorkspace.filePath
+                const fileName = assetWorkspace.fileName
                 if (fileName) {
                     messageBus.send({
                         type: 'MoveAsset',

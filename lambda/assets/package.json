@@ -16,6 +16,7 @@
     "@aws-sdk/client-s3": "^3.42.0",
     "@aws-sdk/s3-request-presigner": "^3.44.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
+    "@tonylb/mtw-asset-workspace": "file:./mtw-asset-workspace",
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
@@ -26,6 +27,7 @@
     "uuid": "^8.3.2"
   },
   "files": [
+    "mtw-asset-workspace",
     "mtw-utilities",
     "mtw-interfaces",
     "mtw-internal-bus",

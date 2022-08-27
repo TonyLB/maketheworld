@@ -3,7 +3,8 @@ export default {
   globals: {
       extensionsToTreatAsEsm: ['.ts', '.js'],
       'ts-jest': {
-          useESM: true
+          useESM: true,
+          isolatedModules: true
       }
   },
   preset: 'ts-jest/presets/js-with-ts-esm',
