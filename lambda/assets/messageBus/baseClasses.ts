@@ -1,4 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -37,9 +38,8 @@ export type UploadResponseMessage = {
 
 export type MoveAssetMessage = {
     type: 'MoveAsset';
-    fromPath: string;
-    fileName: string;
-    toPath: string;
+    from: AssetWorkspaceAddress;
+    to: AssetWorkspaceAddress;
 }
 
 export type MoveByAssetIdMessage = {

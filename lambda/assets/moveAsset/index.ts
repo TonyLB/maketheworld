@@ -16,87 +16,45 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
     if (s3Client) {
         await Promise.all(
             payloads.map(async (payload) => {
-                const { fromPath, fileName, toPath } = payload
+                const { from, to } = payload
                 await asyncSuppressExceptions(async () => {
-                    const assetWorkspace = await getAssets(s3Client, `${fromPath}${fileName}.wml`)
-                    if (!assetWorkspace) {
+                    const fromAssetWorkspace = new AssetWorkspace(from)
+                    const toAssetWorkspace = new AssetWorkspace(to)
+                    await fromAssetWorkspace.loadJSON()
+                    if (fromAssetWorkspace.status.json !== 'Clean') {
                         return
                     }
-                    const checkAsset = Object.values(assetWorkspace.normalize()).find(({ tag }) => (['Asset', 'Character', 'Story'].includes(tag))) as NormalAsset | NormalCharacter
-                    const incomingTag = checkAsset.tag
-            
-                    if (checkAsset) {
-                        const [zone, ...rest] = toPath.split('/')
-                        const subFolder = [...rest, incomingTag === 'Character' ? 'Characters' : 'Assets'].join('/')
-                        assetWorkspace.wmlQuery.search('Asset, Character, Story')
-                            .prop('zone', zone)
-                            .prop('subFolder', subFolder)
-            
-                        if (['Canon', 'Library'].includes(zone)) {
-                            assetWorkspace.wmlQuery.search('Asset, Character, Story').removeProp('player')
-                        }
-                        if (zone === 'Personal') {
-                            if (rest[0]) {
-                                assetWorkspace.wmlQuery.search('Asset, Character, Story').prop('player', rest[0])
-                            }
-                        }
-            
-                        const isScopedAsset = !(isNormalAsset(checkAsset) && checkAsset.instance)
-                        const scopeMap = new ScopeMap({})
-                        const finalKey = `${toPath}${incomingTag === 'Character' ? 'Characters' : 'Assets'}/${fileName}`
-                        if (isScopedAsset) {
-                            await Promise.all([
-                                scopeMap.getTranslateFile(s3Client, { name: `${fromPath}${fileName}` }),
-                                s3Client.send(new CopyObjectCommand({
-                                    Bucket: S3_BUCKET,
-                                    CopySource: `${S3_BUCKET}/${fromPath}${fileName}.json`,
-                                    Key: `${finalKey}.json`
-                                }))
-                            ])
-                        }
-                        await s3Client.send(new PutObjectCommand({
+                    const finalKey = toAssetWorkspace.fileNameBase
+                    await Promise.all([
+                        s3Client.send(new CopyObjectCommand({
                             Bucket: S3_BUCKET,
-                            Key: `${finalKey}.wml`,
-                            Body: assetWorkspace.contents()
-                        }))
-                        const normalized = assetWorkspace.normalize()
-                        scopeMap.translateNormalForm(normalized)
-                        const importMap = Object.values(normalized)
-                            .filter(isNormalImport)
-                            .reduce((previous, { mapping = {}, from }) => {
-                                return {
-                                    ...previous,
-                                    ...(Object.entries(mapping)
-                                        .reduce((previous, [key, scopedId]) => ({
-                                            ...previous,
-                                            [key]: {
-                                                scopedId,
-                                                asset: from
-                                            }
-                                        }), {})
-                                    )
-                                }
-                            }, {})
-                        const importTree = await scopeMap.importAssetIds(importMap || {})
-                        await dbRegister({
+                            CopySource: `${S3_BUCKET}/${fromAssetWorkspace.fileNameBase}.json`,
+                            Key: `${finalKey}.json`
+                        })),
+                        s3Client.send(new CopyObjectCommand({
+                            Bucket: S3_BUCKET,
+                            CopySource: `${S3_BUCKET}/${fromAssetWorkspace.fileNameBase}.wml`,
+                            Key: `${finalKey}.wml`
+                        })),
+                        dbRegister({
                             fileName: `${finalKey}.wml`,
                             translateFile: `${finalKey}.json`,
-                            importTree,
-                            scopeMap: scopeMap.serialize(),
-                            namespaceMap: scopeMap.namespaceMap,
-                            assets: normalized
+                            importTree: [],
+                            scopeMap: fromAssetWorkspace.namespaceIdToDB,
+                            namespaceMap: {},
+                            assets: fromAssetWorkspace.normal || {}
                         })
-                        await s3Client.send(new DeleteObjectCommand({
+                    ])
+                    await Promise.all([
+                        s3Client.send(new DeleteObjectCommand({
                             Bucket: S3_BUCKET,
-                            Key: `${fromPath}${fileName}.wml`,
+                            Key: `${fromAssetWorkspace.fileNameBase}.wml`,
+                        })),
+                        s3Client.send(new DeleteObjectCommand({
+                            Bucket: S3_BUCKET,
+                            Key: `${fromAssetWorkspace.fileNameBase}.json`,
                         }))
-                        if (isScopedAsset) {
-                            await s3Client.send(new DeleteObjectCommand({
-                                Bucket: S3_BUCKET,
-                                Key: `${fromPath}${fileName}.json`,
-                            }))
-                        }
-                    }
+                    ])
             
                 })
             })

@@ -32,6 +32,9 @@ type AssetWorkspaceConstructorPersonal = {
 export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
 
 export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddress => {
+    if (!item) {
+        return false
+    }
     if (!(typeof item === 'object')) {
         return false
     }
