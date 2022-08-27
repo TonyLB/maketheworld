@@ -50,6 +50,36 @@ export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddres
     return true
 }
 
+export const parseAssetWorkspaceAddress = (fileName: string): AssetWorkspaceAddress => {
+    const folders = fileName.split('/').filter((value) => (value))
+    const testZone = folders[0]
+    if (!['Canon', 'Library', 'Personal'].includes(testZone)) {
+        throw new AssetWorkspaceException(`"${testZone}" is not a legal Asset zone`)
+    }
+    const zone = testZone as 'Canon' | 'Library' | 'Personal'
+    if (zone === 'Personal') {
+        if (folders.length < 3) {
+            throw new AssetWorkspaceException(`"${fileName}" is not a legal Asset address`)
+        }
+        return {
+            zone,
+            player: folders[1],
+            subFolder: folders.length > 3 ? folders.slice(2, -1).join('/') : undefined,
+            fileName: folders.slice(-1)[0]
+        }
+    }
+    else {
+        if (folders.length < 2) {
+            throw new AssetWorkspaceException(`"${fileName}" is not a legal Asset address`)
+        }
+        return {
+            zone,
+            subFolder: folders.length > 2 ? folders.slice(1, -1).join('/') : undefined,
+            fileName: folders.slice(-1)[0]
+        }
+    }
+}
+
 type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
 type AssetWorkspaceStatus = {
