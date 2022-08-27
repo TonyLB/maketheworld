@@ -31,6 +31,25 @@ type AssetWorkspaceConstructorPersonal = {
 
 export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
 
+export const isAssetWorkspaceAddress = (item: any): item is AssetWorkspaceAddress => {
+    if (!(typeof item === 'object')) {
+        return false
+    }
+    if (!(item.fileName && typeof item.fileName === 'string')) {
+        return false
+    }
+    if (!(item.zone && typeof item.zone === 'string')) {
+        return false
+    }
+    if (item.subFolder && typeof item.subFolder !== 'string') {
+        return false
+    }
+    if (item.zone === 'Personal' && !(item.player && typeof item.player === 'string')) {
+        return false
+    }
+    return true
+}
+
 type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
 type AssetWorkspaceStatus = {

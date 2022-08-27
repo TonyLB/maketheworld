@@ -5,7 +5,7 @@ import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index.js'
 import parse from '@tonylb/mtw-wml/dist/parser/index.js'
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index.js'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
-import NewAssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/index"
+import NewAssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/index"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -42,8 +42,6 @@ export class AssetWorkspace {
         return assetKey
     }
 }
-
-const isAssetWorkspaceAddress = (args: AssetWorkspaceAddress | {}): args is AssetWorkspaceAddress => ('fileName' in args)
 
 export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAssetWorkspace | undefined> => {
     const [type] = splitType(AssetId)
