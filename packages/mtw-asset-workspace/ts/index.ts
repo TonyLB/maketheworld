@@ -29,7 +29,7 @@ type AssetWorkspaceConstructorPersonal = {
     player: string;
 } & AssetWorkspaceConstructorBase
 
-type AssetWorkspaceConstructorArgs = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
+export type AssetWorkspaceAddress = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
 
 type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
 
@@ -45,10 +45,7 @@ type NamespaceMapping = {
 const isMappableNormalItem = (item: NormalItem | NormalCharacter): item is (NormalRoom | NormalFeature | NormalMap | NormalCharacter) => (['Room', 'Feature', 'Map', 'Character'].includes(item.tag))
 
 export class AssetWorkspace {
-    fileName: string;
-    zone: 'Canon' | 'Library' | 'Personal';
-    subFolder?: string;
-    player?: string;
+    address: AssetWorkspaceAddress;
     status: AssetWorkspaceStatus = {
         json: 'Initial',
         wml: 'Initial'
@@ -57,30 +54,29 @@ export class AssetWorkspace {
     namespaceIdToDB: NamespaceMapping = {};
     wml?: string;
     
-    constructor(args: AssetWorkspaceConstructorArgs) {
+    constructor(args: AssetWorkspaceAddress) {
         if (!args.fileName) {
             throw new AssetWorkspaceException('Invalid arguments to AssetWorkspace constructor')
         }
-        this.fileName = args.fileName
-        this.zone = args.zone
-        this.subFolder = args.subFolder
-        if (args.zone === 'Personal') {
-            this.player = args.player
-        }
+        this.address = args
     }
 
     get filePath(): string {
-        const subFolderElements = (this.subFolder || '').split('/').filter((value) => (value))
+        const subFolderElements = (this.address.subFolder || '').split('/').filter((value) => (value))
         const subFolderOutput = (subFolderElements.length > 0) ? `${subFolderElements.join('/')}/` : ''
 
-        const filePath = this.zone === 'Personal'
-            ? `${this.zone}/${this.player}/${subFolderOutput}`
-            : `${this.zone}/${subFolderOutput}`
+        const filePath = this.address.zone === 'Personal'
+            ? `${this.address.zone}/${this.address.player}/${subFolderOutput}`
+            : `${this.address.zone}/${subFolderOutput}`
         return filePath
     }
 
     get fileNameBase(): string {
-        return `${this.filePath}${this.fileName}`
+        return `${this.filePath}${this.address.fileName}`
+    }
+
+    get fileName(): string {
+        return this.address.fileName
     }
 
     async loadJSON() {

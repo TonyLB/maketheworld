@@ -5,7 +5,7 @@ import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index.js'
 import parse from '@tonylb/mtw-wml/dist/parser/index.js'
 import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index.js'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery/index.js'
-import NewAssetWorkspace from "@tonylb/mtw-asset-workspace/dist/index"
+import NewAssetWorkspace, { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/index"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
@@ -43,21 +43,7 @@ export class AssetWorkspace {
     }
 }
 
-export const fileNameFromAssetId = async (AssetId) => {
-    const [type] = splitType(AssetId)
-    let dataCategory = 'Meta::Asset'
-    switch(type) {
-        case 'CHARACTER':
-            dataCategory = 'Meta::Character'
-            break
-    }
-    const { fileName } = (await assetDB.getItem<{ fileName: string }>({
-        AssetId,
-        DataCategory: dataCategory,
-        ProjectionFields: ['fileName']
-    })) || {}
-    return fileName
-}
+const isAssetWorkspaceAddress = (args: AssetWorkspaceAddress | {}): args is AssetWorkspaceAddress => ('fileName' in args)
 
 export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAssetWorkspace | undefined> => {
     const [type] = splitType(AssetId)
@@ -67,7 +53,7 @@ export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAss
             dataCategory = 'Meta::Character'
             break
     }
-    const { fileName, zone, player, subFolder } = (await assetDB.getItem<{ fileName: string; zone: 'Canon' | 'Library' | 'Personal'; player: string; subFolder: string; }>({
+    const address = (await assetDB.getItem<AssetWorkspaceAddress>({
         AssetId,
         DataCategory: dataCategory,
         ProjectionFields: ['fileName', ':zone', 'player', 'subFolder'],
@@ -75,27 +61,10 @@ export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAss
             ':zone': 'zone'
         }
     })) || {}
-    if (!fileName || !zone) {
+    if (!isAssetWorkspaceAddress(address)) {
         return undefined
     }
-    if (zone === 'Personal') {
-        if (!player) {
-            return undefined
-        }
-        return new NewAssetWorkspace({
-            zone,
-            player,
-            subFolder,
-            fileName
-        })
-    }
-    else {
-        return new NewAssetWorkspace({
-            zone,
-            subFolder,
-            fileName
-        })
-    }
+    return new NewAssetWorkspace(address)
 }
 
 export const getAssets = async (s3Client, fileName) => {
