@@ -31,7 +31,12 @@ type AssetWorkspaceConstructorPersonal = {
 
 type AssetWorkspaceConstructorArgs = AssetWorkspaceConstructorCanon | AssetWorkspaceConstructorLibrary | AssetWorkspaceConstructorPersonal
 
-type AssetWorkspaceStatus = 'Initial' | 'Clean' | 'Dirty' | 'Error'
+type AssetWorkspaceStatusItem = 'Initial' | 'Clean' | 'Dirty' | 'Error'
+
+type AssetWorkspaceStatus = {
+    json: AssetWorkspaceStatusItem;
+    wml: AssetWorkspaceStatusItem;
+}
 
 type NamespaceMapping = {
     [name: string]: string
@@ -44,7 +49,10 @@ export class AssetWorkspace {
     zone: 'Canon' | 'Library' | 'Personal';
     subFolder?: string;
     player?: string;
-    status: AssetWorkspaceStatus = 'Initial';
+    status: AssetWorkspaceStatus = {
+        json: 'Initial',
+        wml: 'Initial'
+    };
     normal?: NormalForm;
     namespaceIdToDB: NamespaceMapping = {};
     wml?: string;
@@ -82,7 +90,7 @@ export class AssetWorkspace {
                 this.normal = {}
                 this.wml = ''
                 this.namespaceIdToDB = {}
-                this.status = 'Clean'
+                this.status.json = 'Clean'
                 return
             }
             throw err
@@ -92,7 +100,7 @@ export class AssetWorkspace {
 
         this.normal = normalForm as NormalForm
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
-        this.status = 'Clean'
+        this.status.json = 'Clean'
     }
 
     //
@@ -117,7 +125,8 @@ export class AssetWorkspace {
                 }
             })
         this.wml = source
-        this.status = 'Clean'
+        this.status.wml = 'Dirty'
+        this.status.json = 'Dirty'
     }
 
     async loadWML(): Promise<void> {
@@ -129,13 +138,14 @@ export class AssetWorkspace {
         }
         catch(err) {
             if (err instanceof NotFound) {
-                this.status = 'Error'
+                this.status.wml = 'Error'
                 return
             }
             throw err
         }
 
         this.setWML(contents)
+        this.status.wml = 'Clean'
     }
 
     async pushJSON(): Promise<void> {
@@ -148,7 +158,7 @@ export class AssetWorkspace {
             Key: filePath,
             Body: contents
         })
-        this.status = 'Clean'
+        this.status.json = 'Clean'
     }
 
     async pushWML(): Promise<void> {
@@ -157,7 +167,7 @@ export class AssetWorkspace {
             Key: filePath,
             Body: this.wml || ''
         })
-        this.status = 'Clean'
+        this.status.wml = 'Clean'
     }
 
 }

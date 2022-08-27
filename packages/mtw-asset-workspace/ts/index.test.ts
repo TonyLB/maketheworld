@@ -107,9 +107,9 @@ describe('AssetWorkspace', () => {
                 }
             }
             testWorkspace.namespaceIdToDB = {}
-            testWorkspace.status = 'Dirty'
+            testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
-            expect(testWorkspace.status).toEqual('Clean')
+            expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Personal/Test/Test.json',
                 Body: `{
@@ -140,9 +140,9 @@ describe('AssetWorkspace', () => {
                 }
             }
             testWorkspace.namespaceIdToDB = {}
-            testWorkspace.status = 'Dirty'
+            testWorkspace.status.json = 'Dirty'
             await testWorkspace.pushJSON()
-            expect(testWorkspace.status).toEqual('Clean')
+            expect(testWorkspace.status.json).toEqual('Clean')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.json',
                 Body: `{
@@ -182,7 +182,8 @@ describe('AssetWorkspace', () => {
             testWorkspace.setWML(testSource)
 
             await testWorkspace.pushWML()
-            expect(testWorkspace.status).toEqual('Clean')
+            expect(testWorkspace.status.wml).toEqual('Clean')
+            expect(testWorkspace.status.json).toEqual('Dirty')
             expect(s3Client.put).toHaveBeenCalledWith({
                 Key: 'Library/Test.wml',
                 Body: testSource
