@@ -8,6 +8,7 @@ import { isNormalAsset, isNormalImport, NormalAsset, NormalCharacter } from "@to
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace"
+import schemaFromAction from "@tonylb/mtw-wml/dist/schema/action.js"
 
 const { S3_BUCKET } = process.env;
 
@@ -74,17 +75,24 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
 
 export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads: MoveByAssetIdMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
-        payloads.map(async (payload) => {
-            const assetWorkspace: AssetWorkspace | undefined = await assetWorkspaceFromAssetId(payload.AssetId)
+        payloads.map(async ({ toZone, player, AssetId }) => {
+            const assetWorkspace: AssetWorkspace | undefined = await assetWorkspaceFromAssetId(AssetId)
             if (assetWorkspace) {
-                const fromPath = assetWorkspace.filePath
                 const fileName = assetWorkspace.fileName
                 if (fileName) {
                     messageBus.send({
                         type: 'MoveAsset',
-                        fromPath,
-                        fileName,
-                        toPath: payload.toPath
+                        from: assetWorkspace.address,
+                        to: (toZone === 'Personal') ? {
+                            fileName: assetWorkspace.address.fileName,
+                            subFolder: assetWorkspace.address.subFolder,
+                            zone: toZone,
+                            player: player || ''
+                        } : {
+                            fileName: assetWorkspace.address.fileName,
+                            subFolder: assetWorkspace.address.subFolder,
+                            zone: toZone
+                        }
                     })
                 }
             }

@@ -45,7 +45,8 @@ export type MoveAssetMessage = {
 export type MoveByAssetIdMessage = {
     type: 'MoveByAssetId',
     AssetId: string;
-    toPath: string;
+    toZone: 'Canon' | 'Library' | 'Personal';
+    player?: string;
 }
 
 export type LibrarySubscribeMessage = {

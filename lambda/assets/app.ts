@@ -138,7 +138,7 @@ export const handler = async (event, context) => {
             messageBus.send({
                 type: 'MoveByAssetId',
                 AssetId: request.AssetId,
-                toPath: 'Library/'
+                toZone: 'Library'
             })
         }
         if (isAssetCheckoutAPIMessage(request)) {
@@ -147,7 +147,8 @@ export const handler = async (event, context) => {
                 messageBus.send({
                     type: 'MoveByAssetId',
                     AssetId: request.AssetId,
-                    toPath: `Personal/${player}/`
+                    toZone: `Personal`,
+                    player
                 })
             }
         }
