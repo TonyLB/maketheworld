@@ -6,7 +6,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists.js"
 
 import { cacheAsset } from './cache/index.js'
 import { instantiateAsset } from './cache/instantiate/index.js'
-import { healAsset } from "./selfHealing/index.js"
+import { healAsset } from "./selfHealing/"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
 import { handleUpload } from './upload/index.js'
@@ -90,7 +90,7 @@ export const handler = async (event, context) => {
         return JSON.stringify({ fileName })
     }
     if (event.healAsset) {
-        const returnVal = await healAsset({ s3Client }, event.healAsset)
+        const returnVal = await healAsset(event.healAsset)
         return JSON.stringify(returnVal, null, 4)
     }
     if (event.heal) {
