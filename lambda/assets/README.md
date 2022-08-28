@@ -104,6 +104,10 @@ asset contains
 ### *Namespace Meta-Data*
 
 - importTree:  importTree is a nested map.  Each key at the top level represents the owning asset importing values from the asset named in the key.  The *value* stored under that key is, itself, a nested tree of what imports that named asset makes, and so on down the entire tree.
+- ancestryTree:  A denormalized nested map of all the Ancestry records (see below), which gives a quick way to fetch all
+import ancestors that might have an impact on renders or operations of the asset
+- descentTree:  Similary, a denormalized nested map of the Descent records, which gives a quick way to fetch all import
+descendants that might be impacted by this asset in their renders or operations
 - namespaceMap
 
 ### *Asset Denormalizations*
@@ -148,5 +152,35 @@ asset contains
 ### *Map Denormalization*
 
 - defaultAppearances
+
+---
+
+## Ancestry records
+
+---
+
+*If an Asset imports from other Assets, it will have one Ancestry record associated with it in adjacency list*
+*that stores the entire ancestry tree of the imported asset*
+
+### *Key Data*
+
+- AssetId
+- DataCategory: `Ancestry-${importedScopedId}`
+- tree
+
+---
+
+## Descent records
+
+---
+
+*If any other Asset imports from this Asset, this Asset will have one Descent record associated with it in adjacency list*
+*that stores the entire descent tree of the importing asset*
+
+### *Key Data*
+
+- AssetId
+- DataCategory: `Descent-${importedScopedId}`
+- tree
 
 ---

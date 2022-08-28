@@ -3,23 +3,27 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
-import { dbRegister } from './dbRegister.js'
+import { dbRegister } from './dbRegister'
 
 describe('dbRegister', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
-    it('should put a single element for a Character file', async () => {
+    xit('should put a single element for a Character file', async () => {
         await dbRegister({
-            fileName: 'test.wml',
-            translateFile: 'test.json',
-            scopeMap: { TESS: 'CHARACTER#12345' },
-            assets: {
+            address: {
+                fileName: 'test',
+                zone: 'Library',
+            },
+            namespaceIdToDB: { TESS: 'CHARACTER#12345' },
+            status: {
+                json: 'Clean'
+            },
+            normal: {
                 TESS: {
                     tag: 'Character',
                     key: 'TESS',
-                    zone: 'Library',
                     Name: 'Tess',
                     fileURL: 'testIcon.png',
                     Pronouns: {
@@ -31,8 +35,7 @@ describe('dbRegister', () => {
                     },
                     FirstImpression: 'Frumpy Goth',
                     OneCoolThing: 'Fuchsia eyes',
-                    Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.',
-                    player: 'TEST'
+                    Outfit: 'A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.'
                 }
             }
         })
@@ -41,17 +44,21 @@ describe('dbRegister', () => {
 
     it('should save meta, rooms for Asset type', async () => {
         await dbRegister({
-            fileName: 'test.wml',
-            translateFile: 'test.json',
-            scopeMap: {
+            address: {
+                fileName: 'test',
+                zone: 'Library'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {
                 Welcome: 'ROOM#12345'
             },
-            assets: {
+            normal: {
                 TEST: {
                     tag: 'Asset',
                     key: 'TEST',
                     name: 'Test',
-                    zone: 'Library',
                     appearances: [{
                         contextStack: [],
                         contents: [{
@@ -134,12 +141,17 @@ describe('dbRegister', () => {
 
     it('should save meta, rooms for Story type', async () => {
         await dbRegister({
-            fileName: 'test.wml',
-            translateFile: 'test.json',
-            scopeMap: {
+            address: {
+                fileName: 'test',
+                zone: 'Library'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {
                 Welcome: 'ROOM#12345'
             },
-            assets: {
+            normal: {
                 TEST: {
                     tag: 'Asset',
                     Story: true,
@@ -199,12 +211,17 @@ describe('dbRegister', () => {
 
     it('should save meta only for instanced Story type', async () => {
         await dbRegister({
-            fileName: 'test.wml',
-            translateFile: 'test.json',
-            scopeMap: {
+            address: {
+                fileName: 'test',
+                zone: 'Library'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {
                 Welcome: 'ROOM#12345'
             },
-            assets: {
+            normal: {
                 TEST: {
                     tag: 'Asset',
                     Story: true,
@@ -269,12 +286,17 @@ describe('dbRegister', () => {
 
     it('should save correct default appearance for Rooms and Features', async () => {
         await dbRegister({
-            fileName: 'test.wml',
-            translateFile: 'test.json',
-            scopeMap: {
+            address: {
+                fileName: 'test',
+                zone: 'Library'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {
                 Welcome: 'ROOM#12345'
             },
-            assets: {
+            normal: {
                 TEST: {
                     tag: 'Asset',
                     key: 'TEST',
@@ -358,12 +380,17 @@ describe('dbRegister', () => {
 
     it('should save exits in default appearance for Rooms', async () => {
         await dbRegister({
-            fileName: 'test.wml',
-            translateFile: 'test.json',
-            scopeMap: {
+            address: {
+                fileName: 'test',
+                zone: 'Library'
+            },
+            status: {
+                json: 'Clean'
+            },
+            namespaceIdToDB: {
                 Welcome: 'ROOM#12345'
             },
-            assets: {
+            normal: {
                 TEST: {
                     tag: 'Asset',
                     key: 'TEST',

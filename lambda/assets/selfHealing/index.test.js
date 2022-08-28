@@ -7,8 +7,8 @@ jest.mock('../serialize/importedAssets.js')
 import { importedAssetIds } from '../serialize/importedAssets.js'
 jest.mock('../serialize/translateFile.js')
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-jest.mock('../serialize/dbRegister.js')
-import { dbRegister } from '../serialize/dbRegister.js'
+jest.mock('../serialize/dbRegister')
+import { dbRegister } from '../serialize/dbRegister'
 
 import { healAsset } from './index.js'
 

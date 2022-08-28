@@ -2,7 +2,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { AssetKey, CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import { componentAppearanceReduce } from '@tonylb/mtw-utilities/dist/components/components'
+import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import { objectEntryMap } from '../lib/objects.js'
+import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm } from '@tonylb/mtw-wml/dist/normalize.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -75,19 +77,24 @@ const itemRegistry = (normalForm) => (item) => {
     }
 }
 
-export const dbRegister = async ({ fileName, translateFile, importTree, namespaceMap, scopeMap, assets }) => {
-    const asset = Object.values(assets).find(({ tag }) => (['Asset'].includes(tag)))
+export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> => {
+    const { address } = assetWorkspace
+    if (assetWorkspace.status.json !== 'Clean') {
+        await assetWorkspace.loadJSON()
+    }
+    const assets: NormalForm = assetWorkspace.normal || {}
+    const asset = Object.values(assets).find(isNormalAsset)
     if (asset && asset.key) {
         const defaultExits = Object.values(assets)
-            .filter(({ tag }) => (tag === 'Exit'))
-            .filter(({ appearances }) => (appearances.find(noConditionContext)))
+            .filter(isNormalExit)
+            .filter(({ appearances }) => ((appearances || []).find(noConditionContext)))
             .map(({ name, to, from }) => ({ name, to, from }))
         const defaultNames = Object.values(assets)
-            .filter(({ tag }) => (['Room', 'Feature'].includes(tag)))
+            .filter(isNormalComponent)
             .map(({ tag, key, appearances }) => ({
                 tag,
                 key,
-                name: appearances
+                name: (appearances || [])
                     .filter(noConditionContext)
                     .map(({ name = '' }) => name)
                     .join('')
@@ -99,16 +106,13 @@ export const dbRegister = async ({ fileName, translateFile, importTree, namespac
             assetDB.putItem({
                 AssetId: AssetKey(asset.key),
                 DataCategory: `Meta::Asset`,
+                fileName: address.fileName,
+                zone: address.zone,
+                subFolder: address.subFolder,
+                player: address.zone === 'Personal' ? address.player : undefined,
                 Story: asset.Story,
                 instance: asset.instance,
-                fileName,
-                translateFile,
-                importTree,
-                namespaceMap,
-                name: asset.name,
-                description: asset.description,
-                player: asset.player,
-                zone: asset.zone,
+                importTree: [],
                 defaultExits,
                 defaultNames
             }),
@@ -149,8 +153,8 @@ export const dbRegister = async ({ fileName, translateFile, importTree, namespac
                     if (isGlobal) {
                         return `${prefix}#${key}`
                     }
-                    if (scopeMap[key]) {
-                        return scopeMap[key]
+                    if (assetWorkspace.namespaceIdToDB[key]) {
+                        return assetWorkspace.namespaceIdToDB[key]
                     }
                     console.log(`ERROR:  ScopeMap in dbRegister has no entry for ${key}`)
                     return `${prefix}#${uuidv4()}`
@@ -158,19 +162,19 @@ export const dbRegister = async ({ fileName, translateFile, importTree, namespac
             })
         ])
     }
-    const character = Object.values(assets).find(({ tag }) => (tag === 'Character'))
-    if (character && character.key) {
-        await Promise.all([
-            assetDB.putItem({
-                AssetId: scopeMap[character.key],
-                DataCategory: 'Meta::Character',
-                fileName,
-                translateFile,
-                scopedId: character.key,
-                ...(['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player', 'fileURL', 'zone']
-                    .reduce((previous, label) => ({ ...previous, [label]: character[label] }), {}))
-            })
-        ])
-    }
+    // const character = Object.values(assets).find(({ tag }) => (tag === 'Character'))
+    // if (character && character.key) {
+    //     await Promise.all([
+    //         assetDB.putItem({
+    //             AssetId: scopeMap[character.key],
+    //             DataCategory: 'Meta::Character',
+    //             fileName,
+    //             translateFile,
+    //             scopedId: character.key,
+    //             ...(['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player', 'fileURL', 'zone']
+    //                 .reduce((previous, label) => ({ ...previous, [label]: character[label] }), {}))
+    //         })
+    //     ])
+    // }
 
 }

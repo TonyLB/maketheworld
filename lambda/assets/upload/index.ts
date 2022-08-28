@@ -9,7 +9,7 @@ import { streamToBuffer } from '@tonylb/mtw-utilities/dist/stream'
 import { getAssets } from '../serialize/s3Assets'
 import { putTranslateFile } from "../serialize/translateFile.js"
 import ScopeMap from "../serialize/scopeMap.js"
-import { dbRegister } from '../serialize/dbRegister.js'
+import { dbRegister } from '../serialize/dbRegister'
 import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"

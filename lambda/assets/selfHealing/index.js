@@ -1,5 +1,5 @@
 import ScopeMap from "../serialize/scopeMap.js"
-import { dbRegister } from "../serialize/dbRegister.js"
+import { dbRegister } from "../serialize/dbRegister"
 import { putTranslateFile } from "../serialize/translateFile.js"
 import { getAssets } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from '@tonylb/mtw-utilities/dist/errors'
