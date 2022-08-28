@@ -23,6 +23,11 @@ export type UploadURLMessage = {
     uploadRequestId: string;
 }
 
+export type ParseWMLMessage = {
+    type: 'ParseWML';
+    uploadName: string;
+} & AssetWorkspaceAddress
+
 export type UploadImageURLMessage = {
     type: 'UploadImageURL';
     fileExtension: string;
@@ -58,6 +63,7 @@ export type MessageType = ReturnValueMessage |
     FetchAssetMessage |
     UploadURLMessage |
     UploadImageURLMessage |
+    ParseWMLMessage |
     UploadResponseMessage |
     MoveAssetMessage |
     MoveByAssetIdMessage |
@@ -68,6 +74,7 @@ export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibrar
 export const isFetchAssetAPIMessage = (prop: MessageType): prop is FetchAssetMessage => (prop.type === 'FetchAsset')
 export const isUploadURLMessage = (prop: MessageType): prop is UploadURLMessage => (prop.type === 'UploadURL')
 export const isUploadImageURLMessage = (prop: MessageType): prop is UploadImageURLMessage => (prop.type === 'UploadImageURL')
+export const isParseWMLMessage = (prop: MessageType): prop is ParseWMLMessage => (prop.type === 'ParseWML')
 export const isUploadResponseMessage = (prop: MessageType): prop is UploadResponseMessage => (prop.type === 'UploadResponse')
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')

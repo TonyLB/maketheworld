@@ -1,14 +1,6 @@
 import { jest, describe, it, expect } from '@jest/globals'
 
 // jest.mock('sharp', () => ({}))
-jest.mock('../serialize/s3Assets')
-import { getAssets } from '../serialize/s3Assets'
-jest.mock('../serialize/importedAssets.js')
-import { importedAssetIds } from '../serialize/importedAssets.js'
-jest.mock('./uploadResponse')
-import uploadResponse from './uploadResponse'
-jest.mock('../serialize/translateFile.js')
-import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
 jest.mock('../serialize/dbRegister')
 import { dbRegister } from '../serialize/dbRegister'
 
@@ -16,102 +8,102 @@ jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
+jest.mock('@tonylb/mtw-utilities/dist/stream')
+import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
 
-import { handleUpload } from '.'
+const mockSetWML = jest.fn()
+jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+    return jest.fn().mockImplementation((address: any) => {
+        return {
+            status: {
+                json: 'Dirty'
+            },
+            address,
+            fileNameBase: 'Personal/Test/TestFile',
+            loadJSON: jest.fn(),
+            loadWML: jest.fn(),
+            setWML: mockSetWML,
+            pushJSON: jest.fn(),
+            pushWML: jest.fn(),
+            normal: {
+                'Import-0': {
+                    tag: 'Import',
+                },
+                TestAsset: {
+                    tag: 'Asset',
+                    key: 'TestAsset',
+                    fileName: 'Test'
+                }
+            },
+            namespaceIdToDB: {
+                test: 'ROOM#123'
+            }
+        }
+    })
+})
+
+import { parseWMLMessage } from '.'
 import { S3Client } from '@aws-sdk/client-s3'
 
 const messageBusMock = jest.mocked(messageBus, true)
 const internalCacheMock = jest.mocked(internalCache, true)
-const getAssetsMock = getAssets as jest.Mock
-const getTranslateFileMock = getTranslateFile as jest.Mock
-const importedAssetIdsMock = importedAssetIds as jest.Mock
-const putTranslateFileMock = putTranslateFile as jest.Mock
+const streamToStringMock = streamToString as jest.Mock
 
-describe('handleUpload', () => {
+describe('parseWMLMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.resetAllMocks()
-        internalCacheMock.Connection.get.mockResolvedValue({ send: jest.fn() } as unknown as S3Client)
+        jest.restoreAllMocks()
+        const sendMock = jest.fn<(args: any) => Promise<any>>().mockResolvedValue({ Body: 'Test' })
+        internalCacheMock.Connection.get.mockResolvedValueOnce('Test').mockResolvedValueOnce({ send: sendMock } as unknown as S3Client)
     })
 
     it('should correctly route incoming information', async () => {
-        const schemaMock = jest.fn()
-        const normalizeMock = jest.fn()
-        getAssetsMock.mockResolvedValue({
-            schema: schemaMock,
-            normalize: normalizeMock,
-            valid: true
+        streamToStringMock.mockReturnValue(`<Asset key=(Test)></Asset>`)
+        await parseWMLMessage({
+            payloads: [{
+                type: 'ParseWML',
+                zone: 'Personal',
+                player: 'Test',
+                fileName: 'TestFile',
+                uploadName: 'uploads/TestABC.wml'
+            }],
+            messageBus
         })
-        normalizeMock.mockReturnValue({
-            'Import-0': {
-                tag: 'Import',
-            },
-            TestAsset: {
-                key: 'TestAsset',
-                tag: 'Asset',
-                fileName: 'Test'
-            }
-        })
-        getTranslateFileMock.mockResolvedValue({
-            scopeMap: {
-                test: 'ROOM#123'
-            }
-        })
-        importedAssetIdsMock.mockResolvedValue({
-            importTree: ['BASE'],
-            scopeMap: {
-                VORTEX: 'ROOM#VORTEX'
-            },
-            namespaceMap: {
-                VORTEX: {
-                    key: 'BASE#VORTEX',
-                    assetId: 'ROOM#VORTEX'
-                }
-            }
-        })
-        putTranslateFileMock.mockResolvedValue({})
-        await handleUpload({ s3Client: { send: jest.fn() } as any, messageBus: messageBusMock })({ bucket: 'test', key: 'TestPlayer/Test.wml' })
-        const matchS3 = { send: expect.any(Function) }
-        expect(getAssetsMock).toHaveBeenCalledWith(matchS3, "TestPlayer/Test.wml")
-        expect(getTranslateFileMock).toHaveBeenCalledWith(
-            matchS3,
-            {
-                name: 'Personal/Test'
-            }
-        )
-        expect(putTranslateFileMock).toHaveBeenCalledWith(
-            matchS3,
-            {
-                assetKey: 'TestAsset',
-                name: 'Personal/Test',
-                importTree: ['BASE'],
-                scopeMap: {}
-            }
-        )
         expect(dbRegister).toHaveBeenCalledWith({
-            assets: {
-                'Import-0': { tag: 'Import' },
+            status: {
+                json: 'Dirty'
+            },
+            address: {
+                zone: 'Personal',
+                player: 'Test',
+                fileName: 'TestFile',
+            },
+            fileNameBase: 'Personal/Test/TestFile',
+            loadJSON: expect.any(Function),
+            loadWML: expect.any(Function),
+            setWML: expect.any(Function),
+            pushJSON: expect.any(Function),
+            pushWML: expect.any(Function),
+            normal: {
+                'Import-0': {
+                    tag: 'Import',
+                },
                 TestAsset: {
-                    key: 'TestAsset',
                     tag: 'Asset',
+                    key: 'TestAsset',
                     fileName: 'Test'
                 }
             },
-            fileName: 'Personal/Test.wml',
-            importTree: ['BASE'],
-            scopeMap: {},
-            namespaceMap: {
-                VORTEX: {
-                    key: 'BASE#VORTEX',
-                    assetId: 'ROOM#VORTEX'
-                }
-            },
-            translateFile: 'Personal/Test.json'
+            namespaceIdToDB: {
+                test: 'ROOM#123'
+            }
         })
+        expect(mockSetWML).toHaveBeenCalledWith(`<Asset key=(Test)></Asset>`)
         expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'UploadResponse',
-            messageType: 'Success',
-            uploadId: 'Test.wml'
+            type: 'ReturnValue',
+            body: {
+                messageType: 'Success'
+            }
         })
 
     })

@@ -1,15 +1,11 @@
 // Import required AWS SDK clients and commands for Node.js
 import { S3Client } from "@aws-sdk/client-s3"
 
-import { connectionDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index.js"
-import { unique } from "@tonylb/mtw-utilities/dist/lists.js"
-
 import { cacheAsset } from './cache/index.js'
 import { instantiateAsset } from './cache/instantiate/index.js'
 import { healAsset } from "./selfHealing/"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
-import { handleUpload } from './upload/index.js'
 import { handleDynamoEvent } from './dynamoEvents/index.js'
 import internalCache from "./internalCache"
 
@@ -21,8 +17,9 @@ import {
     isUploadImageLinkAPIMessage,
     isAssetCheckinAPIMessage,
     isAssetCheckoutAPIMessage,
-    isAssetSubscribeAPIMessage
-} from '@tonylb/mtw-interfaces/dist/asset'
+    isAssetSubscribeAPIMessage,
+    isParseWMLAPIMessage
+} from '@tonylb/mtw-interfaces/dist/asset.js'
 
 import messageBus from "./messageBus/index.js"
 import { extractReturnValue } from './returnValue'
@@ -30,32 +27,11 @@ import { extractReturnValue } from './returnValue'
 const params = { region: process.env.AWS_REGION }
 const s3Client = new S3Client(params)
 
-const handleS3Event = async (event) => {
-    const bucket = event.bucket.name;
-    const key = decodeURIComponent(event.object.key.replace(/\+/g, ' '));
-
-    const keyPrefix = key.split('/').slice(0, 1).join('/')
-    if (keyPrefix === 'upload') {
-        return await handleUpload({ s3Client, messageBus })({ bucket, key })
-    }
-    else {
-        const errorMsg = JSON.stringify(`Error: Unknown S3 target: ${JSON.stringify(event, null, 4) }`)
-        console.log(errorMsg)
-        //
-        // TODO: Better error handling
-        //
-    }
-}
-
 export const handler = async (event, context) => {
 
     // Handle S3 Events
     if (event.Records) {
         await Promise.all([
-            ...event.Records
-                .filter(({ s3 }) => (s3))
-                .map(({ s3 }) => (s3))
-                .map(handleS3Event),
             handleDynamoEvent({
                 events: event.Records
                     .filter(({ dynamodb }) => (dynamodb))
@@ -105,7 +81,6 @@ export const handler = async (event, context) => {
         if (request.RequestId) {
             internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
         }
-        const RequestId = request.RequestId
         if (isFetchLibraryAPIMessage(request)) {
             messageBus.send({
                 type: 'FetchLibrary'
@@ -133,6 +108,25 @@ export const handler = async (event, context) => {
                 tag: request.tag,
                 uploadRequestId: request.uploadRequestId
             })
+        }
+        if (isParseWMLAPIMessage(request)) {
+            if (request.zone === 'Personal') {
+                messageBus.send({
+                    type: 'ParseWML',
+                    fileName: request.fileName,
+                    zone: request.zone,
+                    player: request.player,
+                    uploadName: request.uploadName
+                })    
+            }
+            else {
+                messageBus.send({
+                    type: 'ParseWML',
+                    fileName: request.fileName,
+                    zone: request.zone,
+                    uploadName: request.uploadName
+                })    
+            }
         }
         if (isAssetCheckinAPIMessage(request)) {
             messageBus.send({
