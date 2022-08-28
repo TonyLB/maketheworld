@@ -1,22 +1,20 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, PutObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { v4 as uuidv4 } from 'uuid'
 import path from 'path'
 // import sharp from "sharp"
 
-import { streamToBuffer } from '@tonylb/mtw-utilities/dist/stream'
+import { streamToBuffer, streamToString } from '@tonylb/mtw-utilities/dist/stream'
 
-import { getAssets } from '../serialize/s3Assets'
-import { putTranslateFile } from "../serialize/translateFile.js"
-import ScopeMap from "../serialize/scopeMap.js"
 import { dbRegister } from '../serialize/dbRegister'
-import { cacheAsset } from "../cache/index.js"
 
 import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 
-import { MessageBus, UploadURLMessage, UploadImageURLMessage } from "../messageBus/baseClasses"
-import { isNormalAsset, isNormalCharacter, isNormalImport, NormalAsset, NormalCharacter, NormalItem } from "@tonylb/mtw-wml/dist/normalize"
+import { MessageBus, UploadURLMessage, UploadImageURLMessage, ParseWMLMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
+import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
+import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace"
 
 const { S3_BUCKET } = process.env;
 
@@ -146,103 +144,92 @@ export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client
     return {}
 }
 
-export const handleUpload = ({ s3Client, messageBus }: { s3Client: S3Client, messageBus: MessageBus }) => async ({ bucket, key }) => {
-    const objectNameItems = key.split('/').slice(1)
-    const objectPrefix = objectNameItems.length > 1
-        ? `${objectNameItems.slice(0, -1).join('/')}/`
-        : ''
-
-    if (objectNameItems[0] === 'images') {
-        return handleImageUpload({ s3Client, messageBus })({ bucket, key })
-    }
-    const assetWorkspace = await getAssets(s3Client, key)
-    if (!assetWorkspace) {
-        return {}
-    }
-
-    if (assetWorkspace.valid) {
-        try {
-            const asset = Object.values(assetWorkspace.normalize()).find((item) => (isNormalAsset(item) || isNormalCharacter(item))) as NormalAsset | NormalCharacter | undefined
-            if (asset && asset.key) {
-                const fileName = `Personal/${objectPrefix}${asset.fileName}.wml`
-                let translateFile
-                const scopeMap = new ScopeMap({})
-                if (isNormalAsset(asset) && !asset.instance) {
-                    translateFile = `Personal/${objectPrefix}${asset.fileName}.json`
-                    await scopeMap.getTranslateFile(s3Client, { name: `Personal/${objectPrefix}${asset.fileName}` })
-                }
-                const normalized = assetWorkspace.normalize()
-                const importMap = Object.values(normalized)
-                    .filter(isNormalImport)
-                    .reduce((previous, { mapping = {}, from }) => {
-                        return {
-                            ...previous,
-                            ...(Object.entries(mapping)
-                                .reduce((previous, [key, scopedId]) => ({
-                                    ...previous,
-                                    [key]: {
-                                        scopedId,
-                                        asset: from
-                                    }
-                                }), {})
-                            )
-                        }
-                    }, {})
-                const importTree = await scopeMap.importAssetIds(importMap || {})
-                scopeMap.translateNormalForm(normalized)
-
-                await Promise.all([
-                    dbRegister({
-                        fileName,
-                        translateFile,
-                        importTree,
-                        scopeMap: scopeMap.serialize(),
-                        namespaceMap: scopeMap.namespaceMap,
-                        assets: normalized
-                    }),
-                    ...((asset as NormalAsset).instance
-                        ? []
-                        : [
-                            putTranslateFile(s3Client, {
-                                name: `Personal/${objectPrefix}${asset.fileName}`,
-                                importTree,
-                                scopeMap: scopeMap.serialize(),
-                                assetKey: asset.key
-                            })
-                        ]
-                    ),
-                    s3Client.send(new CopyObjectCommand({
-                        Bucket: bucket,
-                        CopySource: `${bucket}/${key}`,
-                        Key: fileName
-                    }))
-                ])
-                if (isNormalAsset(asset) && (!asset.Story) && ['Canon', 'Personal'].includes(asset.zone || '')) {
-                    await cacheAsset(asset.key)
-                }
-            }
-            messageBus.send({
-                type: 'UploadResponse',
-                uploadId: objectNameItems.join('/'),
-                messageType: 'Success'
-            })
+const extractAddressFromParseWMLMessage = (value: ParseWMLMessage): AssetWorkspaceAddress => {
+    const zone = value.zone
+    if (zone === 'Personal') {
+        return {
+            zone,
+            fileName: value.fileName,
+            subFolder: value.subFolder,
+            player: value.player
         }
-        catch {
-            messageBus.send({
-                type: 'UploadResponse',
-                uploadId: objectNameItems.join('/'),
+    }
+    else {
+        return {
+            zone,
+            fileName: value.fileName,
+            subFolder: value.subFolder
+        }
+    }
+}
+
+export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: ParseWMLMessage[], messageBus: MessageBus }): Promise<void> => {
+    const player = await internalCache.Connection.get('player')
+    const s3Client = await internalCache.Connection.get('s3Client')
+    if (!s3Client) {
+        messageBus.send({
+            type: 'ReturnValue',
+            body: {
                 messageType: 'Error'
+            }
+        })
+        return
+    }
+    await Promise.all(
+        payloads.map(async (payload) => (asyncSuppressExceptions(async () => {
+            if (payload.zone !== 'Personal' || payload.player !== player) {
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'Error'
+                    }
+                })    
+            }
+            else {
+                const assetWorkspace = new AssetWorkspace(extractAddressFromParseWMLMessage(payload))
+            
+                const [{ Body: contentStream }] = await Promise.all([
+                    s3Client.send(new GetObjectCommand({
+                        Bucket: S3_BUCKET,
+                        Key: payload.uploadName
+                    })),
+                    assetWorkspace.loadJSON()
+                ])
+                const contents = await streamToString(contentStream)
+                assetWorkspace.setWML(contents)
+                if (assetWorkspace.status.json !== 'Clean') {
+                    await Promise.all([
+                        assetWorkspace.pushJSON(),
+                        assetWorkspace.pushWML(),
+                        dbRegister(assetWorkspace)
+                    ])
+                }
+                else {
+                    await assetWorkspace.pushWML()
+                }
+
+                try {
+                    await s3Client.send(new DeleteObjectCommand({
+                        Bucket: S3_BUCKET,
+                        Key: payload.uploadName
+                    }))  
+                }
+                catch {}
+            
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        messageType: 'Success',
+                    }
+                })
+            }
+        }, async () => {
+            messageBus.send({
+                type: 'ReturnValue',
+                body: {
+                    messageType: 'Error'
+                }
             })
-        }
-    }
-
-    try {
-        await s3Client.send(new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key
-        }))  
-    }
-    catch {}
-    return {}
-
+        })))
+    )
 }
