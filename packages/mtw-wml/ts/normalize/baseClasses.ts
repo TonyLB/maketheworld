@@ -142,6 +142,7 @@ type MapAppearanceRoom = {
 type MapAppearanceImage = string
 
 export type MapAppearance = {
+    name?: string;
     images: MapAppearanceImage[];
     rooms: Record<string, MapAppearanceRoom>;
 } & BaseAppearance

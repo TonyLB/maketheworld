@@ -54,7 +54,7 @@ export type EphemeraMap = {
     EphemeraId: string;
     key: string;
     tag: 'Map';
-    appearance: EphemeraMapAppearance;
+    appearances: EphemeraMapAppearance[];
 }
 
 //
