@@ -23,16 +23,7 @@ the Asset DynamoDB table
 
 
 ```ts
-    await dbRegister({
-        fileName: 'Player/Test/Assets/ImportTest.wml',
-        translateFile: 'Player/Test/Assets/ImportTest.json',
-        scopeMap: {
-            VORTEX: 'ROOM#VORTEX',
-            Bookshelves: 'FEATURE#Bookshelves',
-            downtownMap: 'MAP#Central'
-        },
-        assets // NormalForm of assets having been passed through ScopeMap.translateNormalForm
-    })
+    await dbRegister(assetWorkspace)
 ```
 
 ---

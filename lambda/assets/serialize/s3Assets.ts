@@ -54,9 +54,9 @@ export const assetWorkspaceFromAssetId = async (AssetId: string): Promise<NewAss
     const address = (await assetDB.getItem<AssetWorkspaceAddress>({
         AssetId,
         DataCategory: dataCategory,
-        ProjectionFields: ['fileName', ':zone', 'player', 'subFolder'],
+        ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
         ExpressionAttributeNames: {
-            ':zone': 'zone'
+            '#zone': 'zone'
         }
     })) || {}
     if (!isAssetWorkspaceAddress(address)) {

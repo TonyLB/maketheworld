@@ -2,20 +2,21 @@ import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@aws-sdk/client-s3')
 import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
-jest.mock('../serialize/dbRegister.js')
-import { dbRegister } from '../serialize/dbRegister.js'
+jest.mock('../serialize/dbRegister')
+import { dbRegister } from '../serialize/dbRegister'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 jest.mock('@tonylb/mtw-asset-workspace', () => {
-    return jest.fn().mockImplementation(({ zone }: any) => {
+    return jest.fn().mockImplementation((address: any) => {
         return {
             status: {
                 json: 'Clean'
             },
+            address,
             get fileNameBase() {
-                if (zone === 'Personal') {
+                if (address.zone === 'Personal') {
                     return 'Personal/Test/Test'
                 }
                 else {
@@ -86,17 +87,20 @@ describe('moveAsset', () => {
             Key: 'Library/Test.wml'
         })
         expect(dbRegister).toHaveBeenCalledWith({
-            assets: {
+            address: {
+                fileName: 'Test',
+                zone: 'Library'
+            },
+            status: { json: 'Clean' },
+            normal: {
                 'Import-0': { tag: 'Import' },
                 Test: { tag: 'Asset' }
             },
-            fileName: 'Library/Test.wml',
-            importTree: [],
-            scopeMap: {
-                VORTEX: 'VORTEX',
-            },
-            namespaceMap: {},
-            translateFile: 'Library/Test.json'
+            fileNameBase: 'Personal/Test/Test',
+            loadJSON: expect.any(Function),
+            namespaceIdToDB: {
+                VORTEX: 'VORTEX'
+            }
         })
         expect(DeleteObjectCommand).toHaveBeenCalledWith({
             Key: 'Personal/Test/Test.wml'

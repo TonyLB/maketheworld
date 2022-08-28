@@ -1,10 +1,8 @@
-import { CopyObjectCommand, DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
-import { dbRegister } from '../serialize/dbRegister.js'
-import { getAssets, assetWorkspaceFromAssetId } from "../serialize/s3Assets"
+import { dbRegister } from '../serialize/dbRegister'
+import { assetWorkspaceFromAssetId } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
-import ScopeMap from '../serialize/scopeMap.js'
-import { isNormalAsset, isNormalImport, NormalAsset, NormalCharacter } from "@tonylb/mtw-wml/dist/normalize"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
 import AssetWorkspace from "@tonylb/mtw-asset-workspace"
@@ -19,40 +17,35 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                 const { from, to } = payload
                 await asyncSuppressExceptions(async () => {
                     const fromAssetWorkspace = new AssetWorkspace(from)
+                    const fileNameBase = fromAssetWorkspace.fileNameBase
                     const toAssetWorkspace = new AssetWorkspace(to)
                     await fromAssetWorkspace.loadJSON()
                     if (fromAssetWorkspace.status.json !== 'Clean') {
                         return
                     }
+                    fromAssetWorkspace.address = toAssetWorkspace.address
                     const finalKey = toAssetWorkspace.fileNameBase
                     await Promise.all([
                         s3Client.send(new CopyObjectCommand({
                             Bucket: S3_BUCKET,
-                            CopySource: `${S3_BUCKET}/${fromAssetWorkspace.fileNameBase}.json`,
+                            CopySource: `${S3_BUCKET}/${fileNameBase}.json`,
                             Key: `${finalKey}.json`
                         })),
                         s3Client.send(new CopyObjectCommand({
                             Bucket: S3_BUCKET,
-                            CopySource: `${S3_BUCKET}/${fromAssetWorkspace.fileNameBase}.wml`,
+                            CopySource: `${S3_BUCKET}/${fileNameBase}.wml`,
                             Key: `${finalKey}.wml`
                         })),
-                        dbRegister({
-                            fileName: `${finalKey}.wml`,
-                            translateFile: `${finalKey}.json`,
-                            importTree: [],
-                            scopeMap: fromAssetWorkspace.namespaceIdToDB,
-                            namespaceMap: {},
-                            assets: fromAssetWorkspace.normal || {}
-                        })
+                        dbRegister(fromAssetWorkspace)
                     ])
                     await Promise.all([
                         s3Client.send(new DeleteObjectCommand({
                             Bucket: S3_BUCKET,
-                            Key: `${fromAssetWorkspace.fileNameBase}.wml`,
+                            Key: `${fileNameBase}.wml`,
                         })),
                         s3Client.send(new DeleteObjectCommand({
                             Bucket: S3_BUCKET,
-                            Key: `${fromAssetWorkspace.fileNameBase}.json`,
+                            Key: `${fileNameBase}.json`,
                         }))
                     ])
             
@@ -74,17 +67,24 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
 
 export const moveAssetByIdMessage = async ({ payloads, messageBus }: { payloads: MoveByAssetIdMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(
-        payloads.map(async (payload) => {
-            const assetWorkspace: AssetWorkspace | undefined = await assetWorkspaceFromAssetId(payload.AssetId)
+        payloads.map(async ({ toZone, player, AssetId }) => {
+            const assetWorkspace: AssetWorkspace | undefined = await assetWorkspaceFromAssetId(AssetId)
             if (assetWorkspace) {
-                const fromPath = assetWorkspace.filePath
                 const fileName = assetWorkspace.fileName
                 if (fileName) {
                     messageBus.send({
                         type: 'MoveAsset',
-                        fromPath,
-                        fileName,
-                        toPath: payload.toPath
+                        from: assetWorkspace.address,
+                        to: (toZone === 'Personal') ? {
+                            fileName: assetWorkspace.address.fileName,
+                            subFolder: assetWorkspace.address.subFolder,
+                            zone: toZone,
+                            player: player || ''
+                        } : {
+                            fileName: assetWorkspace.address.fileName,
+                            subFolder: assetWorkspace.address.subFolder,
+                            zone: toZone
+                        }
                     })
                 }
             }

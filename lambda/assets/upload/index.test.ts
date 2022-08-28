@@ -9,8 +9,8 @@ jest.mock('./uploadResponse')
 import uploadResponse from './uploadResponse'
 jest.mock('../serialize/translateFile.js')
 import { putTranslateFile, getTranslateFile } from "../serialize/translateFile.js"
-jest.mock('../serialize/dbRegister.js')
-import { dbRegister } from '../serialize/dbRegister.js'
+jest.mock('../serialize/dbRegister')
+import { dbRegister } from '../serialize/dbRegister'
 
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
