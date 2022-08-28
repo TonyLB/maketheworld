@@ -21,9 +21,9 @@ import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 jest.mock('@tonylb/mtw-utilities/dist/perception/assetRender')
 import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
 
-import { cacheAsset } from './index.js'
+import { cacheAsset } from '.'
 
-describe('cacheAsset', () => {
+xdescribe('cacheAsset', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
