@@ -220,6 +220,7 @@ export class NormalizeKeyMismatchError extends WMLNormalizeError {
 export const isNormalExit = (arg: NormalItem): arg is NormalExit => (arg?.tag === 'Exit')
 export const isNormalImage = (arg: NormalItem): arg is NormalImage => (arg?.tag === 'Image')
 export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => (['Room', 'Feature'].includes(arg?.tag))
+export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag === 'Room')
 export const isNormalMap = (arg: NormalItem): arg is NormalMap => (arg?.tag === 'Map')
 export function isNormalAsset(arg: NormalAsset | NormalCharacter): arg is NormalAsset
 export function isNormalAsset(arg: NormalItem): arg is NormalAsset

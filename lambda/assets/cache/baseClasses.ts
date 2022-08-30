@@ -62,3 +62,24 @@ export type EphemeraMap = {
 //
 
 export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap
+
+export type EphemeraDependencies = {
+    room?: string[];
+    map?: string[];
+    mapCache?: string;
+}
+
+export type EphemeraStateComputed = {
+    key: string;
+    computed: true;
+    src: string;
+}
+
+export type EphemeraStateVariable = {
+    key: string;
+    computed: false;
+}
+
+export type EphemeraState = {
+    [key: string]: EphemeraStateComputed | EphemeraStateVariable
+}

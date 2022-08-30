@@ -4,27 +4,16 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types'
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 import { objectFilter } from '../lib/objects.js'
+import { conditionsFromContext } from './utilities.js'
+import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/'
+import { isNormalRoom, isNormalMap, NormalForm, isNormalComputed } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
+import { EphemeraDependencies, EphemeraState } from './baseClasses.js'
 
-const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
-    conditions: contextStack.reduce((previous, { key, tag }) => {
-        if (tag !== 'Condition') {
-            return previous
-        }
-        const { if: condition = '', dependencies = [] } = normalForm[key]
-        return [
-            ...previous,
-            {
-                if: condition,
-                dependencies
-            }
-        ]
-    }, []),
-    ...rest
-})
-
-export const extractDependencies = (normalForm) => {
+export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalForm: NormalForm): EphemeraDependencies => {
+    const conditionTransform = conditionsFromContext(normalForm)
     const computeDependencies = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Computed'))
+        .filter(isNormalComputed)
         .reduce((previous, { key, dependencies }) => (
             dependencies.reduce((accumulator, dependency) => ({
                 ...accumulator,
@@ -35,78 +24,73 @@ export const extractDependencies = (normalForm) => {
                     ]
                 }
             }), previous)
-        ), {})
+        ), {} as EphemeraDependencies)
 
-    const dependencies = Object.values(normalForm)
-        .filter(({ tag }) => (['Room', 'Map'].includes(tag)))
-        .reduce((previous, { tag, EphemeraId, appearances = [] }) => (
-            appearances
-                .map(mapContextStackToConditions(normalForm))
+    //
+    // Update each variable or compute upon which the room's render conditions are dependent, to notify it that
+    // it has the room as a dependency and needs to rerender it upon a change to the value.
+    //
+    const computeAndRoomDependencies = Object.values(normalForm)
+        .filter(isNormalRoom)
+        .reduce((previous, { key, appearances = [] }) => {
+            const globalKey = splitType(namespaceIdToDB[key] || '#')[1]
+            if (!globalKey) {
+                return previous
+            }
+            return appearances
+                .map(({ contextStack, ...rest }) => ({ conditions: conditionTransform(contextStack), ...rest }))
                 .reduce((accumulator, { conditions = [], name = [], contents = [] }) => (
-                    conditions.reduce((innerAccumulator, { dependencies = [] }) => (
-                        dependencies.reduce((innermostAccumulator, dependency) => {
-                            const mapCacheDependency = (tag === 'Room') && ((name.length > 0) || (contents.filter(({ tag }) => (tag === 'Exit')).length > 0))
-                            return {
-                                ...innermostAccumulator,
-                                [dependency]: {
-                                    ...(innermostAccumulator[dependency] || {}),
-                                    //
-                                    // For a map, add to the map dependencies
-                                    //
-                                    ...((tag === 'Map')
-                                        ? {
-                                            map: [...(new Set([
-                                                ...(innermostAccumulator[dependency]?.map || []),
-                                                //
-                                                // Extract the globalized MapId
-                                                //
-                                                splitType(EphemeraId)[1]
-                                            ]))]
-                                        }
-                                        : {}
-                                    ),
-                                    //
-                                    // For a room, add to the room dependencies
-                                    //
-                                    ...((tag === 'Room')
-                                        ? {
-                                            room: [...(new Set([
-                                                ...(innermostAccumulator[dependency]?.room || []),
-                                                //
-                                                // Extract the globalized RoomId
-                                                //
-                                                splitType(EphemeraId)[1]
-                                            ]))]
-                                        }
-                                        : {}
-                                    ),
-                                    //
-                                    // For a room with name or exit changes, also add to the mapCache dependencies
-                                    //
-                                    ...(mapCacheDependency
-                                        ? {
-                                            mapCache: [...(new Set([
-                                                ...(innermostAccumulator[dependency]?.mapCache || []),
-                                                //
-                                                // Extract the globalized RoomId
-                                                //
-                                                splitType(EphemeraId)[1]
-                                            ]))]
-                                        }
-                                        : {})
+                    produce(accumulator, (draft) => {
+                        conditions.forEach(({ dependencies = [] }) => {
+                            dependencies.forEach((dependency) => {
+                                if (!(dependency in draft)) {
+                                    draft[dependency] = {}
                                 }
-                            }
-                        }, innerAccumulator)
-                    ), accumulator)
-                ), previous)
-        ), computeDependencies)
+                                draft[dependency].room = unique([globalKey], draft[dependency].room || [])
+                                //
+                                // Update the mapCache dependencies only when the room is changed in a way that would
+                                // side-effect the mapCache used by all maps to render rooms and their relationships
+                                //
+                                if (name.length > 0 || (contents.filter(({ tag }) => (tag === 'Exit')).length > 0)) {
+                                    draft[dependency].mapCache = unique([globalKey], draft[dependency].mapCache || [])
+                                }
+                            })
+                        })
+                    })), previous)
+        }, computeDependencies as EphemeraDependencies)
+
+    //
+    // Update each variable or compute upon which the map's render conditions are dependent, to notify it that
+    // it has the map as a dependency and needs to rerender it upon a change to the value.
+    //
+    const dependencies = Object.values(normalForm)
+        .filter(isNormalMap)
+        .reduce((previous, { key, appearances = [] }) => {
+            const globalKey = splitType(namespaceIdToDB[key] || '#')[1]
+            if (!globalKey) {
+                return previous
+            }
+            return appearances
+                .map(({ contextStack, ...rest }) => ({ conditions: conditionTransform(contextStack), ...rest }))
+                .reduce((accumulator, { conditions = [], name = [], contents = [] }) => (
+                    produce(accumulator, (draft) => {
+                        conditions.forEach(({ dependencies = [] }) => {
+                            dependencies.forEach((dependency) => {
+                                if (!(dependency in draft)) {
+                                    draft[dependency] = {}
+                                }
+                                draft[dependency].map = unique([globalKey], draft[dependency].map || [])
+                            })
+                        })
+                    })), previous)
+        }, computeAndRoomDependencies as EphemeraDependencies)
 
     return dependencies
 }
 
-const extractComputed = (normalForm) => {
+const extractComputed = (normalForm: NormalForm): EphemeraState => {
     const uncomputedState = Object.values(normalForm)
-        .filter(({ tag }) => (tag === 'Computed'))
+        .filter(isNormalComputed)
         .reduce((previous, { key, src }) => ({
             ...previous,
             [key]: {
@@ -114,7 +98,7 @@ const extractComputed = (normalForm) => {
                 computed: true,
                 src
             }
-        }), {})
+        }), {} as EphemeraState)
 
     return uncomputedState
 }
@@ -128,11 +112,17 @@ const mergeStateReducer = (previous, [key, value]) => ({
 })
 
 export class StateSynthesizer extends Object {
-    constructor(assetId, normalForm) {
+    assetId: string;
+    namespaceIdToDB: NamespaceMapping;
+    normalForm: NormalForm;
+    dependencies: EphemeraDependencies;
+    state: EphemeraState;
+    constructor(namespaceIdToDB: NamespaceMapping, normalForm: NormalForm) {
         super()
-        this.assetId = assetId
+        this.namespaceIdToDB = namespaceIdToDB
         this.normalForm = normalForm
-        this.dependencies = extractDependencies(normalForm)
+        this.assetId = (Object.values(normalForm).find(({ tag }) => (tag === 'Asset')) || { key: '' }).key
+        this.dependencies = extractDependencies(namespaceIdToDB, normalForm)
         this.state = extractComputed(normalForm)
     }
 
@@ -331,18 +321,6 @@ export class StateSynthesizer extends Object {
             )
         ])
     }
-}
-
-export const fetchAssetState = async (assetId) => {
-    const { State = {} } = await ephemeraDB.getItem({
-        EphemeraId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-        ProjectionFields: ['#state'],
-        ExpressionAttributeNames: {
-            '#state': 'State'
-        }
-    }) || {}
-    return State
 }
 
 export default StateSynthesizer

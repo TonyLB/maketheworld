@@ -90,7 +90,7 @@ type AssetWorkspaceStatus = {
     wml: AssetWorkspaceStatusItem;
 }
 
-type NamespaceMapping = {
+export type NamespaceMapping = {
     [name: string]: string
 }
 

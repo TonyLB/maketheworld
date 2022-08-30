@@ -17,6 +17,7 @@ import {
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { EphemeraCondition, EphemeraItem } from './baseClasses'
 import { objectEntryMap, objectMap } from '../lib/objects.js'
+import { conditionsFromContext } from './utilities.js'
 
 //
 // TODO:
@@ -42,16 +43,7 @@ type CacheAssetOptions = {
 // TODO(ISS1387): Translate features and actions in render links to their DB ID counterparts
 //
 const ephemeraItemFromNormal = (namespaceMap: AssetWorkspace["namespaceIdToDB"], normal: NormalForm) => (item: NormalItem): EphemeraItem | undefined => {
-    const conditionsFromContext = (contextStack: NormalReference[]): EphemeraCondition[] => (
-        contextStack
-            .filter(({ tag }) => (tag === 'Condition'))
-            .map(({ key }) => (normal[key]))
-            .filter(isNormalCondition)
-            .map((condition) => ({
-                dependencies: condition.dependencies,
-                if: condition.if
-            }))
-    )
+    const conditionsTransform = conditionsFromContext(normal)
     const EphemeraId = namespaceMap[item.key]
     if (!EphemeraId) {
         return undefined
@@ -64,7 +56,7 @@ const ephemeraItemFromNormal = (namespaceMap: AssetWorkspace["namespaceIdToDB"],
                 EphemeraId,
                 appearances: item.appearances
                     .map((appearance) => ({
-                        conditions: conditionsFromContext(appearance.contextStack),
+                        conditions: conditionsTransform(appearance.contextStack),
                         name: appearance.name || '',
                         render: appearance.render || [],
                         exits: appearance.contents
@@ -84,7 +76,7 @@ const ephemeraItemFromNormal = (namespaceMap: AssetWorkspace["namespaceIdToDB"],
                 EphemeraId,
                 appearances: item.appearances
                     .map((appearance) => ({
-                        conditions: conditionsFromContext(appearance.contextStack),
+                        conditions: conditionsTransform(appearance.contextStack),
                         name: appearance.name || '',
                         render: appearance.render || [],
                     }))
@@ -96,7 +88,7 @@ const ephemeraItemFromNormal = (namespaceMap: AssetWorkspace["namespaceIdToDB"],
                 EphemeraId,
                 appearances: item.appearances
                     .map((appearance) => ({
-                        conditions: conditionsFromContext(appearance.contextStack),
+                        conditions: conditionsTransform(appearance.contextStack),
                         name: appearance.name || '',
                         fileURL: appearance.images.length > 0 ? appearance.images.slice(-1)[0] : '',
                         rooms: objectEntryMap(appearance.rooms, ([key, { x, y }]) => ({
@@ -147,7 +139,7 @@ export const cacheAsset = async (address: AssetWorkspaceAddress, options: CacheA
         .map(ephemeraExtractor)
         .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
 
-    const stateSynthesizer = new StateSynthesizer(assetId, secondPassNormal)
+    const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal)
 
     await Promise.all([
         stateSynthesizer.fetchFromEphemera(),
