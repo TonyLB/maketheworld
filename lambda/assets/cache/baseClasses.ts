@@ -78,8 +78,14 @@ export type EphemeraStateComputed = {
 export type EphemeraStateVariable = {
     key: string;
     computed: false;
+    value: any;
 }
 
+type EphemeraStateItem = EphemeraStateComputed | EphemeraStateVariable
+
 export type EphemeraState = {
-    [key: string]: EphemeraStateComputed | EphemeraStateVariable
+    [key: string]: EphemeraStateItem
 }
+
+export const isEphemeraStateVariable = (item: EphemeraStateItem): item is EphemeraStateVariable => (!item.computed)
+export const isEphemeraStateComputed = (item: EphemeraStateItem): item is EphemeraStateComputed => (item.computed)

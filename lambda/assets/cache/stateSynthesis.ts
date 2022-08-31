@@ -6,9 +6,16 @@ import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 import { objectFilter } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities.js'
 import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/'
-import { isNormalRoom, isNormalMap, NormalForm, isNormalComputed } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
+import {
+    isNormalRoom,
+    isNormalMap,
+    NormalForm,
+    isNormalComputed,
+    isNormalVariable
+} from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
-import { EphemeraDependencies, EphemeraState } from './baseClasses.js'
+import { EphemeraDependencies, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses.js'
+import { isNormalImport } from '@tonylb/mtw-wml/dist/normalize.js'
 
 export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalForm: NormalForm): EphemeraDependencies => {
     const conditionTransform = conditionsFromContext(normalForm)
@@ -91,7 +98,7 @@ export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalFor
 const extractComputed = (normalForm: NormalForm): EphemeraState => {
     const uncomputedState = Object.values(normalForm)
         .filter(isNormalComputed)
-        .reduce((previous, { key, src }) => ({
+        .reduce<EphemeraState>((previous, { key, src }) => ({
             ...previous,
             [key]: {
                 key,
@@ -127,7 +134,7 @@ export class StateSynthesizer extends Object {
     }
 
     async fetchFromEphemera() {
-        const { State: incomingState = {} } = await ephemeraDB.getItem({
+        const { State: incomingState = {} } = await ephemeraDB.getItem<{ State: EphemeraState }>({
             EphemeraId: AssetKey(this.assetId),
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['#state'],
@@ -136,21 +143,28 @@ export class StateSynthesizer extends Object {
             }
         }) || {}
         this.state = Object.entries(incomingState)
-            .filter(([key, { computed }]) => (this.normalForm[key]?.tag === 'Variable' && !computed))
+            .filter(([key, item]) => (isEphemeraStateVariable(item)))
+            .filter(([key]) => (this.normalForm[key]?.tag === 'Variable'))
             .reduce(mergeStateReducer, this.state || {})
     }
 
     evaluateDefaults() {
         const variableState = Object.values(this.normalForm)
-            .filter(({ tag }) => (tag === 'Variable'))
-            .reduce((previous, { key, default: defaultValue }) => {
-                if (previous[key]?.value !== undefined) {
+            .filter(isNormalVariable)
+            .reduce<EphemeraState>((previous, { key, default: defaultValue }) => {
+                const previousItem = previous[key]
+                if (isEphemeraStateComputed(previousItem)) {
+                    return previous
+                }
+                if (previousItem.value !== undefined) {
                     return previous
                 }
                 const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})
                 return {
                     ...previous,
                     [key]: {
+                        computed: false,
+                        key,
                         value: defaultEvaluation
                     }
                 }
@@ -160,7 +174,7 @@ export class StateSynthesizer extends Object {
 
     async fetchImportedValues() {
         const importAssetsToFetch = [...new Set(Object.values(this.normalForm)
-            .filter(({ tag }) => (tag === 'Import'))
+            .filter(isNormalImport)
             .map(({ from }) => (from)))]
     
         const importAssetStates = await ephemeraDB.batchGetItem({
