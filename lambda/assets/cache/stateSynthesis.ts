@@ -14,7 +14,7 @@ import {
     isNormalVariable
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
-import { EphemeraDependencies, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses.js'
+import { EphemeraDependencies, EphemeraImportState, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses.js'
 import { isNormalImport } from '@tonylb/mtw-wml/dist/normalize.js'
 
 export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalForm: NormalForm): EphemeraDependencies => {
@@ -124,6 +124,7 @@ export class StateSynthesizer extends Object {
     normalForm: NormalForm;
     dependencies: EphemeraDependencies;
     state: EphemeraState;
+    importedStates: EphemeraImportState = {};
     constructor(namespaceIdToDB: NamespaceMapping, normalForm: NormalForm) {
         super()
         this.namespaceIdToDB = namespaceIdToDB
@@ -177,7 +178,7 @@ export class StateSynthesizer extends Object {
             .filter(isNormalImport)
             .map(({ from }) => (from)))]
     
-        const importAssetStates = await ephemeraDB.batchGetItem({
+        const importAssetStates = await ephemeraDB.batchGetItem<{ State: EphemeraState; Dependencies: Record<string, EphemeraDependencies>; EphemeraId: string }>({
             Items: importAssetsToFetch
                 .map((assetId) => ({
                     EphemeraId: AssetKey(assetId),
@@ -190,7 +191,7 @@ export class StateSynthesizer extends Object {
         })
     
         const importStateByAsset = (importAssetStates || [])
-            .reduce((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
+            .reduce<EphemeraImportState>((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
                 const assetId = splitType(EphemeraId)[1]
                 if (assetId) {
                     return {
@@ -202,16 +203,16 @@ export class StateSynthesizer extends Object {
                     }
                 }
                 return previous
-            }, {})
+            }, {} as EphemeraImportState)
 
         this.importedStates = importStateByAsset
 
         const importState = Object.values(this.normalForm)
-            .filter(({ tag }) => (tag === 'Import'))
-            .reduce((previous, { from, mapping }) => {
+            .filter(isNormalImport)
+            .reduce<EphemeraState>((previous, { from, mapping }) => {
                 return Object.entries(mapping)
                     .filter(([_, { key: awayKey }]) => (awayKey in importStateByAsset[from].state))
-                    .reduce((accumulator, [localKey, { key: awayKey }]) => ({
+                    .reduce<EphemeraState>((accumulator, [localKey, { key: awayKey }]) => ({
                         ...accumulator,
                         [localKey]: {
                             imported: true,
@@ -229,12 +230,12 @@ export class StateSynthesizer extends Object {
         const updateAssetDependencies = produce(this.importedStates, (draft) => {
             Object.values(draft).forEach((dependencyRecord) => {
                 Object.values(dependencyRecord.dependencies).forEach((item) => {
-                    item.imported = item.imported.filter(({ asset, key }) => (asset !== this.assetId || ['Variable', 'Computed'].includes(this.normalForm[key]?.tag)))
+                    item.imported = (item.imported || []).filter(({ asset, key }) => (asset !== this.assetId || ['Variable', 'Computed'].includes(this.normalForm[key]?.tag)))
                 })
                 dependencyRecord.dependencies = objectFilter(dependencyRecord.dependencies, ({ imported }) => (imported.length > 0))
             })
             Object.values(this.normalForm)
-                .filter(({ tag }) => (tag === 'Import'))
+                .filter(isNormalImport)
                 .filter(({ from }) => (from in this.importedStates))
                 .forEach(({ from, mapping }) => {
                     if (draft[from]) {
