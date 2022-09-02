@@ -267,36 +267,32 @@ export class StateSynthesizer extends Object {
         // Experimental:  Try processing the normal form by aggregating all appearances for all objects, then
         // filtering on the contextStack to get the right elements
         //
-        const allAppearances = Object.values(this.normalForm)
-            .reduce((previous, { appearances = [], ...rest }) => ([
-                ...previous,
-                ...(appearances.map((appearance) => ({ item: rest, ...appearance })))
-            ]), [])
-        const mapDependenciesByRoom = allAppearances
-            .filter(({ item: { tag } }) => (tag === 'Room'))
-            .reduce((previous, { item: { EphemeraId }, contextStack = [] }) => {
-                const { key } = contextStack.find(({ tag }) => (tag === 'Map')) || {}
-                const mapId = this.normalForm[key]?.EphemeraId
-                if (mapId) {
-                    return {
-                        ...previous,
-                        [EphemeraId]: [...(new Set([
-                            ...(previous[EphemeraId] || []),
-                            mapId
-                        ]))]
-                    }    
-                }
-                else {
-                    return previous
-                }
-            }, {})
 
-        const updateMapDependencyOnRoom = async ({ EphemeraId, Dependencies }) => {
-            const { Dependencies: fetchedDependencies = {} } = await ephemeraDB.getItem({
+        const mapDependenciesByRoom = Object.values(this.normalForm)
+            .filter(isNormalRoom)
+            .reduce((previous, { key, appearances }) => {
+                const EphemeraId = this.namespaceIdToDB[key]
+                const newMapIds = appearances
+                    .reduce<string[]>((accumulator, { contextStack }) => {
+                        return contextStack.filter(({ tag }) => (tag === 'Map'))
+                            .map(({ key }) => (this.namespaceIdToDB[key]))
+                            .filter((value) => (value))
+                    }, [] as string[])
+                return {
+                    ...previous,
+                    [EphemeraId]: [...(new Set([
+                        ...(previous[EphemeraId] || []),
+                        ...newMapIds
+                    ]))]
+                }
+            }, {} as Record<string, string[]>)
+
+        const updateMapDependencyOnRoom = async ({ EphemeraId, Dependencies }: { EphemeraId: string; Dependencies: string[] }) => {
+            const { Dependencies: fetchedDependencies = {} } = await ephemeraDB.getItem<{ Dependencies: EphemeraDependencies }>({
                 EphemeraId,
                 DataCategory: 'Meta::Room',
                 ProjectionFields: ['Dependencies']
-            })
+            }) || {}
             const newDependencies = {
                 ...fetchedDependencies,
                 map: [

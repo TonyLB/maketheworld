@@ -80,6 +80,7 @@ export type EphemeraStateComputed = {
     key: string;
     computed: true;
     src: string;
+    value?: any;
 }
 
 export type EphemeraStateVariable = {
