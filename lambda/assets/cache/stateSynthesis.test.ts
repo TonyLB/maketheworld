@@ -2,30 +2,29 @@ import { jest, describe, it, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
-import StateSynthesizer from './stateSynthesis.js'
+import { BaseAppearance, ComponentAppearance, MapAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import StateSynthesizer from './stateSynthesis'
+
+const getItemMock = ephemeraDB.getItem as jest.Mock
+const batchGetItemMock = ephemeraDB.batchGetItem as jest.Mock
 
 describe('stateSynthesis', () => {
-    beforeEach(() => {
-        jest.clearAllMocks()
-        jest.resetAllMocks()
-    })
 
-    const topLevelAppearance = {
+    const topLevelAppearance: BaseAppearance = {
         contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-        contents: [],
-        errors: [],
-        props: {}
+        contents: []
     }
 
-    const testAsset = {
+    const testNamespaceIdToDB = {
+        ABC: 'ROOM#DEF'
+    }
+    const testAsset: NormalForm = {
         test: {
             key: 'test',
             tag: 'Asset',
             fileName: 'test',
             appearances: [{
                 contextStack: [],
-                errors: [],
-                props: {},
                 contents: [{
                     key: 'ABC',
                     tag: 'Room',
@@ -65,25 +64,20 @@ describe('stateSynthesis', () => {
         },
         ABC: {
             key: 'ABC',
-            EphemeraId: 'ROOM#DEF',
             tag: 'Room',
             appearances: [{
                 ...topLevelAppearance,
-                global: false,
                 name: 'Vortex',
                 render: []
             },
             {
                 contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                errors: [],
-                global: false,
-                props: {},
-                name: ['(lit)'],
-                render: ['The lights are on '],
+                name: '(lit)',
+                render: [{ type: 'String', value: 'The lights are on ' }],
                 contents: []
-            }]
+            }] as ComponentAppearance[]
         },
-        power: {
+        powered: {
             key: 'powered',
             tag: 'Variable',
             default: 'false',
@@ -134,9 +128,14 @@ describe('stateSynthesis', () => {
         }
     }
 
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
     describe('constructor', () => {
         it('should extract computed, room, and mapCache dependencies', () => {
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
 
             expect(testSynthesizer.dependencies).toEqual({
                 active: {
@@ -153,15 +152,17 @@ describe('stateSynthesis', () => {
         })
 
         it('should extract map dependencies', () => {
-            const mapAsset = {
+            const mapNamespace = {
+                ABC: 'ROOM#DEF',
+                TestMap: 'MAP#TESTMAP'
+            }
+            const mapAsset: NormalForm = {
                 test: {
                     key: 'test',
                     tag: 'Asset',
                     fileName: 'test',
                     appearances: [{
                         contextStack: [],
-                        errors: [],
-                        props: {},
                         contents: [{
                             key: 'ABC',
                             tag: 'Room',
@@ -181,11 +182,9 @@ describe('stateSynthesis', () => {
                 },
                 ABC: {
                     key: 'ABC',
-                    EphemeraId: 'ROOM#DEF',
                     tag: 'Room',
                     appearances: [{
                         ...topLevelAppearance,
-                        global: false,
                         name: 'Vortex',
                         render: []
                     },
@@ -194,10 +193,10 @@ describe('stateSynthesis', () => {
                         errors: [],
                         global: false,
                         props: {},
-                        name: ['(lit)'],
-                        render: ['The lights are on '],
+                        name: '(lit)',
+                        render: [{ type: 'String', value: 'The lights are on ' }],
                         contents: []
-                    }]
+                    }] as ComponentAppearance[]
                 },
                 powered: {
                     key: 'powered',
@@ -222,27 +221,26 @@ describe('stateSynthesis', () => {
                 TestMap: {
                     key: 'TestMap',
                     tag: 'Map',
-                    EphemeraId: 'MAP#TESTMAP',
                     appearances: [{
                         contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                        errors: [],
-                        props: {},
-                        name: ['Test Map'],
+                        name: 'Test Map',
                         rooms: {
                             'ABC': {
                                 x: 200,
-                                y: 150
+                                y: 150,
+                                location: []
                             }
                         },
+                        images: [],
                         contents: [{
                             tag: 'Room',
                             key: 'ABC',
                             index: 1
                         }]
-                    }]
+                    }] as MapAppearance[]
                 }
             }
-            const mapSynthesizer = new StateSynthesizer('test', mapAsset)
+            const mapSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
 
             expect(mapSynthesizer.dependencies).toEqual({
                 powered: {
@@ -254,7 +252,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should extract computed variables', () => {
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
 
             expect(testSynthesizer.state).toEqual({
                 active: {
@@ -268,8 +266,8 @@ describe('stateSynthesis', () => {
 
     describe('fetchFromEphemera', () => {
         it('should fetch and merge state from ephemera', async () => {
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
-            ephemeraDB.getItem.mockResolvedValue({
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            getItemMock.mockResolvedValue({
                 State: {
                     power: {
                         key: 'power',
@@ -282,7 +280,7 @@ describe('stateSynthesis', () => {
                 }
             })
             await testSynthesizer.fetchFromEphemera()
-            expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+            expect(getItemMock).toHaveBeenCalledWith({
                 EphemeraId: 'ASSET#test',
                 DataCategory: 'Meta::Asset',
                 ProjectionFields: ['#state'],
@@ -308,8 +306,8 @@ describe('stateSynthesis', () => {
         })
 
         it('should remove variables from ephemera when they are removed from source', async () => {
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
-            ephemeraDB.getItem.mockResolvedValue({
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            getItemMock.mockResolvedValue({
                 State: {
                     power: {
                         key: 'power',
@@ -326,7 +324,7 @@ describe('stateSynthesis', () => {
                 }
             })
             await testSynthesizer.fetchFromEphemera()
-            expect(ephemeraDB.getItem).toHaveBeenCalledWith({
+            expect(getItemMock).toHaveBeenCalledWith({
                 EphemeraId: 'ASSET#test',
                 DataCategory: 'Meta::Asset',
                 ProjectionFields: ['#state'],
@@ -352,8 +350,8 @@ describe('stateSynthesis', () => {
         })
 
         it('should update computed source as needed', async () => {
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
-            ephemeraDB.getItem.mockResolvedValue({
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            getItemMock.mockResolvedValue({
                 State: {
                     active: {
                         key: 'active',
@@ -399,7 +397,7 @@ describe('stateSynthesis', () => {
 
     describe('fetchImportedValues', () => {
         it('should fetch imported values', async () => {
-            ephemeraDB.batchGetItem
+            batchGetItemMock
                 .mockResolvedValueOnce([{
                     EphemeraId: 'ASSET#BASE',
                     State: {
@@ -410,7 +408,7 @@ describe('stateSynthesis', () => {
                     Dependencies: {}
                 }])
 
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
             await testSynthesizer.fetchImportedValues()
 
             expect(testSynthesizer.state).toEqual({
@@ -426,7 +424,7 @@ describe('stateSynthesis', () => {
                     value: 'On'
                 }
             })
-            expect(ephemeraDB.batchGetItem).toHaveBeenCalledWith({
+            expect(batchGetItemMock).toHaveBeenCalledWith({
                 Items: [{
                     EphemeraId: 'ASSET#BASE',
                     DataCategory: 'Meta::Asset'
@@ -441,7 +439,7 @@ describe('stateSynthesis', () => {
 
     describe('updateImportedDependencies', () => {
         it('should update asset dependencies on fetched imports', async () => {
-            ephemeraDB.batchGetItem
+            batchGetItemMock
                 .mockResolvedValueOnce([{
                     EphemeraId: 'ASSET#BASE',
                     State: {
@@ -459,7 +457,7 @@ describe('stateSynthesis', () => {
                     }
                 }])
 
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -486,7 +484,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should remove asset dependencies when they are removed from source', async () => {
-            ephemeraDB.batchGetItem
+            batchGetItemMock
                 .mockResolvedValueOnce([{
                     EphemeraId: 'ASSET#BASE',
                     State: {
@@ -513,7 +511,7 @@ describe('stateSynthesis', () => {
                     }
                 }])
 
-            const testSynthesizer = new StateSynthesizer('test', testAsset)
+            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -540,15 +538,19 @@ describe('stateSynthesis', () => {
         })
 
         it('should update room dependencies on map entries', async () => {
-            const mapAsset = {
+
+            const mapNamespace = {
+                ABC: 'ROOM#DEF',
+                TestMap: 'MAP#TESTMAP'
+            }
+
+            const mapAsset: NormalForm = {
                 test: {
                     key: 'test',
                     tag: 'Asset',
                     fileName: 'test',
                     appearances: [{
                         contextStack: [],
-                        errors: [],
-                        props: {},
                         contents: [{
                             key: 'ABC',
                             tag: 'Room',
@@ -563,50 +565,46 @@ describe('stateSynthesis', () => {
                 },
                 ABC: {
                     key: 'ABC',
-                    EphemeraId: 'ROOM#DEF',
                     tag: 'Room',
                     appearances: [{
                         contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
-                        errors: [],
-                        global: false,
-                        props: {},
                         name: 'Vortex',
-                        render: []
-                    }]
+                        render: [],
+                        contents: []
+                    }] as ComponentAppearance[]
                 },
                 TestMap: {
                     key: 'TestMap',
                     tag: 'Map',
-                    EphemeraId: 'MAP#TESTMAP',
                     appearances: [{
                         contextStack: [{ key: 'test', tag: 'Asset', index: 0 }],
-                        errors: [],
-                        props: {},
-                        name: ['Test Map'],
+                        name: 'Test Map',
                         rooms: {
                             'ABC': {
                                 x: 200,
-                                y: 150
+                                y: 150,
+                                location: []
                             }
                         },
                         contents: [{
                             tag: 'Room',
                             key: 'ABC',
                             index: 0
-                        }]
-                    }]
+                        }],
+                        images: []
+                    }] as MapAppearance[]
                 }
             }
 
-            ephemeraDB.batchGetItem
+            batchGetItemMock
                 .mockResolvedValueOnce([])
             
-            ephemeraDB.getItem
+            getItemMock
                 .mockResolvedValueOnce({
                     Dependencies: {}
                 })
 
-            const testSynthesizer = new StateSynthesizer('test', mapAsset)
+            const testSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 

@@ -4,7 +4,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types'
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 import { objectFilter } from '../lib/objects.js'
-import { conditionsFromContext } from './utilities.js'
+import { conditionsFromContext } from './utilities'
 import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalRoom,
@@ -12,10 +12,10 @@ import {
     NormalForm,
     isNormalComputed,
     isNormalVariable
-} from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
-import { unique } from '@tonylb/mtw-utilities/dist/lists.js'
-import { EphemeraDependencies, EphemeraImportState, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses.js'
-import { isNormalImport } from '@tonylb/mtw-wml/dist/normalize.js'
+} from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { unique } from '@tonylb/mtw-utilities/dist/lists'
+import { EphemeraDependencies, EphemeraImportState, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses'
+import { isNormalImport } from '@tonylb/mtw-wml/dist/normalize'
 
 export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalForm: NormalForm): EphemeraDependencies => {
     const conditionTransform = conditionsFromContext(normalForm)
