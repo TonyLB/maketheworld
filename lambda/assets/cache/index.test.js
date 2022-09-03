@@ -8,8 +8,6 @@ import {
 
 jest.mock('./parseWMLFile.js')
 import parseWMLFile from './parseWMLFile.js'
-jest.mock('./globalize.js')
-import globalizeDBEntries from './globalize.js'
 jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
 jest.mock('./mergeEntries.js')
@@ -36,7 +34,6 @@ xdescribe('cacheAsset', () => {
         await cacheAsset('Test', { check: true })
 
         expect(parseWMLFile).toHaveBeenCalledTimes(0)
-        expect(globalizeDBEntries).toHaveBeenCalledTimes(0)
         expect(initializeRooms).toHaveBeenCalledTimes(0)
         expect(mergeEntries).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
@@ -56,7 +53,6 @@ xdescribe('cacheAsset', () => {
         await cacheAsset('Test')
 
         expect(parseWMLFile).toHaveBeenCalledTimes(0)
-        expect(globalizeDBEntries).toHaveBeenCalledTimes(0)
         expect(initializeRooms).toHaveBeenCalledTimes(0)
         expect(mergeEntries).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
@@ -182,7 +178,6 @@ xdescribe('cacheAsset', () => {
                 }]
             }
         }
-        globalizeDBEntries.mockResolvedValue(testAsset)
         recalculateComputes.mockReturnValue({ state: {
             active: {
                 computed: true,
@@ -200,7 +195,6 @@ xdescribe('cacheAsset', () => {
 
         await cacheAsset('test')
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#DEF'])
         expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
@@ -343,15 +337,11 @@ xdescribe('cacheAsset', () => {
                 }]
             }
         }
-        globalizeDBEntries
-            .mockResolvedValueOnce(baseAsset)
-            .mockResolvedValueOnce(testAsset)
             
         recalculateComputes.mockReturnValue({ state: {} })
 
         await cacheAsset('test', { recursive: true })
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
@@ -434,14 +424,11 @@ xdescribe('cacheAsset', () => {
                 appearances: [topLevelAppearance('test')]
             }
         }
-        globalizeDBEntries
-            .mockResolvedValueOnce(testAsset)
             
         recalculateComputes.mockReturnValue({ state: {} })
 
         await cacheAsset('test', { recursive: true })
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
@@ -533,15 +520,11 @@ xdescribe('cacheAsset', () => {
                 }]
             }
         }
-        globalizeDBEntries
-            .mockResolvedValueOnce(baseAsset)
-            .mockResolvedValueOnce(testAsset)
             
         recalculateComputes.mockReturnValue({ state: {} })
 
         await cacheAsset('test', { recursive: true, forceCache: true })
         expect(parseWMLFile).toHaveBeenCalledWith('test')
-        expect(globalizeDBEntries).toHaveBeenCalledWith('test', ['Test'])
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room

@@ -1,5 +1,4 @@
 import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
-import globalizeDBEntries from "./globalize.js"
 import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 import putAssetNormalized from './putAssetNormalized.js'
 import mergeEntries from './mergeEntries.js'
@@ -10,13 +9,11 @@ import {
     isNormalAsset,
     NormalItem,
     NormalForm,
-    isNormalCondition,
-    NormalReference,
     isNormalExit
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { EphemeraCondition, EphemeraItem } from './baseClasses'
-import { objectEntryMap, objectMap } from '../lib/objects.js'
+import { EphemeraItem } from './baseClasses'
+import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
 
 //
