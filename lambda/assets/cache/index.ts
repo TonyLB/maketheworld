@@ -3,7 +3,7 @@ import globalizeDBEntries from "./globalize.js"
 import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 import putAssetNormalized from './putAssetNormalized.js'
 import mergeEntries from './mergeEntries.js'
-import StateSynthesizer from './stateSynthesis.js'
+import StateSynthesizer from './stateSynthesis'
 import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
 import AssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import {
@@ -17,7 +17,7 @@ import {
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { EphemeraCondition, EphemeraItem } from './baseClasses'
 import { objectEntryMap, objectMap } from '../lib/objects.js'
-import { conditionsFromContext } from './utilities.js'
+import { conditionsFromContext } from './utilities'
 
 //
 // TODO:

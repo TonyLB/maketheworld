@@ -5,8 +5,8 @@ import initializeRooms from '../initializeRooms.js'
 import putAssetNormalized from '../putAssetNormalized.js'
 import AssetMetaData from '../assetMetaData.js'
 import mergeEntries from '../mergeEntries.js'
-import StateSynthesizer from '../stateSynthesis.js'
-import { cacheAsset } from '../index.js'
+import StateSynthesizer from '../stateSynthesis'
+import { cacheAsset } from '../index'
 
 export const instantiateAsset = async ({
     assetId,

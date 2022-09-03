@@ -77,8 +77,8 @@ describe('stateSynthesis', () => {
                 contents: []
             }] as ComponentAppearance[]
         },
-        powered: {
-            key: 'powered',
+        power: {
+            key: 'power',
             tag: 'Variable',
             default: 'false',
             appearances: [topLevelAppearance]
@@ -174,7 +174,7 @@ describe('stateSynthesis', () => {
                             index: 0
                         },
                         {
-                            key: 'powered',
+                            key: 'power',
                             tag: 'Variable',
                             index: 0
                         }]
@@ -198,8 +198,8 @@ describe('stateSynthesis', () => {
                         contents: []
                     }] as ComponentAppearance[]
                 },
-                powered: {
-                    key: 'powered',
+                power: {
+                    key: 'power',
                     tag: 'Variable',
                     default: 'false',
                     appearances: [topLevelAppearance]
@@ -207,8 +207,8 @@ describe('stateSynthesis', () => {
                 ['Condition-0']: {
                     key: 'Condition-0',
                     tag: 'Condition',
-                    if: 'powered',
-                    dependencies: ['powered'],
+                    if: 'power',
+                    dependencies: ['power'],
                     appearances: [{
                         ...topLevelAppearance,
                         contents: [{
@@ -243,7 +243,7 @@ describe('stateSynthesis', () => {
             const mapSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
 
             expect(mapSynthesizer.dependencies).toEqual({
-                powered: {
+                power: {
                     room: ['DEF'],
                     mapCache: ['DEF'],
                     map: ['TESTMAP']

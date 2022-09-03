@@ -19,8 +19,8 @@ import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalcul
 
 jest.mock('./localize.js')
 import { localizeDBEntries } from './localize.js'
-jest.mock('../index.js')
-import { cacheAsset } from '../index.js'
+jest.mock('../index')
+import { cacheAsset } from '../index'
 jest.mock('../assetMetaData.js')
 import AssetMetaData from '../assetMetaData.js'
 
