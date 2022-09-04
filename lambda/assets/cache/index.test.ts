@@ -6,8 +6,6 @@ import {
     assetDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
-jest.mock('./parseWMLFile.js')
-import parseWMLFile from './parseWMLFile.js'
 jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
 jest.mock('./mergeEntries.js')
@@ -45,7 +43,6 @@ xdescribe('cacheAsset', () => {
             messageBus: messageBusMock
         })
 
-        expect(parseWMLFile).toHaveBeenCalledTimes(0)
         expect(initializeRooms).toHaveBeenCalledTimes(0)
         expect(mergeEntries).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
@@ -71,7 +68,6 @@ xdescribe('cacheAsset', () => {
             messageBus: messageBusMock
         })
     
-        expect(parseWMLFile).toHaveBeenCalledTimes(0)
         expect(initializeRooms).toHaveBeenCalledTimes(0)
         expect(mergeEntries).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
@@ -96,7 +92,6 @@ xdescribe('cacheAsset', () => {
             })
         ephemeraDBMock.getItem
             .mockResolvedValueOnce({ State: {} })
-        parseWMLFile.mockResolvedValue(['Test'])
         const testAsset = {
             test: {
                 key: 'test',
@@ -220,7 +215,6 @@ xdescribe('cacheAsset', () => {
             }],
             messageBus: messageBusMock
         })
-        expect(parseWMLFile).toHaveBeenCalledWith('test')
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#DEF'])
         expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
         expect(recalculateComputes).toHaveBeenCalledWith(
@@ -324,7 +318,6 @@ xdescribe('cacheAsset', () => {
                 },
                 Dependencies: {}
             }])
-        parseWMLFile.mockResolvedValue(['Test'])
         const testAsset = {
             test: {
                 key: 'test',
@@ -373,7 +366,6 @@ xdescribe('cacheAsset', () => {
             }],
             messageBus: messageBusMock
         })
-        expect(parseWMLFile).toHaveBeenCalledWith('test')
         expect(initializeRooms).toHaveBeenCalledWith([])
         //
         // TODO:  Figure out whether there's something important to store when a room
