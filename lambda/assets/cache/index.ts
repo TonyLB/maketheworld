@@ -17,6 +17,7 @@ import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
 import { isNormalAction } from '@tonylb/mtw-wml/dist/normalize.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
+import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 
 //
 // TODO:
@@ -127,105 +128,108 @@ export const pushEphemera = async({
 //
 // TODO: Extend cacheAsset to also cache characters where needed
 //
-export const cacheAsset = async (address: AssetWorkspaceAddress, options: CacheAssetOptions = {}): Promise<void> => {
-    const { check = false, recursive = false, forceCache = false } = options
+export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: CacheAssetMessage[], messageBus: MessageBus }): Promise<void> => {
+    //
+    // To avoid race conditions, Cache payloads are currently evaluated sequentially
+    //
+    for (const { address, options } of payloads) {
+        const { check = false, recursive = false, forceCache = false } = options
 
-    const assetWorkspace = new AssetWorkspace(address)
-    await assetWorkspace.loadJSON()
-    const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
-    if (!assetItem || !assetWorkspace.namespaceIdToDB[assetItem.key]) {
-        return
-    }
-    const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || ''
-    if (check) {
-        const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
-            EphemeraId: assetEphemeraId,
-            DataCategory: 'Meta::Asset',
-        }) || {}
-        if (Boolean(EphemeraId)) {
-            return
+        const assetWorkspace = new AssetWorkspace(address)
+        await assetWorkspace.loadJSON()
+        const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
+        if (!assetItem || !assetWorkspace.namespaceIdToDB[assetItem.key]) {
+            continue
         }
-    }
-
-    //
-    // Instanced stories are not directly cached, they are instantiated ... so
-    // this would be a miscall, and should be ignored.
-    //
-    if (assetItem.instance) {
-        return
-    }
-    const assetId = assetItem.key
-
-    const ephemeraExtractor = ephemeraItemFromNormal(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
-    const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.normal || {})
-        .map(ephemeraExtractor)
-        .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
-
-    const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
-
-    await Promise.all([
-        stateSynthesizer.fetchFromEphemera(),
-        putAssetNormalized({ assetId, normalForm: ephemeraItems }),
-        mergeEntries(assetId, ephemeraItems),
-        //
-        // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
-        //
-        initializeRooms(Object.values(ephemeraItems)
-            .filter(({ tag }) => (['Room'].includes(tag)))
-            .map(({ EphemeraId }) => EphemeraId)
-        ),
-        initializeFeatures(Object.values(ephemeraItems)
-            .filter(({ tag }) => (['Feature'].includes(tag)))
-            .map(({ EphemeraId }) => EphemeraId)
-        ),
-    ])
-
-    stateSynthesizer.evaluateDefaults()
-    await stateSynthesizer.fetchImportedValues()
-    const { state } = recalculateComputes(
-        stateSynthesizer.state,
-        stateSynthesizer.dependencies,
-        Object.entries(stateSynthesizer.state)
-            .filter(([_, { computed }]) => (!computed))
-            .map(([key]) => (key))
-    )
-    stateSynthesizer.state = state
-
-    const mapCache = await assetRender({
-        assetId,
-        existingStatesByAsset: {
-            [assetId]: state,
-        },
-        existingNormalFormsByAsset: {
-            [assetId]: ephemeraItems
-        }
-    })
-
-    //
-    // TODO: Deprecate assetMetaData class
-    //
-    const actions = Object.values(assetWorkspace.normal || {})
-        .filter(isNormalAction)
-        .reduce((previous, { key, src }) => ({
-            ...previous,
-            [key]: {
-                ...(previous[key] || {}),
-                src
+        const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || ''
+        if (check) {
+            const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
+                EphemeraId: assetEphemeraId,
+                DataCategory: 'Meta::Asset',
+            }) || {}
+            if (Boolean(EphemeraId)) {
+                continue
             }
-        }), {})
-    await Promise.all([
-        pushEphemera({
-            EphemeraId: AssetKey(assetItem.key),
-            State: stateSynthesizer.state,
-            Dependencies: stateSynthesizer.dependencies,
-            Actions: actions,
-            mapCache,
+        }
+    
+        //
+        // Instanced stories are not directly cached, they are instantiated ... so
+        // this would be a miscall, and should be ignored.
+        //
+        if (assetItem.instance) {
+            continue
+        }
+        const assetId = assetItem.key
+    
+        const ephemeraExtractor = ephemeraItemFromNormal(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
+        const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.normal || {})
+            .map(ephemeraExtractor)
+            .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
+    
+        const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
+    
+        await Promise.all([
+            stateSynthesizer.fetchFromEphemera(),
+            putAssetNormalized({ assetId, normalForm: ephemeraItems }),
+            mergeEntries(assetId, ephemeraItems),
             //
-            // TODO: Refactor ancestry/descent layer of ephemera storage
+            // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
             //
-            importTree: {},
-            scopeMap: assetWorkspace.namespaceIdToDB
-        }),
-        stateSynthesizer.updateImportedDependencies()
-    ])
+            initializeRooms(Object.values(ephemeraItems)
+                .filter(({ tag }) => (['Room'].includes(tag)))
+                .map(({ EphemeraId }) => EphemeraId)
+            ),
+            initializeFeatures(Object.values(ephemeraItems)
+                .filter(({ tag }) => (['Feature'].includes(tag)))
+                .map(({ EphemeraId }) => EphemeraId)
+            ),
+        ])
+    
+        stateSynthesizer.evaluateDefaults()
+        await stateSynthesizer.fetchImportedValues()
+        const { state } = recalculateComputes(
+            stateSynthesizer.state,
+            stateSynthesizer.dependencies,
+            Object.entries(stateSynthesizer.state)
+                .filter(([_, { computed }]) => (!computed))
+                .map(([key]) => (key))
+        )
+        stateSynthesizer.state = state
+    
+        const mapCache = await assetRender({
+            assetId,
+            existingStatesByAsset: {
+                [assetId]: state,
+            },
+            existingNormalFormsByAsset: {
+                [assetId]: ephemeraItems
+            }
+        })
+    
+        const actions = Object.values(assetWorkspace.normal || {})
+            .filter(isNormalAction)
+            .reduce((previous, { key, src }) => ({
+                ...previous,
+                [key]: {
+                    ...(previous[key] || {}),
+                    src
+                }
+            }), {})
+        await Promise.all([
+            pushEphemera({
+                EphemeraId: AssetKey(assetItem.key),
+                State: stateSynthesizer.state,
+                Dependencies: stateSynthesizer.dependencies,
+                Actions: actions,
+                mapCache,
+                //
+                // TODO: Refactor ancestry/descent layer of ephemera storage
+                //
+                importTree: {},
+                scopeMap: assetWorkspace.namespaceIdToDB
+            }),
+            stateSynthesizer.updateImportedDependencies()
+        ])
+    }
+
 }

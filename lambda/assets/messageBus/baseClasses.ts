@@ -58,6 +58,18 @@ export type LibrarySubscribeMessage = {
     type: 'LibrarySubscribe';
 }
 
+type CacheAssetOptions = {
+    check?: boolean;
+    recursive?: boolean;
+    forceCache?: boolean;
+}
+
+export type CacheAssetMessage = {
+    type: 'CacheAsset';
+    address: AssetWorkspaceAddress;
+    options: CacheAssetOptions;
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchAssetMessage |
