@@ -2,8 +2,7 @@ import { jest, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
-    ephemeraDB,
-    assetDB
+    ephemeraDB
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('./initializeRooms.js')
@@ -19,15 +18,96 @@ import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
 
 import { cacheAssetMessage } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
+import { BaseAppearance, ComponentAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+
+let mockTestAsset: NormalForm = {
+    'Import-0': {
+        tag: 'Import',
+        from: 'BASE',
+        key: 'Import-0',
+        appearances: [{
+            contents: [],
+            contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
+        }],
+        mapping: {}
+    },
+    Test: {
+        tag: 'Asset',
+        key: 'Test',
+        appearances: [{
+            contents: [{
+                tag: 'Import',
+                key: 'Import-0',
+                index: 0
+            }],
+            contextStack: []
+        }]
+    }
+}
+let mockNamespaceMap: Record<string, string> = {
+    Test: 'ASSET#Test'
+}
+
+jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
+    return jest.fn().mockImplementation((address: any) => {
+        return {
+            status: {
+                json: 'Clean'
+            },
+            address,
+            get fileNameBase() {
+                if (address.zone === 'Personal') {
+                    return 'Personal/Test/Test'
+                }
+                else {
+                    return 'Library/Test'
+                }
+            },
+            loadJSON: jest.fn(),
+            normal: mockTestAsset,
+            namespaceIdToDB: mockNamespaceMap
+        }
+    })
+})
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const evaluateCodeMock = evaluateCode as jest.Mock
+const recalculateComputesMock = recalculateComputes as jest.Mock
+const assetRenderMock = assetRender as jest.Mock
+// const AssetWorkspaceMock = AssetWorkspace as jest.Mocked<typeof AssetWorkspace>
 
-xdescribe('cacheAsset', () => {
+describe('cacheAsset', () => {
     const messageBusMock = { send: jest.fn() } as unknown as MessageBus
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.resetAllMocks()
+        jest.restoreAllMocks()
+        mockTestAsset = {
+            'Import-0': {
+                tag: 'Import',
+                from: 'BASE',
+                key: 'Import-0',
+                appearances: [{
+                    contents: [],
+                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
+                }],
+                mapping: {}
+            },
+            Test: {
+                tag: 'Asset',
+                key: 'Test',
+                appearances: [{
+                    contents: [{
+                        tag: 'Import',
+                        key: 'Import-0',
+                        index: 0
+                    }],
+                    contextStack: []
+                }]
+            }
+        }
+        mockNamespaceMap = {
+            Test: 'ASSET#Test'
+        }
     })
 
     it('should skip processing when check option and already present', async () => {
@@ -53,12 +133,31 @@ xdescribe('cacheAsset', () => {
         ephemeraDBMock.getItem.mockResolvedValue({
             EphemeraId: 'ASSET#Test'
         })
-        assetDB.getItem
-            .mockResolvedValueOnce({
-                fileName: 'test',
-                importTree: { BASE: {} },
-                instance: true
-            })
+        mockTestAsset = {
+            'Import-0': {
+                tag: 'Import',
+                from: 'BASE',
+                key: 'Import-0',
+                appearances: [{
+                    contents: [],
+                    contextStack: [{ tag: 'Asset', key: 'Test', index: 0 }]
+                }],
+                mapping: {}
+            },
+            Test: {
+                tag: 'Asset',
+                key: 'Test',
+                instance: true,
+                appearances: [{
+                    contents: [{
+                        tag: 'Import',
+                        key: 'Import-0',
+                        index: 0
+                    }],
+                    contextStack: []
+                }]
+            }
+        }
         await cacheAssetMessage({
             payloads: [{
                 type: 'CacheAsset',
@@ -75,32 +174,27 @@ xdescribe('cacheAsset', () => {
     })
 
     it('should send rooms in need of update', async () => {
-        const topLevelAppearance = {
+        const topLevelAppearance: BaseAppearance = {
             contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
-            contents: [],
-            errors: [],
-            props: {}
+            contents: []
         }
 
         const mockEvaluate = jest.fn().mockReturnValue(true)
         evaluateCodeMock.mockReturnValue(mockEvaluate)
 
-        assetDB.getItem
-            .mockResolvedValueOnce({
-                fileName: 'test',
-                importTree: { BASE: {} }
-            })
         ephemeraDBMock.getItem
             .mockResolvedValueOnce({ State: {} })
-        const testAsset = {
+        mockNamespaceMap = {
+            test: 'ASSET#test',
+            ABC: 'ROOM#DEF'
+        }
+        mockTestAsset = {
             test: {
                 key: 'test',
                 tag: 'Asset',
                 fileName: 'test',
                 appearances: [{
                     contextStack: [],
-                    errors: [],
-                    props: {},
                     contents: [{
                         key: 'ABC',
                         tag: 'Room',
@@ -135,22 +229,17 @@ xdescribe('cacheAsset', () => {
             },
             ABC: {
                 key: 'ABC',
-                EphemeraId: 'ROOM#DEF',
                 tag: 'Room',
                 appearances: [{
                     ...topLevelAppearance,
-                    global: false,
                     name: 'Vortex',
                     render: []
                 },
                 {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    errors: [],
-                    global: false,
-                    props: {},
                     render: ['The lights are on '],
                     contents: []
-                }]
+                }] as ComponentAppearance[]
             },
             powered: {
                 key: 'powered',
@@ -192,7 +281,7 @@ xdescribe('cacheAsset', () => {
                 }]
             }
         }
-        recalculateComputes.mockReturnValue({ state: {
+        recalculateComputesMock.mockReturnValue({ state: {
             active: {
                 computed: true,
                 key: 'active',
@@ -205,7 +294,7 @@ xdescribe('cacheAsset', () => {
                 value: true
             }
         } })
-        assetRender.mockResolvedValue({ foo: 'bar' })
+        assetRenderMock.mockResolvedValue({ foo: 'bar' })
 
         await cacheAssetMessage({
             payloads: [{
@@ -216,7 +305,26 @@ xdescribe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#DEF'])
-        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
+        expect(mergeEntries).toHaveBeenCalledWith('test', [{
+            EphemeraId: 'ROOM#DEF',
+            key: 'ABC',
+            tag: 'Room',
+            appearances: [{
+                conditions: [],
+                exits: [],
+                name: 'Vortex',
+                render: []
+            },
+            {
+                conditions: [{
+                    dependencies: ["active"],
+                    if: "active"
+                }],
+                exits: [],
+                name: '',
+                render: ["The lights are on "]
+            }]
+        }])
         expect(recalculateComputes).toHaveBeenCalledWith(
             {
                 active: {
@@ -225,9 +333,13 @@ xdescribe('cacheAsset', () => {
                     src: 'powered && switchedOn'
                 },
                 powered: {
+                    computed: false,
+                    key: 'powered',
                     value: true
                 },
                 switchedOn: {
+                    computed: false,
+                    key: 'switchedOn',
                     value: true
                 }
             },
@@ -259,7 +371,7 @@ xdescribe('cacheAsset', () => {
         }
         expect(assetRender).toHaveBeenCalledWith({
             assetId: 'test',
-            existingNormalFormsByAsset: { test: testAsset },
+            existingNormalFormsByAsset: { test: mockTestAsset },
             existingStatesByAsset: { test: expectedState }
         })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
@@ -283,118 +395,11 @@ xdescribe('cacheAsset', () => {
                 }
             },
             mapCache: { foo: 'bar' },
-            importTree: {
-                BASE: {}
+            importTree: {},
+            scopeMap: {
+                test: 'ASSET#test',
+                ABC: 'ROOM#DEF'
             }
-        })
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: 'ASSET#test',
-            DataCategory: 'Meta::AssetNormalized',
-            normalForm: testAsset
-        })
-    })
-
-    it('should recursively cache when recursive option set true', async () => {
-        const topLevelAppearance = (key) => ({
-            contextStack: [{ key, tag: 'Asset', index: 0}],
-            contents: [],
-            errors: [],
-            props: {}
-        })
-
-        assetDB.getItem
-            .mockResolvedValueOnce({ fileName: 'test', importTree: { BASE: {} } })
-            .mockResolvedValueOnce({ fileName: 'BASE', importTree: {} })
-        ephemeraDBMock.getItem
-            .mockResolvedValueOnce({})
-            .mockResolvedValueOnce({ State: {} })
-        ephemeraDBMock.batchGetItem
-            .mockResolvedValueOnce([{
-                EphemeraId: 'ASSET#BASE',
-                State: {
-                    powered: {
-                        value: 'On'
-                    }
-                },
-                Dependencies: {}
-            }])
-        const testAsset = {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'Import-0',
-                        tag: 'Import',
-                        index: 0
-                    }]
-                }]
-            },
-            ['Import-0']: {
-                key: 'Import-0',
-                tag: 'Import',
-                from: 'BASE',
-                mapping: {},
-                appearances: [topLevelAppearance('test')]
-            }
-        }
-        const baseAsset = {
-            test: {
-                key: 'BASE',
-                tag: 'Asset',
-                fileName: 'Base',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: []
-                }]
-            }
-        }
-            
-        recalculateComputes.mockReturnValue({ state: {} })
-
-        await cacheAssetMessage({
-            payloads: [{
-                type: 'CacheAsset',
-                address: { fileName: 'Test', zone: 'Library' },
-                options: { recursive: true }
-            }],
-            messageBus: messageBusMock
-        })
-        expect(initializeRooms).toHaveBeenCalledWith([])
-        //
-        // TODO:  Figure out whether there's something important to store when a room
-        // is imported but not altered ... can the import just be a straight include?
-        //
-        expect(mergeEntries).toHaveBeenCalledWith('test', testAsset)
-        expect(mergeEntries).toHaveBeenCalledWith('BASE', baseAsset)
-        expect(recalculateComputes).toHaveBeenCalledWith(
-            {},
-            {},
-            []
-        )
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#test",
-            DataCategory: "Meta::Asset",
-            Actions: {},
-            State: {},
-            Dependencies: {},
-            mapCache: {},
-            importTree: { BASE: {} }
-        })
-        expect(ephemeraDB.putItem).toHaveBeenCalledWith({
-            EphemeraId: "ASSET#BASE",
-            DataCategory: "Meta::Asset",
-            Actions: {},
-            State: {},
-            Dependencies: {},
-            mapCache: {},
-            importTree: {}
         })
     })
 

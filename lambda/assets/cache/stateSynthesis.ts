@@ -154,10 +154,10 @@ export class StateSynthesizer extends Object {
             .filter(isNormalVariable)
             .reduce<EphemeraState>((previous, { key, default: defaultValue }) => {
                 const previousItem = previous[key]
-                if (isEphemeraStateComputed(previousItem)) {
+                if (previousItem && isEphemeraStateComputed(previousItem)) {
                     return previous
                 }
-                if (previousItem.value !== undefined) {
+                if (previousItem?.value !== undefined) {
                     return previous
                 }
                 const defaultEvaluation = evaluateCode(`return (${defaultValue})`)({})

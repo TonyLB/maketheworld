@@ -4,7 +4,7 @@ import putAssetNormalized from './putAssetNormalized.js'
 import mergeEntries from './mergeEntries.js'
 import StateSynthesizer from './stateSynthesis'
 import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
-import AssetWorkspace, { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
+import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalAsset,
     NormalItem,
@@ -202,7 +202,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 [assetId]: state,
             },
             existingNormalFormsByAsset: {
-                [assetId]: ephemeraItems
+                [assetId]: assetWorkspace.normal || {}
             }
         })
     
