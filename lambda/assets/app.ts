@@ -2,7 +2,6 @@
 import { S3Client } from "@aws-sdk/client-s3"
 
 import { cacheAsset } from './cache/index.js'
-import { instantiateAsset } from './cache/instantiate/index.js'
 import { healAsset } from "./selfHealing/"
 import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
@@ -53,15 +52,6 @@ export const handler = async (event, context) => {
 
     if (event.cache) {
         const fileName = await cacheAsset(event.cache)
-
-        return JSON.stringify({ fileName })
-    }
-    if (event.instantiate) {
-        const fileName = await instantiateAsset({
-            assetId: event.instantiate,
-            instanceId: '',
-            options: { instantiateRooms: true }
-        })
 
         return JSON.stringify({ fileName })
     }
