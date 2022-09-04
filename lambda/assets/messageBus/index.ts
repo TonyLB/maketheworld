@@ -8,7 +8,8 @@ import {
     isMoveAssetMessage,
     isMoveByAssetIdMessage,
     isLibrarySubscribeMessage,
-    isParseWMLMessage
+    isParseWMLMessage,
+    isCacheAssetMessage
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
@@ -16,6 +17,7 @@ import { uploadResponseMessage } from "../upload/uploadResponse"
 import { uploadURLMessage, uploadImageURLMessage, parseWMLMessage } from "../upload"
 import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage } from "../subscribe"
+import { cacheAssetMessage } from "../cache"
 
 export const messageBus = new MessageBus()
 
@@ -72,6 +74,12 @@ messageBus.subscribe({
     priority: 8,
     filter: isUploadResponseMessage,
     callback: uploadResponseMessage
+})
+messageBus.subscribe({
+    tag: 'CacheAsset',
+    priority: 5,
+    filter: isCacheAssetMessage,
+    callback: cacheAssetMessage
 })
 
 export default messageBus
