@@ -116,3 +116,12 @@ export type EphemeraImportStateItem = {
 export type EphemeraImportState = {
     [key: string]: EphemeraImportStateItem;
 }
+export type EphemeraPushArgs = {
+    EphemeraId: string;
+    State: EphemeraState;
+    Dependencies?: EphemeraDependencies;
+    Actions?: any;
+    mapCache?: any;
+    importTree?: any;
+    scopeMap?: any;
+}

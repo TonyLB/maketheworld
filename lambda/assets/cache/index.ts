@@ -12,9 +12,11 @@ import {
     isNormalExit
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { EphemeraItem } from './baseClasses'
+import { EphemeraItem, EphemeraPushArgs } from './baseClasses'
 import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
+import { isNormalAction } from '@tonylb/mtw-wml/dist/normalize.js'
+import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 
 //
 // TODO:
@@ -100,6 +102,28 @@ const ephemeraItemFromNormal = (namespaceMap: AssetWorkspace["namespaceIdToDB"],
     }
 }
 
+
+export const pushEphemera = async({
+    EphemeraId,
+    State,
+    Dependencies = { room: [], computed: [] },
+    Actions = {},
+    mapCache = {},
+    importTree = {},
+    scopeMap = {}
+}: EphemeraPushArgs) => {
+    await ephemeraDB.putItem<EphemeraPushArgs & { DataCategory: 'Meta::Asset' }>({
+        EphemeraId,
+        DataCategory: 'Meta::Asset',
+        State,
+        Dependencies,
+        Actions,
+        mapCache,
+        importTree,
+        scopeMap
+    })
+}
+
 //
 // TODO: Extend cacheAsset to also cache characters where needed
 //
@@ -130,56 +154,58 @@ export const cacheAsset = async (address: AssetWorkspaceAddress, options: CacheA
     if (assetItem.instance) {
         return
     }
+    const assetId = assetItem.key
 
     const ephemeraExtractor = ephemeraItemFromNormal(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
     const ephemeraItems: EphemeraItem[] = Object.values(assetWorkspace.normal || {})
         .map(ephemeraExtractor)
         .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
 
-    const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal)
+    const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
 
     await Promise.all([
         stateSynthesizer.fetchFromEphemera(),
-        putAssetNormalized({ assetId, normalForm: secondPassNormal }),
-        mergeEntries(assetId, secondPassNormal),
+        putAssetNormalized({ assetId, normalForm: ephemeraItems }),
+        mergeEntries(assetId, ephemeraItems),
         //
         // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
         //
-        initializeRooms(Object.values(secondPassNormal)
+        initializeRooms(Object.values(ephemeraItems)
             .filter(({ tag }) => (['Room'].includes(tag)))
             .map(({ EphemeraId }) => EphemeraId)
         ),
-        initializeFeatures(Object.values(secondPassNormal)
+        initializeFeatures(Object.values(ephemeraItems)
             .filter(({ tag }) => (['Feature'].includes(tag)))
             .map(({ EphemeraId }) => EphemeraId)
         ),
     ])
 
-    assetMetaData.dependencies = stateSynthesizer.dependencies
-    
     stateSynthesizer.evaluateDefaults()
     await stateSynthesizer.fetchImportedValues()
     const { state } = recalculateComputes(
         stateSynthesizer.state,
-        assetMetaData.dependencies,
+        stateSynthesizer.dependencies,
         Object.entries(stateSynthesizer.state)
             .filter(([_, { computed }]) => (!computed))
             .map(([key]) => (key))
     )
-    assetMetaData.state = state
+    stateSynthesizer.state = state
 
-    assetMetaData.mapCache = await assetRender({
+    const mapCache = await assetRender({
         assetId,
         existingStatesByAsset: {
             [assetId]: state,
         },
         existingNormalFormsByAsset: {
-            [assetId]: secondPassNormal
+            [assetId]: ephemeraItems
         }
     })
 
-    assetMetaData.actions = Object.values(secondPassNormal)
-        .filter(({ tag }) => (tag === 'Action'))
+    //
+    // TODO: Deprecate assetMetaData class
+    //
+    const actions = Object.values(assetWorkspace.normal || {})
+        .filter(isNormalAction)
         .reduce((previous, { key, src }) => ({
             ...previous,
             [key]: {
@@ -188,7 +214,18 @@ export const cacheAsset = async (address: AssetWorkspaceAddress, options: CacheA
             }
         }), {})
     await Promise.all([
-        assetMetaData.pushEphemera(),
+        pushEphemera({
+            EphemeraId: AssetKey(assetItem.key),
+            State: stateSynthesizer.state,
+            Dependencies: stateSynthesizer.dependencies,
+            Actions: actions,
+            mapCache,
+            //
+            // TODO: Refactor ancestry/descent layer of ephemera storage
+            //
+            importTree: {},
+            scopeMap: assetWorkspace.namespaceIdToDB
+        }),
         stateSynthesizer.updateImportedDependencies()
     ])
 }
