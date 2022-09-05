@@ -1,7 +1,7 @@
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB/index"
 import { healGlobalValues, generatePersonalAssetList } from "@tonylb/mtw-utilities/dist/selfHealing/index"
-import { cacheAsset } from "../cache/index.js"
+// import { cacheAsset } from "../cache/index.js"
 
 const healPersonalAssets = async ({ PlayerName }) => {
     if (!PlayerName) {
@@ -66,5 +66,5 @@ export const handleAssetEvents = async ({ events }) => {
         .map(({ newImage }) => (newImage))
         .filter(({ AssetId }) => (AssetId))
         .map(({ AssetId }) => (splitType(AssetId)[1]))
-    await Promise.all(assetsToCache.map(cacheAsset))
+    // await Promise.all(assetsToCache.map(cacheAsset))
 }

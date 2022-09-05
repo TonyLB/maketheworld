@@ -5,7 +5,7 @@ import { assetWorkspaceFromAssetId } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import AssetWorkspace from "@tonylb/mtw-asset-workspace"
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
 
 const { S3_BUCKET } = process.env;
 
