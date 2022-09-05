@@ -152,6 +152,11 @@ export type MoveCharacterMessage = {
     leaveMessage?: string;
 }
 
+export type DecacheAssetMessage = {
+    type: 'DecacheAsset';
+    assetId: string;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -165,7 +170,8 @@ export type MessageType = PublishMessage |
     ImportDefaultsMessage |
     FetchImportDefaultsMessage |
     PerceptionMessage |
-    MoveCharacterMessage
+    MoveCharacterMessage |
+    DecacheAssetMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -187,5 +193,7 @@ export const isFetchImportDefaults = (prop: MessageType): prop is FetchImportDef
 
 export const isPerception = (prop: MessageType): prop is PerceptionMessage => (prop.type === 'Perception')
 export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
+
+export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

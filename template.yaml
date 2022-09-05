@@ -156,6 +156,16 @@ Resources:
           - Effect: Allow
             Action: execute-api:ManageConnections
             Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+      Events:
+        DecacheAsset:
+          Type: CloudWatchEvent
+          Properties:
+            EventBusName: !Sub ${TablePrefix}-bus
+            Pattern:
+              source:
+                - mtw.coordination
+              detail-type:
+                - Decache Asset
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

@@ -65,7 +65,7 @@ export const connect = async (token: any) => {
 
 export const handler = async (event: any, context: any) => {
 
-    const { connectionId, routeKey } = event.requestContext
+    const { connectionId, routeKey } = event.requestContext || {}
     const request = (event.body && (JSON.parse(event.body) as EphemeraAPIMessage)) || {}
 
     internalCache.clear()
@@ -75,6 +75,18 @@ export const handler = async (event: any, context: any) => {
     }
     messageBus.clear()
 
+    // Handle EventBridge messages
+    if (['mtw.coordination'].includes(event?.source || '')) {
+        if (event["detail-type"] === 'Decache Asset') {
+            if (event.detail?.assetId) {
+                messageBus.send({
+                    type: 'DecacheAsset',
+                    assetId: event.detail.assetId
+                })
+            }
+        }
+    }
+    
     if (routeKey === '$connect') {
         const { Authorization = '' } = event.queryStringParameters || {}
         await connect(Authorization)
