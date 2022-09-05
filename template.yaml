@@ -712,22 +712,15 @@ Resources:
                       - "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
                       - UserPoolId: !Ref UserPool
           Events:
-            Stream:
-              Type: DynamoDB
+            HealAsset:
+              Type: CloudWatchEvent
               Properties:
-                Stream: !GetAtt AssetTable.StreamArn
-                BatchSize: 100
-                StartingPosition: LATEST
-            # BucketEvent:
-            #   Type: S3
-            #   Properties:
-            #     Bucket: !Ref AssetBucket
-            #     Filter:
-            #       S3Key:
-            #         Rules:
-            #           - Name: prefix
-            #             Value: upload/
-            #     Events: s3:ObjectCreated:*
+                EventBusName: !Sub ${TablePrefix}-bus
+                Pattern:
+                  source:
+                    - mtw.diagnostics
+                  detail-type:
+                    - Heal Asset
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:
