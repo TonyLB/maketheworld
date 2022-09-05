@@ -35,8 +35,11 @@ export const handler = async (event, context) => {
 
     // Handle EventBridge messages
     if (['mtw.diagnostics'].includes(event?.source || '')) {
-        console.log(`Healing Asset: ${event.detail?.assetId}`)
-        return JSON.stringify(`Events Processed`)
+        if (event.detail?.assetId) {
+            const returnVal = await healAsset(event.detail.assetId)
+            return JSON.stringify(returnVal, null, 4)    
+        }
+        return JSON.stringify(`No Asset specified for Heal Asset event`)
     }
     
     if (event.cache) {
