@@ -53,10 +53,6 @@ export const handler = async (event, context) => {
             options: {}
         })
     }
-    if (event.healAsset) {
-        const returnVal = await healAsset(event.healAsset)
-        return JSON.stringify(returnVal, null, 4)
-    }
     if (event.heal) {
         const returnVal = await healPlayers()
         return JSON.stringify(returnVal, null, 4)

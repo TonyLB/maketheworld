@@ -14,7 +14,8 @@ import {
     isImportDefaults,
     isFetchImportDefaults,
     isPerception,
-    isMoveCharacter
+    isMoveCharacter,
+    isDecacheAsset
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -28,6 +29,7 @@ import { fetchPlayerEphemera } from '../fetchEphemera'
 import { importDefaultsMessage, fetchImportDefaults } from '../fetchImportDefaults'
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
+import decacheAssetMessage from '../decacheMessage'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -107,6 +109,12 @@ messageBus.subscribe({
     priority: 4,
     filter: isMoveCharacter,
     callback: moveCharacter
+})
+messageBus.subscribe({
+    tag: 'DecacheAsset',
+    priority: 5,
+    filter: isDecacheAsset,
+    callback: decacheAssetMessage
 })
 
 export default messageBus
