@@ -18,6 +18,7 @@
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
+    "@tonylb/mtw-asset-workspace": "file:./mtw-asset-workspace",
     "aws-xray-sdk": "^3.3.3",
     "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
@@ -27,7 +28,8 @@
   "files": [
     "mtw-utilities",
     "mtw-internal-bus",
-    "mtw-interfaces"
+    "mtw-interfaces",
+    "mtw-asset-workspace"
   ],
   "devDependencies": {
     "@types/jest": "^28.1.4",
