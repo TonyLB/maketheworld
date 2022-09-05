@@ -15,7 +15,8 @@ import {
     isFetchImportDefaults,
     isPerception,
     isMoveCharacter,
-    isDecacheAsset
+    isDecacheAsset,
+    isCacheAssetMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -30,6 +31,7 @@ import { importDefaultsMessage, fetchImportDefaults } from '../fetchImportDefaul
 import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
+import { cacheAssetMessage } from '../cacheAsset'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -115,6 +117,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isDecacheAsset,
     callback: decacheAssetMessage
+})
+messageBus.subscribe({
+    tag: 'CacheAsset',
+    priority: 5,
+    filter: isCacheAssetMessage,
+    callback: cacheAssetMessage
 })
 
 export default messageBus

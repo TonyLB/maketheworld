@@ -58,18 +58,6 @@ export type LibrarySubscribeMessage = {
     type: 'LibrarySubscribe';
 }
 
-type CacheAssetOptions = {
-    check?: boolean;
-    recursive?: boolean;
-    forceCache?: boolean;
-}
-
-export type CacheAssetMessage = {
-    type: 'CacheAsset';
-    address: AssetWorkspaceAddress;
-    options: CacheAssetOptions;
-}
-
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchAssetMessage |
@@ -79,8 +67,7 @@ export type MessageType = ReturnValueMessage |
     UploadResponseMessage |
     MoveAssetMessage |
     MoveByAssetIdMessage |
-    LibrarySubscribeMessage |
-    CacheAssetMessage
+    LibrarySubscribeMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -92,6 +79,5 @@ export const isUploadResponseMessage = (prop: MessageType): prop is UploadRespon
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
-export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

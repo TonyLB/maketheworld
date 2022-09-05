@@ -1,5 +1,6 @@
 import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
@@ -157,6 +158,18 @@ export type DecacheAssetMessage = {
     assetId: string;
 }
 
+type CacheAssetOptions = {
+    check?: boolean;
+    recursive?: boolean;
+    forceCache?: boolean;
+}
+
+export type CacheAssetMessage = {
+    type: 'CacheAsset';
+    address: AssetWorkspaceAddress;
+    options: CacheAssetOptions;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -171,7 +184,8 @@ export type MessageType = PublishMessage |
     FetchImportDefaultsMessage |
     PerceptionMessage |
     MoveCharacterMessage |
-    DecacheAssetMessage
+    DecacheAssetMessage |
+    CacheAssetMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -195,5 +209,6 @@ export const isPerception = (prop: MessageType): prop is PerceptionMessage => (p
 export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage => (prop.type === 'MoveCharacter')
 
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
+export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
