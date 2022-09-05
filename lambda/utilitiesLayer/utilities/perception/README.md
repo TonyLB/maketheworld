@@ -62,7 +62,7 @@ object was a Room, Feature or Map.
 ### Expected Ephemera Format
 
 Room objects are expected to be cached in the Ephemera table using the standards
-in [**mergeEntries**](../../../assets/cache/README.mergeEntries.md).
+in [**mergeEntries**](../../../controlChannel/cacheAsset/README.mergeEntries.md).
 
 Assets are expected to be cached in the Ephemera table using the standards
 in **pushEphemera** (TODO: Document pushEphemera)

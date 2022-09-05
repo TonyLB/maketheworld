@@ -42,17 +42,6 @@ export const handler = async (event, context) => {
         return JSON.stringify(`No Asset specified for Heal Asset event`)
     }
     
-    if (event.cache) {
-        messageBus.send({
-            type: 'CacheAsset',
-            address: {
-                fileName: event.fileName,
-                zone: event.zone,
-                player: event.player
-            },
-            options: {}
-        })
-    }
     if (event.heal) {
         const returnVal = await healPlayers()
         return JSON.stringify(returnVal, null, 4)
