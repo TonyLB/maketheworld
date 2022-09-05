@@ -27,28 +27,18 @@ const s3Client = new S3Client(params)
 
 export const handler = async (event, context) => {
 
-    // Handle S3 Events
-    if (event.Records) {
-        await Promise.all([
-            handleDynamoEvent({
-                events: event.Records
-                    .filter(({ dynamodb }) => (dynamodb))
-            })
-        ])
-        return JSON.stringify(`Events Processed`)
-    }
-
-    //
-    // In-Lambda testing outlet (to be removed once development complete)
-    //
-
-    const { message = '' } = event
-    const { connectionId } = event.requestContext
+    const { connectionId } = event.requestContext || {}
     internalCache.clear()
     internalCache.Connection.set({ key: 'connectionId', value: connectionId })
     internalCache.Connection.set({ key: 's3Client', value: s3Client })
     messageBus.clear()
 
+    // Handle EventBridge messages
+    if (['mtw.diagnostics'].includes(event?.source || '')) {
+        console.log(`Healing Asset: ${event.detail?.assetId}`)
+        return JSON.stringify(`Events Processed`)
+    }
+    
     if (event.cache) {
         messageBus.send({
             type: 'CacheAsset',
