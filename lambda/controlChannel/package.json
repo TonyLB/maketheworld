@@ -14,11 +14,13 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.49.0",
     "@aws-sdk/client-dynamodb": "^3.49.0",
     "@aws-sdk/client-lambda": "^3.13.0",
+    "@aws-sdk/client-s3": "^3.163.0",
     "@aws-sdk/util-dynamodb": "^3.49.0",
+    "@tonylb/mtw-asset-workspace": "file:./mtw-asset-workspace",
     "@tonylb/mtw-interfaces": "file:./mtw-interfaces",
     "@tonylb/mtw-internal-bus": "file:./mtw-internal-bus",
     "@tonylb/mtw-utilities": "file:./mtw-utilities",
-    "@tonylb/mtw-asset-workspace": "file:./mtw-asset-workspace",
+    "@tonylb/mtw-wml": "file:./mtw-wml",
     "aws-xray-sdk": "^3.3.3",
     "immer": "^9.0.12",
     "node-fetch": "^3.2.0",
@@ -29,7 +31,8 @@
     "mtw-utilities",
     "mtw-internal-bus",
     "mtw-interfaces",
-    "mtw-asset-workspace"
+    "mtw-asset-workspace",
+    "mtw-wml"
   ],
   "devDependencies": {
     "@types/jest": "^28.1.4",
