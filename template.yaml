@@ -78,6 +78,10 @@ Resources:
       CallbackURLs:
         - !Ref CognitoCallbackURL
 
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub ${TablePrefix}-bus
   RealTimeWebSocket:
     Type: AWS::ApiGatewayV2::Api
     Properties:
