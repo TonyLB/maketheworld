@@ -24,6 +24,7 @@ import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { LegalCharacterColor } from './messageBus/baseClasses'
+import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -84,6 +85,25 @@ export const handler = async (event: any, context: any) => {
                     assetId: event.detail.assetId
                 })
             }
+        }
+        if (event["detail-type"] === 'Cache Asset') {
+            const address: AssetWorkspaceAddress = event.detail.zone === 'Personal'
+                ? {
+                    fileName: event.detail.fileName,
+                    zone: 'Personal',
+                    subFolder: event.detail.subFolder,
+                    player: event.detail.player
+                }
+                :  {
+                    fileName: event.detail.fileName,
+                    zone: event.detail.zone,
+                    subFolder: event.detail.subFolder
+                }
+            messageBus.send({
+                type: 'CacheAsset',
+                address,
+                options: {}
+            })
         }
     }
     
