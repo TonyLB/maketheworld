@@ -12,6 +12,8 @@ jest.mock('@tonylb/mtw-asset-workspace/dist', () => ({
             address,
             fileNameBase: 'Personal/Test/healTest',
             loadJSON: jest.fn(),
+            loadWML: jest.fn(),
+            pushJSON: jest.fn(),
             normal: {
                 'Import-0': {
                     tag: 'Import',
@@ -56,6 +58,8 @@ describe('healAsset', () => {
                 fileName: 'healTest.wml'
             },
             loadJSON: expect.any(Function),
+            loadWML: expect.any(Function),
+            pushJSON: expect.any(Function),
             fileNameBase: "Personal/Test/healTest",
             normal: {
                 'Import-0': {
