@@ -1,4 +1,3 @@
-import { is } from "immer/dist/internal";
 import { ParseTagFactory, ParseRoomTag, ParseException, ParseRoomLegalContents } from "./baseClasses"
 import { validateProperties, ExtractProperties, validateContents } from "./utils"
 
@@ -17,10 +16,10 @@ export const parseRoomFactory: ParseTagFactory<ParseRoomTag> = ({ open, contents
     })
     const x = validate.x ? parseInt(validate.x) : undefined
     const y = validate.y ? parseInt(validate.y) : undefined
-    if (isNaN(x)) {
+    if (validate.x && Number.isNaN(x)) {
         throw new ParseException(`Property 'x' in Room tag must be a number`, open.startTagToken, endTagToken)
     }
-    if (isNaN(y)) {
+    if (validate.y && Number.isNaN(y)) {
         throw new ParseException(`Property 'y' in Room tag must be a number`, open.startTagToken, endTagToken)
     }
     const parseContents = validateContents<ParseRoomLegalContents>({

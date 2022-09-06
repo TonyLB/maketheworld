@@ -10,10 +10,11 @@ export const healAsset = async (fileName: string) => {
         if (assetWorkspace.status.json !== 'Clean') {
             return
         }
-        //
-        // TODO (ISS1380):  LoadWML and check whether the JSON file needs to be updated
-        //
-        await dbRegister(assetWorkspace)
+        await assetWorkspace.loadWML()
+        await Promise.all([
+            assetWorkspace.pushJSON(),
+            dbRegister(assetWorkspace)
+        ])
         return {
             scopeMap: assetWorkspace.namespaceIdToDB
         }
