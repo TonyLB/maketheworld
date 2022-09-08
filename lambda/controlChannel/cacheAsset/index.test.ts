@@ -2,13 +2,12 @@ import { jest, expect } from '@jest/globals'
 
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
-    ephemeraDB
+    ephemeraDB,
+    mergeIntoDataRange
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 jest.mock('./initializeRooms.js')
 import initializeRooms from './initializeRooms.js'
-jest.mock('./mergeEntries.js')
-import mergeEntries from './mergeEntries.js'
 jest.mock('@tonylb/mtw-utilities/dist/executeCode/recalculateComputes')
 import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
@@ -124,7 +123,7 @@ describe('cacheAsset', () => {
         })
 
         expect(initializeRooms).toHaveBeenCalledTimes(0)
-        expect(mergeEntries).toHaveBeenCalledTimes(0)
+        expect(mergeIntoDataRange).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
@@ -168,7 +167,7 @@ describe('cacheAsset', () => {
         })
     
         expect(initializeRooms).toHaveBeenCalledTimes(0)
-        expect(mergeEntries).toHaveBeenCalledTimes(0)
+        expect(mergeIntoDataRange).toHaveBeenCalledTimes(0)
         expect(recalculateComputes).toHaveBeenCalledTimes(0)
         expect(ephemeraDB.putItem).toHaveBeenCalledTimes(0)
     })
@@ -305,26 +304,32 @@ describe('cacheAsset', () => {
             messageBus: messageBusMock
         })
         expect(initializeRooms).toHaveBeenCalledWith(['ROOM#DEF'])
-        expect(mergeEntries).toHaveBeenCalledWith('test', [{
-            EphemeraId: 'ROOM#DEF',
-            key: 'ABC',
-            tag: 'Room',
-            appearances: [{
-                conditions: [],
-                exits: [],
-                name: 'Vortex',
-                render: []
-            },
-            {
-                conditions: [{
-                    dependencies: ["active"],
-                    if: "active"
-                }],
-                exits: [],
-                name: '',
-                render: ["The lights are on "]
-            }]
-        }])
+        expect(mergeIntoDataRange).toHaveBeenCalledWith({
+            table: 'ephemera',
+            search: { DataCategory: 'ASSET#test' },
+            items: [{
+                EphemeraId: 'ROOM#DEF',
+                key: 'ABC',
+                tag: 'Room',
+                appearances: [{
+                    conditions: [],
+                    exits: [],
+                    name: 'Vortex',
+                    render: []
+                },
+                {
+                    conditions: [{
+                        dependencies: ["active"],
+                        if: "active"
+                    }],
+                    exits: [],
+                    name: '',
+                    render: ["The lights are on "]
+                }]
+            }],
+            mergeFunction: expect.any(Function),
+            extractKey: null
+        })
         expect(recalculateComputes).toHaveBeenCalledWith(
             {
                 active: {
