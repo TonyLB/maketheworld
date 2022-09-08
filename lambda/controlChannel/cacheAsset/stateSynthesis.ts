@@ -190,7 +190,6 @@ export class StateSynthesizer extends Object {
             }
         })
     
-        console.log(`Import Asset States: ${JSON.stringify(importAssetStates, null, 4)}`)
         const importStateByAsset = (importAssetStates || [])
             .reduce<EphemeraImportState>((previous, { State: state, Dependencies: dependencies, EphemeraId }) => {
                 const assetId = splitType(EphemeraId)[1]
@@ -211,7 +210,6 @@ export class StateSynthesizer extends Object {
         const importState = Object.values(this.normalForm)
             .filter(isNormalImport)
             .reduce<EphemeraState>((previous, { from, mapping }) => {
-                console.log(`From: ${from}, mapping: ${JSON.stringify(mapping, null, 4)}`)
                 return Object.entries(mapping)
                     .filter(([_, { key: awayKey }]) => (awayKey in importStateByAsset[from].state))
                     .reduce<EphemeraState>((accumulator, [localKey, { key: awayKey }]) => ({

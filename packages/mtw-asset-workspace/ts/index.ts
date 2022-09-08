@@ -149,9 +149,9 @@ export class AssetWorkspace {
             throw err
         }
         
-        const { namespaceIdToDB = {}, normalForm = {} } = JSON.parse(contents)
+        const { namespaceIdToDB = {}, normal = {} } = JSON.parse(contents)
 
-        this.normal = normalForm as NormalForm
+        this.normal = normal as NormalForm
         this.namespaceIdToDB = namespaceIdToDB as NamespaceMapping
         this.status.json = 'Clean'
     }

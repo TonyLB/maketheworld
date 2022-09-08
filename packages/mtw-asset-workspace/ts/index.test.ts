@@ -80,7 +80,7 @@ describe('AssetWorkspace', () => {
         it('should correctly parse and assign JSON properties', async () => {
             s3ClientMock.get.mockResolvedValue(`{
                 "namespaceIdToDB": { "a123": "Test" },
-                "normalForm": {
+                "normal": {
                     "Test": {
                         "tag": "Asset",
                         "key": "Test",
