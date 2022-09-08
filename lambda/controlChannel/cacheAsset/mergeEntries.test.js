@@ -21,78 +21,36 @@ describe('Asset cache mergeEntries', () => {
     }
 
     it('should attach exits to correct room appearances', async () => {
-        await mergeEntries('test', {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'DEF',
-                        tag: 'Room',
-                        index: 0
-                    }]
-                }]
-            },
-            ABC: {
+        await mergeEntries('test', [
+            {
                 key: 'ABC',
                 EphemeraId: 'ROOM#XABC',
                 tag: 'Room',
                 appearances: [{
-                    ...topLevelAppearance,
-                    global: false,
+                    conditions: [],
                     name: 'Vortex',
                     render: [],
-                    contents: [{
-                        key: 'ABC#DEF',
-                        tag: 'Exit',
-                        index: 0
+                    exits: [{
+                        name: 'welcome',
+                        to: 'XDEF'
                     }]
                 }]
             },
-            DEF: {
+            {
                 key: 'DEF',
                 EphemeraId: 'ROOM#XDEF',
                 tag: 'Room',
                 appearances: [{
-                    ...topLevelAppearance,
-                    global: false,
+                    conditions: [],
                     name: 'Welcome',
                     render: [],
-                    contents: [{
-                        key: 'DEF#ABC',
-                        tag: 'Exit',
-                        index: 0
+                    exits: [{
+                        name: 'vortex',
+                        to: 'XABC'
                     }]
                 }]
             },
-            ['ABC#DEF']: {
-                key: 'ABC#DEF',
-                tag: 'Exit',
-                from: 'ABC',
-                to: 'DEF',
-                toEphemeraId: 'XDEF',
-                name: 'welcome',
-                appearances: [topLevelAppearance, { key: 'ABC', tag: 'Room', index: 0 }]
-            },
-            ['DEF#ABC']: {
-                key: 'DEF#ABC',
-                tag: 'Exit',
-                from: 'DEF',
-                to: 'ABC',
-                toEphemeraId: 'XABC',
-                name: 'vortex',
-                appearances: [topLevelAppearance, { key: 'DEF', tag: 'Room', index: 0 }]
-            }
-        })
+        ])
 
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'ephemera',
@@ -130,48 +88,8 @@ describe('Asset cache mergeEntries', () => {
     })
 
     it('should correctly attach conditions', async () => {
-        await mergeEntries('test', {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'Condition-0',
-                        tag: 'Condition',
-                        index: 0
-                    },
-                    {
-                        key: 'powered',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'switchedOn',
-                        tag: 'Variable',
-                        index: 0
-                    },
-                    {
-                        key: 'active',
-                        tag: 'Computed',
-                        index: 0
-                    },
-                    {
-                        key: 'toggleSwitch',
-                        tag: 'Action',
-                        index: 0
-                    }]
-                }]
-            },
-            ABC: {
+        await mergeEntries('test', [
+            {
                 key: 'ABC',
                 EphemeraId: 'ROOM#DEF',
                 tag: 'Room',
@@ -182,32 +100,19 @@ describe('Asset cache mergeEntries', () => {
                     render: []
                 },
                 {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    errors: [],
-                    global: false,
-                    props: {},
+                    conditions: [{
+                        dependencies: ["active"],
+                        if: "active"
+                    }],
+                    name: '',
                     render: [{
                         tag: 'String',
                         value: 'The lights are on '
                     }],
-                    contents: []
-                }]
-            },
-            ['Condition-0']: {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'active',
-                dependencies: ['active'],
-                appearances: [{
-                    ...topLevelAppearance,
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Room',
-                        index: 1
-                    }]
+                    exits: []
                 }]
             }
-        })
+        ])
 
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'ephemera',
@@ -238,89 +143,45 @@ describe('Asset cache mergeEntries', () => {
     })
 
     it('should correctly handle Features', async () => {
-        await mergeEntries('test', {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Feature',
-                        index: 0
-                    },
-                    {
-                        key: 'MNO',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'Condition-0',
-                        tag: 'Condition',
-                        index: 0
-                    }]
-                }]
-            },
-            ABC: {
+        await mergeEntries('test', [
+            {
                 key: 'ABC',
                 EphemeraId: 'FEATURE#DEF',
                 tag: 'Feature',
-                name: 'Vortex',
                 appearances: [{
-                    ...topLevelAppearance,
+                    conditions: [],
+                    name: 'Vortex',
                     render: []
                 },
                 {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'MNO', tag: 'Room', index: 0 }],
-                    errors: [],
-                    props: {},
-                    render: [],
-                    contents: []
+                    conditions: [],
+                    render: []
                 },
                 {
                     contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'Condition-0', tag: 'Condition', index: 0 }],
-                    errors: [],
-                    props: {},
+                    conditions: [{
+                        dependencies: [],
+                        if: 'true'
+                    }],
+                    name: '',
                     render: [{
                         tag: 'String',
                         value: 'The lights are on '
-                    }],
-                    contents: []
+                    }]
                 }]
             },
-            MNO: {
+            {
                 key: 'MNO',
                 EphemeraId: 'ROOM#PQR',
                 tag: 'Room',
                 name: 'Wherever',
                 appearances: [{
-                    ...topLevelAppearance,
-                    render: [],
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Feature',
-                        index: 1
-                    }]
-                }]
-            },
-            ['Condition-0']: {
-                key: 'Condition-0',
-                tag: 'Condition',
-                if: 'true',
-                dependencies: [],
-                appearances: [{
-                    ...topLevelAppearance,
-                    contents: [{
-                        key: 'ABC',
-                        tag: 'Feature',
-                        index: 2
-                    }]
+                    conditions: [],
+                    name: 'Wherever',
+                    render: []
                 }]
             }
-        })
+        ])
 
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'ephemera',
@@ -329,10 +190,10 @@ describe('Asset cache mergeEntries', () => {
                 EphemeraId: 'FEATURE#DEF',
                 key: 'ABC',
                 tag: 'Feature',
-                name: 'Vortex',
                 appearances: [{
                     conditions: [],
-                    render: [],
+                    name: 'Vortex',
+                    render: []
                 },
                 {
                     conditions: [],
@@ -368,77 +229,40 @@ describe('Asset cache mergeEntries', () => {
     })
 
     it('should correctly handle Maps', async () => {
-        await mergeEntries('test', {
-            test: {
-                key: 'test',
-                tag: 'Asset',
-                fileName: 'test',
-                appearances: [{
-                    contextStack: [],
-                    errors: [],
-                    props: {},
-                    contents: [{
-                        key: 'MNO',
-                        tag: 'Room',
-                        index: 0
-                    },
-                    {
-                        key: 'TestMap',
-                        tag: 'Map',
-                        index: 0
-                    }]
-                }]
-            },
-            MNO: {
+        await mergeEntries('test', [
+            {
                 key: 'MNO',
                 EphemeraId: 'ROOM#PQR',
                 tag: 'Room',
-                name: 'Wherever',
                 appearances: [{
-                    ...topLevelAppearance,
+                    conditions: [],
                     render: [],
-                    contents: [],
+                    name: 'Wherever',
+                    exits: [],
                 },
                 {
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
-                    errors: [],
-                    props: {},
-                    contents: []
+                    conditions: [],
+                    render: [],
+                    exits: []
                 }]
             },
-            TestImage: {
-                key: 'TestImage',
-                tag: 'Image',
-                fileURL: 'https://test.com/testImage.png',
-                appearances: [{
-                    contextStack: [{ key: 'test', tag: 'Asset', index: 0 }, { key: 'TestMap', tag: 'Map', index: 0 }],
-                    errors: [],
-                    props: {},
-                    contents: []
-                }]
-            },
-            TestMap: {
+            {
                 key: 'TestMap',
                 tag: 'Map',
                 EphemeraId: 'MAP#TEST',
                 appearances: [{
-                    ...topLevelAppearance,
-                    contents: [{
-                        key: 'TestImage',
-                        tag: 'Image',
-                        index: 0
-                    },
-                    {
-                        key: 'MNO',
-                        tag: 'Room',
-                        index: 0
-                    }],
+                    conditions: [],
+                    fileURL: 'https://test.com/testImage.png',
                     rooms: {
-                        MNO: { x: 300, y: 200 }
+                        MNO: {
+                            EphemeraId: 'ROOM#PQR',
+                            x: 300,
+                            y: 200
+                        }
                     }
                 }]
             }
-        })
+        ])
 
         expect(mergeIntoDataRange).toHaveBeenCalledWith({
             table: 'ephemera',

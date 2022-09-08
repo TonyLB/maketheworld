@@ -11,7 +11,7 @@ const compareEntries = (current, incoming) => {
     return JSON.stringify(current) === JSON.stringify(incoming)
 }
 
-const mapContextStackToConditions = (normalForm) => ({ contextStack, ...rest }) => ({
+const mapContextStackToConditions = (normalForm) => ({ contextStack = [], ...rest }) => ({
     conditions: contextStack.reduce((previous, { key, tag }) => {
         if (tag !== 'Condition') {
             return previous
@@ -80,32 +80,35 @@ const mapRoomLocations = (normalForm) => ({ rooms, contents, ...rest }) => {
     }
 }
 
-export const mergeEntries = async (assetId, normalForm) => {
-    const mergeEntries = Object.values(normalForm)
-        .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
-        .map(({ appearances = [], ...rest }) => ({
-            ...rest,
-            appearances: appearances
-                .map(mapContextStackToConditions(normalForm))
-                .map((item) => (['Room'].includes(rest.tag) ? mapContents(normalForm)(item) : item))
-                .map((item) => (['Map'].includes(rest.tag) ? mapRoomLocations(normalForm)(item) : item))
-                .map(({ conditions, name, render, exits, features, rooms, spaceBefore, spaceAfter, fileURL }) => ({
-                    conditions,
-                    name,
-                    render,
-                    exits,
-                    features,
-                    rooms,
-                    spaceBefore,
-                    spaceAfter,
-                    fileURL
-                }))
-        }))
+//
+// TODO: Refactor mergeEntries to accept ephemeraItem[] rather than normalForm
+//
+export const mergeEntries = async (assetId, mergeItems) => {
+    // const mergeEntries = Object.values(normalForm)
+    //     .filter(({ tag }) => (['Room', 'Feature', 'Map'].includes(tag)))
+    //     .map(({ appearances = [], ...rest }) => ({
+    //         ...rest,
+    //         appearances: appearances
+    //             .map(mapContextStackToConditions(normalForm))
+    //             .map((item) => (['Room'].includes(rest.tag) ? mapContents(normalForm)(item) : item))
+    //             .map((item) => (['Map'].includes(rest.tag) ? mapRoomLocations(normalForm)(item) : item))
+    //             .map(({ conditions, name, render, exits, features, rooms, spaceBefore, spaceAfter, fileURL }) => ({
+    //                 conditions,
+    //                 name,
+    //                 render,
+    //                 exits,
+    //                 features,
+    //                 rooms,
+    //                 spaceBefore,
+    //                 spaceAfter,
+    //                 fileURL
+    //             }))
+    //     }))
     await Promise.all([
         mergeIntoDataRange({
             table: 'ephemera',
             search: { DataCategory: AssetKey(assetId) },
-            items: mergeEntries,
+            items: mergeItems,
             mergeFunction: ({ current, incoming }) => {
                 if (!incoming) {
                     return 'delete'

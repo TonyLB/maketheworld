@@ -1,7 +1,9 @@
+import {
+    mergeIntoDataRange
+} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
 import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 import putAssetNormalized from './putAssetNormalized.js'
-import mergeEntries from './mergeEntries.js'
 import StateSynthesizer from './stateSynthesis'
 import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
@@ -138,11 +140,14 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         const assetWorkspace = new AssetWorkspace(address)
         await assetWorkspace.loadJSON()
         const assetItem = Object.values(assetWorkspace.normal || {}).find(isNormalAsset)
-        if (!assetItem || !assetWorkspace.namespaceIdToDB[assetItem.key]) {
+        if (!assetItem) {
             continue
         }
-        const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || ''
         if (check) {
+            const assetEphemeraId = assetWorkspace.namespaceIdToDB[assetItem.key] || ''
+            if (!assetEphemeraId) {
+                continue
+            }
             const { EphemeraId = null } = await ephemeraDB.getItem<{ EphemeraId: string }>({
                 EphemeraId: assetEphemeraId,
                 DataCategory: 'Meta::Asset',
@@ -171,7 +176,26 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         await Promise.all([
             stateSynthesizer.fetchFromEphemera(),
             putAssetNormalized({ assetId, normalForm: ephemeraItems }),
-            mergeEntries(assetId, ephemeraItems),
+            mergeIntoDataRange({
+                table: 'ephemera',
+                search: { DataCategory: AssetKey(assetId) },
+                items: ephemeraItems,
+                mergeFunction: ({ current, incoming }) => {
+                    if (!incoming) {
+                        return 'delete'
+                    }
+                    if (!current) {
+                        return incoming
+                    }
+                    if (JSON.stringify(current) === JSON.stringify(incoming)) {
+                        return 'ignore'
+                    }
+                    else {
+                        return incoming
+                    }
+                },
+                extractKey: null
+            }),
             //
             // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
             //
