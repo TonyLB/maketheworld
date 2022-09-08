@@ -17,7 +17,21 @@ at the moment
 
 ---
 
-## <Component\> records
+## <Component\> meta-records
+
+*For any tag in the component types (Room, Feature), a record will be stored for the given EphemeraID, over*
+*all cached assets.  This record will track which assets have information for that given component item,*
+*to speed rendering.  The record should be removed when the last per-asset record for that item is decached.*
+
+### *Key Data*
+
+- EphemeraId: The global ID used to identify this component
+- DataCategory: 'Meta::Room' or 'Meta::Feature'
+- cached: A non-empty set of AssetIDs
+
+---
+
+## <Component\> per-asset records
 
 ---
 
@@ -29,10 +43,7 @@ at the moment
 - EphemeraId: The global ID used to identify this component
 - DataCategory
 - scopedId:  The key used internally within this asset to refer to this component
-
-### *Component Denormalization*
-
-- defaultAppearances
+- appearances
 
 ```ts
 export type EphemeraCondition = {
