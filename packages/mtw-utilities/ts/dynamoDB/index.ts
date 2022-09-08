@@ -7,7 +7,8 @@ import {
     QueryCommand,
     BatchWriteItemCommand,
     BatchGetItemCommand,
-    AttributeValue
+    AttributeValue,
+    TransactWriteItemsCommand
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -18,6 +19,8 @@ import { DEVELOPER_MODE } from '../constants'
 import { assetsQueryFactory, ephemeraQueryFactory, connectionsQueryFactory } from './query'
 import delayPromise from "./delayPromise"
 import { stringify } from "uuid"
+import { unique } from "../lists"
+import { splitType } from "../types"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -495,6 +498,155 @@ type EphemeraDBKey = {
     DataCategory: string;
 }
 
+const addPerAsset = async <T extends EphemeraDBKey>(item: T): Promise<void> => {
+    let retries = 0
+    let exponentialBackoff = 100
+    let completed = false
+    const maxRetries = 5
+    const key = {
+        EphemeraId: item.EphemeraId,
+        DataCategory: item.DataCategory
+    }
+    const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
+    const tag = ephemeraTag === 'ROOM' ? 'Room' :
+        ephemeraTag === 'FEATURE' ? 'Feature' :
+        ephemeraTag === 'MAP' ? 'Map' : 'Room'
+    while(!completed && retries <= maxRetries) {
+        completed = true
+        try {
+            const { Item: fetchCache = {} } = await dbClient.send(new GetItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId: item.EphemeraId,
+                    DataCategory: `Meta::${tag}`
+                }),
+                ProjectionExpression: 'cached'
+            }))
+            const { cached: currentCache = [] } = unmarshall(fetchCache)
+            await dbClient.send(new TransactWriteItemsCommand({
+                TransactItems: [{
+                    Put: {
+                        TableName: ephemeraTable,
+                        Item: marshall(item)
+                    }
+                },
+                {
+                    Put: {
+                        TableName: ephemeraTable,
+                        Item: marshall({
+                            EphemeraId: item.EphemeraId,
+                            DataCategory: `Meta::${tag}`,
+                            cached: unique(currentCache, [ephemeraKey])
+                        }),
+                        ConditionExpression: "cached = :cached",
+                        ExpressionAttributeValues: marshall({
+                            ':cached': currentCache
+                        })
+                    }
+                }]
+            }))
+        }
+        catch (err: any) {
+            if (err.code === 'ConditionalCheckFailedException') {
+                await delayPromise(exponentialBackoff)
+                exponentialBackoff = exponentialBackoff * 2
+                retries++
+                completed = false
+            }
+            else {
+                if (DEVELOPER_MODE) {
+                    throw err
+                }
+            }
+        }
+    }
+}
+
+const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
+    let retries = 0
+    let exponentialBackoff = 100
+    let completed = false
+    const maxRetries = 5
+    const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
+    const tag = ephemeraTag === 'ROOM' ? 'Room' :
+        ephemeraTag === 'FEATURE' ? 'Feature' :
+        ephemeraTag === 'MAP' ? 'Map' : 'Room'
+    while(!completed && retries <= maxRetries) {
+        completed = true
+        try {
+            const { Item: fetchCache = {} } = await dbClient.send(new GetItemCommand({
+                TableName: ephemeraTable,
+                Key: marshall({
+                    EphemeraId: key.EphemeraId,
+                    DataCategory: `Meta::${tag}`
+                }),
+                ProjectionExpression: 'cached'
+            }))
+            const { cached: currentCache = [] } = unmarshall(fetchCache)
+            if (currentCache.length > 1) {
+                await dbClient.send(new TransactWriteItemsCommand({
+                    TransactItems: [{
+                        Delete: {
+                            TableName: ephemeraTable,
+                            Key: marshall(key)
+                        }
+                    },
+                    {
+                        Put: {
+                            TableName: ephemeraTable,
+                            Item: marshall({
+                                EphemeraId: key.EphemeraId,
+                                DataCategory: `Meta::${tag}`,
+                                cached: currentCache.filter((value) => (value !== ephemeraKey))
+                            }),
+                            ConditionExpression: "cached = :cached",
+                            ExpressionAttributeValues: marshall({
+                                ':cached': currentCache
+                            })
+                        }
+                    }]
+                }))
+            }
+            else {
+                await dbClient.send(new TransactWriteItemsCommand({
+                    TransactItems: [{
+                        Delete: {
+                            TableName: ephemeraTable,
+                            Key: marshall(key)
+                        }
+                    },
+                    {
+                        Delete: {
+                            TableName: ephemeraTable,
+                            Key: marshall({
+                                EphemeraId: key.EphemeraId,
+                                DataCategory: `Meta::${tag}`,
+                            }),
+                            ConditionExpression: "cached = :cached",
+                            ExpressionAttributeValues: marshall({
+                                ':cached': currentCache
+                            })
+                        }
+                    }]
+                }))
+            }
+        }
+        catch (err: any) {
+            if (err.code === 'ConditionalCheckFailedException') {
+                await delayPromise(exponentialBackoff)
+                exponentialBackoff = exponentialBackoff * 2
+                retries++
+                completed = false
+            }
+            else {
+                if (DEVELOPER_MODE) {
+                    throw err
+                }
+            }
+        }
+    }
+}
+
 export const ephemeraDB = {
     getItem: abstractGetItem<EphemeraDBKey>(ephemeraTable),
     batchGetItem: abstractBatchGet<EphemeraDBKey>(ephemeraTable),
@@ -502,7 +654,9 @@ export const ephemeraDB = {
     update: abstractUpdate<EphemeraDBKey>(ephemeraTable),
     optimisticUpdate: abstractOptimisticUpdate(ephemeraTable),
     putItem: abstractPutItem<EphemeraDBKey>(ephemeraTable),
-    deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable)
+    deleteItem: abstractDeleteItem<EphemeraDBKey>(ephemeraTable),
+    addPerAsset,
+    removePerAsset
 }
 
 type AssetDBKey = {
