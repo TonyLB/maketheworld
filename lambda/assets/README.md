@@ -32,13 +32,13 @@ this form:
     - "Show me all appearances of this component, in all ancestor assets in the import tree,
     in an order in which their dependencies do not conflict (DAG-sorted imports)."
 
-***Caching***
-- For a given asset, the manager must be able to cache the asset from long-term compact storage
-into short-term read-optimized storage.
-- This caching should pull *all* relevant information from the S3 file, so that the game system
-can perform all normal game-play functions purely out of the short-term DB.
-- Re-caching must perform the bare minimum of touches on the short-term storage, to minimize
-disruptions to game-play of creative changes.
+---
+
+## Layers
+Different types of data are stored in different thematic layers within the DynamoDB assets table:
+
+- [Player Layer](./README.player.md): This layer stores player information, particularly which characters
+the player is currently authorized to play
 
 ---
 
