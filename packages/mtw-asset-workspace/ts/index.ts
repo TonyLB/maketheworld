@@ -10,6 +10,7 @@ import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
+import { ParseException } from "@tonylb/mtw-wml/dist/parser/baseClasses"
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;
@@ -162,6 +163,15 @@ export class AssetWorkspace {
     //
     setWML(source: string): void {
         const schema = schemaFromParse(parser(tokenizer(new SourceStream(source))))
+
+        //
+        // TEMPORARY PROVISION:  Until there's a proper architecture for having multiple
+        // assets defined in the same WML file, throw an exception here if a multi-asset
+        // file is encountered.
+        //
+        if (schema.length > 1) {
+            throw new ParseException('Multi-Asset files are not yet implemented', schema[1].parse.startTagToken, schema[1].parse.startTagToken)
+        }
         const normalizer = new Normalizer()
         schema.forEach((item, index) => {
             normalizer.add(item, { contextStack: [], location: [index] })
