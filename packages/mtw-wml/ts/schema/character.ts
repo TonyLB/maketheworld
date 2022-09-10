@@ -40,13 +40,12 @@ export const schemaFromCharacter = (item: ParseCharacterTag, contents: SchemaCha
     subFolder: item.subFolder,
     player: item.player,
     Name: contents.filter(isSchemaName).map(({ name }) => (name)).join(''),
-    Pronouns: contents.filter(isSchemaPronouns).reduce((previous, { tag, ...rest }) => (rest), {
+    Pronouns: contents.filter(isSchemaPronouns).reduce((previous, { tag, parse, ...rest }) => (rest), {
         subject: 'they',
         object: 'them',
         possessive: 'theirs',
         adjective: 'their',
-        reflexive: 'themself',
-        parse: item
+        reflexive: 'themself'
     }),
     FirstImpression: contents.filter(isSchemaFirstImpression).length ? contents.filter(isSchemaFirstImpression).map(({ value }) => (value)).join('') : undefined,
     OneCoolThing: contents.filter(isSchemaOneCoolThing).length ? contents.filter(isSchemaOneCoolThing).map(({ value }) => (value)).join('') : undefined,

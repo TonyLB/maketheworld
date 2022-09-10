@@ -26,19 +26,26 @@ first place (the carrying costs during times of no activity would be prohibitive
 
 ---
 
-## Messages
+## mtw.coordination Messages
 
 ---
 
-### updatePlayer
+### Update Player
 
 Notification that the characters or permissions associated with a player have been updated:
 - player
 - characters: Array of characters associated with this player
 
+```ts
+type UpdatePlayerCharacter = {
+    address: AssetWorkspaceAddress;
+    CharacterId: string;
+}
+```
+
 ---
 
-### updateAsset
+### Update Asset
 - assetId
 - zone
 - subFolder
@@ -46,7 +53,24 @@ Notification that the characters or permissions associated with a player have be
 
 ---
 
-### healAsset
+### Cache Asset
+- zone
+- player (only if zone === 'Personal')
+- subFolder
+- fileName: base fileName (before suffixes like '.wml' or '.json')
+
+---
+
+### Decache Asset
+- assetId
+
+---
+
+## mtw.diagnostics Messages
+
+---
+
+### Heal Asset
 - assetId
 - zone
 - subFolder

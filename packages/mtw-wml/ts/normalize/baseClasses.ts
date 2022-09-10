@@ -11,7 +11,8 @@ type TagType = 'Asset' |
     'Exit' |
     'Variable' |
     'Computed' |
-    'Action'
+    'Action' |
+    'Character'
 
 export type NormalReference = {
     key: string;
@@ -55,6 +56,7 @@ export type NormalCharacter = {
     Outfit: string;
     fileName?: string;
     fileURL?: string;
+    appearances: BaseAppearance[];
 } & NormalBase
 
 export type ComponentRenderItem = {
@@ -192,7 +194,8 @@ export type NormalItem = NormalAsset |
     NormalVariable |
     NormalComputed |
     NormalAction |
-    NormalCondition
+    NormalCondition |
+    NormalCharacter
 
 export type NormalForm = Record<string, NormalItem>
 
@@ -222,12 +225,10 @@ export const isNormalImage = (arg: NormalItem): arg is NormalImage => (arg?.tag 
 export const isNormalComponent = (arg: NormalItem): arg is NormalComponent => (['Room', 'Feature'].includes(arg?.tag))
 export const isNormalRoom = (arg: NormalItem): arg is NormalRoom => (arg?.tag === 'Room')
 export const isNormalMap = (arg: NormalItem): arg is NormalMap => (arg?.tag === 'Map')
-export function isNormalAsset(arg: NormalAsset | NormalCharacter): arg is NormalAsset
-export function isNormalAsset(arg: NormalItem): arg is NormalAsset
-export function isNormalAsset(arg: NormalItem | NormalCharacter): arg is NormalAsset {
+export function isNormalAsset(arg: NormalItem): arg is NormalAsset {
     return arg?.tag === 'Asset'
 }
-export const isNormalCharacter = (arg: NormalItem | NormalCharacter): arg is NormalCharacter => (arg?.tag === 'Character')
+export const isNormalCharacter = (arg: NormalItem): arg is NormalCharacter => (arg?.tag === 'Character')
 export const isNormalImport = (arg: NormalItem): arg is NormalImport => (arg?.tag === 'Import')
 export const isNormalCondition = (arg: NormalItem): arg is NormalCondition => (arg.tag === 'Condition')
 export const isNormalVariable = (arg: NormalItem): arg is NormalVariable => (arg.tag === 'Variable')

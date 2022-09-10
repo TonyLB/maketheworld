@@ -47,7 +47,28 @@ describe('WML normalize', () => {
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
     })
-    
+
+    it('should normalize a character', () => {
+        const testSource = `<Character key=(Tess) fileName="test">
+            <Name>Tess</Name>
+            <FirstImpression>Frumpy goth</FirstImpression>
+            <Pronouns
+                subject="she"
+                object="her"
+                possessive="her"
+                adjective="hers"
+                reflexive="herself"
+            />
+            <OneCoolThing>Fuchsia eyes</OneCoolThing>
+            <Outfit>A battered frock-coat</Outfit>
+        </Character>`
+        const normalizer = new Normalizer()
+        const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
+        console.log(`Test Asset: ${JSON.stringify(testAsset, null, 4)}`)
+        normalizer.add(testAsset[0], { contextStack: [], location: [0] })
+        expect(normalizer.normal).toMatchSnapshot()
+    })
+
     it('should create wrapping elements for exits where needed', () => {
         const testSource = `<Asset key=(Test) fileName="Test" >
             <Room key=(a123)>

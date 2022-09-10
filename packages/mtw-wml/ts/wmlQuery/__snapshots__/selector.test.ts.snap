@@ -40,16 +40,6 @@ Array [
     "Pronouns": Object {
       "adjective": "hers",
       "object": "her",
-      "parse": Object {
-        "adjective": "hers",
-        "endTagToken": 33,
-        "object": "her",
-        "possessive": "her",
-        "reflexive": "herself",
-        "startTagToken": 15,
-        "subject": "she",
-        "tag": "Pronouns",
-      },
       "possessive": "her",
       "reflexive": "herself",
       "subject": "she",
@@ -503,16 +493,6 @@ Array [
     "Pronouns": Object {
       "adjective": "hers",
       "object": "her",
-      "parse": Object {
-        "adjective": "hers",
-        "endTagToken": 33,
-        "object": "her",
-        "possessive": "her",
-        "reflexive": "herself",
-        "startTagToken": 15,
-        "subject": "she",
-        "tag": "Pronouns",
-      },
       "possessive": "her",
       "reflexive": "herself",
       "subject": "she",
