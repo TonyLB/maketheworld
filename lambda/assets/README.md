@@ -39,6 +39,8 @@ Different types of data are stored in different thematic layers within the Dynam
 
 - [Player Layer](./README.player.md): This layer stores player information, particularly which characters
 the player is currently authorized to play
+- [Character Layer](./README.character.md): This layer stores character information, particularly the address
+of the WML and JSON files in which the character is defined
 
 ---
 
