@@ -138,6 +138,28 @@ describe('AssetWorkspace', () => {
             expect(testWorkspace.normal).toMatchSnapshot()
             expect(testWorkspace.namespaceIdToDB).toMatchSnapshot()
         })
+
+        it('should throw an exception on multi-asset file', async () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Personal',
+                player: 'Test'
+            })
+            testWorkspace.namespaceIdToDB = {
+                'a123': 'TestA'
+            }
+            uuidv4Mock.mockImplementation(uuidMockFactory())
+            expect(() => {
+                testWorkspace.setWML(`
+                    <Asset key=(TestOne) fileName="Test">
+                        <Room key=(a123) />
+                    </Asset>
+                    <Asset key=(TestTwo) fileName="Test">
+                        <Room key=(a123) />
+                    </Asset>
+                `)
+            }).toThrowError()
+        })
     
     })
 
