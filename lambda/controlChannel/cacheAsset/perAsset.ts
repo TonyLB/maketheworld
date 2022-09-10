@@ -10,7 +10,7 @@ type ActiveCharacterOutput = {
     EphemeraId: string;
     RoomId: string;
     Name: string;
-    ConnectionId: string;
+    ConnectionIds: string[];
 }
 
 export const getAllActiveCharacters = async (): Promise<ActiveCharacterOutput[]> => {
@@ -20,12 +20,9 @@ export const getAllActiveCharacters = async (): Promise<ActiveCharacterOutput[]>
         ExpressionAttributeNames: {
             "#name": "Name"
         },
-        ExpressionAttributeValues: {
-            ':true': true
-        },
-        ProjectionFields: ['EphemeraId', 'RoomId', '#name', 'Connected', 'ConnectionId']
+        ProjectionFields: ['EphemeraId', 'RoomId', '#name', 'Connected', 'ConnectionIds']
     })).filter(({ Connected }) => (Connected))
-        .map(({ EphemeraId, RoomId, Name, ConnectionId }) => ({ EphemeraId, RoomId, Name, ConnectionId }))
+        .map(({ EphemeraId, RoomId, Name, ConnectionIds = [] }) => ({ EphemeraId, RoomId, Name, ConnectionIds }))
 
     return charactersInPlay
 }
@@ -42,7 +39,7 @@ const initializeComponent = async (EphemeraId: string): Promise<Record<string, a
         return {
             activeCharacters: allActiveCharacters
                 .filter(({ RoomId }) => (RoomId === componentId))
-                .map(({ EphemeraId, Name, ConnectionId }) => ({ EphemeraId, Name, ConnectionId }))
+                .map(({ EphemeraId, Name, ConnectionIds }) => ({ EphemeraId, Name, ConnectionIds }))
         }
     }
     else {
