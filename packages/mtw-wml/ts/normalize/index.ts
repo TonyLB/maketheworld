@@ -8,6 +8,7 @@ import {
     SchemaActionTag,
     SchemaAssetLegalContents,
     SchemaAssetTag,
+    SchemaCharacterTag,
     SchemaComputedTag,
     SchemaConditionTag,
     SchemaFeatureLegalContents,
@@ -28,6 +29,7 @@ import {
     ComponentRenderItem,
     NormalAction,
     NormalAsset,
+    NormalCharacter,
     NormalComputed,
     NormalCondition,
     NormalFeature,
@@ -95,7 +97,7 @@ type NormalizeAddReturnValue = {
 
 export class Normalizer {
     _normalForm: NormalForm = {};
-    _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature"> = {}
+    _tags: Record<string, "Asset" | "Image" | "Variable" | "Computed" | "Action" | "Import" | "Condition" | "Exit" | "Map" | "Room" | "Feature" | "Character"> = {}
 
     constructor() {}
     _mergeAppearance(key: string, item: NormalItem): number {
@@ -152,9 +154,6 @@ export class Normalizer {
             siblings: []
         }
         if (!isSchemaTagWithNormalEquivalent(node)) {
-            return returnValue
-        }
-        if (isSchemaCharacter(node)) {
             return returnValue
         }
         this._validateTags(node)
@@ -459,9 +458,6 @@ export class Normalizer {
         if (!isSchemaTagWithNormalEquivalent(node)) {
             return
         }
-        if (node.tag === 'Character') {
-            return 
-        }
         let tagToCompare = node.tag
         let keyToCompare = node.key
         switch(node.tag) {
@@ -515,6 +511,7 @@ export class Normalizer {
     _translate(appearance: BaseAppearance, node: SchemaRoomTag): NormalRoom
     _translate(appearance: BaseAppearance, node: SchemaFeatureTag): NormalFeature
     _translate(appearance: BaseAppearance, node: SchemaMapTag): NormalMap
+    _translate(appearance: BaseAppearance, node: SchemaCharacterTag): NormalCharacter
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem
     _translate(appearance: BaseAppearance, node: SchemaTagWithNormalEquivalent): NormalItem {
         switch(node.tag) {
@@ -649,8 +646,21 @@ export class Normalizer {
                     name: node.name,
                     appearances: [appearance]
                 }
-            default:
-                throw new NormalizeTagMismatchError(`Tag "${node.tag}" mistakenly processed in normalizer`)
+            case 'Character':
+                return {
+                    key: node.key,
+                    tag: node.tag,
+                    Name: node.Name,
+                    Pronouns: node.Pronouns,
+                    FirstImpression: node.FirstImpression,
+                    OneCoolThing: node.OneCoolThing,
+                    Outfit: node.Outfit,
+                    fileName: node.fileName,
+                    fileURL: node.fileURL,
+                    appearances: [appearance]
+                }
+            // default:
+            //     throw new NormalizeTagMismatchError(`Tag "${node.tag}" mistakenly processed in normalizer`)
         }
     }
 

@@ -62,6 +62,7 @@ export type SchemaOutfitTag = {
     tag: 'Outfit';
     value: string;
     contents: SchemaLiteralLegalContents[];
+    parse?: ParseTag;
 } & SchemaBase
 
 export type SchemaCharacterLegalContents = SchemaNameTag | SchemaPronounsTag | SchemaFirstImpressionTag | SchemaOneCoolThingTag | SchemaOutfitTag | SchemaImageTag
