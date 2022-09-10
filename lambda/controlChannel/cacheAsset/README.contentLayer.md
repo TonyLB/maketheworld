@@ -28,6 +28,8 @@ at the moment
 - EphemeraId: The global ID used to identify this component
 - DataCategory: 'Meta::Room' or 'Meta::Feature'
 - cached: A non-empty set of AssetIDs
+- activeCharacters ('Meta::Room' items only):  A list of characters currently being played who are present
+in the room
 
 ---
 

@@ -498,7 +498,7 @@ type EphemeraDBKey = {
     DataCategory: string;
 }
 
-const addPerAsset = async <T extends EphemeraDBKey>(item: T): Promise<void> => {
+const addPerAsset = async <T extends EphemeraDBKey>(item: T, initializeCallback: (EphemeraId: string) => Promise<Record<string, any>> = () => (Promise.resolve({}))): Promise<void> => {
     let retries = 0
     let exponentialBackoff = 100
     let completed = false
@@ -508,6 +508,7 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T): Promise<void> => {
         DataCategory: item.DataCategory
     }
     const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
+    const [_, assetKey] = splitType(key.DataCategory)
     const tag = ephemeraTag === 'ROOM' ? 'Room' :
         ephemeraTag === 'FEATURE' ? 'Feature' :
         ephemeraTag === 'MAP' ? 'Map' : 'Room'
@@ -522,29 +523,73 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T): Promise<void> => {
                 }),
                 ProjectionExpression: 'cached'
             }))
-            const { cached: currentCache = [] } = unmarshall(fetchCache)
-            await dbClient.send(new TransactWriteItemsCommand({
-                TransactItems: [{
-                    Put: {
+            const { cached: currentCache } = unmarshall(fetchCache) as { cached?: string[] }
+            //
+            // Initialize a new record using the asynchronous callback, otherwise just update
+            // the cache in place
+            //
+            if (currentCache === undefined) {
+                const initializeData = await initializeCallback(item.EphemeraId)
+                const emptyFields = Object.entries({
+                        DataCategory: `Meta::${tag}`,
+                        assetKey,
+                        ...initializeData
+                    })
+                    .filter(([_, value]) => (value === undefined))
+                    .map(([key]) => (key))
+                await dbClient.send(new TransactWriteItemsCommand({
+                    TransactItems: [{
+                        Put: {
+                            TableName: ephemeraTable,
+                            Item: marshall(item, { removeUndefinedValues: true })
+                        }
+                    },
+                    {
+                        Put: {
+                            TableName: ephemeraTable,
+                            Item: marshall({
+                                EphemeraId: item.EphemeraId,
+                                DataCategory: `Meta::${tag}`,
+                                cached: [assetKey],
+                                ...initializeData
+                            }, { removeUndefinedValues: true })
+                        }
+                    }]
+                }))
+            }
+            else {
+                if (currentCache.includes(assetKey)) {
+                    await dbClient.send(new PutItemCommand({
                         TableName: ephemeraTable,
-                        Item: marshall(item)
-                    }
-                },
-                {
-                    Put: {
-                        TableName: ephemeraTable,
-                        Item: marshall({
-                            EphemeraId: item.EphemeraId,
-                            DataCategory: `Meta::${tag}`,
-                            cached: unique(currentCache, [ephemeraKey])
-                        }),
-                        ConditionExpression: "cached = :cached",
-                        ExpressionAttributeValues: marshall({
-                            ':cached': currentCache
-                        })
-                    }
-                }]
-            }))
+                        Item: marshall(item, { removeUndefinedValues: true })
+                    }))
+                }
+                else {
+                    await dbClient.send(new TransactWriteItemsCommand({
+                        TransactItems: [{
+                            Put: {
+                                TableName: ephemeraTable,
+                                Item: marshall(item, { removeUndefinedValues: true })
+                            }
+                        },
+                        {
+                            Update: {
+                                TableName: ephemeraTable,
+                                Key: marshall({
+                                    EphemeraId: item.EphemeraId,
+                                    DataCategory: `Meta::${tag}`,
+                                }),
+                                UpdateExpression: "SET cached = :newCache",
+                                ConditionExpression: "cached = :oldCache",
+                                ExpressionAttributeValues: marshall({
+                                    ':newCache': unique(currentCache, [assetKey]),
+                                    ':oldCache': currentCache
+                                })
+                            }
+                        }]
+                    }))
+                }
+            }
         }
         catch (err: any) {
             if (err.code === 'ConditionalCheckFailedException') {
@@ -555,6 +600,8 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T): Promise<void> => {
             }
             else {
                 if (DEVELOPER_MODE) {
+                    // console.log(`Throwing exception on: ${item.EphemeraId}`)
+                    // console.log(`Item: ${JSON.stringify(item, null, 4)}`)
                     throw err
                 }
             }

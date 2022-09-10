@@ -1,8 +1,4 @@
-import {
-    mergeIntoDataRange
-} from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
-import initializeRooms, { initializeFeatures } from './initializeRooms.js'
 import putAssetNormalized from './putAssetNormalized.js'
 import StateSynthesizer from './stateSynthesis'
 import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
@@ -20,6 +16,7 @@ import { conditionsFromContext } from './utilities'
 import { isNormalAction } from '@tonylb/mtw-wml/dist/normalize.js'
 import { AssetKey } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
+import { mergeIntoEphemera } from './perAsset'
 
 //
 // TODO:
@@ -176,37 +173,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
         await Promise.all([
             stateSynthesizer.fetchFromEphemera(),
             putAssetNormalized({ assetId, normalForm: ephemeraItems }),
-            mergeIntoDataRange({
-                table: 'ephemera',
-                search: { DataCategory: AssetKey(assetId) },
-                items: ephemeraItems,
-                mergeFunction: ({ current, incoming }) => {
-                    if (!incoming) {
-                        return 'delete'
-                    }
-                    if (!current) {
-                        return incoming
-                    }
-                    if (JSON.stringify(current) === JSON.stringify(incoming)) {
-                        return 'ignore'
-                    }
-                    else {
-                        return incoming
-                    }
-                },
-                extractKey: null
-            }),
-            //
-            // TODO: Check whether there is a race-condition between mergeEntries and initializeRooms
-            //
-            initializeRooms(Object.values(ephemeraItems)
-                .filter(({ tag }) => (['Room'].includes(tag)))
-                .map(({ EphemeraId }) => EphemeraId)
-            ),
-            initializeFeatures(Object.values(ephemeraItems)
-                .filter(({ tag }) => (['Feature'].includes(tag)))
-                .map(({ EphemeraId }) => EphemeraId)
-            ),
+            mergeIntoEphemera(assetId, ephemeraItems)
         ])
     
         stateSynthesizer.evaluateDefaults()
