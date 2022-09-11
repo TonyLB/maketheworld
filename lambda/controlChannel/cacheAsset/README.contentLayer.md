@@ -17,6 +17,18 @@ at the moment
 
 ---
 
+## Asset Meta-Record
+
+*For each asset, a record will be stored to represent the top level of the Asset itself*
+
+### *Key Data*
+
+- EphemeraId: `ASSET#${AssetKey}`
+- DataCategory: 'Meta::Asset'
+- address: AssetWorkspaceAddress
+
+---
+
 ## <Component\> meta-records
 
 *For any tag in the component types (Room, Feature), a record will be stored for the given EphemeraID, over*

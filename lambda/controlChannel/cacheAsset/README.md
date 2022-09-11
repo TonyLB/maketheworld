@@ -13,6 +13,8 @@ Data-derivatives are stored in several largely-independent layers of data:
 - [Content Layer](./README.contentLayer.md): This layer stores the content of the underlying Assets (rooms, features, etc.) as it will be needed to render the world
 - [Ancestry Layer](./README.ancestry.md): This layer stores the connections between different assets (what is dependent upon what earlier asset)
 - [State Layer](./README.state.md): This layer stores the current state of all variables in the programmatic layer of the assets, and allows the world to be responsive
+- [Character Layer](./README.characterLayer.md): This layer stores the content of the underlying Character assets, as needed to render and play each character in
+the world
 - Permissions Layer: This layer stores the current access granted *for* each character, *to* some set of assets (as well as globally accessible Canonical assets)
 
 ---
