@@ -1,4 +1,6 @@
+import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist";
 import { ComponentRenderItem } from "@tonylb/mtw-wml/dist/normalize"
+import { NormalCharacterPronouns } from "../../../packages/mtw-wml/dist/normalize";
 
 export type EphemeraCondition = {
     dependencies: string[];
@@ -57,11 +59,28 @@ export type EphemeraMap = {
     appearances: EphemeraMapAppearance[];
 }
 
+export type EphemeraCharacter = {
+    EphemeraId: string;
+    key: string;
+    tag: 'Character';
+    address: AssetWorkspaceAddress;
+    Name: string;
+    Pronouns: NormalCharacterPronouns;
+    FirstImpression: string;
+    OneCoolThing?: string;
+    Outfit?: string;
+    Color: 'blue' | 'purple' | 'green' | 'pink';
+    fileURL?: string;
+    Connected: boolean;
+    ConnectionIds: string[];
+    RoomId: string;
+}
+
 //
 // TODO (ISS1385): Add EphemeraAction to base classes
 //
 
-export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap
+export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter
 
 export type EphemeraDependencyImport = {
     key: string;
