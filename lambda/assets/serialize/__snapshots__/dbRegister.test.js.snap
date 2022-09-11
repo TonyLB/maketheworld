@@ -4,23 +4,13 @@ exports[`dbRegister should put a single element for a Character file 1`] = `
 Object {
   "AssetId": "CHARACTER#12345",
   "DataCategory": "Meta::Character",
-  "FirstImpression": "Frumpy Goth",
   "Name": "Tess",
-  "OneCoolThing": "Fuchsia eyes",
-  "Outfit": "A bulky frock-coat lovingly kit-bashed from a black hoodie and patchily dyed lace.",
-  "Pronouns": Object {
-    "adjective": "hers",
-    "object": "her",
-    "possessive": "her",
-    "reflexive": "herself",
-    "subject": "she",
+  "address": Object {
+    "fileName": "test",
+    "zone": "Library",
   },
-  "fileName": "test.wml",
   "fileURL": "testIcon.png",
-  "player": "TEST",
   "scopedId": "TESS",
-  "translateFile": "test.json",
-  "zone": "Library",
 }
 `;
 

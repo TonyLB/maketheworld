@@ -10,7 +10,7 @@ describe('dbRegister', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
     })
-    xit('should put a single element for a Character file', async () => {
+    it('should put a single element for a Character file', async () => {
         await dbRegister({
             address: {
                 fileName: 'test',
