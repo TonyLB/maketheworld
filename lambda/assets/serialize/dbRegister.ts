@@ -2,9 +2,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { assetDB, mergeIntoDataRange } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { AssetKey, CharacterKey } from '@tonylb/mtw-utilities/dist/types'
 import { componentAppearanceReduce } from '@tonylb/mtw-utilities/dist/components/components'
-import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
+import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { objectEntryMap } from '../lib/objects.js'
-import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm } from '@tonylb/mtw-wml/dist/normalize.js'
+import { isNormalAsset, isNormalComponent, isNormalExit, NormalForm, isNormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 
 const tagRenderLink = (normalForm) => (renderItem) => {
     if (typeof renderItem === 'object') {
@@ -162,19 +162,18 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
             })
         ])
     }
-    // const character = Object.values(assets).find(({ tag }) => (tag === 'Character'))
-    // if (character && character.key) {
-    //     await Promise.all([
-    //         assetDB.putItem({
-    //             AssetId: scopeMap[character.key],
-    //             DataCategory: 'Meta::Character',
-    //             fileName,
-    //             translateFile,
-    //             scopedId: character.key,
-    //             ...(['Name', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit', 'player', 'fileURL', 'zone']
-    //                 .reduce((previous, label) => ({ ...previous, [label]: character[label] }), {}))
-    //         })
-    //     ])
-    // }
+    const character = Object.values(assets).find(isNormalCharacter)
+    if (character && character.key) {
+        await Promise.all([
+            assetDB.putItem({
+                AssetId: assetWorkspace.namespaceIdToDB[character.key],
+                DataCategory: `Meta::Character`,
+                address,
+                Name: character.Name,
+                fileURL: character.fileURL,
+                scopedId: character.key
+            })
+        ])
+    }
 
 }
