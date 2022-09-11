@@ -3,7 +3,7 @@ import { FunctionComponent, useCallback } from 'react'
 import HomeIcon from '@mui/icons-material/Home'
 import { SxProps } from '@mui/material'
 
-import { isNormalComponent } from '@tonylb/mtw-wml/dist/normalize'
+import { isNormalComponent } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 
 interface WMLComponentHeaderProps {

@@ -46,7 +46,7 @@ import {
     isCustomFeatureLink
 } from './baseClasses'
 
-import { ComponentRenderItem, NormalForm, NormalFeature } from '@tonylb/mtw-wml/dist/normalize'
+import { ComponentRenderItem, NormalForm, NormalFeature } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { DescriptionLinkActionChip, DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 import { getNormalized } from '../../../slices/personalAssets'
 import useDebounce from '../../../hooks/useDebounce'

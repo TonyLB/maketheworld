@@ -1,5 +1,5 @@
 import { MapTree } from './maps'
-import { NormalForm, NormalMap, NormalExit, isNormalExit } from '@tonylb/mtw-wml/dist/normalize'
+import { NormalForm, NormalMap, NormalExit, isNormalExit } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { AssetComponent } from '../../Library/Edit/LibraryAsset'
 import { unique } from '../../../lib/lists'
 import { InheritedExit, InheritedMapLayer, InheritedMapLayerRoom } from '../../../slices/personalAssets/inheritedData'

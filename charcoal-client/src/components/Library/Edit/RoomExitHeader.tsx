@@ -8,7 +8,7 @@ import {
 import ExitIcon from '@mui/icons-material/CallMade'
 import DeleteIcon from '@mui/icons-material/Delete'
 
-import { isNormalExit } from '@tonylb/mtw-wml/dist/normalize'
+import { isNormalExit } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from './AssetDataHeader'
 import { useLibraryAsset } from './LibraryAsset'
 import useDebounce from '../../../hooks/useDebounce'

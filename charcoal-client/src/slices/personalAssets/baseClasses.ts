@@ -6,6 +6,7 @@ export interface PersonalAssetsInternal {
     incrementalBackoff: number;
     fetchURL?: string;
     saveURL?: string;
+    s3Object?: string;
     uploadRequestId?: string;
 }
 

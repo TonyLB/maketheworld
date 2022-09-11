@@ -29,7 +29,7 @@ import {
     getWMLQuery
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize'
+import { NormalCharacter, NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
 
 import WMLEdit from './WMLEdit'
@@ -241,7 +241,7 @@ const CharacterEditPronouns: FunctionComponent<CharacterEditPronounsProps> = ({
 
 type LiteralTagFieldProps = {
     required?: boolean;
-    tag: keyof Omit<NormalCharacter, 'Pronouns'>;
+    tag: keyof Omit<NormalCharacter, 'Pronouns' | 'appearances'>;
     label: string;
 }
 

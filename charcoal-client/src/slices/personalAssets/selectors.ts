@@ -3,7 +3,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { PersonalAssetsNodes, PersonalAssetsPublic } from './baseClasses'
 import { InheritedExit, InheritedComponent } from './inheritedData'
 import { WMLQuery } from '@tonylb/mtw-wml/dist/wmlQuery'
-import { NormalForm, ComponentAppearance } from '@tonylb/mtw-wml/dist/normalize'
+import { NormalForm, ComponentAppearance } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { wmlQueryFromCache } from '../../lib/wmlQueryCache';
 
 export type PublicSelectors = {

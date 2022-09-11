@@ -16,7 +16,7 @@ import mapReducer from './reducer'
 import { useLibraryAsset } from '../../Library/Edit/LibraryAsset'
 import normalToTree from './normalToTree'
 import { objectEntryMap, objectMap } from '../../../lib/objects'
-import { MapAppearance, isNormalImage } from '@tonylb/mtw-wml/dist/normalize'
+import { MapAppearance, isNormalImage } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 type MapEditProps = {
 }

@@ -28,9 +28,10 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     if (s3Client) {
         await Promise.all(
             payloads.map(async (payload) => {
+                const s3Object = `upload/${player}/${payload.tag}s/${payload.fileName}`
                 const putCommand = new PutObjectCommand({
                     Bucket: S3_BUCKET,
-                    Key: `upload/${player}/${payload.tag}s/${payload.fileName}`,
+                    Key: s3Object,
                     ContentType: 'text/plain'
                 })
                 const [presignedOutput] = await Promise.all([
@@ -45,7 +46,8 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
                     type: 'ReturnValue',
                     body: {
                         messageType: 'UploadURL',
-                        url: presignedOutput
+                        url: presignedOutput,
+                        s3Object
                     }
                 })
             })
