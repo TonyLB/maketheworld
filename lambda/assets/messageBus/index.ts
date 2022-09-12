@@ -4,7 +4,6 @@ import {
     isFetchAssetAPIMessage,
     isUploadURLMessage,
     isUploadImageURLMessage,
-    isUploadResponseMessage,
     isMoveAssetMessage,
     isMoveByAssetIdMessage,
     isLibrarySubscribeMessage,
@@ -12,7 +11,6 @@ import {
 } from "./baseClasses"
 import fetchLibraryMessage from "../fetchLibrary"
 import fetchAssetMessage from "../fetch"
-import { uploadResponseMessage } from "../upload/uploadResponse"
 import { uploadURLMessage, uploadImageURLMessage, parseWMLMessage } from "../upload"
 import { moveAssetByIdMessage, moveAssetMessage } from "../moveAsset"
 import { librarySubscribeMessage } from "../subscribe"
@@ -66,12 +64,6 @@ messageBus.subscribe({
     priority: 5,
     filter: isLibrarySubscribeMessage,
     callback: librarySubscribeMessage
-})
-messageBus.subscribe({
-    tag: 'UploadResponse',
-    priority: 8,
-    filter: isUploadResponseMessage,
-    callback: uploadResponseMessage
 })
 
 export default messageBus
