@@ -178,15 +178,8 @@ export const parseWMLMessage = async ({ payloads, messageBus }: { payloads: Pars
             else {
                 const assetWorkspace = new AssetWorkspace(extractAddressFromParseWMLMessage(payload))
             
-                const [{ Body: contentStream }] = await Promise.all([
-                    s3Client.send(new GetObjectCommand({
-                        Bucket: S3_BUCKET,
-                        Key: payload.uploadName
-                    })),
-                    assetWorkspace.loadJSON()
-                ])
-                const contents = await streamToString(contentStream)
-                assetWorkspace.setWML(contents)
+                await assetWorkspace.loadJSON()
+                await assetWorkspace.loadWMLFrom(payload.uploadName)
                 if (assetWorkspace.status.json !== 'Clean') {
                     await Promise.all([
                         assetWorkspace.pushJSON(),

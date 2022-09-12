@@ -13,16 +13,16 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
     if (AssetId) {
         const DataCategory = (splitType(AssetId)[0] === 'CHARACTER') ? 'Meta::Character' : 'Meta::Asset'
         if (DataCategory === 'Meta::Asset') {
-            const { fileName: fetchFileName, zone, player } = (await assetDB.getItem<{ fileName: string; zone: string; player: string; }>({
+            const { fileName: fetchFileName, zone, subFolder, player } = (await assetDB.getItem<{ fileName: string; zone: string; subFolder: string; player: string; }>({
                 AssetId,
                 DataCategory,
-                ProjectionFields: ['fileName', '#zone', 'player'],
+                ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
                 ExpressionAttributeNames: {
                     '#zone': 'zone'
                 }
             })) || {}
             if (zone === 'Personal' && player === PlayerName && fetchFileName) {
-                derivedFileName = fetchFileName
+                derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
             }    
         }
         else {
@@ -33,14 +33,14 @@ const createFetchLink = ({ s3Client }) => async ({ PlayerName, fileName, AssetId
                 ExpressionAttributeValues: {
                     ':dc': DataCategory
                 },
-                ProjectionFields: ['fileName', '#zone', 'player'],
+                ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
                 ExpressionAttributeNames: {
                     '#zone': 'zone'
                 }
             })
-            const { fileName: fetchFileName, zone, player } = queryOutput[0] || {}
+            const { fileName: fetchFileName, zone, subFolder, player } = queryOutput[0] || {}
             if (zone === 'Personal' && player === PlayerName) {
-                derivedFileName = fetchFileName
+                derivedFileName = `Personal/${PlayerName}/${subFolder ? `${subFolder}/` : ''}${fetchFileName}.wml`
             }
         }
     }
