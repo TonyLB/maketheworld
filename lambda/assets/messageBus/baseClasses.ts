@@ -18,9 +18,6 @@ export type FetchAssetMessage = {
 
 export type UploadURLMessage = {
     type: 'UploadURL';
-    fileName: string;
-    tag: 'Character' | 'Asset';
-    uploadRequestId: string;
 }
 
 export type ParseWMLMessage = {
