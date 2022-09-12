@@ -46,19 +46,3 @@ Files are removed from the `uploads/images/` subfolder, and their resized (and p
 transforms are placed in the `images/` subfolder.  A CloudFront distribution is already created
 in the CloudFormation stack pointing to that image:  Clients should access uploaded images from
 that CloudFront distribution.
-
-### UploadResponse message
-
-Delivers a message in the following format to any client that has an `UPLOAD#` subscription
-entry in the Assets DB table:
-
-```ts
-    interface ImageUploadResponse {
-        messageType: 'Success',
-        operation: 'ImageUpload',
-        uploadId: string;
-        destinationURL: string;
-    }
-```
-
-Destination URL will be the CloudFront URL to reach to access the resized and cached image.

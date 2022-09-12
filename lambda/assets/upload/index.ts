@@ -121,11 +121,11 @@ export const handleImageUpload = ({ s3Client, messageBus }: { s3Client: S3Client
 
     }
     catch {
-        messageBus.send({
-            type: 'UploadResponse',
-            uploadId: key,
-            messageType: 'Error'
-        })
+        // messageBus.send({
+        //     type: 'UploadResponse',
+        //     uploadId: key,
+        //     messageType: 'Error'
+        // })
     }
     await s3Client.send(new DeleteObjectCommand({
         Bucket: bucket,

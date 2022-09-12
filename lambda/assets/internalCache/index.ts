@@ -2,7 +2,6 @@ import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
-import CacheUploadSubscriptions from './uploadSubscriptions'
 import { S3Client } from "@aws-sdk/client-s3"
 
 type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client'
@@ -71,6 +70,6 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-const InternalCache = CacheUploadSubscriptions(CacheLibrary(CacheConnection(CacheBase)))
+const InternalCache = CacheLibrary(CacheConnection(CacheBase))
 export const internalCache = new InternalCache()
 export default internalCache
