@@ -211,6 +211,23 @@ export class AssetWorkspace {
         this.status.wml = 'Clean'
     }
 
+    async loadWMLFrom(filePath: string): Promise<void> {
+        let contents = ''
+        try {
+            contents = await s3Client.get({ Key: filePath })
+        }
+        catch(err) {
+            if (err instanceof NotFound) {
+                this.status.wml = 'Error'
+                return
+            }
+            throw err
+        }
+
+        this.setWML(contents)
+        this.status.wml = 'Clean'
+    }
+
     async pushJSON(): Promise<void> {
         const filePath = `${this.fileNameBase}.json`
         const contents = JSON.stringify({
