@@ -7,7 +7,8 @@ import { schemaFromParse } from "@tonylb/mtw-wml/dist/schema"
 import tokenizer from "@tonylb/mtw-wml/dist/parser/tokenizer"
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import parser from "@tonylb/mtw-wml/dist/parser"
-import normalize, { NormalItem, NormalCharacter } from '@tonylb/mtw-wml/dist/normalize'
+import { NormalItem, NormalCharacter } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import normalize from '@tonylb/mtw-wml/dist/normalize'
 import { getStatus } from '../../lifeLine'
 
 export const lifelineCondition: CharacterEditCondition = ({ internalData: { id } }, getState) => {

@@ -8,7 +8,8 @@ import {
     getSaveURL,
     saveWML,
     clearAction,
-    backoffAction
+    backoffAction,
+    parseWML
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import { setCurrentWML as setCurrentWMLReducer, setDraftWML as setDraftWMLReducer } from './reducers'
@@ -120,6 +121,12 @@ export const {
             SAVE: {
                 stateType: 'ATTEMPT',
                 action: saveWML,
+                resolve: 'PARSE',
+                reject: 'SAVEBACKOFF'
+            },
+            PARSE: {
+                stateType: 'ATTEMPT',
+                action: parseWML,
                 resolve: 'FRESH',
                 reject: 'SAVEBACKOFF'
             },

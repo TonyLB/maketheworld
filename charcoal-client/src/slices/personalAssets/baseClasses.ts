@@ -6,6 +6,7 @@ export interface PersonalAssetsInternal {
     incrementalBackoff: number;
     fetchURL?: string;
     saveURL?: string;
+    s3Object?: string;
     uploadRequestId?: string;
 }
 
@@ -37,6 +38,7 @@ export interface PersonalAssetsNodes {
     NEEDSAVE: ISSMRedirectNode;
     GETSAVEURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    PARSE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVEBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SAVEERROR: ISSMChoiceNode;
     CLEAR: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;

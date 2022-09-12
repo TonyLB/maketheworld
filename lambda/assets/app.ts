@@ -47,7 +47,7 @@ export const handler = async (event, context) => {
         return JSON.stringify(returnVal, null, 4)
     }
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
-    if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe'].includes(request.message)) {
+    if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
     }
     else {
@@ -84,19 +84,24 @@ export const handler = async (event, context) => {
         }
         if (isParseWMLAPIMessage(request)) {
             if (request.zone === 'Personal') {
-                messageBus.send({
-                    type: 'ParseWML',
-                    fileName: request.fileName,
-                    zone: request.zone,
-                    player: request.player,
-                    uploadName: request.uploadName
-                })    
+                const player = await internalCache.Connection.get('player')
+                if (player) {
+                    messageBus.send({
+                        type: 'ParseWML',
+                        fileName: request.fileName,
+                        zone: request.zone,
+                        player: player,
+                        subFolder: request.subFolder,
+                        uploadName: request.uploadName
+                    })
+                }
             }
             else {
                 messageBus.send({
                     type: 'ParseWML',
                     fileName: request.fileName,
                     zone: request.zone,
+                    subFolder: request.subFolder,
                     uploadName: request.uploadName
                 })    
             }

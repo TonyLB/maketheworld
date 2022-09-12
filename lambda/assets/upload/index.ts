@@ -28,24 +28,19 @@ export const uploadURLMessage = async ({ payloads, messageBus }: { payloads: Upl
     if (s3Client) {
         await Promise.all(
             payloads.map(async (payload) => {
+                const s3Object = `upload/${player}/${payload.tag}s/${payload.fileName}`
                 const putCommand = new PutObjectCommand({
                     Bucket: S3_BUCKET,
-                    Key: `upload/${player}/${payload.tag}s/${payload.fileName}`,
+                    Key: s3Object,
                     ContentType: 'text/plain'
                 })
-                const [presignedOutput] = await Promise.all([
-                    getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-                    assetDB.putItem({
-                        AssetId: `UPLOAD#${player}/${payload.tag}s/${payload.fileName}`,
-                        DataCategory: `PLAYER#${player}`,
-                        RequestId: payload.uploadRequestId
-                    })
-                ])
+                const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'UploadURL',
-                        url: presignedOutput
+                        url: presignedOutput,
+                        s3Object
                     }
                 })
             })
@@ -74,24 +69,19 @@ export const uploadImageURLMessage = async ({ payloads, messageBus }: { payloads
                         break
                 }
                 const fileName = `${uuidv4()}.${payload.fileExtension}`
-                        const putCommand = new PutObjectCommand({
+                const s3Object = `upload/images/${player}/${payload.tag}s/${fileName}`
+                const putCommand = new PutObjectCommand({
                     Bucket: S3_BUCKET,
-                    Key: `upload/images/${player}/${payload.tag}s/${fileName}`,
+                    Key: s3Object,
                     ContentType: contentType
                 })
-                const [presignedOutput] = await Promise.all([
-                    getSignedUrl(s3Client, putCommand, { expiresIn: 60 }),
-                    assetDB.putItem({
-                        AssetId: `UPLOAD#images/${player}/${payload.tag}s/${fileName}`,
-                        DataCategory: `PLAYER#${player}`,
-                        RequestId: payload.uploadRequestId
-                    })
-                ])
+                const presignedOutput = await getSignedUrl(s3Client, putCommand, { expiresIn: 60 })
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
                         messageType: 'UploadURL',
-                        url: presignedOutput
+                        url: presignedOutput,
+                        s3Object
                     }
                 })
             })

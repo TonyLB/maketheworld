@@ -375,18 +375,18 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                 }
                 const { newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = produce(startingDraft, (draft) => {
                     updateKeys.forEach((key, index) => {
-                        const translatedKey = (key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
-                        if (translatedKey in state && state[translatedKey] !== undefined) {
-                            if (newState[translatedKey] === undefined) {
+                        const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
+                        if (state && translatedKey in state && state[translatedKey] !== undefined) {
+                            if (newState?.[translatedKey] === undefined) {
                                 //
                                 // Remove existing item
                                 //
                                 draft.removeExpressions.push(`${key}`)
-                                if (key in ExpressionAttributeNames) {
+                                if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
                                     draft.newExpressionAttributeNames[key] = translatedKey
                                 }
                             }
-                            if (translatedKey in newState && newState[translatedKey] !== undefined && newState[translatedKey] !== state[translatedKey]) {
+                            if (newState && translatedKey in newState && newState[translatedKey] !== undefined && newState[translatedKey] !== state[translatedKey]) {
                                 //
                                 // Update existing item to new value
                                 //
@@ -394,17 +394,17 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                                 draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
                                 draft.setExpressions.push(`${key} = :New${index}`)
                                 draft.conditionExpressions.push(`${key} = :Old${index}`)
-                                if (key in ExpressionAttributeNames) {
+                                if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
                                     draft.newExpressionAttributeNames[key] = translatedKey
                                 }
                             }
                         }
                         else {
                             draft.conditionExpressions.push(`attribute_not_exists(${key})`)
-                            if (key in ExpressionAttributeNames) {
+                            if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
                                 draft.newExpressionAttributeNames[key] = translatedKey
                             }
-                            if (translatedKey in newState && newState[translatedKey] !== undefined) {
+                            if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
                                 //
                                 // Add new item
                                 //

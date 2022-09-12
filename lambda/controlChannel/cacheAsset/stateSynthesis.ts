@@ -11,11 +11,11 @@ import {
     isNormalMap,
     NormalForm,
     isNormalComputed,
-    isNormalVariable
+    isNormalVariable,
+    isNormalImport
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { EphemeraDependencies, EphemeraImportState, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses'
-import { isNormalImport } from '@tonylb/mtw-wml/dist/normalize'
 
 export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalForm: NormalForm): EphemeraDependencies => {
     const conditionTransform = conditionsFromContext(normalForm)

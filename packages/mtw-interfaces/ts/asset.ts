@@ -28,7 +28,7 @@ type ParseWMLAPIMessagePersonal = {
     fileName: string;
     subFolder?: string;
     zone: 'Personal';
-    player: string;
+    player?: string;
 }
 
 type ParseWMLAPIMessageImpersonal = {
