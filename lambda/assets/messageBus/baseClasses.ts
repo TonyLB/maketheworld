@@ -49,6 +49,10 @@ export type LibrarySubscribeMessage = {
     type: 'LibrarySubscribe';
 }
 
+export type PlayerLibraryUpdateMessage = {
+    type: 'PlayerLibraryUpdate';
+}
+
 export type MessageType = ReturnValueMessage |
     FetchLibraryMessage |
     FetchAssetMessage |
@@ -57,7 +61,8 @@ export type MessageType = ReturnValueMessage |
     ParseWMLMessage |
     MoveAssetMessage |
     MoveByAssetIdMessage |
-    LibrarySubscribeMessage
+    LibrarySubscribeMessage |
+    PlayerLibraryUpdateMessage
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isFetchLibraryAPIMessage = (prop: MessageType): prop is FetchLibraryMessage => (prop.type === 'FetchLibrary')
@@ -68,5 +73,6 @@ export const isParseWMLMessage = (prop: MessageType): prop is ParseWMLMessage =>
 export const isMoveAssetMessage = (prop: MessageType): prop is MoveAssetMessage => (prop.type === 'MoveAsset')
 export const isMoveByAssetIdMessage = (prop: MessageType): prop is MoveByAssetIdMessage => (prop.type === 'MoveByAssetId')
 export const isLibrarySubscribeMessage = (prop: MessageType): prop is LibrarySubscribeMessage => (prop.type === 'LibrarySubscribe')
+export const isPlayerLibraryUpdateMessage = (prop: MessageType): prop is PlayerLibraryUpdateMessage => (prop.type === 'PlayerLibraryUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
