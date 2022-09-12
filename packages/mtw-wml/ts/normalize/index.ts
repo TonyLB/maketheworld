@@ -46,39 +46,6 @@ import {
 } from './baseClasses'
 import { keyForValue } from './keyUtil';
 
-export {
-    BaseAppearance,
-    ComponentAppearance,
-    ComponentRenderItem,
-    NormalAsset,
-    NormalCharacter,
-    NormalCharacterPronouns,
-    NormalComponent,
-    NormalCondition,
-    NormalDescription,
-    NormalDescriptionPayload,
-    NormalExit,
-    NormalFeature,
-    NormalForm,
-    NormalImport,
-    NormalItem,
-    NormalMap,
-    NormalRoom,
-    NormalizeKeyMismatchError,
-    NormalizeTagMismatchError,
-    isNormalAction,
-    isNormalAsset,
-    isNormalCharacter,
-    isNormalComponent,
-    isNormalComputed,
-    isNormalCondition,
-    isNormalExit,
-    isNormalImage,
-    isNormalImport,
-    isNormalMap,
-    isNormalVariable
-} from './baseClasses'
-
 export type SchemaTagWithNormalEquivalent = SchemaWithKey | SchemaImportTag | SchemaConditionTag
 
 const isSchemaTagWithNormalEquivalent = (node: SchemaTag): node is SchemaTagWithNormalEquivalent => (
