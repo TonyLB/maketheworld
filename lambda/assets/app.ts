@@ -86,22 +86,14 @@ export const handler = async (event, context) => {
             if (request.zone === 'Personal') {
                 const player = await internalCache.Connection.get('player')
                 if (player) {
-                    // messageBus.send({
-                    //     type: 'ParseWML',
-                    //     fileName: request.fileName,
-                    //     zone: request.zone,
-                    //     player: player,
-                    //     subFolder: request.subFolder,
-                    //     uploadName: request.uploadName
-                    // })
-                    console.log(`ParseWML Message: ${JSON.stringify({
+                    messageBus.send({
                         type: 'ParseWML',
                         fileName: request.fileName,
                         zone: request.zone,
                         player: player,
                         subFolder: request.subFolder,
                         uploadName: request.uploadName
-                    }, null, 4)}`)
+                    })
                 }
             }
             else {
@@ -109,6 +101,7 @@ export const handler = async (event, context) => {
                     type: 'ParseWML',
                     fileName: request.fileName,
                     zone: request.zone,
+                    subFolder: request.subFolder,
                     uploadName: request.uploadName
                 })    
             }
