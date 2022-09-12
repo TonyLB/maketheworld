@@ -12,6 +12,7 @@ jest.mock('@tonylb/mtw-utilities/dist/stream')
 import { streamToString } from '@tonylb/mtw-utilities/dist/stream'
 
 const mockSetWML = jest.fn()
+const mockLoadWMLFrom = jest.fn()
 jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
     return jest.fn().mockImplementation((address: any) => {
         return {
@@ -22,6 +23,7 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
             fileNameBase: 'Personal/Test/TestFile',
             loadJSON: jest.fn(),
             loadWML: jest.fn(),
+            loadWMLFrom: mockLoadWMLFrom,
             setWML: mockSetWML,
             pushJSON: jest.fn(),
             pushWML: jest.fn(),
@@ -65,7 +67,7 @@ describe('parseWMLMessage', () => {
                 zone: 'Personal',
                 player: 'Test',
                 fileName: 'TestFile',
-                uploadName: 'uploads/TestABC.wml'
+                uploadName: 'upload/TestABC.wml'
             }],
             messageBus
         })
@@ -81,6 +83,7 @@ describe('parseWMLMessage', () => {
             fileNameBase: 'Personal/Test/TestFile',
             loadJSON: expect.any(Function),
             loadWML: expect.any(Function),
+            loadWMLFrom: expect.any(Function),
             setWML: expect.any(Function),
             pushJSON: expect.any(Function),
             pushWML: expect.any(Function),
@@ -98,7 +101,7 @@ describe('parseWMLMessage', () => {
                 test: 'ROOM#123'
             }
         })
-        expect(mockSetWML).toHaveBeenCalledWith(`<Asset key=(Test)></Asset>`)
+        expect(mockLoadWMLFrom).toHaveBeenCalledWith(`upload/TestABC.wml`)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {

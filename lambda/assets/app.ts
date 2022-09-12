@@ -67,12 +67,7 @@ export const handler = async (event, context) => {
             })
         }
         if (isUploadAssetLinkAPIMessage(request)) {
-            messageBus.send({
-                type: 'UploadURL',
-                fileName: request.fileName,
-                tag: request.tag,
-                uploadRequestId: request.uploadRequestId
-            })
+            messageBus.send({ type: 'UploadURL' })
         }
         if (isUploadImageLinkAPIMessage(request)) {
             messageBus.send({
