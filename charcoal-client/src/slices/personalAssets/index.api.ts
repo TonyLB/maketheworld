@@ -112,7 +112,10 @@ export const saveWML: PersonalAssetsAction = ({
     if (!currentWML || !saveURL || !uploadRequestId) {
         throw new Error()
     }
-    await apiDispatchPromise(saveURL, uploadRequestId)(currentWML)
+    await fetch(saveURL, {
+        method: 'PUT',
+        body: currentWML
+    })
     return {}
 }
 
@@ -130,7 +133,7 @@ export const parseWML: PersonalAssetsAction = ({
     await dispatch(socketDispatchPromise({
         message: 'parseWML',
         zone: 'Personal',
-        fileName: `${assetKey}.wml`,
+        fileName: assetKey,
         subFolder: assetType,
         uploadName: s3Object
     }, { service: 'asset' }))
