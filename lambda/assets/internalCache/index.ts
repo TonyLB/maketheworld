@@ -4,6 +4,7 @@ import { CacheConstructor, CacheBase } from './baseClasses'
 import CacheLibrary from './library'
 import { S3Client } from "@aws-sdk/client-s3"
 import CachePlayerLibrary from './playerLibrary'
+import CacheConnectionsByPlayer from './connectionsByPlayer'
 
 type CacheConnectionKeys = 'connectionId' | 'RequestId' | 'player' | 's3Client'
 class CacheConnectionData {
@@ -71,6 +72,6 @@ export const CacheConnection = <GBase extends CacheConstructor>(Base: GBase) => 
     }
 }
 
-const InternalCache = CachePlayerLibrary(CacheLibrary(CacheConnection(CacheBase)))
+const InternalCache = CacheConnectionsByPlayer(CachePlayerLibrary(CacheLibrary(CacheConnection(CacheBase))))
 export const internalCache = new InternalCache()
 export default internalCache
