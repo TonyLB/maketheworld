@@ -4,6 +4,7 @@ import { PlayerLibraryUpdateMessage, MessageBus } from "../messageBus/baseClasse
 import internalCache from '../internalCache'
 
 export const playerLibraryUpdateMessage = async ({ payloads, messageBus }: { payloads: PlayerLibraryUpdateMessage[], messageBus: MessageBus }): Promise<void> => {
+    internalCache.ConnectionsByPlayer.clear()
     await Promise.all(payloads.map(async ({ player }) => {
         const derivedPlayer = player || await internalCache.Connection.get("player")
         if (derivedPlayer) {
