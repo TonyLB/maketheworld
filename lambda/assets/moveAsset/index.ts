@@ -50,6 +50,23 @@ export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: Mov
                     ])
             
                 })
+                if ((to.zone === 'Library' || from.zone === 'Library') && !(to.zone === 'Library' && from.zone === 'Library')) {
+                    messageBus.send({ type: 'LibraryUpdate' })
+                }
+                if (!(to.zone === 'Personal' && from.zone === 'Personal' && to.player === from.player)) {
+                    if (from.zone === 'Personal') {
+                        messageBus.send({
+                            type: 'PlayerLibraryUpdate',
+                            player: from.player
+                        })
+                    }
+                    if (to.zone === 'Personal') {
+                        messageBus.send({
+                            type: 'PlayerLibraryUpdate',
+                            player: to.player
+                        })
+                    }
+                }
             })
         )
         messageBus.send({
