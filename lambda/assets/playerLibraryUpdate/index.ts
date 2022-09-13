@@ -1,3 +1,4 @@
+import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
 import { PlayerLibraryUpdateMessage, MessageBus } from "../messageBus/baseClasses"
 
 import internalCache from '../internalCache'
@@ -6,19 +7,21 @@ export const playerLibraryUpdateMessage = async ({ payloads, messageBus }: { pay
     await Promise.all(payloads.map(async ({ player }) => {
         const derivedPlayer = player || await internalCache.Connection.get("player")
         if (derivedPlayer) {
-            const { Characters, Assets } = await internalCache.PlayerLibrary.get(derivedPlayer)
-            //
-            // TODO: Replace ReturnValue (which depends upon the update going to the calling connection)
-            // with publishing to the (possibly many) connections for the player
-            //
-            messageBus.send({
-                type: 'ReturnValue',
-                body: {
-                    messageType: 'PlayerLibrary',
-                    Characters,
-                    Assets
-                }
-            })
+            const connections = await internalCache.ConnectionsByPlayer.get(derivedPlayer)
+            if (connections.length > 0) {
+                const { Characters, Assets } = await internalCache.PlayerLibrary.get(derivedPlayer)
+                await Promise.all(connections.map((ConnectionId) => (
+                    apiClient.send({
+                        ConnectionId,
+                        Data: JSON.stringify({
+                            messageType: 'Player',
+                            Characters: Object.values(Characters),
+                            Assets: Object.values(Assets),
+                            PlayerName: derivedPlayer
+                        })
+                    })
+                )))
+            }
         }
     }))
 }
