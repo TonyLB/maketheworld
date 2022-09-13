@@ -51,6 +51,7 @@ export type LibrarySubscribeMessage = {
 
 export type PlayerLibraryUpdateMessage = {
     type: 'PlayerLibraryUpdate';
+    player?: string;
 }
 
 export type MessageType = ReturnValueMessage |

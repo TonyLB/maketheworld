@@ -40,7 +40,7 @@ export class CachePlayerLibraryData {
                 Assets
             }
         }
-        return this.CharacterLibraries[player] || {}
+        return this.CharacterLibraries[player] || { Characters: {}, Assets: {} }
     }
 }
 
