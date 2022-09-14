@@ -76,11 +76,18 @@ export type EphemeraCharacter = {
     RoomId: string;
 }
 
+export type EphemeraAction = {
+    EphemeraId: string;
+    key: string;
+    tag: 'Action';
+    src: string;
+}
+
 //
 // TODO (ISS1385): Add EphemeraAction to base classes
 //
 
-export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter
+export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction
 
 export type EphemeraDependencyImport = {
     key: string;
