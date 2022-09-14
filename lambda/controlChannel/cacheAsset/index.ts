@@ -118,6 +118,13 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 ConnectionIds: [],
                 RoomId: 'VORTEX'
             }
+        case 'Action':
+            return {
+                tag: 'Action',
+                key: item.key,
+                EphemeraId,
+                src: item.src
+            }
         default:
             return undefined
     }

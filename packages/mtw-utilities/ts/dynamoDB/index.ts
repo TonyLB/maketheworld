@@ -522,7 +522,8 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T, initializeCallback:
     const [_, assetKey] = splitType(key.DataCategory)
     const tag = ephemeraTag === 'ROOM' ? 'Room' :
         ephemeraTag === 'FEATURE' ? 'Feature' :
-        ephemeraTag === 'MAP' ? 'Map' : 'Room'
+        ephemeraTag === 'MAP' ? 'Map' :
+        ephemeraTag === 'ACTION' ? 'Action' : 'Room'
     while(!completed && retries <= maxRetries) {
         completed = true
         try {
@@ -628,7 +629,8 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
     const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
     const tag = ephemeraTag === 'ROOM' ? 'Room' :
         ephemeraTag === 'FEATURE' ? 'Feature' :
-        ephemeraTag === 'MAP' ? 'Map' : 'Room'
+        ephemeraTag === 'MAP' ? 'Map' :
+        ephemeraTag === 'ACTION' ? 'Action' : 'Room'
     while(!completed && retries <= maxRetries) {
         completed = true
         try {
