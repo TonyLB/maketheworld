@@ -547,7 +547,7 @@ type AddPerAssetTransformArgument = {
     cached: string[]
 }
 
-const addPerAsset = async <T extends EphemeraDBKey>(item: T, transformCallback: ({ item, meta }: { item: T, meta?: AddPerAssetTransformArgument }) => Promise<Record<string, any>> = () => (Promise.resolve({}))): Promise<void> => {
+export const addPerAsset = async <T extends EphemeraDBKey>(item: T, transformCallback: ({ item, meta }: { item: T, meta?: AddPerAssetTransformArgument }) => Promise<Record<string, any>> = () => (Promise.resolve({}))): Promise<void> => {
     let retries = 0
     let exponentialBackoff = 100
     let completed = false
@@ -580,13 +580,6 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T, transformCallback: 
             //
             if (currentCache === undefined) {
                 const initializeData = await transformCallback({ item })
-                const emptyFields = Object.entries({
-                        DataCategory: `Meta::${tag}`,
-                        assetKey,
-                        ...initializeData
-                    })
-                    .filter(([_, value]) => (value === undefined))
-                    .map(([key]) => (key))
                 await dbClient.send(new TransactWriteItemsCommand({
                     TransactItems: [{
                         Put: {

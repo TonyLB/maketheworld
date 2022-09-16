@@ -1,5 +1,105 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`addPerAsset should create a new Meta record 1`] = `
+Object {
+  "TransactItems": Array [
+    Object {
+      "Put": Object {
+        "Item": Object {
+          "DataCategory": Object {
+            "S": "ASSET#TEST",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+          "value": Object {
+            "S": "Test",
+          },
+        },
+        "TableName": "undefined_ephemera",
+      },
+    },
+    Object {
+      "Put": Object {
+        "Item": Object {
+          "DataCategory": Object {
+            "S": "Meta::Feature",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+          "cached": Object {
+            "L": Array [
+              Object {
+                "S": "TEST",
+              },
+            ],
+          },
+        },
+        "TableName": "undefined_ephemera",
+      },
+    },
+  ],
+}
+`;
+
+exports[`addPerAsset should update an existing Meta record 1`] = `
+Object {
+  "TransactItems": Array [
+    Object {
+      "Put": Object {
+        "Item": Object {
+          "DataCategory": Object {
+            "S": "ASSET#TEST",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+          "value": Object {
+            "S": "Test",
+          },
+        },
+        "TableName": "undefined_ephemera",
+      },
+    },
+    Object {
+      "Update": Object {
+        "ConditionExpression": "cached = :oldCache",
+        "ExpressionAttributeValues": Object {
+          ":newCache": Object {
+            "L": Array [
+              Object {
+                "S": "OLD",
+              },
+              Object {
+                "S": "TEST",
+              },
+            ],
+          },
+          ":oldCache": Object {
+            "L": Array [
+              Object {
+                "S": "OLD",
+              },
+            ],
+          },
+        },
+        "Key": Object {
+          "DataCategory": Object {
+            "S": "Meta::Feature",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+        },
+        "TableName": "undefined_ephemera",
+        "UpdateExpression": "SET cached = :newCache",
+      },
+    },
+  ],
+}
+`;
+
 exports[`optimisticUpdate should properly map ExpressionAttributeNames 1`] = `
 Object {
   "ConditionExpression": "#name = :Old0 AND #test = :Old1 AND attribute_not_exists(#zone)",
