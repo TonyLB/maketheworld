@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`optimisticUpdate should update and remove fields on change 1`] = `
+Object {
+  "ConditionExpression": "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Different Test",
+    },
+    ":New2": Object {
+      "S": "New test",
+    },
+    ":Old0": Object {
+      "S": "Testing",
+    },
+    ":Old1": Object {
+      "S": "Also Testing",
+    },
+  },
+  "Key": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+  },
+  "ReturnValues": undefined,
+  "TableName": "ephemeraTest",
+  "UpdateExpression": "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
+}
+`;
+
+exports[`optimisticUpdate should update when no item fetched 1`] = `
+Object {
+  "ConditionExpression": "attribute_not_exists(DataCategory)",
+  "Item": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+    "testOne": Object {
+      "S": "Test",
+    },
+    "testTwo": Object {
+      "S": "Another test",
+    },
+  },
+  "TableName": "ephemeraTest",
+}
+`;
