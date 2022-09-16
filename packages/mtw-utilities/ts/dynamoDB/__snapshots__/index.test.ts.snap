@@ -1,5 +1,41 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`optimisticUpdate should properly map ExpressionAttributeNames 1`] = `
+Object {
+  "ConditionExpression": "#name = :Old0 AND #test = :Old1 AND attribute_not_exists(#zone)",
+  "ExpressionAttributeNames": Object {
+    "#name": "Name",
+    "#test": "Test",
+    "#zone": "Zone",
+  },
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Different Test",
+    },
+    ":New2": Object {
+      "S": "New test",
+    },
+    ":Old0": Object {
+      "S": "Testing",
+    },
+    ":Old1": Object {
+      "S": "Also Testing",
+    },
+  },
+  "Key": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+  },
+  "ReturnValues": undefined,
+  "TableName": "ephemeraTest",
+  "UpdateExpression": "SET #name = :New0, #zone = :New2 REMOVE #test",
+}
+`;
+
 exports[`optimisticUpdate should update and remove fields on change 1`] = `
 Object {
   "ConditionExpression": "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
@@ -34,20 +70,24 @@ Object {
 exports[`optimisticUpdate should update when no item fetched 1`] = `
 Object {
   "ConditionExpression": "attribute_not_exists(DataCategory)",
-  "Item": Object {
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Test",
+    },
+    ":New1": Object {
+      "S": "Another test",
+    },
+  },
+  "Key": Object {
     "DataCategory": Object {
       "S": "Meta::Test",
     },
     "EphemeraId": Object {
       "S": "TEST",
     },
-    "testOne": Object {
-      "S": "Test",
-    },
-    "testTwo": Object {
-      "S": "Another test",
-    },
   },
+  "ReturnValues": undefined,
   "TableName": "ephemeraTest",
+  "UpdateExpression": "SET testOne = :New0, testTwo = :New1",
 }
 `;

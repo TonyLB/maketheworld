@@ -69,7 +69,7 @@ describe('optimisticUpdate', () => {
     it('should update when no item fetched', async () => {
         mockDBClientSend
             .mockResolvedValueOnce({})
-            .mockResolvedValueOnce({ Attributes: marshall({ testOne: 'Test', testTwo: 'Another test' })})
+            .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Test', testTwo: 'Another test' })})
         const returnValue = await abstractOptimisticUpdate('ephemeraTest')({
             key: {
                 EphemeraId: 'TEST',
@@ -82,8 +82,34 @@ describe('optimisticUpdate', () => {
             }
         })
         expect(returnValue).toEqual({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'Test', testTwo: 'Another test' })
-        expect(mockPutItemCommand).toHaveBeenCalledTimes(1)
-        expect(mockPutItemCommand.mock.calls[0][0]).toMatchSnapshot()
+        expect(mockUpdateItemCommand).toHaveBeenCalledTimes(1)
+        expect(mockUpdateItemCommand.mock.calls[0][0]).toMatchSnapshot()
+    })
+
+    it('should properly map ExpressionAttributeNames', async () => {
+        mockDBClientSend
+            .mockResolvedValueOnce({ Item: marshall({ Name: 'Testing', Test: 'Also Testing', testFour: 'Unchanged' }) })
+            .mockResolvedValueOnce({ Attributes: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', Name: 'Different Test', Zone: 'New test', testFour: 'Unchanged' })})
+        const returnValue = await abstractOptimisticUpdate('ephemeraTest')({
+            key: {
+                EphemeraId: 'TEST',
+                DataCategory: 'Meta::Test'
+            },
+            ExpressionAttributeNames: {
+                '#name': 'Name',
+                '#zone': 'Zone',
+                '#test': 'Test'
+            },
+            updateKeys: ['#name', '#test', '#zone', 'testFour'],
+            updateReducer: (draft) => {
+                draft.Name = 'Different Test',
+                draft.Test = undefined
+                draft.Zone = 'New test'
+            }
+        })
+        expect(returnValue).toEqual({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', Name: 'Different Test', Zone: 'New test', testFour: 'Unchanged' })
+        expect(mockUpdateItemCommand).toHaveBeenCalledTimes(1)
+        expect(mockUpdateItemCommand.mock.calls[0][0]).toMatchSnapshot()
     })
 
 })

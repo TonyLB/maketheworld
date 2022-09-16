@@ -338,6 +338,8 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
                         // Remove existing item
                         //
                         draft.removeExpressions.push(`${key}`)
+                        draft.ExpressionAttributeValues[`:Old${index}`] = state[translatedKey]
+                        draft.conditionExpressions.push(`${key} = :Old${index}`)
                         if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
                             draft.ExpressionAttributeNames[key] = translatedKey
                         }
@@ -389,9 +391,9 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
             conditionExpressions: []
         }
         return produce(startingDraft, (draft) => {
+            draft.conditionExpressions.push(`attribute_not_exists(DataCategory)`)
             updateKeys.forEach((key, index) => {
                 const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
-                draft.conditionExpressions.push(`attribute_not_exists(DataCategory)`)
                 if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
                     //
                     // Add new item
@@ -460,72 +462,18 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         } as any)) || {}
-        const newState = produce(state, updateReducer)
-        if (newState === state) {
+        const updateOutput = updateByReducer({
+            updateKeys,
+            ExpressionAttributeNames,
+            reducer: updateReducer
+        })(state)
+        if (!((item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0))(updateOutput)) {
             returnValue = state || returnValue
             break
         }
-        try {
-            if (state && newState && Object.keys(state || {}).length) {
-                //
-                // Updating an existing record
-                //
-                const startingDraft: {
-                    newExpressionAttributeNames: Record<string, any>;
-                    ExpressionAttributeValues: Record<string, any>;
-                    setExpressions: string[];
-                    removeExpressions: string[];
-                    conditionExpressions: string[];
-                } = {
-                    newExpressionAttributeNames: {},
-                    ExpressionAttributeValues: {},
-                    setExpressions: [],
-                    removeExpressions: [],
-                    conditionExpressions: []
-                }
-                const { newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = produce(startingDraft, (draft) => {
-                    updateKeys.forEach((key, index) => {
-                        const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
-                        if (state && translatedKey in state && state[translatedKey] !== undefined) {
-                            if (newState?.[translatedKey] === undefined) {
-                                //
-                                // Remove existing item
-                                //
-                                draft.removeExpressions.push(`${key}`)
-                                draft.ExpressionAttributeValues[`:Old${index}`] = state[translatedKey]
-                                draft.conditionExpressions.push(`${key} = :Old${index}`)
-                                if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
-                                    draft.newExpressionAttributeNames[key] = translatedKey
-                                }
-                            }
-                            if (newState && translatedKey in newState && newState[translatedKey] !== undefined && newState[translatedKey] !== state[translatedKey]) {
-                                //
-                                // Update existing item to new value
-                                //
-                                draft.ExpressionAttributeValues[`:Old${index}`] = state[translatedKey]
-                                draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
-                                draft.setExpressions.push(`${key} = :New${index}`)
-                                draft.conditionExpressions.push(`${key} = :Old${index}`)
-                                if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
-                                    draft.newExpressionAttributeNames[key] = translatedKey
-                                }
-                            }
-                        }
-                        else {
-                            draft.conditionExpressions.push(`attribute_not_exists(${key})`)
-                            if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
-                                draft.newExpressionAttributeNames[key] = translatedKey
-                            }
-                            if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
-                                //
-                                // Add new item
-                                //
-                                draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
-                                draft.setExpressions.push(`${key} = :New${index}`)
-                            }
-                        }
-                    })
-                })
+        else {
+            const { ExpressionAttributeNames: newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
+            try {
                 const UpdateExpression = [
                     setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
                     removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
@@ -546,47 +494,21 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     ReturnValues
                 }))
                 returnValue = unmarshall(Attributes)
-                break
             }
-            else {
-                //
-                // Putting a new record
-                //
-                await dbClient.send(new PutItemCommand({
-                    TableName: table,
-                    Item: marshall({
-                        ...newState,
-                        AssetId,
-                        EphemeraId,
-                        MessageId,
-                        ConnectionId,
-                        DataCategory
-                    }, { removeUndefinedValues: true }),
-                    ConditionExpression: "attribute_not_exists(DataCategory)"
-                }))
-            }
-            returnValue = {
-                ...newState,
-                AssetId,
-                EphemeraId,
-                MessageId,
-                ConnectionId,
-                DataCategory
-            }
-        }
-        catch (err: any) {
-            if (err.code === 'ConditionalCheckFailedException') {
-                await delayPromise(exponentialBackoff)
-                exponentialBackoff = exponentialBackoff * 2
-                retries++
-                completed = false
-            }
-            else {
-                if (DEVELOPER_MODE) {
-                    throw err
+            catch (err: any) {
+                if (err.code === 'ConditionalCheckFailedException') {
+                    await delayPromise(exponentialBackoff)
+                    exponentialBackoff = exponentialBackoff * 2
+                    retries++
+                    completed = false
                 }
                 else {
-                    returnValue = catchException(err)
+                    if (DEVELOPER_MODE) {
+                        throw err
+                    }
+                    else {
+                        returnValue = catchException(err)
+                    }
                 }
             }
         }
