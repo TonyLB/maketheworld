@@ -10,7 +10,8 @@ import {
     isNormalExit,
     isNormalAction,
     NormalCharacter,
-    isNormalCharacter
+    isNormalCharacter,
+    ComponentRenderItem
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
 import { EphemeraCharacter, EphemeraItem, EphemeraPushArgs } from './baseClasses'
@@ -44,6 +45,18 @@ type CacheAssetOptions = {
 //
 // TODO(ISS1387): Translate features and actions in render links to their DB ID counterparts
 //
+const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem: ComponentRenderItem): ComponentRenderItem => {
+    if (renderItem.tag === 'Link') {
+        return {
+            ...renderItem,
+            to: assetWorkspace.namespaceIdToDB[renderItem.to]
+        }
+    }
+    else {
+        return renderItem
+    }
+}
+
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
     const conditionsTransform = conditionsFromContext(normal)
@@ -51,6 +64,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
     if (!EphemeraId) {
         return undefined
     }
+    const renderTranslate = ephemeraTranslateRender(assetWorkspace)
     switch(item.tag) {
         case 'Room':
             return {
@@ -61,7 +75,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                     .map((appearance) => ({
                         conditions: conditionsTransform(appearance.contextStack),
                         name: appearance.name || '',
-                        render: appearance.render || [],
+                        render: (appearance.render || []).map(renderTranslate),
                         exits: appearance.contents
                             .filter(({ tag }) => (tag === 'Exit'))
                             .map(({ key }) => (normal[key]))
@@ -81,7 +95,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                     .map((appearance) => ({
                         conditions: conditionsTransform(appearance.contextStack),
                         name: appearance.name || '',
-                        render: appearance.render || [],
+                        render: (appearance.render || []).map(renderTranslate),
                     }))
             }
         case 'Map':
