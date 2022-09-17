@@ -4,6 +4,7 @@
 //
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
+import { WritableDraft } from "immer/dist/internal";
 import { EphemeraItem } from "./baseClasses";
 
 type ActiveCharacterOutput = {
@@ -29,9 +30,19 @@ export const getAllActiveCharacters = async (): Promise<ActiveCharacterOutput[]>
 
 let activeCharacterPromise: Promise<ActiveCharacterOutput[]> | undefined
 
-const initializeComponent = async (EphemeraId: string): Promise<Record<string, any>> => {
+type ActiveCharacterItem = {
+    EphemeraId: string;
+    Name: string;
+    ConnectionIds: string[];
+}
+
+type MetaFetchOutput = {
+    activeCharacters?: ActiveCharacterItem[];
+}
+
+const initializeComponent = async ({ item: { EphemeraId }, meta }: { item: { EphemeraId: string }, meta?: { cached: string[], activeCharacters?: any } }): Promise<MetaFetchOutput> => {
     const [componentType, componentId] = splitType(EphemeraId)
-    if (componentType === 'ROOM') {
+    if (componentType === 'ROOM' && !Object.values(meta?.activeCharacters || {}).length) {
         if (!activeCharacterPromise) {
             activeCharacterPromise = getAllActiveCharacters()
         }
@@ -45,6 +56,12 @@ const initializeComponent = async (EphemeraId: string): Promise<Record<string, a
     else {
         return {}
     }
+}
+
+type EphemeraAssetMeta = {
+    cached: string[];
+    activeCharacters?: ActiveCharacterItem[];
+    src?: string;
 }
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
@@ -73,7 +90,25 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                 return ephemeraDB.removePerAsset({ EphemeraId: key, DataCategory })
             }
             if (!items.current || (JSON.stringify(items.current) !== JSON.stringify(items.incoming))) {
-                return ephemeraDB.addPerAsset({ DataCategory, ...items.incoming }, initializeComponent)
+                return ephemeraDB.addPerAsset({
+                    fetchArgs: initializeComponent,
+                    updateKeys: ['cached', 'activeCharacters', 'src'],
+                    reduceMetaData: ({ item, fetchedArgs }) => (draft: WritableDraft<EphemeraAssetMeta>) => {
+                        const key = splitType(item.EphemeraId)[1]
+                        if (!draft.cached) {
+                            draft.cached = []
+                        }
+                        if (!(assetId in draft.cached)) {
+                            draft.cached.push(assetId)
+                        }
+                        if (fetchedArgs?.activeCharacters) {
+                            draft.activeCharacters = fetchedArgs.activeCharacters
+                        }
+                        if (item.tag === 'Action' && item.src) {
+                            draft.src = item.src
+                        }
+                    }
+                })({ DataCategory, ...items.incoming })
             }
             else {
                 return undefined

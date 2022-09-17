@@ -1,0 +1,197 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`addPerAsset should create a new Meta record 1`] = `
+Object {
+  "TransactItems": Array [
+    Object {
+      "Put": Object {
+        "Item": Object {
+          "DataCategory": Object {
+            "S": "ASSET#TEST",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+          "value": Object {
+            "S": "Test",
+          },
+        },
+        "TableName": "undefined_ephemera",
+      },
+    },
+    Object {
+      "Update": Object {
+        "ConditionExpression": "attribute_not_exists(DataCategory)",
+        "ExpressionAttributeValues": Object {
+          ":New0": Object {
+            "L": Array [
+              Object {
+                "S": "TEST",
+              },
+            ],
+          },
+        },
+        "Key": Object {
+          "DataCategory": Object {
+            "S": "Meta::Feature",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+        },
+        "TableName": "undefined_ephemera",
+        "UpdateExpression": "SET cached = :New0",
+      },
+    },
+  ],
+}
+`;
+
+exports[`addPerAsset should update an existing Meta record 1`] = `
+Object {
+  "TransactItems": Array [
+    Object {
+      "Put": Object {
+        "Item": Object {
+          "DataCategory": Object {
+            "S": "ASSET#TEST",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+          "value": Object {
+            "S": "Test",
+          },
+        },
+        "TableName": "undefined_ephemera",
+      },
+    },
+    Object {
+      "Update": Object {
+        "ConditionExpression": "cached = :Old0",
+        "ExpressionAttributeValues": Object {
+          ":New0": Object {
+            "L": Array [
+              Object {
+                "S": "OLD",
+              },
+              Object {
+                "S": "TEST",
+              },
+            ],
+          },
+          ":Old0": Object {
+            "L": Array [
+              Object {
+                "S": "OLD",
+              },
+            ],
+          },
+        },
+        "Key": Object {
+          "DataCategory": Object {
+            "S": "Meta::Feature",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+        },
+        "TableName": "undefined_ephemera",
+        "UpdateExpression": "SET cached = :New0",
+      },
+    },
+  ],
+}
+`;
+
+exports[`optimisticUpdate should properly map ExpressionAttributeNames 1`] = `
+Object {
+  "ConditionExpression": "#name = :Old0 AND #test = :Old1 AND attribute_not_exists(#zone)",
+  "ExpressionAttributeNames": Object {
+    "#name": "Name",
+    "#test": "Test",
+    "#zone": "Zone",
+  },
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Different Test",
+    },
+    ":New2": Object {
+      "S": "New test",
+    },
+    ":Old0": Object {
+      "S": "Testing",
+    },
+    ":Old1": Object {
+      "S": "Also Testing",
+    },
+  },
+  "Key": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+  },
+  "ReturnValues": undefined,
+  "TableName": "ephemeraTest",
+  "UpdateExpression": "SET #name = :New0, #zone = :New2 REMOVE #test",
+}
+`;
+
+exports[`optimisticUpdate should update and remove fields on change 1`] = `
+Object {
+  "ConditionExpression": "testOne = :Old0 AND testTwo = :Old1 AND attribute_not_exists(testThree)",
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Different Test",
+    },
+    ":New2": Object {
+      "S": "New test",
+    },
+    ":Old0": Object {
+      "S": "Testing",
+    },
+    ":Old1": Object {
+      "S": "Also Testing",
+    },
+  },
+  "Key": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+  },
+  "ReturnValues": undefined,
+  "TableName": "ephemeraTest",
+  "UpdateExpression": "SET testOne = :New0, testThree = :New2 REMOVE testTwo",
+}
+`;
+
+exports[`optimisticUpdate should update when no item fetched 1`] = `
+Object {
+  "ConditionExpression": "attribute_not_exists(DataCategory)",
+  "ExpressionAttributeValues": Object {
+    ":New0": Object {
+      "S": "Test",
+    },
+    ":New1": Object {
+      "S": "Another test",
+    },
+  },
+  "Key": Object {
+    "DataCategory": Object {
+      "S": "Meta::Test",
+    },
+    "EphemeraId": Object {
+      "S": "TEST",
+    },
+  },
+  "ReturnValues": undefined,
+  "TableName": "ephemeraTest",
+  "UpdateExpression": "SET testOne = :New0, testTwo = :New1",
+}
+`;

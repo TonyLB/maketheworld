@@ -21,6 +21,7 @@ import delayPromise from "./delayPromise"
 import { stringify } from "uuid"
 import { unique } from "../lists"
 import { splitType } from "../types"
+import { WritableDraft } from "immer/dist/internal"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -298,6 +299,119 @@ export const abstractUpdate = <Key extends { DataCategory: string }>(table: stri
     }, catchException)
 }
 
+type DynamicUpdateOutput = {
+    ExpressionAttributeNames: Record<string, any>;
+    ExpressionAttributeValues: Record<string, any>;
+    setExpressions: string[];
+    removeExpressions: string[];
+    conditionExpressions: string[];
+}
+
+const updateByReducer = <T extends Record<string, any>>({ updateKeys, ExpressionAttributeNames, reducer }: { updateKeys: string[]; ExpressionAttributeNames: Record<string, string>; reducer: (draft: WritableDraft<T>) => void }) => (state: T): DynamicUpdateOutput | {} => {
+    const newState = produce(state, reducer)
+    if (newState === state) {
+        return {}
+    }
+    if (state && newState && Object.keys(state || {}).length) {
+        //
+        // Updating an existing record
+        //
+        const startingDraft: {
+            ExpressionAttributeNames: Record<string, any>;
+            ExpressionAttributeValues: Record<string, any>;
+            setExpressions: string[];
+            removeExpressions: string[];
+            conditionExpressions: string[];
+        } = {
+            ExpressionAttributeNames: {},
+            ExpressionAttributeValues: {},
+            setExpressions: [],
+            removeExpressions: [],
+            conditionExpressions: []
+        }
+        return produce(startingDraft, (draft) => {
+            updateKeys.forEach((key, index) => {
+                const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
+                if (state && translatedKey in state && state[translatedKey] !== undefined) {
+                    if (newState?.[translatedKey] === undefined) {
+                        //
+                        // Remove existing item
+                        //
+                        draft.removeExpressions.push(`${key}`)
+                        draft.ExpressionAttributeValues[`:Old${index}`] = state[translatedKey]
+                        draft.conditionExpressions.push(`${key} = :Old${index}`)
+                        if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
+                            draft.ExpressionAttributeNames[key] = translatedKey
+                        }
+                    }
+                    if (newState && translatedKey in newState && newState[translatedKey] !== undefined && newState[translatedKey] !== state[translatedKey]) {
+                        //
+                        // Update existing item to new value
+                        //
+                        draft.ExpressionAttributeValues[`:Old${index}`] = state[translatedKey]
+                        draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
+                        draft.setExpressions.push(`${key} = :New${index}`)
+                        draft.conditionExpressions.push(`${key} = :Old${index}`)
+                        if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
+                            draft.ExpressionAttributeNames[key] = translatedKey
+                        }
+                    }
+                }
+                else {
+                    draft.conditionExpressions.push(`attribute_not_exists(${key})`)
+                    if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
+                        draft.ExpressionAttributeNames[key] = translatedKey
+                    }
+                    if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
+                        //
+                        // Add new item
+                        //
+                        draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
+                        draft.setExpressions.push(`${key} = :New${index}`)
+                    }
+                }
+            })
+        })
+    }
+    else {
+        //
+        // Putting a new record
+        //
+        const startingDraft: {
+            ExpressionAttributeNames: Record<string, any>;
+            ExpressionAttributeValues: Record<string, any>;
+            setExpressions: string[];
+            removeExpressions: string[];
+            conditionExpressions: string[];
+        } = {
+            ExpressionAttributeNames: {},
+            ExpressionAttributeValues: {},
+            setExpressions: [],
+            removeExpressions: [],
+            conditionExpressions: []
+        }
+        return produce(startingDraft, (draft) => {
+            draft.conditionExpressions.push(`attribute_not_exists(DataCategory)`)
+            updateKeys.forEach((key, index) => {
+                const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
+                if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
+                    //
+                    // Add new item
+                    //
+                    if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
+                        draft.ExpressionAttributeNames[key] = translatedKey
+                    }
+                    draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
+                    draft.setExpressions.push(`${key} = :New${index}`)
+                }
+            })
+        })
+    }
+
+}
+
+const isDynamicUpdateOutput = (item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0)
+
 //
 // optimisticUpdate fetches the current state of the keys you intend to update,
 // and then runs that record through a change procedure (per Immer) to change
@@ -350,70 +464,18 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             ProjectionFields: updateKeys,
             ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
         } as any)) || {}
-        const newState = produce(state, updateReducer)
-        if (newState === state) {
+        const updateOutput = updateByReducer({
+            updateKeys,
+            ExpressionAttributeNames,
+            reducer: updateReducer
+        })(state)
+        if (!isDynamicUpdateOutput(updateOutput)) {
             returnValue = state || returnValue
             break
         }
-        try {
-            if (state && newState && Object.keys(state || {}).length) {
-                //
-                // Updating an existing record
-                //
-                const startingDraft: {
-                    newExpressionAttributeNames: Record<string, any>;
-                    ExpressionAttributeValues: Record<string, any>;
-                    setExpressions: string[];
-                    removeExpressions: string[];
-                    conditionExpressions: string[];
-                } = {
-                    newExpressionAttributeNames: {},
-                    ExpressionAttributeValues: {},
-                    setExpressions: [],
-                    removeExpressions: [],
-                    conditionExpressions: []
-                }
-                const { newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = produce(startingDraft, (draft) => {
-                    updateKeys.forEach((key, index) => {
-                        const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
-                        if (state && translatedKey in state && state[translatedKey] !== undefined) {
-                            if (newState?.[translatedKey] === undefined) {
-                                //
-                                // Remove existing item
-                                //
-                                draft.removeExpressions.push(`${key}`)
-                                if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
-                                    draft.newExpressionAttributeNames[key] = translatedKey
-                                }
-                            }
-                            if (newState && translatedKey in newState && newState[translatedKey] !== undefined && newState[translatedKey] !== state[translatedKey]) {
-                                //
-                                // Update existing item to new value
-                                //
-                                draft.ExpressionAttributeValues[`:Old${index}`] = state[translatedKey]
-                                draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
-                                draft.setExpressions.push(`${key} = :New${index}`)
-                                draft.conditionExpressions.push(`${key} = :Old${index}`)
-                                if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
-                                    draft.newExpressionAttributeNames[key] = translatedKey
-                                }
-                            }
-                        }
-                        else {
-                            draft.conditionExpressions.push(`attribute_not_exists(${key})`)
-                            if (ExpressionAttributeNames && key in ExpressionAttributeNames) {
-                                draft.newExpressionAttributeNames[key] = translatedKey
-                            }
-                            if (newState && translatedKey in newState && newState[translatedKey] !== undefined) {
-                                //
-                                // Add new item
-                                //
-                                draft.ExpressionAttributeValues[`:New${index}`] = newState[translatedKey]
-                                draft.setExpressions.push(`${key} = :New${index}`)
-                            }
-                        }
-                    })
-                })
+        else {
+            const { ExpressionAttributeNames: newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
+            try {
                 const UpdateExpression = [
                     setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
                     removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
@@ -434,47 +496,21 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
                     ReturnValues
                 }))
                 returnValue = unmarshall(Attributes)
-                break
             }
-            else {
-                //
-                // Putting a new record
-                //
-                await dbClient.send(new PutItemCommand({
-                    TableName: table,
-                    Item: marshall({
-                        ...newState,
-                        AssetId,
-                        EphemeraId,
-                        MessageId,
-                        ConnectionId,
-                        DataCategory
-                    }, { removeUndefinedValues: true }),
-                    ConditionExpression: "attribute_not_exists(DataCategory)"
-                }))
-            }
-            returnValue = {
-                ...newState,
-                AssetId,
-                EphemeraId,
-                MessageId,
-                ConnectionId,
-                DataCategory
-            }
-        }
-        catch (err: any) {
-            if (err.code === 'ConditionalCheckFailedException') {
-                await delayPromise(exponentialBackoff)
-                exponentialBackoff = exponentialBackoff * 2
-                retries++
-                completed = false
-            }
-            else {
-                if (DEVELOPER_MODE) {
-                    throw err
+            catch (err: any) {
+                if (err.code === 'ConditionalCheckFailedException') {
+                    await delayPromise(exponentialBackoff)
+                    exponentialBackoff = exponentialBackoff * 2
+                    retries++
+                    completed = false
                 }
                 else {
-                    returnValue = catchException(err)
+                    if (DEVELOPER_MODE) {
+                        throw err
+                    }
+                    else {
+                        returnValue = catchException(err)
+                    }
                 }
             }
         }
@@ -509,7 +545,21 @@ type EphemeraDBKey = {
     DataCategory: string;
 }
 
-const addPerAsset = async <T extends EphemeraDBKey>(item: T, initializeCallback: (EphemeraId: string) => Promise<Record<string, any>> = () => (Promise.resolve({}))): Promise<void> => {
+type AddPerAssetTransformArgument = {
+    cached: string[]
+}
+
+export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>>({
+    fetchArgs = () => (Promise.resolve(undefined)),
+    reduceMetaData,
+    updateKeys = ['cached'],
+    ExpressionAttributeNames = {}
+}: {
+    fetchArgs?: ({ item, meta }: { item: T, meta?: M }) => Promise<A | undefined>,
+    reduceMetaData: ({ item, fetchedArgs }: { item: T, fetchedArgs: A | undefined }) => (state: WritableDraft<M>) => void,
+    updateKeys?: string[],
+    ExpressionAttributeNames?: Record<string, string>,
+}) => async (item: T): Promise<void> => {
     let retries = 0
     let exponentialBackoff = 100
     let completed = false
@@ -520,10 +570,10 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T, initializeCallback:
     }
     const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
     const [_, assetKey] = splitType(key.DataCategory)
-    const tag = ephemeraTag === 'ROOM' ? 'Room' :
-        ephemeraTag === 'FEATURE' ? 'Feature' :
-        ephemeraTag === 'MAP' ? 'Map' :
-        ephemeraTag === 'ACTION' ? 'Action' : 'Room'
+    //
+    // Change uppercase tag (e.g. ROOM) to capitalized tag (e.g. Room)
+    //
+    const tag = `${ephemeraTag[0].toUpperCase()}${ephemeraTag.slice(1).toLowerCase()}`
     while(!completed && retries <= maxRetries) {
         completed = true
         try {
@@ -533,50 +583,27 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T, initializeCallback:
                     EphemeraId: item.EphemeraId,
                     DataCategory: `Meta::${tag}`
                 }),
-                ProjectionExpression: 'cached'
+                ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                ProjectionExpression: updateKeys.join(', ')
             }))
-            const { cached: currentCache } = unmarshall(fetchCache) as { cached?: string[] }
+            const currentMeta = unmarshall(fetchCache || {}) as M
             //
             // Initialize a new record using the asynchronous callback, otherwise just update
             // the cache in place
             //
-            if (currentCache === undefined) {
-                const initializeData = await initializeCallback(item.EphemeraId)
-                const emptyFields = Object.entries({
-                        DataCategory: `Meta::${tag}`,
-                        assetKey,
-                        ...initializeData
-                    })
-                    .filter(([_, value]) => (value === undefined))
-                    .map(([key]) => (key))
-                await dbClient.send(new TransactWriteItemsCommand({
-                    TransactItems: [{
-                        Put: {
-                            TableName: ephemeraTable,
-                            Item: marshall(item, { removeUndefinedValues: true })
-                        }
-                    },
-                    {
-                        Put: {
-                            TableName: ephemeraTable,
-                            Item: marshall({
-                                EphemeraId: item.EphemeraId,
-                                DataCategory: `Meta::${tag}`,
-                                cached: [assetKey],
-                                ...initializeData
-                            }, { removeUndefinedValues: true })
-                        }
-                    }]
-                }))
-            }
-            else {
-                if (currentCache.includes(assetKey)) {
-                    await dbClient.send(new PutItemCommand({
-                        TableName: ephemeraTable,
-                        Item: marshall(item, { removeUndefinedValues: true })
-                    }))
-                }
-                else {
+            const fetchedArgs = await fetchArgs({ item, meta: currentMeta })
+            const updateOutput = updateByReducer({
+                updateKeys,
+                ExpressionAttributeNames,
+                reducer: reduceMetaData({ item, fetchedArgs })
+            })(currentMeta)
+            if (isDynamicUpdateOutput(updateOutput)) {
+                const { ExpressionAttributeNames: newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
+                const UpdateExpression = [
+                    setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
+                    removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
+                ].filter((value) => (value)).join(' ')
+                if (UpdateExpression) {
                     await dbClient.send(new TransactWriteItemsCommand({
                         TransactItems: [{
                             Put: {
@@ -591,17 +618,22 @@ const addPerAsset = async <T extends EphemeraDBKey>(item: T, initializeCallback:
                                     EphemeraId: item.EphemeraId,
                                     DataCategory: `Meta::${tag}`,
                                 }),
-                                UpdateExpression: "SET cached = :newCache",
-                                ConditionExpression: "cached = :oldCache",
-                                ExpressionAttributeValues: marshall({
-                                    ':newCache': unique(currentCache, [assetKey]),
-                                    ':oldCache': currentCache
-                                })
+                                UpdateExpression,
+                                ...(conditionExpressions.length ? {
+                                    ConditionExpression: conditionExpressions.join(' AND ')
+                                } : {}),
+                                ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                                ...((newExpressionAttributeNames && Object.values(newExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames: newExpressionAttributeNames } : {}),
                             }
                         }]
                     }))
+                    return
                 }
             }
+            await dbClient.send(new PutItemCommand({
+                TableName: ephemeraTable,
+                Item: marshall(item, { removeUndefinedValues: true })
+            }))
         }
         catch (err: any) {
             if (err.code === 'ConditionalCheckFailedException') {
