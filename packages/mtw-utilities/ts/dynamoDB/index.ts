@@ -552,15 +552,13 @@ type AddPerAssetTransformArgument = {
 export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>>({
     fetchArgs = () => (Promise.resolve(undefined)),
     reduceMetaData,
-    updateKeys,
-    ExpressionAttributeNames = {},
-    ProjectionFields = ['cached']
+    updateKeys = ['cached'],
+    ExpressionAttributeNames = {}
 }: {
     fetchArgs?: ({ item, meta }: { item: T, meta?: M }) => Promise<A | undefined>,
     reduceMetaData: ({ item, fetchedArgs }: { item: T, fetchedArgs: A | undefined }) => (state: WritableDraft<M>) => void,
-    updateKeys: string[],
+    updateKeys?: string[],
     ExpressionAttributeNames?: Record<string, string>,
-    ProjectionFields?: string[]
 }) => async (item: T): Promise<void> => {
     let retries = 0
     let exponentialBackoff = 100
@@ -585,7 +583,8 @@ export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransf
                     EphemeraId: item.EphemeraId,
                     DataCategory: `Meta::${tag}`
                 }),
-                ProjectionExpression: ProjectionFields.join(', ')
+                ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
+                ProjectionExpression: updateKeys.join(', ')
             }))
             const currentMeta = unmarshall(fetchCache || {}) as M
             //
