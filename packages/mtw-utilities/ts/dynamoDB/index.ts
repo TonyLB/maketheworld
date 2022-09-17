@@ -410,6 +410,8 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
 
 }
 
+const isDynamicUpdateOutput = (item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0)
+
 //
 // optimisticUpdate fetches the current state of the keys you intend to update,
 // and then runs that record through a change procedure (per Immer) to change
@@ -467,7 +469,7 @@ export const abstractOptimisticUpdate = (table) => async (props) => {
             ExpressionAttributeNames,
             reducer: updateReducer
         })(state)
-        if (!((item: {} | DynamicUpdateOutput): item is DynamicUpdateOutput => (Object.values(item).length > 0))(updateOutput)) {
+        if (!isDynamicUpdateOutput(updateOutput)) {
             returnValue = state || returnValue
             break
         }
@@ -547,7 +549,19 @@ type AddPerAssetTransformArgument = {
     cached: string[]
 }
 
-export const addPerAsset = async <T extends EphemeraDBKey>(item: T, transformCallback: ({ item, meta }: { item: T, meta?: AddPerAssetTransformArgument }) => Promise<Record<string, any>> = () => (Promise.resolve({}))): Promise<void> => {
+export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>>({
+    fetchArgs = () => (Promise.resolve(undefined)),
+    reduceMetaData,
+    updateKeys,
+    ExpressionAttributeNames = {},
+    ProjectionFields = ['cached']
+}: {
+    fetchArgs?: ({ item, meta }: { item: T, meta?: M }) => Promise<A | undefined>,
+    reduceMetaData: ({ item, fetchedArgs }: { item: T, fetchedArgs: A | undefined }) => (state: WritableDraft<M>) => void,
+    updateKeys: string[],
+    ExpressionAttributeNames?: Record<string, string>,
+    ProjectionFields?: string[]
+}) => async (item: T): Promise<void> => {
     let retries = 0
     let exponentialBackoff = 100
     let completed = false
@@ -558,10 +572,10 @@ export const addPerAsset = async <T extends EphemeraDBKey>(item: T, transformCal
     }
     const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
     const [_, assetKey] = splitType(key.DataCategory)
-    const tag = ephemeraTag === 'ROOM' ? 'Room' :
-        ephemeraTag === 'FEATURE' ? 'Feature' :
-        ephemeraTag === 'MAP' ? 'Map' :
-        ephemeraTag === 'ACTION' ? 'Action' : 'Room'
+    //
+    // Change uppercase tag (e.g. ROOM) to capitalized tag (e.g. Room)
+    //
+    const tag = `${ephemeraTag[0].toUpperCase()}${ephemeraTag.slice(1).toLowerCase()}`
     while(!completed && retries <= maxRetries) {
         completed = true
         try {
@@ -571,68 +585,56 @@ export const addPerAsset = async <T extends EphemeraDBKey>(item: T, transformCal
                     EphemeraId: item.EphemeraId,
                     DataCategory: `Meta::${tag}`
                 }),
-                ProjectionExpression: 'cached'
+                ProjectionExpression: ProjectionFields.join(', ')
             }))
-            const { cached: currentCache } = unmarshall(fetchCache) as AddPerAssetTransformArgument
+            const currentMeta = unmarshall(fetchCache || {}) as M
             //
             // Initialize a new record using the asynchronous callback, otherwise just update
             // the cache in place
             //
-            if (currentCache === undefined) {
-                const initializeData = await transformCallback({ item })
-                await dbClient.send(new TransactWriteItemsCommand({
-                    TransactItems: [{
-                        Put: {
-                            TableName: ephemeraTable,
-                            Item: marshall(item, { removeUndefinedValues: true })
-                        }
-                    },
-                    {
-                        Put: {
-                            TableName: ephemeraTable,
-                            Item: marshall({
-                                EphemeraId: item.EphemeraId,
-                                DataCategory: `Meta::${tag}`,
-                                cached: [assetKey],
-                                ...initializeData
-                            }, { removeUndefinedValues: true })
-                        }
-                    }]
-                }))
+            const fetchedArgs = await fetchArgs({ item, meta: currentMeta })
+            const updateOutput = updateByReducer({
+                updateKeys,
+                ExpressionAttributeNames,
+                reducer: reduceMetaData({ item, fetchedArgs })
+            })(currentMeta)
+            if (isDynamicUpdateOutput(updateOutput)) {
+                const { ExpressionAttributeNames: newExpressionAttributeNames, ExpressionAttributeValues, setExpressions, removeExpressions, conditionExpressions } = updateOutput
+                const UpdateExpression = [
+                    setExpressions.length ? `SET ${setExpressions.join(', ')}` : '',
+                    removeExpressions.length ? `REMOVE ${removeExpressions.join(', ')}` : ''
+                ].filter((value) => (value)).join(' ')
+                if (UpdateExpression) {
+                    await dbClient.send(new TransactWriteItemsCommand({
+                        TransactItems: [{
+                            Put: {
+                                TableName: ephemeraTable,
+                                Item: marshall(item, { removeUndefinedValues: true })
+                            }
+                        },
+                        {
+                            Update: {
+                                TableName: ephemeraTable,
+                                Key: marshall({
+                                    EphemeraId: item.EphemeraId,
+                                    DataCategory: `Meta::${tag}`,
+                                }),
+                                UpdateExpression,
+                                ...(conditionExpressions.length ? {
+                                    ConditionExpression: conditionExpressions.join(' AND ')
+                                } : {}),
+                                ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {}),
+                                ...((newExpressionAttributeNames && Object.values(newExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames: newExpressionAttributeNames } : {}),
+                            }
+                        }]
+                    }))
+                    return
+                }
             }
-            else {
-                //
-                // TODO: Figure out how to use transform callback to create an update
-                // entry
-                //
-                // SUGGESTION: Abstract the bit of optimisticUpdate that creates an
-                // update from an immer delta, and use it here as well to generate
-                // the Update the same way
-                //
-                await dbClient.send(new TransactWriteItemsCommand({
-                    TransactItems: [{
-                        Put: {
-                            TableName: ephemeraTable,
-                            Item: marshall(item, { removeUndefinedValues: true })
-                        }
-                    },
-                    {
-                        Update: {
-                            TableName: ephemeraTable,
-                            Key: marshall({
-                                EphemeraId: item.EphemeraId,
-                                DataCategory: `Meta::${tag}`,
-                            }),
-                            UpdateExpression: "SET cached = :newCache",
-                            ConditionExpression: "cached = :oldCache",
-                            ExpressionAttributeValues: marshall({
-                                ':newCache': unique(currentCache, [assetKey]),
-                                ':oldCache': currentCache
-                            })
-                        }
-                    }]
-                }))
-            }
+            await dbClient.send(new PutItemCommand({
+                TableName: ephemeraTable,
+                Item: marshall(item, { removeUndefinedValues: true })
+            }))
         }
         catch (err: any) {
             if (err.code === 'ConditionalCheckFailedException') {

@@ -20,15 +20,10 @@ Object {
       },
     },
     Object {
-      "Put": Object {
-        "Item": Object {
-          "DataCategory": Object {
-            "S": "Meta::Feature",
-          },
-          "EphemeraId": Object {
-            "S": "FEATURE#TEST",
-          },
-          "cached": Object {
+      "Update": Object {
+        "ConditionExpression": "attribute_not_exists(DataCategory)",
+        "ExpressionAttributeValues": Object {
+          ":New0": Object {
             "L": Array [
               Object {
                 "S": "TEST",
@@ -36,7 +31,16 @@ Object {
             ],
           },
         },
+        "Key": Object {
+          "DataCategory": Object {
+            "S": "Meta::Feature",
+          },
+          "EphemeraId": Object {
+            "S": "FEATURE#TEST",
+          },
+        },
         "TableName": "undefined_ephemera",
+        "UpdateExpression": "SET cached = :New0",
       },
     },
   ],
@@ -64,9 +68,9 @@ Object {
     },
     Object {
       "Update": Object {
-        "ConditionExpression": "cached = :oldCache",
+        "ConditionExpression": "cached = :Old0",
         "ExpressionAttributeValues": Object {
-          ":newCache": Object {
+          ":New0": Object {
             "L": Array [
               Object {
                 "S": "OLD",
@@ -76,7 +80,7 @@ Object {
               },
             ],
           },
-          ":oldCache": Object {
+          ":Old0": Object {
             "L": Array [
               Object {
                 "S": "OLD",
@@ -93,7 +97,7 @@ Object {
           },
         },
         "TableName": "undefined_ephemera",
-        "UpdateExpression": "SET cached = :newCache",
+        "UpdateExpression": "SET cached = :New0",
       },
     },
   ],
