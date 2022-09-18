@@ -79,32 +79,11 @@ export type ActionAPIMessage = {
     ActionAPIHomeMessage
 )
 
-type LinkActionAPIMessage = {
-    targetTag: 'Action';
-    CharacterId: string;
-    Action: string;
-    AssetId: string;
-}
-
-type LinkFeatureAPIMessage = {
-    targetTag: 'Feature';
-    CharacterId: string;
-    FeatureId: string;
-}
-
-type LinkCharacterAPIMessage = {
-    targetTag: 'Character';
-    CharacterId: string;
-    viewCharacterId: string;
-}
-
 export type LinkAPIMessage = {
     message: 'link';
-} & (
-    LinkActionAPIMessage |
-    LinkFeatureAPIMessage |
-    LinkCharacterAPIMessage
-)
+    to: string;
+    CharacterId: string;
+}
 
 export type CommandAPIMessage = {
     message: 'command';

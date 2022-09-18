@@ -17,24 +17,12 @@ type TaggedLineBreak = {
     tag: 'LineBreak';
 }
 
-type TaggedActionLink = {
-    targetTag: 'Action';
-    toAssetId: string;
-    toAction: string;
-}
-
-type TaggedFeatureLink = {
-    targetTag: 'Feature';
-    toFeatureId: string;
-}
-
-type TaggedLinkPayload = TaggedActionLink | TaggedFeatureLink
-
 export type TaggedLink = {
     tag: 'Link',
     RoomId: string;
     text: string;
-} & TaggedLinkPayload
+    to: string;
+}
 
 export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
 
