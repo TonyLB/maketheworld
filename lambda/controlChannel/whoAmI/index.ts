@@ -1,21 +1,18 @@
 import { WhoAmIMessage, MessageBus } from "../messageBus/baseClasses"
-import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { generatePersonalAssetLibrary } from '@tonylb/mtw-utilities/dist/selfHealing/index.js'
+import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
+import { EventBridgeUpdatePlayerAsset, EventBridgeUpdatePlayerCharacter } from "@tonylb/mtw-interfaces/dist/eventBridge"
 
 export const whoAmIMessage = async ({ payloads, messageBus }: { payloads: WhoAmIMessage[], messageBus: MessageBus }): Promise<void> => {
 
     const username = await internalCache.get({ category: 'CurrentPlayerMeta', key: 'player' })
     if (username) {
-        const [{ CodeOfConductConsent = false } = {}, { Characters = [], Assets = [] }] = await Promise.all([
-            assetDB.getItem<{ CodeOfConductConsent: boolean }>({
-                AssetId: `PLAYER#${username}`,
+        const { Characters = [], Assets = [] } = (await ephemeraDB.getItem<{ Characters: EventBridgeUpdatePlayerCharacter[], Assets: EventBridgeUpdatePlayerAsset[] }>({
+                EphemeraId: `PLAYER#${username}`,
                 DataCategory: 'Meta::Player',
-                ProjectionFields: ['CodeOfConductConsent']
-            }),
-            generatePersonalAssetLibrary(username)
-        ])
+                ProjectionFields: ['Characters', 'Assets']
+            })) || {}
         const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId' })
         messageBus.send({
             type: 'ReturnValue',
@@ -24,7 +21,7 @@ export const whoAmIMessage = async ({ payloads, messageBus }: { payloads: WhoAmI
                 PlayerName: username,
                 Assets,
                 Characters,
-                CodeOfConductConsent,
+                CodeOfConductConsent: false,
                 RequestId
             }
         })
