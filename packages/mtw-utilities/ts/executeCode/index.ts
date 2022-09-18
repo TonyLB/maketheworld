@@ -5,6 +5,7 @@ import dependencyCascade from './dependencyCascade'
 import { AssetKey, RoomKey, splitType } from '../types'
 import { defaultColorFromCharacterId } from '../selfHealing/index'
 import updateAssets from './updateAssets'
+import { stringify } from 'uuid'
 
 export const executeInAsset = (assetId: string, options = {}) => async (src: string) => {
     const { RoomId, CharacterId }: { RoomId?: string ; CharacterId?: string } = options
@@ -250,15 +251,14 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
     }
 }
 
-export const executeAction = async ({ action, assetId, RoomId, CharacterId }) => {
-    const { Actions: actions = {} } = await ephemeraDB.getItem<{ Actions: Record<string, any> }>({
-        EphemeraId: AssetKey(assetId),
-        DataCategory: 'Meta::Asset',
-        ProjectionFields: ['Actions']
-    }) || {}
-    const { src = '' } = actions[action] || {}
-    if (src) {
-        return await executeInAsset(assetId, { RoomId, CharacterId })(src)
+export const executeAction = async (ActionId: string, { RoomId, CharacterId }: { RoomId?: string; CharacterId?: string } = {}) => {
+    const { rootAsset = '', src = '' } = (await ephemeraDB.getItem<{ rootAsset: string; src: string; }>({
+        EphemeraId: ActionId,
+        DataCategory: 'Meta::Action',
+        ProjectionFields: ['rootAsset', 'src']
+    })) || {}
+    if (src && rootAsset) {
+        return await executeInAsset(rootAsset, { RoomId, CharacterId })(src)
     }
     else {
         return {
