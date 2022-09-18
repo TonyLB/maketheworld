@@ -8,7 +8,8 @@ import {
     BatchWriteItemCommand,
     BatchGetItemCommand,
     AttributeValue,
-    TransactWriteItemsCommand
+    TransactWriteItemsCommand,
+    TransactWriteItem
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -22,6 +23,7 @@ import { stringify } from "uuid"
 import { unique } from "../lists"
 import { splitType } from "../types"
 import { WritableDraft } from "immer/dist/internal"
+import { objectMap } from "../objects"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -769,6 +771,27 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
             }
         }
     }
+}
+
+export const multiTableTransactWrite = async (items: TransactWriteItem[]): Promise<void> => {
+    const remapTable = (table: string) => {
+        if (table === 'Ephemera') {
+            return ephemeraTable
+        }
+        if (table === 'Connections') {
+            return connectionsTable
+        }
+        if (table === 'Assets') {
+            return assetsTable
+        }
+        throw new Error(`Illegal table in multiTableTransactWrite: ${table}`)
+    }
+    const remappedItems = items
+        .map((entry) => (objectMap(entry, ({ TableName, ...rest }) => ({
+            TableName: remapTable(TableName || ''),
+            ...rest
+        }))))
+    await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
 
 export const ephemeraDB = {
