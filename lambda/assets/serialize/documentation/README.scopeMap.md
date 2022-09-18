@@ -56,16 +56,6 @@ Returns non-scope contents of the translateFile.
     const { asset, importTree } = await scopeMap.getTranslateFile(s3Client, { name: '/Player/Test/Assets/ImportTest.json' })
 ```
 
-### translateNormalForm
-
-Adds translated keys to all mappable entries in a NormalForm:  EphemeraId added to Room, Map and Feature tags.
-toEphemeraId added to Exits.  toFeatureId and targetTag added to Links.  Any unmapped entries in the asset are
-given a UUID mapping (which is merged into the existing scopeMap data)
-
-```ts
-    const newNormalForm = scopeMap.translateNormalForm(oldNormalForm)
-```
-
 ---
 
 ## Behaviors
