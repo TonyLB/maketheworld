@@ -1,6 +1,7 @@
 import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
+import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 
 export type PublishMessageBase = {
     type: 'PublishMessage';
@@ -170,6 +171,13 @@ export type CacheAssetMessage = {
     options: CacheAssetOptions;
 }
 
+export type PlayerUpdateMessage = {
+    type: 'PlayerUpdate';
+    player: string;
+    Characters: EventBridgeUpdatePlayerCharacter[];
+    Assets: EventBridgeUpdatePlayerAsset[];
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -185,7 +193,8 @@ export type MessageType = PublishMessage |
     PerceptionMessage |
     MoveCharacterMessage |
     DecacheAssetMessage |
-    CacheAssetMessage
+    CacheAssetMessage |
+    PlayerUpdateMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -210,5 +219,7 @@ export const isMoveCharacter = (prop: MessageType): prop is MoveCharacterMessage
 
 export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage => (prop.type === 'DecacheAsset')
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
+
+export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

@@ -106,8 +106,12 @@ export const handler = async (event: any, context: any) => {
             })
         }
         if (event["detail-type"] === 'Update Player') {
-            console.log(`Update Player:`)
-            console.log(JSON.stringify(event.detail, null, 4))
+            messageBus.send({
+                type: 'PlayerUpdate',
+                player: event.detail.PlayerName || '',
+                Characters: event.detail.Characters || [],
+                Assets: event.detail.Assets || []
+            })
         }
     }
     
