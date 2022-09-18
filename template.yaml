@@ -178,6 +178,7 @@ Resources:
               detail-type:
                 - Decache Asset
                 - Cache Asset
+                - Update Player
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -704,6 +705,7 @@ Resources:
                   S3_BUCKET: !Sub '${TablePrefix}-assets'
                   WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
                   COGNITO_POOL_ID: !Ref UserPool
+                  EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
           Policies:
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_assets'
@@ -711,6 +713,11 @@ Resources:
                 TableName: !Sub '${TablePrefix}_ephemera'
             - DynamoDBCrudPolicy:
                 TableName: !Sub '${TablePrefix}_connections'
+            - Statement:
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - events:PutEvents  
             - Statement:
               - Effect: Allow
                 Action: execute-api:ManageConnections
@@ -743,6 +750,7 @@ Resources:
                     - mtw.diagnostics
                   detail-type:
                     - Heal Asset
+                    - Heal Player
   MessagesFunction:
       Type: AWS::Serverless::Function
       Properties:

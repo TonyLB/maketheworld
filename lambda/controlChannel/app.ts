@@ -105,6 +105,14 @@ export const handler = async (event: any, context: any) => {
                 options: {}
             })
         }
+        if (event["detail-type"] === 'Update Player') {
+            messageBus.send({
+                type: 'PlayerUpdate',
+                player: event.detail.PlayerName || '',
+                Characters: event.detail.Characters || [],
+                Assets: event.detail.Assets || []
+            })
+        }
     }
     
     if (routeKey === '$connect') {
@@ -192,7 +200,7 @@ export const handler = async (event: any, context: any) => {
                 messageBus.send({
                     type: 'Perception',
                     characterId: request.CharacterId,
-                    ephemeraId: `FEATURE#${request.FeatureId}`
+                    ephemeraId: request.FeatureId
                 })
                 break
             case 'Character':

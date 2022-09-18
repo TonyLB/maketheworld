@@ -1,6 +1,7 @@
 import { S3Client, GetObjectCommand as GetObjectCommandOriginal } from "@aws-sdk/client-s3"
+import { EventBridgeClient } from "@aws-sdk/client-eventbridge"
 
-// const params = { region: process.env.AWS_REGION }
+export const ebClient = new EventBridgeClient({ region: process.env.AWS_REGION })
 
 // export const s3Client = new S3Client(params)
 

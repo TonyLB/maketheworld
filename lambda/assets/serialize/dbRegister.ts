@@ -171,7 +171,8 @@ export const dbRegister = async (assetWorkspace: AssetWorkspace): Promise<void> 
                 address,
                 Name: character.Name,
                 fileURL: character.fileURL,
-                scopedId: character.key
+                scopedId: character.key,
+                ...(address.zone === 'Personal' ? { player: address.player } : {})
             })
         ])
     }

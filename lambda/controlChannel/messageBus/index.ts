@@ -16,7 +16,8 @@ import {
     isPerception,
     isMoveCharacter,
     isDecacheAsset,
-    isCacheAssetMessage
+    isCacheAssetMessage,
+    isPlayerUpdateMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -32,6 +33,7 @@ import perceptionMessage from '../perception'
 import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
 import { cacheAssetMessage } from '../cacheAsset'
+import playerUpdateMessage from '../playerUpdate'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -123,6 +125,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isCacheAssetMessage,
     callback: cacheAssetMessage
+})
+messageBus.subscribe({
+    tag: 'UpdatePlayer',
+    priority: 5,
+    filter: isPlayerUpdateMessage,
+    callback: playerUpdateMessage
 })
 
 export default messageBus

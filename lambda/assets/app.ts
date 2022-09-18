@@ -2,9 +2,10 @@
 import { S3Client } from "@aws-sdk/client-s3"
 
 import { healAsset } from "./selfHealing/"
-import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
+import { healPlayer } from "./selfHealing/player"
+// import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
-import { handleDynamoEvent } from './dynamoEvents/index.js'
+// import { handleDynamoEvent } from './dynamoEvents/index.js'
 import internalCache from "./internalCache"
 
 import {
@@ -35,17 +36,26 @@ export const handler = async (event, context) => {
 
     // Handle EventBridge messages
     if (['mtw.diagnostics'].includes(event?.source || '')) {
-        if (event.detail?.fileName) {
-            const returnVal = await healAsset(event.detail.fileName)
-            return JSON.stringify(returnVal, null, 4)    
+        if (event["detail-type"] === 'Heal Asset') {
+            if (event.detail?.fileName) {
+                const returnVal = await healAsset(event.detail.fileName)
+                return JSON.stringify(returnVal, null, 4)
+            }
+            return JSON.stringify(`No fileName specified for Heal Asset event`)
         }
-        return JSON.stringify(`No fileName specified for Heal Asset event`)
+        if (event["detail-type"] === 'Heal Player') {
+            if (event.detail?.player) {
+                const returnVal = await healPlayer(event.detail.player)
+                return JSON.stringify(returnVal, null, 4)
+            }
+            return JSON.stringify(`No player specified for Heal Player event`)
+        }
     }
     
-    if (event.heal) {
-        const returnVal = await healPlayers()
-        return JSON.stringify(returnVal, null, 4)
-    }
+    // if (event.heal) {
+    //     const returnVal = await healPlayers()
+    //     return JSON.stringify(returnVal, null, 4)
+    // }
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
     if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
