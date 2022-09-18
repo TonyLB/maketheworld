@@ -549,6 +549,38 @@ type AddPerAssetTransformArgument = {
     cached: string[]
 }
 
+export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[] }): Promise<T | undefined> => {
+    let retries = 0
+    let exponentialBackoff = 100
+    let completed = false
+    const maxRetries = 5
+    while(!completed && retries <= maxRetries) {
+        completed = true
+        try {
+            return await tryClause()
+        }
+        catch (err: any) {
+            if (err.code === 'ConditionalCheckFailedException') {
+                await delayPromise(exponentialBackoff)
+                exponentialBackoff = exponentialBackoff * 2
+                retries++
+                completed = false
+            }
+            else {
+                if (DEVELOPER_MODE) {
+                    // console.log(`Throwing exception on: ${item.EphemeraId}`)
+                    // console.log(`Item: ${JSON.stringify(item, null, 4)}`)
+                    throw err
+                }
+            }
+        }
+    }
+    return undefined
+}
+
+//
+// TODO: Refactor addPerAsset with exponentialBackoffWrapper
+//
 export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>>({
     fetchArgs = () => (Promise.resolve(undefined)),
     reduceMetaData,
