@@ -25,6 +25,7 @@ import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
 import { LegalCharacterColor } from './messageBus/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
+import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
 
 //
 // Implement some optimistic locking in the player item update to make sure that on a quick disconnect/connect
@@ -172,8 +173,8 @@ export const handler = async (event: any, context: any) => {
         await executeAction(request)
     }
     if (isLinkAPIMessage(request)) {
-        switch(request.targetTag) {
-            case 'Action':
+        switch(splitType(request.to)[0]) {
+            case 'ACTION':
                 const { RoomId } = (await internalCache.get({
                     category: 'CharacterMeta',
                     key: request.CharacterId
@@ -183,31 +184,31 @@ export const handler = async (event: any, context: any) => {
                 // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
                 // the action Links
                 //
-                const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
-                executeMessageQueue.forEach((message, index) => {
-                    messageBus.send({
-                        type: 'PublishMessage',
-                        targets: message.Targets,
-                        message: message.Message,
-                        displayProtocol: message.DisplayProtocol as "OOCMessage",
-                        characterId: message.CharacterId || '',
-                        name: message.Name || '',
-                        color: (message.Color || 'grey') as LegalCharacterColor
-                    })
-                })
+                // const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
+                // executeMessageQueue.forEach((message, index) => {
+                //     messageBus.send({
+                //         type: 'PublishMessage',
+                //         targets: message.Targets,
+                //         message: message.Message,
+                //         displayProtocol: message.DisplayProtocol as "OOCMessage",
+                //         characterId: message.CharacterId || '',
+                //         name: message.Name || '',
+                //         color: (message.Color || 'grey') as LegalCharacterColor
+                //     })
+                // })
                 break
-            case 'Feature':
+            case 'FEATURE':
                 messageBus.send({
                     type: 'Perception',
                     characterId: request.CharacterId,
-                    ephemeraId: request.FeatureId
+                    ephemeraId: request.to
                 })
                 break
-            case 'Character':
+            case 'CHARACTER':
                 messageBus.send({
                     type: 'Perception',
-                    characterId: request.viewCharacterId,
-                    ephemeraId: `CHARACTERINPLAY#${request.CharacterId}`
+                    characterId: request.CharacterId,
+                    ephemeraId: `CHARACTERINPLAY#${splitType(request.to)[1]}`
                 })
                 break
         }

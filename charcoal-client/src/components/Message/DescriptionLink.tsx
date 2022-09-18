@@ -97,35 +97,17 @@ export const DescriptionLink = ({ link }: DescriptionLinkProps) => {
     // TODO:  Figure out how to make sure that either (a) RoomId is populated based on where the ActiveCharacter is right
     // now, or (b) link.RoomId gets populated correctly upon render
     //
-    switch(link.targetTag) {
-        case 'Action':
-            return <DescriptionLinkActionChip
-                text={link.text}
-                onClick={() => {
-                    dispatch(socketDispatchPromise({
-                        message: 'link',
-                        targetTag: 'Action',
-                        Action: link.toAction,
-                        AssetId: link.toAssetId,
-                        // RoomId: link.RoomId,
-                        CharacterId
-                    }))
-                }}
-            />
-        case 'Feature':
-            return <DescriptionLinkFeatureChip
-                text={link.text}
-                onClick={() => {
-                    dispatch(socketDispatchPromise({
-                        message: 'link',
-                        targetTag: 'Feature',
-                        FeatureId: link.toFeatureId,
-                        // RoomId: link.RoomId,
-                        CharacterId
-                    }))
-                }}
-            />
-    }
+    return <DescriptionLinkActionChip
+        text={link.text}
+        onClick={() => {
+            dispatch(socketDispatchPromise({
+                message: 'link',
+                to: link.to,
+                // RoomId: link.RoomId,
+                CharacterId
+            }))
+        }}
+    />
 }
 
 export default DescriptionLink
