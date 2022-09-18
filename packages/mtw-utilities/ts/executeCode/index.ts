@@ -252,13 +252,13 @@ export const executeInAsset = (assetId: string, options = {}) => async (src: str
 }
 
 export const executeAction = async (ActionId: string, { RoomId, CharacterId }: { RoomId?: string; CharacterId?: string } = {}) => {
-    const { rootAssetId = '', src = '' } = (await ephemeraDB.getItem<{ rootAssetId: string; src: string; }>({
+    const { rootAsset = '', src = '' } = (await ephemeraDB.getItem<{ rootAsset: string; src: string; }>({
         EphemeraId: ActionId,
         DataCategory: 'Meta::Action',
-        ProjectionFields: ['rootAssetId', 'src']
+        ProjectionFields: ['rootAsset', 'src']
     })) || {}
-    if (src) {
-        return await executeInAsset(rootAssetId, { RoomId, CharacterId })(src)
+    if (src && rootAsset) {
+        return await executeInAsset(rootAsset, { RoomId, CharacterId })(src)
     }
     else {
         return {

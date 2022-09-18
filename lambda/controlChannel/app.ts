@@ -184,18 +184,19 @@ export const handler = async (event: any, context: any) => {
                 // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
                 // the action Links
                 //
-                // const { executeMessageQueue = [] } = await executeActionFromDB({ action: request.Action, assetId: request.AssetId, RoomId, CharacterId: request.CharacterId })
-                // executeMessageQueue.forEach((message, index) => {
-                //     messageBus.send({
-                //         type: 'PublishMessage',
-                //         targets: message.Targets,
-                //         message: message.Message,
-                //         displayProtocol: message.DisplayProtocol as "OOCMessage",
-                //         characterId: message.CharacterId || '',
-                //         name: message.Name || '',
-                //         color: (message.Color || 'grey') as LegalCharacterColor
-                //     })
-                // })
+                const { executeMessageQueue = [] } = await executeActionFromDB(request.to, { RoomId, CharacterId: request.CharacterId })
+                console.log(`Execute Message Queue: ${JSON.stringify(executeMessageQueue, null, 4)}`)
+                executeMessageQueue.forEach((message) => {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: message.Targets,
+                        message: message.Message,
+                        displayProtocol: message.DisplayProtocol as any,
+                        characterId: message.CharacterId || '',
+                        name: message.Name || '',
+                        color: (message.Color || 'grey') as LegalCharacterColor
+                    })
+                })
                 break
             case 'FEATURE':
                 messageBus.send({
