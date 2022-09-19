@@ -17,6 +17,7 @@ export const syncRequest = async ({ payloads, messageBus }: { payloads: SyncRequ
             messageBus?.send({
                 type: 'Sync',
                 targetId: payload.targetId,
+                startingAt: payload.startingAt,
                 LastEvaluatedKey,
                 limit: payload.limit,
                 loopCount: (payload.loopCount || 0) + 1
