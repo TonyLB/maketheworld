@@ -1,3 +1,11 @@
+export type RoomCharacterListItem = {
+    EphemeraId: string;
+    Color?: string;
+    ConnectionIds: string[];
+    fileURL?: string;
+    Name: string;
+}
+
 export class CacheBase {
     async clear() {}
 }

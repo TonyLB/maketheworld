@@ -78,4 +78,36 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should exclude not-character targets', async () => {
+        cacheMock.RoomCharacterList.get.mockResolvedValue([
+            {
+                EphemeraId: 'CHARACTER#123',
+                ConnectionIds: ['Test1'],
+                Color: 'green',
+                Name: 'Tess'
+            },
+            {
+                EphemeraId: 'CHARACTER#456',
+                ConnectionIds: ['Test2'],
+                Color: 'purple',
+                Name: 'Marco'
+            }
+        ])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['ROOM#ABC', 'NOT-CHARACTER#123'],
+                displayProtocol: 'WorldMessage',
+                message: [{ tag: 'String', value: 'Test' }]
+            }]
+        })
+        expect(publishMessageMock).toHaveBeenCalledWith({
+            MessageId: 'MESSAGE#UUID',
+            CreatedTime: 1000000000000,
+            Targets: ['CHARACTER#456'],
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+    })
+
 })

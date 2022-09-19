@@ -1,13 +1,5 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { CacheConstructor } from './baseClasses'
-
-export type RoomCharacterListItem = {
-    EphemeraId: string;
-    Color?: string;
-    ConnectionIds: string[];
-    fileURL?: string;
-    Name: string;
-}
+import { CacheConstructor, RoomCharacterListItem } from './baseClasses'
 
 export class CacheRoomCharacterListsData {
     CharacterListByRoom: Record<string, RoomCharacterListItem[]> = {};

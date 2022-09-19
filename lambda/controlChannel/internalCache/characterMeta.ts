@@ -16,12 +16,15 @@ export class CacheCharacterMetaData {
         this.CharacterMetaById = {}
     }
     async get(characterId: string): Promise<CharacterMetaItem> {
-        if (!this.CharacterMetaById[characterId]) {
+        if (!(this.CharacterMetaById[characterId])) {
             const characterData = await ephemeraDB.getItem<CharacterMetaItem>({
                     EphemeraId: `CHARACTER#${characterId}`,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['activeCharacters']
-                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', HomeId: 'VORTEX' }
+                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId'],
+                    ExpressionAttributeNames: {
+                        '#name': 'Name'
+                    }
+                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX' }
             this.CharacterMetaById[characterId] = characterData
         }
         return this.CharacterMetaById[characterId] || []

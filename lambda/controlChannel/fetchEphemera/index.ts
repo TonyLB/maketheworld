@@ -38,7 +38,7 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
         const Items = await Promise.all(
             connectedCharacters
                 .map(({ ConnectionId }) => (splitType(ConnectionId)[1]))
-                .map(internalCache.CharacterMeta.get)
+                .map((value) => (internalCache.CharacterMeta.get(value)))
         )
         const returnItems = Items
             .map(serialize)
