@@ -116,7 +116,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
 
         }
 
-    }, { retryErrors: ['ConditionalCheckFailedException']})
+    }, { retryErrors: ['TransactionCanceledException']})
 }
 
 export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMessage[], messageBus?: MessageBus }): Promise<void> => {

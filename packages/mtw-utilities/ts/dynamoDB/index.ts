@@ -562,7 +562,7 @@ export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, 
             return await tryClause()
         }
         catch (err: any) {
-            if (err.code === 'ConditionalCheckFailedException') {
+            if ((options?.retryErrors || ['ConditionalCheckFailedException']).includes(err.errorType)) {
                 await delayPromise(exponentialBackoff)
                 exponentialBackoff = exponentialBackoff * 2
                 retries++

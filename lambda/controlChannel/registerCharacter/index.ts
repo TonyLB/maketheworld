@@ -1,10 +1,27 @@
 import { RegisterCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import messageBus from "../messageBus"
-import { ephemeraDB, assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { ephemeraDB, connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { marshall } from "@aws-sdk/util-dynamodb"
 
+type RoomCharacterActive = {
+    EphemeraId: string;
+    Color?: string;
+    ConnectionIds: string[];
+    fileURL?: string;
+    Name: string;
+}
+
+//
+// TODO:
+//    - Add character adjacency record in connections table
+//    - Update active characters in current room
+//    - Update RoomId if not present in Ephemera Meta::Character record
+//    - Update activeCharacters on room if needed
+//
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
     const connectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
@@ -13,48 +30,118 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
         const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId' })
         const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
             const { characterId: CharacterId } = payload
-            const EphemeraId = `CHARACTERINPLAY#${CharacterId}`
-            const [{ Name = '', HomeId = '' } = {}, characterQueryItems = []] = await Promise.all([
-                assetDB.getItem<{ Name: string; HomeId: string }>({
-                    AssetId: `CHARACTER#${CharacterId}`,
-                    DataCategory: 'Meta::Character',
-                    ProjectionFields: ['#name', 'HomeId'],
-                    ExpressionAttributeNames: {
-                        '#name': 'Name'
+            const EphemeraId = `CHARACTER#${CharacterId}`
+            await exponentialBackoffWrapper(async () => {
+                const [characterFetch, connectionsFetch] = await Promise.all([
+                    ephemeraDB.getItem<{ Name: string; HomeId: string; RoomId: string; fileURL?: string; Color: string; }>({
+                        EphemeraId,
+                        DataCategory: 'Meta::Character',
+                        ProjectionFields: ['#name', 'HomeId', 'RoomId', 'fileURL', 'Color'],
+                        ExpressionAttributeNames: {
+                            '#name': 'Name'
+                        }
+                    }),
+                    connectionDB.getItem<{ connections: string[] }>({
+                        ConnectionId: EphemeraId,
+                        DataCategory: 'Meta::Character',
+                        ProjectionFields: ['connections']
+                    }),
+                ])
+                const currentConnections = connectionsFetch?.connections
+                if (!characterFetch) {
+                    return
+                }
+                const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
+                const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
+                const { activeCharacters = [] } = (await ephemeraDB.getItem<{ activeCharacters: RoomCharacterActive[] }>({
+                    EphemeraId: RoomEphemeraId,
+                    DataCategory: 'Meta::Room',
+                    ProjectionFields: ['activeCharacters']
+                })) || {}
+                const newConnections = unique(currentConnections || [], [connectionId])
+                const metaCharacterUpdate = (currentConnections !== undefined)
+                    ? {
+                        TableName: 'Connections',
+                        Key: marshall({
+                            ConnectionId: EphemeraId,
+                            DataCategory: 'Meta::Character'
+                        }),
+                        ExpressionAttributeValues: marshall({
+                            ':oldConnections': currentConnections,
+                            ':newConnections': newConnections
+                        }),
+                        UpdateExpression: 'SET connections = :newConnections',
+                        ConditionExpression: 'connections = :oldConnections'
                     }
-                }),
-                ephemeraDB.query<{ DataCategory: string }[]>({
-                    EphemeraId,
-                    KeyConditionExpression: 'begins_with(DataCategory, :dc)',
-                    ExpressionAttributeValues: {
-                        ':dc': 'CONNECTION#'
+                    : {
+                        TableName: 'Connections',
+                        Key: marshall({
+                            ConnectionId: EphemeraId,
+                            DataCategory: 'Meta::Character'
+                        }),
+                        ExpressionAttributeValues: marshall({
+                            ':newConnections': newConnections
+                        }),
+                        UpdateExpression: 'SET connections = :newConnections',
+                        ConditionExpression: 'attribute_not_exists(connections)'
                     }
-                })
-            ])
-            const ConnectionIds = [...(new Set([
-                ...characterQueryItems.map(({ DataCategory }) => (splitType(DataCategory)[1])),
-                connectionId
-            ]))]
-            await Promise.all([
-                ephemeraDB.update({
-                    EphemeraId,
-                    DataCategory: 'Meta::Character',
-                    UpdateExpression: 'SET Connected = :true, #name = if_not_exists(#name, :name), RoomId = if_not_exists(RoomId, :roomId), ConnectionIds = :connectionIds',
-                    ExpressionAttributeNames: {
-                        '#name': 'Name'
-                    },
-                    ExpressionAttributeValues: {
-                        ':true': true,
-                        ':name': Name,
-                        ':roomId': HomeId || 'VORTEX',
-                        ':connectionIds': ConnectionIds
+                const characterRoomUpdate = RoomId
+                    ? []
+                    : [{
+                        Update: {
+                            TableName: 'Ephemera',
+                            Key: marshall({
+                                EphemeraId,
+                                DataCategory: 'Meta::Character',
+                            }),
+                            UpdateExpression: 'SET RoomId = :roomId',
+                            ExpressionAttributeValues: marshall({
+                                ':roomId': HomeId || 'VORTEX',
+                            }),
+                            ConditionExpression: 'attribute_not_exists(RoomId)'
+                        }
+                    }]
+                const newActiveCharacters = [
+                    ...activeCharacters.filter((character) => (character.EphemeraId !== EphemeraId)),
+                    {
+                        EphemeraId,
+                        Name,
+                        fileURL,
+                        Color,
+                        ConnectionIds: newConnections
                     }
-                }),
-                ephemeraDB.putItem({
-                    EphemeraId,
-                    DataCategory: `CONNECTION#${connectionId}`
-                })
-            ])
+                ]
+                const activeCharactersUpdate = {
+                    Update: {
+                        TableName: 'Ephemera',
+                        Key: marshall({
+                            EphemeraId: RoomEphemeraId,
+                            DataCategory: 'Meta::Room'
+                        }),
+                        UpdateExpression: 'SET activeCharacters = :newActiveCharacters',
+                        ExpressionAttributeValues: marshall({
+                            ':oldActiveCharacters': activeCharacters,
+                            ':newActiveCharacters': newActiveCharacters
+                        }, { removeUndefinedValues: true}),
+                        ConditionExpression: 'activeCharacters = :oldActiveCharacters'
+                    }
+                }
+                await multiTableTransactWrite([{
+                    Update: metaCharacterUpdate
+                },
+                {
+                    Put: {
+                        TableName: 'Connections',
+                        Item: marshall({
+                            ConnectionId: `CONNECTION#${connectionId}`,
+                            DataCategory: EphemeraId
+                        })
+                    }
+                },
+                ...characterRoomUpdate,
+                activeCharactersUpdate
+                ])    
+            }, { retryErrors: ['TransactionCanceledException']})
     
         }
 
