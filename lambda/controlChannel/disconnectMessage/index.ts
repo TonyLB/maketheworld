@@ -1,9 +1,9 @@
 import { DisconnectMessage, MessageBus } from "../messageBus/baseClasses"
 
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import messageBus from "../messageBus"
 
 //
 // TODO:
@@ -24,73 +24,53 @@ type RoomCharacterActive = {
 
 const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => {
     return exponentialBackoffWrapper(async () => {
-        const { connections: currentConnections } = (await connectionDB.getItem<{ connections: string[] }>({
-            ConnectionId: `CHARACTER#${characterId}`,
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['connections']
-        })) || {}
+        const [connectionFetch, characterFetch] = await Promise.all([
+            connectionDB.getItem<{ connections: string[] }>({
+                ConnectionId: `CHARACTER#${characterId}`,
+                DataCategory: 'Meta::Character',
+                ProjectionFields: ['connections']
+            }),
+            ephemeraDB.getItem<{ RoomId: string; Name: string; fileURL: string; Color: string; }>({
+                EphemeraId: `CHARACTER#${characterId}`,
+                DataCategory: 'Meta::Character',
+                ProjectionFields: ['RoomId', '#name', 'fileURL', 'Color'],
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                }
+            })
+        ])
+        const { connections: currentConnections } = connectionFetch || {}
         if (!currentConnections) {
             return
         }
+        const { RoomId, Name, fileURL, Color } = characterFetch || {}
+
+        const { activeCharacters: currentActiveCharacters = [] } = (await ephemeraDB.getItem<{ activeCharacters: RoomCharacterActive[] }>({
+            EphemeraId: `ROOM#${RoomId}`,
+            DataCategory: 'Meta::Room',
+            ProjectionFields: ['activeCharacters']
+        })) || {}
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
-        //
-        // TODO: Refactor below so that it _always_ updates the current room for the character ... updating
-        // the ConnectionIds array if there are remaining connections, otherwise removing the entry for
-        // the character
-        //
-
-        if (remainingConnections.length > 0) {
-            await multiTableTransactWrite([{
-                    Delete: {
-                        TableName: 'Connections',
-                        Key: marshall({
-                            ConnectionId: `CONNECTION#${connectionId}`,
-                            DataCategory: `CHARACTER#${characterId}`
-                        })
-                    }
-                },
-                {
-                    Update: {
-                        TableName: 'Connections',
-                        Key: marshall({
-                            ConnectionId: `CHARACTER#${characterId}`,
-                            DataCategory: 'Meta::Character'
-                        }),
-                        UpdateExpression: 'SET connections = :newConnections',
-                        ExpressionAttributeValues: marshall({
-                            ':newConnections': remainingConnections,
-                            ':oldConnections': currentConnections
-                        }),
-                        ConditionExpression: 'connections = :oldConnections'
-                    }
-                }])
-        }
-        else {
-
-            const { RoomId: currentRoomId } = (await ephemeraDB.getItem<{ RoomId: string }>({
-                EphemeraId: `CHARACTER#${characterId}`,
-                DataCategory: 'Meta::Character',
-                ProjectionFields: ['RoomId']
-            })) || {}
-            const { activeCharacters: currentActiveCharacters = [] } = (await ephemeraDB.getItem<{ activeCharacters: RoomCharacterActive[] }>({
-                EphemeraId: `ROOM#${currentRoomId}`,
-                DataCategory: 'Meta::Room',
-                ProjectionFields: ['activeCharacters']
-            })) || {}
-
-            const remainingCharacters = currentActiveCharacters.filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`))
-            await multiTableTransactWrite([{
-                Delete: {
+        const remainingCharacters = currentActiveCharacters.filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`))
+        const adjustMeta = remainingConnections.length > 0
+            ? [{
+                Update: {
                     TableName: 'Connections',
                     Key: marshall({
-                        ConnectionId: `CONNECTION#${connectionId}`,
-                        DataCategory: `CHARACTER#${characterId}`
-                    })
+                        ConnectionId: `CHARACTER#${characterId}`,
+                        DataCategory: 'Meta::Character'
+                    }),
+                    UpdateExpression: 'SET connections = :newConnections',
+                    ExpressionAttributeValues: marshall({
+                        ':newConnections': remainingConnections,
+                        ':oldConnections': currentConnections
+                    }),
+                    ConditionExpression: 'connections = :oldConnections'
                 }
-            },
-            {
+            }]
+            : [{
                 Delete: {
                     TableName: 'Connections',
                     Key: marshall({
@@ -98,23 +78,45 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                         DataCategory: 'Meta::Character'
                     }),
                 }
-            },
-            {
-                Update: {
-                    TableName: 'Ephemera',
-                    Key: marshall({
-                        EphemeraId: `ROOM#${currentRoomId}`,
-                        DataCategory: 'Meta::Room'
-                    }),
-                    UpdateExpression: 'SET activeCharacters = :newCharacters',
-                    ExpressionAttributeValues: marshall({
-                        ':newCharacters': remainingCharacters,
-                        ':oldCharacters': currentActiveCharacters
-                    }),
-                    ConditionExpression: 'activeCharacters = :oldCharacters'
-                }
-            }])
-
+            }]
+        await multiTableTransactWrite([{
+            Delete: {
+                TableName: 'Connections',
+                Key: marshall({
+                    ConnectionId: `CONNECTION#${connectionId}`,
+                    DataCategory: `CHARACTER#${characterId}`
+                })
+            }
+        },
+        ...adjustMeta,
+        {
+            Update: {
+                TableName: 'Ephemera',
+                Key: marshall({
+                    EphemeraId: `ROOM#${RoomId}`,
+                    DataCategory: 'Meta::Room'
+                }),
+                UpdateExpression: 'SET activeCharacters = :newCharacters',
+                ExpressionAttributeValues: marshall({
+                    ':newCharacters': remainingCharacters,
+                    ':oldCharacters': currentActiveCharacters
+                }),
+                ConditionExpression: 'activeCharacters = :oldCharacters'
+            }
+        }])
+        if (remainingConnections.length === 0) {
+            messageBus.send({
+                type: 'EphemeraUpdate',
+                updates: [{
+                    type: 'CharacterInPlay',
+                    CharacterId: characterId,
+                    Name: Name || '',
+                    Connected: false,
+                    RoomId: RoomId || '',
+                    fileURL: fileURL || '',
+                    Color: Color || 'grey'
+                }]
+            })
         }
 
     }, { retryErrors: ['TransactionCanceledException']})
@@ -135,7 +137,6 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
             KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
             ProjectionFields: ['DataCategory']
         })
-        console.log(`CharacterQuery: ${JSON.stringify(characterQuery, null, 4)}`)
         await Promise.all([
             ...characterQuery.map(async ({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, splitType(DataCategory)[1]))),
             connectionDB.deleteItem({

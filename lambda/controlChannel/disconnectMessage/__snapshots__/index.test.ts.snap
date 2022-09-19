@@ -1,19 +1,22 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`registerCharacter should update correctly on first connection 1`] = `
+exports[`disconnectMessage should update correctly on last connection 1`] = `
 Array [
   Object {
-    "Update": Object {
-      "ConditionExpression": "attribute_not_exists(connections)",
-      "ExpressionAttributeValues": Object {
-        ":newConnections": Object {
-          "L": Array [
-            Object {
-              "S": "TestConnection",
-            },
-          ],
+    "Delete": Object {
+      "Key": Object {
+        "ConnectionId": Object {
+          "S": "CONNECTION#XYZ",
+        },
+        "DataCategory": Object {
+          "S": "CHARACTER#ABC",
         },
       },
+      "TableName": "Connections",
+    },
+  },
+  Object {
+    "Delete": Object {
       "Key": Object {
         "ConnectionId": Object {
           "S": "CHARACTER#ABC",
@@ -23,30 +26,44 @@ Array [
         },
       },
       "TableName": "Connections",
-      "UpdateExpression": "SET connections = :newConnections",
-    },
-  },
-  Object {
-    "Put": Object {
-      "Item": Object {
-        "ConnectionId": Object {
-          "S": "CONNECTION#TestConnection",
-        },
-        "DataCategory": Object {
-          "S": "CHARACTER#ABC",
-        },
-      },
-      "TableName": "Connections",
     },
   },
   Object {
     "Update": Object {
-      "ConditionExpression": "activeCharacters = :oldActiveCharacters",
+      "ConditionExpression": "activeCharacters = :oldCharacters",
       "ExpressionAttributeValues": Object {
-        ":newActiveCharacters": Object {
+        ":newCharacters": Object {
           "L": Array [
             Object {
               "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "BCD",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#BCD",
+                },
+                "Name": Object {
+                  "S": "TestToo",
+                },
+              },
+            },
+          ],
+        },
+        ":oldCharacters": Object {
+          "L": Array [
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "BCD",
+                    },
+                  ],
+                },
                 "EphemeraId": Object {
                   "S": "CHARACTER#BCD",
                 },
@@ -57,13 +74,10 @@ Array [
             },
             Object {
               "M": Object {
-                "Color": Object {
-                  "S": "purple",
-                },
-                "ConnectionIds": Object {
+                "Connections": Object {
                   "L": Array [
                     Object {
-                      "S": "TestConnection",
+                      "S": "XYZ",
                     },
                   ],
                 },
@@ -72,20 +86,6 @@ Array [
                 },
                 "Name": Object {
                   "S": "Tess",
-                },
-              },
-            },
-          ],
-        },
-        ":oldActiveCharacters": Object {
-          "L": Array [
-            Object {
-              "M": Object {
-                "EphemeraId": Object {
-                  "S": "CHARACTER#BCD",
-                },
-                "Name": Object {
-                  "S": "TestToo",
                 },
               },
             },
@@ -101,14 +101,27 @@ Array [
         },
       },
       "TableName": "Ephemera",
-      "UpdateExpression": "SET activeCharacters = :newActiveCharacters",
+      "UpdateExpression": "SET activeCharacters = :newCharacters",
     },
   },
 ]
 `;
 
-exports[`registerCharacter should update correctly on subsequent connections 1`] = `
+exports[`disconnectMessage should update correctly on redundant connections 1`] = `
 Array [
+  Object {
+    "Delete": Object {
+      "Key": Object {
+        "ConnectionId": Object {
+          "S": "CONNECTION#XYZ",
+        },
+        "DataCategory": Object {
+          "S": "CHARACTER#ABC",
+        },
+      },
+      "TableName": "Connections",
+    },
+  },
   Object {
     "Update": Object {
       "ConditionExpression": "connections = :oldConnections",
@@ -116,17 +129,17 @@ Array [
         ":newConnections": Object {
           "L": Array [
             Object {
-              "S": "previous",
-            },
-            Object {
-              "S": "TestConnection",
+              "S": "QRS",
             },
           ],
         },
         ":oldConnections": Object {
           "L": Array [
             Object {
-              "S": "previous",
+              "S": "QRS",
+            },
+            Object {
+              "S": "XYZ",
             },
           ],
         },
@@ -144,54 +157,58 @@ Array [
     },
   },
   Object {
-    "Put": Object {
-      "Item": Object {
-        "ConnectionId": Object {
-          "S": "CONNECTION#TestConnection",
-        },
-        "DataCategory": Object {
-          "S": "CHARACTER#ABC",
-        },
-      },
-      "TableName": "Connections",
-    },
-  },
-  Object {
     "Update": Object {
-      "ConditionExpression": "activeCharacters = :oldActiveCharacters",
+      "ConditionExpression": "activeCharacters = :oldCharacters",
       "ExpressionAttributeValues": Object {
-        ":newActiveCharacters": Object {
+        ":newCharacters": Object {
           "L": Array [
             Object {
               "M": Object {
-                "ConnectionIds": Object {
+                "Connections": Object {
                   "L": Array [
                     Object {
-                      "S": "previous",
-                    },
-                    Object {
-                      "S": "TestConnection",
+                      "S": "BCD",
                     },
                   ],
                 },
                 "EphemeraId": Object {
-                  "S": "CHARACTER#ABC",
+                  "S": "CHARACTER#BCD",
                 },
                 "Name": Object {
-                  "S": "Tess",
+                  "S": "TestToo",
                 },
               },
             },
           ],
         },
-        ":oldActiveCharacters": Object {
+        ":oldCharacters": Object {
           "L": Array [
             Object {
               "M": Object {
-                "ConnectionIds": Object {
+                "Connections": Object {
                   "L": Array [
                     Object {
-                      "S": "previous",
+                      "S": "BCD",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#BCD",
+                },
+                "Name": Object {
+                  "S": "TestToo",
+                },
+              },
+            },
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "QRS",
+                    },
+                    Object {
+                      "S": "XYZ",
                     },
                   ],
                 },
@@ -215,7 +232,7 @@ Array [
         },
       },
       "TableName": "Ephemera",
-      "UpdateExpression": "SET activeCharacters = :newActiveCharacters",
+      "UpdateExpression": "SET activeCharacters = :newCharacters",
     },
   },
 ]

@@ -14,7 +14,8 @@ const serialize = ({
     Connected,
     RoomId,
     Name,
-    fileURL
+    fileURL,
+    Color
 }: EphemeraQueryResult): EphemeraUpdateEntry | undefined => {
     const [type, payload] = splitType(EphemeraId)
     switch(type) {
@@ -25,7 +26,8 @@ const serialize = ({
                 Connected,
                 RoomId,
                 Name,
-                fileURL
+                fileURL,
+                Color
             }
         //
         // TODO:  More serializers for more data types!
@@ -47,7 +49,7 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
             ExpressionAttributeNames: {
                 '#name': 'Name'
             },
-            ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL']
+            ProjectionFields: ['EphemeraId', 'Connected', 'RoomId', '#name', 'fileURL', 'Color']
         })
         const returnItems = Items
             .map(serialize)

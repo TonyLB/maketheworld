@@ -27,13 +27,14 @@ describe('EphemeraUpdateMessage', () => {
                     Connected: true,
                     RoomId: 'VORTEX',
                     Name: 'Tess',
-                    fileURL: 'TestURL'
+                    fileURL: 'TestURL',
+                    Color: 'purple'
                 }]
             }]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith({
             ConnectionId: 'TestConnection',
-            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\"}]}'
+            Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
         })
     })
 })

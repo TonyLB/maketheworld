@@ -132,7 +132,21 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 },
                 ...characterRoomUpdate,
                 activeCharactersUpdate
-                ])    
+                ])
+                if ((currentConnections || []).length === 0) {
+                    messageBus.send({
+                        type: 'EphemeraUpdate',
+                        updates: [{
+                            type: 'CharacterInPlay',
+                            CharacterId,
+                            Name: Name || '',
+                            Connected: true,
+                            RoomId: RoomId || '',
+                            fileURL: fileURL || '',
+                            Color: Color || 'grey'
+                        }]        
+                    })
+                }
             }, { retryErrors: ['TransactionCanceledException']})
     
         }

@@ -2,7 +2,6 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import {
     ephemeraDB,
     connectionDB,
-    exponentialBackoffWrapper,
     multiTableTransactWrite
 } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
@@ -14,7 +13,6 @@ import internalCache from '../internalCache'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
-const exponentialBackoffWrapperMock = exponentialBackoffWrapper as jest.Mock
 const multiTableTransactWriteMock = multiTableTransactWrite as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
@@ -31,7 +29,8 @@ describe("registerCharacter", () => {
     it("should update correctly on first connection", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
             Name: 'Tess',
-            RoomId: 'TestABC'
+            RoomId: 'TestABC',
+            Color: 'purple'
         })
         .mockResolvedValueOnce({
             activeCharacters: [{
@@ -54,6 +53,18 @@ describe("registerCharacter", () => {
                 RequestId: 'Request123'
             }
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'ABC',
+                Connected: true,
+                Name: 'Tess',
+                RoomId: 'TestABC',
+                fileURL: '',
+                Color: 'purple'
+            }]
+        })
     })
 
     it("should update correctly on subsequent connections", async () => {
@@ -74,6 +85,7 @@ describe("registerCharacter", () => {
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }], messageBus })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
+        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {

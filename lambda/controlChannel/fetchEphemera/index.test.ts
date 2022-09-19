@@ -26,7 +26,8 @@ describe('fetchPlayerEphemera', () => {
             Connected: true,
             RoomId: 'ROOM#XYZ',
             Name: 'Testy',
-            fileURL: 'test.png'
+            fileURL: 'test.png',
+            Color: 'purple'
         }])
         await fetchPlayerEphemera({
             payloads: [{
@@ -42,7 +43,8 @@ describe('fetchPlayerEphemera', () => {
                 Connected: true,
                 RoomId: 'ROOM#XYZ',
                 Name: 'Testy',
-                fileURL: 'test.png'
+                fileURL: 'test.png',
+                Color: 'purple'
             }]
         })
     })
