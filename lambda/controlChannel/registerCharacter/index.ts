@@ -125,10 +125,19 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             CharacterId,
                             Name: Name || '',
                             Connected: true,
-                            RoomId: RoomId || '',
+                            RoomId,
                             fileURL: fileURL || '',
                             Color: Color || 'grey'
                         }]        
+                    })
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                        displayProtocol: 'WorldMessage',
+                        message: [{
+                            tag: 'String',
+                            value: `${Name || 'Someone'} has connected.`
+                        }]
                     })
                 }
                 internalCache.RoomCharacterList.set({ key: RoomId, value: newActiveCharacters })

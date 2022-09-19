@@ -53,10 +53,10 @@ export type PublishNarrateMessage = PublishMessageBase & MessageCharacterInfo & 
     message: TaggedMessageContent[];
 }
 
-export type PublishOutOfCharacterMessage = PublishMessageBase & MessageCharacterInfo & {
+export type PublishOutOfCharacterMessage = {
     displayProtocol: 'OOCMessage';
     message: TaggedMessageContent[];
-}
+} & PublishMessageBase & MessageCharacterInfo
 
 export type PublishMessage = PublishWorldMessage | PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage
 

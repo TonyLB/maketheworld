@@ -68,6 +68,15 @@ describe("disconnectMessage", () => {
                 Color: 'purple'
             }]
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: [`ROOM#TestABC`, `NOT-CHARACTER#ABC`],
+            displayProtocol: 'WorldMessage',
+            message: [{
+                tag: 'String',
+                value: `Tess has disconnected.`
+            }]
+        })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
             key: 'TestABC',
             value: [
