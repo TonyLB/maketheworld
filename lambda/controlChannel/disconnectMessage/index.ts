@@ -4,15 +4,7 @@ import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransact
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import messageBus from "../messageBus"
-
-//
-// TODO:
-//    - Remove Meta::Connection record
-//    - Update Library subscriptions
-//    - Update Global connections
-//    - Remove all Character adjacency records using transactions to atomically update Meta::Character item
-//    - Update activeCharacters in current room for Meta::Character items that were removed
-//
+import internalCache from "../internalCache"
 
 type RoomCharacterActive = {
     EphemeraId: string;
@@ -30,13 +22,9 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 DataCategory: 'Meta::Character',
                 ProjectionFields: ['connections']
             }),
-            ephemeraDB.getItem<{ RoomId: string; Name: string; fileURL: string; Color: string; }>({
-                EphemeraId: `CHARACTER#${characterId}`,
-                DataCategory: 'Meta::Character',
-                ProjectionFields: ['RoomId', '#name', 'fileURL', 'Color'],
-                ExpressionAttributeNames: {
-                    '#name': 'Name'
-                }
+            internalCache.get({
+                category: 'CharacterMeta',
+                key: characterId
             })
         ])
         const { connections: currentConnections } = connectionFetch || {}
@@ -45,15 +33,14 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
         }
         const { RoomId, Name, fileURL, Color } = characterFetch || {}
 
-        const { activeCharacters: currentActiveCharacters = [] } = (await ephemeraDB.getItem<{ activeCharacters: RoomCharacterActive[] }>({
-            EphemeraId: `ROOM#${RoomId}`,
-            DataCategory: 'Meta::Room',
-            ProjectionFields: ['activeCharacters']
-        })) || {}
+        const currentActiveCharacters = await internalCache.get({
+            category: 'RoomCharacterList',
+            key: characterId
+        })
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
-        const remainingCharacters = currentActiveCharacters.filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`))
+        const remainingCharacters = (currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`))
         const adjustMeta = remainingConnections.length > 0
             ? [{
                 Update: {

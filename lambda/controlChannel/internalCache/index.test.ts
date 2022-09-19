@@ -37,20 +37,20 @@ describe('InternalCache', () => {
                 Name: 'Marco'
             }
         ]
-        const expectedOutput = {
-            '123': {
+        const expectedOutput = [
+            {
                 EphemeraId: 'CHARACTER#123',
                 ConnectionIds: ['Test1'],
                 Color: 'green',
                 Name: 'Tess'
             },
-            '456': {
+            {
                 EphemeraId: 'CHARACTER#456',
                 ConnectionIds: ['Test2'],
                 Color: 'purple',
                 Name: 'Marco'
             }
-        }
+        ]
         ephemeraMock.getItem.mockResolvedValue({
             activeCharacters: testActiveCharacters
         })

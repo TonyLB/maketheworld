@@ -47,20 +47,20 @@ describe('PublishMessage', () => {
     })
 
     it('should remap room targets dynamically', async () => {
-        cacheMock.get.mockResolvedValue({
-            '123': {
+        cacheMock.get.mockResolvedValue([
+            {
                 EphemeraId: 'CHARACTER#123',
                 ConnectionIds: ['Test1'],
                 Color: 'green',
                 Name: 'Tess'
             },
-            '456': {
+            {
                 EphemeraId: 'CHARACTER#456',
                 ConnectionIds: ['Test2'],
                 Color: 'purple',
                 Name: 'Marco'
             }
-        })
+        ])
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',

@@ -58,7 +58,7 @@ type CacheCharacterMeta = {
 type CacheStorageType = {
     Global: CacheCategoryKeyValue<CacheGlobal>;
     CurrentPlayerMeta: CacheCategoryFetchOnce<CurrentPlayerMeta, InternalCache>;
-    RoomCharacterList: CacheCategoryLookup<Record<string, RoomCharacterActive>>;
+    RoomCharacterList: CacheCategoryLookup<RoomCharacterActive[]>;
     CharacterMeta: CacheCategoryLookup<CacheCharacterMeta>;
 }
 
@@ -146,7 +146,7 @@ const initialCache: CacheStorageType = {
                     DataCategory: 'Meta::Room',
                     ProjectionFields: ['activeCharacters']
                 }) || { activeCharacters: [] }
-            return activeCharacters.reduce((previous, value) => ({ ...previous,  [splitType(value.EphemeraId)[1]]: value }), {})
+            return activeCharacters
         }
     },
     CharacterMeta: {
@@ -180,10 +180,10 @@ export class InternalCache extends Object {
 
     get(props: CacheGetArgumentGlobal): Promise<CacheGlobal[keyof CacheGlobal] | undefined>
     get(props: CacheGetArgumentCurrentPlayer): Promise<CurrentPlayerMeta[keyof CurrentPlayerMeta] | undefined>
-    get(props: CacheGetArgumentRoomCharacter): Promise<Record<string, RoomCharacterActive> | undefined>
+    get(props: CacheGetArgumentRoomCharacter): Promise<RoomCharacterActive[] | undefined>
     get(props: CacheGetArgumentCharacterMeta): Promise<CacheCharacterMeta | undefined>
-    get(props: CacheGetArgument): Promise<CacheGlobal[keyof CacheGlobal] | CurrentPlayerMeta[keyof CurrentPlayerMeta] | Record<string, RoomCharacterActive> | CacheCharacterMeta | undefined>
-    async get(props: CacheGetArgument): Promise<CacheGlobal[keyof CacheGlobal] | CurrentPlayerMeta[keyof CurrentPlayerMeta] | Record<string, RoomCharacterActive> | CacheCharacterMeta | undefined> {
+    get(props: CacheGetArgument): Promise<CacheGlobal[keyof CacheGlobal] | CurrentPlayerMeta[keyof CurrentPlayerMeta] | RoomCharacterActive[] | CacheCharacterMeta | undefined>
+    async get(props: CacheGetArgument): Promise<CacheGlobal[keyof CacheGlobal] | CurrentPlayerMeta[keyof CurrentPlayerMeta] | RoomCharacterActive[] | CacheCharacterMeta | undefined> {
         //
         // Unfortunately, I have not yet figured out a way to typescript constrain these polymorphic outputs without
         // repeating a lot of code.
