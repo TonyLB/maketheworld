@@ -11,7 +11,7 @@ export const connectMessage = async ({ payloads, messageBus }: { payloads: Conne
         const aggregatePromises = payloads.reduce((previous, payload) => ([
             ...previous,
             connectionDB.putItem({
-                ConnectionId: connectionId,
+                ConnectionId: `CONNECTION#${connectionId}`,
                 DataCategory: 'Meta::Connection',
                 player: payload.userName
             }),

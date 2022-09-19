@@ -3,6 +3,7 @@ import { DisconnectMessage, MessageBus } from "../messageBus/baseClasses"
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect'
 import { marshall } from "@aws-sdk/util-dynamodb"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 //
 // TODO:
@@ -24,8 +25,8 @@ type RoomCharacterActive = {
 const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => {
     return exponentialBackoffWrapper(async () => {
         const { connections: currentConnections } = (await connectionDB.getItem<{ connections: string[] }>({
-            ConnectionId: `CONNECTION#${connectionId}`,
-            DataCategory: `CHARACTER#${characterId}`,
+            ConnectionId: `CHARACTER#${characterId}`,
+            DataCategory: 'Meta::Character',
             ProjectionFields: ['connections']
         })) || {}
         if (!currentConnections) {
@@ -54,8 +55,8 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                     Update: {
                         TableName: 'Connections',
                         Key: marshall({
-                            ConnectionId: `CONNECTION#${connectionId}`,
-                            DataCategory: `CHARACTER#${characterId}`
+                            ConnectionId: `CHARACTER#${characterId}`,
+                            DataCategory: 'Meta::Character'
                         }),
                         UpdateExpression: 'SET connections = :newConnections',
                         ExpressionAttributeValues: marshall({
@@ -93,8 +94,8 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 Delete: {
                     TableName: 'Connections',
                     Key: marshall({
-                        ConnectionId: `CONNECTION#${connectionId}`,
-                        DataCategory: `CHARACTER#${characterId}`
+                        ConnectionId: `CHARACTER#${characterId}`,
+                        DataCategory: 'Meta::Character'
                     }),
                 }
             },
@@ -124,9 +125,45 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
     // TODO: Figure out whether a forced disconnet invalidates any cached values
     //
 
-    await Promise.all(payloads.map(async (payload) => (
-        forceDisconnect(payload.connectionId)
-    )))
+    await Promise.all(payloads.map(async (payload) => {
+        const ConnectionId = `CONNECTION#${payload.connectionId}`
+        const characterQuery = await connectionDB.query({
+            ConnectionId,
+            ExpressionAttributeValues: {
+                ':dcPrefix': 'CHARACTER#'
+            },
+            KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
+            ProjectionFields: ['DataCategory']
+        })
+        console.log(`CharacterQuery: ${JSON.stringify(characterQuery, null, 4)}`)
+        await Promise.all([
+            ...characterQuery.map(async ({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, splitType(DataCategory)[1]))),
+            connectionDB.deleteItem({
+                ConnectionId,
+                DataCategory: 'Meta::Connection'
+            }),
+            connectionDB.optimisticUpdate({
+                key: {
+                    ConnectionId: 'Global',
+                    DataCategory: 'Connections'
+                },
+                updateKeys: ['connections'],
+                updateReducer: (draft) => {
+                    draft.connections[payload.connectionId] = undefined
+                }
+            }),
+            connectionDB.optimisticUpdate({
+                key: {
+                    ConnectionId: 'Library',
+                    DataCategory: 'Subscriptions'
+                },
+                updateKeys: ['ConnectionIds'],
+                updateReducer: (draft) => {
+                    draft.ConnectionIds = draft.ConnectionIds.filter((value) => (value !== payload.connectionId))
+                }
+            })
+        ])
+    }))
 }
 
 export default disconnectMessage

@@ -128,7 +128,7 @@ const initialCache: CacheStorageType = {
                 let exponentialBackoff = 50
                 while(attempts < 5) {
                     const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                        ConnectionId: connectionId,
+                        ConnectionId: `CONNECTION#${connectionId}`,
                         DataCategory: 'Meta::Connection',
                         ProjectionFields: ['player']
                     }) || {}
