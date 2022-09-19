@@ -67,6 +67,16 @@ describe("disconnectMessage", () => {
                 Color: 'purple'
             }]
         })
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['BCD']
+                }
+            ]
+        })
     })
 
     it("should update correctly on redundant connections", async () => {
@@ -99,6 +109,23 @@ describe("disconnectMessage", () => {
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
         expect(messageBusMock.send).not.toHaveBeenCalled()
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['BCD']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    ConnectionIds: ['QRS'],
+                    HomeId: 'VORTEX',
+                    RoomId: 'TestABC'
+                }
+            ]
+        })
     })
 
 })

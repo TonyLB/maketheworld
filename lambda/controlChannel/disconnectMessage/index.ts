@@ -34,7 +34,16 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
-        const remainingCharacters = (currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`))
+        const remainingCharacters = [
+            ...(currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`)),
+            ...((remainingConnections.length > 0)
+                ? [{
+                    ...characterFetch,
+                    ConnectionIds: remainingConnections
+                }]
+                : []
+            )
+        ]
         const adjustMeta = remainingConnections.length > 0
             ? [{
                 Update: {
@@ -99,9 +108,10 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 }]
             })
         }
-        //
-        // TODO: As part of ISS1476 add set to RoomCharacterList cache, and use here to update cache
-        //
+        internalCache.RoomCharacterList.set({
+            key: RoomId,
+            value: remainingCharacters
+        })
 
     }, { retryErrors: ['TransactionCanceledException']})
 }

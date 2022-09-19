@@ -14,6 +14,7 @@ export class CacheRoomCharacterListsData {
     clear() {
         this.CharacterListByRoom = {}
     }
+
     async get(roomId: string): Promise<RoomCharacterListItem[]> {
         if (!this.CharacterListByRoom[roomId]) {
             const { activeCharacters = [] } = await ephemeraDB.getItem<{
@@ -26,6 +27,10 @@ export class CacheRoomCharacterListsData {
             this.CharacterListByRoom[roomId] = activeCharacters
         }
         return this.CharacterListByRoom[roomId] || []
+    }
+
+    set(props: { key: string; value: RoomCharacterListItem[] }) {
+        this.CharacterListByRoom[props.key] = props.value
     }
 }
 

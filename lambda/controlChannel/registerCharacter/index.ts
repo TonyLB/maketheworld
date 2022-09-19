@@ -6,14 +6,7 @@ import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
-
-type RoomCharacterActive = {
-    EphemeraId: string;
-    Color?: string;
-    ConnectionIds: string[];
-    fileURL?: string;
-    Name: string;
-}
+import { RoomCharacterListItem } from "../internalCache/roomCharacterLists"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
@@ -40,7 +33,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
                 const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
                 const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
-                const newConnections = unique(currentConnections || [], [connectionId])
+                const newConnections = unique(currentConnections || [], [connectionId]) as string[]
                 const metaCharacterUpdate = (currentConnections !== undefined)
                     ? {
                         TableName: 'Connections',
@@ -83,7 +76,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             ConditionExpression: 'attribute_not_exists(RoomId)'
                         }
                     }]
-                const newActiveCharacters = [
+                const newActiveCharacters: RoomCharacterListItem[] = [
                     ...(activeCharacters || []).filter((character) => (character.EphemeraId !== EphemeraId)),
                     {
                         EphemeraId,
@@ -137,9 +130,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         }]        
                     })
                 }
-                //
-                // TODO: As part of ISS1476 add set to RoomCharacterList cache, and use here to update cache
-                //
+                internalCache.RoomCharacterList.set({ key: RoomId, value: newActiveCharacters })
 
             }, { retryErrors: ['TransactionCanceledException']})
     

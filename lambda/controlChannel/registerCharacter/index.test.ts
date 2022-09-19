@@ -66,6 +66,22 @@ describe("registerCharacter", () => {
                 Color: 'purple'
             }]
         })
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['QRS']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    Color: 'purple',
+                    ConnectionIds: ['TestConnection']
+                }
+            ]
+        })
     })
 
     it("should update correctly on subsequent connections", async () => {
@@ -95,6 +111,15 @@ describe("registerCharacter", () => {
                 CharacterId: 'ABC',
                 RequestId: 'Request123'
             }
+        })
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [{
+                EphemeraId: 'CHARACTER#ABC',
+                Name: 'Tess',
+                Color: 'purple',
+                ConnectionIds: ['previous', 'TestConnection']
+            }]
         })
     })
 
