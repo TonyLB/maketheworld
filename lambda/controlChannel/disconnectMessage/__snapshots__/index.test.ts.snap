@@ -36,7 +36,7 @@ Array [
           "L": Array [
             Object {
               "M": Object {
-                "Connections": Object {
+                "ConnectionIds": Object {
                   "L": Array [
                     Object {
                       "S": "BCD",
@@ -57,7 +57,7 @@ Array [
           "L": Array [
             Object {
               "M": Object {
-                "Connections": Object {
+                "ConnectionIds": Object {
                   "L": Array [
                     Object {
                       "S": "BCD",
@@ -74,7 +74,7 @@ Array [
             },
             Object {
               "M": Object {
-                "Connections": Object {
+                "ConnectionIds": Object {
                   "L": Array [
                     Object {
                       "S": "XYZ",
@@ -164,7 +164,7 @@ Array [
           "L": Array [
             Object {
               "M": Object {
-                "Connections": Object {
+                "ConnectionIds": Object {
                   "L": Array [
                     Object {
                       "S": "BCD",
@@ -185,7 +185,7 @@ Array [
           "L": Array [
             Object {
               "M": Object {
-                "Connections": Object {
+                "ConnectionIds": Object {
                   "L": Array [
                     Object {
                       "S": "BCD",
@@ -202,7 +202,7 @@ Array [
             },
             Object {
               "M": Object {
-                "Connections": Object {
+                "ConnectionIds": Object {
                   "L": Array [
                     Object {
                       "S": "QRS",

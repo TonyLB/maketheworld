@@ -8,10 +8,14 @@ import {
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
+jest.mock('../internalCache')
+import internalCache from '../internalCache'
+
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const multiTableTransactWriteMock = multiTableTransactWrite as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
+const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
 
 import disconnectMessage from '.'
 
@@ -22,25 +26,25 @@ describe("disconnectMessage", () => {
     })
 
     it("should update correctly on last connection", async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
+        internalCacheMock.get.mockResolvedValueOnce({
+            EphemeraId: 'CHARACTER#ABC',
             RoomId: 'TestABC',
             Name: 'Tess',
-            Color: 'purple'
+            Color: 'purple',
+            HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce({
-            activeCharacters: [
+        .mockResolvedValueOnce([
                 {
                     EphemeraId: 'CHARACTER#BCD',
                     Name: 'TestToo',
-                    Connections: ['BCD']
+                    ConnectionIds: ['BCD']
                 },
                 {
                     EphemeraId: 'CHARACTER#ABC',
                     Name: 'Tess',
-                    Connections: ['XYZ']
+                    ConnectionIds: ['XYZ']
                 }
-            ]
-        })
+            ])
         connectionDBMock.getItem.mockResolvedValueOnce({
             connections: ['XYZ']
         })
@@ -66,23 +70,24 @@ describe("disconnectMessage", () => {
     })
 
     it("should update correctly on redundant connections", async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
-            RoomId: 'TestABC'
+        internalCacheMock.get.mockResolvedValueOnce({
+            EphemeraId: 'CHARACTER#ABC',
+            Name: 'Tess',
+            RoomId: 'TestABC',
+            HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce({
-            activeCharacters: [
+        .mockResolvedValueOnce([
                 {
                     EphemeraId: 'CHARACTER#BCD',
                     Name: 'TestToo',
-                    Connections: ['BCD']
+                    ConnectionIds: ['BCD']
                 },
                 {
                     EphemeraId: 'CHARACTER#ABC',
                     Name: 'Tess',
-                    Connections: ['QRS', 'XYZ']
+                    ConnectionIds: ['QRS', 'XYZ']
                 }
-            ]
-        })
+            ])
         connectionDBMock.getItem.mockResolvedValueOnce({
             connections: ['QRS', 'XYZ']
         })

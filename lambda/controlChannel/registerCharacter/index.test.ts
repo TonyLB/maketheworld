@@ -27,17 +27,18 @@ describe("registerCharacter", () => {
     })
 
     it("should update correctly on first connection", async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
+        internalCacheMock.get.mockResolvedValueOnce({
+            EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
             RoomId: 'TestABC',
-            Color: 'purple'
+            Color: 'purple',
+            HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce({
-            activeCharacters: [{
+        .mockResolvedValueOnce([{
                 EphemeraId: 'CHARACTER#BCD',
-                Name: 'TestToo'
-            }]
-        })
+                Name: 'TestToo',
+                ConnectionIds: ['QRS']
+            }])
         connectionDBMock.getItem.mockResolvedValueOnce({})
         await registerCharacter({
             payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }],
@@ -68,17 +69,18 @@ describe("registerCharacter", () => {
     })
 
     it("should update correctly on subsequent connections", async () => {
-        ephemeraDBMock.getItem.mockResolvedValueOnce({
+        internalCacheMock.get.mockResolvedValueOnce({
+            EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
-            RoomId: 'TestABC'
+            RoomId: 'TestABC',
+            Color: 'purple',
+            HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce({
-            activeCharacters: [{
+        .mockResolvedValueOnce([{
                 EphemeraId: 'CHARACTER#ABC',
                 Name: 'Tess',
                 ConnectionIds: ['previous']
-            }]
-        })
+            }])
         connectionDBMock.getItem.mockResolvedValueOnce({
             connections: ['previous']
         })

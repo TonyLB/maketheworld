@@ -47,6 +47,13 @@ Array [
           "L": Array [
             Object {
               "M": Object {
+                "ConnectionIds": Object {
+                  "L": Array [
+                    Object {
+                      "S": "QRS",
+                    },
+                  ],
+                },
                 "EphemeraId": Object {
                   "S": "CHARACTER#BCD",
                 },
@@ -81,6 +88,13 @@ Array [
           "L": Array [
             Object {
               "M": Object {
+                "ConnectionIds": Object {
+                  "L": Array [
+                    Object {
+                      "S": "QRS",
+                    },
+                  ],
+                },
                 "EphemeraId": Object {
                   "S": "CHARACTER#BCD",
                 },
@@ -164,6 +178,9 @@ Array [
           "L": Array [
             Object {
               "M": Object {
+                "Color": Object {
+                  "S": "purple",
+                },
                 "ConnectionIds": Object {
                   "L": Array [
                     Object {

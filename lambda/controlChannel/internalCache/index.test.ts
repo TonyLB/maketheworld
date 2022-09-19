@@ -23,34 +23,34 @@ describe('InternalCache', () => {
     })
 
     it('should fetch an async lookup only once', async () => {
-        const testActiveCharacters = {
-            'CHARACTER#123': {
+        const testActiveCharacters = [
+            {
                 EphemeraId: 'CHARACTER#123',
                 ConnectionIds: ['Test1'],
                 Color: 'green',
                 Name: 'Tess'
             },
-            'CHARACTER#456': {
+            {
                 EphemeraId: 'CHARACTER#456',
                 ConnectionIds: ['Test2'],
                 Color: 'purple',
                 Name: 'Marco'
             }
-        }
-        const expectedOutput = {
-            '123': {
+        ]
+        const expectedOutput = [
+            {
                 EphemeraId: 'CHARACTER#123',
                 ConnectionIds: ['Test1'],
                 Color: 'green',
                 Name: 'Tess'
             },
-            '456': {
+            {
                 EphemeraId: 'CHARACTER#456',
                 ConnectionIds: ['Test2'],
                 Color: 'purple',
                 Name: 'Marco'
             }
-        }
+        ]
         ephemeraMock.getItem.mockResolvedValue({
             activeCharacters: testActiveCharacters
         })
