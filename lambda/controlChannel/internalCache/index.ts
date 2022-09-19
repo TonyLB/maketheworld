@@ -28,7 +28,7 @@ class CacheGlobalData {
                     let exponentialBackoff = 50
                     while(attempts < 5) {
                         const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                            ConnectionId: this.ConnectionId,
+                            ConnectionId: `CONNECTION#${this.ConnectionId}`,
                             DataCategory: 'Meta::Connection',
                             ProjectionFields: ['player']
                         }) || {}
@@ -40,10 +40,11 @@ class CacheGlobalData {
                         await delayPromise(exponentialBackoff)
                         exponentialBackoff = exponentialBackoff * 2
                     }
+                    console.log(`Exponential backoff on player caching failed after five attempts (${this.ConnectionId})`)
                 }
                 return this.player
             case 'assets':
-                if (this.assets !== undefined) {
+                if (typeof this.assets === 'undefined') {
                     const { assets = [] } = (await ephemeraDB.getItem<{ assets: string[] }>({
                         EphemeraId: 'Global',
                         DataCategory: 'Assets',

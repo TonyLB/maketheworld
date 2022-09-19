@@ -28,7 +28,7 @@ class CacheConnectionData {
                     let exponentialBackoff = 50
                     while(attempts < 5) {
                         const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                            ConnectionId: this.connectionId,
+                            ConnectionId: `CONNECTION#${this.connectionId}`,
                             DataCategory: 'Meta::Connection',
                             ProjectionFields: ['player']
                         }) || {}
