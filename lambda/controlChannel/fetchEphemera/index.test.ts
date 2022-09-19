@@ -1,5 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
-import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 jest.mock('@tonylb/mtw-utilities/dist/perception')
 import { render } from '@tonylb/mtw-utilities/dist/perception'
 jest.mock('../internalCache')
@@ -11,6 +11,7 @@ import messageBus from '../messageBus'
 import { fetchEphemeraForCharacter, fetchPlayerEphemera } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const internalCacheMock = jest.mocked(internalCache, true)
 const renderMock = render as jest.Mock
 
@@ -21,14 +22,17 @@ describe('fetchPlayerEphemera', () => {
     })
 
     it('should serialize fetched CharacterInPlay records', async () => {
-        ephemeraDBMock.query.mockResolvedValue([{
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: `CHARACTER#ABC`
+        }])
+        internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTERINPLAY#ABC',
-            Connected: true,
             RoomId: 'ROOM#XYZ',
             Name: 'Testy',
             fileURL: 'test.png',
-            Color: 'purple'
-        }])
+            Color: 'purple',
+            HomeId: 'VORTEX'
+        })
         await fetchPlayerEphemera({
             payloads: [{
                 type: 'FetchPlayerEphemera'
@@ -37,6 +41,7 @@ describe('fetchPlayerEphemera', () => {
         })
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
+            global: false,
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'ABC',
@@ -53,25 +58,13 @@ describe('fetchPlayerEphemera', () => {
 describe('fetchEphemeraForCharacter', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.resetAllMocks()
+        jest.restoreAllMocks()
     })
 
     it('should return empty update when no Maps match character assets', async () => {
-        ephemeraDBMock.getItem.mockImplementation(async ({ DataCategory }) => {
-            if (DataCategory === 'Meta::Character') {
-                return {
-                    assets: ['TESTONE']
-                }
-            }
-            if (DataCategory === 'Assets') {
-                return {
-                    assets: ['BASE']
-                }
-            }
-            return {}
-        })
+        ephemeraDBMock.getItem.mockResolvedValue({ assets: ['TESTONE'] })
+        internalCacheMock.Global.get.mockImplementation(async (key) => (key === 'RequestId' ? '1234' : ['BASE']))
         ephemeraDBMock.query.mockResolvedValue([])
-        internalCacheMock.Global.get.mockResolvedValue('1234')
         const output = await fetchEphemeraForCharacter({
             CharacterId: 'TEST'
         })
@@ -97,19 +90,8 @@ describe('fetchEphemeraForCharacter', () => {
     })
 
     it('should return update when Maps match character assets', async () => {
-        ephemeraDBMock.getItem.mockImplementation(async ({ DataCategory }) => {
-            if (DataCategory === 'Meta::Character') {
-                return {
-                    assets: ['TESTONE']
-                }
-            }
-            if (DataCategory === 'Assets') {
-                return {
-                    assets: ['BASE']
-                }
-            }
-            return {}
-        })
+        ephemeraDBMock.getItem.mockResolvedValue({ assets: ['TESTONE'] })
+        internalCacheMock.Global.get.mockImplementation(async (key) => (key === 'RequestId' ? '1234' : ['BASE']))
         ephemeraDBMock.query.mockImplementation(async (props) => {
             if (props.IndexName === 'DataCategoryIndex') {
                 if (props.DataCategory === 'ASSET#TESTONE') {
@@ -137,7 +119,6 @@ describe('fetchEphemeraForCharacter', () => {
                 fountainSquare: { x: -50, y: 0 }
             }
         }])
-        internalCacheMock.Global.get.mockResolvedValue('1234')
         const output = await fetchEphemeraForCharacter({
             CharacterId: 'TEST'
         })

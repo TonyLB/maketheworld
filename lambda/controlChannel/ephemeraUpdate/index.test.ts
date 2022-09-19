@@ -14,13 +14,14 @@ describe('EphemeraUpdateMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.Global.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123')
     })
 
     it('should call apiClient against registered connectionId', async () => {
+        internalCacheMock.Global.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123')
         await ephemeraUpdateMessage({
             payloads: [{
                 type: 'EphemeraUpdate',
+                global: false,
                 updates: [{
                     type: 'CharacterInPlay',
                     CharacterId: 'ABC',
@@ -37,4 +38,42 @@ describe('EphemeraUpdateMessage', () => {
             Data: '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
         })
     })
+
+    it('should call apiClient against all connectionIds for global message', async () => {
+        internalCacheMock.Global.get.mockImplementation(async (key) => {
+            switch(key) {
+                case 'ConnectionId':
+                    return 'TestConnection'
+                case 'connections':
+                    return ['Connection1', 'Connection2']
+                default:
+                    return 'Request123'
+            }
+        })
+        await ephemeraUpdateMessage({
+            payloads: [{
+                type: 'EphemeraUpdate',
+                global: true,
+                updates: [{
+                    type: 'CharacterInPlay',
+                    CharacterId: 'ABC',
+                    Connected: true,
+                    RoomId: 'VORTEX',
+                    Name: 'Tess',
+                    fileURL: 'TestURL',
+                    Color: 'purple'
+                }]
+            }]
+        })
+        const expectedData = '{\"messageType\":\"Ephemera\",\"RequestId\":\"Request123\",\"updates\":[{\"type\":\"CharacterInPlay\",\"CharacterId\":\"ABC\",\"Connected\":true,\"RoomId\":\"VORTEX\",\"Name\":\"Tess\",\"fileURL\":\"TestURL\",\"Color\":\"purple\"}]}'
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Connection1',
+            Data: expectedData
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Connection2',
+            Data: expectedData
+        })
+    })
+
 })

@@ -8,14 +8,37 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     const ConnectionId = await internalCache.Global.get('ConnectionId')
     const RequestId = await internalCache.Global.get('RequestId')
 
-    await apiClient.send({
-        ConnectionId,
-        Data: JSON.stringify({
-            messageType: 'Ephemera',
-            RequestId,
-            updates: payloads.reduce((previous, payload) => ([ ...previous, ...payload.updates]), [] as EphemeraUpdateMessage["updates"])
+    const nonGlobalSends = (payloads.find(({ global }) => (!global))) ? [
+        apiClient.send({
+            ConnectionId,
+            Data: JSON.stringify({
+                messageType: 'Ephemera',
+                RequestId,
+                updates: payloads.filter(({ global }) => (!global)).reduce((previous, payload) => ([ ...previous, ...payload.updates]), [] as EphemeraUpdateMessage["updates"])
+            })
         })
-    })
+    ] : []
+    let globalSends = [] as Promise<any>[]
+    if (payloads.find(({ global }) => (global))) {
+        const connections = await internalCache.Global.get('connections') || []
+        const updates = payloads.filter(({ global }) => (global)).reduce((previous, payload) => ([ ...previous, ...payload.updates]), [] as EphemeraUpdateMessage["updates"])
+        globalSends = [Promise.all(
+            connections.map((connectionId) => (
+                apiClient.send({
+                    ConnectionId: connectionId,
+                    Data: JSON.stringify({
+                        messageType: 'Ephemera',
+                        RequestId,
+                        updates
+                    })
+                })
+            ))
+        )]
+    }
+    await Promise.all([
+        ...nonGlobalSends,
+        ...globalSends
+    ])
 }
 
 export default ephemeraUpdate

@@ -4,14 +4,18 @@ import { connectionDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
+import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 
-type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player'
+type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections'
 class CacheGlobalData {
     ConnectionId?: string;
     RequestId?: string;
     player?: string;
+    assets?: string[];
+    connections?: string[];
     get(key: 'ConnectionId' | 'RequestId' | 'player'): Promise<string | undefined>
-    get(key: CacheGlobalKeys): Promise<string | undefined>
+    get(key: 'assets' | 'connections'): Promise<string[] | undefined>
+    get(key: CacheGlobalKeys): Promise<string | string[] | undefined>
     async get(key: CacheGlobalKeys) {
         switch(key) {
             case 'player':
@@ -25,7 +29,7 @@ class CacheGlobalData {
                     let exponentialBackoff = 50
                     while(attempts < 5) {
                         const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                            ConnectionId: this.ConnectionId,
+                            ConnectionId: `CONNECTION#${this.ConnectionId}`,
                             DataCategory: 'Meta::Connection',
                             ProjectionFields: ['player']
                         }) || {}
@@ -37,8 +41,28 @@ class CacheGlobalData {
                         await delayPromise(exponentialBackoff)
                         exponentialBackoff = exponentialBackoff * 2
                     }
+                    console.log(`Exponential backoff on player caching failed after five attempts (${this.ConnectionId})`)
                 }
                 return this.player
+            case 'assets':
+                if (typeof this.assets === 'undefined') {
+                    const { assets = [] } = (await ephemeraDB.getItem<{ assets: string[] }>({
+                        EphemeraId: 'Global',
+                        DataCategory: 'Assets',
+                        ProjectionFields: ['assets']
+                    })) || {}
+                }
+                return this.assets
+            case 'connections':
+                if (typeof this.connections === 'undefined') {
+                    const { connections = [] } = (await connectionDB.getItem<{ connections: string[] }>({
+                        ConnectionId: 'Global',
+                        DataCategory: 'Connections',
+                        ProjectionFields: ['connections']
+                    })) || {}
+                    this.connections = connections
+                }
+                return this.connections
             default:
                 return this[key]
         }
@@ -48,6 +72,7 @@ class CacheGlobalData {
         this.ConnectionId = undefined
         this.RequestId = undefined
         this.player = undefined
+        this.assets = undefined
     }
 
     set(props: { key: 'ConnectionId' | 'RequestId', value: string; }): void {
