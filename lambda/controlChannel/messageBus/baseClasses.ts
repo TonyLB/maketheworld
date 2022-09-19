@@ -106,6 +106,7 @@ export type EphemeraUpdateEntry = {
     RoomId: string;
     Name: string;
     fileURL: string;
+    Color: string;
 }
 
 export type EphemeraUpdateMessage = {
