@@ -1,7 +1,6 @@
 import { DisconnectMessage, MessageBus } from "../messageBus/baseClasses"
 
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { forceDisconnect } from '@tonylb/mtw-utilities/dist/apiManagement/forceDisconnect'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
@@ -135,7 +134,6 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
             KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
             ProjectionFields: ['DataCategory']
         })
-        console.log(`CharacterQuery: ${JSON.stringify(characterQuery, null, 4)}`)
         await Promise.all([
             ...characterQuery.map(async ({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, splitType(DataCategory)[1]))),
             connectionDB.deleteItem({

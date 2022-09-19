@@ -1,0 +1,160 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`disconnectMessage should update correctly on last connection 1`] = `
+Array [
+  Object {
+    "Delete": Object {
+      "Key": Object {
+        "ConnectionId": Object {
+          "S": "CONNECTION#XYZ",
+        },
+        "DataCategory": Object {
+          "S": "CHARACTER#ABC",
+        },
+      },
+      "TableName": "Connections",
+    },
+  },
+  Object {
+    "Delete": Object {
+      "Key": Object {
+        "ConnectionId": Object {
+          "S": "CHARACTER#ABC",
+        },
+        "DataCategory": Object {
+          "S": "Meta::Character",
+        },
+      },
+      "TableName": "Connections",
+    },
+  },
+  Object {
+    "Update": Object {
+      "ConditionExpression": "activeCharacters = :oldCharacters",
+      "ExpressionAttributeValues": Object {
+        ":newCharacters": Object {
+          "L": Array [
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "BCD",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#BCD",
+                },
+                "Name": Object {
+                  "S": "TestToo",
+                },
+              },
+            },
+          ],
+        },
+        ":oldCharacters": Object {
+          "L": Array [
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "BCD",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#BCD",
+                },
+                "Name": Object {
+                  "S": "TestToo",
+                },
+              },
+            },
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "XYZ",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#ABC",
+                },
+                "Name": Object {
+                  "S": "Tess",
+                },
+              },
+            },
+          ],
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Room",
+        },
+        "EphemeraId": Object {
+          "S": "ROOM#TestABC",
+        },
+      },
+      "TableName": "Ephemera",
+      "UpdateExpression": "SET activeCharacters = :newCharacters",
+    },
+  },
+]
+`;
+
+exports[`disconnectMessage should update correctly on redundant connections 1`] = `
+Array [
+  Object {
+    "Delete": Object {
+      "Key": Object {
+        "ConnectionId": Object {
+          "S": "CONNECTION#XYZ",
+        },
+        "DataCategory": Object {
+          "S": "CHARACTER#ABC",
+        },
+      },
+      "TableName": "Connections",
+    },
+  },
+  Object {
+    "Update": Object {
+      "ConditionExpression": "connections = :oldConnections",
+      "ExpressionAttributeValues": Object {
+        ":newConnections": Object {
+          "L": Array [
+            Object {
+              "S": "QRS",
+            },
+          ],
+        },
+        ":oldConnections": Object {
+          "L": Array [
+            Object {
+              "S": "QRS",
+            },
+            Object {
+              "S": "XYZ",
+            },
+          ],
+        },
+      },
+      "Key": Object {
+        "ConnectionId": Object {
+          "S": "CHARACTER#ABC",
+        },
+        "DataCategory": Object {
+          "S": "Meta::Character",
+        },
+      },
+      "TableName": "Connections",
+      "UpdateExpression": "SET connections = :newConnections",
+    },
+  },
+]
+`;

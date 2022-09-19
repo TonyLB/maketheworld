@@ -8,25 +8,20 @@ import {
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
-jest.mock('../internalCache')
-import internalCache from '../internalCache'
-
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const multiTableTransactWriteMock = multiTableTransactWrite as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
-const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
 
-import registerCharacter from '.'
+import disconnectMessage from '.'
 
-describe("registerCharacter", () => {
+describe("disconnectMessage", () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        internalCacheMock.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('Request123')
     })
 
-    it("should update correctly on first connection", async () => {
+    it("should update correctly on last connection", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
             Name: 'Tess',
             RoomId: 'TestABC'
@@ -34,52 +29,54 @@ describe("registerCharacter", () => {
         .mockResolvedValueOnce({
             activeCharacters: [{
                 EphemeraId: 'CHARACTER#BCD',
-                Name: 'TestToo'
+                Name: 'TestToo',
+                Connections: ['BCD']
+            },
+            {
+                EphemeraId: 'CHARACTER#ABC',
+                Name: 'Tess',
+                Connections: ['XYZ']
             }]
         })
-        connectionDBMock.getItem.mockResolvedValueOnce({})
-        await registerCharacter({
-            payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }],
+        connectionDBMock.getItem.mockResolvedValueOnce({
+            connections: ['XYZ']
+        })
+        connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
+        await disconnectMessage({
+            payloads: [{ type: 'Disconnect', connectionId: 'XYZ' }],
             messageBus
         })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'ReturnValue',
-            body: {
-                messageType: "Registration",
-                CharacterId: 'ABC',
-                RequestId: 'Request123'
-            }
-        })
     })
 
-    it("should update correctly on subsequent connections", async () => {
+    it("should update correctly on redundant connections", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
             Name: 'Tess',
             RoomId: 'TestABC'
         })
         .mockResolvedValueOnce({
             activeCharacters: [{
+                EphemeraId: 'CHARACTER#BCD',
+                Name: 'TestToo',
+                Connections: ['BCD']
+            },
+            {
                 EphemeraId: 'CHARACTER#ABC',
                 Name: 'Tess',
-                ConnectionIds: ['previous']
+                Connections: ['QRS', 'XYZ']
             }]
         })
         connectionDBMock.getItem.mockResolvedValueOnce({
-            connections: ['previous']
+            connections: ['QRS', 'XYZ']
         })
-        await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }], messageBus })
+        connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
+        await disconnectMessage({
+            payloads: [{ type: 'Disconnect', connectionId: 'XYZ' }],
+            messageBus
+        })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'ReturnValue',
-            body: {
-                messageType: "Registration",
-                CharacterId: 'ABC',
-                RequestId: 'Request123'
-            }
-        })
     })
 
 })
