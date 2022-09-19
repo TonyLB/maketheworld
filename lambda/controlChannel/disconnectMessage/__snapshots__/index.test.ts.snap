@@ -156,5 +156,84 @@ Array [
       "UpdateExpression": "SET connections = :newConnections",
     },
   },
+  Object {
+    "Update": Object {
+      "ConditionExpression": "activeCharacters = :oldCharacters",
+      "ExpressionAttributeValues": Object {
+        ":newCharacters": Object {
+          "L": Array [
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "BCD",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#BCD",
+                },
+                "Name": Object {
+                  "S": "TestToo",
+                },
+              },
+            },
+          ],
+        },
+        ":oldCharacters": Object {
+          "L": Array [
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "BCD",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#BCD",
+                },
+                "Name": Object {
+                  "S": "TestToo",
+                },
+              },
+            },
+            Object {
+              "M": Object {
+                "Connections": Object {
+                  "L": Array [
+                    Object {
+                      "S": "QRS",
+                    },
+                    Object {
+                      "S": "XYZ",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#ABC",
+                },
+                "Name": Object {
+                  "S": "Tess",
+                },
+              },
+            },
+          ],
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Room",
+        },
+        "EphemeraId": Object {
+          "S": "ROOM#TestABC",
+        },
+      },
+      "TableName": "Ephemera",
+      "UpdateExpression": "SET activeCharacters = :newCharacters",
+    },
+  },
 ]
 `;

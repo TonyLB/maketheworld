@@ -23,20 +23,21 @@ describe("disconnectMessage", () => {
 
     it("should update correctly on last connection", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Name: 'Tess',
             RoomId: 'TestABC'
         })
         .mockResolvedValueOnce({
-            activeCharacters: [{
-                EphemeraId: 'CHARACTER#BCD',
-                Name: 'TestToo',
-                Connections: ['BCD']
-            },
-            {
-                EphemeraId: 'CHARACTER#ABC',
-                Name: 'Tess',
-                Connections: ['XYZ']
-            }]
+            activeCharacters: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    Connections: ['BCD']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    Connections: ['XYZ']
+                }
+            ]
         })
         connectionDBMock.getItem.mockResolvedValueOnce({
             connections: ['XYZ']
@@ -52,20 +53,21 @@ describe("disconnectMessage", () => {
 
     it("should update correctly on redundant connections", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
-            Name: 'Tess',
             RoomId: 'TestABC'
         })
         .mockResolvedValueOnce({
-            activeCharacters: [{
-                EphemeraId: 'CHARACTER#BCD',
-                Name: 'TestToo',
-                Connections: ['BCD']
-            },
-            {
-                EphemeraId: 'CHARACTER#ABC',
-                Name: 'Tess',
-                Connections: ['QRS', 'XYZ']
-            }]
+            activeCharacters: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    Connections: ['BCD']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    Connections: ['QRS', 'XYZ']
+                }
+            ]
         })
         connectionDBMock.getItem.mockResolvedValueOnce({
             connections: ['QRS', 'XYZ']
