@@ -23,7 +23,9 @@ describe("disconnectMessage", () => {
 
     it("should update correctly on last connection", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
-            RoomId: 'TestABC'
+            RoomId: 'TestABC',
+            Name: 'Tess',
+            Color: 'purple'
         })
         .mockResolvedValueOnce({
             activeCharacters: [
@@ -49,6 +51,18 @@ describe("disconnectMessage", () => {
         })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'ABC',
+                Connected: false,
+                Name: 'Tess',
+                RoomId: 'TestABC',
+                fileURL: '',
+                Color: 'purple'
+            }]
+        })
     })
 
     it("should update correctly on redundant connections", async () => {
@@ -79,6 +93,7 @@ describe("disconnectMessage", () => {
         })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
+        expect(messageBusMock.send).not.toHaveBeenCalled()
     })
 
 })

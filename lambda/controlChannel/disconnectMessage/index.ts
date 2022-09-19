@@ -3,6 +3,7 @@ import { DisconnectMessage, MessageBus } from "../messageBus/baseClasses"
 import { connectionDB, ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import messageBus from "../messageBus"
 
 //
 // TODO:
@@ -29,17 +30,20 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 DataCategory: 'Meta::Character',
                 ProjectionFields: ['connections']
             }),
-            ephemeraDB.getItem<{ RoomId: string }>({
+            ephemeraDB.getItem<{ RoomId: string; Name: string; fileURL: string; Color: string; }>({
                 EphemeraId: `CHARACTER#${characterId}`,
                 DataCategory: 'Meta::Character',
-                ProjectionFields: ['RoomId']
+                ProjectionFields: ['RoomId', '#name', 'fileURL', 'Color'],
+                ExpressionAttributeNames: {
+                    '#name': 'Name'
+                }
             })
         ])
         const { connections: currentConnections } = connectionFetch || {}
         if (!currentConnections) {
             return
         }
-        const { RoomId } = characterFetch || {}
+        const { RoomId, Name, fileURL, Color } = characterFetch || {}
 
         const { activeCharacters: currentActiveCharacters = [] } = (await ephemeraDB.getItem<{ activeCharacters: RoomCharacterActive[] }>({
             EphemeraId: `ROOM#${RoomId}`,
@@ -100,6 +104,20 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 ConditionExpression: 'activeCharacters = :oldCharacters'
             }
         }])
+        if (remainingConnections.length === 0) {
+            messageBus.send({
+                type: 'EphemeraUpdate',
+                updates: [{
+                    type: 'CharacterInPlay',
+                    CharacterId: characterId,
+                    Name: Name || '',
+                    Connected: false,
+                    RoomId: RoomId || '',
+                    fileURL: fileURL || '',
+                    Color: Color || 'grey'
+                }]
+            })
+        }
 
     }, { retryErrors: ['TransactionCanceledException']})
 }
