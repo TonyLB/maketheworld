@@ -51,7 +51,7 @@ export const executeAction = async (request: ActionAPIMessage) => {
             })
             break
         case 'home':
-            const props = await internalCache.get({ category: 'CharacterHome', key: request.payload.CharacterId })
+            const props = await internalCache.get({ category: 'CharacterMeta', key: request.payload.CharacterId })
             const { HomeId = '' } = props || {}
             messageBus.send({
                 type: 'MoveCharacter',

@@ -83,23 +83,10 @@ type CacheCharacterMeta = {
     Name: string;
     RoomId: string;
     Color?: string;
-}
-```
-
-Per character ID, stores fetched information about the character.
-
-### CharacterHome
-
-```ts
-type CacheCharacterHome = {
+    fileURL?: string;
     HomeId: string;
 }
 ```
-
-*The above should probably be folded into the CharacterMeta, but doing so will*
-*require keeping the HomeID stored in ephemera as well as assets*
-
-Per character ID, stores the HomeID of the character
 
 ### RoomCharacterList
 
