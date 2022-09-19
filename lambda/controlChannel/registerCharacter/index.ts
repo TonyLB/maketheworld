@@ -6,7 +6,7 @@ import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
-import { RoomCharacterListItem } from "../internalCache/roomCharacterLists"
+import { RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
