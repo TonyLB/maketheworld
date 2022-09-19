@@ -22,10 +22,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 DataCategory: 'Meta::Character',
                 ProjectionFields: ['connections']
             }),
-            internalCache.get({
-                category: 'CharacterMeta',
-                key: characterId
-            })
+            internalCache.CharacterMeta.get(characterId)
         ])
         const { connections: currentConnections } = connectionFetch || {}
         if (!currentConnections) {
@@ -33,10 +30,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
         }
         const { RoomId, Name, fileURL, Color } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.get({
-            category: 'RoomCharacterList',
-            key: characterId
-        })
+        const currentActiveCharacters = await internalCache.RoomCharacterList.get(characterId)
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 

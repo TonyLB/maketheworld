@@ -11,7 +11,7 @@ import publishMessage from './index'
 
 const publishMessageMock = publishMessageDynamoDB as jest.Mock
 const uuidMock = uuidv4 as jest.Mock
-const cacheMock = internalCache as jest.Mocked<typeof internalCache>
+const cacheMock = jest.mocked(internalCache, true)
 
 describe('PublishMessage', () => {
     const realDateNow = Date.now.bind(global.Date);
@@ -47,7 +47,7 @@ describe('PublishMessage', () => {
     })
 
     it('should remap room targets dynamically', async () => {
-        cacheMock.get.mockResolvedValue([
+        cacheMock.RoomCharacterList.get.mockResolvedValue([
             {
                 EphemeraId: 'CHARACTER#123',
                 ConnectionIds: ['Test1'],

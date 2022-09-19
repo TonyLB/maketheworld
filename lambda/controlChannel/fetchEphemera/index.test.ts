@@ -11,7 +11,7 @@ import messageBus from '../messageBus'
 import { fetchEphemeraForCharacter, fetchPlayerEphemera } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
-const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
+const internalCacheMock = jest.mocked(internalCache, true)
 const renderMock = render as jest.Mock
 
 describe('fetchPlayerEphemera', () => {
@@ -71,7 +71,7 @@ describe('fetchEphemeraForCharacter', () => {
             return {}
         })
         ephemeraDBMock.query.mockResolvedValue([])
-        internalCacheMock.get.mockResolvedValue('1234')
+        internalCacheMock.Global.get.mockResolvedValue('1234')
         const output = await fetchEphemeraForCharacter({
             CharacterId: 'TEST'
         })
@@ -137,7 +137,7 @@ describe('fetchEphemeraForCharacter', () => {
                 fountainSquare: { x: -50, y: 0 }
             }
         }])
-        internalCacheMock.get.mockResolvedValue('1234')
+        internalCacheMock.Global.get.mockResolvedValue('1234')
         const output = await fetchEphemeraForCharacter({
             CharacterId: 'TEST'
         })

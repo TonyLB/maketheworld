@@ -17,19 +17,16 @@ type RoomCharacterActive = {
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const connectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
+    const connectionId = await internalCache.Global.get('ConnectionId')
 
     if (connectionId) {
-        const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId' })
+        const RequestId = await internalCache.Global.get('RequestId')
         const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
             const { characterId: CharacterId } = payload
             const EphemeraId = `CHARACTER#${CharacterId}`
             await exponentialBackoffWrapper(async () => {
                 const [characterFetch, connectionsFetch] = await Promise.all([
-                    internalCache.get({
-                        category: 'CharacterMeta',
-                        key: CharacterId
-                    }),
+                    internalCache.CharacterMeta.get(CharacterId),
                     connectionDB.getItem<{ connections: string[] }>({
                         ConnectionId: EphemeraId,
                         DataCategory: 'Meta::Character',
@@ -42,10 +39,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 }
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
                 const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
-                const activeCharacters = await internalCache.get({
-                    category: 'RoomCharacterList',
-                    key: splitType(RoomEphemeraId)[1]
-                })
+                const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
                 const newConnections = unique(currentConnections || [], [connectionId])
                 const metaCharacterUpdate = (currentConnections !== undefined)
                     ? {

@@ -6,10 +6,7 @@ import { LegalCharacterColor, PublishMessage } from '../messageBus/baseClasses'
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: string; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {
     if (CharacterId && Message && DisplayProtocol) {
-        const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await internalCache.get({
-            category: 'CharacterMeta',
-            key: CharacterId
-        }) || {}
+        const { RoomId, Name, Color = defaultColorFromCharacterId(CharacterId) } = await internalCache.CharacterMeta.get(CharacterId) || {}
         if (RoomId) {
             messageBus.send({
                 type: 'PublishMessage',
@@ -51,7 +48,7 @@ export const executeAction = async (request: ActionAPIMessage) => {
             })
             break
         case 'home':
-            const props = await internalCache.get({ category: 'CharacterMeta', key: request.payload.CharacterId })
+            const props = await internalCache.CharacterMeta.get(request.payload.CharacterId)
             const { HomeId = '' } = props || {}
             messageBus.send({
                 type: 'MoveCharacter',
