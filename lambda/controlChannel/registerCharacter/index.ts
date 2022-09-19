@@ -6,30 +6,20 @@ import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
-
-type RoomCharacterActive = {
-    EphemeraId: string;
-    Color?: string;
-    ConnectionIds: string[];
-    fileURL?: string;
-    Name: string;
-}
+import { RoomCharacterListItem } from "../internalCache/roomCharacterLists"
 
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const connectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
+    const connectionId = await internalCache.Global.get('ConnectionId')
 
     if (connectionId) {
-        const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId' })
+        const RequestId = await internalCache.Global.get('RequestId')
         const handleOneRegistry = async (payload: RegisterCharacterMessage): Promise<void> => {
             const { characterId: CharacterId } = payload
             const EphemeraId = `CHARACTER#${CharacterId}`
             await exponentialBackoffWrapper(async () => {
                 const [characterFetch, connectionsFetch] = await Promise.all([
-                    internalCache.get({
-                        category: 'CharacterMeta',
-                        key: CharacterId
-                    }),
+                    internalCache.CharacterMeta.get(CharacterId),
                     connectionDB.getItem<{ connections: string[] }>({
                         ConnectionId: EphemeraId,
                         DataCategory: 'Meta::Character',
@@ -42,11 +32,8 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 }
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
                 const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
-                const activeCharacters = await internalCache.get({
-                    category: 'RoomCharacterList',
-                    key: splitType(RoomEphemeraId)[1]
-                })
-                const newConnections = unique(currentConnections || [], [connectionId])
+                const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
+                const newConnections = unique(currentConnections || [], [connectionId]) as string[]
                 const metaCharacterUpdate = (currentConnections !== undefined)
                     ? {
                         TableName: 'Connections',
@@ -89,7 +76,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             ConditionExpression: 'attribute_not_exists(RoomId)'
                         }
                     }]
-                const newActiveCharacters = [
+                const newActiveCharacters: RoomCharacterListItem[] = [
                     ...(activeCharacters || []).filter((character) => (character.EphemeraId !== EphemeraId)),
                     {
                         EphemeraId,
@@ -143,9 +130,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         }]        
                     })
                 }
-                //
-                // TODO: As part of ISS1476 add set to RoomCharacterList cache, and use here to update cache
-                //
+                internalCache.RoomCharacterList.set({ key: RoomId, value: newActiveCharacters })
 
             }, { retryErrors: ['TransactionCanceledException']})
     

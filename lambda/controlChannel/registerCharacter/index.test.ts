@@ -15,7 +15,7 @@ const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const multiTableTransactWriteMock = multiTableTransactWrite as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
-const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
+const internalCacheMock = jest.mocked(internalCache, true)
 
 import registerCharacter from '.'
 
@@ -23,18 +23,18 @@ describe("registerCharacter", () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
-        internalCacheMock.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('Request123')
+        internalCacheMock.Global.get.mockResolvedValueOnce('TestConnection').mockResolvedValueOnce('Request123')
     })
 
     it("should update correctly on first connection", async () => {
-        internalCacheMock.get.mockResolvedValueOnce({
+        internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
             RoomId: 'TestABC',
             Color: 'purple',
             HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce([{
+        internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
                 EphemeraId: 'CHARACTER#BCD',
                 Name: 'TestToo',
                 ConnectionIds: ['QRS']
@@ -66,17 +66,33 @@ describe("registerCharacter", () => {
                 Color: 'purple'
             }]
         })
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['QRS']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    Color: 'purple',
+                    ConnectionIds: ['TestConnection']
+                }
+            ]
+        })
     })
 
     it("should update correctly on subsequent connections", async () => {
-        internalCacheMock.get.mockResolvedValueOnce({
+        internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
             RoomId: 'TestABC',
             Color: 'purple',
             HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce([{
+        internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
                 EphemeraId: 'CHARACTER#ABC',
                 Name: 'Tess',
                 ConnectionIds: ['previous']
@@ -95,6 +111,15 @@ describe("registerCharacter", () => {
                 CharacterId: 'ABC',
                 RequestId: 'Request123'
             }
+        })
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [{
+                EphemeraId: 'CHARACTER#ABC',
+                Name: 'Tess',
+                Color: 'purple',
+                ConnectionIds: ['previous', 'TestConnection']
+            }]
         })
     })
 

@@ -15,7 +15,7 @@ const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const multiTableTransactWriteMock = multiTableTransactWrite as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
-const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
+const internalCacheMock = jest.mocked(internalCache, true)
 
 import disconnectMessage from '.'
 
@@ -26,14 +26,14 @@ describe("disconnectMessage", () => {
     })
 
     it("should update correctly on last connection", async () => {
-        internalCacheMock.get.mockResolvedValueOnce({
+        internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             RoomId: 'TestABC',
             Name: 'Tess',
             Color: 'purple',
             HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce([
+        internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([
                 {
                     EphemeraId: 'CHARACTER#BCD',
                     Name: 'TestToo',
@@ -67,16 +67,26 @@ describe("disconnectMessage", () => {
                 Color: 'purple'
             }]
         })
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['BCD']
+                }
+            ]
+        })
     })
 
     it("should update correctly on redundant connections", async () => {
-        internalCacheMock.get.mockResolvedValueOnce({
+        internalCacheMock.CharacterMeta.get.mockResolvedValueOnce({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
             RoomId: 'TestABC',
             HomeId: 'VORTEX'
         })
-        .mockResolvedValueOnce([
+        internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([
                 {
                     EphemeraId: 'CHARACTER#BCD',
                     Name: 'TestToo',
@@ -99,6 +109,23 @@ describe("disconnectMessage", () => {
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
         expect(messageBusMock.send).not.toHaveBeenCalled()
+        expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
+            key: 'TestABC',
+            value: [
+                {
+                    EphemeraId: 'CHARACTER#BCD',
+                    Name: 'TestToo',
+                    ConnectionIds: ['BCD']
+                },
+                {
+                    EphemeraId: 'CHARACTER#ABC',
+                    Name: 'Tess',
+                    ConnectionIds: ['QRS'],
+                    HomeId: 'VORTEX',
+                    RoomId: 'TestABC'
+                }
+            ]
+        })
     })
 
 })

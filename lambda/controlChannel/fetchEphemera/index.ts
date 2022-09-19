@@ -67,10 +67,7 @@ export const fetchPlayerEphemera = async ({ payloads, messageBus }: { payloads: 
 export const fetchEphemeraForCharacter = async ({
     CharacterId
 }) => {
-    const RequestId = (await internalCache.get({
-        category: 'Global',
-        key: 'RequestId'
-    })) || ''
+    const RequestId = (await internalCache.Global.get('RequestId')) || ''
 
     const [
         { assets: characterAssets = [] } = {},

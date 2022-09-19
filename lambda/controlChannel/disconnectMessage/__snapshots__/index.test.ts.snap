@@ -179,6 +179,29 @@ Array [
                 },
               },
             },
+            Object {
+              "M": Object {
+                "ConnectionIds": Object {
+                  "L": Array [
+                    Object {
+                      "S": "QRS",
+                    },
+                  ],
+                },
+                "EphemeraId": Object {
+                  "S": "CHARACTER#ABC",
+                },
+                "HomeId": Object {
+                  "S": "VORTEX",
+                },
+                "Name": Object {
+                  "S": "Tess",
+                },
+                "RoomId": Object {
+                  "S": "TestABC",
+                },
+              },
+            },
           ],
         },
         ":oldCharacters": Object {

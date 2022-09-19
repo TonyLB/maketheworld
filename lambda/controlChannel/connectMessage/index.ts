@@ -5,7 +5,7 @@ import internalCache from '../internalCache'
 
 export const connectMessage = async ({ payloads, messageBus }: { payloads: ConnectMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const connectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
+    const connectionId = await internalCache.Global.get('ConnectionId')
 
     if (connectionId) {
         const aggregatePromises = payloads.reduce((previous, payload) => ([

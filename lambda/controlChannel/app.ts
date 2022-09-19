@@ -71,9 +71,9 @@ export const handler = async (event: any, context: any) => {
     const request = (event.body && (JSON.parse(event.body) as EphemeraAPIMessage)) || {}
 
     internalCache.clear()
-    internalCache.set({ category: 'Global', key: 'ConnectionId', value: connectionId })
+    internalCache.Global.set({ key: 'ConnectionId', value: connectionId })
     if (request.RequestId) {
-        internalCache.set({ category: 'Global', key: 'RequestId', value: request.RequestId })
+        internalCache.Global.set({ key: 'RequestId', value: request.RequestId })
     }
     messageBus.clear()
 
@@ -175,10 +175,7 @@ export const handler = async (event: any, context: any) => {
     if (isLinkAPIMessage(request)) {
         switch(splitType(request.to)[0]) {
             case 'ACTION':
-                const { RoomId } = (await internalCache.get({
-                    category: 'CharacterMeta',
-                    key: request.CharacterId
-                })) || {}
+                const { RoomId } = (await internalCache.CharacterMeta.get(request.CharacterId)) || {}
         
                 //
                 // TODO: Figure out whether we can still get use out of request.RoomId, as saved on

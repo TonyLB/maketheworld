@@ -7,14 +7,14 @@ import internalCache from "../internalCache"
 import returnValueMessage from './index'
 
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
-const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
+const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('ReturnValueMessage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.get.mockResolvedValue("TestConnection")
+        internalCacheMock.Global.get.mockResolvedValue("TestConnection")
     })
 
     it('should call apiClient against registered connectionId', async () => {

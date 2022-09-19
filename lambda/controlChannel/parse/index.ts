@@ -4,10 +4,7 @@ import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
 import internalCache from '../internalCache'
 
 const getCurrentRoom = async (CharacterId: string) => {
-    const { RoomId } = await internalCache.get({
-        category: 'CharacterMeta',
-        key: CharacterId
-    }) || {}
+    const { RoomId } = await internalCache.CharacterMeta.get(CharacterId) || {}
     if (RoomId) {
         const [{
             Exits: exits = [],

@@ -45,8 +45,8 @@ export const syncRequest = async ({ payloads, messageBus }: { payloads: SyncRequ
 
 export const syncResponse = async ({ payloads }: { payloads: SyncResponse[], messageBus?: MessageBus }): Promise<void> => {
     const [ConnectionId, RequestId] = await Promise.all([
-        internalCache.get({ category: 'Global', key: 'ConnectionId' }),
-        internalCache.get({ category: 'Global', key: 'RequestId' })
+        internalCache.Global.get('ConnectionId'),
+        internalCache.Global.get('RequestId')
     ])
     if (ConnectionId) {
         await Promise.all(payloads.map(async (payload) => {

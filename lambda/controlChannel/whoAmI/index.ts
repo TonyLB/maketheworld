@@ -6,14 +6,14 @@ import { EventBridgeUpdatePlayerAsset, EventBridgeUpdatePlayerCharacter } from "
 
 export const whoAmIMessage = async ({ payloads, messageBus }: { payloads: WhoAmIMessage[], messageBus: MessageBus }): Promise<void> => {
 
-    const username = await internalCache.get({ category: 'CurrentPlayerMeta', key: 'player' })
+    const username = await internalCache.Global.get('player')
     if (username) {
         const { Characters = [], Assets = [] } = (await ephemeraDB.getItem<{ Characters: EventBridgeUpdatePlayerCharacter[], Assets: EventBridgeUpdatePlayerAsset[] }>({
                 EphemeraId: `PLAYER#${username}`,
                 DataCategory: 'Meta::Player',
                 ProjectionFields: ['Characters', 'Assets']
             })) || {}
-        const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId' })
+        const RequestId = await internalCache.Global.get('RequestId')
         messageBus.send({
             type: 'ReturnValue',
             body: {

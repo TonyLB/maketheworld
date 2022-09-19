@@ -7,14 +7,14 @@ import internalCache from "../internalCache"
 import ephemeraUpdateMessage from '.'
 
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
-const internalCacheMock = internalCache as jest.Mocked<typeof internalCache>
+const internalCacheMock = jest.mocked(internalCache, true)
 
 describe('EphemeraUpdateMessage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
-        internalCacheMock.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123')
+        internalCacheMock.Global.get.mockResolvedValueOnce("TestConnection").mockResolvedValueOnce('Request123')
     })
 
     it('should call apiClient against registered connectionId', async () => {

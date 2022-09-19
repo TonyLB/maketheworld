@@ -291,8 +291,8 @@ export const fetchImportDefaults = async ({ payloads, messageBus }: { payloads: 
 }
 
 export const importDefaultsMessage = async ({ payloads }: { payloads: ImportDefaultsMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const ConnectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
-    const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId'})
+    const ConnectionId = await internalCache.Global.get('ConnectionId')
+    const RequestId = await internalCache.Global.get('RequestId')
 
     await Promise.all(payloads.map(async (payload) => {
         await apiClient.send({

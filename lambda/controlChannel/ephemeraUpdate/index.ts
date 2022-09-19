@@ -5,8 +5,8 @@ import internalCache from '../internalCache'
 import { apiClient } from '@tonylb/mtw-utilities/dist/apiManagement/apiManagementClient'
 
 export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const ConnectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
-    const RequestId = await internalCache.get({ category: 'Global', key: 'RequestId'})
+    const ConnectionId = await internalCache.Global.get('ConnectionId')
+    const RequestId = await internalCache.Global.get('RequestId')
 
     await apiClient.send({
         ConnectionId,

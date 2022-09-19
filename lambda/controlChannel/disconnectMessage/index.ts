@@ -22,10 +22,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 DataCategory: 'Meta::Character',
                 ProjectionFields: ['connections']
             }),
-            internalCache.get({
-                category: 'CharacterMeta',
-                key: characterId
-            })
+            internalCache.CharacterMeta.get(characterId)
         ])
         const { connections: currentConnections } = connectionFetch || {}
         if (!currentConnections) {
@@ -33,14 +30,20 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
         }
         const { RoomId, Name, fileURL, Color } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.get({
-            category: 'RoomCharacterList',
-            key: characterId
-        })
+        const currentActiveCharacters = await internalCache.RoomCharacterList.get(characterId)
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
-        const remainingCharacters = (currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`))
+        const remainingCharacters = [
+            ...(currentActiveCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== `CHARACTER#${characterId}`)),
+            ...((remainingConnections.length > 0)
+                ? [{
+                    ...characterFetch,
+                    ConnectionIds: remainingConnections
+                }]
+                : []
+            )
+        ]
         const adjustMeta = remainingConnections.length > 0
             ? [{
                 Update: {
@@ -105,9 +108,10 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 }]
             })
         }
-        //
-        // TODO: As part of ISS1476 add set to RoomCharacterList cache, and use here to update cache
-        //
+        internalCache.RoomCharacterList.set({
+            key: RoomId,
+            value: remainingCharacters
+        })
 
     }, { retryErrors: ['TransactionCanceledException']})
 }
