@@ -56,6 +56,7 @@ describe("registerCharacter", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
+            global: true,
             updates: [{
                 type: 'CharacterInPlay',
                 CharacterId: 'ABC',

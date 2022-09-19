@@ -6,14 +6,15 @@ import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 
-type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets'
+type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections'
 class CacheGlobalData {
     ConnectionId?: string;
     RequestId?: string;
     player?: string;
     assets?: string[];
+    connections?: string[];
     get(key: 'ConnectionId' | 'RequestId' | 'player'): Promise<string | undefined>
-    get(key: 'assets'): Promise<string[] | undefined>
+    get(key: 'assets' | 'connections'): Promise<string[] | undefined>
     get(key: CacheGlobalKeys): Promise<string | string[] | undefined>
     async get(key: CacheGlobalKeys) {
         switch(key) {
@@ -52,6 +53,16 @@ class CacheGlobalData {
                     })) || {}
                 }
                 return this.assets
+            case 'connections':
+                if (typeof this.connections === 'undefined') {
+                    const { connections = [] } = (await connectionDB.getItem<{ connections: string[] }>({
+                        ConnectionId: 'Global',
+                        DataCategory: 'Connections',
+                        ProjectionFields: ['connections']
+                    })) || {}
+                    this.connections = connections
+                }
+                return this.connections
             default:
                 return this[key]
         }

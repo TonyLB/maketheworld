@@ -119,6 +119,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 if ((currentConnections || []).length === 0) {
                     messageBus.send({
                         type: 'EphemeraUpdate',
+                        global: true,
                         updates: [{
                             type: 'CharacterInPlay',
                             CharacterId,

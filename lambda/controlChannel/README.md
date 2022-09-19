@@ -226,6 +226,7 @@ type EphemeraUpdateEntry = {
 
 type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
+    global: Boolean; // Whether to update only the connection that started the outlet, or all connections
     updates: EphemeraUpdateEntry[];
 }
 ```

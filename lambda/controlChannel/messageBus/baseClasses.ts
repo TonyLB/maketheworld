@@ -111,6 +111,7 @@ export type EphemeraUpdateEntry = {
 
 export type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
+    global: boolean;
     updates: EphemeraUpdateEntry[];
 }
 
