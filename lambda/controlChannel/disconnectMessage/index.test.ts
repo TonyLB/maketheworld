@@ -77,6 +77,16 @@ describe("disconnectMessage", () => {
                 value: `Tess has disconnected.`
             }]
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: [`ROOM#TestABC`, `CHARACTER#ABC`],
+            displayProtocol: 'RoomUpdate',
+            RoomId: 'TestABC',
+            Characters: [{
+                CharacterId: 'BCD',
+                Name: 'TestToo'
+            }]
+        })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
             key: 'TestABC',
             value: [

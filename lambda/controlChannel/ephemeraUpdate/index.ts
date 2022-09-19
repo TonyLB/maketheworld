@@ -20,10 +20,10 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
     ] : []
     let globalSends = [] as Promise<any>[]
     if (payloads.find(({ global }) => (global))) {
-        const connections = await internalCache.Global.get('connections') || []
+        const connections = (await internalCache.Global.get('connections')) || []
         const updates = payloads.filter(({ global }) => (global)).reduce((previous, payload) => ([ ...previous, ...payload.updates]), [] as EphemeraUpdateMessage["updates"])
-        globalSends = [Promise.all(
-            connections.map((connectionId) => (
+        console.log(`Connections: ${JSON.stringify(connections, null, 4)}`)
+        globalSends = connections.map((connectionId) => (
                 apiClient.send({
                     ConnectionId: connectionId,
                     Data: JSON.stringify({
@@ -33,7 +33,6 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                     })
                 })
             ))
-        )]
     }
     await Promise.all([
         ...nonGlobalSends,

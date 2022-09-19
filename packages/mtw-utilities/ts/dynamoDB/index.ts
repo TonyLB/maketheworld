@@ -893,7 +893,7 @@ export const messageDeltaQuery = async ({
                 ':Start': `${StartingAt}`
             }),
             ExpressionAttributeNames,
-            ExclusiveStartKey,
+            ...(ExclusiveStartKey ? { ExclusiveStartKey } : {}),
             Limit
         }))
         return {

@@ -139,6 +139,13 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                             value: `${Name || 'Someone'} has connected.`
                         }]
                     })
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [`ROOM#${RoomId}`, `CHARACTER#${CharacterId}`],
+                        displayProtocol: 'RoomUpdate',
+                        RoomId,
+                        Characters: newActiveCharacters.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest }))
+                    })
                 }
                 internalCache.RoomCharacterList.set({ key: RoomId, value: newActiveCharacters })
 

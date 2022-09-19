@@ -76,6 +76,21 @@ describe("registerCharacter", () => {
                 value: `Tess has connected.`
             }]
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: [`ROOM#TestABC`, `CHARACTER#ABC`],
+            displayProtocol: 'RoomUpdate',
+            RoomId: 'TestABC',
+            Characters: [{
+                CharacterId: 'BCD',
+                Name: 'TestToo'
+            },
+            {
+                CharacterId: 'ABC',
+                Name: 'Tess',
+                Color: 'purple',
+            }]
+        })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
             key: 'TestABC',
             value: [

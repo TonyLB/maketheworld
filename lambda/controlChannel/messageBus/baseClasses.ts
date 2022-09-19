@@ -62,7 +62,7 @@ export type PublishOutOfCharacterMessage = {
 export type PublishRoomUpdateMessage = {
     displayProtocol: 'RoomUpdate';
     RoomId: string;
-    Characters: (Omit<RoomCharacterListItem, 'EphemeraId'> & { CharacterId: string })[];
+    Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds'> & { CharacterId: string })[];
 } & PublishMessageBase
 
 export type PublishMessage = PublishWorldMessage | PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage | PublishRoomUpdateMessage
