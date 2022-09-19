@@ -108,6 +108,15 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                     Color: Color || 'grey'
                 }]
             })
+            messageBus.send({
+                type: 'PublishMessage',
+                targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${characterId}`],
+                displayProtocol: 'WorldMessage',
+                message: [{
+                    tag: 'String',
+                    value: `${Name || 'Someone'} has disconnected.`
+                }]
+            })
         }
         internalCache.RoomCharacterList.set({
             key: RoomId,
