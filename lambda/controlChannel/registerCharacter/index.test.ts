@@ -29,7 +29,8 @@ describe("registerCharacter", () => {
     it("should update correctly on first connection", async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
             Name: 'Tess',
-            RoomId: 'TestABC'
+            RoomId: 'TestABC',
+            Color: 'purple'
         })
         .mockResolvedValueOnce({
             activeCharacters: [{
@@ -52,6 +53,18 @@ describe("registerCharacter", () => {
                 RequestId: 'Request123'
             }
         })
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'EphemeraUpdate',
+            updates: [{
+                type: 'CharacterInPlay',
+                CharacterId: 'ABC',
+                Connected: true,
+                Name: 'Tess',
+                RoomId: 'TestABC',
+                fileURL: '',
+                Color: 'purple'
+            }]
+        })
     })
 
     it("should update correctly on subsequent connections", async () => {
@@ -72,6 +85,7 @@ describe("registerCharacter", () => {
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }], messageBus })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()
+        expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {

@@ -57,6 +57,9 @@ Array [
             },
             Object {
               "M": Object {
+                "Color": Object {
+                  "S": "purple",
+                },
                 "ConnectionIds": Object {
                   "L": Array [
                     Object {
