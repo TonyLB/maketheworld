@@ -8,7 +8,8 @@ import {
     BatchWriteItemCommand,
     BatchGetItemCommand,
     AttributeValue,
-    TransactWriteItemsCommand
+    TransactWriteItemsCommand,
+    TransactWriteItem
 } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
@@ -22,6 +23,7 @@ import { stringify } from "uuid"
 import { unique } from "../lists"
 import { splitType } from "../types"
 import { WritableDraft } from "immer/dist/internal"
+import { objectMap } from "../objects"
 
 const { TABLE_PREFIX } = process.env;
 const ephemeraTable = `${TABLE_PREFIX}_ephemera`
@@ -549,6 +551,38 @@ type AddPerAssetTransformArgument = {
     cached: string[]
 }
 
+export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[] }): Promise<T | undefined> => {
+    let retries = 0
+    let exponentialBackoff = 100
+    let completed = false
+    const maxRetries = 5
+    while(!completed && retries <= maxRetries) {
+        completed = true
+        try {
+            return await tryClause()
+        }
+        catch (err: any) {
+            if ((options?.retryErrors || ['ConditionalCheckFailedException']).includes(err.errorType)) {
+                await delayPromise(exponentialBackoff)
+                exponentialBackoff = exponentialBackoff * 2
+                retries++
+                completed = false
+            }
+            else {
+                if (DEVELOPER_MODE) {
+                    // console.log(`Throwing exception on: ${item.EphemeraId}`)
+                    // console.log(`Item: ${JSON.stringify(item, null, 4)}`)
+                    throw err
+                }
+            }
+        }
+    }
+    return undefined
+}
+
+//
+// TODO: Refactor addPerAsset with exponentialBackoffWrapper
+//
 export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>>({
     fetchArgs = () => (Promise.resolve(undefined)),
     reduceMetaData,
@@ -737,6 +771,27 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
             }
         }
     }
+}
+
+export const multiTableTransactWrite = async (items: TransactWriteItem[]): Promise<void> => {
+    const remapTable = (table: string) => {
+        if (table === 'Ephemera') {
+            return ephemeraTable
+        }
+        if (table === 'Connections') {
+            return connectionsTable
+        }
+        if (table === 'Assets') {
+            return assetsTable
+        }
+        throw new Error(`Illegal table in multiTableTransactWrite: ${table}`)
+    }
+    const remappedItems = items
+        .map((entry) => (objectMap(entry, ({ TableName, ...rest }) => ({
+            TableName: remapTable(TableName || ''),
+            ...rest
+        }))))
+    await dbClient.send(new TransactWriteItemsCommand({ TransactItems: remappedItems }))
 }
 
 export const ephemeraDB = {

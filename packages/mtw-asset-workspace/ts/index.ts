@@ -139,10 +139,9 @@ export class AssetWorkspace {
         try {
             contents = await s3Client.get({ Key: filePath })
         }
-        catch(err) {
-            if (err instanceof NotFound) {
+        catch(err: any) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
                 this.normal = {}
-                this.wml = ''
                 this.namespaceIdToDB = {}
                 this.status.json = 'Clean'
                 return

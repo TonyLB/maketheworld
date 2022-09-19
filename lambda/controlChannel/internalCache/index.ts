@@ -128,7 +128,7 @@ const initialCache: CacheStorageType = {
                 let exponentialBackoff = 50
                 while(attempts < 5) {
                     const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                        ConnectionId: connectionId,
+                        ConnectionId: `CONNECTION#${connectionId}`,
                         DataCategory: 'Meta::Connection',
                         ProjectionFields: ['player']
                     }) || {}
@@ -147,14 +147,14 @@ const initialCache: CacheStorageType = {
         cacheType: 'Lookup',
         entries: {},
         fetch: async (RoomId) => {
-            const { activeCharacters = {} } = await ephemeraDB.getItem<{
-                    activeCharacters: Record<string, RoomCharacterActive>
+            const { activeCharacters = [] } = await ephemeraDB.getItem<{
+                    activeCharacters: RoomCharacterActive[]
                 }>({
                     EphemeraId: `ROOM#${RoomId}`,
                     DataCategory: 'Meta::Room',
                     ProjectionFields: ['activeCharacters']
-                }) || { activeCharacters: {} }
-            return Object.entries(activeCharacters).reduce((previous, [key, value]) => ({ ...previous,  [splitType(key)[1]]: value }), {})
+                }) || { activeCharacters: [] }
+            return activeCharacters.reduce((previous, value) => ({ ...previous,  [splitType(value.EphemeraId)[1]]: value }), {})
         }
     },
     CharacterMeta: {
