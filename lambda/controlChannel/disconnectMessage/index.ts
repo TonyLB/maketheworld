@@ -105,6 +105,9 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 }]
             })
         }
+        //
+        // TODO: As part of ISS1476 add set to RoomCharacterList cache, and use here to update cache
+        //
 
     }, { retryErrors: ['TransactionCanceledException']})
 }

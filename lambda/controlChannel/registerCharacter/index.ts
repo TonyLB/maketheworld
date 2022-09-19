@@ -5,6 +5,7 @@ import { ephemeraDB, connectionDB, exponentialBackoffWrapper, multiTableTransact
 import internalCache from '../internalCache'
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 type RoomCharacterActive = {
     EphemeraId: string;
@@ -25,13 +26,9 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
             const EphemeraId = `CHARACTER#${CharacterId}`
             await exponentialBackoffWrapper(async () => {
                 const [characterFetch, connectionsFetch] = await Promise.all([
-                    ephemeraDB.getItem<{ Name: string; HomeId: string; RoomId: string; fileURL?: string; Color: string; }>({
-                        EphemeraId,
-                        DataCategory: 'Meta::Character',
-                        ProjectionFields: ['#name', 'HomeId', 'RoomId', 'fileURL', 'Color'],
-                        ExpressionAttributeNames: {
-                            '#name': 'Name'
-                        }
+                    internalCache.get({
+                        category: 'CharacterMeta',
+                        key: CharacterId
                     }),
                     connectionDB.getItem<{ connections: string[] }>({
                         ConnectionId: EphemeraId,
@@ -45,11 +42,10 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 }
                 const { Name = '', HomeId = '', RoomId = '', fileURL, Color } = characterFetch
                 const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
-                const { activeCharacters = [] } = (await ephemeraDB.getItem<{ activeCharacters: RoomCharacterActive[] }>({
-                    EphemeraId: RoomEphemeraId,
-                    DataCategory: 'Meta::Room',
-                    ProjectionFields: ['activeCharacters']
-                })) || {}
+                const activeCharacters = await internalCache.get({
+                    category: 'RoomCharacterList',
+                    key: splitType(RoomEphemeraId)[1]
+                })
                 const newConnections = unique(currentConnections || [], [connectionId])
                 const metaCharacterUpdate = (currentConnections !== undefined)
                     ? {
@@ -94,7 +90,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         }
                     }]
                 const newActiveCharacters = [
-                    ...activeCharacters.filter((character) => (character.EphemeraId !== EphemeraId)),
+                    ...(activeCharacters || []).filter((character) => (character.EphemeraId !== EphemeraId)),
                     {
                         EphemeraId,
                         Name,
@@ -147,6 +143,10 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                         }]        
                     })
                 }
+                //
+                // TODO: As part of ISS1476 add set to RoomCharacterList cache, and use here to update cache
+                //
+
             }, { retryErrors: ['TransactionCanceledException']})
     
         }
