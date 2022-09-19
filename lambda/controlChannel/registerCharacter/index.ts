@@ -3,7 +3,6 @@ import messageBus from "../messageBus"
 import { ephemeraDB, connectionDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import internalCache from '../internalCache'
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { marshall } from "@aws-sdk/util-dynamodb"
 
@@ -15,13 +14,6 @@ type RoomCharacterActive = {
     Name: string;
 }
 
-//
-// TODO:
-//    - Add character adjacency record in connections table
-//    - Update active characters in current room
-//    - Update RoomId if not present in Ephemera Meta::Character record
-//    - Update activeCharacters on room if needed
-//
 export const registerCharacter = async ({ payloads }: { payloads: RegisterCharacterMessage[], messageBus: MessageBus }): Promise<void> => {
 
     const connectionId = await internalCache.get({ category: 'Global', key: 'ConnectionId' })
