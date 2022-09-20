@@ -4,9 +4,27 @@ import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
 
+export type PublishTargetRoom = {
+    roomId: string;
+}
+
+export type PublishTargetCharacter = {
+    characterId: string;
+}
+
+export type PublishTargetExcludeCharacter = {
+    excludeCharacterId: string;
+}
+
+export type PublishTarget = PublishTargetRoom | PublishTargetCharacter | PublishTargetExcludeCharacter
+
+export const isPublishTargetRoom = (prop: PublishTarget): prop is PublishTargetRoom => (('roomId' in prop) && Boolean(prop.roomId))
+export const isPublishTargetCharacter = (prop: PublishTarget): prop is PublishTargetCharacter => (('characterId' in prop) && Boolean(prop.characterId))
+export const isPublishTargetExcludeCharacter = (prop: PublishTarget): prop is PublishTargetExcludeCharacter => (('excludeCharacterId' in prop) && Boolean(prop.excludeCharacterId))
+
 export type PublishMessageBase = {
     type: 'PublishMessage';
-    targets: string[];
+    targets: PublishTarget[];
 }
 
 //

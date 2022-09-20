@@ -37,7 +37,7 @@ describe('PublishMessage', () => {
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
-                targets: ['CHARACTER#123'],
+                targets: [{ characterId: '123' }],
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
@@ -63,7 +63,7 @@ describe('PublishMessage', () => {
             Data: JSON.stringify({
                 messageType: 'Messages',
                 messages: [{
-                    Target: "CHARACTER#123",
+                    Target: "123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
                     Message: [{ tag: 'String', value: 'Test' }],
@@ -76,7 +76,7 @@ describe('PublishMessage', () => {
             Data: JSON.stringify({
                 messageType: 'Messages',
                 messages: [{
-                    Target: "CHARACTER#123",
+                    Target: "123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
                     Message: [{ tag: 'String', value: 'Test' }],
@@ -100,7 +100,7 @@ describe('PublishMessage', () => {
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
-                targets: ['ROOM#ABC'],
+                targets: [{ roomId: 'ABC' }],
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
@@ -134,7 +134,7 @@ describe('PublishMessage', () => {
             Data: JSON.stringify({
                 messageType: 'Messages',
                 messages: [{
-                    Target: "CHARACTER#123",
+                    Target: "123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
                     Message: [{ tag: 'String', value: 'Test' }],
@@ -147,7 +147,7 @@ describe('PublishMessage', () => {
             Data: JSON.stringify({
                 messageType: 'Messages',
                 messages: [{
-                    Target: "CHARACTER#456",
+                    Target: "456",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
                     Message: [{ tag: 'String', value: 'Test' }],
@@ -171,7 +171,7 @@ describe('PublishMessage', () => {
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
-                targets: ['ROOM#ABC', 'NOT-CHARACTER#123'],
+                targets: [{ roomId: 'ABC' }, { excludeCharacterId: '123' }],
                 displayProtocol: 'WorldMessage',
                 message: [{ tag: 'String', value: 'Test' }]
             }]
@@ -205,7 +205,7 @@ describe('PublishMessage', () => {
             Data: JSON.stringify({
                 messageType: 'Messages',
                 messages: [{
-                    Target: "CHARACTER#123",
+                    Target: "123",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
                     Message: [{ tag: 'String', value: 'Test' }],
@@ -218,7 +218,7 @@ describe('PublishMessage', () => {
             Data: JSON.stringify({
                 messageType: 'Messages',
                 messages: [{
-                    Target: "CHARACTER#456",
+                    Target: "456",
                     MessageId: 'MESSAGE#UUID',
                     CreatedTime: 1000000000000,
                     Message: [{ tag: 'String', value: 'Test' }],

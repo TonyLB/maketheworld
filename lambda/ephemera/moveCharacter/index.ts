@@ -85,7 +85,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${characterMeta.RoomId}`, `CHARACTER#${payload.characterId}`],
+                targets: [{ roomId: characterMeta.RoomId }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
@@ -105,7 +105,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
 
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${payload.roomId}`, `CHARACTER#${payload.characterId}`],
+                targets: [{ roomId: payload.roomId }, { characterId: payload.characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',

@@ -197,7 +197,17 @@ export const handler = async (event: any, context: any) => {
                 executeMessageQueue.forEach((message) => {
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: message.Targets,
+                        targets: message.Targets.map((target) => {
+                            const [type, id] = splitType(target)
+                            switch(type) {
+                                case 'ROOM':
+                                    return { roomId: id }
+                                case 'NOT-CHARACTER':
+                                    return { excludeCharacterId: id }
+                                default:
+                                    return { characterId: id }
+                            }
+                        }),
                         message: message.Message,
                         displayProtocol: message.DisplayProtocol as any,
                         characterId: message.CharacterId || '',

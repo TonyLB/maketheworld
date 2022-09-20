@@ -9,7 +9,7 @@ export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: Ro
             const activeCharacters = await internalCache.RoomCharacterList.get(roomId)
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${roomId}`],
+                targets: [{ roomId }],
                 displayProtocol: 'RoomUpdate',
                 RoomId: roomId,
                 Characters: activeCharacters.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest }))

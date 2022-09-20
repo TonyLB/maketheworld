@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget } from "../messageBus/baseClasses"
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
@@ -41,13 +41,12 @@ const publishMessageDynamoDB = async <T extends { MessageId: string; CreatedTime
             MessageId,
             DataCategory: 'Meta::Message',
             CreatedTime,
-            Targets,
+            Targets: Targets.map((target) => (`CHARACTER#${target}`)),
             ...rest
         }),
         ...(Targets
-            .filter((target) => (splitType(target)[0] === 'CHARACTER'))
             .map(async (target) => (messageDeltaDB.putItem({
-                Target: target,
+                Target: `CHARACTER#${target}`,
                 DeltaId: `${CreatedTime}::${MessageId}`,
                 RowId: MessageId,
                 CreatedTime,
@@ -64,13 +63,13 @@ class PublishMessageTargetMapper {
     async initialize(payloads: PublishMessage[]) {
         const allRoomTargets = payloads.reduce<string[]>((previous, { targets }) => (
             targets
-                .filter((target) => (splitType(target)[0] === 'ROOM'))
-                .reduce<string[]>((accumulator, target) => (unique(accumulator, [target]) as string[]), previous)
+                .filter(isPublishTargetRoom)
+                .reduce<string[]>((accumulator, target) => (unique(accumulator, [target.roomId]) as string[]), previous)
         ), [] as string[])
         const allCharacterTargets = payloads.reduce<string[]>((previous, { targets }) => (
             targets
-                .filter((target) => (splitType(target)[0] === 'CHARACTER'))
-                .reduce<string[]>((accumulator, target) => (unique(accumulator, [target]) as string[]), previous)
+                .filter(isPublishTargetCharacter)
+                .reduce<string[]>((accumulator, target) => (unique(accumulator, [target.characterId]) as string[]), previous)
         ), [] as string[])
     
         this.activeCharactersByRoomId = Object.assign({} as Record<string, RoomCharacterListItem[]>,
@@ -80,12 +79,13 @@ class PublishMessageTargetMapper {
         this.connectionsByCharacterId = {}
         Object.values(this.activeCharactersByRoomId).forEach((characterList) => {
             characterList.forEach(({ EphemeraId, ConnectionIds }) => {
-                if (EphemeraId) {
-                    if (EphemeraId in this.connectionsByCharacterId) {
-                        this.connectionsByCharacterId[EphemeraId] = unique(this.connectionsByCharacterId[EphemeraId], ConnectionIds) as string[]
+                const characterId = splitType(EphemeraId)[1]
+                if (characterId) {
+                    if (characterId in this.connectionsByCharacterId) {
+                        this.connectionsByCharacterId[characterId] = unique(this.connectionsByCharacterId[characterId], ConnectionIds) as string[]
                     }
                     else {
-                        this.connectionsByCharacterId[EphemeraId] = ConnectionIds
+                        this.connectionsByCharacterId[characterId] = ConnectionIds
                     }
                 }
             })
@@ -102,12 +102,12 @@ class PublishMessageTargetMapper {
         )
     }
 
-    remap(targets: string[]): string[] {
-        const roomTargets = targets.filter((target) => (splitType(target)[0] === 'ROOM'))
-        const nonRoomTargets = targets.filter((target) => (splitType(target)[0] === 'CHARACTER'))
-        const excludeTargets = targets.filter((target) => (splitType(target)[0] === 'NOT-CHARACTER')).map((value) => (value.slice(4)))
+    remap(targets: PublishTarget[]): string[] {
+        const roomTargets = targets.filter(isPublishTargetRoom).map(({ roomId }) => (roomId))
+        const nonRoomTargets = targets.filter(isPublishTargetCharacter).map(({ characterId }) => (characterId))
+        const excludeTargets = targets.filter(isPublishTargetExcludeCharacter).map(({ excludeCharacterId }) => (excludeCharacterId))
         const mappedRoomTargetGroups = roomTargets
-                .map((target) => ((this.activeCharactersByRoomId[target] || []).map(({ EphemeraId }) => (EphemeraId))))
+                .map((target) => ((this.activeCharactersByRoomId[target] || []).map(({ EphemeraId }) => (splitType(EphemeraId)[1]))))
         return (unique(nonRoomTargets, ...mappedRoomTargetGroups) as string[])
             .filter((characterId) => (!excludeTargets.includes(characterId)))
     }
@@ -122,38 +122,26 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     const mapper = new PublishMessageTargetMapper()
     await mapper.initialize(payloads)
 
-    //
-    // TODO: Replace ad-hoc remappedTarget generation below with references to the
-    // connections mapping created in aggregate
-    //
-
-    //
-    // TODO: Accumulate messages by target character ID, and send them to the APIClient
-    //
-
     let dbPromises: Promise<void>[] = []
     let messagesByConnectionId: Record<string, any[]> = {}
 
-    const pushToQueues = <T extends { Targets: string[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {
+    const pushToQueues = <T extends { Targets: PublishTarget[]; CreatedTime: number; MessageId: string; }>({ Targets, ...rest }: T) => {
         const remappedTargets = mapper.remap(Targets)
         dbPromises.push(publishMessageDynamoDB({
             Targets: remappedTargets,
             ...rest
         }))
         remappedTargets.forEach((target) => {
-            const [type, id] = splitType(target)
-            if (type === 'CHARACTER') {
-                const connections = mapper.characterConnections(target) || []
-                connections.forEach((connectionId) => {
-                    if (!(connectionId in messagesByConnectionId)) {
-                        messagesByConnectionId[connectionId] = []
-                    }
-                    messagesByConnectionId[connectionId].push({
-                        Target: target,
-                        ...rest
-                    })
+            const connections = mapper.characterConnections(target) || []
+            connections.forEach((connectionId) => {
+                if (!(connectionId in messagesByConnectionId)) {
+                    messagesByConnectionId[connectionId] = []
+                }
+                messagesByConnectionId[connectionId].push({
+                    Target: target,
+                    ...rest
                 })
-            }
+            })
         })
     }
 

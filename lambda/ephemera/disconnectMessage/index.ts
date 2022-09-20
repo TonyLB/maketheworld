@@ -105,7 +105,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
             })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${characterId}`],
+                targets: [{ roomId: RoomId }, { excludeCharacterId: characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
