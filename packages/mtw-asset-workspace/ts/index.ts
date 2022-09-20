@@ -11,6 +11,7 @@ import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 import { AssetWorkspaceException } from "./errors"
 import { s3Client } from "./clients"
 import { ParseException } from "@tonylb/mtw-wml/dist/parser/baseClasses"
+import { deepEqual } from "./objects"
 
 type AssetWorkspaceConstructorBase = {
     fileName: string;
@@ -140,7 +141,7 @@ export class AssetWorkspace {
             contents = await s3Client.get({ Key: filePath })
         }
         catch(err: any) {
-            if (['NoSuchKey', 'AccessDenied'].includes(err.Code)) {
+            if (['NoSuchKey', 'AccessDenied'].includes(err.Code) || err instanceof NotFound) {
                 this.normal = {}
                 this.namespaceIdToDB = {}
                 this.status.json = 'Clean'
@@ -175,6 +176,9 @@ export class AssetWorkspace {
         schema.forEach((item, index) => {
             normalizer.add(item, { contextStack: [], location: [index] })
         })
+        if (!(this.normal && deepEqual(this.normal, normalizer.normal))) {
+            this.status.json = 'Dirty'
+        }
         this.normal = normalizer.normal
         //
         // TODO: Add any imported-but-not-yet-mapped keys to the namespaceToDB mapping
@@ -188,7 +192,6 @@ export class AssetWorkspace {
             })
         this.wml = source
         this.status.wml = 'Dirty'
-        this.status.json = 'Dirty'
     }
 
     async loadWML(): Promise<void> {

@@ -264,4 +264,33 @@ describe('AssetWorkspace', () => {
 
     })
 
+    describe('setWML', () => {
+        it('should not set JSON dirty on no-op', () => {
+            const testWorkspace = new AssetWorkspace({
+                fileName: 'Test',
+                zone: 'Library'
+            })
+            testWorkspace.namespaceIdToDB = {
+                'a123': 'TestA'
+            }
+            uuidv4Mock.mockImplementation(uuidMockFactory())
+            const testSource = `
+                <Asset key=(Test) fileName="Test">
+                    <Room key=(a123)>
+                        <Exit to=(a123) from=(b456)>vortex</Exit>
+                        <Exit to=(b456)>welcome</Exit>
+                    </Room>
+                    <Room key=(b456) />
+                </Asset>
+            `
+            testWorkspace.setWML(testSource)
+
+            expect(testWorkspace.status.json).toEqual('Dirty')
+            testWorkspace.status.json = 'Clean'
+
+            testWorkspace.setWML(testSource)
+            expect(testWorkspace.status.json).toEqual('Clean')
+
+        })
+    })
 })
