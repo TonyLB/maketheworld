@@ -784,6 +784,12 @@ export const multiTableTransactWrite = async (items: TransactWriteItem[]): Promi
         if (table === 'Assets') {
             return assetsTable
         }
+        if (table === 'Messages') {
+            return messageTable
+        }
+        if (table === 'MessageDeltas') {
+            return deltaTable
+        }
         throw new Error(`Illegal table in multiTableTransactWrite: ${table}`)
     }
     const remappedItems = items
@@ -834,6 +840,41 @@ export const connectionDB = {
     optimisticUpdate: abstractOptimisticUpdate(connectionsTable),
     putItem: abstractPutItem<ConnectionDBKey>(connectionsTable),
     deleteItem: abstractDeleteItem<ConnectionDBKey>(connectionsTable)
+}
+
+type MessageDBKey = {
+    MessageId: string;
+    DataCategory: string;
+}
+
+export const messageDB = {
+    putItem: async (Item) => {
+        return await asyncSuppressExceptions(async () => {
+            await dbClient.send(new PutItemCommand({
+                TableName: messageTable,
+                Item: marshall({
+                    ...Item,
+                    DataCategory: 'Meta::Message'
+                }, { removeUndefinedValues: true })
+            }))
+        })
+    }
+}
+
+type MessageDeltaDBKey = {
+    Target: string;
+    DeltaId: string;
+}
+
+export const messageDeltaDB = {
+    putItem: async (Item) => {
+        return await asyncSuppressExceptions(async () => {
+            await dbClient.send(new PutItemCommand({
+                TableName: deltaTable,
+                Item: marshall(Item, { removeUndefinedValues: true })
+            }))
+        })
+    }
 }
 
 export const publishMessage = async (Item) => {

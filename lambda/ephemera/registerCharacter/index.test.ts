@@ -39,7 +39,7 @@ describe("registerCharacter", () => {
                 Name: 'TestToo',
                 ConnectionIds: ['QRS']
             }])
-        connectionDBMock.getItem.mockResolvedValueOnce({})
+        internalCacheMock.CharacterConnections.get.mockResolvedValue([])
         await registerCharacter({
             payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }],
             messageBus
@@ -69,7 +69,7 @@ describe("registerCharacter", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            targets: [`ROOM#TestABC`, `NOT-CHARACTER#ABC`],
+            targets: [{ roomId: 'TestABC' }, { excludeCharacterId: 'ABC' }],
             displayProtocol: 'WorldMessage',
             message: [{
                 tag: 'String',
@@ -111,9 +111,7 @@ describe("registerCharacter", () => {
                 Name: 'Tess',
                 ConnectionIds: ['previous']
             }])
-        connectionDBMock.getItem.mockResolvedValueOnce({
-            connections: ['previous']
-        })
+        internalCacheMock.CharacterConnections.get.mockResolvedValue(['previous'])
         await registerCharacter({ payloads: [{ type: 'RegisterCharacter', characterId: 'ABC' }], messageBus })
         expect(multiTableTransactWrite).toHaveBeenCalledTimes(1)
         expect(multiTableTransactWriteMock.mock.calls[0][0]).toMatchSnapshot()

@@ -18,15 +18,10 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
             const { characterId: CharacterId } = payload
             const EphemeraId = `CHARACTER#${CharacterId}`
             await exponentialBackoffWrapper(async () => {
-                const [characterFetch, connectionsFetch] = await Promise.all([
+                const [characterFetch, currentConnections] = await Promise.all([
                     internalCache.CharacterMeta.get(CharacterId),
-                    connectionDB.getItem<{ connections: string[] }>({
-                        ConnectionId: EphemeraId,
-                        DataCategory: 'Meta::Character',
-                        ProjectionFields: ['connections']
-                    }),
+                    internalCache.CharacterConnections.get(CharacterId)
                 ])
-                const currentConnections = connectionsFetch?.connections
                 if (!characterFetch) {
                     return
                 }
@@ -34,7 +29,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                 const RoomEphemeraId = `ROOM#${RoomId || HomeId || 'VORTEX'}`
                 const activeCharacters = await internalCache.RoomCharacterList.get(splitType(RoomEphemeraId)[1])
                 const newConnections = unique(currentConnections || [], [connectionId]) as string[]
-                const metaCharacterUpdate = (currentConnections !== undefined)
+                const metaCharacterUpdate = (typeof currentConnections !== 'undefined')
                     ? {
                         TableName: 'Connections',
                         Key: marshall({
@@ -132,7 +127,7 @@ export const registerCharacter = async ({ payloads }: { payloads: RegisterCharac
                     })
                     messageBus.send({
                         type: 'PublishMessage',
-                        targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${CharacterId}`],
+                        targets: [{ roomId: RoomId }, { excludeCharacterId: CharacterId }],
                         displayProtocol: 'WorldMessage',
                         message: [{
                             tag: 'String',

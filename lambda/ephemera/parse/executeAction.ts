@@ -10,7 +10,7 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
         if (RoomId) {
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${RoomId}`],
+                targets: [{ roomId: RoomId }],
                 displayProtocol: DisplayProtocol as any,
                 message: [{ tag: 'String', value: Message }],
                 characterId: CharacterId,

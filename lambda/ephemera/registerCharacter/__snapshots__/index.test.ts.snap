@@ -4,7 +4,7 @@ exports[`registerCharacter should update correctly on first connection 1`] = `
 Array [
   Object {
     "Update": Object {
-      "ConditionExpression": "attribute_not_exists(connections)",
+      "ConditionExpression": "connections = :oldConnections",
       "ExpressionAttributeValues": Object {
         ":newConnections": Object {
           "L": Array [
@@ -12,6 +12,9 @@ Array [
               "S": "TestConnection",
             },
           ],
+        },
+        ":oldConnections": Object {
+          "L": Array [],
         },
       },
       "Key": Object {

@@ -45,9 +45,7 @@ describe("disconnectMessage", () => {
                     ConnectionIds: ['XYZ']
                 }
             ])
-        connectionDBMock.getItem.mockResolvedValueOnce({
-            connections: ['XYZ']
-        })
+        internalCacheMock.CharacterConnections.get.mockResolvedValue(['XYZ'])
         connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
         await disconnectMessage({
             payloads: [{ type: 'Disconnect', connectionId: 'XYZ' }],
@@ -70,7 +68,7 @@ describe("disconnectMessage", () => {
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'PublishMessage',
-            targets: [`ROOM#TestABC`, `NOT-CHARACTER#ABC`],
+            targets: [{ roomId: 'TestABC' }, { excludeCharacterId: 'ABC' }],
             displayProtocol: 'WorldMessage',
             message: [{
                 tag: 'String',
@@ -112,9 +110,7 @@ describe("disconnectMessage", () => {
                     ConnectionIds: ['QRS', 'XYZ']
                 }
             ])
-        connectionDBMock.getItem.mockResolvedValueOnce({
-            connections: ['QRS', 'XYZ']
-        })
+        internalCacheMock.CharacterConnections.get.mockResolvedValue(['QRS', 'XYZ'])
         connectionDBMock.query.mockResolvedValueOnce([{ DataCategory: 'CHARACTER#ABC' }])
         await disconnectMessage({
             payloads: [{ type: 'Disconnect', connectionId: 'XYZ' }],

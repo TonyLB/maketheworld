@@ -5,6 +5,7 @@ import { delayPromise } from '@tonylb/mtw-utilities/dist/dynamoDB/delayPromise'
 import CacheRoomCharacterLists from './roomCharacterLists';
 import CacheCharacterMeta from './characterMeta';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
+import CacheCharacterConnections from './characterConnections';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections'
 class CacheGlobalData {
@@ -91,6 +92,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase)))
+const InternalCache = CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))
 export const internalCache = new InternalCache()
 export default internalCache

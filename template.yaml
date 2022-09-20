@@ -143,7 +143,7 @@ Resources:
             TableName: !Sub '${TablePrefix}_connections'
         - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_messages'
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Sub '${TablePrefix}_message_delta'
         - Statement:
           - Effect: Allow
@@ -750,13 +750,6 @@ Resources:
                 - Effect: Allow
                   Action: execute-api:ManageConnections
                   Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
-          Events:
-            Stream:
-              Type: DynamoDB
-              Properties:
-                Stream: !GetAtt MessagesTable.StreamArn
-                BatchSize: 100
-                StartingPosition: LATEST
 
 Outputs:
   UserPoolClient:

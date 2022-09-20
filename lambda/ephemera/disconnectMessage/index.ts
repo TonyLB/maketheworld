@@ -16,16 +16,11 @@ type RoomCharacterActive = {
 
 const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => {
     return exponentialBackoffWrapper(async () => {
-        const [connectionFetch, characterFetch] = await Promise.all([
-            connectionDB.getItem<{ connections: string[] }>({
-                ConnectionId: `CHARACTER#${characterId}`,
-                DataCategory: 'Meta::Character',
-                ProjectionFields: ['connections']
-            }),
+        const [currentConnections, characterFetch] = await Promise.all([
+            internalCache.CharacterConnections.get(characterId),
             internalCache.CharacterMeta.get(characterId)
         ])
-        const { connections: currentConnections } = connectionFetch || {}
-        if (!currentConnections) {
+        if (!(currentConnections && currentConnections.length)) {
             return
         }
         const { RoomId, Name, fileURL, Color } = characterFetch || {}
@@ -110,7 +105,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
             })
             messageBus.send({
                 type: 'PublishMessage',
-                targets: [`ROOM#${RoomId}`, `NOT-CHARACTER#${characterId}`],
+                targets: [{ roomId: RoomId }, { excludeCharacterId: characterId }],
                 displayProtocol: 'WorldMessage',
                 message: [{
                     tag: 'String',
