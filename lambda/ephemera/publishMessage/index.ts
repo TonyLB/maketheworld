@@ -80,13 +80,12 @@ class PublishMessageTargetMapper {
         this.connectionsByCharacterId = {}
         Object.values(this.activeCharactersByRoomId).forEach((characterList) => {
             characterList.forEach(({ EphemeraId, ConnectionIds }) => {
-                const characterId = splitType(EphemeraId)[1]
-                if (characterId) {
-                    if (characterId in this.connectionsByCharacterId) {
-                        this.connectionsByCharacterId[characterId] = unique(this.connectionsByCharacterId[characterId], ConnectionIds) as string[]
+                if (EphemeraId) {
+                    if (EphemeraId in this.connectionsByCharacterId) {
+                        this.connectionsByCharacterId[EphemeraId] = unique(this.connectionsByCharacterId[EphemeraId], ConnectionIds) as string[]
                     }
                     else {
-                        this.connectionsByCharacterId[characterId] = ConnectionIds
+                        this.connectionsByCharacterId[EphemeraId] = ConnectionIds
                     }
                 }
             })
@@ -144,7 +143,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
         remappedTargets.forEach((target) => {
             const [type, id] = splitType(target)
             if (type === 'CHARACTER') {
-                const connections = mapper.characterConnections(id) || []
+                const connections = mapper.characterConnections(target) || []
                 connections.forEach((connectionId) => {
                     if (!(connectionId in messagesByConnectionId)) {
                         messagesByConnectionId[connectionId] = []

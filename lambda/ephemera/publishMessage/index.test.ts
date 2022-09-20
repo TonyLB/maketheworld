@@ -33,7 +33,7 @@ describe('PublishMessage', () => {
     })
 
     it('should correctly dispatch direct messages', async () => {
-        cacheMock.CharacterConnections.get.mockResolvedValue(['Y123'])
+        cacheMock.CharacterConnections.get.mockResolvedValue(['Y123', 'Y456'])
         await publishMessage({
             payloads: [{
                 type: 'PublishMessage',
@@ -50,70 +50,182 @@ describe('PublishMessage', () => {
             Message: [{ tag: 'String', value: 'Test' }],
             DisplayProtocol: 'WorldMessage'
         })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: "CHARACTER#123",
+            DeltaId: "1000000000000::MESSAGE#UUID",
+            RowId: "MESSAGE#UUID",
+            CreatedTime: 1000000000000,
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: "CHARACTER#123",
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: [{ tag: 'String', value: 'Test' }],
+                    DisplayProtocol: 'WorldMessage'
+                }]
+            })
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y456',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: "CHARACTER#123",
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: [{ tag: 'String', value: 'Test' }],
+                    DisplayProtocol: 'WorldMessage'
+                }]
+            })
+        })
     })
 
-    // it('should remap room targets dynamically', async () => {
-    //     cacheMock.RoomCharacterList.get.mockResolvedValue([
-    //         {
-    //             EphemeraId: 'CHARACTER#123',
-    //             ConnectionIds: ['Test1'],
-    //             Color: 'green',
-    //             Name: 'Tess'
-    //         },
-    //         {
-    //             EphemeraId: 'CHARACTER#456',
-    //             ConnectionIds: ['Test2'],
-    //             Color: 'purple',
-    //             Name: 'Marco'
-    //         }
-    //     ])
-    //     await publishMessage({
-    //         payloads: [{
-    //             type: 'PublishMessage',
-    //             targets: ['ROOM#ABC', 'CHARACTER#123'],
-    //             displayProtocol: 'WorldMessage',
-    //             message: [{ tag: 'String', value: 'Test' }]
-    //         }]
-    //     })
-    //     expect(publishMessageMock).toHaveBeenCalledWith({
-    //         MessageId: 'MESSAGE#UUID',
-    //         CreatedTime: 1000000000000,
-    //         Targets: ['CHARACTER#123', 'CHARACTER#456'],
-    //         Message: [{ tag: 'String', value: 'Test' }],
-    //         DisplayProtocol: 'WorldMessage'
-    //     })
-    // })
+    it('should remap room targets dynamically', async () => {
+        cacheMock.RoomCharacterList.get.mockResolvedValue([{
+            EphemeraId: 'CHARACTER#123',
+            Name: '',
+            ConnectionIds: ['Y123']
+        },
+        {
+            EphemeraId: 'CHARACTER#456',
+            Name: '',
+            ConnectionIds: ['Y456']
+        }])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['ROOM#ABC'],
+                displayProtocol: 'WorldMessage',
+                message: [{ tag: 'String', value: 'Test' }]
+            }]
+        })
+        expect(messageDBMock.putItem).toHaveBeenCalledWith({
+            MessageId: 'MESSAGE#UUID',
+            DataCategory: 'Meta::Message',
+            CreatedTime: 1000000000000,
+            Targets: ['CHARACTER#123', 'CHARACTER#456'],
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: "CHARACTER#123",
+            DeltaId: "1000000000000::MESSAGE#UUID",
+            RowId: "MESSAGE#UUID",
+            CreatedTime: 1000000000000,
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: "CHARACTER#456",
+            DeltaId: "1000000000000::MESSAGE#UUID",
+            RowId: "MESSAGE#UUID",
+            CreatedTime: 1000000000000,
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: "CHARACTER#123",
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: [{ tag: 'String', value: 'Test' }],
+                    DisplayProtocol: 'WorldMessage'
+                }]
+            })
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y456',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: "CHARACTER#456",
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: [{ tag: 'String', value: 'Test' }],
+                    DisplayProtocol: 'WorldMessage'
+                }]
+            })
+        })
+    })
 
-    // it('should exclude not-character targets', async () => {
-    //     cacheMock.RoomCharacterList.get.mockResolvedValue([
-    //         {
-    //             EphemeraId: 'CHARACTER#123',
-    //             ConnectionIds: ['Test1'],
-    //             Color: 'green',
-    //             Name: 'Tess'
-    //         },
-    //         {
-    //             EphemeraId: 'CHARACTER#456',
-    //             ConnectionIds: ['Test2'],
-    //             Color: 'purple',
-    //             Name: 'Marco'
-    //         }
-    //     ])
-    //     await publishMessage({
-    //         payloads: [{
-    //             type: 'PublishMessage',
-    //             targets: ['ROOM#ABC', 'NOT-CHARACTER#123'],
-    //             displayProtocol: 'WorldMessage',
-    //             message: [{ tag: 'String', value: 'Test' }]
-    //         }]
-    //     })
-    //     expect(publishMessageMock).toHaveBeenCalledWith({
-    //         MessageId: 'MESSAGE#UUID',
-    //         CreatedTime: 1000000000000,
-    //         Targets: ['CHARACTER#456'],
-    //         Message: [{ tag: 'String', value: 'Test' }],
-    //         DisplayProtocol: 'WorldMessage'
-    //     })
-    // })
+    it('should exclude not-character targets', async () => {
+        cacheMock.RoomCharacterList.get.mockResolvedValue([{
+            EphemeraId: 'CHARACTER#123',
+            Name: '',
+            ConnectionIds: ['Y123']
+        },
+        {
+            EphemeraId: 'CHARACTER#456',
+            Name: '',
+            ConnectionIds: ['Y456']
+        }])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['ROOM#ABC', 'NOT-CHARACTER#123'],
+                displayProtocol: 'WorldMessage',
+                message: [{ tag: 'String', value: 'Test' }]
+            }]
+        })
+        expect(messageDBMock.putItem).toHaveBeenCalledWith({
+            MessageId: 'MESSAGE#UUID',
+            DataCategory: 'Meta::Message',
+            CreatedTime: 1000000000000,
+            Targets: ['CHARACTER#456'],
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(messageDeltaDBMock.putItem).not.toHaveBeenCalledWith({
+            Target: "CHARACTER#123",
+            DeltaId: "1000000000000::MESSAGE#UUID",
+            RowId: "MESSAGE#UUID",
+            CreatedTime: 1000000000000,
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: "CHARACTER#456",
+            DeltaId: "1000000000000::MESSAGE#UUID",
+            RowId: "MESSAGE#UUID",
+            CreatedTime: 1000000000000,
+            Message: [{ tag: 'String', value: 'Test' }],
+            DisplayProtocol: 'WorldMessage'
+        })
+        expect(apiClientMock.send).not.toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: "CHARACTER#123",
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: [{ tag: 'String', value: 'Test' }],
+                    DisplayProtocol: 'WorldMessage'
+                }]
+            })
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y456',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: "CHARACTER#456",
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: [{ tag: 'String', value: 'Test' }],
+                    DisplayProtocol: 'WorldMessage'
+                }]
+            })
+        })
+    })
 
 })
