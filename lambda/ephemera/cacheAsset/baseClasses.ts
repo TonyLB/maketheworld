@@ -1,6 +1,6 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist";
 import { ComponentRenderItem } from "@tonylb/mtw-wml/dist/normalize"
-import { NormalCharacterPronouns } from "../../../packages/mtw-wml/dist/normalize";
+import { NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize";
 
 export type EphemeraCondition = {
     dependencies: string[];

@@ -88,13 +88,13 @@ Resources:
       Name: MTWRealTimeSocket
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.service"
-  ControlChannelPermission:
+  EphemeraPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-      - ControlChannelFunction
+      EphemeraFunction
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref ControlChannelFunction
+      FunctionName: !Ref EphemeraFunction
       Principal: apigateway.amazonaws.com
   AssetPermission:
     Type: AWS::Lambda::Permission
@@ -104,7 +104,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref AssetsFunction
       Principal: apigateway.amazonaws.com
-  ControlChannelFunction:
+  EphemeraFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: esbuild
@@ -116,7 +116,7 @@ Resources:
           - app.ts
     Properties:
       Tracing: Active
-      CodeUri: lambda/controlChannel/
+      CodeUri: lambda/ephemera/
       Handler: app.handler
       MemorySize: 512
       Runtime: nodejs14.x
@@ -208,7 +208,7 @@ Resources:
               - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
               -
                   Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+                  ChannelArn: !GetAtt EphemeraFunction.Arn
       RequestTemplates:
         application/json: >
           {
@@ -243,7 +243,7 @@ Resources:
               - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
               -
                   Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+                  ChannelArn: !GetAtt EphemeraFunction.Arn
       RequestTemplates:
         application/json: >
           {
@@ -325,7 +325,7 @@ Resources:
               - "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${ChannelArn}/invocations"
               -
                   Region: !Ref AWS::Region
-                  ChannelArn: !GetAtt ControlChannelFunction.Arn
+                  ChannelArn: !GetAtt EphemeraFunction.Arn
   #
   # According to documentation, an IntegrationResponse shouldn't be necessary, but whenever
   # I don't include it, messaging goes wonky.  Maybe it's superstition at this point, but I'm
