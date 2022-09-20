@@ -1,9 +1,0 @@
-{
-    "#id": "permanentId",
-    "#ancestry": "ancestry",
-    "#name": "name",
-    "#type": "type",
-    "#parent": "parentId",
-    "#from": "fromRoomId",
-    "#desc": "description"
-}
