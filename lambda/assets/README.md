@@ -41,12 +41,15 @@ Different types of data are stored in different thematic layers within the Dynam
 the player is currently authorized to play
 - [Character Layer](./README.character.md): This layer stores character information, particularly the address
 of the WML and JSON files in which the character is defined
+- Asset Layer: This layer stores asset information, particularly the address of the WML and JSON files in which
+the asset is defined
+- [Permissions Layer](./README.permissions.md): This layer stores permission and access information, connecting
+players to character and asset files, and characters to asset files to which they have inherent access
 
 ---
 
 ## Outlets
 
-- ***upload handler***: Handler for S3 event on **uploads** folder in Asset S3 bucket.
 - ***heal***: Heals all player information from Cognito, assigning characters as they are currently
 assigned in the Asset DB.
 - ***healAsset***: Accepts an AssetID, looks it up based on current meta-data stored in the DB,
