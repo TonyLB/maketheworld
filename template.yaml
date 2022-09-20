@@ -124,7 +124,6 @@ Resources:
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
-          EPHEMERA_SERVICE: !GetAtt EphemeraFunction.Arn
           ASSETS_SERVICE: !GetAtt AssetsFunction.Arn
           WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
           S3_BUCKET: !Sub '${TablePrefix}-assets'
@@ -151,7 +150,6 @@ Resources:
             Action:
               - lambda:InvokeFunction
             Resource:
-              - !GetAtt EphemeraFunction.Arn
               - !GetAtt AssetsFunction.Arn
         - Statement:
           - Effect: Allow
@@ -596,39 +594,6 @@ Resources:
           ContentUri: lambda/utilitiesLayer/
           CompatibleRuntimes:
             - nodejs14.x
-  EphemeraFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-          Tracing: Active
-          CodeUri: lambda/ephemera/
-          Timeout: 30
-          Handler: app.handler
-          MemorySize: 256
-          Runtime: nodejs14.x
-          Environment:
-              Variables:
-                  TABLE_PREFIX: !Ref TablePrefix
-                  WEBSOCKET_API: !Join [ '', [ 'https://', !Ref RealTimeWebSocket, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/', 'Prod'] ]
-          Layers:
-            - !Ref UtilityLambdaLayer
-          Policies:
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_ephemera'
-            - DynamoDBCrudPolicy:
-                  TableName: !Sub '${TablePrefix}_messages'
-            - DynamoDBReadPolicy:
-                  TableName: !Sub '${TablePrefix}_assets'
-            - Statement:
-              - Effect: Allow
-                Action: execute-api:ManageConnections
-                Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
-          Events:
-            Stream:
-              Type: DynamoDB
-              Properties:
-                Stream: !GetAtt EphemeraTable.StreamArn
-                BatchSize: 100
-                StartingPosition: LATEST
   AssetBucket:
       Type: AWS::S3::Bucket
       Properties:
