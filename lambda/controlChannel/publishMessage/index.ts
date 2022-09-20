@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdateMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage } from "../messageBus/baseClasses"
 import { publishMessage as publishMessageDynamoDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
@@ -47,7 +47,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 Color: payload.color
             })
         }
-        if (isRoomUpdateMessage(payload)) {
+        if (isRoomUpdatePublishMessage(payload)) {
             const remappedTargets = await remapTargets(payload.targets)
             await publishMessageDynamoDB({
                 MessageId: `MESSAGE#${uuidv4()}`,

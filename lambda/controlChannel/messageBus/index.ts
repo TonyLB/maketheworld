@@ -17,7 +17,8 @@ import {
     isMoveCharacter,
     isDecacheAsset,
     isCacheAssetMessage,
-    isPlayerUpdateMessage
+    isPlayerUpdateMessage,
+    isRoomUpdateMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -34,6 +35,7 @@ import moveCharacter from '../moveCharacter'
 import decacheAssetMessage from '../decacheMessage'
 import { cacheAssetMessage } from '../cacheAsset'
 import playerUpdateMessage from '../playerUpdate'
+import roomUpdateMessage from '../roomUpdate'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -131,6 +133,12 @@ messageBus.subscribe({
     priority: 5,
     filter: isPlayerUpdateMessage,
     callback: playerUpdateMessage
+})
+messageBus.subscribe({
+    tag: 'RoomUpdate',
+    priority: 3,
+    filter: isRoomUpdateMessage,
+    callback: roomUpdateMessage
 })
 
 export default messageBus
