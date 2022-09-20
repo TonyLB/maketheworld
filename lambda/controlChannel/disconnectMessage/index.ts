@@ -30,7 +30,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
         }
         const { RoomId, Name, fileURL, Color } = characterFetch || {}
 
-        const currentActiveCharacters = await internalCache.RoomCharacterList.get(characterId)
+        const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
 
         const remainingConnections = currentConnections.filter((value) => (value !== connectionId))
 
@@ -149,7 +149,7 @@ export const disconnectMessage = async ({ payloads }: { payloads: DisconnectMess
             ProjectionFields: ['DataCategory']
         })
         await Promise.all([
-            ...characterQuery.map(async ({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, splitType(DataCategory)[1]))),
+            ...characterQuery.map(({ DataCategory }) => (atomicallyRemoveCharacterAdjacency(payload.connectionId, splitType(DataCategory)[1]))),
             connectionDB.deleteItem({
                 ConnectionId,
                 DataCategory: 'Meta::Connection'

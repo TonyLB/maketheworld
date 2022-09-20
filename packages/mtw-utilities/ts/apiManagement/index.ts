@@ -1,6 +1,5 @@
 import { apiClient } from './apiManagementClient'
 import { ephemeraDB } from '../dynamoDB'
-import { forceDisconnect } from './forceDisconnect'
 import { unique } from '../lists'
 
 type MessageQueueContents = {
@@ -196,7 +195,12 @@ export class SocketQueue extends Object {
             }
             catch (err: any) {
                 if (err.name === 'GoneException' || err.name === 'BadRequestException') {
-                    await forceDisconnect(ConnectionId)
+                    //
+                    // TODO: Figure out whether to deprecate SocketQueue, *OR* if it's still needed after the
+                    // addition of MessageBus functionality, to replace this forceDisconnect call with an
+                    // invocation of the EventBridge Force Disconnect event
+                    //
+                    // await forceDisconnect(ConnectionId)
                 }
                 else {
                     console.log(`Error: ${err.name}`)
