@@ -24,6 +24,10 @@ export class CacheRoomCharacterListsData {
     set(props: { key: string; value: RoomCharacterListItem[] }) {
         this.CharacterListByRoom[props.key] = props.value
     }
+
+    invalidate(key: string) {
+        delete this.CharacterListByRoom[key]
+    }
 }
 
 export const CacheRoomCharacterLists = <GBase extends CacheConstructor>(Base: GBase) => {
