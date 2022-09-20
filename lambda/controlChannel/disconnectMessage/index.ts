@@ -118,11 +118,8 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
                 }]
             })
             messageBus.send({
-                type: 'PublishMessage',
-                targets: [`ROOM#${RoomId}`, `CHARACTER#${characterId}`],
-                displayProtocol: 'RoomUpdate',
-                RoomId,
-                Characters: remainingCharacters.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest }))
+                type: 'RoomUpdate',
+                roomId: RoomId
             })
         }
         internalCache.RoomCharacterList.set({

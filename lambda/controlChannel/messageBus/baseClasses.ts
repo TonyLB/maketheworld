@@ -175,6 +175,11 @@ export type PlayerUpdateMessage = {
     Assets: EventBridgeUpdatePlayerAsset[];
 }
 
+export type RoomUpdateMessage = {
+    type: 'RoomUpdate';
+    roomId: string;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -191,12 +196,13 @@ export type MessageType = PublishMessage |
     MoveCharacterMessage |
     DecacheAssetMessage |
     CacheAssetMessage |
-    PlayerUpdateMessage
+    PlayerUpdateMessage |
+    RoomUpdateMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
-export const isRoomUpdateMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
+export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')
@@ -219,5 +225,6 @@ export const isDecacheAsset = (prop: MessageType): prop is DecacheAssetMessage =
 export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessage => (prop.type === 'CacheAsset')
 
 export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
+export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

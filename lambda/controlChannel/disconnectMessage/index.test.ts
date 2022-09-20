@@ -78,14 +78,8 @@ describe("disconnectMessage", () => {
             }]
         })
         expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: [`ROOM#TestABC`, `CHARACTER#ABC`],
-            displayProtocol: 'RoomUpdate',
-            RoomId: 'TestABC',
-            Characters: [{
-                CharacterId: 'BCD',
-                Name: 'TestToo'
-            }]
+            type: 'RoomUpdate',
+            roomId: 'TestABC'
         })
         expect(internalCacheMock.RoomCharacterList.set).toHaveBeenCalledWith({
             key: 'TestABC',

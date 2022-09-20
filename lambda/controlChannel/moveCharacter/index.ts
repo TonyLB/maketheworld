@@ -8,15 +8,29 @@ export const moveCharacter = async ({ payloads }: { payloads: MoveCharacterMessa
         // pushing data to the DB.
         //
         await ephemeraDB.update({
-            EphemeraId: `CHARACTERINPLAY#${payload.characterId}`,
+            EphemeraId: `CHARACTER#${payload.characterId}`,
             DataCategory: 'Meta::Character',
-            UpdateExpression: 'SET RoomId = :roomId, leaveMessage = :leave, enterMessage = :enter',
+            UpdateExpression: 'SET RoomId = :roomId',
             ExpressionAttributeValues: {
-                ':roomId': payload.roomId,
-                ':leave': payload.leaveMessage || ' left.',
-                ':enter': ` arrives.`
+                ':roomId': payload.roomId
             }
         })
+
+        //
+        // TODO: Transactional update of Character, departing Room and arriving Room in Ephemera table
+        //
+
+        //
+        // TODO: Publish departure and arrival messages
+        //
+
+        //
+        // TODO: Update room ephemera for departing and arriving room
+        //
+
+        //
+        // TODO: Publish roomHeader message to travelling character
+        //
     }))
 }
 
