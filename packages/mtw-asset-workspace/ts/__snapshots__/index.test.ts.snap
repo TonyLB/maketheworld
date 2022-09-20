@@ -187,6 +187,6 @@ Object {
 exports[`AssetWorkspace setWML should correctly parse WML input 2`] = `
 Object {
   "a123": "TestA",
-  "b456": "UUID-0",
+  "b456": "ROOM#UUID-0",
 }
 `;

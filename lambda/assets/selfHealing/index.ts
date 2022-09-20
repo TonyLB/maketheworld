@@ -12,7 +12,7 @@ export const healAsset = async (fileName: string) => {
         }
         await assetWorkspace.loadWML()
         await Promise.all([
-            assetWorkspace.pushJSON(),
+            ...((assetWorkspace.status.json !== 'Clean') ? [assetWorkspace.pushJSON()] : []),
             dbRegister(assetWorkspace)
         ])
         return {
