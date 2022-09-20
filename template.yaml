@@ -586,14 +586,6 @@ Resources:
             Projection:
               ProjectionType: KEYS_ONLY
         TableName: !Sub '${TablePrefix}_message_delta'
-  UtilityLambdaLayer:
-      Type: AWS::Serverless::LayerVersion
-      Properties:
-          LayerName: utility-layer
-          Description: Lambda layer to import utility functions
-          ContentUri: lambda/utilitiesLayer/
-          CompatibleRuntimes:
-            - nodejs14.x
   AssetBucket:
       Type: AWS::S3::Bucket
       Properties:
