@@ -23,7 +23,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
         const connections = (await internalCache.Global.get('connections')) || []
         const updates = payloads.filter(({ global }) => (global)).reduce((previous, payload) => ([ ...previous, ...payload.updates]), [] as EphemeraUpdateMessage["updates"])
         console.log(`Connections: ${JSON.stringify(connections, null, 4)}`)
-        globalSends = connections.map((connectionId) => (
+        globalSends = Object.keys(connections).map((connectionId) => (
                 apiClient.send({
                     ConnectionId: connectionId,
                     Data: JSON.stringify({

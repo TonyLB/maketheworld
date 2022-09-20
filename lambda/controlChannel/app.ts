@@ -78,41 +78,46 @@ export const handler = async (event: any, context: any) => {
     messageBus.clear()
 
     // Handle EventBridge messages
-    if (['mtw.coordination'].includes(event?.source || '')) {
-        if (event["detail-type"] === 'Decache Asset') {
-            if (event.detail?.assetId) {
+    if (['mtw.coordination', 'mtw.diagnostics'].includes(event?.source || '')) {
+        switch(event["detail-type"]) {
+            case 'Decache Asset':
+                if (event.detail?.assetId) {
+                    messageBus.send({
+                        type: 'DecacheAsset',
+                        assetId: event.detail.assetId
+                    })
+                }
+                break
+            case 'Cache Asset':
+                const address: AssetWorkspaceAddress = event.detail.zone === 'Personal'
+                    ? {
+                        fileName: event.detail.fileName,
+                        zone: 'Personal',
+                        subFolder: event.detail.subFolder,
+                        player: event.detail.player
+                    }
+                    :  {
+                        fileName: event.detail.fileName,
+                        zone: event.detail.zone,
+                        subFolder: event.detail.subFolder
+                    }
                 messageBus.send({
-                    type: 'DecacheAsset',
-                    assetId: event.detail.assetId
+                    type: 'CacheAsset',
+                    address,
+                    options: {}
                 })
-            }
-        }
-        if (event["detail-type"] === 'Cache Asset') {
-            const address: AssetWorkspaceAddress = event.detail.zone === 'Personal'
-                ? {
-                    fileName: event.detail.fileName,
-                    zone: 'Personal',
-                    subFolder: event.detail.subFolder,
-                    player: event.detail.player
-                }
-                :  {
-                    fileName: event.detail.fileName,
-                    zone: event.detail.zone,
-                    subFolder: event.detail.subFolder
-                }
-            messageBus.send({
-                type: 'CacheAsset',
-                address,
-                options: {}
-            })
-        }
-        if (event["detail-type"] === 'Update Player') {
-            messageBus.send({
-                type: 'PlayerUpdate',
-                player: event.detail.PlayerName || '',
-                Characters: event.detail.Characters || [],
-                Assets: event.detail.Assets || []
-            })
+                break
+            case 'Update Player':
+                messageBus.send({
+                    type: 'PlayerUpdate',
+                    player: event.detail.PlayerName || '',
+                    Characters: event.detail.Characters || [],
+                    Assets: event.detail.Assets || []
+                })
+                break
+            case 'Force Disconnect':
+                console.log(`Force Disconnect: ${JSON.stringify(event.detail, null, 4)}`)
+                break
         }
     }
     
