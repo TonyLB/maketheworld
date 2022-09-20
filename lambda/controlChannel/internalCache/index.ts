@@ -55,12 +55,12 @@ class CacheGlobalData {
                 return this.assets
             case 'connections':
                 if (typeof this.connections === 'undefined') {
-                    const { connections = [] } = (await connectionDB.getItem<{ connections: string[] }>({
+                    const { connections = {} } = (await connectionDB.getItem<{ connections: Record<string, string> }>({
                         ConnectionId: 'Global',
                         DataCategory: 'Connections',
                         ProjectionFields: ['connections']
                     })) || {}
-                    this.connections = connections
+                    this.connections = Object.keys(connections)
                 }
                 return this.connections
             default:
