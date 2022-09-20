@@ -117,6 +117,12 @@ export const handler = async (event: any, context: any) => {
                 break
             case 'Force Disconnect':
                 console.log(`Force Disconnect: ${JSON.stringify(event.detail, null, 4)}`)
+                if (event.detail.connectionId) {
+                    messageBus.send({
+                        type: 'Disconnect',
+                        connectionId: event.detail.connectionId
+                    })
+                }
                 break
         }
     }
