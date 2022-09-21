@@ -25,7 +25,6 @@ describe('DescentUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
-                    connections: []
                 }
             },
             {
@@ -35,7 +34,6 @@ describe('DescentUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
                 }
             }],
             messageBus
@@ -48,8 +46,7 @@ describe('DescentUpdateMessage', () => {
             putItem: {
                 tag: 'Asset',
                 key: 'ImportTwo',
-                EphemeraId: 'ASSET#ImportThree',
-                connections: []
+                EphemeraId: 'ASSET#ImportThree'
             }
         })
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
@@ -68,12 +65,24 @@ describe('DescentUpdateMessage', () => {
                 {
                     tag: 'Asset',
                     key: 'Base',
-                    EphemeraId: 'ASSET#Base'
+                    EphemeraId: 'ASSET#Base',
+                    connections: []
                 },
                 {
                     tag: 'Asset',
                     key: 'Bootstrap',
-                    EphemeraId: 'ASSET#Bootstrap'
+                    EphemeraId: 'ASSET#Bootstrap',
+                    connections: []
+                }
+            ]
+        })
+        .mockResolvedValueOnce({
+            Descent: [
+                {
+                    tag: 'Asset',
+                    key: 'ImportTwo',
+                    EphemeraId: 'ASSET#ImportThree',
+                    connections: []
                 }
             ]
         })
@@ -89,7 +98,6 @@ describe('DescentUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
                 }
             }],
             messageBus
@@ -102,13 +110,7 @@ describe('DescentUpdateMessage', () => {
             putItem: {
                 tag: 'Asset',
                 key: 'Base',
-                EphemeraId: 'ASSET#ImportOne',
-                connections: [{
-                    tag: 'Asset',
-                    key: 'ImportOne',
-                    EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
-                }]
+                EphemeraId: 'ASSET#ImportOne'
             }
         })
         expect(messageBus.send).toHaveBeenCalledWith({
@@ -117,13 +119,7 @@ describe('DescentUpdateMessage', () => {
             putItem: {
                 tag: 'Asset',
                 key: 'Bootstrap',
-                EphemeraId: 'ASSET#ImportOne',
-                connections: [{
-                    tag: 'Asset',
-                    key: 'ImportOne',
-                    EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
-                }]
+                EphemeraId: 'ASSET#ImportOne'
             }
         })
     })

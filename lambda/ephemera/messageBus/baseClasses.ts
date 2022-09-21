@@ -208,8 +208,8 @@ export type DependencyNode = {
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
     targetId: string;
-    putItem?: DependencyNode;
-    deleteItem?: DependencyNode;
+    putItem?: Omit<DependencyNode, 'connections'>;
+    deleteItem?: Omit<DependencyNode, 'connections'>;
 }
 
 export type MessageType = PublishMessage |
