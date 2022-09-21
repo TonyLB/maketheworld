@@ -4,6 +4,7 @@
 //
 import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox";
 import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
 import { WritableDraft } from "immer/dist/internal";
 import { EphemeraItem } from "./baseClasses";
@@ -110,8 +111,8 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                         if (!draft.cached) {
                             draft.cached = []
                         }
-                        if (!(assetId in draft.cached)) {
-                            draft.cached.push(assetId)
+                        if (!(draft.cached.includes(assetId))) {
+                            draft.cached = unique(draft.cached, [assetId]) as string[]
                         }
                         if (fetchedArgs?.activeCharacters) {
                             draft.activeCharacters = fetchedArgs.activeCharacters
