@@ -20,22 +20,20 @@ describe('DescentUpdateMessage', () => {
         await descentUpdateMessage({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportTwo',
-                putItem: {
-                    tag: 'Asset',
-                    key: 'ImportTwo',
-                    EphemeraId: 'ASSET#ImportThree',
-                    connections: []
-                }
-            },
-            {
-                type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
+                }
+            },
+            {
+                type: 'DescentUpdate',
+                targetId: 'ASSET#ImportTwo',
+                putItem: {
+                    tag: 'Asset',
+                    key: 'ImportTwo',
+                    EphemeraId: 'ASSET#ImportThree',
                 }
             }],
             messageBus
@@ -44,17 +42,16 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledTimes(1)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
-            targetId: 'ASSET#ImportTwo',
+            targetId: 'ASSET#ImportOne',
             putItem: {
                 tag: 'Asset',
-                key: 'ImportTwo',
-                EphemeraId: 'ASSET#ImportThree',
-                connections: []
+                key: 'ImportOne',
+                EphemeraId: 'ASSET#ImportTwo'
             }
         })
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
-                EphemeraId: 'ASSET#ImportOne',
+                EphemeraId: 'ASSET#ImportTwo',
                 DataCategory: 'Meta::Asset'
             },
             updateKeys: ['Descent'],
@@ -68,12 +65,24 @@ describe('DescentUpdateMessage', () => {
                 {
                     tag: 'Asset',
                     key: 'Base',
-                    EphemeraId: 'ASSET#Base'
+                    EphemeraId: 'ASSET#Base',
+                    connections: []
                 },
                 {
                     tag: 'Asset',
                     key: 'Bootstrap',
-                    EphemeraId: 'ASSET#Bootstrap'
+                    EphemeraId: 'ASSET#Bootstrap',
+                    connections: []
+                }
+            ]
+        })
+        .mockResolvedValueOnce({
+            Descent: [
+                {
+                    tag: 'Asset',
+                    key: 'ImportTwo',
+                    EphemeraId: 'ASSET#ImportThree',
+                    connections: []
                 }
             ]
         })
@@ -89,7 +98,6 @@ describe('DescentUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
                 }
             }],
             messageBus
@@ -102,13 +110,7 @@ describe('DescentUpdateMessage', () => {
             putItem: {
                 tag: 'Asset',
                 key: 'Base',
-                EphemeraId: 'ASSET#ImportOne',
-                connections: [{
-                    tag: 'Asset',
-                    key: 'ImportOne',
-                    EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
-                }]
+                EphemeraId: 'ASSET#ImportOne'
             }
         })
         expect(messageBus.send).toHaveBeenCalledWith({
@@ -117,13 +119,7 @@ describe('DescentUpdateMessage', () => {
             putItem: {
                 tag: 'Asset',
                 key: 'Bootstrap',
-                EphemeraId: 'ASSET#ImportOne',
-                connections: [{
-                    tag: 'Asset',
-                    key: 'ImportOne',
-                    EphemeraId: 'ASSET#ImportTwo',
-                    connections: []
-                }]
+                EphemeraId: 'ASSET#ImportOne'
             }
         })
     })
