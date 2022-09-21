@@ -70,6 +70,7 @@ type EphemeraAssetMeta = {
     activeCharacters?: ActiveCharacterItem[];
     src?: string;
     rootAsset?: string;
+    scopedId: string;
 }
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
@@ -100,7 +101,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
             if (!items.current || (JSON.stringify(items.current) !== JSON.stringify(items.incoming))) {
                 return ephemeraDB.addPerAsset({
                     fetchArgs: initializeComponent,
-                    updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset'],
+                    updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset', 'scopedId'],
                     reduceMetaData: ({ item, fetchedArgs }) => (draft: WritableDraft<EphemeraAssetMeta>) => {
                         if (!draft.cached) {
                             draft.cached = []
@@ -111,12 +112,15 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                         if (fetchedArgs?.activeCharacters) {
                             draft.activeCharacters = fetchedArgs.activeCharacters
                         }
+                        if (item.scopedId && item.scopedId !== draft.scopedId)  {
+                            draft.scopedId = item.scopedId
+                        }
                         if (item.tag === 'Action' && item.src) {
                             draft.src = item.src
                             draft.rootAsset = assetId
                         }
                     }
-                })({ DataCategory, ...items.incoming })
+                })({ DataCategory, ...items.incoming, scopedId: items.incoming.key })
             }
             else {
                 return undefined
