@@ -2,7 +2,7 @@
 // This file has utilities for merging a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
-import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
 import { WritableDraft } from "immer/dist/internal";
 import { EphemeraItem } from "./baseClasses";
@@ -15,15 +15,22 @@ type ActiveCharacterOutput = {
 }
 
 export const getAllActiveCharacters = async (): Promise<ActiveCharacterOutput[]> => {
-    const charactersInPlay: ActiveCharacterOutput[] = (await ephemeraDB.query({
+    const connectedCharacters = await connectionDB.query<{ ConnectionId: string; connections: string[] }[]>({
         IndexName: 'DataCategoryIndex',
         DataCategory: 'Meta::Character',
+        ProjectionFields: ['ConnectionId']
+    })
+    const connectionsByCharacterId = connectedCharacters.reduce<Record<string, string[]>>((previous, { ConnectionId, connections }) => ({ ...previous, [ConnectionId]: connections }), {})
+    const characterMetaFetch = await ephemeraDB.batchGetItem<ActiveCharacterOutput>({
+        Items: connectedCharacters.map(({ ConnectionId: EphemeraId }) => ({ EphemeraId, DataCategory: 'Meta::Character' })),
         ExpressionAttributeNames: {
             "#name": "Name"
         },
-        ProjectionFields: ['EphemeraId', 'RoomId', '#name', 'Connected', 'ConnectionIds']
-    })).filter(({ Connected }) => (Connected))
-        .map(({ EphemeraId, RoomId, Name, ConnectionIds = [] }) => ({ EphemeraId, RoomId, Name, ConnectionIds }))
+        ProjectionFields: ['EphemeraId', 'RoomId', '#name']
+    })
+    const charactersInPlay: ActiveCharacterOutput[] = characterMetaFetch
+        .map(({ EphemeraId, RoomId, Name }) => ({ EphemeraId, RoomId, Name, ConnectionIds: connectionsByCharacterId[EphemeraId] || [] }))
+        .filter(({ ConnectionIds }) => (ConnectionIds.length > 0))
 
     return charactersInPlay
 }
