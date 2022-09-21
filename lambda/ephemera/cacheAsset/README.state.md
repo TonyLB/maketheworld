@@ -18,6 +18,7 @@ upon the same variable (either directly or through a sequence of imports and ren
 - Need to be able to track all dependencies of a variable, in every import branching
 - Need to be able to track all dependencies of component renders on a variable (through use in conditions)
 in order to send render updates upon a variable change
+- Need to be able to store actions which execute code to change the state
 
 ---
 
@@ -54,6 +55,41 @@ type EphemeraStateItem = EphemeraStateComputed | EphemeraStateVariable | Ephemer
 
 export type EphemeraState = {
     [key: string]: EphemeraStateItem
+}
+```
+
+***Transition to new storage***
+
+*Any variable will have a per-asset row to represent how it is referenced in a particular asset,*
+*with a Meta::Variable row representing the overall variable (including its value and descendants)*
+
+```ts
+export type EphemeraMetaVariableValue = string
+    | boolean
+    | Record<string, EphemeraMetaVariableValue>
+    | EphemeraMetaVariableValue[]
+
+export type EphemeraMetaVariable = {
+    EphemeraId: string;
+    DataCategory: 'Meta::Variable';
+    value: EphemeraMetaVariableValue;
+    descendants: any; // <TBD: Descendant layer>
+}
+```
+
+---
+
+## Action Storage
+
+*Any action will have a per-asset row to represent how it is referenced in a particular asset,*
+*with a Meta::Action row representing the overall action (including its source and root asset)*
+
+```ts
+export type EphemeraMetaAction = {
+    EphemeraId: string;
+    DataCategory: 'Meta::Action';
+    src: string;
+    rootAsset: string;
 }
 ```
 
