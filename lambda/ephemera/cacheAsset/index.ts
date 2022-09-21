@@ -133,8 +133,9 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 RoomId: 'VORTEX'
             }
         case 'Action':
+        case 'Computed':
             return {
-                tag: 'Action',
+                tag: item.tag,
                 key: item.key,
                 EphemeraId,
                 src: item.src

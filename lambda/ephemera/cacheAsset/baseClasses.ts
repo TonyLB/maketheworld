@@ -90,7 +90,14 @@ export type EphemeraVariable = {
     default: string;
 }
 
-export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable
+export type EphemeraComputed = {
+    EphemeraId: string;
+    key: string;
+    tag: 'Computed';
+    src: string;
+}
+
+export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
 
 export type EphemeraDependencyImport = {
     key: string;
