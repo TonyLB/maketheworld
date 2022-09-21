@@ -693,6 +693,7 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
     let completed = false
     const maxRetries = 5
     const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
+    const [_, assetKey] = splitType(key.DataCategory)
     const tag = ephemeraTag === 'ROOM' ? 'Room' :
         ephemeraTag === 'FEATURE' ? 'Feature' :
         ephemeraTag === 'MAP' ? 'Map' :
@@ -709,7 +710,8 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
                 ProjectionExpression: 'cached'
             }))
             const { cached: currentCache = [] } = unmarshall(fetchCache)
-            if (currentCache.length > 1) {
+            const newCache = currentCache.filter((value) => (value !== assetKey))
+            if (newCache.length > 0) {
                 await dbClient.send(new TransactWriteItemsCommand({
                     TransactItems: [{
                         Delete: {
@@ -718,16 +720,17 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
                         }
                     },
                     {
-                        Put: {
+                        Update: {
                             TableName: ephemeraTable,
-                            Item: marshall({
+                            Key: marshall({
                                 EphemeraId: key.EphemeraId,
-                                DataCategory: `Meta::${tag}`,
-                                cached: currentCache.filter((value) => (value !== ephemeraKey))
+                                DataCategory: `Meta::${tag}`
                             }),
-                            ConditionExpression: "cached = :cached",
+                            UpdateExpression: "SET cached = :newCached",
+                            ConditionExpression: "attribute_not_exists(cached) or cached = :oldCached",
                             ExpressionAttributeValues: marshall({
-                                ':cached': currentCache
+                                ':newCached': newCache,
+                                ':oldCached': currentCache
                             })
                         }
                     }]
