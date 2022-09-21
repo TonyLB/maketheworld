@@ -5,7 +5,7 @@ import { schemaFromParse } from '@tonylb/mtw-wml/dist/schema/index'
 import parser from '@tonylb/mtw-wml/dist/parser/index'
 import tokenizer from '@tonylb/mtw-wml/dist/parser/tokenizer/index'
 import Normalizer from '@tonylb/mtw-wml/dist/normalize/index'
-import { NormalAction, NormalCharacter, NormalFeature, NormalForm, NormalItem, NormalMap, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { NormalAction, NormalCharacter, NormalComputed, NormalFeature, NormalForm, NormalItem, NormalMap, NormalRoom, NormalVariable } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import SourceStream from "@tonylb/mtw-wml/dist/parser/tokenizer/sourceStream"
 
 import { AssetWorkspaceException } from "./errors"
@@ -96,7 +96,7 @@ export type NamespaceMapping = {
     [name: string]: string
 }
 
-const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalMap | NormalCharacter | NormalAction | NormalVariable) => (['Room', 'Feature', 'Map', 'Character', 'Action', 'Variable'].includes(item.tag))
+const isMappableNormalItem = (item: NormalItem): item is (NormalRoom | NormalFeature | NormalMap | NormalCharacter | NormalAction | NormalVariable | NormalComputed) => (['Room', 'Feature', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(item.tag))
 
 export class AssetWorkspace {
     address: AssetWorkspaceAddress;
