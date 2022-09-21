@@ -117,7 +117,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                         if (fetchedArgs?.activeCharacters) {
                             draft.activeCharacters = fetchedArgs.activeCharacters
                         }
-                        if (item.tag === 'Action' && item.src) {
+                        if (['Action', 'Computed'].includes(item.tag) && item.src) {
                             draft.src = item.src
                             draft.rootAsset = assetId
                         }
