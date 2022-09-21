@@ -334,7 +334,7 @@ const updateByReducer = <T extends Record<string, any>>({ updateKeys, Expression
         return produce(startingDraft, (draft) => {
             updateKeys.forEach((key, index) => {
                 const translatedKey = (ExpressionAttributeNames && key in ExpressionAttributeNames) ? ExpressionAttributeNames[key] : key
-                if (state && translatedKey in state && state[translatedKey] !== undefined) {
+                if (state && translatedKey in state && (typeof state[translatedKey] !== 'undefined')) {
                     if (newState?.[translatedKey] === undefined) {
                         //
                         // Remove existing item
@@ -692,12 +692,9 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
     let exponentialBackoff = 100
     let completed = false
     const maxRetries = 5
-    const [ephemeraTag, ephemeraKey] = splitType(key.EphemeraId)
+    const [ephemeraTag] = splitType(key.EphemeraId)
     const [_, assetKey] = splitType(key.DataCategory)
-    const tag = ephemeraTag === 'ROOM' ? 'Room' :
-        ephemeraTag === 'FEATURE' ? 'Feature' :
-        ephemeraTag === 'MAP' ? 'Map' :
-        ephemeraTag === 'ACTION' ? 'Action' : 'Room'
+    const tag = `${ephemeraTag[0].toUpperCase()}${ephemeraTag.slice(1).toLowerCase()}`
     while(!completed && retries <= maxRetries) {
         completed = true
         try {
@@ -751,7 +748,7 @@ const removePerAsset = async (key: EphemeraDBKey): Promise<void> => {
                                 EphemeraId: key.EphemeraId,
                                 DataCategory: `Meta::${tag}`,
                             }),
-                            ConditionExpression: "cached = :cached",
+                            ConditionExpression: "attribute_not_exists(cached) or cached = :cached",
                             ExpressionAttributeValues: marshall({
                                 ':cached': currentCache
                             })

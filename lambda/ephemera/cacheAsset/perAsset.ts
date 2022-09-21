@@ -2,7 +2,9 @@
 // This file has utilities for merging a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
+import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox";
 import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
+import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
 import { WritableDraft } from "immer/dist/internal";
 import { EphemeraItem } from "./baseClasses";
@@ -70,6 +72,7 @@ type EphemeraAssetMeta = {
     activeCharacters?: ActiveCharacterItem[];
     src?: string;
     rootAsset?: string;
+    value?: any;
 }
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
@@ -100,13 +103,16 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
             if (!items.current || (JSON.stringify(items.current) !== JSON.stringify(items.incoming))) {
                 return ephemeraDB.addPerAsset({
                     fetchArgs: initializeComponent,
-                    updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset'],
+                    updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset', '#value'],
+                    ExpressionAttributeNames: {
+                        '#value': 'value'
+                    },
                     reduceMetaData: ({ item, fetchedArgs }) => (draft: WritableDraft<EphemeraAssetMeta>) => {
                         if (!draft.cached) {
                             draft.cached = []
                         }
-                        if (!(assetId in draft.cached)) {
-                            draft.cached.push(assetId)
+                        if (!(draft.cached.includes(assetId))) {
+                            draft.cached = unique(draft.cached, [assetId]) as string[]
                         }
                         if (fetchedArgs?.activeCharacters) {
                             draft.activeCharacters = fetchedArgs.activeCharacters
@@ -114,6 +120,11 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                         if (item.tag === 'Action' && item.src) {
                             draft.src = item.src
                             draft.rootAsset = assetId
+                        }
+                        if (item.tag === 'Variable' && item.default) {
+                            if ((typeof draft.value === 'undefined') && item.default) {
+                                draft.value = evaluateCode(`return (${item.default})`)({})
+                            }
                         }
                     }
                 })({ DataCategory, ...items.incoming })
