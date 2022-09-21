@@ -8,8 +8,8 @@ import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
 
 export const descentUpdateMessage = async ({ payloads }: { payloads: DescentUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
-    const updatingNodes = unique(payloads.map(({ putItem, deleteItem }) => (putItem?.EphemeraId || deleteItem?.EphemeraId || '')))
-    const workablePayload = ({ targetId }: DescentUpdateMessage) => (!updatingNodes.includes(targetId))
+    const updatingNodes = unique(payloads.map(({ targetId }) => (targetId)))
+    const workablePayload = ({ putItem, deleteItem }: DescentUpdateMessage) => (!updatingNodes.includes(putItem?.EphemeraId ?? deleteItem?.EphemeraId ?? ''))
     const workablePayloads = payloads.filter(workablePayload)
     const unworkablePayloads = payloads.filter((payload) => (!workablePayload(payload)))
 

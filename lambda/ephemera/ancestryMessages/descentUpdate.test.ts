@@ -20,20 +20,20 @@ describe('DescentUpdateMessage', () => {
         await descentUpdateMessage({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportTwo',
-                putItem: {
-                    tag: 'Asset',
-                    key: 'ImportTwo',
-                    EphemeraId: 'ASSET#ImportThree',
-                }
-            },
-            {
-                type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
+                }
+            },
+            {
+                type: 'DescentUpdate',
+                targetId: 'ASSET#ImportTwo',
+                putItem: {
+                    tag: 'Asset',
+                    key: 'ImportTwo',
+                    EphemeraId: 'ASSET#ImportThree',
                 }
             }],
             messageBus
@@ -42,16 +42,16 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledTimes(1)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
-            targetId: 'ASSET#ImportTwo',
+            targetId: 'ASSET#ImportOne',
             putItem: {
                 tag: 'Asset',
-                key: 'ImportTwo',
-                EphemeraId: 'ASSET#ImportThree'
+                key: 'ImportOne',
+                EphemeraId: 'ASSET#ImportTwo'
             }
         })
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
-                EphemeraId: 'ASSET#ImportOne',
+                EphemeraId: 'ASSET#ImportTwo',
                 DataCategory: 'Meta::Asset'
             },
             updateKeys: ['Descent'],
