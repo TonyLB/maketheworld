@@ -139,6 +139,13 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 EphemeraId,
                 src: item.src
             }
+        case 'Variable':
+            return {
+                tag: 'Variable',
+                key: item.key,
+                EphemeraId,
+                default: item.default
+            }
         default:
             return undefined
     }

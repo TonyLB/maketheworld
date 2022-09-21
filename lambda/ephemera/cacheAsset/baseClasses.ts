@@ -83,11 +83,14 @@ export type EphemeraAction = {
     src: string;
 }
 
-//
-// TODO (ISS1385): Add EphemeraAction to base classes
-//
+export type EphemeraVariable = {
+    EphemeraId: string;
+    key: string;
+    tag: 'Variable';
+    default: string;
+}
 
-export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction
+export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable
 
 export type EphemeraDependencyImport = {
     key: string;
