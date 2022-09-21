@@ -77,6 +77,19 @@ export type EphemeraMetaVariable = {
 }
 ```
 
+*Any computed value will have a per-asset row to represent how it is referenced in a particular asset,*
+*with a Meta::Computed row representing the overall variable (including its current value, source,*
+*and descendants)*
+
+```ts
+export type EphemeraMetaComputed = {
+    EphemeraId: string;
+    DataCategory: 'Meta::Computed';
+    src: string;
+    descendants: any; // <TBD: Descendant layer>
+}
+```
+
 ---
 
 ## Action Storage
