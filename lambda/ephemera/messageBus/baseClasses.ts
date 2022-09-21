@@ -198,6 +198,20 @@ export type RoomUpdateMessage = {
     roomId: string;
 }
 
+export type DependencyNode = {
+    tag: 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+    key: string; // The key name by which children nodes know this parent
+    EphemeraId: string;
+    connections: DependencyNode[];
+}
+
+export type DescentUpdateMessage = {
+    type: 'DescentUpdate';
+    targetId: string;
+    putItem?: DependencyNode;
+    deleteItem?: DependencyNode;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -215,7 +229,8 @@ export type MessageType = PublishMessage |
     DecacheAssetMessage |
     CacheAssetMessage |
     PlayerUpdateMessage |
-    RoomUpdateMessage
+    RoomUpdateMessage |
+    DescentUpdateMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -244,5 +259,7 @@ export const isCacheAssetMessage = (prop: MessageType): prop is CacheAssetMessag
 
 export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMessage => (prop.type === 'PlayerUpdate')
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
+
+export const isDescentUpdateMessage = (prop: MessageType): prop is DescentUpdateMessage => (prop.type === 'DescentUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
