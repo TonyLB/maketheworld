@@ -385,16 +385,19 @@ export class StateSynthesizer extends Object {
             .filter(isNormalRoom)
             .map(({ key, appearances }) => ({
                 key,
-                dependencies: unique(appearances.reduce((previous, { contextStack }) => (
-                    contextStack
-                        .filter(({ tag }) => (tag === 'Condition'))
-                        .map(({ key }) => (this.normalForm[key]))
-                        .filter(isNormalCondition)
-                        .reduce((accumulator, { dependencies }) => ([
-                            ...accumulator,
-                            ...dependencies
-                        ]), previous)
-                ), [] as string[])) as string[]
+                dependencies: unique(appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
+                    .reduce((previous, { contextStack }) => (
+                        contextStack
+                            .filter(({ tag }) => (tag === 'Condition'))
+                            .map(({ key }) => (this.normalForm[key]))
+                            .filter(isNormalCondition)
+                            .reduce((accumulator, { dependencies }) => ([
+                                ...accumulator,
+                                ...dependencies
+                            ]), previous)
+                    ), [] as string[])
+                ) as string[]
             }))
             .forEach(sendMessages)
     }

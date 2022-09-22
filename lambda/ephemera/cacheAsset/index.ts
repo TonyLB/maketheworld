@@ -259,6 +259,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 mergeIntoEphemera(assetId, ephemeraItems)
             ])
         
+            stateSynthesizer.sendDependencyMessages()
             stateSynthesizer.evaluateDefaults()
             await stateSynthesizer.fetchImportedValues()
             const { state } = recalculateComputes(
