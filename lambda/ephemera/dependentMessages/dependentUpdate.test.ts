@@ -299,4 +299,194 @@ describe('DescentUpdateMessage', () => {
         })
     })
 
+    it('should combine similarly aliased inheritance edges', async () => {
+        ephemeraDBMock.getItem.mockResolvedValueOnce({
+            Ancestry: []
+        })
+        .mockResolvedValueOnce({
+            Descent: [{
+                tag: 'Map',
+                EphemeraId: 'MAP#DEF',
+                assets: ['Base'],
+                connections: []
+            }]
+        })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
+            updateReducer({ Descent: [] })
+            return {}
+        })
+        await dependentUpdateMessage('Descent')({
+            payloads: [{
+                type: 'DescentUpdate',
+                targetId: 'VARIABLE#XYZ',
+                tag: 'Room',
+                assetId: 'Layer',
+                putItem: {
+                    key: 'lightSwitch',
+                    EphemeraId: 'ROOM#ABC',
+                }
+            }],
+            messageBus
+        })
+
+        expect(messageBus.send).toHaveBeenCalledTimes(0)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            key: {
+                EphemeraId: 'VARIABLE#XYZ',
+                DataCategory: 'Meta::Variable'
+            },
+            updateKeys: ['Descent'],
+            updateReducer: expect.any(Function)
+        })
+        let testItem = { Descent: [
+            {
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base'],
+                key: 'lightSwitch',
+                connections: [{
+                    tag: 'Map',
+                    EphemeraId: 'MAP#DEF',
+                    assets: ['Base'],
+                    connections: []
+                }]
+            }
+        ] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: [{
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base', 'Layer'],
+                key: 'lightSwitch',
+                connections:[
+                    {
+                        tag: 'Map',
+                        EphemeraId: 'MAP#DEF',
+                        assets: ['Base'],
+                        connections: []
+                    }    
+                ]
+            }]
+        })
+    })
+
+    it('should decrement layers when deleting one of many references', async () => {
+        ephemeraDBMock.getItem.mockResolvedValueOnce({
+            Ancestry: []
+        })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
+            updateReducer({ Descent: [] })
+            return {}
+        })
+        await dependentUpdateMessage('Descent')({
+            payloads: [{
+                type: 'DescentUpdate',
+                targetId: 'VARIABLE#XYZ',
+                tag: 'Room',
+                assetId: 'Layer',
+                deleteItem: {
+                    key: 'lightSwitch',
+                    EphemeraId: 'ROOM#ABC',
+                }
+            }],
+            messageBus
+        })
+
+        expect(messageBus.send).toHaveBeenCalledTimes(0)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            key: {
+                EphemeraId: 'VARIABLE#XYZ',
+                DataCategory: 'Meta::Variable'
+            },
+            updateKeys: ['Descent'],
+            updateReducer: expect.any(Function)
+        })
+        let testItem = { Descent: [
+            {
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base', 'Layer'],
+                key: 'lightSwitch',
+                connections: [{
+                    tag: 'Map',
+                    EphemeraId: 'MAP#DEF',
+                    assets: ['Base'],
+                    connections: []
+                }]
+            }
+        ] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: [{
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base'],
+                key: 'lightSwitch',
+                connections:[
+                    {
+                        tag: 'Map',
+                        EphemeraId: 'MAP#DEF',
+                        assets: ['Base'],
+                        connections: []
+                    }    
+                ]
+            }]
+        })
+    })
+
+    it('should remove dependency when deleting last reference', async () => {
+        ephemeraDBMock.getItem.mockResolvedValueOnce({
+            Ancestry: []
+        })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
+            updateReducer({ Descent: [] })
+            return {}
+        })
+        await dependentUpdateMessage('Descent')({
+            payloads: [{
+                type: 'DescentUpdate',
+                targetId: 'VARIABLE#XYZ',
+                tag: 'Room',
+                assetId: 'Base',
+                deleteItem: {
+                    key: 'lightSwitch',
+                    EphemeraId: 'ROOM#ABC',
+                }
+            }],
+            messageBus
+        })
+
+        expect(messageBus.send).toHaveBeenCalledTimes(0)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            key: {
+                EphemeraId: 'VARIABLE#XYZ',
+                DataCategory: 'Meta::Variable'
+            },
+            updateKeys: ['Descent'],
+            updateReducer: expect.any(Function)
+        })
+        let testItem = { Descent: [
+            {
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base'],
+                key: 'lightSwitch',
+                connections: [{
+                    tag: 'Map',
+                    EphemeraId: 'MAP#DEF',
+                    assets: ['Base'],
+                    connections: []
+                }]
+            }
+        ] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: []
+        })
+    })
+
 })

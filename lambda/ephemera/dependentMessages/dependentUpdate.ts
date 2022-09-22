@@ -109,7 +109,7 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                                     dependentItem.assets = dependentItem.assets.filter((check) => (check !== payloadItem.assetId))
                                 }
                             })
-                            draft[dependencyTag] = draft[dependencyTag].filter(({ assets }) => (assets.length === 0))    
+                            draft[dependencyTag] = draft[dependencyTag].filter(({ assets }) => (assets.length > 0))
                         }
                     }
                 })
