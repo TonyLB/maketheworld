@@ -39,13 +39,16 @@ added, removed, or their connections updated
 ---
 
 *Any tree is stored as a recursively nested map:  A key indicates a node, and its value is a nested map of*
-*children.  A leaf node is represented by a key with an empty map as its value.*
+*children.  A leaf node is represented by a key with an empty map as its value.  Each dependency*
+*node also keeps a list of assets that have registered it ... when the last is decached, the*
+*dependency link is removed.*
 
 ```ts
 export type DependencyNode = {
     tag: 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
     key: string; // The key name by which children nodes know this parent
     EphemeraId: string;
+    assets: string[];
     connections: DependencyNode[];
 }
 ```
