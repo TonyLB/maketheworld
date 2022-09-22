@@ -134,7 +134,6 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 RoomId: 'VORTEX'
             }
         case 'Action':
-        case 'Computed':
             return {
                 tag: item.tag,
                 key: item.key,
@@ -147,6 +146,18 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 key: item.key,
                 EphemeraId,
                 default: item.default
+            }
+        case 'Computed':
+            return {
+                tag: item.tag,
+                key: item.key,
+                EphemeraId,
+                src: item.src,
+                dependencies: item.dependencies
+                    .map((key) => ({
+                        key,
+                        EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                    }))
             }
         default:
             return undefined

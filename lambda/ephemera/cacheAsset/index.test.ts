@@ -183,7 +183,9 @@ describe('cacheAsset', () => {
         mockNamespaceMap = {
             test: 'ASSET#test',
             ABC: 'ROOM#DEF',
-            active: 'COMPUTED#XYZ'
+            active: 'COMPUTED#XYZ',
+            powered: 'VARIABLE#QRS',
+            switchedOn: 'VARIABLE#TUV'
         }
         mockTestAsset = {
             test: {
@@ -327,10 +329,26 @@ describe('cacheAsset', () => {
                 }]
             },
             {
+                EphemeraId: 'VARIABLE#QRS',
+                key: 'powered',
+                tag: 'Variable',
+                default: 'false'
+            },
+            {
+                EphemeraId: 'VARIABLE#TUV',
+                key: 'switchedOn',
+                tag: 'Variable',
+                default: 'true'
+            },
+            {
                 EphemeraId: 'COMPUTED#XYZ',
                 key: 'active',
                 src: 'powered && switchedOn',
-                tag: 'Computed'
+                tag: 'Computed',
+                dependencies: [
+                    { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
+                    { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
+                ]
             }]
         )
         expect(recalculateComputes).toHaveBeenCalledWith(
@@ -407,7 +425,9 @@ describe('cacheAsset', () => {
             scopeMap: {
                 test: 'ASSET#test',
                 ABC: 'ROOM#DEF',
-                active: 'COMPUTED#XYZ'
+                active: 'COMPUTED#XYZ',
+                powered: 'VARIABLE#QRS',
+                switchedOn: 'VARIABLE#TUV'
             }
         })
     })
