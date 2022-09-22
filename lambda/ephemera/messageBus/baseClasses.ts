@@ -208,6 +208,7 @@ export type DependencyNode = {
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
     targetId: string;
+    assetId: string;
     putItem?: Omit<DependencyNode, 'connections'>;
     deleteItem?: Omit<DependencyNode, 'connections'>;
 }
@@ -215,6 +216,7 @@ export type DescentUpdateMessage = {
 export type AncestryUpdateMessage = {
     type: 'AncestryUpdate';
     targetId: string;
+    assetId: string;
     putItem?: Omit<DependencyNode, 'connections'>;
     deleteItem?: Omit<DependencyNode, 'connections'>;
 }

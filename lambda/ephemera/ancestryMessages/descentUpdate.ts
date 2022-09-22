@@ -62,31 +62,46 @@ export const descentUpdateMessage = async ({ payloads }: { payloads: DescentUpda
             },
             updateKeys: ['Descent'],
             updateReducer: (draft) => {
-                payloadList.forEach(({ putItem, deleteItem }) => {
+                payloadList.forEach(({ putItem, deleteItem, assetId }) => {
                     if (putItem) {
-                        draft.Descent = [
-                            ...(draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== putItem.EphemeraId))),
-                            {
-                                ...putItem,
-                                connections: descentMap[putItem.EphemeraId]
+                        let alreadyFound = false
+                        draft.Descent.forEach((descentItem) => {
+                            if (descentItem.EphemeraId === putItem.EphemeraId) {
+                                alreadyFound = true
+                                descentItem.connections = descentMap[putItem.EphemeraId]
+                                descentItem.assets = unique(descentItem.assets, [assetId])
                             }
-                        ]
+                        })
+                        if (!alreadyFound) {
+                            draft.Descent.push({
+                                ...putItem,
+                                assets: [assetId],
+                                connections: descentMap[putItem.EphemeraId]
+                            })
+                        }
                     }
                     if (deleteItem) {
-                        draft.Descent = draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== deleteItem.EphemeraId))
+                        draft.Descent.forEach((descentItem) => {
+                            descentItem.assets = descentItem.assets.filter((check) => (check !== assetId))
+                        })
+                        draft.Descent = draft.Descent.filter(({ assets }) => (assets.length === 0))
                     }
                 })
             }
         })
         ancestry.forEach(({ EphemeraId, key }) => {
-            messageBus.send({
-                type: 'DescentUpdate',
-                targetId: EphemeraId,
-                putItem: {
-                    tag,
-                    key,
-                    EphemeraId: targetId
-                }
+            const assets = unique(payloadList.map(({ assetId }) => (assetId))) as string[]
+            assets.forEach((assetId) => {
+                messageBus.send({
+                    type: 'DescentUpdate',
+                    targetId: EphemeraId,
+                    assetId,
+                    putItem: {
+                        tag,
+                        key,
+                        EphemeraId: targetId
+                    }
+                })    
             })
         })
     }))

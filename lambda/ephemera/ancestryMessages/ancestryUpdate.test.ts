@@ -21,6 +21,7 @@ describe('AncestryUpdateMessage', () => {
             payloads: [{
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportOne',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -30,6 +31,7 @@ describe('AncestryUpdateMessage', () => {
             {
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportTwo',
+                assetId: 'ImportTwo',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportTwo',
@@ -43,6 +45,7 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#ImportOne',
+            assetId: 'ImportOne',
             putItem: {
                 tag: 'Asset',
                 key: 'ImportOne',
@@ -65,6 +68,7 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
@@ -78,12 +82,14 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'Base',
                     EphemeraId: 'ASSET#Base',
+                    assets: ['Base'],
                     connections: []
                 },
                 {
                     tag: 'Asset',
                     key: 'Bootstrap',
                     EphemeraId: 'ASSET#Bootstrap',
+                    assets: ['Bootstrap'],
                     connections: []
                 }
             ]
@@ -94,6 +100,7 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
@@ -106,6 +113,7 @@ describe('AncestryUpdateMessage', () => {
             payloads: [{
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportOne',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -119,6 +127,7 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#Base',
+            assetId: 'ImportOne',
             putItem: {
                 tag: 'Asset',
                 key: 'Base',
@@ -128,6 +137,7 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#Bootstrap',
+            assetId: 'ImportOne',
             putItem: {
                 tag: 'Asset',
                 key: 'Bootstrap',
@@ -143,6 +153,7 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'Base',
                     EphemeraId: 'ASSET#Base',
+                    assets: ['Base'],
                     connections: []
                 }
             ]
@@ -153,6 +164,7 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
@@ -168,6 +180,7 @@ describe('AncestryUpdateMessage', () => {
             payloads: [{
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportOne',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -177,6 +190,7 @@ describe('AncestryUpdateMessage', () => {
             {
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportOne',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -190,6 +204,7 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#Base',
+            assetId: 'ImportOne',
             putItem: {
                 tag: 'Asset',
                 key: 'Base',
@@ -213,10 +228,12 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ImportOne'],
                     connections: [{
                         tag: 'Asset',
                         key: 'ImportTwo',
                         EphemeraId: 'ASSET#ImportThree',
+                        assets: ['ImportTwo'],
                         connections: []
                     }]
                 },
@@ -224,6 +241,7 @@ describe('AncestryUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ImportOne'],
                     connections: []
                 }
             ]

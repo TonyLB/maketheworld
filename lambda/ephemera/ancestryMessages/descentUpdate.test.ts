@@ -21,6 +21,7 @@ describe('DescentUpdateMessage', () => {
             payloads: [{
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportTwo',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -30,6 +31,7 @@ describe('DescentUpdateMessage', () => {
             {
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportTwo',
+                assetId: 'ImportThree',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportTwo',
@@ -43,6 +45,7 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             targetId: 'ASSET#ImportOne',
+            assetId: 'ImportTwo',
             putItem: {
                 tag: 'Asset',
                 key: 'ImportOne',
@@ -64,6 +67,7 @@ describe('DescentUpdateMessage', () => {
                 {
                     tag: 'Asset',
                     key: 'ImportTwo',
+                    assets: ['ImportThree'],
                     EphemeraId: 'ASSET#ImportThree',
                     connections: []
                 }
@@ -106,6 +110,7 @@ describe('DescentUpdateMessage', () => {
             payloads: [{
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportTwo',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -119,6 +124,7 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             targetId: 'ASSET#Base',
+            assetId: 'ImportTwo',
             putItem: {
                 tag: 'Asset',
                 key: 'Base',
@@ -128,6 +134,7 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             targetId: 'ASSET#Bootstrap',
+            assetId: 'ImportTwo',
             putItem: {
                 tag: 'Asset',
                 key: 'Bootstrap',
@@ -168,6 +175,7 @@ describe('DescentUpdateMessage', () => {
             payloads: [{
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportTwo',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -177,6 +185,7 @@ describe('DescentUpdateMessage', () => {
             {
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
+                assetId: 'ImportTwo',
                 putItem: {
                     tag: 'Asset',
                     key: 'ImportOne',
@@ -190,6 +199,7 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             targetId: 'ASSET#Base',
+            assetId: 'ImportTwo',
             putItem: {
                 tag: 'Asset',
                 key: 'Base',
@@ -213,6 +223,7 @@ describe('DescentUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ImportTwo'],
                     connections: [{
                         tag: 'Asset',
                         key: 'ImportTwo',
@@ -224,6 +235,7 @@ describe('DescentUpdateMessage', () => {
                     tag: 'Asset',
                     key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
