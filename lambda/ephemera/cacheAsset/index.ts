@@ -251,7 +251,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 .map(ephemeraExtractor)
                 .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
         
-            const stateSynthesizer = new StateSynthesizer(assetWorkspace)
+            const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
         
             await Promise.all([
                 stateSynthesizer.fetchFromEphemera(),

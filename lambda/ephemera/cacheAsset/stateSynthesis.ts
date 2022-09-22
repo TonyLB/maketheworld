@@ -12,10 +12,13 @@ import {
     NormalForm,
     isNormalComputed,
     isNormalVariable,
-    isNormalImport
+    isNormalImport,
+    isNormalComponent,
+    isNormalCondition
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { EphemeraDependencies, EphemeraImportState, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses'
+import { MessageBus } from '../messageBus/baseClasses.js'
 
 export const extractDependencies = (assetWorkspace: AssetWorkspace): EphemeraDependencies => {
     const conditionTransform = conditionsFromContext(assetWorkspace)
@@ -125,13 +128,15 @@ export class StateSynthesizer extends Object {
     dependencies: EphemeraDependencies;
     state: EphemeraState;
     importedStates: EphemeraImportState = {};
-    constructor(assetWorkspace: AssetWorkspace) {
+    messageBus: MessageBus;
+    constructor(assetWorkspace: AssetWorkspace, messageBus: MessageBus) {
         super()
         this.namespaceIdToDB = assetWorkspace.namespaceIdToDB
         this.normalForm = assetWorkspace.normal || {}
         this.assetId = (Object.values(this.normalForm).find(({ tag }) => (tag === 'Asset')) || { key: '' }).key
         this.dependencies = extractDependencies(assetWorkspace)
         this.state = extractComputed(this.normalForm)
+        this.messageBus = messageBus
     }
 
     async fetchFromEphemera() {
@@ -331,6 +336,67 @@ export class StateSynthesizer extends Object {
                 .map(updateMapDependencyOnRoom)
             )
         ])
+    }
+    
+    sendDependencyMessages() {
+        const sendMessages = ({ key: childKey, dependencies }: { key: string; dependencies: string[] }) => {
+            const EphemeraId = this.namespaceIdToDB[childKey]
+            if (!EphemeraId) {
+                return
+            }
+            dependencies.forEach((key) => {
+                const targetId = this.namespaceIdToDB[key]
+                if (!targetId) {
+                    return
+                }
+                const parentTag = this.normalForm[key]?.tag
+                const childTag = this.normalForm[childKey]?.tag
+                if (
+                    (parentTag === 'Variable' || parentTag === 'Computed' || parentTag === 'Room') &&
+                    (childTag === 'Variable' || childTag === 'Computed' || childTag === 'Room')
+                ) {
+                    this.messageBus.send({
+                        type: 'DescentUpdate',
+                        tag: childTag,
+                        targetId,
+                        assetId: this.assetId,
+                        putItem: {
+                            key,
+                            EphemeraId
+                        }
+                    })
+                    this.messageBus.send({
+                        type: 'AncestryUpdate',
+                        tag: parentTag,
+                        targetId: EphemeraId,
+                        assetId: this.assetId,
+                        putItem: {
+                            key,
+                            EphemeraId: targetId
+                        }
+                    })
+                }
+            })
+        }
+        Object.values(this.normalForm)
+            .filter(isNormalComputed)
+            .forEach(sendMessages)
+        Object.values(this.normalForm)
+            .filter(isNormalRoom)
+            .map(({ key, appearances }) => ({
+                key,
+                dependencies: unique(appearances.reduce((previous, { contextStack }) => (
+                    contextStack
+                        .filter(({ tag }) => (tag === 'Condition'))
+                        .map(({ key }) => (this.normalForm[key]))
+                        .filter(isNormalCondition)
+                        .reduce((accumulator, { dependencies }) => ([
+                            ...accumulator,
+                            ...dependencies
+                        ]), previous)
+                ), [] as string[])) as string[]
+            }))
+            .forEach(sendMessages)
     }
 }
 
