@@ -21,6 +21,7 @@ import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHeal
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
+import { isNormalComponent, isNormalMap } from '@tonylb/mtw-wml/dist/normalize.js'
 
 //
 // TODO:
@@ -59,7 +60,7 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
 
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
-    const conditionsTransform = conditionsFromContext(normal)
+    const conditionsTransform = conditionsFromContext(assetWorkspace)
     const EphemeraId = namespaceMap[item.key]
     if (!EphemeraId) {
         return undefined
@@ -133,7 +134,6 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 RoomId: 'VORTEX'
             }
         case 'Action':
-        case 'Computed':
             return {
                 tag: item.tag,
                 key: item.key,
@@ -146,6 +146,18 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
                 key: item.key,
                 EphemeraId,
                 default: item.default
+            }
+        case 'Computed':
+            return {
+                tag: item.tag,
+                key: item.key,
+                EphemeraId,
+                src: item.src,
+                dependencies: item.dependencies
+                    .map((key) => ({
+                        key,
+                        EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                    }))
             }
         default:
             return undefined
@@ -239,7 +251,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 .map(ephemeraExtractor)
                 .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
         
-            const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
+            const stateSynthesizer = new StateSynthesizer(assetWorkspace, messageBus)
         
             await Promise.all([
                 stateSynthesizer.fetchFromEphemera(),
@@ -247,6 +259,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 mergeIntoEphemera(assetId, ephemeraItems)
             ])
         
+            stateSynthesizer.sendDependencyMessages()
             stateSynthesizer.evaluateDefaults()
             await stateSynthesizer.fetchImportedValues()
             const { state } = recalculateComputes(

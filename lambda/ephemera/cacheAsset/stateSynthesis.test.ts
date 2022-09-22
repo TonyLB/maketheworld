@@ -3,6 +3,7 @@ import { jest, describe, it, expect } from '@jest/globals'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 import { BaseAppearance, ComponentAppearance, MapAppearance, NormalForm } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
+import { MessageBus } from '../messageBus/baseClasses'
 import StateSynthesizer from './stateSynthesis'
 
 const getItemMock = ephemeraDB.getItem as jest.Mock
@@ -10,13 +11,18 @@ const batchGetItemMock = ephemeraDB.batchGetItem as jest.Mock
 
 describe('stateSynthesis', () => {
 
+    const messageBusMock = { send: jest.fn() } as unknown as jest.Mocked<MessageBus>
+
     const topLevelAppearance: BaseAppearance = {
         contextStack: [{ key: 'test', tag: 'Asset', index: 0}],
         contents: []
     }
 
     const testNamespaceIdToDB = {
-        ABC: 'ROOM#DEF'
+        ABC: 'ROOM#DEF',
+        power: 'VARIABLE#QRS',
+        switchedOn: 'VARIABLE#TUV',
+        active: 'COMPUTED#XYZ'
     }
     const testAsset: NormalForm = {
         test: {
@@ -130,12 +136,12 @@ describe('stateSynthesis', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.resetAllMocks()
+        jest.restoreAllMocks()
     })
 
     describe('constructor', () => {
         it('should extract computed, room, and mapCache dependencies', () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
 
             expect(testSynthesizer.dependencies).toEqual({
                 active: {
@@ -240,7 +246,7 @@ describe('stateSynthesis', () => {
                     }] as MapAppearance[]
                 }
             }
-            const mapSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
+            const mapSynthesizer = new StateSynthesizer({ namespaceIdToDB: mapNamespace, normal: mapAsset } as any, messageBusMock)
 
             expect(mapSynthesizer.dependencies).toEqual({
                 power: {
@@ -252,7 +258,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should extract computed variables', () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
 
             expect(testSynthesizer.state).toEqual({
                 active: {
@@ -266,7 +272,7 @@ describe('stateSynthesis', () => {
 
     describe('fetchFromEphemera', () => {
         it('should fetch and merge state from ephemera', async () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
             getItemMock.mockResolvedValue({
                 State: {
                     power: {
@@ -306,7 +312,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should remove variables from ephemera when they are removed from source', async () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
             getItemMock.mockResolvedValue({
                 State: {
                     power: {
@@ -350,7 +356,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should update computed source as needed', async () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
             getItemMock.mockResolvedValue({
                 State: {
                     active: {
@@ -408,7 +414,7 @@ describe('stateSynthesis', () => {
                     Dependencies: {}
                 }])
 
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
             await testSynthesizer.fetchImportedValues()
 
             expect(testSynthesizer.state).toEqual({
@@ -457,7 +463,7 @@ describe('stateSynthesis', () => {
                     }
                 }])
 
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -511,7 +517,7 @@ describe('stateSynthesis', () => {
                     }
                 }])
 
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -604,7 +610,7 @@ describe('stateSynthesis', () => {
                     Dependencies: {}
                 })
 
-            const testSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: mapNamespace, normal: mapAsset } as any, messageBusMock)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -622,4 +628,11 @@ describe('stateSynthesis', () => {
         })
     })
 
+    describe('sendDependencyMessages', () => {
+
+        const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any, messageBusMock)
+
+        testSynthesizer.sendDependencyMessages()
+        expect(messageBusMock.send.mock.calls).toMatchSnapshot()
+    })
 })

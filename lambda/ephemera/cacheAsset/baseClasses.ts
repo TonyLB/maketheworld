@@ -2,8 +2,13 @@ import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist";
 import { ComponentRenderItem } from "@tonylb/mtw-wml/dist/normalize"
 import { NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize";
 
+type EphemeraItemDependency = {
+    key: string;
+    EphemeraId: string;
+}
+
 export type EphemeraCondition = {
-    dependencies: string[];
+    dependencies: EphemeraItemDependency[];
     if: string;
 }
 
@@ -95,6 +100,7 @@ export type EphemeraComputed = {
     key: string;
     tag: 'Computed';
     src: string;
+    dependencies: EphemeraItemDependency[];
 }
 
 export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed

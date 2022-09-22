@@ -121,7 +121,7 @@ export type NormalImport = {
 export type NormalCondition = {
     tag: 'Condition';
     if: string;
-    dependencies: any[];
+    dependencies: string[];
     appearances: BaseAppearance[];
 } & NormalBase
 

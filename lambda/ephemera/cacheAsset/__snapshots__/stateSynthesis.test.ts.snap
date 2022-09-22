@@ -1,0 +1,78 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `
+Array [
+  Array [
+    Object {
+      "assetId": "test",
+      "putItem": Object {
+        "EphemeraId": "COMPUTED#XYZ",
+        "key": "switchedOn",
+      },
+      "tag": "Computed",
+      "targetId": "VARIABLE#TUV",
+      "type": "DescentUpdate",
+    },
+  ],
+  Array [
+    Object {
+      "assetId": "test",
+      "putItem": Object {
+        "EphemeraId": "VARIABLE#TUV",
+        "key": "switchedOn",
+      },
+      "tag": "Variable",
+      "targetId": "COMPUTED#XYZ",
+      "type": "AncestryUpdate",
+    },
+  ],
+  Array [
+    Object {
+      "assetId": "test",
+      "putItem": Object {
+        "EphemeraId": "COMPUTED#XYZ",
+        "key": "power",
+      },
+      "tag": "Computed",
+      "targetId": "VARIABLE#QRS",
+      "type": "DescentUpdate",
+    },
+  ],
+  Array [
+    Object {
+      "assetId": "test",
+      "putItem": Object {
+        "EphemeraId": "VARIABLE#QRS",
+        "key": "power",
+      },
+      "tag": "Variable",
+      "targetId": "COMPUTED#XYZ",
+      "type": "AncestryUpdate",
+    },
+  ],
+  Array [
+    Object {
+      "assetId": "test",
+      "putItem": Object {
+        "EphemeraId": "ROOM#DEF",
+        "key": "active",
+      },
+      "tag": "Room",
+      "targetId": "COMPUTED#XYZ",
+      "type": "DescentUpdate",
+    },
+  ],
+  Array [
+    Object {
+      "assetId": "test",
+      "putItem": Object {
+        "EphemeraId": "COMPUTED#XYZ",
+        "key": "active",
+      },
+      "tag": "Computed",
+      "targetId": "ROOM#DEF",
+      "type": "AncestryUpdate",
+    },
+  ],
+]
+`;

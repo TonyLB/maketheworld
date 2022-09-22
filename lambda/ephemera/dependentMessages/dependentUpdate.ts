@@ -3,6 +3,7 @@ import { AncestryUpdateNonAssetMessage, DependencyNode, DependencyUpdateMessage,
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 
 export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') => async ({ payloads, messageBus }: { payloads: ({ type: 'DescentUpdate' | 'AncestryUpdate' } & DependencyUpdateMessage)[]; messageBus: MessageBus }): Promise<void> => {
     const antiDependencyTag = dependencyTag === 'Descent' ? 'Ancestry' : 'Descent'
@@ -41,6 +42,11 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
             (async () => {
                 const fetchDependents = await Promise.all(payloadList.map(async (payload) => {
                     if (payload.putItem) {
+                        //
+                        // TODO: Figure out how to use eventually-consistent reads, and then do a
+                        // transactional lock to check that they haven't been changed as part of the
+                        // update, rather than depend upon consistent reads:  May get better performance.
+                        //
                         const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                             EphemeraId: payload.putItem.EphemeraId,
                             DataCategory: `Meta::${payload.tag}`,
@@ -61,8 +67,15 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                 EphemeraId: targetId,
                 DataCategory: `Meta::${tag}`
             },
-            updateKeys: [dependencyTag],
+            //
+            // As part of ISS1539, remove the need to fetch DataCategory in order to give the updateReducer something to chew
+            // on so that it can recognize the existence of the row.
+            //
+            updateKeys: [dependencyTag, 'DataCategory'],
             updateReducer: (draft) => {
+                if (typeof draft[dependencyTag] === 'undefined') {
+                    draft[dependencyTag] = []
+                }
                 payloadList.forEach((payloadItem) => {
                     const compareDependentItems = ({ key: keyA, EphemeraId: EphemeraA }: { key?: string; EphemeraId: string; }, { key: keyB, EphemeraId: EphemeraB }: { key?: string; EphemeraId: string; }) => {
                         if (EphemeraA !== EphemeraB) {
@@ -85,8 +98,10 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                         draft[dependencyTag].forEach((dependentItem) => {
                             if (compareDependentItems(dependentItem, putItem)) {
                                 alreadyFound = true
-                                dependentItem.connections = dependencyMap[putItem.EphemeraId]
-                                if (payloadItem.tag !== 'Asset') {
+                                if (!deepEqual(dependentItem.connections, dependencyMap[putItem.EphemeraId])) {
+                                    dependentItem.connections = dependencyMap[putItem.EphemeraId]
+                                }
+                                if (payloadItem.tag !== 'Asset' && !dependentItem.assets.includes(payloadItem.assetId)) {
                                     dependentItem.assets = unique(dependentItem.assets || [], [payloadItem.assetId])
                                 }
                             }

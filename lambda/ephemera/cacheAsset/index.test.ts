@@ -182,7 +182,10 @@ describe('cacheAsset', () => {
             .mockResolvedValueOnce({ State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
-            ABC: 'ROOM#DEF'
+            ABC: 'ROOM#DEF',
+            active: 'COMPUTED#XYZ',
+            powered: 'VARIABLE#QRS',
+            switchedOn: 'VARIABLE#TUV'
         }
         mockTestAsset = {
             test: {
@@ -314,13 +317,38 @@ describe('cacheAsset', () => {
                 },
                 {
                     conditions: [{
-                        dependencies: ["active"],
+                        dependencies: [{
+                            key: 'active',
+                            EphemeraId: 'COMPUTED#XYZ'
+                        }],
                         if: "active"
                     }],
                     exits: [],
                     name: '',
                     render: ["The lights are on "]
                 }]
+            },
+            {
+                EphemeraId: 'VARIABLE#QRS',
+                key: 'powered',
+                tag: 'Variable',
+                default: 'false'
+            },
+            {
+                EphemeraId: 'VARIABLE#TUV',
+                key: 'switchedOn',
+                tag: 'Variable',
+                default: 'true'
+            },
+            {
+                EphemeraId: 'COMPUTED#XYZ',
+                key: 'active',
+                src: 'powered && switchedOn',
+                tag: 'Computed',
+                dependencies: [
+                    { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
+                    { key: 'powered', EphemeraId: 'VARIABLE#QRS' }
+                ]
             }]
         )
         expect(recalculateComputes).toHaveBeenCalledWith(
@@ -396,7 +424,10 @@ describe('cacheAsset', () => {
             importTree: {},
             scopeMap: {
                 test: 'ASSET#test',
-                ABC: 'ROOM#DEF'
+                ABC: 'ROOM#DEF',
+                active: 'COMPUTED#XYZ',
+                powered: 'VARIABLE#QRS',
+                switchedOn: 'VARIABLE#TUV'
             }
         })
     })

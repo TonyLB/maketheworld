@@ -5,21 +5,24 @@ import { splitType, AssetKey } from '@tonylb/mtw-utilities/dist/types'
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
 import { objectFilter } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
-import { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/'
+import AssetWorkspace, { NamespaceMapping } from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalRoom,
     isNormalMap,
     NormalForm,
     isNormalComputed,
     isNormalVariable,
-    isNormalImport
+    isNormalImport,
+    isNormalComponent,
+    isNormalCondition
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import { EphemeraDependencies, EphemeraImportState, EphemeraState, isEphemeraStateComputed, isEphemeraStateVariable } from './baseClasses'
+import { MessageBus } from '../messageBus/baseClasses.js'
 
-export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalForm: NormalForm): EphemeraDependencies => {
-    const conditionTransform = conditionsFromContext(normalForm)
-    const computeDependencies = Object.values(normalForm)
+export const extractDependencies = (assetWorkspace: AssetWorkspace): EphemeraDependencies => {
+    const conditionTransform = conditionsFromContext(assetWorkspace)
+    const computeDependencies = Object.values(assetWorkspace.normal || {})
         .filter(isNormalComputed)
         .reduce((previous, { key, dependencies }) => (
             dependencies.reduce((accumulator, dependency) => ({
@@ -37,10 +40,10 @@ export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalFor
     // Update each variable or compute upon which the room's render conditions are dependent, to notify it that
     // it has the room as a dependency and needs to rerender it upon a change to the value.
     //
-    const computeAndRoomDependencies = Object.values(normalForm)
+    const computeAndRoomDependencies = Object.values(assetWorkspace.normal || {})
         .filter(isNormalRoom)
         .reduce((previous, { key, appearances = [] }) => {
-            const globalKey = splitType(namespaceIdToDB[key] || '#')[1]
+            const globalKey = splitType(assetWorkspace.namespaceIdToDB[key] || '#')[1]
             if (!globalKey) {
                 return previous
             }
@@ -50,16 +53,16 @@ export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalFor
                     produce(accumulator, (draft) => {
                         conditions.forEach(({ dependencies = [] }) => {
                             dependencies.forEach((dependency) => {
-                                if (!(dependency in draft)) {
-                                    draft[dependency] = {}
+                                if (!(dependency.key in draft)) {
+                                    draft[dependency.key] = {}
                                 }
-                                draft[dependency].room = unique([globalKey], draft[dependency].room || [])
+                                draft[dependency.key].room = unique([globalKey], draft[dependency.key].room || [])
                                 //
                                 // Update the mapCache dependencies only when the room is changed in a way that would
                                 // side-effect the mapCache used by all maps to render rooms and their relationships
                                 //
                                 if (name.length > 0 || (contents.filter(({ tag }) => (tag === 'Exit')).length > 0)) {
-                                    draft[dependency].mapCache = unique([globalKey], draft[dependency].mapCache || [])
+                                    draft[dependency.key].mapCache = unique([globalKey], draft[dependency.key].mapCache || [])
                                 }
                             })
                         })
@@ -70,10 +73,10 @@ export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalFor
     // Update each variable or compute upon which the map's render conditions are dependent, to notify it that
     // it has the map as a dependency and needs to rerender it upon a change to the value.
     //
-    const dependencies = Object.values(normalForm)
+    const dependencies = Object.values(assetWorkspace.normal || {})
         .filter(isNormalMap)
         .reduce((previous, { key, appearances = [] }) => {
-            const globalKey = splitType(namespaceIdToDB[key] || '#')[1]
+            const globalKey = splitType(assetWorkspace.namespaceIdToDB[key] || '#')[1]
             if (!globalKey) {
                 return previous
             }
@@ -83,10 +86,10 @@ export const extractDependencies = (namespaceIdToDB: NamespaceMapping, normalFor
                     produce(accumulator, (draft) => {
                         conditions.forEach(({ dependencies = [] }) => {
                             dependencies.forEach((dependency) => {
-                                if (!(dependency in draft)) {
-                                    draft[dependency] = {}
+                                if (!(dependency.key in draft)) {
+                                    draft[dependency.key] = {}
                                 }
-                                draft[dependency].map = unique([globalKey], draft[dependency].map || [])
+                                draft[dependency.key].map = unique([globalKey], draft[dependency.key].map || [])
                             })
                         })
                     })), previous)
@@ -125,13 +128,15 @@ export class StateSynthesizer extends Object {
     dependencies: EphemeraDependencies;
     state: EphemeraState;
     importedStates: EphemeraImportState = {};
-    constructor(namespaceIdToDB: NamespaceMapping, normalForm: NormalForm) {
+    messageBus: MessageBus;
+    constructor(assetWorkspace: AssetWorkspace, messageBus: MessageBus) {
         super()
-        this.namespaceIdToDB = namespaceIdToDB
-        this.normalForm = normalForm
-        this.assetId = (Object.values(normalForm).find(({ tag }) => (tag === 'Asset')) || { key: '' }).key
-        this.dependencies = extractDependencies(namespaceIdToDB, normalForm)
-        this.state = extractComputed(normalForm)
+        this.namespaceIdToDB = assetWorkspace.namespaceIdToDB
+        this.normalForm = assetWorkspace.normal || {}
+        this.assetId = (Object.values(this.normalForm).find(({ tag }) => (tag === 'Asset')) || { key: '' }).key
+        this.dependencies = extractDependencies(assetWorkspace)
+        this.state = extractComputed(this.normalForm)
+        this.messageBus = messageBus
     }
 
     async fetchFromEphemera() {
@@ -331,6 +336,70 @@ export class StateSynthesizer extends Object {
                 .map(updateMapDependencyOnRoom)
             )
         ])
+    }
+    
+    sendDependencyMessages() {
+        const sendMessages = ({ key: childKey, dependencies }: { key: string; dependencies: string[] }) => {
+            const EphemeraId = this.namespaceIdToDB[childKey]
+            if (!EphemeraId) {
+                return
+            }
+            dependencies.forEach((key) => {
+                const targetId = this.namespaceIdToDB[key]
+                if (!targetId) {
+                    return
+                }
+                const parentTag = this.normalForm[key]?.tag
+                const childTag = this.normalForm[childKey]?.tag
+                if (
+                    (parentTag === 'Variable' || parentTag === 'Computed' || parentTag === 'Room') &&
+                    (childTag === 'Variable' || childTag === 'Computed' || childTag === 'Room')
+                ) {
+                    this.messageBus.send({
+                        type: 'DescentUpdate',
+                        tag: childTag,
+                        targetId,
+                        assetId: this.assetId,
+                        putItem: {
+                            key,
+                            EphemeraId
+                        }
+                    })
+                    this.messageBus.send({
+                        type: 'AncestryUpdate',
+                        tag: parentTag,
+                        targetId: EphemeraId,
+                        assetId: this.assetId,
+                        putItem: {
+                            key,
+                            EphemeraId: targetId
+                        }
+                    })
+                }
+            })
+        }
+        Object.values(this.normalForm)
+            .filter(isNormalComputed)
+            .forEach(sendMessages)
+        Object.values(this.normalForm)
+            .filter(isNormalRoom)
+            .map(({ key, appearances }) => ({
+                key,
+                dependencies: unique(appearances
+                    .filter(({ contextStack }) => (!contextStack.find(({ tag }) => (tag === 'Map'))))
+                    .reduce((previous, { contextStack }) => (
+                        contextStack
+                            .filter(({ tag }) => (tag === 'Condition'))
+                            .map(({ key }) => (this.normalForm[key]))
+                            .filter(isNormalCondition)
+                            .reduce((accumulator, { dependencies }) => ([
+                                ...accumulator,
+                                ...dependencies
+                            ]), previous)
+                    ), [] as string[])
+                ) as string[]
+            }))
+            .forEach(sendMessages)
     }
 }
 

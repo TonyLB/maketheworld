@@ -51,7 +51,7 @@ describe('DescentUpdateMessage', () => {
                 EphemeraId: 'ASSET#ImportTwo',
                 DataCategory: 'Meta::Asset'
             },
-            updateKeys: ['Descent'],
+            updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [] }
@@ -187,7 +187,7 @@ describe('DescentUpdateMessage', () => {
                 EphemeraId: 'ASSET#ImportOne',
                 DataCategory: 'Meta::Asset'
             },
-            updateKeys: ['Descent'],
+            updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [] }
@@ -249,7 +249,7 @@ describe('DescentUpdateMessage', () => {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
-            updateKeys: ['Descent'],
+            updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [
@@ -336,7 +336,7 @@ describe('DescentUpdateMessage', () => {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
-            updateKeys: ['Descent'],
+            updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [
@@ -401,7 +401,7 @@ describe('DescentUpdateMessage', () => {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
-            updateKeys: ['Descent'],
+            updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [
@@ -466,7 +466,7 @@ describe('DescentUpdateMessage', () => {
                 EphemeraId: 'VARIABLE#XYZ',
                 DataCategory: 'Meta::Variable'
             },
-            updateKeys: ['Descent'],
+            updateKeys: ['Descent', 'DataCategory'],
             updateReducer: expect.any(Function)
         })
         let testItem = { Descent: [
