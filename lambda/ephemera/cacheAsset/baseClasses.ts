@@ -2,8 +2,13 @@ import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist";
 import { ComponentRenderItem } from "@tonylb/mtw-wml/dist/normalize"
 import { NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize";
 
+type EphemeraConditionDependency = {
+    key: string;
+    EphemeraId: string;
+}
+
 export type EphemeraCondition = {
-    dependencies: string[];
+    dependencies: EphemeraConditionDependency[];
     if: string;
 }
 

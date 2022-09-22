@@ -21,6 +21,7 @@ import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHeal
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
+import { isNormalComponent, isNormalMap } from '@tonylb/mtw-wml/dist/normalize.js'
 
 //
 // TODO:
@@ -59,7 +60,7 @@ const ephemeraTranslateRender = (assetWorkspace: AssetWorkspace) => (renderItem:
 
 const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: NormalItem): EphemeraItem | undefined => {
     const { namespaceIdToDB: namespaceMap, normal = {} } = assetWorkspace
-    const conditionsTransform = conditionsFromContext(normal)
+    const conditionsTransform = conditionsFromContext(assetWorkspace)
     const EphemeraId = namespaceMap[item.key]
     if (!EphemeraId) {
         return undefined
@@ -239,7 +240,7 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                 .map(ephemeraExtractor)
                 .filter((value: EphemeraItem | undefined): value is EphemeraItem => (Boolean(value)))
         
-            const stateSynthesizer = new StateSynthesizer(assetWorkspace.namespaceIdToDB, assetWorkspace.normal || {})
+            const stateSynthesizer = new StateSynthesizer(assetWorkspace)
         
             await Promise.all([
                 stateSynthesizer.fetchFromEphemera(),

@@ -135,7 +135,7 @@ describe('stateSynthesis', () => {
 
     describe('constructor', () => {
         it('should extract computed, room, and mapCache dependencies', () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
 
             expect(testSynthesizer.dependencies).toEqual({
                 active: {
@@ -240,7 +240,7 @@ describe('stateSynthesis', () => {
                     }] as MapAppearance[]
                 }
             }
-            const mapSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
+            const mapSynthesizer = new StateSynthesizer({ namespaceIdToDB: mapNamespace, normal: mapAsset } as any)
 
             expect(mapSynthesizer.dependencies).toEqual({
                 power: {
@@ -252,7 +252,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should extract computed variables', () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
 
             expect(testSynthesizer.state).toEqual({
                 active: {
@@ -266,7 +266,7 @@ describe('stateSynthesis', () => {
 
     describe('fetchFromEphemera', () => {
         it('should fetch and merge state from ephemera', async () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
             getItemMock.mockResolvedValue({
                 State: {
                     power: {
@@ -306,7 +306,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should remove variables from ephemera when they are removed from source', async () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
             getItemMock.mockResolvedValue({
                 State: {
                     power: {
@@ -350,7 +350,7 @@ describe('stateSynthesis', () => {
         })
 
         it('should update computed source as needed', async () => {
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
             getItemMock.mockResolvedValue({
                 State: {
                     active: {
@@ -408,7 +408,7 @@ describe('stateSynthesis', () => {
                     Dependencies: {}
                 }])
 
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
             await testSynthesizer.fetchImportedValues()
 
             expect(testSynthesizer.state).toEqual({
@@ -457,7 +457,7 @@ describe('stateSynthesis', () => {
                     }
                 }])
 
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -511,7 +511,7 @@ describe('stateSynthesis', () => {
                     }
                 }])
 
-            const testSynthesizer = new StateSynthesizer(testNamespaceIdToDB, testAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: testNamespaceIdToDB, normal: testAsset } as any)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 
@@ -604,7 +604,7 @@ describe('stateSynthesis', () => {
                     Dependencies: {}
                 })
 
-            const testSynthesizer = new StateSynthesizer(mapNamespace, mapAsset)
+            const testSynthesizer = new StateSynthesizer({ namespaceIdToDB: mapNamespace, normal: mapAsset } as any)
             await testSynthesizer.fetchImportedValues()
             await testSynthesizer.updateImportedDependencies()
 

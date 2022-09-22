@@ -64,7 +64,6 @@ describe('WML normalize', () => {
         </Character>`
         const normalizer = new Normalizer()
         const testAsset = schemaFromParse(parse(tokenizer(new SourceStream(testSource))))
-        console.log(`Test Asset: ${JSON.stringify(testAsset, null, 4)}`)
         normalizer.add(testAsset[0], { contextStack: [], location: [0] })
         expect(normalizer.normal).toMatchSnapshot()
     })

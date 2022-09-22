@@ -1,3 +1,4 @@
+import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist"
 import {
     NormalForm,
     NormalReference,
@@ -5,13 +6,17 @@ import {
 } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
 import { EphemeraCondition } from "./baseClasses"
 
-export const conditionsFromContext = (normal: NormalForm) => (contextStack: NormalReference[]): EphemeraCondition[] => (
+export const conditionsFromContext = (assetWorkspace: AssetWorkspace) => (contextStack: NormalReference[]): EphemeraCondition[] => (
     contextStack
         .filter(({ tag }) => (tag === 'Condition'))
-        .map(({ key }) => (normal[key]))
+        .map(({ key }) => ((assetWorkspace.normal || {})[key]))
         .filter(isNormalCondition)
         .map((condition) => ({
-            dependencies: condition.dependencies,
+            dependencies: condition.dependencies
+                .map((key) => ({
+                    key,
+                    EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                })),
             if: condition.if
         }))
 )

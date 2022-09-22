@@ -182,7 +182,8 @@ describe('cacheAsset', () => {
             .mockResolvedValueOnce({ State: {} })
         mockNamespaceMap = {
             test: 'ASSET#test',
-            ABC: 'ROOM#DEF'
+            ABC: 'ROOM#DEF',
+            active: 'COMPUTED#XYZ'
         }
         mockTestAsset = {
             test: {
@@ -314,13 +315,22 @@ describe('cacheAsset', () => {
                 },
                 {
                     conditions: [{
-                        dependencies: ["active"],
+                        dependencies: [{
+                            key: 'active',
+                            EphemeraId: 'COMPUTED#XYZ'
+                        }],
                         if: "active"
                     }],
                     exits: [],
                     name: '',
                     render: ["The lights are on "]
                 }]
+            },
+            {
+                EphemeraId: 'COMPUTED#XYZ',
+                key: 'active',
+                src: 'powered && switchedOn',
+                tag: 'Computed'
             }]
         )
         expect(recalculateComputes).toHaveBeenCalledWith(
@@ -396,7 +406,8 @@ describe('cacheAsset', () => {
             importTree: {},
             scopeMap: {
                 test: 'ASSET#test',
-                ABC: 'ROOM#DEF'
+                ABC: 'ROOM#DEF',
+                active: 'COMPUTED#XYZ'
             }
         })
     })
