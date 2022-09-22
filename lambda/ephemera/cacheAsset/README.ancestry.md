@@ -39,12 +39,24 @@ added, removed, or their connections updated
 ---
 
 *Any tree is stored as a recursively nested map:  A key indicates a node, and its value is a nested map of*
-*children.  A leaf node is represented by a key with an empty map as its value.  Each dependency*
-*node also keeps a list of assets that have registered it ... when the last is decached, the*
+*children.  A leaf node is represented by a key with an empty map as its value.*
+
+*For assets, only the bare connection tree is stored, with no meta data about origin of connections*
+
+```ts
+export type DependencyNonAssetNode = {
+    tag: 'Asset'
+    EphemeraId: string;
+    connections: DependencyNode[];
+}
+```
+
+*For non-asset items (i.e. for items whose dependencies are defined ***within*** assets), each dependency*
+*node also keeps a list of assets that have registered the connection ... when the last is decached, the*
 *dependency link is removed.*
 
 ```ts
-export type DependencyNode = {
+export type DependencyNonAssetNode = {
     tag: 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
     key: string; // The key name by which children nodes know this parent
     EphemeraId: string;
@@ -65,26 +77,21 @@ export type DependencyNode = {
 ```ts
     const CathedralAncestry = [{
         tag: 'Asset',
-        key: 'TownSquare',
         EphemeraId: 'ASSET#TownSquare',
         connections: [{
             tag: 'Asset',
-            key: 'City',
             EphemeraId: 'ASSET#City',
             connections: []
         }]
     },
     {
         tag: 'Asset',
-        key: 'UnderCroft',
         EphemeraId: 'ASSET#UnderCroft',
         connections: [{
             tag: 'Asset',
-            key: 'Sewer',
             EphemeraId: 'ASSET#Sewer',
             connections: [{
                 tag: 'Asset',
-                key: 'City',
                 EphemeraId: 'ASSET#City',
                 connections: []
             }]
@@ -107,26 +114,21 @@ TownSquare imports City.  The Undercroft imports Sewer, which in turn *also* imp
 ```ts
     const CityDescent = [{
         tag: 'Asset',
-        key: 'TownSquare',
         EphemeraId: 'ASSET#TownSquare',
         connections: [{
             tag: 'Asset',
-            key: 'Cathedral',
             EphemeraId: 'ASSET#Cathedral',
             connections: []
         }]
     },
     {
         tag: 'Asset',
-        key: 'Sewer',
         EphemeraId: 'ASSET#Sewer',
         connections: [{
             tag: 'Asset',
-            key: 'UnderCroft',
             EphemeraId: 'ASSET#UnderCroft',
             connections: [{
                 tag: 'Asset',
-                key: 'Cathedral',
                 EphemeraId: 'ASSET#Cathedral',
                 connections: []
             }]
@@ -137,6 +139,77 @@ TownSquare imports City.  The Undercroft imports Sewer, which in turn *also* imp
 This indicates the mathematical inverse of the Ancestry map, above:  This is a map of the descendants of the City
 asset, indicating that it is imported by TownSquare and Sewer.  The TownSquare is imported by Cathedral.  The Sewer
 is imported by Undercroft, which in turn is *also* imported by Cathedral.
+
+---
+
+## Non-Asset Dependencies
+
+Non-Asset dependencies are more complicated, because (a) each edge can include a different local key for code to
+refer to a value, and (b) different assets can have different edges between the same two nodes:
+
+```ts
+    const Variable = {
+        Ancestry: [],
+        Descent: [{
+            tag: 'Room',
+            key: 'lightSwitch',
+            EphemeraId: 'ROOM#ABC',
+            assets: ['Base'],
+            connections: [{
+                tag: 'Map',
+                EphemeraId: 'MAP#DEF',
+                assets: ['Base', 'Layer']
+                connections: []
+            }]
+        },
+        {
+            tag: 'Room',
+            key: 'lightsOn',
+            EphemeraId: 'ROOM#ABC',
+            assets: ['Layer'],
+            connections: [{
+                tag: 'Map',
+                EphemeraId: 'MAP#DEF',
+                assets: ['Base', 'Layer']
+                connections: []
+            }]
+        }]
+    }
+
+    const Room = {
+        Ancestry: [{
+            tag: 'Variable',
+            key: 'lightSwitch',
+            EphemeraId: 'VARIABLE#XYZ',
+            assets: ['Base'],
+            connections: []
+        },
+        {
+            tag: 'Variable',
+            key: 'lightsOn',
+            EphemeraId: 'VARIABLE#XYZ',
+            assets: ['Layer'],
+            connections: []
+        }],
+        Descent: [{
+            tag: 'Map',
+            EphemeraId: 'MAP#DEF',
+            assets: ['Base', 'Layer'],
+            connections: []
+        }]
+    }
+```
+
+In the above example, we have three nodes:  A variable that represents the position of a light
+switch, a Room that renders differently depending upon that position, and a Map that depends upon
+the name and exits of that Room.  In the Base Asset, the variable is imported into the local
+namespace with key 'lightSwitch', and the room has some conditional dependencies upon it under
+that name.  In the Layer asset, the variable is imported into the local namespace with key 'lightsOn',
+and the room has *further* conditional dependencies upon that same (underlying) variable under
+a different alias.
+
+Edges are considered the "same" edge (for purposes of aggregating the assets list) if (a) they have
+the same EphemeraId, and (b) they either both have no key, or both have the same key.
 
 ---
 
