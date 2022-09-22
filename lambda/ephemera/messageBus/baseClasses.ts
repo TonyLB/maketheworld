@@ -206,7 +206,7 @@ type DependencyNodeAsset = {
 
 type DependencyNodeNonAsset = {
     tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-    key: string; // The key name by which children nodes know this parent
+    key?: string; // The key name by which children nodes know this parent
     EphemeraId: string;
     assets: string[]
     connections: DependencyNodeNonAsset[];
@@ -229,6 +229,8 @@ export type DependencyUpdateNonAssetMessage = {
     deleteItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
 }
 
+export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
+
 export type DescentUpdateAssetMessage = {
     type: 'DescentUpdate';
 } & DependencyUpdateAssetMessage
@@ -237,7 +239,9 @@ export type DescentUpdateNonAssetMessage = {
     type: 'DescentUpdate';
 } & DependencyUpdateNonAssetMessage
 
-export type DescentUpdateMessage = DescentUpdateAssetMessage | DescentUpdateNonAssetMessage
+export type DescentUpdateMessage = {
+    type: 'DescentUpdate';
+} & DependencyUpdateMessage
 
 export type AncestryUpdateAssetMessage = {
     type: 'AncestryUpdate';

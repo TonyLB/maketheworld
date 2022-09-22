@@ -4,7 +4,7 @@ import messageBus from '../messageBus'
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
-import descentUpdateMessage from './descentUpdate'
+import dependentUpdateMessage from './dependentUpdate'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -17,7 +17,7 @@ describe('DescentUpdateMessage', () => {
 
     it('should call all unreferenced updates in a first wave', async () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({ Ancestry: [] })
-        await descentUpdateMessage({
+        await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
@@ -95,7 +95,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await descentUpdateMessage({
+        await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
@@ -152,7 +152,7 @@ describe('DescentUpdateMessage', () => {
             updateReducer({ Descent: [] })
             return {}
         })
-        await descentUpdateMessage({
+        await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
                 targetId: 'ASSET#ImportOne',
@@ -209,6 +209,93 @@ describe('DescentUpdateMessage', () => {
                     connections: []
                 }
             ]
+        })
+    })
+
+    it('should independently store differently aliased inheritance edges', async () => {
+        ephemeraDBMock.getItem.mockResolvedValueOnce({
+            Ancestry: []
+        })
+        .mockResolvedValueOnce({
+            Descent: [{
+                tag: 'Map',
+                EphemeraId: 'MAP#DEF',
+                assets: ['Base'],
+                connections: []
+            }]
+        })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
+            updateReducer({ Descent: [] })
+            return {}
+        })
+        await dependentUpdateMessage('Descent')({
+            payloads: [{
+                type: 'DescentUpdate',
+                targetId: 'VARIABLE#XYZ',
+                tag: 'Room',
+                assetId: 'Layer',
+                putItem: {
+                    key: 'lightsOn',
+                    EphemeraId: 'ROOM#ABC',
+                }
+            }],
+            messageBus
+        })
+
+        expect(messageBus.send).toHaveBeenCalledTimes(0)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            key: {
+                EphemeraId: 'VARIABLE#XYZ',
+                DataCategory: 'Meta::Variable'
+            },
+            updateKeys: ['Descent'],
+            updateReducer: expect.any(Function)
+        })
+        let testItem = { Descent: [
+            {
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base'],
+                key: 'lightSwitch',
+                connections: [{
+                    tag: 'Map',
+                    EphemeraId: 'MAP#DEF',
+                    assets: ['Base'],
+                    connections: []
+                }]
+            }
+        ] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: [{
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Base'],
+                key: 'lightSwitch',
+                connections:[
+                    {
+                        tag: 'Map',
+                        EphemeraId: 'MAP#DEF',
+                        assets: ['Base'],
+                        connections: []
+                    }    
+                ]
+            },
+            {
+                tag: 'Room',
+                EphemeraId: 'ROOM#ABC',
+                assets: ['Layer'],
+                key: 'lightsOn',
+                connections:[
+                    {
+                        tag: 'Map',
+                        EphemeraId: 'MAP#DEF',
+                        assets: ['Base'],
+                        connections: []
+                    }    
+                ]
+            }]
         })
     })
 

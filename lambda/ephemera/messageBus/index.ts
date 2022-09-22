@@ -38,8 +38,7 @@ import decacheAssetMessage from '../decacheMessage'
 import { cacheAssetMessage } from '../cacheAsset'
 import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
-import descentUpdateMessage from '../ancestryMessages/descentUpdate'
-import ancestryUpdateMessage from '../ancestryMessages/ancestryUpdate'
+import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -148,13 +147,13 @@ messageBus.subscribe({
     tag: 'DescentUpdate',
     priority: 4,
     filter: isDescentUpdateMessage,
-    callback: descentUpdateMessage
+    callback: dependentUpdateMessage('Descent')
 })
 messageBus.subscribe({
     tag: 'AncestryUpdate',
     priority: 3,
     filter: isAncestryUpdateMessage,
-    callback: ancestryUpdateMessage
+    callback: dependentUpdateMessage('Ancestry')
 })
 
 export default messageBus
