@@ -20,25 +20,28 @@ class CacheConnectionData {
             case 'player':
                 if (!this.player && this.connectionId) {
                     //
-                    // TODO: Replace repeated attempts with exponential backoff by
-                    // refactoring connectionDB.getItem to allow a consistent argument
-                    // that can actviate strongly-consistent reads
+                    // First get player with eventually consistent read (almost always going to work),
+                    // then fall back, if the player's Connection write has not yet been registered
+                    // (as sometimes happens in the first few fetches after logon) to strongly consistent
+                    // read to guarantee (as much as possible) the result
                     //
-                    let attempts = 0
-                    let exponentialBackoff = 50
-                    while(attempts < 5) {
+                    const getArguments = {
+                        ConnectionId: `CONNECTION#${this.connectionId}`,
+                        DataCategory: 'Meta::Connection',
+                        ProjectionFields: ['player'],
+                    }
+                    const { player = '' } = await connectionDB.getItem<{ player: string }>(getArguments) || {}
+                    if (player) {
+                        this.player = player
+                    }
+                    else {
                         const { player = '' } = await connectionDB.getItem<{ player: string }>({
-                            ConnectionId: `CONNECTION#${this.connectionId}`,
-                            DataCategory: 'Meta::Connection',
-                            ProjectionFields: ['player']
+                            ...getArguments,
+                            ConsistentRead: true
                         }) || {}
                         if (player) {
                             this.player = player
-                            return player
                         }
-                        attempts += 1
-                        await delayPromise(exponentialBackoff)
-                        exponentialBackoff = exponentialBackoff * 2
                     }
                 }
                 return this.player

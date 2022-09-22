@@ -44,7 +44,8 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                         const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                             EphemeraId: payload.putItem.EphemeraId,
                             DataCategory: `Meta::${payload.tag}`,
-                            ProjectionFields: [dependencyTag]
+                            ProjectionFields: [dependencyTag],
+                            ConsistentRead: true
                         })) || {}
                         return { [payload.putItem.EphemeraId]: fetchValue?.[dependencyTag] || [] }
                     }
