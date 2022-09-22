@@ -212,6 +212,13 @@ export type DescentUpdateMessage = {
     deleteItem?: Omit<DependencyNode, 'connections'>;
 }
 
+export type AncestryUpdateMessage = {
+    type: 'AncestryUpdate';
+    targetId: string;
+    putItem?: Omit<DependencyNode, 'connections'>;
+    deleteItem?: Omit<DependencyNode, 'connections'>;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -230,7 +237,8 @@ export type MessageType = PublishMessage |
     CacheAssetMessage |
     PlayerUpdateMessage |
     RoomUpdateMessage |
-    DescentUpdateMessage
+    DescentUpdateMessage |
+    AncestryUpdateMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -261,5 +269,6 @@ export const isPlayerUpdateMessage = (prop: MessageType): prop is PlayerUpdateMe
 export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessage => (prop.type === 'RoomUpdate')
 
 export const isDescentUpdateMessage = (prop: MessageType): prop is DescentUpdateMessage => (prop.type === 'DescentUpdate')
+export const isAncestryUpdateMessage = (prop: MessageType): prop is AncestryUpdateMessage => (prop.type === 'AncestryUpdate')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
