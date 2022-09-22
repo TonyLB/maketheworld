@@ -198,26 +198,60 @@ export type RoomUpdateMessage = {
     roomId: string;
 }
 
-export type DependencyNode = {
-    tag: 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-    key: string; // The key name by which children nodes know this parent
+type DependencyNodeAsset = {
+    tag: 'Asset';
     EphemeraId: string;
-    connections: DependencyNode[];
+    connections: DependencyNodeAsset[];
 }
+
+type DependencyNodeNonAsset = {
+    tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+    key?: string; // The key name by which children nodes know this parent
+    EphemeraId: string;
+    assets: string[]
+    connections: DependencyNodeNonAsset[];
+}
+
+export type DependencyNode = DependencyNodeAsset | DependencyNodeNonAsset
+
+type DependencyUpdateAssetMessage = {
+    tag: 'Asset';
+    targetId: string;
+    putItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
+    deleteItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
+}
+
+export type DependencyUpdateNonAssetMessage = {
+    tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+    targetId: string;
+    assetId: string;
+    putItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
+    deleteItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
+}
+
+export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
+
+export type DescentUpdateAssetMessage = {
+    type: 'DescentUpdate';
+} & DependencyUpdateAssetMessage
+
+export type DescentUpdateNonAssetMessage = {
+    type: 'DescentUpdate';
+} & DependencyUpdateNonAssetMessage
 
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
-    targetId: string;
-    putItem?: Omit<DependencyNode, 'connections'>;
-    deleteItem?: Omit<DependencyNode, 'connections'>;
-}
+} & DependencyUpdateMessage
 
-export type AncestryUpdateMessage = {
+export type AncestryUpdateAssetMessage = {
     type: 'AncestryUpdate';
-    targetId: string;
-    putItem?: Omit<DependencyNode, 'connections'>;
-    deleteItem?: Omit<DependencyNode, 'connections'>;
-}
+} & DependencyUpdateAssetMessage
+
+export type AncestryUpdateNonAssetMessage = {
+    type: 'AncestryUpdate';
+} & DependencyUpdateNonAssetMessage
+
+export type AncestryUpdateMessage = AncestryUpdateAssetMessage | AncestryUpdateNonAssetMessage
 
 export type MessageType = PublishMessage |
     ReturnValueMessage |
