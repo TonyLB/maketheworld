@@ -1,6 +1,4 @@
-import { DependencyNode, DescentUpdateMessage, MessageBus } from "../messageBus/baseClasses"
-
-import internalCache from '../internalCache'
+import { DependencyNode, DescentUpdateMessage, DescentUpdateNonAssetMessage, MessageBus } from "../messageBus/baseClasses"
 
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import messageBus from "../messageBus"
@@ -43,7 +41,7 @@ export const descentUpdateMessage = async ({ payloads }: { payloads: DescentUpda
                     if (payload.putItem) {
                         const { Descent = [] } = (await ephemeraDB.getItem<{ Descent: DependencyNode[] }>({
                             EphemeraId: payload.putItem.EphemeraId,
-                            DataCategory: `Meta::${payload.putItem.tag}`,
+                            DataCategory: `Meta::${payload.tag}`,
                             ProjectionFields: ['Descent']
                         })) || {}
                         return { [payload.putItem.EphemeraId]: Descent }
@@ -62,47 +60,70 @@ export const descentUpdateMessage = async ({ payloads }: { payloads: DescentUpda
             },
             updateKeys: ['Descent'],
             updateReducer: (draft) => {
-                payloadList.forEach(({ putItem, deleteItem, assetId }) => {
+                payloadList.forEach((payloadItem) => {
+                    const { putItem, deleteItem } = payloadItem
                     if (putItem) {
                         let alreadyFound = false
                         draft.Descent.forEach((descentItem) => {
                             if (descentItem.EphemeraId === putItem.EphemeraId) {
                                 alreadyFound = true
                                 descentItem.connections = descentMap[putItem.EphemeraId]
-                                descentItem.assets = unique(descentItem.assets, [assetId])
+                                if (payloadItem.tag !== 'Asset') {
+                                    descentItem.assets = unique(descentItem.assets || [], [payloadItem.assetId])
+                                }
                             }
                         })
                         if (!alreadyFound) {
                             draft.Descent.push({
                                 ...putItem,
-                                assets: [assetId],
+                                tag: payloadItem.tag,
+                                ...(payloadItem.tag === 'Asset' ? {} : { assets: [payloadItem.assetId] }),
                                 connections: descentMap[putItem.EphemeraId]
                             })
                         }
                     }
                     if (deleteItem) {
-                        draft.Descent.forEach((descentItem) => {
-                            descentItem.assets = descentItem.assets.filter((check) => (check !== assetId))
-                        })
-                        draft.Descent = draft.Descent.filter(({ assets }) => (assets.length === 0))
+                        if (payloadItem.tag === 'Asset') {
+                            draft.Descent = draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== deleteItem.EphemeraId))
+                        }
+                        else {
+                            draft.Descent.forEach((descentItem) => {
+                                descentItem.assets = descentItem.assets.filter((check) => (check !== payloadItem.assetId))
+                            })
+                            draft.Descent = draft.Descent.filter(({ assets }) => (assets.length === 0))    
+                        }
                     }
                 })
             }
         })
-        ancestry.forEach(({ EphemeraId, key }) => {
-            const assets = unique(payloadList.map(({ assetId }) => (assetId))) as string[]
-            assets.forEach((assetId) => {
+        ancestry.forEach((ancestryItem) => {
+            if (tag === 'Asset') {
                 messageBus.send({
                     type: 'DescentUpdate',
-                    targetId: EphemeraId,
-                    assetId,
+                    targetId: ancestryItem.EphemeraId,
+                    tag, // Assets can only have asset children tags
                     putItem: {
-                        tag,
-                        key,
                         EphemeraId: targetId
                     }
-                })    
-            })
+                })
+            }
+            else {
+                if (ancestryItem.tag !== 'Asset') {
+                    const assets = unique(payloadList.filter((prop): prop is DescentUpdateNonAssetMessage => (prop.tag !== 'Asset')).map(({ assetId }) => (assetId))) as string[]
+                    assets.forEach((assetId) => {
+                        messageBus.send({
+                            type: 'DescentUpdate',
+                            targetId: ancestryItem.EphemeraId,
+                            assetId,
+                            tag,
+                            putItem: {
+                                key: ancestryItem.key,
+                                EphemeraId: targetId
+                            }
+                        })    
+                    })
+                }
+            }
         })
     }))
 }

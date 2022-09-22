@@ -21,20 +21,16 @@ describe('AncestryUpdateMessage', () => {
             payloads: [{
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
-                assetId: 'ImportOne',
+                tag: 'Asset',
                 putItem: {
-                    tag: 'Asset',
-                    key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
                 }
             },
             {
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportTwo',
-                assetId: 'ImportTwo',
+                tag: 'Asset',
                 putItem: {
-                    tag: 'Asset',
-                    key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
                 }
             }],
@@ -45,10 +41,8 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#ImportOne',
-            assetId: 'ImportOne',
+            tag: 'Asset',
             putItem: {
-                tag: 'Asset',
-                key: 'ImportOne',
                 EphemeraId: 'ASSET#ImportTwo'
             }
         })
@@ -66,9 +60,7 @@ describe('AncestryUpdateMessage', () => {
             Ancestry: [
                 {
                     tag: 'Asset',
-                    key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
@@ -80,16 +72,12 @@ describe('AncestryUpdateMessage', () => {
             Descent: [
                 {
                     tag: 'Asset',
-                    key: 'Base',
                     EphemeraId: 'ASSET#Base',
-                    assets: ['Base'],
                     connections: []
                 },
                 {
                     tag: 'Asset',
-                    key: 'Bootstrap',
                     EphemeraId: 'ASSET#Bootstrap',
-                    assets: ['Bootstrap'],
                     connections: []
                 }
             ]
@@ -98,9 +86,7 @@ describe('AncestryUpdateMessage', () => {
             Ancestry: [
                 {
                     tag: 'Asset',
-                    key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
@@ -113,10 +99,8 @@ describe('AncestryUpdateMessage', () => {
             payloads: [{
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
-                assetId: 'ImportOne',
+                tag: 'Asset',
                 putItem: {
-                    tag: 'Asset',
-                    key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
                 }
             }],
@@ -127,20 +111,16 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#Base',
-            assetId: 'ImportOne',
+            tag: 'Asset',
             putItem: {
-                tag: 'Asset',
-                key: 'Base',
                 EphemeraId: 'ASSET#ImportOne'
             }
         })
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#Bootstrap',
-            assetId: 'ImportOne',
+            tag: 'Asset',
             putItem: {
-                tag: 'Asset',
-                key: 'Bootstrap',
                 EphemeraId: 'ASSET#ImportOne'
             }
         })
@@ -151,9 +131,7 @@ describe('AncestryUpdateMessage', () => {
             Descent: [
                 {
                     tag: 'Asset',
-                    key: 'Base',
                     EphemeraId: 'ASSET#Base',
-                    assets: ['Base'],
                     connections: []
                 }
             ]
@@ -162,9 +140,7 @@ describe('AncestryUpdateMessage', () => {
             Ancestry: [
                 {
                     tag: 'Asset',
-                    key: 'ImportTwo',
                     EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ImportTwo'],
                     connections: []
                 }
             ]
@@ -180,20 +156,16 @@ describe('AncestryUpdateMessage', () => {
             payloads: [{
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
-                assetId: 'ImportOne',
+                tag: 'Asset',
                 putItem: {
-                    tag: 'Asset',
-                    key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
                 }
             },
             {
                 type: 'AncestryUpdate',
                 targetId: 'ASSET#ImportOne',
-                assetId: 'ImportOne',
+                tag: 'Asset',
                 putItem: {
-                    tag: 'Asset',
-                    key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportThree',
                 }
             }],
@@ -204,10 +176,8 @@ describe('AncestryUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'AncestryUpdate',
             targetId: 'ASSET#Base',
-            assetId: 'ImportOne',
+            tag: 'Asset',
             putItem: {
-                tag: 'Asset',
-                key: 'Base',
                 EphemeraId: 'ASSET#ImportOne'
             }
         })
@@ -226,22 +196,16 @@ describe('AncestryUpdateMessage', () => {
             Ancestry: [
                 {
                     tag: 'Asset',
-                    key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportTwo',
-                    assets: ['ImportOne'],
                     connections: [{
                         tag: 'Asset',
-                        key: 'ImportTwo',
                         EphemeraId: 'ASSET#ImportThree',
-                        assets: ['ImportTwo'],
                         connections: []
                     }]
                 },
                 {
                     tag: 'Asset',
-                    key: 'ImportOne',
                     EphemeraId: 'ASSET#ImportThree',
-                    assets: ['ImportOne'],
                     connections: []
                 }
             ]
