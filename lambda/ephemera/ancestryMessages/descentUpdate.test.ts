@@ -57,6 +57,18 @@ describe('DescentUpdateMessage', () => {
             updateKeys: ['Descent'],
             updateReducer: expect.any(Function)
         })
+        let testItem = { Descent: [] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: [
+                {
+                    tag: 'Asset',
+                    key: 'ImportTwo',
+                    EphemeraId: 'ASSET#ImportThree',
+                    connections: []
+                }
+            ]
+        })
     })
 
     it('should recursively cascade updates to ancestors', async () => {
@@ -121,6 +133,100 @@ describe('DescentUpdateMessage', () => {
                 key: 'Bootstrap',
                 EphemeraId: 'ASSET#ImportOne'
             }
+        })
+    })
+
+    it('should aggregate multiple messages', async () => {
+        ephemeraDBMock.getItem.mockResolvedValueOnce({
+            Ancestry: [
+                {
+                    tag: 'Asset',
+                    key: 'Base',
+                    EphemeraId: 'ASSET#Base',
+                    connections: []
+                }
+            ]
+        })
+        .mockResolvedValueOnce({
+            Descent: [
+                {
+                    tag: 'Asset',
+                    key: 'ImportTwo',
+                    EphemeraId: 'ASSET#ImportThree',
+                    connections: []
+                }
+            ]
+        })
+        .mockResolvedValueOnce({
+            Descent: []
+        })
+        ephemeraDBMock.optimisticUpdate.mockImplementation(async ({ updateReducer }) => {
+            updateReducer({ Descent: [] })
+            return {}
+        })
+        await descentUpdateMessage({
+            payloads: [{
+                type: 'DescentUpdate',
+                targetId: 'ASSET#ImportOne',
+                putItem: {
+                    tag: 'Asset',
+                    key: 'ImportOne',
+                    EphemeraId: 'ASSET#ImportTwo',
+                }
+            },
+            {
+                type: 'DescentUpdate',
+                targetId: 'ASSET#ImportOne',
+                putItem: {
+                    tag: 'Asset',
+                    key: 'ImportOne',
+                    EphemeraId: 'ASSET#ImportThree',
+                }
+            }],
+            messageBus
+        })
+
+        expect(messageBus.send).toHaveBeenCalledTimes(1)
+        expect(messageBus.send).toHaveBeenCalledWith({
+            type: 'DescentUpdate',
+            targetId: 'ASSET#Base',
+            putItem: {
+                tag: 'Asset',
+                key: 'Base',
+                EphemeraId: 'ASSET#ImportOne'
+            }
+        })
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
+        expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
+            key: {
+                EphemeraId: 'ASSET#ImportOne',
+                DataCategory: 'Meta::Asset'
+            },
+            updateKeys: ['Descent'],
+            updateReducer: expect.any(Function)
+        })
+        let testItem = { Descent: [] }
+        ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
+        expect(testItem).toEqual({
+            Descent: [
+                {
+                    tag: 'Asset',
+                    key: 'ImportOne',
+                    EphemeraId: 'ASSET#ImportTwo',
+                    connections: [{
+                        tag: 'Asset',
+                        key: 'ImportTwo',
+                        EphemeraId: 'ASSET#ImportThree',
+                        connections: []
+                    }]
+                },
+                {
+                    tag: 'Asset',
+                    key: 'ImportOne',
+                    EphemeraId: 'ASSET#ImportThree',
+                    connections: []
+                }
+            ]
         })
     })
 
