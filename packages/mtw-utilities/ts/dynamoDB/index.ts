@@ -200,6 +200,7 @@ export const mergeIntoDataRange = async ({
 type GetItemExtendedProps = {
     ProjectionFields?: string[];
     ExpressionAttributeNames?: Record<string, string>;
+    ConsistentRead?: boolean;
 }
 
 const abstractGetItem = <Key extends { DataCategory: string }>(table: string) => async <T extends Record<string, any>>(props: Key & GetItemExtendedProps): Promise<T | undefined> => {
@@ -218,7 +219,8 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
                         ? 'ConnectionId'
                         : 'MessageId'
         ],
-        ExpressionAttributeNames
+        ExpressionAttributeNames,
+        ConsistentRead = false
     } = props as any
     return await asyncSuppressExceptions(async () => {
         const { Item = null } = await dbClient.send(new GetItemCommand({
@@ -231,7 +233,8 @@ const abstractGetItem = <Key extends { DataCategory: string }>(table: string) =>
                 DataCategory
             }, { removeUndefinedValues: true }),
             ProjectionExpression: ProjectionFields.join(', '),
-            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {})
+            ...(ExpressionAttributeNames ? { ExpressionAttributeNames } : {}),
+            ConsistentRead
         }))
         return Item ? unmarshall(Item) : undefined
     }, async () => (undefined)) as T | undefined
