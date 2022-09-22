@@ -10,39 +10,49 @@ import { splitType } from "@tonylb/mtw-utilities/dist/types"
 export const descentUpdateMessage = async ({ payloads }: { payloads: DescentUpdateMessage[], messageBus?: MessageBus }): Promise<void> => {
     const updatingNodes = unique(payloads.map(({ targetId }) => (targetId)))
     const workablePayload = ({ putItem, deleteItem }: DescentUpdateMessage) => (!updatingNodes.includes(putItem?.EphemeraId ?? deleteItem?.EphemeraId ?? ''))
-    const workablePayloads = payloads.filter(workablePayload)
+    const payloadsByTarget = payloads
+        .filter(workablePayload)
+        .reduce<Record<string, DescentUpdateMessage[]>>((previous, { targetId, ...rest }) => ({
+            ...previous,
+            [targetId]: [
+                ...(previous[targetId] || []),
+                { targetId, ...rest }
+            ]
+        }), {})
     const unworkablePayloads = payloads.filter((payload) => (!workablePayload(payload)))
 
     unworkablePayloads.forEach((payload) => {
         messageBus.send(payload)
     })
 
-    await Promise.all(workablePayloads.map(async (payload) => {
-        const { targetId, putItem, deleteItem } = payload
+    await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
         const [targetTag] = splitType(targetId)
         const tag = `${targetTag[0].toUpperCase()}${targetTag.slice(1).toLowerCase()}` as DependencyNode["tag"]
         //
         // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
         // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
         //
-        const [ancestry, descent] = await Promise.all([
+        const [ancestry, descentMap] = await Promise.all([
             ephemeraDB.getItem<{ Ancestry: DependencyNode[] }>({
                 EphemeraId: targetId,
                 DataCategory: `Meta::${tag}`,
                 ProjectionFields: ['Ancestry']
             }).then((value) => (value?.Ancestry || [])),
             (async () => {
-                if (payload.putItem) {
-                    const { Descent = [] } = (await ephemeraDB.getItem<{ Descent: DependencyNode[] }>({
-                        EphemeraId: payload.putItem.EphemeraId,
-                        DataCategory: `Meta::${payload.putItem.tag}`,
-                        ProjectionFields: ['Descent']
-                    })) || {}
-                    return Descent
-                }
-                else {
-                    return []
-                }
+                const fetchDescents = await Promise.all(payloadList.map(async (payload) => {
+                    if (payload.putItem) {
+                        const { Descent = [] } = (await ephemeraDB.getItem<{ Descent: DependencyNode[] }>({
+                            EphemeraId: payload.putItem.EphemeraId,
+                            DataCategory: `Meta::${payload.putItem.tag}`,
+                            ProjectionFields: ['Descent']
+                        })) || {}
+                        return { [payload.putItem.EphemeraId]: Descent }
+                    }
+                    else {
+                        return {}
+                    }
+                }))
+                return Object.assign({}, ...fetchDescents) as Record<string, DependencyNode>
             })()
         ])
         await ephemeraDB.optimisticUpdate({
@@ -52,18 +62,20 @@ export const descentUpdateMessage = async ({ payloads }: { payloads: DescentUpda
             },
             updateKeys: ['Descent'],
             updateReducer: (draft) => {
-                if (putItem) {
-                    draft.Descent = [
-                        ...(draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== putItem.EphemeraId))),
-                        {
-                            ...putItem,
-                            connections: descent
-                        }
-                    ]
-                }
-                if (deleteItem) {
-                    draft.Descent = draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== deleteItem.EphemeraId))
-                }
+                payloadList.forEach(({ putItem, deleteItem }) => {
+                    if (putItem) {
+                        draft.Descent = [
+                            ...(draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== putItem.EphemeraId))),
+                            {
+                                ...putItem,
+                                connections: descentMap[putItem.EphemeraId]
+                            }
+                        ]
+                    }
+                    if (deleteItem) {
+                        draft.Descent = draft.Descent.filter(({ EphemeraId }) => (EphemeraId !== deleteItem.EphemeraId))
+                    }
+                })
             }
         })
         ancestry.forEach(({ EphemeraId, key }) => {
