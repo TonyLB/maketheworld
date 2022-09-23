@@ -58,7 +58,7 @@ export class AssetStateData {
         delete this._StatePromiseByEphemeraId[EphemeraId]
     }
 
-    isOverriden(EphemeraId: string) {
+    isOverridden(EphemeraId: string) {
         return EphemeraId in this._StateOverrides
     }
 }

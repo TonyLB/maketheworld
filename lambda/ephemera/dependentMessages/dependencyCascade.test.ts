@@ -45,6 +45,7 @@ describe('DependencyCascadeMessage', () => {
             a: 1,
             b: 2
         })
+        internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
         internalCacheMock.EvaluateCode.get.mockResolvedValue(3)
         await dependencyCascadeMessage({
             payloads: [
@@ -58,15 +59,18 @@ describe('DependencyCascadeMessage', () => {
                             tag: 'Computed',
                             key: 'testOne',
                             assets: [],
+                            completeness: 'Complete',
                             connections: [{
                                 EphemeraId: 'CascadeThree',
                                 tag: 'Computed',
                                 key: 'cascadeOne',
+                                completeness: 'Complete',
                                 assets: [],
                                 connections: [{
                                     EphemeraId: 'TestTwo',
                                     tag: 'Computed',
                                     key: 'cascadeThree',
+                                    completeness: 'Complete',
                                     connections: [],
                                     assets: []
                                 }]
@@ -76,6 +80,7 @@ describe('DependencyCascadeMessage', () => {
                             EphemeraId: 'CascadeTwo',
                             tag: 'Computed',
                             key: 'testOne',
+                            completeness: 'Complete',
                             assets: [],
                             connections: []
                         }
@@ -131,6 +136,7 @@ describe('DependencyCascadeMessage', () => {
             a: 1,
             b: 2
         }: {}))
+        internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
         internalCacheMock.EvaluateCode.get.mockImplementation(async ({ source }) => (source === 'a + b' ? 3 : 8))
         await dependencyCascadeMessage({
             payloads: [
@@ -143,6 +149,7 @@ describe('DependencyCascadeMessage', () => {
                             EphemeraId: 'CascadeOne',
                             tag: 'Computed',
                             key: 'testOne',
+                            completeness: 'Complete',
                             assets: [],
                             connections: []
                         },
@@ -150,6 +157,7 @@ describe('DependencyCascadeMessage', () => {
                             EphemeraId: 'CascadeTwo',
                             tag: 'Computed',
                             key: 'testOne',
+                            completeness: 'Complete',
                             assets: [],
                             connections: []
                         }
@@ -163,6 +171,7 @@ describe('DependencyCascadeMessage', () => {
                         EphemeraId: 'CascadeOne',
                         tag: 'Computed',
                         key: 'testTwo',
+                        completeness: 'Complete',
                         assets: [],
                         connections: []
                     }]

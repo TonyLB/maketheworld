@@ -207,6 +207,7 @@ type DependencyNodeAsset = {
 export type DependencyNodeNonAsset = {
     tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
     key?: string; // The key name by which children nodes know this parent
+    completeness: 'Partial' | 'Complete';
     EphemeraId: string;
     assets: string[]
     connections: DependencyNodeNonAsset[];
@@ -214,10 +215,12 @@ export type DependencyNodeNonAsset = {
 
 export type DependencyNode = DependencyNodeAsset | DependencyNodeNonAsset
 
+export type DependencyNodeEphemeraStorage = Omit<DependencyNodeNonAsset, 'completeness' | 'assets'>
+
 type DependencyUpdateAssetMessage = {
     tag: 'Asset';
     targetId: string;
-    putItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
+    putItem?: Omit<DependencyNode, 'connections' | 'tag'>;
     deleteItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
 }
 
@@ -226,8 +229,8 @@ export type DependencyUpdateNonAssetMessage = {
     tag: NonAssetDependencyTag
     targetId: string;
     assetId: string;
-    putItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
-    deleteItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
+    putItem?: Omit<DependencyNodeEphemeraStorage, 'connections' | 'tag'>;
+    deleteItem?: Omit<DependencyNodeEphemeraStorage, 'connections' | 'tag'>;
 }
 
 export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
