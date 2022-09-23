@@ -31,7 +31,8 @@ describe('fetchPlayerEphemera', () => {
             Name: 'Testy',
             fileURL: 'test.png',
             Color: 'purple',
-            HomeId: 'VORTEX'
+            HomeId: 'VORTEX',
+            Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
         await fetchPlayerEphemera({
             payloads: [{

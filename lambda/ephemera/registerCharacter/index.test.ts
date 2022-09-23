@@ -32,7 +32,8 @@ describe("registerCharacter", () => {
             Name: 'Tess',
             RoomId: 'TestABC',
             Color: 'purple',
-            HomeId: 'VORTEX'
+            HomeId: 'VORTEX',
+            Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
         internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
                 EphemeraId: 'CHARACTER#BCD',
@@ -104,7 +105,8 @@ describe("registerCharacter", () => {
             Name: 'Tess',
             RoomId: 'TestABC',
             Color: 'purple',
-            HomeId: 'VORTEX'
+            HomeId: 'VORTEX',
+            Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
         internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([{
                 EphemeraId: 'CHARACTER#ABC',

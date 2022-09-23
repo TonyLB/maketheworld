@@ -20,23 +20,25 @@ export class AssetStateData {
     async get<T extends Record<string, AssetStateAddress>>(keys: T): Promise<AssetStateOutput<T>> {
         const itemsInNeedOfFetch = Object.values(keys)
             .filter(({ EphemeraId }) => (!(EphemeraId in this._StatePromiseByEphemeraId)))
-        const batchGetPromise = ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
-            Items: itemsInNeedOfFetch.map(({ EphemeraId, tag }) => ({ EphemeraId, DataCategory: `Meta::${tag}` })),
-            ProjectionFields: ['EphemeraId', '#value'],
-            ExpressionAttributeNames: {
-                '#value': 'value'
-            }
-        })
-        Object.values(itemsInNeedOfFetch).forEach(({ EphemeraId }) => {
-            this._StatePromiseByEphemeraId[EphemeraId] = batchGetPromise
-                .then((items) => (items.find(({ EphemeraId: check }) => (check === EphemeraId))?.value))
-                .catch((err) => {
-                    if (typeof this._StateOverrides[EphemeraId] === 'undefined') {
-                        throw err
-                    }
-                })
-                .then((value) => ((typeof this._StateOverrides[EphemeraId] === 'undefined') ? value : this._StateOverrides[EphemeraId]))
-        })
+        if (itemsInNeedOfFetch.length > 0) {
+            const batchGetPromise = ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
+                Items: itemsInNeedOfFetch.map(({ EphemeraId, tag }) => ({ EphemeraId, DataCategory: `Meta::${tag}` })),
+                ProjectionFields: ['EphemeraId', '#value'],
+                ExpressionAttributeNames: {
+                    '#value': 'value'
+                }
+            })
+            Object.values(itemsInNeedOfFetch).forEach(({ EphemeraId }) => {
+                this._StatePromiseByEphemeraId[EphemeraId] = batchGetPromise
+                    .then((items) => (items.find(({ EphemeraId: check }) => (check === EphemeraId))?.value))
+                    .catch((err) => {
+                        if (typeof this._StateOverrides[EphemeraId] === 'undefined') {
+                            throw err
+                        }
+                    })
+                    .then((value) => ((typeof this._StateOverrides[EphemeraId] === 'undefined') ? value : this._StateOverrides[EphemeraId]))
+            })
+        }
         return Object.assign({}, ...(await Promise.all(
             Object.entries(keys).map(async ([key, { EphemeraId }]) => ({ [key]: await this._StatePromiseByEphemeraId[EphemeraId] }))
         ))) as AssetStateOutput<T>
