@@ -142,4 +142,39 @@ describe('AssetState', () => {
         expect(internalCache.AssetState.get).toHaveBeenCalledWith(testMapping)
     })
 
+    it('should fetch twice on identical source with different mappings', async () => {
+        const testMappingOne: AssetStateMapping = { 
+            a: { EphemeraId: 'testOne', tag: 'Variable' },
+            b: { EphemeraId: 'testTwo', tag: 'Computed' }
+        }
+        const testMappingTwo: AssetStateMapping = { 
+            a: { EphemeraId: 'testThree', tag: 'Variable' },
+            b: { EphemeraId: 'testFour', tag: 'Computed' }
+        }
+        assetCacheMock
+            .mockResolvedValueOnce({ a: 1, b: 2 })
+            .mockResolvedValueOnce({ a: 3, b: 4 })
+        const outputOne = await internalCache.EvaluateCode.get({ mapping: testMappingOne, source: 'a+b'})
+        const outputTwo = await internalCache.EvaluateCode.get({ mapping: testMappingTwo, source: 'a+b'})
+        expect(outputOne).toBe(3)
+        expect(outputTwo).toBe(7)
+        expect(internalCache.AssetState.get).toHaveBeenCalledTimes(2)
+        expect(internalCache.AssetState.get).toHaveBeenCalledWith(testMappingOne)
+        expect(internalCache.AssetState.get).toHaveBeenCalledWith(testMappingTwo)
+    })
+
+    it('should fetch twice on two identical mappings with different source', async () => {
+        const testMapping: AssetStateMapping = { 
+            a: { EphemeraId: 'testOne', tag: 'Variable' },
+            b: { EphemeraId: 'testTwo', tag: 'Computed' }
+        }
+        assetCacheMock.mockResolvedValue({ a: 1, b: 2 })
+        const outputOne = await internalCache.EvaluateCode.get({ mapping: testMapping, source: 'a+b'})
+        const outputTwo = await internalCache.EvaluateCode.get({ mapping: testMapping, source: 'b-a'})
+        expect(outputOne).toBe(3)
+        expect(outputTwo).toBe(1)
+        expect(internalCache.AssetState.get).toHaveBeenCalledTimes(2)
+        expect(internalCache.AssetState.get).toHaveBeenCalledWith(testMapping)
+    })
+
 })

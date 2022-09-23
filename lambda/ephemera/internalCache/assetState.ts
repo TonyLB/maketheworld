@@ -1,5 +1,6 @@
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { CacheConstructor } from './baseClasses'
 
 type AssetStateAddress = {
@@ -70,7 +71,7 @@ type EvaluateCodePromiseDistinguisher = {
 
 export class EvaluateCodeData {
     _AssetState: AssetStateData;
-    _EvaluatePromiseBySource: Record<string, EvaluateCodePromiseDistinguisher> = {}
+    _EvaluatePromiseBySource: Record<string, EvaluateCodePromiseDistinguisher[]> = {}
 
     constructor(AssetState: AssetStateData) {
         this._AssetState = AssetState
@@ -79,13 +80,38 @@ export class EvaluateCodeData {
         this._EvaluatePromiseBySource = {}
     }
 
+    _findPromise({ source, mapping }: EvaluateCodeAddress): Promise<any> | undefined {
+        if (!(source in this._EvaluatePromiseBySource)) {
+            return undefined
+        }
+        const searchPromises = this._EvaluatePromiseBySource[source].find(({ mapping: searchMapping }) => (deepEqual(mapping, searchMapping)))
+        return searchPromises?.promise
+    }
+
+    _cachePromise({ source, mapping }: EvaluateCodeAddress, promise: Promise<any>): void {
+        this._EvaluatePromiseBySource[source] = [
+            ...(this._EvaluatePromiseBySource[source] || []),
+            { mapping, promise }
+        ]
+    }
+    
     async get({ source, mapping }: EvaluateCodeAddress): Promise<any> {
-        if (Object.keys(mapping).length) {
-            const sandbox = await this._AssetState.get(mapping)
-            return evaluateCode(`return (${source})`)({ ...sandbox })
+        const cachedEvaluation = this._findPromise({ source, mapping })
+        if (!cachedEvaluation) {
+            const promiseToCache = (async () => {
+                if (Object.keys(mapping).length) {
+                    const sandbox = await this._AssetState.get(mapping)
+                    return evaluateCode(`return (${source})`)({ ...sandbox })
+                }
+                else {
+                    return evaluateCode(`return (${source})`)({})
+                }
+            })()
+            this._cachePromise({ source, mapping }, promiseToCache)
+            return promiseToCache
         }
         else {
-            return evaluateCode(`return (${source})`)({})
+            return cachedEvaluation
         }
     }
 }
