@@ -45,13 +45,13 @@ import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
 export const messageBus = new MessageBus()
 messageBus.subscribe({
     tag: 'PublishMessage',
-    priority: 5,
+    priority: 15,
     filter: isPublishMessage,
     callback: publishMessage
 })
 messageBus.subscribe({
     tag: 'EphemeraUpdate',
-    priority: 5,
+    priority: 10,
     filter: isEphemeraUpdate,
     callback: ephemeraUpdate
 })
@@ -111,7 +111,7 @@ messageBus.subscribe({
 })
 messageBus.subscribe({
     tag: 'Perception',
-    priority: 3,
+    priority: 10,
     filter: isPerception,
     callback: perceptionMessage
 })
@@ -123,13 +123,13 @@ messageBus.subscribe({
 })
 messageBus.subscribe({
     tag: 'DecacheAsset',
-    priority: 5,
+    priority: 1,
     filter: isDecacheAsset,
     callback: decacheAssetMessage
 })
 messageBus.subscribe({
     tag: 'CacheAsset',
-    priority: 5,
+    priority: 1,
     filter: isCacheAssetMessage,
     callback: cacheAssetMessage
 })
@@ -141,15 +141,9 @@ messageBus.subscribe({
 })
 messageBus.subscribe({
     tag: 'RoomUpdate',
-    priority: 3,
+    priority: 6,
     filter: isRoomUpdateMessage,
     callback: roomUpdateMessage
-})
-messageBus.subscribe({
-    tag: 'DescentUpdate',
-    priority: 4,
-    filter: isDescentUpdateMessage,
-    callback: dependentUpdateMessage('Descent')
 })
 messageBus.subscribe({
     tag: 'AncestryUpdate',
@@ -157,10 +151,16 @@ messageBus.subscribe({
     filter: isAncestryUpdateMessage,
     callback: dependentUpdateMessage('Ancestry')
 })
+messageBus.subscribe({
+    tag: 'DescentUpdate',
+    priority: 4,
+    filter: isDescentUpdateMessage,
+    callback: dependentUpdateMessage('Descent')
+})
 
 messageBus.subscribe({
     tag: 'DependencyCascade',
-    priority: 3,
+    priority: 5,
     filter: isDependencyCascadeMessage,
     callback: dependencyCascadeMessage
 })

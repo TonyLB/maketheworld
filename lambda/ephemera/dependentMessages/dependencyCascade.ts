@@ -56,6 +56,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     if (!fetchComputed) {
                         return
                     }
+                    console.log(`Calculating: ${targetId}`)
                     //
                     // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
                     // for faster fetching
@@ -66,7 +67,13 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                             (key && (tag === 'Variable' || tag === 'Computed')) ? { ...previous, [key]: { EphemeraId, tag } } : previous
                         ), {} as AssetStateMapping)
                     const assetState = await internalCache.AssetState.get(assetStateMap)
+                    console.log(`Calculating: ${targetId} x ${JSON.stringify(assetStateMap, null, 4)} x ${JSON.stringify(assetState, null, 4)}`)
+                    //
+                    // TODO:  Do NOT ConditionCheck against Ephemera that have been directly overriden in the cache ... they've been set too
+                    // recently to be confident of their eventually-consistent status
+                    //
                     const conditionChecks: TransactWriteItem[] = Object.entries(assetState)
+                        .filter(([key]) => (internalCache.AssetState.isOverriden(assetStateMap[key].EphemeraId)))
                         .map(([key, value]) => ({
                             ConditionCheck: {
                                 TableName: 'Ephemera',
@@ -83,8 +90,8 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                                 })
                             }
                         }))
-                    console.log(`Calculating: ${targetId} x ${JSON.stringify(assetStateMap, null, 4)} x ${JSON.stringify(assetState, null, 4)}`)
                     const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
+                    console.log(`Output: ${targetId} => ${JSON.stringify(computed ?? 'UNDEFINED', null, 4)}`)
                     if (!deepEqual(computed, value)) {
                         await multiTableTransactWrite([
                             ...conditionChecks,
@@ -100,7 +107,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                                         '#value': 'value'
                                     },
                                     ExpressionAttributeValues: marshall({
-                                        ':value': isNaN(computed) ? 0 : computed
+                                        ':value': isNaN(computed) ? 0 : computed ?? false
                                     })
                                 }
                             }

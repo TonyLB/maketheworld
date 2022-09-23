@@ -57,6 +57,10 @@ export class AssetStateData {
         delete this._StateOverrides[EphemeraId]
         delete this._StatePromiseByEphemeraId[EphemeraId]
     }
+
+    isOverriden(EphemeraId: string) {
+        return EphemeraId in this._StateOverrides
+    }
 }
 
 type EvaluateCodeAddress = {
