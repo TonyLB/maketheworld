@@ -89,4 +89,14 @@ describe('InternalCache', () => {
 
     })
 
+    it('should not fetch when value has been manually set', async () => {
+        ephemeraMock.batchGetItem
+            .mockResolvedValueOnce([{ EphemeraId: 'testOne', value: 'first wrong answer' }])
+        internalCache.AssetState.set('testOne', 'correct answer')
+        const output = await internalCache.AssetState.get({ testOne: { EphemeraId: 'testOne', tag: 'Variable' }})
+        expect(output).toEqual({
+            testOne: 'correct answer'
+        })
+        expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(0)
+    })
 })

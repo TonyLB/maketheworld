@@ -1,4 +1,5 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
+import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize';
 import { CacheConstructor } from './baseClasses'
 
 export type CharacterMetaItem = {
@@ -8,6 +9,7 @@ export type CharacterMetaItem = {
     Color?: string;
     fileURL?: string;
     HomeId: string;
+    Pronouns: NormalCharacterPronouns;
 }
 
 export class CacheCharacterMetaData {
@@ -20,11 +22,11 @@ export class CacheCharacterMetaData {
             const characterData = await ephemeraDB.getItem<CharacterMetaItem>({
                     EphemeraId: `CHARACTER#${characterId}`,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId'],
+                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX' }
+                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX', Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
             this.CharacterMetaById[characterId] = characterData
         }
         return this.CharacterMetaById[characterId] || []
