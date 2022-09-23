@@ -1,3 +1,4 @@
+import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { CacheConstructor } from './baseClasses'
 
@@ -6,7 +7,9 @@ type AssetStateAddress = {
     EphemeraId: string;
 }
 
-type AssetStateOutput<T extends Record<string, AssetStateAddress>> = {
+export type AssetStateMapping = Record<string, AssetStateAddress>
+
+type AssetStateOutput<T extends AssetStateMapping> = {
     [key in keyof T]: any;
 }
 
@@ -17,7 +20,7 @@ export class AssetStateData {
     clear() {
         this._StatePromiseByEphemeraId = {}
     }
-    async get<T extends Record<string, AssetStateAddress>>(keys: T): Promise<AssetStateOutput<T>> {
+    async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
         const itemsInNeedOfFetch = Object.values(keys)
             .filter(({ EphemeraId }) => (!(EphemeraId in this._StatePromiseByEphemeraId)))
         if (itemsInNeedOfFetch.length > 0) {
@@ -55,12 +58,51 @@ export class AssetStateData {
     }
 }
 
+type EvaluateCodeAddress = {
+    mapping: AssetStateMapping;
+    source: string;
+}
+
+type EvaluateCodePromiseDistinguisher = {
+    mapping: AssetStateMapping;
+    promise: Promise<any>;
+}
+
+export class EvaluateCodeData {
+    _AssetState: AssetStateData;
+    _EvaluatePromiseBySource: Record<string, EvaluateCodePromiseDistinguisher> = {}
+
+    constructor(AssetState: AssetStateData) {
+        this._AssetState = AssetState
+    }
+    clear() {
+        this._EvaluatePromiseBySource = {}
+    }
+
+    async get({ source, mapping }: EvaluateCodeAddress): Promise<any> {
+        if (Object.keys(mapping).length) {
+            const sandbox = await this._AssetState.get(mapping)
+            return evaluateCode(`return (${source})`)({ ...sandbox })
+        }
+        else {
+            return evaluateCode(`return (${source})`)({})
+        }
+    }
+}
+
 export const AssetState = <GBase extends CacheConstructor>(Base: GBase) => {
     return class AssetState extends Base {
-        AssetState: AssetStateData = new AssetStateData()
+        AssetState: AssetStateData
+        EvaluateCode: EvaluateCodeData
 
+        constructor(...rest: any) {
+            super()
+            this.AssetState = new AssetStateData()
+            this.EvaluateCode = new EvaluateCodeData(this.AssetState)
+        }
         override clear() {
             this.AssetState.clear()
+            this.EvaluateCode.clear()
             super.clear()
         }
     }
