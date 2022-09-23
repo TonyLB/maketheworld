@@ -204,7 +204,7 @@ type DependencyNodeAsset = {
     connections: DependencyNodeAsset[];
 }
 
-type DependencyNodeNonAsset = {
+export type DependencyNodeNonAsset = {
     tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
     key?: string; // The key name by which children nodes know this parent
     EphemeraId: string;
@@ -221,8 +221,9 @@ type DependencyUpdateAssetMessage = {
     deleteItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
 }
 
+export type NonAssetDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
 export type DependencyUpdateNonAssetMessage = {
-    tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+    tag: NonAssetDependencyTag
     targetId: string;
     assetId: string;
     putItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
@@ -253,6 +254,13 @@ export type AncestryUpdateNonAssetMessage = {
 
 export type AncestryUpdateMessage = AncestryUpdateAssetMessage | AncestryUpdateNonAssetMessage
 
+export type DependencyCascadeMessage = {
+    type: 'DependencyCascade';
+    targetId: string;
+    tag: NonAssetDependencyTag;
+    Descent: DependencyNodeNonAsset[];
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -272,7 +280,8 @@ export type MessageType = PublishMessage |
     PlayerUpdateMessage |
     RoomUpdateMessage |
     DescentUpdateMessage |
-    AncestryUpdateMessage
+    AncestryUpdateMessage |
+    DependencyCascadeMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -304,5 +313,6 @@ export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessag
 
 export const isDescentUpdateMessage = (prop: MessageType): prop is DescentUpdateMessage => (prop.type === 'DescentUpdate')
 export const isAncestryUpdateMessage = (prop: MessageType): prop is AncestryUpdateMessage => (prop.type === 'AncestryUpdate')
+export const isDependencyCascadeMessage = (prop: MessageType): prop is DependencyCascadeMessage => (prop.type === 'DependencyCascade')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

@@ -124,6 +124,16 @@ export const handler = async (event: any, context: any) => {
                     })
                 }
                 break
+            case 'Calculate Cascade':
+                if (event.detail.EphemeraId && event.detail.Descent && event.detail.tag) {
+                    messageBus.send({
+                        type: 'DependencyCascade',
+                        targetId: event.detail.EphemeraId,
+                        tag: event.detail.tag,
+                        Descent: event.detail.Descent
+                    })
+                }
+                break
         }
     }
     

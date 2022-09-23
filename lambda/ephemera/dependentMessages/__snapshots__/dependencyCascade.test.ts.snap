@@ -1,0 +1,226 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DependencyCascadeMessage should update a computed item and cascade 1`] = `
+Array [
+  Object {
+    "ConditionCheck": Object {
+      "ConditionExpression": "#value = :value",
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "1",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Variable",
+        },
+        "EphemeraId": Object {
+          "S": "VariableOne",
+        },
+      },
+      "TableName": "Ephemera",
+    },
+  },
+  Object {
+    "ConditionCheck": Object {
+      "ConditionExpression": "#value = :value",
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "2",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Variable",
+        },
+        "EphemeraId": Object {
+          "S": "VariableTwo",
+        },
+      },
+      "TableName": "Ephemera",
+    },
+  },
+  Object {
+    "Update": Object {
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "3",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Computed",
+        },
+        "EphemeraId": Object {
+          "S": "TestOne",
+        },
+      },
+      "TableName": "Ephemera",
+      "UpdateExpression": "SET #value = :value",
+    },
+  },
+]
+`;
+
+exports[`DependencyCascadeMessage should update a computed item and cascade 2`] = `
+Array [
+  Object {
+    "Descent": Array [],
+    "tag": "Computed",
+    "targetId": "TestTwo",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "Descent": Array [
+      Object {
+        "EphemeraId": "CascadeThree",
+        "assets": Array [],
+        "connections": Array [
+          Object {
+            "EphemeraId": "TestTwo",
+            "assets": Array [],
+            "connections": Array [],
+            "key": "cascadeThree",
+            "tag": "Computed",
+          },
+        ],
+        "key": "cascadeOne",
+        "tag": "Computed",
+      },
+    ],
+    "tag": "Computed",
+    "targetId": "CascadeOne",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "Descent": Array [],
+    "tag": "Computed",
+    "targetId": "CascadeTwo",
+    "type": "DependencyCascade",
+  },
+]
+`;
+
+exports[`DependencyCascadeMessage should update in parallel and combine cascades 1`] = `
+Array [
+  Object {
+    "ConditionCheck": Object {
+      "ConditionExpression": "#value = :value",
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "1",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Variable",
+        },
+        "EphemeraId": Object {
+          "S": "VariableOne",
+        },
+      },
+      "TableName": "Ephemera",
+    },
+  },
+  Object {
+    "ConditionCheck": Object {
+      "ConditionExpression": "#value = :value",
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "2",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Variable",
+        },
+        "EphemeraId": Object {
+          "S": "VariableTwo",
+        },
+      },
+      "TableName": "Ephemera",
+    },
+  },
+  Object {
+    "Update": Object {
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "3",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Computed",
+        },
+        "EphemeraId": Object {
+          "S": "TestOne",
+        },
+      },
+      "TableName": "Ephemera",
+      "UpdateExpression": "SET #value = :value",
+    },
+  },
+]
+`;
+
+exports[`DependencyCascadeMessage should update in parallel and combine cascades 2`] = `
+Array [
+  Object {
+    "Update": Object {
+      "ExpressionAttributeNames": Object {
+        "#value": "value",
+      },
+      "ExpressionAttributeValues": Object {
+        ":value": Object {
+          "N": "8",
+        },
+      },
+      "Key": Object {
+        "DataCategory": Object {
+          "S": "Meta::Computed",
+        },
+        "EphemeraId": Object {
+          "S": "TestTwo",
+        },
+      },
+      "TableName": "Ephemera",
+      "UpdateExpression": "SET #value = :value",
+    },
+  },
+]
+`;
+
+exports[`DependencyCascadeMessage should update in parallel and combine cascades 3`] = `
+Array [
+  Object {
+    "Descent": Array [],
+    "tag": "Computed",
+    "targetId": "CascadeOne",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "Descent": Array [],
+    "tag": "Computed",
+    "targetId": "CascadeTwo",
+    "type": "DependencyCascade",
+  },
+]
+`;
