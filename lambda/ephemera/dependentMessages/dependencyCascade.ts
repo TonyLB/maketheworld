@@ -41,6 +41,10 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
         switch(tag) {
             case 'Computed':
                 await exponentialBackoffWrapper(async () => {
+                    //
+                    // TODO: Make Descent an optional property of the message, and fetch as part of the below when
+                    // it is not provided
+                    //
                     const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNodeNonAsset[]; src: string; value: any }>({
                         EphemeraId: targetId,
                         DataCategory: 'Meta::Computed',
@@ -52,17 +56,24 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     if (!fetchComputed) {
                         return
                     }
+                    console.log(`Calculating: ${targetId}`)
                     //
                     // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
                     // for faster fetching
                     //
-                    const { Ancestry, src, value } = fetchComputed
+                    const { Ancestry = [], src, value } = fetchComputed
                     const assetStateMap: AssetStateMapping = Ancestry
                         .reduce((previous, { EphemeraId, key, tag }) => (
                             (key && (tag === 'Variable' || tag === 'Computed')) ? { ...previous, [key]: { EphemeraId, tag } } : previous
                         ), {} as AssetStateMapping)
                     const assetState = await internalCache.AssetState.get(assetStateMap)
+                    console.log(`Calculating: ${targetId} x ${JSON.stringify(assetStateMap, null, 4)} x ${JSON.stringify(assetState, null, 4)}`)
+                    //
+                    // TODO:  Do NOT ConditionCheck against Ephemera that have been directly overriden in the cache ... they've been set too
+                    // recently to be confident of their eventually-consistent status
+                    //
                     const conditionChecks: TransactWriteItem[] = Object.entries(assetState)
+                        .filter(([key]) => (internalCache.AssetState.isOverriden(assetStateMap[key].EphemeraId)))
                         .map(([key, value]) => ({
                             ConditionCheck: {
                                 TableName: 'Ephemera',
@@ -80,6 +91,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                             }
                         }))
                     const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
+                    console.log(`Output: ${targetId} => ${JSON.stringify(computed ?? 'UNDEFINED', null, 4)}`)
                     if (!deepEqual(computed, value)) {
                         await multiTableTransactWrite([
                             ...conditionChecks,
@@ -95,7 +107,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                                         '#value': 'value'
                                     },
                                     ExpressionAttributeValues: marshall({
-                                        ':value': computed
+                                        ':value': isNaN(computed) ? 0 : computed ?? false
                                     })
                                 }
                             }
@@ -104,6 +116,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                         // TODO: Wrap the above in the try/catch and invalidate caches before re-throwing the
                         // error in order to reactivate the exponentialBackoff wrapper
                         //
+                        internalCache.AssetState.set(targetId, isNaN(computed) ? 0 : computed)
                         Descent.forEach(({ EphemeraId, tag, connections }) => {
                             deferredPayloads[EphemeraId] = {
                                 type: 'DependencyCascade',
