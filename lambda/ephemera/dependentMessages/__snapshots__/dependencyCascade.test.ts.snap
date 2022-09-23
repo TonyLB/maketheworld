@@ -65,7 +65,7 @@ Array [
         },
       },
       "TableName": "Ephemera",
-      "UpdateExpression": "#value = :value",
+      "UpdateExpression": "SET #value = :value",
     },
   },
 ]
@@ -175,7 +175,7 @@ Array [
         },
       },
       "TableName": "Ephemera",
-      "UpdateExpression": "#value = :value",
+      "UpdateExpression": "SET #value = :value",
     },
   },
 ]
@@ -202,7 +202,7 @@ Array [
         },
       },
       "TableName": "Ephemera",
-      "UpdateExpression": "#value = :value",
+      "UpdateExpression": "SET #value = :value",
     },
   },
 ]

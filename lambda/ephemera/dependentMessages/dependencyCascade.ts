@@ -40,7 +40,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     const processOneMessage = async ({ targetId, tag, Descent }: DependencyCascadeMessage): Promise<void> => {
         switch(tag) {
             case 'Computed':
-                console.log(`Computed found`)
                 await exponentialBackoffWrapper(async () => {
                     const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNodeNonAsset[]; src: string; value: any }>({
                         EphemeraId: targetId,
@@ -62,9 +61,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                         .reduce((previous, { EphemeraId, key, tag }) => (
                             (key && (tag === 'Variable' || tag === 'Computed')) ? { ...previous, [key]: { EphemeraId, tag } } : previous
                         ), {} as AssetStateMapping)
-                    console.log(`AssetMap: ${JSON.stringify(assetStateMap, null, 4)}`)
                     const assetState = await internalCache.AssetState.get(assetStateMap)
-                    console.log(`AssetState: ${JSON.stringify(assetState, null, 4)}`)
                     const conditionChecks: TransactWriteItem[] = Object.entries(assetState)
                         .map(([key, value]) => ({
                             ConditionCheck: {
@@ -82,9 +79,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                                 })
                             }
                         }))
-                    console.log(`Condition Checks: ${JSON.stringify(conditionChecks, null, 4)}`)
                     const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
-                    console.log(`Computed: ${computed}, Value: ${value}`)
                     if (!deepEqual(computed, value)) {
                         await multiTableTransactWrite([
                             ...conditionChecks,
@@ -95,7 +90,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                                         EphemeraId: targetId,
                                         DataCategory: 'Meta::Computed'
                                     }),
-                                    UpdateExpression: '#value = :value',
+                                    UpdateExpression: 'SET #value = :value',
                                     ExpressionAttributeNames: {
                                         '#value': 'value'
                                     },
