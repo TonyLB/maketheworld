@@ -313,6 +313,6 @@ export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessag
 
 export const isDescentUpdateMessage = (prop: MessageType): prop is DescentUpdateMessage => (prop.type === 'DescentUpdate')
 export const isAncestryUpdateMessage = (prop: MessageType): prop is AncestryUpdateMessage => (prop.type === 'AncestryUpdate')
-export const isDependencyCascadeMessage = (prop: MessageType): prop is AncestryUpdateMessage => (prop.type === 'DependencyCascade')
+export const isDependencyCascadeMessage = (prop: MessageType): prop is DependencyCascadeMessage => (prop.type === 'DependencyCascade')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}

@@ -177,6 +177,7 @@ Resources:
                 - Decache Asset
                 - Cache Asset
                 - Update Player
+                - Calculate Cascade
         Diagnostics:
           Type: CloudWatchEvent
           Properties:
