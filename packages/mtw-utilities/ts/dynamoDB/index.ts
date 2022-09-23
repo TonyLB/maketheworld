@@ -586,15 +586,17 @@ export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, 
 //
 // TODO: Refactor addPerAsset with exponentialBackoffWrapper
 //
-export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>>({
+export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransformArgument, A extends Record<string, any>, G extends A>({
     fetchArgs = () => (Promise.resolve(undefined)),
     reduceMetaData,
     updateKeys = ['cached'],
+    extraFetchKeys = [],
     ExpressionAttributeNames = {}
 }: {
-    fetchArgs?: ({ item, meta }: { item: T, meta?: M }) => Promise<A | undefined>,
-    reduceMetaData: ({ item, fetchedArgs }: { item: T, fetchedArgs: A | undefined }) => (state: WritableDraft<M>) => void,
+    fetchArgs?: ({ item, meta }: { item: T, meta?: M }) => Promise<G | undefined>,
+    reduceMetaData: ({ item, fetchedArgs }: { item: T, fetchedArgs: G | undefined }) => (state: WritableDraft<M>) => void,
     updateKeys?: string[],
+    extraFetchKeys?: string[],
     ExpressionAttributeNames?: Record<string, string>,
 }) => async (item: T): Promise<void> => {
     let retries = 0
@@ -621,7 +623,7 @@ export const addPerAsset = <T extends EphemeraDBKey, M extends AddPerAssetTransf
                     DataCategory: `Meta::${tag}`
                 }),
                 ...((ExpressionAttributeNames && Object.values(ExpressionAttributeNames).length > 0) ? { ExpressionAttributeNames } : {}),
-                ProjectionExpression: updateKeys.join(', ')
+                ProjectionExpression: [...updateKeys, ...extraFetchKeys].join(', ')
             }))
             const currentMeta = unmarshall(fetchCache || {}) as M
             //

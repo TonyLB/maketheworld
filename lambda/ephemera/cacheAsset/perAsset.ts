@@ -7,6 +7,9 @@ import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { unique } from "@tonylb/mtw-utilities/dist/lists";
 import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
 import { WritableDraft } from "immer/dist/internal";
+import internalCache from "../internalCache";
+import messageBus from "../messageBus";
+import { DependencyNodeNonAsset } from "../messageBus/baseClasses";
 import { EphemeraItem } from "./baseClasses";
 
 type ActiveCharacterOutput = {
@@ -62,6 +65,9 @@ const initializeComponent = async ({ item: { EphemeraId }, meta }: { item: { Eph
                 .map(({ EphemeraId, Name, ConnectionIds }) => ({ EphemeraId, Name, ConnectionIds }))
         }
     }
+    // else if (componentType === 'Room' && ) {
+        
+    // }
     else {
         return {}
     }
@@ -73,6 +79,7 @@ type EphemeraAssetMeta = {
     src?: string;
     rootAsset?: string;
     value?: any;
+    Descent?: DependencyNodeNonAsset[];
 }
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
@@ -104,6 +111,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                 return ephemeraDB.addPerAsset({
                     fetchArgs: initializeComponent,
                     updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset', '#value'],
+                    extraFetchKeys: ['Descent'],
                     ExpressionAttributeNames: {
                         '#value': 'value'
                     },
@@ -120,10 +128,19 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                         if (['Action', 'Computed'].includes(item.tag) && item.src) {
                             draft.src = item.src
                             draft.rootAsset = assetId
+                            if (item.tag === 'Computed') {
+                                messageBus.send({
+                                    type: 'DependencyCascade',
+                                    targetId: item.EphemeraId,
+                                    tag: 'Computed',
+                                    Descent: draft.Descent ?? []
+                                })
+                            }
                         }
                         if (item.tag === 'Variable' && item.default) {
                             if ((typeof draft.value === 'undefined') && item.default) {
                                 draft.value = evaluateCode(`return (${item.default})`)({})
+                                internalCache.AssetState.set(item.EphemeraId, draft.value)
                             }
                         }
                     }
