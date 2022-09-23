@@ -44,6 +44,7 @@ export class AssetStateData {
 
     set(EphemeraId: string, value: any) {
         this._StateOverrides[EphemeraId] = value
+        this._StatePromiseByEphemeraId[EphemeraId] = Promise.resolve(value)
     }
 
     invalidate(EphemeraId: string) {
