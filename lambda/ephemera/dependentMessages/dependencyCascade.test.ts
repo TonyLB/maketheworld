@@ -45,6 +45,7 @@ describe('DependencyCascadeMessage', () => {
             a: 1,
             b: 2
         })
+        internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
         internalCacheMock.EvaluateCode.get.mockResolvedValue(3)
         await dependencyCascadeMessage({
             payloads: [
@@ -131,6 +132,7 @@ describe('DependencyCascadeMessage', () => {
             a: 1,
             b: 2
         }: {}))
+        internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
         internalCacheMock.EvaluateCode.get.mockImplementation(async ({ source }) => (source === 'a + b' ? 3 : 8))
         await dependencyCascadeMessage({
             payloads: [

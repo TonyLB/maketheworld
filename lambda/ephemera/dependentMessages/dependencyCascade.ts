@@ -73,7 +73,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     // recently to be confident of their eventually-consistent status
                     //
                     const conditionChecks: TransactWriteItem[] = Object.entries(assetState)
-                        .filter(([key]) => (internalCache.AssetState.isOverriden(assetStateMap[key].EphemeraId)))
+                        .filter(([key]) => (!internalCache.AssetState.isOverridden(assetStateMap[key].EphemeraId)))
                         .map(([key, value]) => ({
                             ConditionCheck: {
                                 TableName: 'Ephemera',

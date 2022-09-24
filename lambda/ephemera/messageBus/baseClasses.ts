@@ -217,7 +217,7 @@ export type DependencyNode = DependencyNodeAsset | DependencyNodeNonAsset
 type DependencyUpdateAssetMessage = {
     tag: 'Asset';
     targetId: string;
-    putItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
+    putItem?: Omit<DependencyNode, 'connections' | 'tag'>;
     deleteItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
 }
 
@@ -226,8 +226,8 @@ export type DependencyUpdateNonAssetMessage = {
     tag: NonAssetDependencyTag
     targetId: string;
     assetId: string;
-    putItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
-    deleteItem?: Omit<DependencyNodeNonAsset, 'connections' | 'assets' | 'tag'>;
+    putItem?: Omit<DependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
+    deleteItem?: Omit<DependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
 }
 
 export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
