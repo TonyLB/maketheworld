@@ -198,36 +198,38 @@ export type RoomUpdateMessage = {
     roomId: string;
 }
 
-type DependencyNodeAsset = {
+type LegacyDependencyNodeAsset = {
     tag: 'Asset';
     EphemeraId: string;
-    connections: DependencyNodeAsset[];
+    connections: LegacyDependencyNodeAsset[];
 }
 
-export type DependencyNodeNonAsset = {
+export type LegacyDependencyNodeNonAsset = {
     tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
     key?: string; // The key name by which children nodes know this parent
     EphemeraId: string;
     assets: string[]
-    connections: DependencyNodeNonAsset[];
+    connections: LegacyDependencyNodeNonAsset[];
 }
 
-export type DependencyNode = DependencyNodeAsset | DependencyNodeNonAsset
+export type LegacyDependencyNode = LegacyDependencyNodeAsset | LegacyDependencyNodeNonAsset
 
 type DependencyUpdateAssetMessage = {
     tag: 'Asset';
     targetId: string;
-    putItem?: Omit<DependencyNode, 'connections' | 'tag'>;
-    deleteItem?: Omit<DependencyNodeAsset, 'connections' | 'tag'>;
+    putItem?: Omit<LegacyDependencyNode, 'connections' | 'tag'>;
+    deleteItem?: Omit<LegacyDependencyNodeAsset, 'connections' | 'tag'>;
 }
 
-export type NonAssetDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+export type LegalDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
+
 export type DependencyUpdateNonAssetMessage = {
-    tag: NonAssetDependencyTag
+    tag: LegalDependencyTag
     targetId: string;
     assetId: string;
-    putItem?: Omit<DependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
-    deleteItem?: Omit<DependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
+    putItem?: Omit<LegacyDependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
+    deleteItem?: Omit<LegacyDependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
 }
 
 export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
@@ -257,8 +259,8 @@ export type AncestryUpdateMessage = AncestryUpdateAssetMessage | AncestryUpdateN
 export type DependencyCascadeMessage = {
     type: 'DependencyCascade';
     targetId: string;
-    tag: NonAssetDependencyTag;
-    Descent: DependencyNodeNonAsset[];
+    tag: LegalDependencyTag;
+    Descent: LegacyDependencyNodeNonAsset[];
 }
 
 export type MessageType = PublishMessage |

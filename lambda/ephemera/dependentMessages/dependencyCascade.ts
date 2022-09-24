@@ -5,9 +5,9 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
 import { AssetStateMapping } from "../internalCache/assetState"
-import { DependencyCascadeMessage, DependencyNodeNonAsset, MessageBus } from "../messageBus/baseClasses"
+import { DependencyCascadeMessage, LegacyDependencyNodeNonAsset, MessageBus } from "../messageBus/baseClasses"
 
-const dependencyTreeToTargets = (tree: DependencyNodeNonAsset[], depth: number = 0): string[] => {
+const dependencyTreeToTargets = (tree: LegacyDependencyNodeNonAsset[], depth: number = 0): string[] => {
     if (tree.length === 0) {
         return []
     }
@@ -15,7 +15,7 @@ const dependencyTreeToTargets = (tree: DependencyNodeNonAsset[], depth: number =
     const indirectTargets = tree.reduce((previous, { connections }) => ([
         ...previous,
         ...connections
-    ]), [] as DependencyNodeNonAsset[])
+    ]), [] as LegacyDependencyNodeNonAsset[])
     return unique(directTargets, dependencyTreeToTargets(indirectTargets, depth + 1)) as string[]    
 }
 
@@ -29,7 +29,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     const knockOnCascades = dependencyTreeToTargets(payloads.reduce((previous, { Descent }) => ([
         ...previous,
         ...Descent
-    ]), [] as DependencyNodeNonAsset[]))
+    ]), [] as LegacyDependencyNodeNonAsset[]))
 
     let deferredPayloads = payloads
         .filter(({ targetId }) => (knockOnCascades.includes(targetId)))
@@ -45,7 +45,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     // TODO: Make Descent an optional property of the message, and fetch as part of the below when
                     // it is not provided
                     //
-                    const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNodeNonAsset[]; src: string; value: any }>({
+                    const fetchComputed = await ephemeraDB.getItem<{ Ancestry: LegacyDependencyNodeNonAsset[]; src: string; value: any }>({
                         EphemeraId: targetId,
                         DataCategory: 'Meta::Computed',
                         ProjectionFields: ['Ancestry', 'src', '#value'],

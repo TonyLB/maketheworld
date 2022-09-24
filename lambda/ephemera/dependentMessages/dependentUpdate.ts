@@ -1,4 +1,4 @@
-import { AncestryUpdateNonAssetMessage, DependencyNode, DependencyUpdateMessage, DescentUpdateMessage, DescentUpdateNonAssetMessage, MessageBus } from "../messageBus/baseClasses"
+import { AncestryUpdateNonAssetMessage, LegacyDependencyNode, DependencyUpdateMessage, DescentUpdateMessage, DescentUpdateNonAssetMessage, MessageBus } from "../messageBus/baseClasses"
 
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
@@ -28,13 +28,13 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
 
     await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
         const [targetTag] = splitType(targetId)
-        const tag = `${targetTag[0].toUpperCase()}${targetTag.slice(1).toLowerCase()}` as DependencyNode["tag"]
+        const tag = `${targetTag[0].toUpperCase()}${targetTag.slice(1).toLowerCase()}` as LegacyDependencyNode["tag"]
         //
         // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
         // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
         //
         const [antidependency, dependencyMap] = await Promise.all([
-            ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[]; }>({
+            ephemeraDB.getItem<{ Ancestry?: LegacyDependencyNode[]; Descent?: LegacyDependencyNode[]; }>({
                 EphemeraId: targetId,
                 DataCategory: `Meta::${tag}`,
                 ProjectionFields: [antiDependencyTag]
@@ -47,7 +47,7 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                         // transactional lock to check that they haven't been changed as part of the
                         // update, rather than depend upon consistent reads:  May get better performance.
                         //
-                        const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
+                        const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: LegacyDependencyNode[]; Descent?: LegacyDependencyNode[] }>({
                             EphemeraId: payload.putItem.EphemeraId,
                             DataCategory: `Meta::${payload.tag}`,
                             ProjectionFields: [dependencyTag],
@@ -59,7 +59,7 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                         return {}
                     }
                 }))
-                return Object.assign({}, ...fetchDependents) as Record<string, DependencyNode>
+                return Object.assign({}, ...fetchDependents) as Record<string, LegacyDependencyNode>
             })()
         ])
         await ephemeraDB.optimisticUpdate({
