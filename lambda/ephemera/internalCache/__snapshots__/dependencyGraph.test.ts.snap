@@ -4,7 +4,6 @@ exports[`DependencyGraph delete should correctly delete a connection 1`] = `
 Array [
   Object {
     "EphemeraId": "VARIABLE#testOne",
-    "assets": Array [],
     "completeness": "Complete",
     "connections": Array [
       Object {
@@ -20,23 +19,16 @@ Array [
         ],
       },
     ],
-    "tag": "Variable",
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "assets": Array [],
     "completeness": "Complete",
     "connections": Array [],
-    "tag": "Computed",
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",
-    "assets": Array [
-      "base",
-    ],
     "completeness": "Complete",
     "connections": Array [],
-    "tag": "Computed",
   },
 ]
 `;
@@ -45,7 +37,6 @@ exports[`DependencyGraph delete should decrement connection assets when redundan
 Array [
   Object {
     "EphemeraId": "VARIABLE#testOne",
-    "assets": Array [],
     "completeness": "Partial",
     "connections": Array [
       Object {
@@ -56,14 +47,11 @@ Array [
         ],
       },
     ],
-    "tag": "Variable",
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "assets": Array [],
     "completeness": "Partial",
     "connections": Array [],
-    "tag": "Computed",
   },
 ]
 `;
@@ -95,7 +83,6 @@ exports[`DependencyGraph getPartial should correctly decipher a partial tree 1`]
 Array [
   Object {
     "EphemeraId": "VARIABLE#testOne",
-    "assets": Array [],
     "completeness": "Complete",
     "connections": Array [
       Object {
@@ -111,11 +98,9 @@ Array [
         ],
       },
     ],
-    "tag": "Variable",
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "assets": Array [],
     "completeness": "Partial",
     "connections": Array [
       Object {
@@ -126,25 +111,16 @@ Array [
         "key": "testTwo",
       },
     ],
-    "tag": "Computed",
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",
-    "assets": Array [
-      "base",
-    ],
     "completeness": "Partial",
     "connections": Array [],
-    "tag": "Computed",
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",
-    "assets": Array [
-      "base",
-    ],
     "completeness": "Partial",
     "connections": Array [],
-    "tag": "Computed",
   },
 ]
 `;
@@ -168,12 +144,8 @@ Array [
   },
   Object {
     "EphemeraId": "COMPUTED#testFour",
-    "assets": Array [
-      "base",
-    ],
     "completeness": "Partial",
     "connections": Array [],
-    "tag": "Variable",
   },
 ]
 `;
@@ -182,7 +154,6 @@ exports[`DependencyGraph put should correctly add a complete tree 1`] = `
 Array [
   Object {
     "EphemeraId": "COMPUTED#testFour",
-    "assets": Array [],
     "completeness": "Complete",
     "connections": Array [
       Object {
@@ -193,11 +164,9 @@ Array [
         "key": "testFour",
       },
     ],
-    "tag": "Variable",
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "assets": Array [],
     "completeness": "Complete",
     "connections": Array [
       Object {
@@ -208,16 +177,11 @@ Array [
         "key": "testTwo",
       },
     ],
-    "tag": "Computed",
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",
-    "assets": Array [
-      "base",
-    ],
     "completeness": "Complete",
     "connections": Array [],
-    "tag": "Computed",
   },
 ]
 `;
@@ -226,7 +190,6 @@ exports[`DependencyGraph put should correctly add a single graph item 1`] = `
 Array [
   Object {
     "EphemeraId": "COMPUTED#testFour",
-    "assets": Array [],
     "completeness": "Partial",
     "connections": Array [
       Object {
@@ -237,11 +200,9 @@ Array [
         "key": "testFour",
       },
     ],
-    "tag": "Variable",
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "assets": Array [],
     "completeness": "Partial",
     "connections": Array [
       Object {
@@ -252,16 +213,11 @@ Array [
         "key": "testTwo",
       },
     ],
-    "tag": "Computed",
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",
-    "assets": Array [
-      "base",
-    ],
     "completeness": "Partial",
     "connections": Array [],
-    "tag": "Computed",
   },
 ]
 `;
