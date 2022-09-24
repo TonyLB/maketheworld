@@ -126,4 +126,12 @@ describe('DependencyGraph', () => {
             expect(internalCache.Descent.getPartial('testFour')).toMatchSnapshot()
         })
     })
+
+    describe('delete', () => {
+        it('should correctly delete a connection', () => {
+            internalCache.Descent._Store = testStore
+            internalCache.Descent.delete('testTwo', 'testThree')
+            expect(internalCache.Descent.getPartial('testOne')).toMatchSnapshot()
+        })
+    })
 })

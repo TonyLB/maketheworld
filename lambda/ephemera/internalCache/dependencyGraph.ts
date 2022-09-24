@@ -75,7 +75,9 @@ export class DependencyGraphData {
     }
 
     delete(EphemeraId: string, descendant: string) {
-        
+        if (EphemeraId in this._Store) {
+            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ EphemeraId: check }) => (check !== descendant))
+        }
     }
 
     invalidate(EphemeraId: string) {
