@@ -1,20 +1,16 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
-import { DependencyNodeNonAsset } from '../messageBus/baseClasses';
-import { CacheConstructor } from './baseClasses'
+import { splitType } from '@tonylb/mtw-utilities/dist/types';
+import { LegalDependencyTag, isLegalDependencyTag, LegacyDependencyNodeNonAsset } from '../messageBus/baseClasses';
+import { CacheConstructor, DependencyEdge } from './baseClasses'
 
-type DependencyNodeGraphConnection = {
-    EphemeraId: string;
-    key?: string;
-}
-
-export type DependencyNodeGraphItem = Omit<DependencyNodeNonAsset, 'connections'> & {
+export type DependencyNode = Omit<LegacyDependencyNodeNonAsset, 'connections'> & {
     completeness: 'Partial' | 'Complete';
-    connections: DependencyNodeGraphConnection[]
+    connections: DependencyEdge[]
 }
 
-const isDependencyNodeGraphItem = (value: DependencyNodeNonAsset | DependencyNodeGraphItem): value is DependencyNodeGraphItem => ('completeness' in value)
+const isDependencyNode = (value: LegacyDependencyNodeNonAsset | DependencyNode): value is DependencyNode => ('completeness' in value)
 
 class Deferred <T>{
     promise: Promise<T>;
@@ -28,166 +24,200 @@ class Deferred <T>{
     }
 }
 
-type DependencyNodeGraphDeferred = Deferred<DependencyNodeGraphItem>
+type DependencyNodeDeferred = Deferred<DependencyNode>
 
+const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
+    const [upperTag] = splitType(EphemeraId)
+    const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
+    if (isLegalDependencyTag(tag)) {
+        return tag
+    }
+    else {
+        throw new Error(`Invalid dependency tag: ${tag}`)
+    }
+}
+
+const extractTree = (tree: DependencyNode[], EphemeraId: string): DependencyNode[] => {
+    const treeByEphemeraId = tree.reduce((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {} as Record<string, DependencyNode>)
+    if (!(EphemeraId in treeByEphemeraId)) {
+        return []
+    }
+    const currentNode = treeByEphemeraId[EphemeraId]
+    return [
+        currentNode,
+        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId)]), [] as DependencyNode[]))
+    ]
+}
+
+const invertTree = (tree: DependencyNode[]): DependencyNode[] => {
+    type ExplicitEdge = {
+        from: string;
+        to: string;
+        key?: string;
+        assets: string[];
+    }
+    const explicitEdges = tree.reduce<ExplicitEdge[]>((previous, { EphemeraId: from , connections }) => (
+        connections.reduce<ExplicitEdge[]>((accumulator, { EphemeraId: to, assets, key }) => ([
+            ...accumulator,
+            {
+                from,
+                to,
+                assets,
+                key
+            }
+        ]), previous)
+    ), [])
+    return [
+        ...(tree.map((node) => ({
+            ...node,
+            connections: explicitEdges
+                .filter(({ to }) => (to === node.EphemeraId))
+                .map<DependencyEdge>(({ from, assets, key }) => ({ EphemeraId: from, assets, key }))
+        }))),
+        ...(Object.values(explicitEdges
+            .filter(({ to }) => (!tree.find(({ EphemeraId }) => (to === EphemeraId))))
+            .reduce<Record<string, DependencyNode>>((previous, { to, from, key, assets }) => ({
+                ...previous,
+                [to]: {
+                    EphemeraId: to,
+                    tag: tagFromEphemeraId(to),
+                    assets: [],
+                    completeness: 'Partial',
+                    connections: [
+                        ...(previous[to]?.connections || []),
+                        {
+                            EphemeraId: from,
+                            key,
+                            assets
+                        }
+                    ]
+                }
+            }), {})
+        ))
+    ]
+}
+
+const compareEdges = (edgeA: DependencyEdge, edgeB: DependencyEdge) => (
+    (edgeA.EphemeraId === edgeB.EphemeraId) &&
+    (
+        ((typeof edgeA.key === 'undefined') && (typeof(edgeB.key) === 'undefined')) ||
+        (edgeA.key === edgeB.key)
+    )
+)
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
     _antiDependency?: DependencyGraphData;
-    _Promises: Record<string, Promise<DependencyNodeGraphItem>> = {}
-    _Deferred: Record<string, DependencyNodeGraphDeferred> = {}
-    _Store: Record<string, DependencyNodeGraphItem> = {}
+    _Deferred: Record<string, DependencyNodeDeferred> = {}
+    _Store: Record<string, DependencyNode> = {}
     
     constructor(dependencyTag: 'Descent' | 'Ancestry') {
         this.dependencyTag = dependencyTag
     }
 
     clear() {
-        Object.values(this._Deferred).forEach(({ reject }) => { reject() })
-        this._Promises = {}
+        Object.values(this._Deferred).forEach(({ resolve }) => { resolve({ EphemeraId: '', connections: [], tag: 'Variable', assets: [], completeness: 'Partial' }) })
         this._Deferred = {}
         this._Store = {}
     }
 
-    async get(EphemeraId: string, tag: DependencyNodeNonAsset["tag"]): Promise<DependencyNodeNonAsset> {
-        const emptyDefault: DependencyNodeNonAsset = {
-            EphemeraId,
-            tag,
-            assets: [],
-            connections: []
-        }
+    async get(EphemeraId: string): Promise<DependencyNode[]> {
+        const tag = tagFromEphemeraId(EphemeraId)
         if (this.isComplete(EphemeraId)) {
-            return this.getPartial(EphemeraId) ?? emptyDefault
+            return this.getPartial(EphemeraId)
         }
-        if (!(EphemeraId in this._Promises)) {
-            const knownTree = this.getPartial(EphemeraId) || emptyDefault
-            let assignedEphemeraId: string[] = []
-            let aggregatePromiseList: Promise<DependencyNodeGraphItem>[] =[]
-            const recursivelySetPromises = (node: DependencyNodeNonAsset) => {
+        if (!(EphemeraId in this._Deferred)) {
+            const knownTree = this.getPartial(EphemeraId)
+            //
+            // TODO: Refactor how Deferred entries get created and promises assigned
+            //
+            knownTree.forEach((node) => {
                 if (!(node.EphemeraId in this._Deferred)) {
-                    this._Deferred[node.EphemeraId] = new Deferred<DependencyNodeGraphItem>()
-                    assignedEphemeraId.push(node.EphemeraId)
-                    aggregatePromiseList.push(this._Deferred[node.EphemeraId].promise)
+                    this._Deferred[node.EphemeraId] = new Deferred<DependencyNode>()
                 }
-                node.connections.forEach((child) => { recursivelySetPromises(child) })
-            }
-            recursivelySetPromises(knownTree)
-            const uniqueAssignedEphemeraId = unique(assignedEphemeraId) as string[]
-            const aggregatePromise = Promise.all(aggregatePromiseList)
-            uniqueAssignedEphemeraId.forEach((EphemeraId) => {
-                this._Promises[EphemeraId] = aggregatePromise.then((results) => (results.find(({ EphemeraId: check }) => (check === EphemeraId)) ?? {
-                    EphemeraId,
-                    tag: 'Computed',
-                    assets: [],
-                    completeness: 'Complete',
-                    connections: []
-                }))
             })
-            const helper = (async (): Promise<DependencyNodeNonAsset> => {
-                const fetchValue = await ephemeraDB.getItem<{ Ancestry?: DependencyNodeNonAsset[]; Descent?: DependencyNodeNonAsset[] }>({
+            const helper = async (): Promise<void> => {
+                const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                     EphemeraId: EphemeraId,
                     DataCategory: `Meta::${tag}`,
                     ProjectionFields: [this.dependencyTag]
+                }))
+                const fetchedNodes = fetchValue?.[this.dependencyTag] || []
+                console.log(`Fetch Nodes: ${JSON.stringify(fetchedNodes, null, 4)}`)
+                const fetchEphemera = fetchedNodes.map(({ EphemeraId }) => (EphemeraId))
+                fetchedNodes.forEach((node) => {
+                    this._Deferred[node.EphemeraId]?.resolve(node)
+                    this._Store[node.EphemeraId] = node
                 })
-                if (((value: { Ancestry?: DependencyNodeNonAsset[]; Descent?: DependencyNodeNonAsset[] } | undefined): value is undefined => (typeof value === 'undefined'))(fetchValue)) {
-                    return emptyDefault
-                }
-                return {
-                    EphemeraId,
-                    tag,
-                    assets: [],
-                    connections: fetchValue[this.dependencyTag] || []
-                }
-            })()
-            await helper.then((node) => {
-                const recursivelyResolve = (node: DependencyNodeNonAsset): void => {
-                    const translatedNode: DependencyNodeGraphItem = {
-                        EphemeraId: node.EphemeraId,
-                        tag: node.tag,
-                        assets: node.assets,
-                        completeness: 'Complete',
-                        connections: node.connections.map(({ EphemeraId, key }) => ({
-                            EphemeraId,
-                            key,
-                        }))
-                    }
-                    this._Deferred[node.EphemeraId]?.resolve(translatedNode)
-                    this._Store[node.EphemeraId] = translatedNode
-                    node.connections.forEach((child) => {
-                        recursivelyResolve(child)
+                //
+                // Make sure that, in the case where an item from the known tree is not fetched, it resolves the promise
+                // with previous data
+                //
+                knownTree
+                    .filter(({ EphemeraId: check }) => (!(fetchEphemera.includes(check))))
+                    .forEach((node) => {
+                        this._Deferred[EphemeraId]?.resolve(node)
+                        delete this._Deferred[EphemeraId]
                     })
-                }
-                recursivelyResolve(node)
-            })
+            }
+            await helper()
         }
-        await this._Promises[EphemeraId]
-        return this.getPartial(EphemeraId) || emptyDefault
-    }
-
-    getPartial(EphemeraId: string): DependencyNodeNonAsset | undefined {
-        if (!(EphemeraId in this._Store)) {
-            return undefined
-        }
-        const { completeness, ...currentNode } = this._Store[EphemeraId]
-        const remappedConnections = currentNode.connections
-            .map(({ EphemeraId, key }) => {
-                const recurse = this.getPartial(EphemeraId)
-                if (typeof recurse === 'undefined') {
-                    return undefined
-                }
-                const returnValue = {
-                    ...recurse,
-                    key
-                } as DependencyNodeNonAsset
-                return returnValue
-            })
-        return {
-            ...currentNode,
-            connections: remappedConnections
-                .filter((value: DependencyNodeNonAsset | undefined): value is DependencyNodeNonAsset => (Boolean(value)))
-        }
-    }
-
-    _putSingle(value: DependencyNodeGraphItem, nonRecursive?: boolean) {
-        const EphemeraId = value.EphemeraId
-        this._Deferred[EphemeraId]?.resolve(value)
-        this._Store[EphemeraId] = value
-        if (!nonRecursive) {
-            value.connections.forEach((connection) => {
-                this._antiDependency?._putSingle({
-                    EphemeraId: connection.EphemeraId,
-                    tag: value.tag,
-                    completeness: 'Partial',
-                    assets: value.assets,
-                    connections: [{
-                        EphemeraId: value.EphemeraId,
-                        key: connection.key
-                    }]
-                }, true)
-            })
-        }
-    }
-
-    put(value: DependencyNodeNonAsset | DependencyNodeGraphItem) {
-        if (isDependencyNodeGraphItem(value)) {
-            this._putSingle(value)
+        if (this._Deferred[EphemeraId]) {
+            await this._Deferred[EphemeraId].promise
+            return this.getPartial(EphemeraId)
         }
         else {
-            this._putSingle({
-                ...value,
-                completeness: 'Complete',
-                connections: value.connections.map(({ EphemeraId, key }) => ({ EphemeraId, key }))
-            })
-            value.connections.forEach((child) => { this.put(child) })
+            return []
         }
     }
 
-    delete(EphemeraId: string, descendant: string) {
+    getPartial(EphemeraId: string): DependencyNode[] {
+        return extractTree(Object.values(this._Store), EphemeraId)
+    }
+
+    put(tree: DependencyNode[], nonRecursive?: boolean) {
+        tree.forEach((node) => {
+            if (node.EphemeraId in this._Store) {
+                const current = this._Store[node.EphemeraId]
+                if (node.completeness === 'Complete') {
+                    current.completeness = 'Complete'
+                }
+                node.connections.forEach((edge) => {
+                    const match = current.connections.find((check) => (compareEdges(check, edge)))
+                    if (match) {
+                        match.assets = unique(match.assets, edge.assets) as string[]
+                    }
+                    else {
+                        current.connections.push(edge)
+                    }
+                })
+            }
+            else {
+                this._Store[node.EphemeraId] = {
+                    ...node,
+                    completeness: node.completeness ?? 'Partial'
+                }
+            }
+        })
+        if (!nonRecursive) {
+            this._antiDependency?.put(invertTree(tree), true)
+        }
+    }
+
+    delete(EphemeraId: string, edge: DependencyEdge) {
         if (EphemeraId in this._Store) {
-            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ EphemeraId: check }) => (check !== descendant))
+            this._Store[EphemeraId].connections
+                .filter((check) => (!compareEdges(check, edge)))
+                .forEach((current) => {
+                    current.assets = current.assets.filter((asset) => (!(edge.assets.includes(asset))))
+                })
+            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ assets }) => (assets.length > 0))
         }
     }
 
     invalidate(EphemeraId: string) {
+        if (EphemeraId in this._Store) {
+            this._Store[EphemeraId].completeness = 'Partial'
+        }
     }
 
     isComplete(EphemeraId: string): boolean {

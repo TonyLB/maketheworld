@@ -9,7 +9,7 @@ import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
 import { WritableDraft } from "immer/dist/internal";
 import internalCache from "../internalCache";
 import messageBus from "../messageBus";
-import { DependencyNodeNonAsset } from "../messageBus/baseClasses";
+import { LegacyDependencyNodeNonAsset } from "../messageBus/baseClasses";
 import { EphemeraItem } from "./baseClasses";
 
 type ActiveCharacterOutput = {
@@ -79,7 +79,7 @@ type EphemeraAssetMeta = {
     src?: string;
     rootAsset?: string;
     value?: any;
-    Descent?: DependencyNodeNonAsset[];
+    Descent?: LegacyDependencyNodeNonAsset[];
 }
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {

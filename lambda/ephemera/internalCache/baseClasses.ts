@@ -6,6 +6,12 @@ export type RoomCharacterListItem = {
     Name: string;
 }
 
+export type DependencyEdge = {
+    EphemeraId: string;
+    key?: string;
+    assets: string[];
+}
+
 export class CacheBase {
     async clear() {}
 }
