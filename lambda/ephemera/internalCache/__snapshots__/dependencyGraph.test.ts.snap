@@ -30,6 +30,25 @@ Object {
 }
 `;
 
+exports[`DependencyGraph get should correctly fetch a tree 1`] = `
+Object {
+  "EphemeraId": "testTwo",
+  "assets": Array [],
+  "connections": Array [
+    Object {
+      "EphemeraId": "testThree",
+      "assets": Array [
+        "base",
+      ],
+      "connections": Array [],
+      "key": "testTwo",
+      "tag": "Computed",
+    },
+  ],
+  "tag": "Computed",
+}
+`;
+
 exports[`DependencyGraph getPartial should correctly decipher a partial tree 1`] = `
 Object {
   "EphemeraId": "testOne",

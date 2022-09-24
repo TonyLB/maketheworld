@@ -24,7 +24,7 @@ describe('DependencyGraph', () => {
                 { EphemeraId: 'testTwo', key: 'testOne' },
                 { EphemeraId: 'testThree', key: 'testOne' }
             ]
-},
+        },
         testTwo: {
             EphemeraId: 'testTwo',
             tag: 'Computed',
@@ -41,9 +41,32 @@ describe('DependencyGraph', () => {
         }
     }
 
+    describe('get', () => {
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            internalCache.clear()
+        })
+
+        it('should correctly fetch a tree', async () => {
+            internalCache.Descent._Store = { ...testStore }
+            ephemeraMock.getItem.mockResolvedValue({
+                Descent: [{
+                    EphemeraId: 'testThree',
+                    tag: 'Computed',
+                    key: 'testTwo',
+                    assets: ['base'],
+                    connections: []
+                }]
+            })
+            const output = await internalCache.Descent.get('testTwo', 'Computed')
+            expect(output).toMatchSnapshot()
+        })
+    })
+
     describe('getPartial', () => {
         it('should correctly decipher a partial tree', () => {
-            internalCache.Descent._Store = testStore
+            internalCache.Descent._Store = { ...testStore }
     
             expect(internalCache.Descent.getPartial('testOne')).toMatchSnapshot()
         })
@@ -51,7 +74,7 @@ describe('DependencyGraph', () => {
 
     describe('isComplete', () => {
         it('should correctly tag a partial tree', () => {
-            internalCache.Descent._Store = testStore
+            internalCache.Descent._Store = { ...testStore }
     
             expect(internalCache.Descent.isComplete('testOne')).toBe(false)
         })
@@ -102,7 +125,7 @@ describe('DependencyGraph', () => {
         })
 
         it('should correctly add a complete tree', () => {
-            internalCache.Descent._Store = testStore
+            internalCache.Descent._Store = { ...testStore }
             internalCache.Descent.put({
                 EphemeraId: 'testFour',
                 tag: 'Variable',
@@ -129,7 +152,7 @@ describe('DependencyGraph', () => {
 
     describe('delete', () => {
         it('should correctly delete a connection', () => {
-            internalCache.Descent._Store = testStore
+            internalCache.Descent._Store = { ...testStore }
             internalCache.Descent.delete('testTwo', 'testThree')
             expect(internalCache.Descent.getPartial('testOne')).toMatchSnapshot()
         })
