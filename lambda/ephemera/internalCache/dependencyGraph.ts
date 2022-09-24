@@ -3,7 +3,15 @@ import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { DependencyNodeNonAsset } from '../messageBus/baseClasses';
 import { CacheConstructor } from './baseClasses'
 
-export type DependencyNodeGraphItem = Omit<DependencyNodeNonAsset, 'connections'> & { connections: string[] }
+type DependencyNodeGraphConnection = {
+    EphemeraId: string;
+    key?: string;
+}
+
+export type DependencyNodeGraphItem = Omit<DependencyNodeNonAsset, 'connections'> & {
+    completeness: 'Partial' | 'Complete';
+    connections: DependencyNodeGraphConnection[]
+}
 
 export class DependencyGraphData {
     _Promises: Record<string, Promise<DependencyNodeGraphItem>> = {}
@@ -19,10 +27,21 @@ export class DependencyGraphData {
             return undefined
         }
         const currentNode = this._Store[EphemeraId]
+        const remappedConnections = currentNode.connections
+            .map(({ EphemeraId, key }) => {
+                const recurse = this.getPartial(EphemeraId)
+                if (typeof recurse === 'undefined') {
+                    return undefined
+                }
+                const returnValue = {
+                    ...recurse,
+                    key
+                } as DependencyNodeNonAsset
+                return returnValue
+            })
         return {
             ...currentNode,
-            connections: currentNode.connections
-                .map((EphemeraId) => (this.getPartial(EphemeraId)))
+            connections: remappedConnections
                 .filter((value: DependencyNodeNonAsset | undefined): value is DependencyNodeNonAsset => (Boolean(value)))
         }
     }
@@ -46,7 +65,7 @@ export class DependencyGraphData {
         if (currentNode.completeness === 'Partial') {
             return false
         }
-        return currentNode.connections.reduce((previous, EphemeraId) => (previous && this.isComplete(EphemeraId)), true)
+        return currentNode.connections.reduce((previous, { EphemeraId }) => (previous && this.isComplete(EphemeraId)), true)
     }
 
 }

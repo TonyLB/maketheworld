@@ -20,14 +20,17 @@ describe('DependencyGraph', () => {
             tag: 'Variable',
             completeness: 'Complete',
             assets: ['base'],
-            connections: ['testTwo', 'testThree']
-        },
+            connections: [
+                { EphemeraId: 'testTwo', key: 'testOne' },
+                { EphemeraId: 'testThree', key: 'testOne' }
+            ]
+},
         testTwo: {
             EphemeraId: 'testTwo',
             tag: 'Computed',
             completeness: 'Partial',
             assets: ['base'],
-            connections: ['testThree']
+            connections: [{ EphemeraId: 'testThree', key: 'testTwo' }]
         },
         testThree: {
             EphemeraId: 'testThree',
@@ -48,29 +51,7 @@ describe('DependencyGraph', () => {
 
     describe('isComplete', () => {
         it('should correctly tag a partial tree', () => {
-            internalCache.Descent._Store = {
-                testOne: {
-                    EphemeraId: 'testOne',
-                    tag: 'Variable',
-                    completeness: 'Complete',
-                    assets: ['base'],
-                    connections: ['testTwo', 'testThree']
-                },
-                testTwo: {
-                    EphemeraId: 'testTwo',
-                    tag: 'Computed',
-                    completeness: 'Partial',
-                    assets: ['base'],
-                    connections: ['testThree']
-                },
-                testThree: {
-                    EphemeraId: 'testThree',
-                    tag: 'Computed',
-                    completeness: 'Partial',
-                    assets: ['base'],
-                    connections: []
-                }
-            }
+            internalCache.Descent._Store = testStore
     
             expect(internalCache.Descent.isComplete('testOne')).toBe(false)
         })
@@ -82,14 +63,17 @@ describe('DependencyGraph', () => {
                     tag: 'Variable',
                     completeness: 'Complete',
                     assets: ['base'],
-                    connections: ['testTwo', 'testThree']
+                    connections: [
+                        { EphemeraId: 'testTwo', key: 'testOne' },
+                        { EphemeraId: 'testThree', key: 'testOne' }
+                    ]
                 },
                 testTwo: {
                     EphemeraId: 'testTwo',
                     tag: 'Computed',
                     completeness: 'Complete',
                     assets: ['base'],
-                    connections: ['testThree']
+                    connections: [{ EphemeraId: 'testThree', key: 'testTwo' }]
                 },
                 testThree: {
                     EphemeraId: 'testThree',

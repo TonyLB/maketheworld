@@ -84,12 +84,10 @@ Array [
       Object {
         "EphemeraId": "CascadeThree",
         "assets": Array [],
-        "completeness": "Complete",
         "connections": Array [
           Object {
             "EphemeraId": "TestTwo",
             "assets": Array [],
-            "completeness": "Complete",
             "connections": Array [],
             "key": "cascadeThree",
             "tag": "Computed",
