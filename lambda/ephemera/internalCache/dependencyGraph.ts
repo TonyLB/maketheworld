@@ -1,16 +1,7 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
-import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { LegalDependencyTag, isLegalDependencyTag, LegacyDependencyNodeNonAsset } from '../messageBus/baseClasses';
-import { CacheConstructor, DependencyEdge } from './baseClasses'
-
-export type DependencyNode = Omit<LegacyDependencyNodeNonAsset, 'connections'> & {
-    completeness: 'Partial' | 'Complete';
-    connections: DependencyEdge[]
-}
-
-const isDependencyNode = (value: LegacyDependencyNodeNonAsset | DependencyNode): value is DependencyNode => ('completeness' in value)
+import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag } from './baseClasses'
 
 class Deferred <T>{
     promise: Promise<T>;
@@ -115,7 +106,7 @@ export class DependencyGraphData {
     }
 
     clear() {
-        Object.values(this._Deferred).forEach(({ resolve }) => { resolve({ EphemeraId: '', connections: [], tag: 'Variable', assets: [], completeness: 'Partial' }) })
+        Object.values(this._Deferred).forEach(({ resolve }) => { resolve({ EphemeraId: '', connections: [], completeness: 'Partial' }) })
         this._Deferred = {}
         this._Store = {}
     }

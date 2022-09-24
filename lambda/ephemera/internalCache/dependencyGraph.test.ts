@@ -2,8 +2,7 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
-import { AssetStateMapping } from './assetState'
-import { DependencyNode } from './dependencyGraph'
+import { DependencyNode } from './baseClasses'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -17,9 +16,7 @@ describe('DependencyGraph', () => {
     const testStore: Record<string, DependencyNode> = {
         'VARIABLE#testOne': {
             EphemeraId: 'VARIABLE#testOne',
-            tag: 'Variable',
             completeness: 'Complete',
-            assets: [],
             connections: [
                 { EphemeraId: 'COMPUTED#testTwo', assets: ['base'] },
                 { EphemeraId: 'COMPUTED#testThree', assets: ['base'] }
@@ -27,16 +24,12 @@ describe('DependencyGraph', () => {
         },
         'COMPUTED#testTwo': {
             EphemeraId: 'COMPUTED#testTwo',
-            tag: 'Computed',
             completeness: 'Partial',
-            assets: [],
             connections: [{ EphemeraId: 'COMPUTED#testThree', key: 'testTwo', assets: ['base'] }]
         },
         'COMPUTED#testThree': {
             EphemeraId: 'COMPUTED#testThree',
-            tag: 'Computed',
             completeness: 'Partial',
-            assets: ['base'],
             connections: []
         }
     }
@@ -92,9 +85,7 @@ describe('DependencyGraph', () => {
             internalCache.Descent._Store = {
                 'VARIABLE#testOne': {
                     EphemeraId: 'VARIABLE#testOne',
-                    tag: 'Variable',
                     completeness: 'Complete',
-                    assets: [],
                     connections: [
                         { EphemeraId: 'COMPUTED#testTwo', key: 'testOne', assets: ['base'] },
                         { EphemeraId: 'COMPUTED#testThree', key: 'testOne', assets: ['base'] }
@@ -102,16 +93,12 @@ describe('DependencyGraph', () => {
                 },
                 'COMPUTED#testTwo': {
                     EphemeraId: 'COMPUTED#testTwo',
-                    tag: 'Computed',
                     completeness: 'Complete',
-                    assets: [],
                     connections: [{ EphemeraId: 'COMPUTED#testThree', key: 'testTwo', assets: ['base'] }]
                 },
                 'COMPUTED#testThree': {
                     EphemeraId: 'COMPUTED#testThree',
-                    tag: 'Computed',
                     completeness: 'Complete',
-                    assets: [],
                     connections: []
                 }
             }
@@ -125,9 +112,7 @@ describe('DependencyGraph', () => {
             internalCache.Descent._Store = testStore
             internalCache.Descent.put([{
                 EphemeraId: 'COMPUTED#testFour',
-                tag: 'Variable',
                 completeness: 'Partial',
-                assets: [],
                 connections: [{ EphemeraId: 'COMPUTED#testTwo', key: 'testFour', assets: ['base'] }]
             }])
             expect(internalCache.Descent.getPartial('COMPUTED#testFour')).toMatchSnapshot()
@@ -138,8 +123,6 @@ describe('DependencyGraph', () => {
             internalCache.Descent.put([
                 {
                     EphemeraId: 'COMPUTED#testFour',
-                    tag: 'Variable',
-                    assets: [],
                     completeness: 'Complete',
                     connections: [
                         {
@@ -151,17 +134,11 @@ describe('DependencyGraph', () => {
                 },
                 {
                     EphemeraId: 'COMPUTED#testTwo',
-                    tag: 'Computed',
-                    key: 'testFour',
-                    assets: ['base'],
                     completeness: 'Complete',
                     connections: []
                 },
                 {
                     EphemeraId: 'COMPUTED#testThree',
-                    tag: 'Computed',
-                    key: 'testTwo',
-                    assets: ['base'],
                     completeness: 'Complete',
                     connections: []
                 }
@@ -173,8 +150,6 @@ describe('DependencyGraph', () => {
             internalCache.Descent._Store = { ...testStore }
             internalCache.Descent.put([{
                 EphemeraId: 'COMPUTED#testFour',
-                tag: 'Variable',
-                assets: ['base'],
                 completeness: 'Partial',
                 connections: [
                     {
@@ -199,8 +174,6 @@ describe('DependencyGraph', () => {
             internalCache.Descent._Store = {
                 'VARIABLE#testOne': {
                     EphemeraId: 'VARIABLE#testOne',
-                    tag: 'Variable',
-                    assets: [],
                     completeness: 'Partial',
                     connections: [
                         { EphemeraId: 'COMPUTED#testTwo', assets: ['base', 'layer'] }
@@ -208,8 +181,6 @@ describe('DependencyGraph', () => {
                 },
                 'COMPUTED#testTwo': {
                     EphemeraId: 'COMPUTED#testTwo',
-                    tag: 'Computed',
-                    assets: [],
                     completeness: 'Partial',
                     connections: []
                 }

@@ -12,6 +12,15 @@ export type DependencyEdge = {
     assets: string[];
 }
 
+export type DependencyNode = {
+    EphemeraId: string;
+    completeness: 'Partial' | 'Complete';
+    connections: DependencyEdge[]
+}
+
+export type LegalDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
+
 export class CacheBase {
     async clear() {}
 }
