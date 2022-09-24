@@ -1,6 +1,45 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`DependencyGraph delete should correctly delete a connection 1`] = `Array []`;
+exports[`DependencyGraph delete should correctly delete a connection 1`] = `
+Array [
+  Object {
+    "EphemeraId": "VARIABLE#testOne",
+    "assets": Array [],
+    "completeness": "Complete",
+    "connections": Array [
+      Object {
+        "EphemeraId": "COMPUTED#testTwo",
+        "assets": Array [
+          "base",
+        ],
+      },
+      Object {
+        "EphemeraId": "COMPUTED#testThree",
+        "assets": Array [
+          "base",
+        ],
+      },
+    ],
+    "tag": "Variable",
+  },
+  Object {
+    "EphemeraId": "COMPUTED#testTwo",
+    "assets": Array [],
+    "completeness": "Partial",
+    "connections": Array [],
+    "tag": "Computed",
+  },
+  Object {
+    "EphemeraId": "COMPUTED#testThree",
+    "assets": Array [
+      "base",
+    ],
+    "completeness": "Partial",
+    "connections": Array [],
+    "tag": "Computed",
+  },
+]
+`;
 
 exports[`DependencyGraph get should correctly fetch a tree 1`] = `
 Array [
@@ -83,7 +122,34 @@ Array [
 ]
 `;
 
-exports[`DependencyGraph put should backpopulate antidependency links 1`] = `Array []`;
+exports[`DependencyGraph put should backpopulate antidependency links 1`] = `
+Array [
+  Object {
+    "EphemeraId": "COMPUTED#testTwo",
+    "assets": Array [],
+    "completeness": "Partial",
+    "connections": Array [
+      Object {
+        "EphemeraId": "COMPUTED#testFour",
+        "assets": Array [
+          "base",
+        ],
+        "key": "testFour",
+      },
+    ],
+    "tag": "Computed",
+  },
+  Object {
+    "EphemeraId": "COMPUTED#testFour",
+    "assets": Array [
+      "base",
+    ],
+    "completeness": "Partial",
+    "connections": Array [],
+    "tag": "Variable",
+  },
+]
+`;
 
 exports[`DependencyGraph put should correctly add a complete tree 1`] = `
 Array [
@@ -108,6 +174,34 @@ Array [
       "base",
     ],
     "completeness": "Complete",
+    "connections": Array [],
+    "key": "testFour",
+    "tag": "Computed",
+  },
+]
+`;
+
+exports[`DependencyGraph put should correctly add a single graph item 1`] = `
+Array [
+  Object {
+    "EphemeraId": "COMPUTED#testFour",
+    "assets": Array [],
+    "completeness": "Partial",
+    "connections": Array [
+      Object {
+        "EphemeraId": "COMPUTED#testTwo",
+        "assets": Array [
+          "base",
+        ],
+        "key": "testFour",
+      },
+    ],
+    "tag": "Variable",
+  },
+  Object {
+    "EphemeraId": "COMPUTED#testTwo",
+    "assets": Array [],
+    "completeness": "Partial",
     "connections": Array [
       Object {
         "EphemeraId": "COMPUTED#testThree",
@@ -117,7 +211,6 @@ Array [
         "key": "testTwo",
       },
     ],
-    "key": "testFour",
     "tag": "Computed",
   },
   Object {
@@ -125,12 +218,9 @@ Array [
     "assets": Array [
       "base",
     ],
-    "completeness": "Complete",
+    "completeness": "Partial",
     "connections": Array [],
-    "key": "testTwo",
     "tag": "Computed",
   },
 ]
 `;
-
-exports[`DependencyGraph put should correctly add a single graph item 1`] = `Array []`;

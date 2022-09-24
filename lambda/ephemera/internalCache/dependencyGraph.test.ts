@@ -123,64 +123,68 @@ describe('DependencyGraph', () => {
     describe('put', () => {
         it('should correctly add a single graph item', () => {
             internalCache.Descent._Store = testStore
-            internalCache.Descent.put({
+            internalCache.Descent.put([{
                 EphemeraId: 'COMPUTED#testFour',
                 tag: 'Variable',
-                completeness: 'Complete',
+                completeness: 'Partial',
                 assets: [],
                 connections: [{ EphemeraId: 'COMPUTED#testTwo', key: 'testFour', assets: ['base'] }]
-            })
-            expect(internalCache.Descent.getPartial('testFour')).toMatchSnapshot()
+            }])
+            expect(internalCache.Descent.getPartial('COMPUTED#testFour')).toMatchSnapshot()
         })
 
         it('should correctly add a complete tree', () => {
             internalCache.Descent._Store = { ...testStore }
-            internalCache.Descent.put({
-                EphemeraId: 'COMPUTED#testFour',
-                tag: 'Variable',
-                assets: [],
-                connections: [
-                    {
-                        EphemeraId: 'COMPUTED#testTwo',
-                        tag: 'Computed',
-                        key: 'testFour',
-                        assets: ['base'],
-                        connections: [{
-                            EphemeraId: 'COMPUTED#testThree',
-                            key: 'testTwo',
+            internalCache.Descent.put([
+                {
+                    EphemeraId: 'COMPUTED#testFour',
+                    tag: 'Variable',
+                    assets: [],
+                    completeness: 'Complete',
+                    connections: [
+                        {
+                            EphemeraId: 'COMPUTED#testTwo',
+                            key: 'testFour',
                             assets: ['base'],
-                            connections: [],
-                            tag: 'Computed'
-                        }]
-                    }
-                ]
-            })
+                        }
+                    ]
+                },
+                {
+                    EphemeraId: 'COMPUTED#testTwo',
+                    tag: 'Computed',
+                    key: 'testFour',
+                    assets: ['base'],
+                    completeness: 'Complete',
+                    connections: []
+                },
+                {
+                    EphemeraId: 'COMPUTED#testThree',
+                    tag: 'Computed',
+                    key: 'testTwo',
+                    assets: ['base'],
+                    completeness: 'Complete',
+                    connections: []
+                }
+            ])
             expect(internalCache.Descent.getPartial('COMPUTED#testFour')).toMatchSnapshot()
         })
 
         it('should backpopulate antidependency links', () => {
             internalCache.Descent._Store = { ...testStore }
-            internalCache.Descent.put({
+            internalCache.Descent.put([{
                 EphemeraId: 'COMPUTED#testFour',
                 tag: 'Variable',
                 assets: ['base'],
+                completeness: 'Partial',
                 connections: [
                     {
                         EphemeraId: 'COMPUTED#testTwo',
-                        tag: 'Computed',
                         key: 'testFour',
                         assets: ['base'],
-                        connections: [{
-                            EphemeraId: 'COMPUTED#testThree',
-                            key: 'testTwo',
-                            assets: ['base'],
-                            connections: [],
-                            tag: 'Computed'
-                        }]
                     }
                 ]
-            })
-            expect(internalCache.Ancestry.getPartial('testTwo')).toMatchSnapshot()
+            }])
+            expect(internalCache.Ancestry.getPartial('COMPUTED#testTwo')).toMatchSnapshot()
         })
     })
 
@@ -188,7 +192,7 @@ describe('DependencyGraph', () => {
         it('should correctly delete a connection', () => {
             internalCache.Descent._Store = { ...testStore }
             internalCache.Descent.delete('COMPUTED#testTwo', 'COMPUTED#testThree')
-            expect(internalCache.Descent.getPartial('COMPUTED#testOne')).toMatchSnapshot()
+            expect(internalCache.Descent.getPartial('VARIABLE#testOne')).toMatchSnapshot()
         })
     })
 })

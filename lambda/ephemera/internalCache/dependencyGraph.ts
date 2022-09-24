@@ -49,6 +49,54 @@ const extractTree = (tree: DependencyNode[], EphemeraId: string): DependencyNode
     ]
 }
 
+const invertTree = (tree: DependencyNode[]): DependencyNode[] => {
+    type ExplicitEdge = {
+        from: string;
+        to: string;
+        key?: string;
+        assets: string[];
+    }
+    const explicitEdges = tree.reduce<ExplicitEdge[]>((previous, { EphemeraId: from , connections }) => (
+        connections.reduce<ExplicitEdge[]>((accumulator, { EphemeraId: to, assets, key }) => ([
+            ...accumulator,
+            {
+                from,
+                to,
+                assets,
+                key
+            }
+        ]), previous)
+    ), [])
+    return [
+        ...(tree.map((node) => ({
+            ...node,
+            connections: explicitEdges
+                .filter(({ to }) => (to === node.EphemeraId))
+                .map<DependencyEdge>(({ from, assets, key }) => ({ EphemeraId: from, assets, key }))
+        }))),
+        ...(Object.values(explicitEdges
+            .filter(({ to }) => (!tree.find(({ EphemeraId }) => (to === EphemeraId))))
+            .reduce<Record<string, DependencyNode>>((previous, { to, from, key, assets }) => ({
+                ...previous,
+                [to]: {
+                    EphemeraId: to,
+                    tag: tagFromEphemeraId(to),
+                    assets: [],
+                    completeness: 'Partial',
+                    connections: [
+                        ...(previous[to]?.connections || []),
+                        {
+                            EphemeraId: from,
+                            key,
+                            assets
+                        }
+                    ]
+                }
+            }), {})
+        ))
+    ]
+}
+
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
     _antiDependency?: DependencyGraphData;
@@ -119,44 +167,25 @@ export class DependencyGraphData {
         return extractTree(Object.values(this._Store), EphemeraId)
     }
 
-    _putSingle(value: DependencyNode, nonRecursive?: boolean) {
-        const EphemeraId = value.EphemeraId
-        this._Deferred[EphemeraId]?.resolve(value)
-        this._Store[EphemeraId] = value
+    put(tree: DependencyNode[], nonRecursive?: boolean) {
+        //
+        // TODO: Refine put so that it merges new data into existing data, rather than overwriting
+        //
+        tree.forEach((node) => {
+            this._Store[node.EphemeraId] = node
+        })
         if (!nonRecursive) {
-            value.connections.forEach((connection) => {
-                this._antiDependency?._putSingle({
-                    EphemeraId: connection.EphemeraId,
-                    tag: value.tag,
-                    completeness: 'Partial',
-                    assets: [],
-                    connections: [{
-                        EphemeraId: value.EphemeraId,
-                        key: connection.key,
-                        assets: value.assets,
-                    }]
-                }, true)
-            })
+            this._antiDependency?.put(invertTree(tree), true)
         }
     }
 
-    put(value: LegacyDependencyNodeNonAsset | DependencyNode) {
-        if (isDependencyNode(value)) {
-            this._putSingle(value)
-        }
-        else {
-            this._putSingle({
-                ...value,
-                completeness: 'Complete',
-                connections: value.connections.map(({ EphemeraId, key, assets }) => ({ EphemeraId, key, assets }))
-            })
-            value.connections.forEach((child) => { this.put(child) })
-        }
-    }
-
-    delete(EphemeraId: string, descendant: string) {
+    delete(EphemeraId: string, dependent: string) {
+        //
+        // TODO: Refine delete so that it removes asset tags on a dependency, rather than removing the
+        // entire dependency automatically
+        //
         if (EphemeraId in this._Store) {
-            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ EphemeraId: check }) => (check !== descendant))
+            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ EphemeraId: check }) => (check !== dependent))
         }
     }
 
