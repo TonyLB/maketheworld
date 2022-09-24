@@ -6,21 +6,18 @@ Object {
   "assets": Array [
     "base",
   ],
-  "completeness": "Complete",
   "connections": Array [
     Object {
       "EphemeraId": "testTwo",
       "assets": Array [
         "base",
       ],
-      "completeness": "Partial",
       "connections": Array [
         Object {
           "EphemeraId": "testThree",
           "assets": Array [
             "base",
           ],
-          "completeness": "Partial",
           "connections": Array [],
           "key": "testTwo",
           "tag": "Computed",
@@ -34,9 +31,70 @@ Object {
       "assets": Array [
         "base",
       ],
-      "completeness": "Partial",
       "connections": Array [],
       "key": "testOne",
+      "tag": "Computed",
+    },
+  ],
+  "tag": "Variable",
+}
+`;
+
+exports[`DependencyGraph put should correctly add a complete tree 1`] = `
+Object {
+  "EphemeraId": "testFour",
+  "assets": Array [
+    "base",
+  ],
+  "connections": Array [
+    Object {
+      "EphemeraId": "testTwo",
+      "assets": Array [
+        "base",
+      ],
+      "connections": Array [
+        Object {
+          "EphemeraId": "testThree",
+          "assets": Array [
+            "base",
+          ],
+          "connections": Array [],
+          "key": "testTwo",
+          "tag": "Computed",
+        },
+      ],
+      "key": "testFour",
+      "tag": "Computed",
+    },
+  ],
+  "tag": "Variable",
+}
+`;
+
+exports[`DependencyGraph put should correctly add a single graph item 1`] = `
+Object {
+  "EphemeraId": "testFour",
+  "assets": Array [
+    "base",
+  ],
+  "connections": Array [
+    Object {
+      "EphemeraId": "testTwo",
+      "assets": Array [
+        "base",
+      ],
+      "connections": Array [
+        Object {
+          "EphemeraId": "testThree",
+          "assets": Array [
+            "base",
+          ],
+          "connections": Array [],
+          "key": "testTwo",
+          "tag": "Computed",
+        },
+      ],
+      "key": "testFour",
       "tag": "Computed",
     },
   ],

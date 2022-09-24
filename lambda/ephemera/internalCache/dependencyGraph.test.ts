@@ -87,4 +87,43 @@ describe('DependencyGraph', () => {
             expect(internalCache.Descent.isComplete('testOne')).toBe(true)
         })
     })
+
+    describe('put', () => {
+        it('should correctly add a single graph item', () => {
+            internalCache.Descent._Store = testStore
+            internalCache.Descent.put({
+                EphemeraId: 'testFour',
+                tag: 'Variable',
+                completeness: 'Complete',
+                assets: ['base'],
+                connections: [{ EphemeraId: 'testTwo', key: 'testFour' }]
+            })
+            expect(internalCache.Descent.getPartial('testFour')).toMatchSnapshot()
+        })
+
+        it('should correctly add a complete tree', () => {
+            internalCache.Descent._Store = testStore
+            internalCache.Descent.put({
+                EphemeraId: 'testFour',
+                tag: 'Variable',
+                assets: ['base'],
+                connections: [
+                    {
+                        EphemeraId: 'testTwo',
+                        tag: 'Computed',
+                        key: 'testFour',
+                        assets: ['base'],
+                        connections: [{
+                            EphemeraId: 'testThree',
+                            key: 'testTwo',
+                            assets: ['base'],
+                            connections: [],
+                            tag: 'Computed'
+                        }]
+                    }
+                ]
+            })
+            expect(internalCache.Descent.getPartial('testFour')).toMatchSnapshot()
+        })
+    })
 })

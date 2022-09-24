@@ -13,8 +13,15 @@ export type DependencyNodeGraphItem = Omit<DependencyNodeNonAsset, 'connections'
     connections: DependencyNodeGraphConnection[]
 }
 
+const isDependencyNodeGraphItem = (value: DependencyNodeNonAsset | DependencyNodeGraphItem): value is DependencyNodeGraphItem => ('completeness' in value)
+
+type DependencyNodeGraphPromise = {
+    promise: Promise<DependencyNodeGraphItem>;
+    resolve: (value: DependencyNodeGraphItem) => void;
+}
+
 export class DependencyGraphData {
-    _Promises: Record<string, Promise<DependencyNodeGraphItem>> = {}
+    _Promises: Record<string, DependencyNodeGraphPromise> = {}
     _Store: Record<string, DependencyNodeGraphItem> = {}
     
     clear() {
@@ -26,7 +33,7 @@ export class DependencyGraphData {
         if (!(EphemeraId in this._Store)) {
             return undefined
         }
-        const currentNode = this._Store[EphemeraId]
+        const { completeness, ...currentNode } = this._Store[EphemeraId]
         const remappedConnections = currentNode.connections
             .map(({ EphemeraId, key }) => {
                 const recurse = this.getPartial(EphemeraId)
@@ -46,8 +53,25 @@ export class DependencyGraphData {
         }
     }
 
-    put(EphemeraId: string, value: DependencyNodeNonAsset) {
+    _putSingle(value: DependencyNodeGraphItem) {
+        if (value.EphemeraId in this._Promises) {
+            this._Promises[value.EphemeraId].resolve(value)
+        }
+        this._Store[value.EphemeraId] = value
+    }
 
+    put(value: DependencyNodeNonAsset | DependencyNodeGraphItem) {
+        if (isDependencyNodeGraphItem(value)) {
+            this._putSingle(value)
+        }
+        else {
+            this._putSingle({
+                ...value,
+                completeness: 'Complete',
+                connections: value.connections.map(({ EphemeraId, key }) => ({ EphemeraId, key }))
+            })
+            value.connections.forEach((child) => { this.put(child) })
+        }
     }
 
     delete(EphemeraId: string, descendant: string) {
