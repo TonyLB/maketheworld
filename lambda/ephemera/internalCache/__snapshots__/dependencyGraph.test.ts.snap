@@ -41,6 +41,33 @@ Array [
 ]
 `;
 
+exports[`DependencyGraph delete should decrement connection assets when redundancies exist 1`] = `
+Array [
+  Object {
+    "EphemeraId": "VARIABLE#testOne",
+    "assets": Array [],
+    "completeness": "Partial",
+    "connections": Array [
+      Object {
+        "EphemeraId": "COMPUTED#testTwo",
+        "assets": Array [
+          "base",
+          "layer",
+        ],
+      },
+    ],
+    "tag": "Variable",
+  },
+  Object {
+    "EphemeraId": "COMPUTED#testTwo",
+    "assets": Array [],
+    "completeness": "Partial",
+    "connections": Array [],
+    "tag": "Computed",
+  },
+]
+`;
+
 exports[`DependencyGraph get should correctly fetch a tree 1`] = `
 Array [
   Object {

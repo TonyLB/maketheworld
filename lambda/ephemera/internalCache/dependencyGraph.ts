@@ -97,6 +97,13 @@ const invertTree = (tree: DependencyNode[]): DependencyNode[] => {
     ]
 }
 
+const compareEdges = (edgeA: DependencyEdge, edgeB: DependencyEdge) => (
+    (edgeA.EphemeraId === edgeB.EphemeraId) &&
+    (
+        ((typeof edgeA.key === 'undefined') && (typeof(edgeB.key) === 'undefined')) ||
+        (edgeA.key === edgeB.key)
+    )
+)
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
     _antiDependency?: DependencyGraphData;
@@ -174,23 +181,13 @@ export class DependencyGraphData {
                 if (node.completeness === 'Complete') {
                     current.completeness = 'Complete'
                 }
-                node.connections.forEach(({ EphemeraId, key, assets }) => {
-                    const match = current.connections.find((check) => (
-                        (check.EphemeraId === EphemeraId) &&
-                        (
-                            ((typeof key === 'undefined') && (typeof(check.key) === 'undefined')) ||
-                            (key === check.key)
-                        )
-                    ))
+                node.connections.forEach((edge) => {
+                    const match = current.connections.find((check) => (compareEdges(check, edge)))
                     if (match) {
-                        match.assets = unique(match.assets, assets) as string[]
+                        match.assets = unique(match.assets, edge.assets) as string[]
                     }
                     else {
-                        current.connections.push({
-                            EphemeraId,
-                            key,
-                            assets
-                        })
+                        current.connections.push(edge)
                     }
                 })
             }
@@ -206,13 +203,14 @@ export class DependencyGraphData {
         }
     }
 
-    delete(EphemeraId: string, dependent: string) {
-        //
-        // TODO: Refine delete so that it removes asset tags on a dependency, rather than removing the
-        // entire dependency automatically
-        //
+    delete(EphemeraId: string, edge: DependencyEdge) {
         if (EphemeraId in this._Store) {
-            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ EphemeraId: check }) => (check !== dependent))
+            this._Store[EphemeraId].connections
+                .filter((check) => (!compareEdges(check, edge)))
+                .forEach((current) => {
+                    current.assets = current.assets.filter((asset) => (!(edge.assets.includes(asset))))
+                })
+            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ assets }) => (assets.length > 0))
         }
     }
 

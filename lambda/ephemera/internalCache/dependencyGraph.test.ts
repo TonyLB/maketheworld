@@ -191,7 +191,30 @@ describe('DependencyGraph', () => {
     describe('delete', () => {
         it('should correctly delete a connection', () => {
             internalCache.Descent._Store = { ...testStore }
-            internalCache.Descent.delete('COMPUTED#testTwo', 'COMPUTED#testThree')
+            internalCache.Descent.delete('COMPUTED#testTwo', { EphemeraId: 'COMPUTED#testThree', assets: ['base'] })
+            expect(internalCache.Descent.getPartial('VARIABLE#testOne')).toMatchSnapshot()
+        })
+
+        it('should decrement connection assets when redundancies exist', () => {
+            internalCache.Descent._Store = {
+                'VARIABLE#testOne': {
+                    EphemeraId: 'VARIABLE#testOne',
+                    tag: 'Variable',
+                    assets: [],
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#testTwo', assets: ['base', 'layer'] }
+                    ]
+                },
+                'COMPUTED#testTwo': {
+                    EphemeraId: 'COMPUTED#testTwo',
+                    tag: 'Computed',
+                    assets: [],
+                    completeness: 'Partial',
+                    connections: []
+                }
+            }
+            internalCache.Descent.delete('VARIABLE#testOne', { EphemeraId: 'COMPUTED#testTwo', assets: ['layer'] })
             expect(internalCache.Descent.getPartial('VARIABLE#testOne')).toMatchSnapshot()
         })
     })
