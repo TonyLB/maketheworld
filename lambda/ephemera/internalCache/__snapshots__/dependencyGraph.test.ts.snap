@@ -25,7 +25,7 @@ Array [
   Object {
     "EphemeraId": "COMPUTED#testTwo",
     "assets": Array [],
-    "completeness": "Partial",
+    "completeness": "Complete",
     "connections": Array [],
     "tag": "Computed",
   },
@@ -34,7 +34,7 @@ Array [
     "assets": Array [
       "base",
     ],
-    "completeness": "Partial",
+    "completeness": "Complete",
     "connections": Array [],
     "tag": "Computed",
   },
@@ -170,12 +170,26 @@ Array [
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
+    "assets": Array [],
+    "completeness": "Complete",
+    "connections": Array [
+      Object {
+        "EphemeraId": "COMPUTED#testThree",
+        "assets": Array [
+          "base",
+        ],
+        "key": "testTwo",
+      },
+    ],
+    "tag": "Computed",
+  },
+  Object {
+    "EphemeraId": "COMPUTED#testThree",
     "assets": Array [
       "base",
     ],
     "completeness": "Complete",
     "connections": Array [],
-    "key": "testFour",
     "tag": "Computed",
   },
 ]

@@ -168,11 +168,38 @@ export class DependencyGraphData {
     }
 
     put(tree: DependencyNode[], nonRecursive?: boolean) {
-        //
-        // TODO: Refine put so that it merges new data into existing data, rather than overwriting
-        //
         tree.forEach((node) => {
-            this._Store[node.EphemeraId] = node
+            if (node.EphemeraId in this._Store) {
+                const current = this._Store[node.EphemeraId]
+                if (node.completeness === 'Complete') {
+                    current.completeness = 'Complete'
+                }
+                node.connections.forEach(({ EphemeraId, key, assets }) => {
+                    const match = current.connections.find((check) => (
+                        (check.EphemeraId === EphemeraId) &&
+                        (
+                            ((typeof key === 'undefined') && (typeof(check.key) === 'undefined')) ||
+                            (key === check.key)
+                        )
+                    ))
+                    if (match) {
+                        match.assets = unique(match.assets, assets) as string[]
+                    }
+                    else {
+                        current.connections.push({
+                            EphemeraId,
+                            key,
+                            assets
+                        })
+                    }
+                })
+            }
+            else {
+                this._Store[node.EphemeraId] = {
+                    ...node,
+                    completeness: node.completeness ?? 'Partial'
+                }
+            }
         })
         if (!nonRecursive) {
             this._antiDependency?.put(invertTree(tree), true)
@@ -190,6 +217,9 @@ export class DependencyGraphData {
     }
 
     invalidate(EphemeraId: string) {
+        if (EphemeraId in this._Store) {
+            this._Store[EphemeraId].completeness = 'Partial'
+        }
     }
 
     isComplete(EphemeraId: string): boolean {
