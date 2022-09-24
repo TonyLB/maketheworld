@@ -89,6 +89,17 @@ Object {
 }
 `;
 
+exports[`DependencyGraph put should backpopulate antidependency links 1`] = `
+Object {
+  "EphemeraId": "testTwo",
+  "assets": Array [
+    "base",
+  ],
+  "connections": Array [],
+  "tag": "Variable",
+}
+`;
+
 exports[`DependencyGraph put should correctly add a complete tree 1`] = `
 Object {
   "EphemeraId": "testFour",

@@ -148,6 +148,31 @@ describe('DependencyGraph', () => {
             })
             expect(internalCache.Descent.getPartial('testFour')).toMatchSnapshot()
         })
+
+        it('should backpopulate antidependency links', () => {
+            internalCache.Descent._Store = { ...testStore }
+            internalCache.Descent.put({
+                EphemeraId: 'testFour',
+                tag: 'Variable',
+                assets: ['base'],
+                connections: [
+                    {
+                        EphemeraId: 'testTwo',
+                        tag: 'Computed',
+                        key: 'testFour',
+                        assets: ['base'],
+                        connections: [{
+                            EphemeraId: 'testThree',
+                            key: 'testTwo',
+                            assets: ['base'],
+                            connections: [],
+                            tag: 'Computed'
+                        }]
+                    }
+                ]
+            })
+            expect(internalCache.Ancestry.getPartial('testTwo')).toMatchSnapshot()
+        })
     })
 
     describe('delete', () => {

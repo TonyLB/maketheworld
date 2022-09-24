@@ -32,6 +32,7 @@ type DependencyNodeGraphDeferred = Deferred<DependencyNodeGraphItem>
 
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
+    _antiDependency?: DependencyGraphData;
     _Promises: Record<string, Promise<DependencyNodeGraphItem>> = {}
     _Deferred: Record<string, DependencyNodeGraphDeferred> = {}
     _Store: Record<string, DependencyNodeGraphItem> = {}
@@ -146,10 +147,24 @@ export class DependencyGraphData {
         }
     }
 
-    _putSingle(value: DependencyNodeGraphItem) {
+    _putSingle(value: DependencyNodeGraphItem, nonRecursive?: boolean) {
         const EphemeraId = value.EphemeraId
         this._Deferred[EphemeraId]?.resolve(value)
         this._Store[EphemeraId] = value
+        if (!nonRecursive) {
+            value.connections.forEach((connection) => {
+                this._antiDependency?._putSingle({
+                    EphemeraId: connection.EphemeraId,
+                    tag: value.tag,
+                    completeness: 'Partial',
+                    assets: value.assets,
+                    connections: [{
+                        EphemeraId: value.EphemeraId,
+                        key: connection.key
+                    }]
+                }, true)
+            })
+        }
     }
 
     put(value: DependencyNodeNonAsset | DependencyNodeGraphItem) {
@@ -197,6 +212,8 @@ export const DependencyGraph = <GBase extends CacheConstructor>(Base: GBase) => 
             super(...rest)
             this.Descent = new DependencyGraphData('Descent')
             this.Ancestry = new DependencyGraphData('Ancestry')
+            this.Descent._antiDependency = this.Ancestry
+            this.Ancestry._antiDependency = this.Descent
         }
         override clear() {
             this.Descent.clear()
