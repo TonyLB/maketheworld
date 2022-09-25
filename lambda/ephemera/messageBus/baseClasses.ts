@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { DependencyEdge, RoomCharacterListItem } from "../internalCache/baseClasses"
+import { DependencyEdge, DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -214,44 +214,16 @@ export type LegacyDependencyNodeNonAsset = {
 
 export type LegacyDependencyNode = LegacyDependencyNodeAsset | LegacyDependencyNodeNonAsset
 
-type DependencyUpdateAssetMessage = {
-    targetId: string;
-    putItem?: DependencyEdge;
-    deleteItem?: DependencyEdge;
-}
-
-export type LegalDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
-
-export type DependencyUpdateNonAssetMessage = {
-    targetId: string;
-    putItem?: DependencyEdge;
-    deleteItem?: DependencyEdge;
-}
-
-export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
-
-export type DescentUpdateAssetMessage = {
-    type: 'DescentUpdate';
-} & DependencyUpdateAssetMessage
-
-export type DescentUpdateNonAssetMessage = {
-    type: 'DescentUpdate';
-} & DependencyUpdateNonAssetMessage
+export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
 
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
-} & DependencyUpdateMessage
+} & DependencyGraphAction
 
-export type AncestryUpdateAssetMessage = {
+export type AncestryUpdateMessage = {
     type: 'AncestryUpdate';
-} & DependencyUpdateAssetMessage
-
-export type AncestryUpdateNonAssetMessage = {
-    type: 'AncestryUpdate';
-} & DependencyUpdateNonAssetMessage
-
-export type AncestryUpdateMessage = AncestryUpdateAssetMessage | AncestryUpdateNonAssetMessage
+} & DependencyGraphAction
 
 export type DependencyCascadeMessage = {
     type: 'DependencyCascade';

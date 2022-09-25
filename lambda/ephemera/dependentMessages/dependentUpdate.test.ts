@@ -20,18 +20,18 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
-                    assets: []
+                    assets: ['ASSET']
                 }
             },
             {
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportTwo',
+                EphemeraId: 'ASSET#ImportTwo',
                 putItem: {
                     EphemeraId: 'ASSET#ImportThree',
-                    assets: []
+                    assets: ['ASSET']
                 }
             }],
             messageBus
@@ -94,7 +94,7 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
                     assets: []
@@ -149,7 +149,7 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
                     assets: []
@@ -157,7 +157,7 @@ describe('DescentUpdateMessage', () => {
             },
             {
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportThree',
                     assets: []
@@ -220,7 +220,7 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
+                EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
                     key: 'lightsOn',
                     EphemeraId: 'ROOM#ABC',
@@ -295,7 +295,7 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
+                EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
@@ -349,7 +349,7 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
+                EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
@@ -403,7 +403,7 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
+                EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',

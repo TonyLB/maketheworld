@@ -1,7 +1,7 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag } from './baseClasses'
+import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
 import { produce } from 'immer'
 
 class Deferred <T>{
@@ -97,20 +97,6 @@ export const compareEdges = (edgeA: DependencyEdge, edgeB: DependencyEdge) => (
     )
 )
 
-type DependencyGraphPut = {
-    EphemeraId: string;
-    putItem: DependencyEdge;
-}
-
-type DependencyGraphDelete = {
-    EphemeraId: string;
-    deleteItem: DependencyEdge;
-}
-
-export type DependencyGraphAction = DependencyGraphPut | DependencyGraphDelete
-
-const isDependencyGraphPut = (action: DependencyGraphAction): action is DependencyGraphPut => ('putItem' in action)
-const isDependencyGraphDelete = (action: DependencyGraphAction): action is DependencyGraphDelete => ('deleteItem' in action)
 
 export const reduceDependencyGraph = (state: Record<string, DependencyNode>, actions: DependencyGraphAction[]): Record<string, DependencyNode> => (produce(state, (draft) => {
     actions.filter(isDependencyGraphPut)
