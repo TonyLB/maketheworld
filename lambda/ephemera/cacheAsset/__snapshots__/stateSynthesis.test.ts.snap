@@ -4,72 +4,78 @@ exports[` 1`] = `
 Array [
   Array [
     Object {
-      "assetId": "test",
       "putItem": Object {
         "EphemeraId": "COMPUTED#XYZ",
+        "assets": Array [
+          "test",
+        ],
         "key": "switchedOn",
       },
-      "tag": "Computed",
       "targetId": "VARIABLE#TUV",
       "type": "DescentUpdate",
     },
   ],
   Array [
     Object {
-      "assetId": "test",
       "putItem": Object {
         "EphemeraId": "VARIABLE#TUV",
+        "assets": Array [
+          "test",
+        ],
         "key": "switchedOn",
       },
-      "tag": "Variable",
       "targetId": "COMPUTED#XYZ",
       "type": "AncestryUpdate",
     },
   ],
   Array [
     Object {
-      "assetId": "test",
       "putItem": Object {
         "EphemeraId": "COMPUTED#XYZ",
+        "assets": Array [
+          "test",
+        ],
         "key": "power",
       },
-      "tag": "Computed",
       "targetId": "VARIABLE#QRS",
       "type": "DescentUpdate",
     },
   ],
   Array [
     Object {
-      "assetId": "test",
       "putItem": Object {
         "EphemeraId": "VARIABLE#QRS",
+        "assets": Array [
+          "test",
+        ],
         "key": "power",
       },
-      "tag": "Variable",
       "targetId": "COMPUTED#XYZ",
       "type": "AncestryUpdate",
     },
   ],
   Array [
     Object {
-      "assetId": "test",
       "putItem": Object {
         "EphemeraId": "ROOM#DEF",
+        "assets": Array [
+          "test",
+        ],
         "key": "active",
       },
-      "tag": "Room",
       "targetId": "COMPUTED#XYZ",
       "type": "DescentUpdate",
     },
   ],
   Array [
     Object {
-      "assetId": "test",
       "putItem": Object {
         "EphemeraId": "COMPUTED#XYZ",
+        "assets": Array [
+          "test",
+        ],
         "key": "active",
       },
-      "tag": "Computed",
       "targetId": "ROOM#DEF",
       "type": "AncestryUpdate",
     },

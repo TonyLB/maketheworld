@@ -2,6 +2,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag } from './baseClasses'
+import { produce } from 'immer'
 
 class Deferred <T>{
     promise: Promise<T>;
@@ -17,7 +18,7 @@ class Deferred <T>{
 
 type DependencyNodeDeferred = Deferred<DependencyNode>
 
-const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
+export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     const [upperTag] = splitType(EphemeraId)
     const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
     if (isLegalDependencyTag(tag)) {
@@ -88,13 +89,69 @@ const invertTree = (tree: DependencyNode[]): DependencyNode[] => {
     ]
 }
 
-const compareEdges = (edgeA: DependencyEdge, edgeB: DependencyEdge) => (
+export const compareEdges = (edgeA: DependencyEdge, edgeB: DependencyEdge) => (
     (edgeA.EphemeraId === edgeB.EphemeraId) &&
     (
         ((typeof edgeA.key === 'undefined') && (typeof(edgeB.key) === 'undefined')) ||
         (edgeA.key === edgeB.key)
     )
 )
+
+type DependencyGraphPut = {
+    EphemeraId: string;
+    putItem: DependencyEdge;
+}
+
+type DependencyGraphDelete = {
+    EphemeraId: string;
+    deleteItem: DependencyEdge;
+}
+
+export type DependencyGraphAction = DependencyGraphPut | DependencyGraphDelete
+
+const isDependencyGraphPut = (action: DependencyGraphAction): action is DependencyGraphPut => ('putItem' in action)
+const isDependencyGraphDelete = (action: DependencyGraphAction): action is DependencyGraphDelete => ('deleteItem' in action)
+
+export const reduceDependencyGraph = (state: Record<string, DependencyNode>, actions: DependencyGraphAction[]): Record<string, DependencyNode> => (produce(state, (draft) => {
+    actions.filter(isDependencyGraphPut)
+        .forEach(({ EphemeraId, putItem }) => {
+            if (!draft[EphemeraId]) {
+                draft[EphemeraId] = {
+                    EphemeraId,
+                    completeness: 'Partial',
+                    connections: []
+                }
+            }
+            if (!draft[putItem.EphemeraId]) {
+                draft[putItem.EphemeraId] = {
+                    EphemeraId: putItem.EphemeraId,
+                    completeness: 'Partial',
+                    connections: []
+                }
+            }
+            const current = draft[EphemeraId]
+            const match = current.connections.find((check) => (compareEdges(check, putItem)))
+            if (match) {
+                match.assets = unique(match.assets, putItem.assets) as string[]
+            }
+            else {
+                current.connections.push(putItem)
+            }
+        })
+    actions.filter(isDependencyGraphDelete)
+        .forEach(({ EphemeraId, deleteItem }) => {
+            if (draft[EphemeraId]) {
+                draft[EphemeraId].connections
+                    .filter((check) => (!compareEdges(check, deleteItem)))
+                    .forEach((current) => {
+                        current.assets = current.assets.filter((asset) => (!(deleteItem.assets.includes(asset))))
+                    })
+                draft[EphemeraId].connections = draft[EphemeraId].connections.filter(({ assets }) => (assets.length > 0))
+            }
+        })
+
+}))
+
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
     _antiDependency?: DependencyGraphData;
@@ -172,15 +229,7 @@ export class DependencyGraphData {
                 if (node.completeness === 'Complete') {
                     current.completeness = 'Complete'
                 }
-                node.connections.forEach((edge) => {
-                    const match = current.connections.find((check) => (compareEdges(check, edge)))
-                    if (match) {
-                        match.assets = unique(match.assets, edge.assets) as string[]
-                    }
-                    else {
-                        current.connections.push(edge)
-                    }
-                })
+                this._Store = reduceDependencyGraph(this._Store, node.connections.map((putItem) => ({ EphemeraId: node.EphemeraId, putItem })))
             }
             else {
                 this._Store[node.EphemeraId] = {
@@ -195,14 +244,7 @@ export class DependencyGraphData {
     }
 
     delete(EphemeraId: string, edge: DependencyEdge) {
-        if (EphemeraId in this._Store) {
-            this._Store[EphemeraId].connections
-                .filter((check) => (!compareEdges(check, edge)))
-                .forEach((current) => {
-                    current.assets = current.assets.filter((asset) => (!(edge.assets.includes(asset))))
-                })
-            this._Store[EphemeraId].connections = this._Store[EphemeraId].connections.filter(({ assets }) => (assets.length > 0))
-        }
+        this._Store = reduceDependencyGraph(this._Store, [{ EphemeraId, deleteItem: edge }])
     }
 
     invalidate(EphemeraId: string) {

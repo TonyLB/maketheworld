@@ -22,12 +22,12 @@ Array [
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "completeness": "Complete",
+    "completeness": "Partial",
     "connections": Array [],
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",
-    "completeness": "Complete",
+    "completeness": "Partial",
     "connections": Array [],
   },
 ]

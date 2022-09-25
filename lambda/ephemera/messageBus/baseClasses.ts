@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { RoomCharacterListItem } from "../internalCache/baseClasses"
+import { DependencyEdge, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -215,21 +215,18 @@ export type LegacyDependencyNodeNonAsset = {
 export type LegacyDependencyNode = LegacyDependencyNodeAsset | LegacyDependencyNodeNonAsset
 
 type DependencyUpdateAssetMessage = {
-    tag: 'Asset';
     targetId: string;
-    putItem?: Omit<LegacyDependencyNode, 'connections' | 'tag'>;
-    deleteItem?: Omit<LegacyDependencyNodeAsset, 'connections' | 'tag'>;
+    putItem?: DependencyEdge;
+    deleteItem?: DependencyEdge;
 }
 
 export type LegalDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
 export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
 
 export type DependencyUpdateNonAssetMessage = {
-    tag: LegalDependencyTag
     targetId: string;
-    assetId: string;
-    putItem?: Omit<LegacyDependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
-    deleteItem?: Omit<LegacyDependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
+    putItem?: DependencyEdge;
+    deleteItem?: DependencyEdge;
 }
 
 export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage

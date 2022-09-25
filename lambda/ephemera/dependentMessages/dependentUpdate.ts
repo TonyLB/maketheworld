@@ -2,12 +2,40 @@ import { AncestryUpdateNonAssetMessage, LegacyDependencyNode, DependencyUpdateMe
 
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { splitType } from "@tonylb/mtw-utilities/dist/types"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
+import internalCache from "../internalCache"
+import { compareEdges } from "../internalCache/dependencyGraph"
+import { DependencyEdge, DependencyNode, isLegalDependencyTag, LegalDependencyTag } from "../internalCache/baseClasses"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
+
+const tagFromEphemeraId = (EphemeraId: string): ('Asset' | LegalDependencyTag) => {
+    const [upperTag] = splitType(EphemeraId)
+    const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
+    if (isLegalDependencyTag(tag) || tag === 'Asset') {
+        return tag
+    }
+    else {
+        throw new Error(`Invalid dependency tag: ${tag}`)
+    }
+}
+
+const getAntiDependency = (dependencyTag: 'Descent' | 'Ancestry') => async (EphemeraId: string): Promise<DependencyEdge[]> => {
+    const antiDependencyTag = dependencyTag === 'Descent' ? 'Ancestry' : 'Descent'
+    const knownTree = internalCache[antiDependencyTag].getPartial(EphemeraId).find(({ EphemeraId: check }) => (check === EphemeraId))
+    if (knownTree?.completeness === 'Complete') {
+        return knownTree.connections
+    }
+    else {
+        const fetchedTree = (await internalCache[antiDependencyTag].get(EphemeraId)).find(({ EphemeraId: check }) => (check === EphemeraId))
+        return fetchedTree?.connections || []
+    }
+}
 
 export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') => async ({ payloads, messageBus }: { payloads: ({ type: 'DescentUpdate' | 'AncestryUpdate' } & DependencyUpdateMessage)[]; messageBus: MessageBus }): Promise<void> => {
-    const antiDependencyTag = dependencyTag === 'Descent' ? 'Ancestry' : 'Descent'
-    const updatingNodes = unique(payloads.map(({ targetId }) => (targetId)))
+    const updatingNodes = unique(payloads.map(({ targetId }) => ([
+        targetId,
+        ...(internalCache[dependencyTag].getPartial(targetId).map(({ EphemeraId }) => (EphemeraId)))
+    ])))
     const workablePayload = ({ putItem, deleteItem }: DependencyUpdateMessage) => (!updatingNodes.includes(putItem?.EphemeraId ?? deleteItem?.EphemeraId ?? ''))
     const payloadsByTarget = payloads
         .filter(workablePayload)
@@ -27,18 +55,13 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
     })
 
     await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
-        const [targetTag] = splitType(targetId)
-        const tag = `${targetTag[0].toUpperCase()}${targetTag.slice(1).toLowerCase()}` as LegacyDependencyNode["tag"]
+        const tag = tagFromEphemeraId(targetId)
         //
         // Because we only update the Descent (and need the Ancestry's unchanged value), we run getItem and update
         // in parallel rather than suffer the hit for requesting ALL_NEW ReturnValue
         //
         const [antidependency, dependencyMap] = await Promise.all([
-            ephemeraDB.getItem<{ Ancestry?: LegacyDependencyNode[]; Descent?: LegacyDependencyNode[]; }>({
-                EphemeraId: targetId,
-                DataCategory: `Meta::${tag}`,
-                ProjectionFields: [antiDependencyTag]
-            }).then((value) => (value?.[antiDependencyTag] || [])),
+            getAntiDependency(dependencyTag)(targetId),
             (async () => {
                 const fetchDependents = await Promise.all(payloadList.map(async (payload) => {
                     if (payload.putItem) {
@@ -47,9 +70,9 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                         // transactional lock to check that they haven't been changed as part of the
                         // update, rather than depend upon consistent reads:  May get better performance.
                         //
-                        const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: LegacyDependencyNode[]; Descent?: LegacyDependencyNode[] }>({
+                        const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                             EphemeraId: payload.putItem.EphemeraId,
-                            DataCategory: `Meta::${payload.tag}`,
+                            DataCategory: `Meta::${tagFromEphemeraId(payload.putItem.EphemeraId)}`,
                             ProjectionFields: [dependencyTag],
                             ConsistentRead: true
                         })) || {}
@@ -59,7 +82,7 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                         return {}
                     }
                 }))
-                return Object.assign({}, ...fetchDependents) as Record<string, LegacyDependencyNode>
+                return Object.assign({}, ...fetchDependents) as Record<string, DependencyNode>
             })()
         ])
         await ephemeraDB.optimisticUpdate({
@@ -77,88 +100,46 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                     draft[dependencyTag] = []
                 }
                 payloadList.forEach((payloadItem) => {
-                    const compareDependentItems = ({ key: keyA, EphemeraId: EphemeraA }: { key?: string; EphemeraId: string; }, { key: keyB, EphemeraId: EphemeraB }: { key?: string; EphemeraId: string; }) => {
-                        if (EphemeraA !== EphemeraB) {
-                            return false
-                        }
-                        if (payloadItem.tag === 'Asset') {
-                            return true
-                        }
-                        if (keyA === keyB) {
-                            return true
-                        }
-                        if ((typeof keyA === 'undefined') && (typeof keyB === 'undefined')) {
-                            return true
-                        }
-                        return false
-                    }
                     const { putItem, deleteItem } = payloadItem
                     if (putItem) {
                         let alreadyFound = false
                         draft[dependencyTag].forEach((dependentItem) => {
-                            if (compareDependentItems(dependentItem, putItem)) {
+                            if (compareEdges(dependentItem, putItem)) {
                                 alreadyFound = true
                                 if (!deepEqual(dependentItem.connections, dependencyMap[putItem.EphemeraId])) {
                                     dependentItem.connections = dependencyMap[putItem.EphemeraId]
                                 }
-                                if (payloadItem.tag !== 'Asset' && !dependentItem.assets.includes(payloadItem.assetId)) {
-                                    dependentItem.assets = unique(dependentItem.assets || [], [payloadItem.assetId])
-                                }
+                                dependentItem.assets = unique(dependentItem.assets || [], putItem.assets)
                             }
                         })
                         if (!alreadyFound) {
                             draft[dependencyTag].push({
                                 ...putItem,
-                                tag: payloadItem.tag,
-                                ...(payloadItem.tag === 'Asset' ? {} : { assets: [payloadItem.assetId] }),
                                 connections: dependencyMap[putItem.EphemeraId]
                             })
                         }
                     }
                     if (deleteItem) {
-                        if (payloadItem.tag === 'Asset') {
-                            draft[dependencyTag] = draft[dependencyTag].filter(({ EphemeraId }) => (EphemeraId !== deleteItem.EphemeraId))
-                        }
-                        else {
-                            draft[dependencyTag].forEach((dependentItem) => {
-                                if (compareDependentItems(dependentItem, deleteItem)) {
-                                    dependentItem.assets = dependentItem.assets.filter((check) => (check !== payloadItem.assetId))
-                                }
-                            })
-                            draft[dependencyTag] = draft[dependencyTag].filter(({ assets }) => (assets.length > 0))
-                        }
+                        draft[dependencyTag].forEach((dependentItem) => {
+                            if (compareEdges(dependentItem, deleteItem)) {
+                                dependentItem.assets = dependentItem.assets.filter((check) => (!(deleteItem.assets.includes(check))))
+                            }
+                        })
+                        draft[dependencyTag] = draft[dependencyTag].filter(({ assets }) => (assets.length > 0))
                     }
                 })
             }
         })
         antidependency.forEach((antiDependentItem) => {
-            if (tag === 'Asset') {
-                messageBus.send({
-                    type: `${dependencyTag}Update`,
-                    targetId: antiDependentItem.EphemeraId,
-                    tag, // Assets can only have asset children tags
-                    putItem: {
-                        EphemeraId: targetId
-                    }
-                })
-            }
-            else {
-                if (antiDependentItem.tag !== 'Asset') {
-                    const assets = unique(payloadList.filter((prop): prop is DescentUpdateNonAssetMessage | AncestryUpdateNonAssetMessage => (prop.tag !== 'Asset')).map(({ assetId }) => (assetId))) as string[]
-                    assets.forEach((assetId) => {
-                        messageBus.send({
-                            type: `${dependencyTag}Update`,
-                            targetId: antiDependentItem.EphemeraId,
-                            assetId,
-                            tag,
-                            putItem: {
-                                key: antiDependentItem.key,
-                                EphemeraId: targetId
-                            }
-                        })    
-                    })
+            messageBus.send({
+                type: `${dependencyTag}Update`,
+                targetId: antiDependentItem.EphemeraId,
+                putItem: {
+                    key: antiDependentItem.key,
+                    EphemeraId: targetId,
+                    assets: antiDependentItem.assets
                 }
-            }
+            })    
         })
     }))
 }
