@@ -42,7 +42,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNode[]; src: string; value: any }>({
                         EphemeraId: targetId,
                         DataCategory: 'Meta::Computed',
-                        ProjectionFields: ['Ancestry', 'src', '#value'],
+                        ProjectionFields: ['src', '#value'],
                         ExpressionAttributeNames: {
                             '#value': 'value'
                         }
@@ -55,18 +55,8 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
                     // for faster fetching
                     //
-                    const { Ancestry = [], src, value } = fetchComputed
-                    const tempConnections = Ancestry.find(({ EphemeraId }) => (EphemeraId === targetId))?.connections
-                    const assetStateMap: Record<string, string> = (Ancestry.find(({ EphemeraId }) => (EphemeraId === targetId))?.connections || [])
-                        .reduce((previous, { EphemeraId, key }) => {
-                            if (key) {
-                                const tag = tagFromEphemeraId(EphemeraId)
-                                if (tag === 'Variable' || tag === 'Computed') {
-                                    return { ...previous, [key]: EphemeraId }
-                                }
-                            }
-                            return previous
-                        }, {} as Record<string, string>)
+                    const { src, value } = fetchComputed
+                    const assetStateMap = await internalCache.AssetMap.get(targetId)
                     const assetState = await internalCache.AssetState.get(assetStateMap)
                     console.log(`Calculating: ${targetId} x ${JSON.stringify(assetStateMap, null, 4)} x ${JSON.stringify(assetState, null, 4)}`)
                     //

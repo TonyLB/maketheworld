@@ -24,25 +24,12 @@ describe('DependencyCascadeMessage', () => {
 
     it('should update a computed item and cascade', async () => {
         ephemeraDBMock.getItem.mockResolvedValue({
-            Ancestry: [
-                {
-                    EphemeraId: 'COMPUTED#TestOne',
-                    connections: [
-                        { EphemeraId: 'VARIABLE#VariableOne', key: 'a', assets: ['base'] },
-                        { EphemeraId: 'VARIABLE#VariableTwo', key: 'b', assets: ['base'] },
-                    ]
-                },
-                {
-                    EphemeraId: 'VARIABLE#VariableOne',
-                    connections: []
-                },
-                {
-                    EphemeraId: 'VARIABLE#VariableTwo',
-                    connections: []
-                }
-            ],
             src: 'a + b',
             value: 4
+        })
+        internalCacheMock.AssetMap.get.mockResolvedValue({
+            a: 'VARIABLE#VariableOne',
+            b: 'VARIABLE#VariableTwo'
         })
         internalCacheMock.AssetState.get.mockResolvedValue({
             a: 1,
@@ -109,35 +96,21 @@ describe('DependencyCascadeMessage', () => {
         ephemeraDBMock.getItem.mockImplementation(async ({ EphemeraId }) => {
             if (EphemeraId === 'COMPUTED#TestOne') {
                 return {
-                    Ancestry: [
-                        {
-                            EphemeraId: 'COMPUTED#TestOne',
-                            connections: [
-                                { EphemeraId: 'VARIABLE#VariableOne', key: 'a', assets: ['base'] },
-                                { EphemeraId: 'VARIABLE#VariableTwo', key: 'b', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'VARIABLE#VariableOne',
-                            connections: []
-                        },
-                        {
-                            EphemeraId: 'VARIABLE#VariableTwo',
-                            connections: []
-                        }
-                    ],
                     src: 'a + b',
                     value: 4
                 }
             }
             else {
                 return {
-                    Ancestry: [],
                     src: '2 * 4',
                     value: 7
                 }
             }
         })
+        internalCacheMock.AssetMap.get.mockImplementation(async (EphemeraId) => (EphemeraId === 'COMPUTED#TestOne' ? {
+            a: 'VARIABLE#VariableOne',
+            b: 'VARIABLE#VariableTwo'
+        }: {} as any))
         internalCacheMock.AssetState.get.mockImplementation(async (addresses) => (Object.keys(addresses).length ? {
             a: 1,
             b: 2
