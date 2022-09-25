@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { DependencyEdge, DependencyGraphAction, RoomCharacterListItem } from "../internalCache/baseClasses"
+import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -228,8 +228,7 @@ export type AncestryUpdateMessage = {
 export type DependencyCascadeMessage = {
     type: 'DependencyCascade';
     targetId: string;
-    tag: LegalDependencyTag;
-    Descent: LegacyDependencyNodeNonAsset[];
+    Descent: Omit<DependencyNode, 'completeness'>[];
 }
 
 export type MessageType = PublishMessage |

@@ -24,20 +24,23 @@ describe('DependencyCascadeMessage', () => {
 
     it('should update a computed item and cascade', async () => {
         ephemeraDBMock.getItem.mockResolvedValue({
-            Ancestry: [{
-                EphemeraId: 'VariableOne',
-                tag: 'Variable',
-                key: 'a',
-                assets: [],
-                connections: []
-            },
-            {
-                EphemeraId: 'VariableTwo',
-                tag: 'Variable',
-                key: 'b',
-                assets: [],
-                connections: []
-            }],
+            Ancestry: [
+                {
+                    EphemeraId: 'COMPUTED#TestOne',
+                    connections: [
+                        { EphemeraId: 'VARIABLE#VariableOne', key: 'a', assets: ['base'] },
+                        { EphemeraId: 'VARIABLE#VariableTwo', key: 'b', assets: ['base'] },
+                    ]
+                },
+                {
+                    EphemeraId: 'VARIABLE#VariableOne',
+                    connections: []
+                },
+                {
+                    EphemeraId: 'VARIABLE#VariableTwo',
+                    connections: []
+                }
+            ],
             src: 'a + b',
             value: 4
         })
@@ -51,41 +54,44 @@ describe('DependencyCascadeMessage', () => {
             payloads: [
                 {
                     type: 'DependencyCascade',
-                    targetId: 'TestOne',
-                    tag: 'Computed',
+                    targetId: 'COMPUTED#TestOne',
                     Descent: [
                         {
-                            EphemeraId: 'CascadeOne',
-                            tag: 'Computed',
-                            key: 'testOne',
-                            assets: [],
+                            EphemeraId: 'COMPUTED#TestOne',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
+                                { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#CascadeOne',
                             connections: [{
-                                EphemeraId: 'CascadeThree',
-                                tag: 'Computed',
+                                EphemeraId: 'COMPUTED#CascadeThree',
                                 key: 'cascadeOne',
-                                assets: [],
-                                connections: [{
-                                    EphemeraId: 'TestTwo',
-                                    tag: 'Computed',
-                                    key: 'cascadeThree',
-                                    connections: [],
-                                    assets: []
-                                }]
+                                assets: ['base'],
                             }]
                         },
                         {
-                            EphemeraId: 'CascadeTwo',
-                            tag: 'Computed',
-                            key: 'testOne',
-                            assets: [],
+                            EphemeraId: 'COMPUTED#CascadeTwo',
+                            connections: []
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#CascadeThree',
+                            connections: [{
+                                EphemeraId: 'COMPUTED#TestTwo',
+                                key: 'cascadeThree',
+                                assets: ['base']
+                            }]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#TestTwo',
                             connections: []
                         }
                     ]
                 },
                 {
                     type: 'DependencyCascade',
-                    targetId: 'TestTwo',
-                    tag: 'Computed',
+                    targetId: 'COMPUTED#TestTwo',
                     Descent: []
                 }
             ],
@@ -93,29 +99,33 @@ describe('DependencyCascadeMessage', () => {
         })
         expect(transactMock).toHaveBeenCalledTimes(1)
         expect(transactMock.mock.calls[0][0]).toMatchSnapshot()
-        expect(messageBusMock.send).toHaveBeenCalledTimes(3)
+        console.log(`messages: ${JSON.stringify(messageBusMock.send.mock.calls.map((item) => (item[0])), null, 4)}`)
+        expect(messageBusMock.send).toHaveBeenCalledTimes(4)
         expect(messageBusMock.send.mock.calls.map(([item]) => (item))).toMatchSnapshot()
 
     })
 
     it('should update in parallel and combine cascades', async () => {
         ephemeraDBMock.getItem.mockImplementation(async ({ EphemeraId }) => {
-            if (EphemeraId === 'TestOne') {
+            if (EphemeraId === 'COMPUTED#TestOne') {
                 return {
-                    Ancestry: [{
-                        EphemeraId: 'VariableOne',
-                        tag: 'Variable',
-                        key: 'a',
-                        assets: [],
-                        connections: []
-                    },
-                    {
-                        EphemeraId: 'VariableTwo',
-                        tag: 'Variable',
-                        key: 'b',
-                        assets: [],
-                        connections: []
-                    }],
+                    Ancestry: [
+                        {
+                            EphemeraId: 'COMPUTED#TestOne',
+                            connections: [
+                                { EphemeraId: 'VARIABLE#VariableOne', key: 'a', assets: ['base'] },
+                                { EphemeraId: 'VARIABLE#VariableTwo', key: 'b', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'VARIABLE#VariableOne',
+                            connections: []
+                        },
+                        {
+                            EphemeraId: 'VARIABLE#VariableTwo',
+                            connections: []
+                        }
+                    ],
                     src: 'a + b',
                     value: 4
                 }
@@ -138,36 +148,40 @@ describe('DependencyCascadeMessage', () => {
             payloads: [
                 {
                     type: 'DependencyCascade',
-                    targetId: 'TestOne',
-                    tag: 'Computed',
+                    targetId: 'COMPUTED#TestOne',
                     Descent: [
                         {
-                            EphemeraId: 'CascadeOne',
-                            tag: 'Computed',
-                            key: 'testOne',
-                            assets: [],
+                            EphemeraId: 'COMPUTED#TestOne',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
+                                { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#CascadeOne',
                             connections: []
                         },
                         {
                             EphemeraId: 'CascadeTwo',
-                            tag: 'Computed',
-                            key: 'testOne',
-                            assets: [],
                             connections: []
                         }
                     ]
                 },
                 {
                     type: 'DependencyCascade',
-                    targetId: 'TestTwo',
-                    tag: 'Computed',
-                    Descent: [{
-                        EphemeraId: 'CascadeOne',
-                        tag: 'Computed',
-                        key: 'testTwo',
-                        assets: [],
-                        connections: []
-                    }]
+                    targetId: 'COMPUTED#TestTwo',
+                    Descent: [
+                        {
+                            EphemeraId: 'COMPUTED#TestTwo',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#CascadeOne', key: 'testTwo', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#CascadeOne',
+                            connections: []
+                        }
+                    ]
                 }
             ],
             messageBus: messageBusMock

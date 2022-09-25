@@ -2,13 +2,9 @@ import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { CacheConstructor } from './baseClasses'
+import { tagFromEphemeraId } from './dependencyGraph';
 
-type AssetStateAddress = {
-    tag: 'Variable' | 'Computed';
-    EphemeraId: string;
-}
-
-export type AssetStateMapping = Record<string, AssetStateAddress>
+export type AssetStateMapping = Record<string, string>
 
 type AssetStateOutput<T extends AssetStateMapping> = {
     [key in keyof T]: any;
@@ -23,16 +19,16 @@ export class AssetStateData {
     }
     async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
         const itemsInNeedOfFetch = Object.values(keys)
-            .filter(({ EphemeraId }) => (!(EphemeraId in this._StatePromiseByEphemeraId)))
+            .filter((EphemeraId) => (!(EphemeraId in this._StatePromiseByEphemeraId)))
         if (itemsInNeedOfFetch.length > 0) {
             const batchGetPromise = ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
-                Items: itemsInNeedOfFetch.map(({ EphemeraId, tag }) => ({ EphemeraId, DataCategory: `Meta::${tag}` })),
+                Items: itemsInNeedOfFetch.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
                 ProjectionFields: ['EphemeraId', '#value'],
                 ExpressionAttributeNames: {
                     '#value': 'value'
                 }
             })
-            Object.values(itemsInNeedOfFetch).forEach(({ EphemeraId }) => {
+            Object.values(itemsInNeedOfFetch).forEach((EphemeraId) => {
                 this._StatePromiseByEphemeraId[EphemeraId] = batchGetPromise
                     .then((items) => (items.find(({ EphemeraId: check }) => (check === EphemeraId))?.value))
                     .catch((err) => {
@@ -44,7 +40,7 @@ export class AssetStateData {
             })
         }
         return Object.assign({}, ...(await Promise.all(
-            Object.entries(keys).map(async ([key, { EphemeraId }]) => ({ [key]: await this._StatePromiseByEphemeraId[EphemeraId] }))
+            Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StatePromiseByEphemeraId[EphemeraId] }))
         ))) as AssetStateOutput<T>
     }
 

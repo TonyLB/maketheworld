@@ -29,15 +29,15 @@ export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     }
 }
 
-export const extractTree = (tree: DependencyNode[], EphemeraId: string): DependencyNode[] => {
-    const treeByEphemeraId = tree.reduce((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {} as Record<string, DependencyNode>)
+export const extractTree = <T extends Omit<DependencyNode, 'completeness'>>(tree: T[], EphemeraId: string): T[] => {
+    const treeByEphemeraId = tree.reduce((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {} as Record<string, T>)
     if (!(EphemeraId in treeByEphemeraId)) {
         return []
     }
     const currentNode = treeByEphemeraId[EphemeraId]
     return [
         currentNode,
-        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId).filter(({ EphemeraId }) => (!(previous.find(({ EphemeraId: check }) => (check = EphemeraId)))))]), [] as DependencyNode[]))
+        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId).filter(({ EphemeraId }) => (!(previous.find(({ EphemeraId: check }) => (check = EphemeraId)))))]), [] as T[]))
     ]
 }
 
