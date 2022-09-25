@@ -2,7 +2,7 @@ import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { CacheConstructor, Deferred } from './baseClasses'
-import { tagFromEphemeraId } from './dependencyGraph';
+import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 
 export type AssetStateMapping = Record<string, string>
 
@@ -129,15 +129,33 @@ export class EvaluateCodeData {
     }
 }
 
-export const AssetState = <GBase extends CacheConstructor>(Base: GBase) => {
+class AssetMap {
+    _Ancestry: DependencyGraphData;
+    constructor(Ancestry: DependencyGraphData) {
+        this._Ancestry = Ancestry
+    }
+
+    async get(EphemeraId: string): Promise<AssetStateMapping> {
+        const knownAncestry = this._Ancestry.getPartial(EphemeraId).find(({ EphemeraId: check }) => (check === EphemeraId))
+        if (knownAncestry?.completeness === 'Complete') {
+            return knownAncestry.connections.reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (key ? { ...previous, [key]: EphemeraId } : previous), {})
+        }
+        const fetchedAncestry = await this._Ancestry.get(EphemeraId)
+        return (fetchedAncestry.find(({ EphemeraId: check }) => (check === EphemeraId))?.connections ?? []).reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (key ? { ...previous, [key]: EphemeraId } : previous), {})
+    }
+}
+
+export const AssetState = <GBase extends ReturnType<typeof DependencyGraph>>(Base: GBase) => {
     return class AssetState extends Base {
         AssetState: AssetStateData
         EvaluateCode: EvaluateCodeData
+        AssetMap: AssetMap
 
         constructor(...rest: any) {
             super()
             this.AssetState = new AssetStateData()
             this.EvaluateCode = new EvaluateCodeData(this.AssetState)
+            this.AssetMap = new AssetMap(this.Ancestry)
         }
         override clear() {
             this.AssetState.clear()
