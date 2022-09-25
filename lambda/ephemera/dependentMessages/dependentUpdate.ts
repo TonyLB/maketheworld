@@ -4,7 +4,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
-import { compareEdges } from "../internalCache/dependencyGraph"
+import { compareEdges, reduceDependencyGraph, extractTree } from "../internalCache/dependencyGraph"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, isDependencyGraphDelete, isDependencyGraphPut } from "../internalCache/baseClasses"
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
 
@@ -31,10 +31,12 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
         }))
         .filter((value: DependencyNode | undefined): value is DependencyNode => (typeof value !== 'undefined'))
     )
-    const updatingNodes = unique(payloadActions.map(({ EphemeraId }) => ([
-        EphemeraId,
-        ...(internalCache[dependencyTag].getPartial(EphemeraId).map(({ EphemeraId: result }) => (result)))
-    ])))
+    const updatingNodes = unique(...(payloadActions.map(({ EphemeraId }) => (
+        internalCache[dependencyTag]
+            .getPartial(EphemeraId)
+            .map(({ EphemeraId: result }) => (result))
+            .filter((value) => (value !== EphemeraId))
+    ))))
     const workablePayload = (message: DependencyGraphAction) => {
         if (isDependencyGraphPut(message)) {
             return !(updatingNodes.includes(message.putItem.EphemeraId))
@@ -103,36 +105,43 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                 if (typeof draft[dependencyTag] === 'undefined') {
                     draft[dependencyTag] = []
                 }
-                payloadList.forEach((payloadItem) => {
-                    if (isDependencyGraphPut(payloadItem)) {
-                        const { putItem } = payloadItem
-                        let alreadyFound = false
-                        draft[dependencyTag].forEach((dependentItem) => {
-                            if (compareEdges(dependentItem, putItem)) {
-                                alreadyFound = true
-                                if (!deepEqual(dependentItem.connections, dependencyMap[putItem.EphemeraId])) {
-                                    dependentItem.connections = dependencyMap[putItem.EphemeraId]
-                                }
-                                dependentItem.assets = unique(dependentItem.assets || [], putItem.assets)
-                            }
-                        })
-                        if (!alreadyFound) {
-                            draft[dependencyTag].push({
-                                ...putItem,
-                                connections: dependencyMap[putItem.EphemeraId]
-                            })
-                        }
-                    }
-                    if (isDependencyGraphDelete(payloadItem)) {
-                        const { deleteItem } = payloadItem
-                        draft[dependencyTag].forEach((dependentItem) => {
-                            if (compareEdges(dependentItem, deleteItem)) {
-                                dependentItem.assets = dependentItem.assets.filter((check) => (!(deleteItem.assets.includes(check))))
-                            }
-                        })
-                        draft[dependencyTag] = draft[dependencyTag].filter(({ assets }) => (assets.length > 0))
-                    }
-                })
+                const startGraph: Record<string, DependencyNode> = draft[dependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
+                const reducedGraph = reduceDependencyGraph(startGraph, payloadList)
+                draft[dependencyTag] = extractTree(Object.values(reducedGraph), targetId)
+                    .map((node) => {
+                        const { completeness, ...rest } = node
+                        return rest
+                    })
+                // payloadList.forEach((payloadItem) => {
+                //     if (isDependencyGraphPut(payloadItem)) {
+                //         const { putItem } = payloadItem
+                //         let alreadyFound = false
+                //         draft[dependencyTag].forEach((dependentItem) => {
+                //             if (compareEdges(dependentItem, putItem)) {
+                //                 alreadyFound = true
+                //                 if (!deepEqual(dependentItem.connections, dependencyMap[putItem.EphemeraId])) {
+                //                     dependentItem.connections = dependencyMap[putItem.EphemeraId]
+                //                 }
+                //                 dependentItem.assets = unique(dependentItem.assets || [], putItem.assets)
+                //             }
+                //         })
+                //         if (!alreadyFound) {
+                //             draft[dependencyTag].push({
+                //                 ...putItem,
+                //                 connections: dependencyMap[putItem.EphemeraId]
+                //             })
+                //         }
+                //     }
+                //     if (isDependencyGraphDelete(payloadItem)) {
+                //         const { deleteItem } = payloadItem
+                //         draft[dependencyTag].forEach((dependentItem) => {
+                //             if (compareEdges(dependentItem, deleteItem)) {
+                //                 dependentItem.assets = dependentItem.assets.filter((check) => (!(deleteItem.assets.includes(check))))
+                //             }
+                //         })
+                //         draft[dependencyTag] = draft[dependencyTag].filter(({ assets }) => (assets.length > 0))
+                //     }
+                // })
             }
         })
         antidependency.forEach((antiDependentItem) => {

@@ -29,7 +29,7 @@ export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     }
 }
 
-const extractTree = (tree: DependencyNode[], EphemeraId: string): DependencyNode[] => {
+export const extractTree = (tree: DependencyNode[], EphemeraId: string): DependencyNode[] => {
     const treeByEphemeraId = tree.reduce((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {} as Record<string, DependencyNode>)
     if (!(EphemeraId in treeByEphemeraId)) {
         return []
@@ -37,7 +37,7 @@ const extractTree = (tree: DependencyNode[], EphemeraId: string): DependencyNode
     const currentNode = treeByEphemeraId[EphemeraId]
     return [
         currentNode,
-        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId)]), [] as DependencyNode[]))
+        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId).filter(({ EphemeraId }) => (!(previous.find(({ EphemeraId: check }) => (check = EphemeraId)))))]), [] as DependencyNode[]))
     ]
 }
 
@@ -98,7 +98,7 @@ export const compareEdges = (edgeA: DependencyEdge, edgeB: DependencyEdge) => (
 )
 
 
-export const reduceDependencyGraph = (state: Record<string, DependencyNode>, actions: DependencyGraphAction[]): Record<string, DependencyNode> => (produce(state, (draft) => {
+export const reduceDependencyGraph = (state: Record<string, DependencyNode>, actions: DependencyGraphAction[]): Record<string, DependencyNode> => ({ ...produce(state, (draft) => {
     actions.filter(isDependencyGraphPut)
         .forEach(({ EphemeraId, putItem }) => {
             if (!draft[EphemeraId]) {
@@ -128,7 +128,7 @@ export const reduceDependencyGraph = (state: Record<string, DependencyNode>, act
         .forEach(({ EphemeraId, deleteItem }) => {
             if (draft[EphemeraId]) {
                 draft[EphemeraId].connections
-                    .filter((check) => (!compareEdges(check, deleteItem)))
+                    .filter((check) => (compareEdges(check, deleteItem)))
                     .forEach((current) => {
                         current.assets = current.assets.filter((asset) => (!(deleteItem.assets.includes(asset))))
                     })
@@ -136,7 +136,7 @@ export const reduceDependencyGraph = (state: Record<string, DependencyNode>, act
             }
         })
 
-}))
+})})
 
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
@@ -211,9 +211,8 @@ export class DependencyGraphData {
     put(tree: DependencyNode[], nonRecursive?: boolean) {
         tree.forEach((node) => {
             if (node.EphemeraId in this._Store) {
-                const current = this._Store[node.EphemeraId]
                 if (node.completeness === 'Complete') {
-                    current.completeness = 'Complete'
+                    this._Store[node.EphemeraId] = { ...this._Store[node.EphemeraId], completeness: 'Complete' }
                 }
                 this._Store = reduceDependencyGraph(this._Store, node.connections.map((putItem) => ({ EphemeraId: node.EphemeraId, putItem })))
             }

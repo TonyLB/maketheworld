@@ -4,6 +4,7 @@ exports[` 1`] = `
 Array [
   Array [
     Object {
+      "EphemeraId": "VARIABLE#TUV",
       "putItem": Object {
         "EphemeraId": "COMPUTED#XYZ",
         "assets": Array [
@@ -11,12 +12,12 @@ Array [
         ],
         "key": "switchedOn",
       },
-      "targetId": "VARIABLE#TUV",
       "type": "DescentUpdate",
     },
   ],
   Array [
     Object {
+      "EphemeraId": "COMPUTED#XYZ",
       "putItem": Object {
         "EphemeraId": "VARIABLE#TUV",
         "assets": Array [
@@ -24,12 +25,12 @@ Array [
         ],
         "key": "switchedOn",
       },
-      "targetId": "COMPUTED#XYZ",
       "type": "AncestryUpdate",
     },
   ],
   Array [
     Object {
+      "EphemeraId": "VARIABLE#QRS",
       "putItem": Object {
         "EphemeraId": "COMPUTED#XYZ",
         "assets": Array [
@@ -37,12 +38,12 @@ Array [
         ],
         "key": "power",
       },
-      "targetId": "VARIABLE#QRS",
       "type": "DescentUpdate",
     },
   ],
   Array [
     Object {
+      "EphemeraId": "COMPUTED#XYZ",
       "putItem": Object {
         "EphemeraId": "VARIABLE#QRS",
         "assets": Array [
@@ -50,12 +51,12 @@ Array [
         ],
         "key": "power",
       },
-      "targetId": "COMPUTED#XYZ",
       "type": "AncestryUpdate",
     },
   ],
   Array [
     Object {
+      "EphemeraId": "COMPUTED#XYZ",
       "putItem": Object {
         "EphemeraId": "ROOM#DEF",
         "assets": Array [
@@ -63,12 +64,12 @@ Array [
         ],
         "key": "active",
       },
-      "targetId": "COMPUTED#XYZ",
       "type": "DescentUpdate",
     },
   ],
   Array [
     Object {
+      "EphemeraId": "ROOM#DEF",
       "putItem": Object {
         "EphemeraId": "COMPUTED#XYZ",
         "assets": Array [
@@ -76,7 +77,6 @@ Array [
         ],
         "key": "active",
       },
-      "targetId": "ROOM#DEF",
       "type": "AncestryUpdate",
     },
   ],
