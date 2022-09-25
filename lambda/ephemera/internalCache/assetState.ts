@@ -1,7 +1,7 @@
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
-import { CacheConstructor } from './baseClasses'
+import { CacheConstructor, Deferred } from './baseClasses'
 import { tagFromEphemeraId } from './dependencyGraph';
 
 export type AssetStateMapping = Record<string, string>
@@ -11,51 +11,64 @@ type AssetStateOutput<T extends AssetStateMapping> = {
 }
 
 export class AssetStateData {
-    _StatePromiseByEphemeraId: Record<string, Promise<any>> = {}
-    _StateOverrides: Record<string, any> = {}
+    _StateDeferredByEphemeraId: Record<string, Deferred<any>> = {}
+    _StateOverriden: Record<string, boolean> = {}
     
     clear() {
-        this._StatePromiseByEphemeraId = {}
+        this._StateDeferredByEphemeraId = {}
+        this._StateOverriden = {}
     }
     async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
         const itemsInNeedOfFetch = Object.values(keys)
-            .filter((EphemeraId) => (!(EphemeraId in this._StatePromiseByEphemeraId)))
+            .filter((EphemeraId) => (!(EphemeraId in this._StateDeferredByEphemeraId)))
         if (itemsInNeedOfFetch.length > 0) {
-            const batchGetPromise = ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
+            itemsInNeedOfFetch.forEach((item) => {
+                this._StateDeferredByEphemeraId[item] = new Deferred<any>()
+            })
+            await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
                 Items: itemsInNeedOfFetch.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
                 ProjectionFields: ['EphemeraId', '#value'],
                 ExpressionAttributeNames: {
                     '#value': 'value'
                 }
-            })
-            Object.values(itemsInNeedOfFetch).forEach((EphemeraId) => {
-                this._StatePromiseByEphemeraId[EphemeraId] = batchGetPromise
-                    .then((items) => (items.find(({ EphemeraId: check }) => (check === EphemeraId))?.value))
-                    .catch((err) => {
-                        if (typeof this._StateOverrides[EphemeraId] === 'undefined') {
-                            throw err
-                        }
+            }).then((outputList) => {
+                outputList.forEach(({ EphemeraId, value }) => {
+                    this._StateDeferredByEphemeraId[EphemeraId].resolve(value)
+                })
+                const itemsFetched = outputList.map(({ EphemeraId }) => (EphemeraId))
+                itemsInNeedOfFetch
+                    .filter((item) => (!(itemsFetched.includes(item))))
+                    .forEach((EphemeraId) => {
+                        this._StateDeferredByEphemeraId[EphemeraId].resolve(false)
                     })
-                    .then((value) => ((typeof this._StateOverrides[EphemeraId] === 'undefined') ? value : this._StateOverrides[EphemeraId]))
+            })
+            .catch(() => {
+                itemsInNeedOfFetch
+                    .forEach((EphemeraId) => {
+                        this._StateDeferredByEphemeraId[EphemeraId].resolve(false)
+                    })
             })
         }
         return Object.assign({}, ...(await Promise.all(
-            Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StatePromiseByEphemeraId[EphemeraId] }))
+            Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateDeferredByEphemeraId[EphemeraId].promise }))
         ))) as AssetStateOutput<T>
     }
 
     set(EphemeraId: string, value: any) {
-        this._StateOverrides[EphemeraId] = value
-        this._StatePromiseByEphemeraId[EphemeraId] = Promise.resolve(value)
+        if (!(EphemeraId in this._StateDeferredByEphemeraId)) {
+            this._StateDeferredByEphemeraId[EphemeraId] = new Deferred()
+        }
+        this._StateDeferredByEphemeraId[EphemeraId].resolve(value)
+        this._StateOverriden[EphemeraId] = true
     }
 
     invalidate(EphemeraId: string) {
-        delete this._StateOverrides[EphemeraId]
-        delete this._StatePromiseByEphemeraId[EphemeraId]
+        delete this._StateDeferredByEphemeraId[EphemeraId]
+        delete this._StateOverriden[EphemeraId]
     }
 
     isOverridden(EphemeraId: string) {
-        return EphemeraId in this._StateOverrides
+        return this._StateOverriden[EphemeraId]
     }
 }
 

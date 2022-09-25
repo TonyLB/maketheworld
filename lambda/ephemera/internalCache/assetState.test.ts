@@ -3,6 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
 import { AssetStateMapping } from './assetState'
+import { Deferred } from './baseClasses'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -14,7 +15,8 @@ describe('AssetState', () => {
     })
 
     it('should send fetch only where no previous attempt is running', async () => {
-        internalCache.AssetState._StatePromiseByEphemeraId['VARIABLE#testOne'] = Promise.resolve(1)
+        internalCache.AssetState._StateDeferredByEphemeraId['VARIABLE#testOne'] = new Deferred()
+        internalCache.AssetState._StateDeferredByEphemeraId['VARIABLE#testOne'].resolve(1)
         ephemeraMock.batchGetItem.mockResolvedValue([{
             EphemeraId: 'VARIABLE#testTwo',
             value: 2
@@ -52,8 +54,8 @@ describe('AssetState', () => {
             mockResolve = resolve
         })))
         const outputPromise = internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        internalCache.AssetState.set('testOne', 'correct answer')
-        mockResolve([{ EphemeraId: 'testOne', value: 'wrong answer' }])
+        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
+        mockResolve([{ EphemeraId: 'VARIABLE#testOne', value: 'wrong answer' }])
         const output = await outputPromise
         expect(output).toEqual({
             testOne: 'correct answer'
@@ -67,7 +69,7 @@ describe('AssetState', () => {
             mockReject = reject
         })))
         const outputPromise = internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        internalCache.AssetState.set('testOne', 'correct answer')
+        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
         mockReject()
         const output = await outputPromise
         expect(output).toEqual({
@@ -81,8 +83,8 @@ describe('AssetState', () => {
             .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
             .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'correct answer' }])
         await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        internalCache.AssetState.set('testOne', 'second wrong answer')
-        internalCache.AssetState.invalidate('testOne')
+        internalCache.AssetState.set('VARIABLE#testOne', 'second wrong answer')
+        internalCache.AssetState.invalidate('VARIABLE#testOne')
         const output = await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
         expect(output).toEqual({
             testOne: 'correct answer'
@@ -93,7 +95,7 @@ describe('AssetState', () => {
     it('should not fetch when value has been manually set', async () => {
         ephemeraMock.batchGetItem
             .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
-        internalCache.AssetState.set('testOne', 'correct answer')
+        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
         const output = await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
         expect(output).toEqual({
             testOne: 'correct answer'

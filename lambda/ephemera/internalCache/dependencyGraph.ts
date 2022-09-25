@@ -1,20 +1,8 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
+import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, Deferred } from './baseClasses'
 import { produce } from 'immer'
-
-class Deferred <T>{
-    promise: Promise<T>;
-    resolve: (value: T) => void = () => {}
-    reject: () => void = () => {}
-    constructor() {
-        this.promise = new Promise((resolve, reject)=> {
-            this.reject = reject
-            this.resolve = resolve
-        })
-    }
-}
 
 type DependencyNodeDeferred = Deferred<DependencyNode>
 
