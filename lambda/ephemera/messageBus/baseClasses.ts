@@ -198,22 +198,6 @@ export type RoomUpdateMessage = {
     roomId: string;
 }
 
-type LegacyDependencyNodeAsset = {
-    tag: 'Asset';
-    EphemeraId: string;
-    connections: LegacyDependencyNodeAsset[];
-}
-
-export type LegacyDependencyNodeNonAsset = {
-    tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-    key?: string; // The key name by which children nodes know this parent
-    EphemeraId: string;
-    assets: string[]
-    connections: LegacyDependencyNodeNonAsset[];
-}
-
-export type LegacyDependencyNode = LegacyDependencyNodeAsset | LegacyDependencyNodeNonAsset
-
 export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
 export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
 
