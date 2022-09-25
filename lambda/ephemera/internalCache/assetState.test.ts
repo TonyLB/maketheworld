@@ -104,7 +104,7 @@ describe('AssetState', () => {
     })
 })
 
-describe('AssetState', () => {
+describe('EvaluateCode', () => {
     let assetCacheMock = jest.fn()
 
     beforeEach(() => {
@@ -177,6 +177,87 @@ describe('AssetState', () => {
         expect(outputTwo).toBe(1)
         expect(internalCache.AssetState.get).toHaveBeenCalledTimes(2)
         expect(internalCache.AssetState.get).toHaveBeenCalledWith(testMapping)
+    })
+
+})
+
+describe('AssetMap', () => {
+    let ancestryGetMock = jest.fn()
+    let ancestryGetPartialMock = jest.fn()
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+        internalCache.clear()
+        jest.spyOn(internalCache.AssetMap._Ancestry, 'get').mockImplementation(ancestryGetMock)
+        jest.spyOn(internalCache.AssetMap._Ancestry, 'getPartial').mockImplementation(ancestryGetPartialMock)
+    })
+
+    it('should not fetch for ancestry information already possessed', async () => {
+        ancestryGetPartialMock.mockReturnValue([
+            {
+                EphemeraId: 'COMPUTED#testOne',
+                completeness: 'Complete',
+                connections: [
+                    { EphemeraId: 'VARIABLE#argOne', key: 'a', assets: ['base'] },
+                    { EphemeraId: 'VARIABLE#argTwo', key: 'b', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'VARIABLE#argOne',
+                connections: []
+            },
+            {
+                EphemeraId: 'VARIABLE#argTwo',
+                connections: []
+            }
+        ])
+        const output = await internalCache.AssetMap.get('COMPUTED#testOne')
+        expect(internalCache.AssetMap._Ancestry.get).toHaveBeenCalledTimes(0)
+        expect(output).toEqual({
+            a: 'VARIABLE#argOne',
+            b: 'VARIABLE#argTwo'
+        })
+    })
+
+    it('should fetch when it has only partial Ancestry information', async () => {
+        ancestryGetMock.mockResolvedValue([
+            {
+                EphemeraId: 'COMPUTED#testOne',
+                completeness: 'Complete',
+                connections: [
+                    { EphemeraId: 'VARIABLE#argOne', key: 'a', assets: ['base'] },
+                    { EphemeraId: 'VARIABLE#argTwo', key: 'b', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'VARIABLE#argOne',
+                connections: []
+            },
+            {
+                EphemeraId: 'VARIABLE#argTwo',
+                connections: []
+            }
+        ])
+        ancestryGetPartialMock.mockReturnValue([
+            {
+                EphemeraId: 'COMPUTED#testOne',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'VARIABLE#argOne', key: 'a', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'VARIABLE#argOne',
+                connections: []
+            },
+        ])
+        const output = await internalCache.AssetMap.get('COMPUTED#testOne')
+        expect(internalCache.AssetMap._Ancestry.get).toHaveBeenCalledTimes(1)
+        expect(output).toEqual({
+            a: 'VARIABLE#argOne',
+            b: 'VARIABLE#argTwo'
+        })
     })
 
 })
