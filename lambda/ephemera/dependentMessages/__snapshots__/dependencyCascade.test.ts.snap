@@ -18,7 +18,7 @@ Array [
           "S": "Meta::Variable",
         },
         "EphemeraId": Object {
-          "S": "VariableOne",
+          "S": "VARIABLE#VariableOne",
         },
       },
       "TableName": "Ephemera",
@@ -40,7 +40,7 @@ Array [
           "S": "Meta::Variable",
         },
         "EphemeraId": Object {
-          "S": "VariableTwo",
+          "S": "VARIABLE#VariableTwo",
         },
       },
       "TableName": "Ephemera",
@@ -61,7 +61,7 @@ Array [
           "S": "Meta::Computed",
         },
         "EphemeraId": Object {
-          "S": "TestOne",
+          "S": "COMPUTED#TestOne",
         },
       },
       "TableName": "Ephemera",
@@ -74,37 +74,79 @@ Array [
 exports[`DependencyCascadeMessage should update a computed item and cascade 2`] = `
 Array [
   Object {
-    "Descent": Array [],
-    "tag": "Computed",
-    "targetId": "TestTwo",
+    "Descent": Array [
+      Object {
+        "EphemeraId": "COMPUTED#TestTwo",
+        "connections": Array [],
+      },
+    ],
+    "targetId": "COMPUTED#TestTwo",
     "type": "DependencyCascade",
   },
   Object {
     "Descent": Array [
       Object {
-        "EphemeraId": "CascadeThree",
-        "assets": Array [],
+        "EphemeraId": "COMPUTED#CascadeOne",
         "connections": Array [
           Object {
-            "EphemeraId": "TestTwo",
-            "assets": Array [],
-            "connections": Array [],
-            "key": "cascadeThree",
-            "tag": "Computed",
+            "EphemeraId": "COMPUTED#CascadeThree",
+            "assets": Array [
+              "base",
+            ],
+            "key": "cascadeOne",
           },
         ],
-        "key": "cascadeOne",
-        "tag": "Computed",
+      },
+      Object {
+        "EphemeraId": "COMPUTED#CascadeThree",
+        "connections": Array [
+          Object {
+            "EphemeraId": "COMPUTED#TestTwo",
+            "assets": Array [
+              "base",
+            ],
+            "key": "cascadeThree",
+          },
+        ],
+      },
+      Object {
+        "EphemeraId": "COMPUTED#TestTwo",
+        "connections": Array [],
       },
     ],
-    "tag": "Computed",
-    "targetId": "CascadeOne",
+    "targetId": "COMPUTED#CascadeOne",
     "type": "DependencyCascade",
   },
   Object {
-    "Descent": Array [],
-    "tag": "Computed",
-    "targetId": "CascadeTwo",
+    "Descent": Array [
+      Object {
+        "EphemeraId": "COMPUTED#CascadeTwo",
+        "connections": Array [],
+      },
+    ],
+    "targetId": "COMPUTED#CascadeTwo",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "Descent": Array [
+      Object {
+        "EphemeraId": "COMPUTED#CascadeThree",
+        "connections": Array [
+          Object {
+            "EphemeraId": "COMPUTED#TestTwo",
+            "assets": Array [
+              "base",
+            ],
+            "key": "cascadeThree",
+          },
+        ],
+      },
+      Object {
+        "EphemeraId": "COMPUTED#TestTwo",
+        "connections": Array [],
+      },
+    ],
+    "targetId": "COMPUTED#CascadeThree",
     "type": "DependencyCascade",
   },
 ]
@@ -128,7 +170,7 @@ Array [
           "S": "Meta::Variable",
         },
         "EphemeraId": Object {
-          "S": "VariableOne",
+          "S": "VARIABLE#VariableOne",
         },
       },
       "TableName": "Ephemera",
@@ -150,7 +192,7 @@ Array [
           "S": "Meta::Variable",
         },
         "EphemeraId": Object {
-          "S": "VariableTwo",
+          "S": "VARIABLE#VariableTwo",
         },
       },
       "TableName": "Ephemera",
@@ -171,7 +213,7 @@ Array [
           "S": "Meta::Computed",
         },
         "EphemeraId": Object {
-          "S": "TestOne",
+          "S": "COMPUTED#TestOne",
         },
       },
       "TableName": "Ephemera",
@@ -198,7 +240,7 @@ Array [
           "S": "Meta::Computed",
         },
         "EphemeraId": Object {
-          "S": "TestTwo",
+          "S": "COMPUTED#TestTwo",
         },
       },
       "TableName": "Ephemera",
@@ -211,14 +253,22 @@ Array [
 exports[`DependencyCascadeMessage should update in parallel and combine cascades 3`] = `
 Array [
   Object {
-    "Descent": Array [],
-    "tag": "Computed",
-    "targetId": "CascadeOne",
+    "Descent": Array [
+      Object {
+        "EphemeraId": "COMPUTED#CascadeOne",
+        "connections": Array [],
+      },
+    ],
+    "targetId": "COMPUTED#CascadeOne",
     "type": "DependencyCascade",
   },
   Object {
-    "Descent": Array [],
-    "tag": "Computed",
+    "Descent": Array [
+      Object {
+        "EphemeraId": "CascadeTwo",
+        "connections": Array [],
+      },
+    ],
     "targetId": "CascadeTwo",
     "type": "DependencyCascade",
   },

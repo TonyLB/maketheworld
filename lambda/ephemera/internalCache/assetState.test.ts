@@ -3,6 +3,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
 import { AssetStateMapping } from './assetState'
+import { Deferred } from './baseClasses'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -14,19 +15,20 @@ describe('AssetState', () => {
     })
 
     it('should send fetch only where no previous attempt is running', async () => {
-        internalCache.AssetState._StatePromiseByEphemeraId['testOne'] = Promise.resolve(1)
+        internalCache.AssetState._StateDeferredByEphemeraId['VARIABLE#testOne'] = new Deferred()
+        internalCache.AssetState._StateDeferredByEphemeraId['VARIABLE#testOne'].resolve(1)
         ephemeraMock.batchGetItem.mockResolvedValue([{
-            EphemeraId: 'testTwo',
+            EphemeraId: 'VARIABLE#testTwo',
             value: 2
         },
         {
-            EphemeraId: 'testThree',
+            EphemeraId: 'COMPUTED#testThree',
             value: 3
         }])
         const output = await internalCache.AssetState.get({
-            a: { tag: 'Variable', EphemeraId: 'testOne' },
-            b: { tag: 'Variable', EphemeraId: 'testTwo' },
-            c: { tag: 'Computed', EphemeraId: 'testThree' }
+            a: 'VARIABLE#testOne',
+            b: 'VARIABLE#testTwo',
+            c: 'COMPUTED#testThree'
         })
         expect(output).toEqual({
             a: 1,
@@ -36,8 +38,8 @@ describe('AssetState', () => {
         expect(ephemeraMock.batchGetItem).toHaveBeenCalledTimes(1)
         expect(ephemeraMock.batchGetItem).toHaveBeenCalledWith({
             Items: [
-                { EphemeraId: 'testTwo', DataCategory: 'Meta::Variable' },
-                { EphemeraId: 'testThree', DataCategory: 'Meta::Computed' }
+                { EphemeraId: 'VARIABLE#testTwo', DataCategory: 'Meta::Variable' },
+                { EphemeraId: 'COMPUTED#testThree', DataCategory: 'Meta::Computed' }
             ],
             ProjectionFields: ['EphemeraId', '#value'],
             ExpressionAttributeNames: {
@@ -51,9 +53,9 @@ describe('AssetState', () => {
         ephemeraMock.batchGetItem.mockImplementation(() => (new Promise((resolve) => {
             mockResolve = resolve
         })))
-        const outputPromise = internalCache.AssetState.get({ testOne: { EphemeraId: 'testOne', tag: 'Variable' }})
-        internalCache.AssetState.set('testOne', 'correct answer')
-        mockResolve([{ EphemeraId: 'testOne', value: 'wrong answer' }])
+        const outputPromise = internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
+        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
+        mockResolve([{ EphemeraId: 'VARIABLE#testOne', value: 'wrong answer' }])
         const output = await outputPromise
         expect(output).toEqual({
             testOne: 'correct answer'
@@ -66,8 +68,8 @@ describe('AssetState', () => {
         ephemeraMock.batchGetItem.mockImplementation(() => (new Promise((resolve, reject) => {
             mockReject = reject
         })))
-        const outputPromise = internalCache.AssetState.get({ testOne: { EphemeraId: 'testOne', tag: 'Variable' }})
-        internalCache.AssetState.set('testOne', 'correct answer')
+        const outputPromise = internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
+        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
         mockReject()
         const output = await outputPromise
         expect(output).toEqual({
@@ -78,12 +80,12 @@ describe('AssetState', () => {
 
     it('should invalidate both promise and set', async () => {
         ephemeraMock.batchGetItem
-            .mockResolvedValueOnce([{ EphemeraId: 'testOne', value: 'first wrong answer' }])
-            .mockResolvedValueOnce([{ EphemeraId: 'testOne', value: 'correct answer' }])
-        await internalCache.AssetState.get({ testOne: { EphemeraId: 'testOne', tag: 'Variable' }})
-        internalCache.AssetState.set('testOne', 'second wrong answer')
-        internalCache.AssetState.invalidate('testOne')
-        const output = await internalCache.AssetState.get({ testOne: { EphemeraId: 'testOne', tag: 'Variable' }})
+            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
+            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'correct answer' }])
+        await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
+        internalCache.AssetState.set('VARIABLE#testOne', 'second wrong answer')
+        internalCache.AssetState.invalidate('VARIABLE#testOne')
+        const output = await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
         expect(output).toEqual({
             testOne: 'correct answer'
         })
@@ -92,9 +94,9 @@ describe('AssetState', () => {
 
     it('should not fetch when value has been manually set', async () => {
         ephemeraMock.batchGetItem
-            .mockResolvedValueOnce([{ EphemeraId: 'testOne', value: 'first wrong answer' }])
-        internalCache.AssetState.set('testOne', 'correct answer')
-        const output = await internalCache.AssetState.get({ testOne: { EphemeraId: 'testOne', tag: 'Variable' }})
+            .mockResolvedValueOnce([{ EphemeraId: 'VARIABLE#testOne', value: 'first wrong answer' }])
+        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
+        const output = await internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
         expect(output).toEqual({
             testOne: 'correct answer'
         })
@@ -120,19 +122,19 @@ describe('AssetState', () => {
 
     it('should evaluate with arguments', async () => {
         assetCacheMock.mockResolvedValue({ a: 1, b: 2 })
-        const output = await internalCache.EvaluateCode.get({ mapping: { a: { EphemeraId: 'testOne', tag: 'Variable' }, b: { EphemeraId: 'testTwo', tag: 'Computed' } }, source: 'a+b'})
+        const output = await internalCache.EvaluateCode.get({ mapping: { a: 'VARIABLE#testOne', b: 'VARIABLE#testTwo' }, source: 'a+b'})
         expect(output).toBe(3)
         expect(internalCache.AssetState.get).toHaveBeenCalledTimes(1)
         expect(internalCache.AssetState.get).toHaveBeenCalledWith({
-            a: { EphemeraId: 'testOne', tag: 'Variable' },
-            b: { EphemeraId: 'testTwo', tag: 'Computed' }
+            a: 'VARIABLE#testOne',
+            b: 'VARIABLE#testTwo'
         })
     })
 
     it('should only fetch once on two identical calls', async () => {
         const testMapping: AssetStateMapping = { 
-            a: { EphemeraId: 'testOne', tag: 'Variable' },
-            b: { EphemeraId: 'testTwo', tag: 'Computed' }
+            a: 'VARIABLE#testOne',
+            b: 'VARIABLE#testTwo'
         }
         assetCacheMock.mockResolvedValue({ a: 1, b: 2 })
         await internalCache.EvaluateCode.get({ mapping: testMapping, source: 'a+b'})
@@ -144,12 +146,12 @@ describe('AssetState', () => {
 
     it('should fetch twice on identical source with different mappings', async () => {
         const testMappingOne: AssetStateMapping = { 
-            a: { EphemeraId: 'testOne', tag: 'Variable' },
-            b: { EphemeraId: 'testTwo', tag: 'Computed' }
+            a: 'VARIABLE#testOne',
+            b: 'VARIABLE#testTwo'
         }
         const testMappingTwo: AssetStateMapping = { 
-            a: { EphemeraId: 'testThree', tag: 'Variable' },
-            b: { EphemeraId: 'testFour', tag: 'Computed' }
+            a: 'VARIABLE#testThree',
+            b: 'VARIABLE#testFour'
         }
         assetCacheMock
             .mockResolvedValueOnce({ a: 1, b: 2 })
@@ -165,8 +167,8 @@ describe('AssetState', () => {
 
     it('should fetch twice on two identical mappings with different source', async () => {
         const testMapping: AssetStateMapping = { 
-            a: { EphemeraId: 'testOne', tag: 'Variable' },
-            b: { EphemeraId: 'testTwo', tag: 'Computed' }
+            a: 'VARIABLE#testOne',
+            b: 'VARIABLE#testTwo'
         }
         assetCacheMock.mockResolvedValue({ a: 1, b: 2 })
         const outputOne = await internalCache.EvaluateCode.get({ mapping: testMapping, source: 'a+b'})

@@ -166,7 +166,7 @@ describe('DependencyGraph', () => {
     describe('delete', () => {
         it('should correctly delete a connection', () => {
             internalCache.Descent._Store = { ...testStore }
-            internalCache.Descent.delete('COMPUTED#testTwo', { EphemeraId: 'COMPUTED#testThree', assets: ['base'] })
+            internalCache.Descent.delete('COMPUTED#testTwo', { EphemeraId: 'COMPUTED#testThree', key: 'testTwo', assets: ['base'] })
             expect(internalCache.Descent.getPartial('VARIABLE#testOne')).toMatchSnapshot()
         })
 

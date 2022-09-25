@@ -22,12 +22,7 @@ Array [
   },
   Object {
     "EphemeraId": "COMPUTED#testTwo",
-    "completeness": "Complete",
-    "connections": Array [],
-  },
-  Object {
-    "EphemeraId": "COMPUTED#testThree",
-    "completeness": "Complete",
+    "completeness": "Partial",
     "connections": Array [],
   },
 ]
@@ -43,7 +38,6 @@ Array [
         "EphemeraId": "COMPUTED#testTwo",
         "assets": Array [
           "base",
-          "layer",
         ],
       },
     ],
@@ -111,11 +105,6 @@ Array [
         "key": "testTwo",
       },
     ],
-  },
-  Object {
-    "EphemeraId": "COMPUTED#testThree",
-    "completeness": "Partial",
-    "connections": Array [],
   },
   Object {
     "EphemeraId": "COMPUTED#testThree",

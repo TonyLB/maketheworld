@@ -357,22 +357,20 @@ export class StateSynthesizer extends Object {
                 ) {
                     this.messageBus.send({
                         type: 'DescentUpdate',
-                        tag: childTag,
-                        targetId,
-                        assetId: this.assetId,
+                        EphemeraId: targetId,
                         putItem: {
                             key,
-                            EphemeraId
+                            EphemeraId,
+                            assets: [this.assetId]
                         }
                     })
                     this.messageBus.send({
                         type: 'AncestryUpdate',
-                        tag: parentTag,
-                        targetId: EphemeraId,
-                        assetId: this.assetId,
+                        EphemeraId,
                         putItem: {
                             key,
-                            EphemeraId: targetId
+                            EphemeraId: targetId,
+                            assets: [this.assetId]
                         }
                     })
                 }

@@ -5,6 +5,7 @@ jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 import dependentUpdateMessage from './dependentUpdate'
+import internalCache from '../internalCache'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
@@ -13,6 +14,8 @@ describe('DescentUpdateMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
+        internalCache.clear()
+        jest.spyOn(internalCache.Descent, 'get').mockResolvedValue([])
     })
 
     it('should call all unreferenced updates in a first wave', async () => {
@@ -20,18 +23,18 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
-                tag: 'Asset',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
                 }
             },
             {
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportTwo',
-                tag: 'Asset',
+                EphemeraId: 'ASSET#ImportTwo',
                 putItem: {
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ASSET']
                 }
             }],
             messageBus
@@ -40,10 +43,10 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledTimes(1)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
-            targetId: 'ASSET#ImportOne',
-            tag: 'Asset',
+            EphemeraId: 'ASSET#ImportOne',
             putItem: {
-                EphemeraId: 'ASSET#ImportTwo'
+                EphemeraId: 'ASSET#ImportTwo',
+                assets: ['ASSET']
             }
         })
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
@@ -59,7 +62,10 @@ describe('DescentUpdateMessage', () => {
         expect(testItem).toEqual({
             Descent: [
                 {
-                    tag: 'Asset',
+                    EphemeraId: 'ASSET#ImportTwo',
+                    connections: [{ EphemeraId: 'ASSET#ImportThree', assets: ['ASSET'] }]
+                },
+                {
                     EphemeraId: 'ASSET#ImportThree',
                     connections: []
                 }
@@ -71,12 +77,17 @@ describe('DescentUpdateMessage', () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
             Ancestry: [
                 {
-                    tag: 'Asset',
+                    EphemeraId: 'ASSET#ImportOne',
+                    connections: [
+                        { EphemeraId: 'ASSET#Base', assets: ['ASSET'] },
+                        { EphemeraId: 'ASSET#Bootstrap', assets: ['ASSET'] }
+                    ]
+                },
+                {
                     EphemeraId: 'ASSET#Base',
                     connections: []
                 },
                 {
-                    tag: 'Asset',
                     EphemeraId: 'ASSET#Bootstrap',
                     connections: []
                 }
@@ -85,7 +96,10 @@ describe('DescentUpdateMessage', () => {
         .mockResolvedValueOnce({
             Descent: [
                 {
-                    tag: 'Asset',
+                    EphemeraId: 'ASSET#ImportTwo',
+                    connections: [{ EphemeraId: 'ASSET#ImportThree', assets: ['ASSET'] }]
+                },
+                {
                     EphemeraId: 'ASSET#ImportThree',
                     connections: []
                 }
@@ -98,10 +112,10 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
-                tag: 'Asset',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
                 }
             }],
             messageBus
@@ -110,18 +124,18 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledTimes(2)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
-            targetId: 'ASSET#Base',
-            tag: 'Asset',
+            EphemeraId: 'ASSET#Base',
             putItem: {
-                EphemeraId: 'ASSET#ImportOne'
+                EphemeraId: 'ASSET#ImportOne',
+                assets: ['ASSET']
             }
         })
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
-            targetId: 'ASSET#Bootstrap',
-            tag: 'Asset',
+            EphemeraId: 'ASSET#Bootstrap',
             putItem: {
-                EphemeraId: 'ASSET#ImportOne'
+                EphemeraId: 'ASSET#ImportOne',
+                assets: ['ASSET']
             }
         })
     })
@@ -130,7 +144,6 @@ describe('DescentUpdateMessage', () => {
         ephemeraDBMock.getItem.mockResolvedValueOnce({
             Ancestry: [
                 {
-                    tag: 'Asset',
                     EphemeraId: 'ASSET#Base',
                     connections: []
                 }
@@ -139,7 +152,6 @@ describe('DescentUpdateMessage', () => {
         .mockResolvedValueOnce({
             Descent: [
                 {
-                    tag: 'Asset',
                     EphemeraId: 'ASSET#ImportThree',
                     connections: []
                 }
@@ -155,18 +167,18 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
-                tag: 'Asset',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportTwo',
+                    assets: ['ASSET']
                 }
             },
             {
                 type: 'DescentUpdate',
-                targetId: 'ASSET#ImportOne',
-                tag: 'Asset',
+                EphemeraId: 'ASSET#ImportOne',
                 putItem: {
                     EphemeraId: 'ASSET#ImportThree',
+                    assets: ['ASSET']
                 }
             }],
             messageBus
@@ -175,10 +187,10 @@ describe('DescentUpdateMessage', () => {
         expect(messageBus.send).toHaveBeenCalledTimes(1)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
-            targetId: 'ASSET#Base',
-            tag: 'Asset',
+            EphemeraId: 'ASSET#ImportOne',
             putItem: {
-                EphemeraId: 'ASSET#ImportOne'
+                EphemeraId: 'ASSET#ImportThree',
+                assets: ['ASSET']
             }
         })
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
@@ -195,17 +207,13 @@ describe('DescentUpdateMessage', () => {
         expect(testItem).toEqual({
             Descent: [
                 {
-                    tag: 'Asset',
-                    EphemeraId: 'ASSET#ImportTwo',
-                    connections: [{
-                        tag: 'Asset',
-                        EphemeraId: 'ASSET#ImportThree',
-                        connections: []
-                    }]
+                    EphemeraId: 'ASSET#ImportOne',
+                    connections: [
+                        { EphemeraId: 'ASSET#ImportTwo', assets: ['ASSET'] }
+                    ]
                 },
                 {
-                    tag: 'Asset',
-                    EphemeraId: 'ASSET#ImportThree',
+                    EphemeraId: 'ASSET#ImportTwo',
                     connections: []
                 }
             ]
@@ -218,9 +226,7 @@ describe('DescentUpdateMessage', () => {
         })
         .mockResolvedValueOnce({
             Descent: [{
-                tag: 'Map',
                 EphemeraId: 'MAP#DEF',
-                assets: ['Base'],
                 connections: []
             }]
         })
@@ -231,12 +237,11 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
-                tag: 'Room',
-                assetId: 'Layer',
+                EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
                     key: 'lightsOn',
                     EphemeraId: 'ROOM#ABC',
+                    assets: ['Layer']
                 }
             }],
             messageBus
@@ -254,47 +259,46 @@ describe('DescentUpdateMessage', () => {
         })
         let testItem = { Descent: [
             {
-                tag: 'Room',
-                EphemeraId: 'ROOM#ABC',
-                assets: ['Base'],
-                key: 'lightSwitch',
+                EphemeraId: 'VARIABLE#XYZ',
                 connections: [{
-                    tag: 'Map',
-                    EphemeraId: 'MAP#DEF',
-                    assets: ['Base'],
-                    connections: []
+                    EphemeraId: 'ROOM#ABC',
+                    key: 'lightSwitch',
+                    assets: ['Base']
                 }]
+            },
+            {
+                EphemeraId: 'ROOM#ABC',
+                connections: [{
+                    EphemeraId: 'MAP#DEF',
+                    assets: ['Base']
+                }]
+            },
+            {
+                EphemeraId: 'MAP#DEF',
+                connections: []
             }
         ] }
         ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [{
-                tag: 'Room',
-                EphemeraId: 'ROOM#ABC',
-                assets: ['Base'],
-                key: 'lightSwitch',
-                connections:[
-                    {
-                        tag: 'Map',
-                        EphemeraId: 'MAP#DEF',
-                        assets: ['Base'],
-                        connections: []
-                    }    
+                EphemeraId: 'VARIABLE#XYZ',
+                connections: [
+                    { EphemeraId: 'ROOM#ABC', assets: ['Base'], key: 'lightSwitch' },
+                    { EphemeraId: 'ROOM#ABC', assets: ['Layer'], key: 'lightsOn' }
                 ]
             },
             {
-                tag: 'Room',
                 EphemeraId: 'ROOM#ABC',
-                assets: ['Layer'],
-                key: 'lightsOn',
                 connections:[
                     {
-                        tag: 'Map',
                         EphemeraId: 'MAP#DEF',
                         assets: ['Base'],
-                        connections: []
-                    }    
+                    }
                 ]
+            },
+            {
+                EphemeraId: 'MAP#DEF',
+                connections: []
             }]
         })
     })
@@ -305,9 +309,7 @@ describe('DescentUpdateMessage', () => {
         })
         .mockResolvedValueOnce({
             Descent: [{
-                tag: 'Map',
                 EphemeraId: 'MAP#DEF',
-                assets: ['Base'],
                 connections: []
             }]
         })
@@ -318,12 +320,11 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
-                tag: 'Room',
-                assetId: 'Layer',
+                EphemeraId: 'VARIABLE#XYZ',
                 putItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
+                    assets: ['Layer']
                 }
             }],
             messageBus
@@ -341,33 +342,27 @@ describe('DescentUpdateMessage', () => {
         })
         let testItem = { Descent: [
             {
-                tag: 'Room',
+                EphemeraId: 'VARIABLE#XYZ',
+                connections: [
+                    { EphemeraId: 'ROOM#ABC', key: 'lightSwitch', assets: ['Base'] }
+                ]
+            },
+            {
                 EphemeraId: 'ROOM#ABC',
-                assets: ['Base'],
-                key: 'lightSwitch',
-                connections: [{
-                    tag: 'Map',
-                    EphemeraId: 'MAP#DEF',
-                    assets: ['Base'],
-                    connections: []
-                }]
+                connections: []
             }
         ] }
         ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
             Descent: [{
-                tag: 'Room',
-                EphemeraId: 'ROOM#ABC',
-                assets: ['Base', 'Layer'],
-                key: 'lightSwitch',
-                connections:[
-                    {
-                        tag: 'Map',
-                        EphemeraId: 'MAP#DEF',
-                        assets: ['Base'],
-                        connections: []
-                    }    
+                EphemeraId: 'VARIABLE#XYZ',
+                connections: [
+                    { EphemeraId: 'ROOM#ABC', key: 'lightSwitch', assets: ['Base', 'Layer'] }
                 ]
+            },
+            {
+                EphemeraId: 'ROOM#ABC',
+                connections:[]
             }]
         })
     })
@@ -383,12 +378,11 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
-                tag: 'Room',
-                assetId: 'Layer',
+                EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
+                    assets: ['Layer']
                 }
             }],
             messageBus
@@ -406,34 +400,30 @@ describe('DescentUpdateMessage', () => {
         })
         let testItem = { Descent: [
             {
-                tag: 'Room',
+                EphemeraId: 'VARIABLE#XYZ',
+                connections: [
+                    { EphemeraId: 'ROOM#ABC', key: 'lightSwitch', assets: ['Base', 'Layer'] }
+                ]
+            },
+            {
                 EphemeraId: 'ROOM#ABC',
-                assets: ['Base', 'Layer'],
-                key: 'lightSwitch',
-                connections: [{
-                    tag: 'Map',
-                    EphemeraId: 'MAP#DEF',
-                    assets: ['Base'],
-                    connections: []
-                }]
+                connections: []
             }
         ] }
         ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
-            Descent: [{
-                tag: 'Room',
-                EphemeraId: 'ROOM#ABC',
-                assets: ['Base'],
-                key: 'lightSwitch',
-                connections:[
-                    {
-                        tag: 'Map',
-                        EphemeraId: 'MAP#DEF',
-                        assets: ['Base'],
-                        connections: []
-                    }    
-                ]
-            }]
+            Descent: [
+                {
+                    EphemeraId: 'VARIABLE#XYZ',
+                    connections: [
+                        { EphemeraId: 'ROOM#ABC', key: 'lightSwitch', assets: ['Base'] }
+                    ]
+                },
+                {
+                    EphemeraId: 'ROOM#ABC',
+                    connections:[]
+                }
+            ]
         })
     })
 
@@ -448,12 +438,11 @@ describe('DescentUpdateMessage', () => {
         await dependentUpdateMessage('Descent')({
             payloads: [{
                 type: 'DescentUpdate',
-                targetId: 'VARIABLE#XYZ',
-                tag: 'Room',
-                assetId: 'Base',
+                EphemeraId: 'VARIABLE#XYZ',
                 deleteItem: {
                     key: 'lightSwitch',
                     EphemeraId: 'ROOM#ABC',
+                    assets: ['Base']
                 }
             }],
             messageBus
@@ -471,21 +460,28 @@ describe('DescentUpdateMessage', () => {
         })
         let testItem = { Descent: [
             {
-                tag: 'Room',
-                EphemeraId: 'ROOM#ABC',
-                assets: ['Base'],
-                key: 'lightSwitch',
+                EphemeraId: 'VARIABLE#XYZ',
                 connections: [{
-                    tag: 'Map',
-                    EphemeraId: 'MAP#DEF',
-                    assets: ['Base'],
-                    connections: []
+                    key: 'lightSwitch',
+                    EphemeraId: 'ROOM#ABC',
+                    assets: ['Base']
                 }]
+            },
+            {
+                EphemeraId: 'ROOM#ABC',
+                connections: [{ EphemeraId: 'MAP#DEF', assets: ['Base'] }]
+            },
+            {
+                EphemeraId: 'MAP#DEF',
+                connections: []
             }
         ] }
         ephemeraDBMock.optimisticUpdate.mock.calls[0][0].updateReducer(testItem)
         expect(testItem).toEqual({
-            Descent: []
+            Descent: [{
+                EphemeraId: 'VARIABLE#XYZ',
+                connections: []
+            }]
         })
     })
 

@@ -2,15 +2,15 @@
 // This file has utilities for merging a new list of EphemeraItems into the current database, updating
 // both the per-Asset entries and (if necessary) the Meta::<Component> aggregate entries
 //
-import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox";
+import evaluateCode from "@tonylb/mtw-utilities/dist/computation/sandbox"
 import { connectionDB, ephemeraDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
-import { unique } from "@tonylb/mtw-utilities/dist/lists";
-import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types";
-import { WritableDraft } from "immer/dist/internal";
-import internalCache from "../internalCache";
-import messageBus from "../messageBus";
-import { LegacyDependencyNodeNonAsset } from "../messageBus/baseClasses";
-import { EphemeraItem } from "./baseClasses";
+import { unique } from "@tonylb/mtw-utilities/dist/lists"
+import { AssetKey, splitType } from "@tonylb/mtw-utilities/dist/types"
+import { WritableDraft } from "immer/dist/internal"
+import internalCache from "../internalCache"
+import { DependencyNode } from "../internalCache/baseClasses"
+import messageBus from "../messageBus"
+import { EphemeraItem } from "./baseClasses"
 
 type ActiveCharacterOutput = {
     EphemeraId: string;
@@ -79,7 +79,7 @@ type EphemeraAssetMeta = {
     src?: string;
     rootAsset?: string;
     value?: any;
-    Descent?: LegacyDependencyNodeNonAsset[];
+    Descent?: DependencyNode[];
 }
 
 export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]): Promise<void> => {
@@ -132,7 +132,6 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                                 messageBus.send({
                                     type: 'DependencyCascade',
                                     targetId: item.EphemeraId,
-                                    tag: 'Computed',
                                     Descent: draft.Descent ?? []
                                 })
                             }

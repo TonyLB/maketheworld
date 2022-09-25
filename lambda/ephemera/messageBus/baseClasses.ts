@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { RoomCharacterListItem } from "../internalCache/baseClasses"
+import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -198,69 +198,21 @@ export type RoomUpdateMessage = {
     roomId: string;
 }
 
-type LegacyDependencyNodeAsset = {
-    tag: 'Asset';
-    EphemeraId: string;
-    connections: LegacyDependencyNodeAsset[];
-}
-
-export type LegacyDependencyNodeNonAsset = {
-    tag: 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-    key?: string; // The key name by which children nodes know this parent
-    EphemeraId: string;
-    assets: string[]
-    connections: LegacyDependencyNodeNonAsset[];
-}
-
-export type LegacyDependencyNode = LegacyDependencyNodeAsset | LegacyDependencyNodeNonAsset
-
-type DependencyUpdateAssetMessage = {
-    tag: 'Asset';
-    targetId: string;
-    putItem?: Omit<LegacyDependencyNode, 'connections' | 'tag'>;
-    deleteItem?: Omit<LegacyDependencyNodeAsset, 'connections' | 'tag'>;
-}
-
-export type LegalDependencyTag = 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
-export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
-
-export type DependencyUpdateNonAssetMessage = {
-    tag: LegalDependencyTag
-    targetId: string;
-    assetId: string;
-    putItem?: Omit<LegacyDependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
-    deleteItem?: Omit<LegacyDependencyNodeNonAsset, 'assets' | 'connections' | 'tag'>;
-}
-
-export type DependencyUpdateMessage = DependencyUpdateAssetMessage | DependencyUpdateNonAssetMessage
-
-export type DescentUpdateAssetMessage = {
-    type: 'DescentUpdate';
-} & DependencyUpdateAssetMessage
-
-export type DescentUpdateNonAssetMessage = {
-    type: 'DescentUpdate';
-} & DependencyUpdateNonAssetMessage
+export type LegalDependencyTag = 'Asset' | 'Variable' | 'Computed' | 'Room' | 'Feature' | 'Map'
+export const isLegalDependencyTag = (tag: string): tag is LegalDependencyTag => (['Asset', 'Variable', 'Computed', 'Room', 'Feature', 'Map'].includes(tag))
 
 export type DescentUpdateMessage = {
     type: 'DescentUpdate';
-} & DependencyUpdateMessage
+} & DependencyGraphAction
 
-export type AncestryUpdateAssetMessage = {
+export type AncestryUpdateMessage = {
     type: 'AncestryUpdate';
-} & DependencyUpdateAssetMessage
-
-export type AncestryUpdateNonAssetMessage = {
-    type: 'AncestryUpdate';
-} & DependencyUpdateNonAssetMessage
-
-export type AncestryUpdateMessage = AncestryUpdateAssetMessage | AncestryUpdateNonAssetMessage
+} & DependencyGraphAction
 
 export type DependencyCascadeMessage = {
     type: 'DependencyCascade';
     targetId: string;
-    tag: LegalDependencyTag;
-    Descent: LegacyDependencyNodeNonAsset[];
+    Descent: Omit<DependencyNode, 'completeness'>[];
 }
 
 export type MessageType = PublishMessage |
