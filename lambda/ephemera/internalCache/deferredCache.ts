@@ -26,6 +26,11 @@ type DeferredCacheOutputDistributor<T, A> = {
 export class DeferredCache <T>{
     _cache: Record<string, Deferred<T>> = {};
     _promises: Promise<any>[] = [];
+    _callback?: (key: string, value: T) => void;
+
+    constructor(callback?: (key: string, value: T) => void) {
+        this._callback = callback
+   }
 
     async get(key: string): Promise<T> {
         if (key in this._cache) {
@@ -48,10 +53,7 @@ export class DeferredCache <T>{
                 .then((output) => (transform(output)))
                 .then((output) => {
                     Object.entries(output).forEach(([key, value]) => {
-                        if (!(key in cache)) {
-                            cache[key] = new Deferred<T>()
-                        }
-                        cache[key].resolve(value)
+                        this.set(key, value)
                     })
                     const failedKeys = fetchNeeded.filter((key) => (!(Object.keys(output).includes(key))))
                     if (failedKeys.length) {
@@ -83,6 +85,9 @@ export class DeferredCache <T>{
     set(key: string, value: T) {
         if (!(key in this._cache)) {
             this._cache[key] = new Deferred<T>()
+        }
+        if (this._callback) {
+            this._callback(key, value)
         }
         this._cache[key].resolve(value)
     }

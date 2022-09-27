@@ -97,6 +97,18 @@ describe('DeferredCache', () => {
         mockResolve({ testOne: 'wrong answer' })
         const output = await outputPromise
         expect(output).toEqual('correct answer')
+    })
 
+    it('should execute callback when passed', async () => {
+        const callbackMock = jest.fn()
+        const callbackCache = new DeferredCache<string>(callbackMock)
+        callbackCache.add({
+            promiseFactory: jest.fn().mockResolvedValue({ testOne: 'test' }),
+            requiredKeys: ['testOne'],
+            transform: (output: Record<string, string>) => (output)
+        })
+        const output = await callbackCache.get('testOne')
+        expect(callbackMock).toHaveBeenCalledWith('testOne', 'test')
+        expect(output).toEqual('test')
     })
 })

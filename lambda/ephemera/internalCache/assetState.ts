@@ -38,47 +38,10 @@ export class AssetStateData {
         return Object.assign({}, ...(await Promise.all(
             Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateCache.get(EphemeraId) }))
         ))) as AssetStateOutput<T>
-        // const itemsInNeedOfFetch = Object.values(keys)
-        //     .filter((EphemeraId) => (!(EphemeraId in this._StateCache)))
-        // if (itemsInNeedOfFetch.length > 0) {
-        //     itemsInNeedOfFetch.forEach((item) => {
-        //         this._StateCache[item] = new Deferred<any>()
-        //     })
-        //     await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
-        //         Items: itemsInNeedOfFetch.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
-        //         ProjectionFields: ['EphemeraId', '#value'],
-        //         ExpressionAttributeNames: {
-        //             '#value': 'value'
-        //         }
-        //     }).then((outputList) => {
-        //         outputList.forEach(({ EphemeraId, value }) => {
-        //             this._StateCache[EphemeraId].resolve(value)
-        //         })
-        //         const itemsFetched = outputList.map(({ EphemeraId }) => (EphemeraId))
-        //         itemsInNeedOfFetch
-        //             .filter((item) => (!(itemsFetched.includes(item))))
-        //             .forEach((EphemeraId) => {
-        //                 this._StateCache[EphemeraId].resolve(false)
-        //             })
-        //     })
-        //     .catch(() => {
-        //         itemsInNeedOfFetch
-        //             .forEach((EphemeraId) => {
-        //                 this._StateCache[EphemeraId].resolve(false)
-        //             })
-        //     })
-        // }
-        // return Object.assign({}, ...(await Promise.all(
-        //     Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateCache[EphemeraId].promise }))
-        // ))) as AssetStateOutput<T>
     }
 
     set(EphemeraId: string, value: any) {
         this._StateCache.set(EphemeraId, value)
-        // if (!(EphemeraId in this._StateCache)) {
-        //     this._StateCache[EphemeraId] = new Deferred()
-        // }
-        // this._StateCache[EphemeraId].resolve(value)
         this._StateOverriden[EphemeraId] = true
     }
 
