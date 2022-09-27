@@ -1,7 +1,7 @@
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
-import { CacheConstructor, Deferred } from './baseClasses'
+import { DeferredCache } from './deferredCache'
 import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 
 export type AssetStateMapping = Record<string, string>
@@ -11,59 +11,79 @@ type AssetStateOutput<T extends AssetStateMapping> = {
 }
 
 export class AssetStateData {
-    _StateDeferredByEphemeraId: Record<string, Deferred<any>> = {}
+    _StateCache: DeferredCache<any> = new DeferredCache<any>();
     _StateOverriden: Record<string, boolean> = {}
     
     clear() {
-        this._StateDeferredByEphemeraId = {}
+        this._StateCache.clear()
         this._StateOverriden = {}
     }
+    flush() {
+        this._StateCache.flush()
+    }
     async get<T extends AssetStateMapping>(keys: T): Promise<AssetStateOutput<T>> {
-        const itemsInNeedOfFetch = Object.values(keys)
-            .filter((EphemeraId) => (!(EphemeraId in this._StateDeferredByEphemeraId)))
-        if (itemsInNeedOfFetch.length > 0) {
-            itemsInNeedOfFetch.forEach((item) => {
-                this._StateDeferredByEphemeraId[item] = new Deferred<any>()
-            })
-            await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
-                Items: itemsInNeedOfFetch.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
-                ProjectionFields: ['EphemeraId', '#value'],
-                ExpressionAttributeNames: {
-                    '#value': 'value'
-                }
-            }).then((outputList) => {
-                outputList.forEach(({ EphemeraId, value }) => {
-                    this._StateDeferredByEphemeraId[EphemeraId].resolve(value)
+        this._StateCache.add({
+            promiseFactory: async (keys: string[]) => {
+                return await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
+                    Items: keys.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
+                    ProjectionFields: ['EphemeraId', '#value'],
+                    ExpressionAttributeNames: {
+                        '#value': 'value'
+                    }
                 })
-                const itemsFetched = outputList.map(({ EphemeraId }) => (EphemeraId))
-                itemsInNeedOfFetch
-                    .filter((item) => (!(itemsFetched.includes(item))))
-                    .forEach((EphemeraId) => {
-                        this._StateDeferredByEphemeraId[EphemeraId].resolve(false)
-                    })
-            })
-            .catch(() => {
-                itemsInNeedOfFetch
-                    .forEach((EphemeraId) => {
-                        this._StateDeferredByEphemeraId[EphemeraId].resolve(false)
-                    })
-            })
-        }
+            },
+            requiredKeys: Object.values(keys),
+            transform: (outputList) => (outputList.reduce((previous, { EphemeraId, value }) => ({ ...previous, [EphemeraId]: value }), {}))
+        })
         return Object.assign({}, ...(await Promise.all(
-            Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateDeferredByEphemeraId[EphemeraId].promise }))
+            Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateCache.get(EphemeraId) }))
         ))) as AssetStateOutput<T>
+        // const itemsInNeedOfFetch = Object.values(keys)
+        //     .filter((EphemeraId) => (!(EphemeraId in this._StateCache)))
+        // if (itemsInNeedOfFetch.length > 0) {
+        //     itemsInNeedOfFetch.forEach((item) => {
+        //         this._StateCache[item] = new Deferred<any>()
+        //     })
+        //     await ephemeraDB.batchGetItem<{ EphemeraId: string; value: any; }>({
+        //         Items: itemsInNeedOfFetch.map((EphemeraId) => ({ EphemeraId, DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}` })),
+        //         ProjectionFields: ['EphemeraId', '#value'],
+        //         ExpressionAttributeNames: {
+        //             '#value': 'value'
+        //         }
+        //     }).then((outputList) => {
+        //         outputList.forEach(({ EphemeraId, value }) => {
+        //             this._StateCache[EphemeraId].resolve(value)
+        //         })
+        //         const itemsFetched = outputList.map(({ EphemeraId }) => (EphemeraId))
+        //         itemsInNeedOfFetch
+        //             .filter((item) => (!(itemsFetched.includes(item))))
+        //             .forEach((EphemeraId) => {
+        //                 this._StateCache[EphemeraId].resolve(false)
+        //             })
+        //     })
+        //     .catch(() => {
+        //         itemsInNeedOfFetch
+        //             .forEach((EphemeraId) => {
+        //                 this._StateCache[EphemeraId].resolve(false)
+        //             })
+        //     })
+        // }
+        // return Object.assign({}, ...(await Promise.all(
+        //     Object.entries(keys).map(async ([key, EphemeraId]) => ({ [key]: await this._StateCache[EphemeraId].promise }))
+        // ))) as AssetStateOutput<T>
     }
 
     set(EphemeraId: string, value: any) {
-        if (!(EphemeraId in this._StateDeferredByEphemeraId)) {
-            this._StateDeferredByEphemeraId[EphemeraId] = new Deferred()
-        }
-        this._StateDeferredByEphemeraId[EphemeraId].resolve(value)
+        this._StateCache.set(EphemeraId, value)
+        // if (!(EphemeraId in this._StateCache)) {
+        //     this._StateCache[EphemeraId] = new Deferred()
+        // }
+        // this._StateCache[EphemeraId].resolve(value)
         this._StateOverriden[EphemeraId] = true
     }
 
     invalidate(EphemeraId: string) {
-        delete this._StateDeferredByEphemeraId[EphemeraId]
+        this._StateCache.invalidate(EphemeraId)
         delete this._StateOverriden[EphemeraId]
     }
 
@@ -161,6 +181,12 @@ export const AssetState = <GBase extends ReturnType<typeof DependencyGraph>>(Bas
             this.AssetState.clear()
             this.EvaluateCode.clear()
             super.clear()
+        }
+        override async flush() {
+            await Promise.all([
+                this.AssetState.flush(),
+                super.flush()
+            ])
         }
     }
 }

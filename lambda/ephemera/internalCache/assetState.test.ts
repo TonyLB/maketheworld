@@ -14,9 +14,8 @@ describe('AssetState', () => {
         internalCache.clear()
     })
 
-    it('should send fetch only where no previous attempt is running', async () => {
-        internalCache.AssetState._StateDeferredByEphemeraId['VARIABLE#testOne'] = new Deferred()
-        internalCache.AssetState._StateDeferredByEphemeraId['VARIABLE#testOne'].resolve(1)
+    it('should send fetch correctly', async () => {
+        internalCache.AssetState.set('VARIABLE#testOne', 1)
         ephemeraMock.batchGetItem.mockResolvedValue([{
             EphemeraId: 'VARIABLE#testTwo',
             value: 2
@@ -46,36 +45,6 @@ describe('AssetState', () => {
                 '#value': 'value'
             }
         })
-    })
-
-    it('should override an in-progress attempt when set is called', async () => {
-        let mockResolve
-        ephemeraMock.batchGetItem.mockImplementation(() => (new Promise((resolve) => {
-            mockResolve = resolve
-        })))
-        const outputPromise = internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
-        mockResolve([{ EphemeraId: 'VARIABLE#testOne', value: 'wrong answer' }])
-        const output = await outputPromise
-        expect(output).toEqual({
-            testOne: 'correct answer'
-        })
-
-    })
-
-    it('should override an error when set is called', async () => {
-        let mockReject
-        ephemeraMock.batchGetItem.mockImplementation(() => (new Promise((resolve, reject) => {
-            mockReject = reject
-        })))
-        const outputPromise = internalCache.AssetState.get({ testOne: 'VARIABLE#testOne' })
-        internalCache.AssetState.set('VARIABLE#testOne', 'correct answer')
-        mockReject()
-        const output = await outputPromise
-        expect(output).toEqual({
-            testOne: 'correct answer'
-        })
-
     })
 
     it('should invalidate both promise and set', async () => {

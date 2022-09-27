@@ -82,4 +82,21 @@ describe('DeferredCache', () => {
         expect(output).toEqual('right answer')
     })
 
+    it('should override an in-progress attempt when set is called', async () => {
+        let mockResolve
+        const testFactoryOne = jest.fn().mockImplementation(() => (new Promise((resolve) => {
+            mockResolve = resolve
+        })))
+        testCache.add({
+            promiseFactory: testFactoryOne,
+            requiredKeys: ['testOne'],
+            transform: (output: Record<string, string>) => (output)
+        })
+        const outputPromise = testCache.get('testOne')
+        testCache.set('testOne', 'correct answer')
+        mockResolve({ testOne: 'wrong answer' })
+        const output = await outputPromise
+        expect(output).toEqual('correct answer')
+
+    })
 })

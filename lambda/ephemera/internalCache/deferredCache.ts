@@ -75,4 +75,15 @@ export class DeferredCache <T>{
         this._cache = {}
         this._promises = []
     }
+
+    invalidate(key: string) {
+        delete this._cache[key]
+    }
+
+    set(key: string, value: T) {
+        if (!(key in this._cache)) {
+            this._cache[key] = new Deferred<T>()
+        }
+        this._cache[key].resolve(value)
+    }
 }
