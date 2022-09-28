@@ -49,11 +49,13 @@ export const isDependencyGraphPut = (action: DependencyGraphAction): action is D
 export const isDependencyGraphDelete = (action: DependencyGraphAction): action is DependencyGraphDelete => ('deleteItem' in action)
 
 export class CacheBase {
-    async clear() {}
+    clear() {}
+    async flush() {}
 }
 
 type Constructor<T = {}> = new (...args: any[]) => T;
 
 export type CacheConstructor = Constructor<{
     clear(): void;
+    flush(): Promise<void>;
 }>

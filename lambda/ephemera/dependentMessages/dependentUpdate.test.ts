@@ -13,7 +13,7 @@ describe('DescentUpdateMessage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        jest.restoreAllMocks()
+        jest.resetAllMocks()
         internalCache.clear()
         jest.spyOn(internalCache.Descent, 'get').mockResolvedValue([])
     })
@@ -40,7 +40,7 @@ describe('DescentUpdateMessage', () => {
             messageBus
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(1)
+        expect(messageBus.send).toHaveBeenCalledTimes(2)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             EphemeraId: 'ASSET#ImportOne',
@@ -184,15 +184,7 @@ describe('DescentUpdateMessage', () => {
             messageBus
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(1)
-        expect(messageBus.send).toHaveBeenCalledWith({
-            type: 'DescentUpdate',
-            EphemeraId: 'ASSET#ImportOne',
-            putItem: {
-                EphemeraId: 'ASSET#ImportThree',
-                assets: ['ASSET']
-            }
-        })
+        expect(messageBus.send).toHaveBeenCalledTimes(0)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledTimes(1)
         expect(ephemeraDBMock.optimisticUpdate).toHaveBeenCalledWith({
             key: {
@@ -209,7 +201,8 @@ describe('DescentUpdateMessage', () => {
                 {
                     EphemeraId: 'ASSET#ImportOne',
                     connections: [
-                        { EphemeraId: 'ASSET#ImportTwo', assets: ['ASSET'] }
+                        { EphemeraId: 'ASSET#ImportTwo', assets: ['ASSET'] },
+                        { EphemeraId: 'ASSET#ImportThree', assets: ['ASSET'] }
                     ]
                 },
                 {

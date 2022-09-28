@@ -41,6 +41,10 @@ describe('DependencyGraph', () => {
             internalCache.clear()
         })
 
+        afterEach(async () => {
+            await internalCache.flush()
+        })
+
         it('should correctly fetch a tree', async () => {
             internalCache.Descent._Store = { ...testStore }
             ephemeraMock.getItem.mockResolvedValue({
@@ -134,12 +138,12 @@ describe('DependencyGraph', () => {
                 },
                 {
                     EphemeraId: 'COMPUTED#testTwo',
-                    completeness: 'Complete',
+                    completeness: 'Partial',
                     connections: []
                 },
                 {
                     EphemeraId: 'COMPUTED#testThree',
-                    completeness: 'Complete',
+                    completeness: 'Partial',
                     connections: []
                 }
             ])

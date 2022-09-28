@@ -3,8 +3,7 @@ import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
 import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, Deferred } from './baseClasses'
 import { produce } from 'immer'
-
-type DependencyNodeDeferred = Deferred<DependencyNode>
+import { DeferredCache } from './deferredCache';
 
 export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     const [upperTag] = splitType(EphemeraId)
@@ -129,67 +128,61 @@ export const reduceDependencyGraph = (state: Record<string, DependencyNode>, act
 export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
     _antiDependency?: DependencyGraphData;
-    _Deferred: Record<string, DependencyNodeDeferred> = {}
+    _Cache: DeferredCache<DependencyNode>;
     _Store: Record<string, DependencyNode> = {}
     
     constructor(dependencyTag: 'Descent' | 'Ancestry') {
         this.dependencyTag = dependencyTag
+        this._Cache = new DeferredCache({
+            callback: (key, value) => { this._setStore(key, value) },
+            defaultValue: (EphemeraId) => ({
+                EphemeraId,
+                completeness: 'Partial',
+                connections: []
+            })
+        })
+    }
+
+    async flush() {
+        this._Cache.flush()
     }
 
     clear() {
-        Object.values(this._Deferred).forEach(({ resolve }) => { resolve({ EphemeraId: '', connections: [], completeness: 'Partial' }) })
-        this._Deferred = {}
+        this._Cache.clear()
         this._Store = {}
+    }
+
+    _setStore(key: string, value: DependencyNode): void {
+        this._Store[key] = value
     }
 
     async get(EphemeraId: string): Promise<DependencyNode[]> {
         const tag = tagFromEphemeraId(EphemeraId)
         if (this.isComplete(EphemeraId)) {
+            console.log(`Returning partial: ${EphemeraId}`)
             return this.getPartial(EphemeraId)
         }
-        if (!(EphemeraId in this._Deferred)) {
-            const knownTree = this.getPartial(EphemeraId)
+        const knownTree = this.getPartial(EphemeraId).map(({ EphemeraId }) => (EphemeraId))
+        if (!this._Cache.isCached(EphemeraId)) {
             //
             // TODO: Refactor how Deferred entries get created and promises assigned
             //
-            knownTree.forEach((node) => {
-                if (!(node.EphemeraId in this._Deferred)) {
-                    this._Deferred[node.EphemeraId] = new Deferred<DependencyNode>()
-                }
-            })
-            const helper = async (): Promise<void> => {
-                const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
-                    EphemeraId: EphemeraId,
+            console.log(`Adding: ${JSON.stringify(knownTree, null, 4)}`)
+            this._Cache.add({
+                promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
+                    EphemeraId,
                     DataCategory: `Meta::${tag}`,
                     ProjectionFields: [this.dependencyTag]
-                }))
-                const fetchedNodes = fetchValue?.[this.dependencyTag] || []
-                console.log(`Fetch Nodes: ${JSON.stringify(fetchedNodes, null, 4)}`)
-                const fetchEphemera = fetchedNodes.map(({ EphemeraId }) => (EphemeraId))
-                fetchedNodes.forEach((node) => {
-                    this._Deferred[node.EphemeraId]?.resolve(node)
-                    this._Store[node.EphemeraId] = node
-                })
-                //
-                // Make sure that, in the case where an item from the known tree is not fetched, it resolves the promise
-                // with previous data
-                //
-                knownTree
-                    .filter(({ EphemeraId: check }) => (!(fetchEphemera.includes(check))))
-                    .forEach((node) => {
-                        this._Deferred[EphemeraId]?.resolve(node)
-                        delete this._Deferred[EphemeraId]
-                    })
-            }
-            await helper()
+                })),
+                requiredKeys: knownTree,
+                transform: (fetch) => {
+                    const tree = fetch?.[this.dependencyTag] || []
+                    return tree.reduce<Record<string, DependencyNode>>((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {})
+                }
+            })
         }
-        if (this._Deferred[EphemeraId]) {
-            await this._Deferred[EphemeraId].promise
-            return this.getPartial(EphemeraId)
-        }
-        else {
-            return []
-        }
+        await Promise.all(knownTree.map((key) => (this._Cache.get(key))))
+        return this.getPartial(EphemeraId)
     }
 
     getPartial(EphemeraId: string): DependencyNode[] {
@@ -198,16 +191,18 @@ export class DependencyGraphData {
 
     put(tree: DependencyNode[], nonRecursive?: boolean) {
         tree.forEach((node) => {
-            if (node.EphemeraId in this._Store) {
-                if (node.completeness === 'Complete') {
-                    this._Store[node.EphemeraId] = { ...this._Store[node.EphemeraId], completeness: 'Complete' }
-                }
-                this._Store = reduceDependencyGraph(this._Store, node.connections.map((putItem) => ({ EphemeraId: node.EphemeraId, putItem })))
+            if (node.completeness === 'Complete') {
+                this._Cache.set(node.EphemeraId, node)
             }
             else {
-                this._Store[node.EphemeraId] = {
-                    ...node,
-                    completeness: node.completeness ?? 'Partial'
+                if (node.EphemeraId in this._Store) {
+                    this._Store = reduceDependencyGraph(this._Store, node.connections.map((putItem) => ({ EphemeraId: node.EphemeraId, putItem })))
+                }
+                else {
+                    this._Store[node.EphemeraId] = {
+                        ...node,
+                        completeness: node.completeness ?? 'Partial'
+                    }
                 }
             }
         })
@@ -255,6 +250,13 @@ export const DependencyGraph = <GBase extends CacheConstructor>(Base: GBase) => 
             this.Descent.clear()
             this.Ancestry.clear()
             super.clear()
+        }
+        override async flush() {
+            await Promise.all([
+                this.Descent.flush(),
+                this.Ancestry.flush(),
+                super.flush
+            ])
         }
     }
 }
