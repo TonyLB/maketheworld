@@ -5,8 +5,6 @@ import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, i
 import { produce } from 'immer'
 import { DeferredCache } from './deferredCache';
 
-type DependencyNodeDeferred = Deferred<DependencyNode>
-
 export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
     const [upperTag] = splitType(EphemeraId)
     const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
@@ -131,7 +129,6 @@ export class DependencyGraphData {
     dependencyTag: 'Descent' | 'Ancestry';
     _antiDependency?: DependencyGraphData;
     _Cache: DeferredCache<DependencyNode>;
-    // _Deferred: Record<string, DependencyNodeDeferred> = {}
     _Store: Record<string, DependencyNode> = {}
     
     constructor(dependencyTag: 'Descent' | 'Ancestry') {
@@ -151,8 +148,6 @@ export class DependencyGraphData {
     }
 
     clear() {
-        // Object.values(this._Deferred).forEach(({ resolve }) => { resolve({ EphemeraId: '', connections: [], completeness: 'Partial' }) })
-        // this._Deferred = {}
         this._Cache.clear()
         this._Store = {}
     }
@@ -185,46 +180,9 @@ export class DependencyGraphData {
                     return tree.reduce<Record<string, DependencyNode>>((previous, node) => ({ ...previous, [node.EphemeraId]: node }), {})
                 }
             })
-            // knownTree.forEach((node) => {
-            //     if (!(node.EphemeraId in this._Deferred)) {
-            //         this._Deferred[node.EphemeraId] = new Deferred<DependencyNode>()
-            //     }
-            // })
-            // const helper = async (): Promise<void> => {
-            //     const fetchValue = (await ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
-            //         EphemeraId: EphemeraId,
-            //         DataCategory: `Meta::${tag}`,
-            //         ProjectionFields: [this.dependencyTag]
-            //     }))
-            //     const fetchedNodes = fetchValue?.[this.dependencyTag] || []
-            //     console.log(`Fetch Nodes: ${JSON.stringify(fetchedNodes, null, 4)}`)
-            //     const fetchEphemera = fetchedNodes.map(({ EphemeraId }) => (EphemeraId))
-            //     fetchedNodes.forEach((node) => {
-            //         this._Deferred[node.EphemeraId]?.resolve(node)
-            //         this._Store[node.EphemeraId] = node
-            //     })
-            //     //
-            //     // Make sure that, in the case where an item from the known tree is not fetched, it resolves the promise
-            //     // with previous data
-            //     //
-            //     knownTree
-            //         .filter(({ EphemeraId: check }) => (!(fetchEphemera.includes(check))))
-            //         .forEach((node) => {
-            //             this._Deferred[EphemeraId]?.resolve(node)
-            //             delete this._Deferred[EphemeraId]
-            //         })
-            // }
-            // await helper()
         }
         await Promise.all(knownTree.map((key) => (this._Cache.get(key))))
         return this.getPartial(EphemeraId)
-        // if (this._Deferred[EphemeraId]) {
-        //     await this._Deferred[EphemeraId].promise
-        //     return this.getPartial(EphemeraId)
-        // }
-        // else {
-        //     return []
-        // }
     }
 
     getPartial(EphemeraId: string): DependencyNode[] {
