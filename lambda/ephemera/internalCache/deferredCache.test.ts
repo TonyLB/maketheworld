@@ -101,7 +101,7 @@ describe('DeferredCache', () => {
 
     it('should execute callback when passed', async () => {
         const callbackMock = jest.fn()
-        const callbackCache = new DeferredCache<string>(callbackMock)
+        const callbackCache = new DeferredCache<string>({ callback: callbackMock })
         callbackCache.add({
             promiseFactory: jest.fn().mockResolvedValue({ testOne: 'test' }),
             requiredKeys: ['testOne'],

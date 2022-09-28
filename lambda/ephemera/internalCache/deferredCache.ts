@@ -1,7 +1,7 @@
 export class Deferred <T>{
     promise: Promise<T>;
     resolve: (value: T) => void = () => {}
-    reject: () => void = () => {}
+    reject: (err: Error) => void = () => {}
     constructor() {
         this.promise = new Promise((resolve, reject)=> {
             this.reject = reject
@@ -27,9 +27,11 @@ export class DeferredCache <T>{
     _cache: Record<string, Deferred<T>> = {};
     _promises: Promise<any>[] = [];
     _callback?: (key: string, value: T) => void;
+    _default?: (key: string) => T;
 
-    constructor(callback?: (key: string, value: T) => void) {
+    constructor({ callback, defaultValue }: { callback?: (key: string, value: T) => void, defaultValue?: (key: string) => T } = {}) {
         this._callback = callback
+        this._default = defaultValue
    }
 
     async get(key: string): Promise<T> {
@@ -57,10 +59,18 @@ export class DeferredCache <T>{
                     })
                     const failedKeys = fetchNeeded.filter((key) => (!(Object.keys(output).includes(key))))
                     if (failedKeys.length) {
-                        failedKeys.forEach((key) => {
-                            cache[key].reject()
-                        })
-                        throw new DeferredCacheException(`Required key "${failedKeys[0]}" not returned by promise`)
+                        const defaultFunc = this._default
+                        if (!(typeof defaultFunc === 'undefined')) {
+                            failedKeys.forEach((key) => {
+                                cache[key].resolve(defaultFunc(key))
+                            })
+                        }
+                        else {
+                            console.log(`FAILED KEYS: ${JSON.stringify(failedKeys, null, 4)}`)
+                            failedKeys.forEach((key) => {
+                                cache[key].reject(new DeferredCacheException(`Required key "${key}" not returned by promise`))
+                            })
+                        }
                     }
                 })
             )
@@ -90,5 +100,9 @@ export class DeferredCache <T>{
             this._callback(key, value)
         }
         this._cache[key].resolve(value)
+    }
+
+    isCached(key: string): boolean {
+        return (key in this._cache)
     }
 }
