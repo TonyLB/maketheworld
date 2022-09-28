@@ -208,6 +208,10 @@ describe('DescentUpdateMessage', () => {
                 {
                     EphemeraId: 'ASSET#ImportTwo',
                     connections: []
+                },
+                {
+                    EphemeraId: 'ASSET#ImportThree',
+                    connections: []
                 }
             ]
         })

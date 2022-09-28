@@ -24,7 +24,7 @@ export const extractTree = <T extends Omit<DependencyNode, 'completeness'>>(tree
     const currentNode = treeByEphemeraId[EphemeraId]
     return [
         currentNode,
-        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId).filter(({ EphemeraId }) => (!(previous.find(({ EphemeraId: check }) => (check = EphemeraId)))))]), [] as T[]))
+        ...(currentNode.connections.reduce((previous, { EphemeraId }) => ([...previous, ...extractTree(tree, EphemeraId).filter(({ EphemeraId }) => (!(previous.find(({ EphemeraId: check }) => (check === EphemeraId)))))]), [] as T[]))
     ]
 }
 
@@ -159,7 +159,6 @@ export class DependencyGraphData {
     async get(EphemeraId: string): Promise<DependencyNode[]> {
         const tag = tagFromEphemeraId(EphemeraId)
         if (this.isComplete(EphemeraId)) {
-            console.log(`Returning partial: ${EphemeraId}`)
             return this.getPartial(EphemeraId)
         }
         const knownTree = this.getPartial(EphemeraId).map(({ EphemeraId }) => (EphemeraId))
@@ -167,7 +166,6 @@ export class DependencyGraphData {
             //
             // TODO: Refactor how Deferred entries get created and promises assigned
             //
-            console.log(`Adding: ${JSON.stringify(knownTree, null, 4)}`)
             this._Cache.add({
                 promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                     EphemeraId,
@@ -183,6 +181,28 @@ export class DependencyGraphData {
         }
         await Promise.all(knownTree.map((key) => (this._Cache.get(key))))
         return this.getPartial(EphemeraId)
+    }
+
+    async getBatch(ephemeraList: string[]): Promise<DependencyNode[]> {
+        const cascadeDependencies = ephemeraList.reduce<string[]>((previous, ephemeraId) => ([
+            ...previous,
+            ...(this.getPartial(ephemeraId)
+                .map(({ EphemeraId }) => (EphemeraId))
+                .filter((EphemeraId) => (EphemeraId !== ephemeraId))
+                .filter((check) => (!(previous.includes(check))))
+            )
+        ]), [])
+        const minimumFetchSet = ephemeraList.filter((ephemeraId) => (!(cascadeDependencies.includes(ephemeraId))))
+        //
+        // TODO: Create a batchGetItem analog to the getItem one function above this, in order to add
+        // promises as needed, all in batch, rather than do individual gets
+        //
+        await Promise.all(minimumFetchSet.map((ephemeraId) => (this.get(ephemeraId))))
+        const individualTrees = await Promise.all(ephemeraList.map((ephemeraId) => (this.get(ephemeraId))))
+        return individualTrees.reduce<DependencyNode[]>((previous, tree) => ([
+            ...previous,
+            ...(tree.filter(({ EphemeraId }) => (!(previous.map(({ EphemeraId }) => (EphemeraId)).includes(EphemeraId)))))
+        ]), [])
     }
 
     getPartial(EphemeraId: string): DependencyNode[] {
