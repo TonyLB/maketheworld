@@ -194,6 +194,68 @@ describe('DependencyGraph', () => {
         })
     })
 
+    describe('generationOrder', () => {
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            internalCache.clear()
+        })
+
+        it('should correctly calculate generation order for a complex graph', () => {
+            internalCache.Descent._Store = {
+                'VARIABLE#One': {
+                    EphemeraId: 'VARIABLE#One',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Two', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Three', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Two': {
+                    EphemeraId: 'COMPUTED#Two',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Four', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Five', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Three': {
+                    EphemeraId: 'COMPUTED#Three',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Six', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Four': {
+                    EphemeraId: 'COMPUTED#Four',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Five': {
+                    EphemeraId: 'COMPUTED#Five',
+                    completeness: 'Partial',
+                    connections: []
+                },
+                'COMPUTED#Six': {
+                    EphemeraId: 'COMPUTED#Six',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Seven': {
+                    EphemeraId: 'COMPUTED#Seven',
+                    completeness: 'Partial',
+                    connections: []
+                }
+            }
+            expect(internalCache.Descent.generationOrder(['COMPUTED#Seven', 'COMPUTED#Four', 'COMPUTED#Two', 'VARIABLE#One', 'COMPUTED#Six'])).toMatchSnapshot()
+        })
+    })
+
     describe('getBatch', () => {
         beforeEach(() => {
             jest.clearAllMocks()

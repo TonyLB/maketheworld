@@ -3,9 +3,8 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
 import internalCache from "../internalCache"
-import { DependencyEdge, DependencyNode } from "../internalCache/baseClasses"
+import { DependencyNode } from "../internalCache/baseClasses"
 import { extractTree, tagFromEphemeraId } from "../internalCache/dependencyGraph"
-import { objectMap } from "../lib/objects"
 import { DependencyCascadeMessage, MessageBus } from "../messageBus/baseClasses"
 
 export const dependencyCascadeMessage = async ({ payloads, messageBus }: { payloads: DependencyCascadeMessage[]; messageBus: MessageBus }): Promise<void> => {
@@ -15,22 +14,17 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     // we don't want to execute them *first* (when we might need to queue them for evaluation again after
     // changes to their dependencies)
     //
-    const isKnockOnCascade = (check: DependencyCascadeMessage): boolean => (
-        Boolean(payloads
-            .find(({ targetId, Descent }) => (
-                (targetId !== check.targetId) &&
-                (Descent.map(({ EphemeraId }) => (EphemeraId)).includes(check.targetId))
-            ))
-        )
-    )
+    await internalCache.Descent.getBatch(payloads.map(({ targetId }) => (targetId)))
+    const allGenerations = internalCache.Descent.generationOrder(payloads.map(({ targetId }) => (targetId)))
+    const firstGeneration = allGenerations.length > 0 ? allGenerations[0] : []
 
     let deferredPayloads = payloads
-        .filter(isKnockOnCascade)
+        .filter(({ targetId }) => (!(firstGeneration.includes(targetId))))
         .reduce((previous, message) => ({ ...previous, [message.targetId]: message }), {} as Record<string, DependencyCascadeMessage>)
     const readyPayloads = payloads
-        .filter((payload) => (!isKnockOnCascade(payload)))
+        .filter(({ targetId }) => (firstGeneration.includes(targetId)))
 
-    const processOneMessage = async ({ targetId, Descent }: DependencyCascadeMessage): Promise<void> => {
+    const processOneMessage = async ({ targetId }: DependencyCascadeMessage): Promise<void> => {
         const tag = tagFromEphemeraId(targetId)
         switch(tag) {
             case 'Computed':
@@ -50,7 +44,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     if (!fetchComputed) {
                         return
                     }
-                    console.log(`Calculating: ${targetId}`)
                     //
                     // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
                     // for faster fetching
@@ -58,7 +51,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     const { src, value } = fetchComputed
                     const assetStateMap = await internalCache.AssetMap.get(targetId)
                     const assetState = await internalCache.AssetState.get(assetStateMap)
-                    console.log(`Calculating: ${targetId} x ${JSON.stringify(assetStateMap, null, 4)} x ${JSON.stringify(assetState, null, 4)}`)
                     //
                     // TODO:  Do NOT ConditionCheck against Ephemera that have been directly overriden in the cache ... they've been set too
                     // recently to be confident of their eventually-consistent status
@@ -82,7 +74,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                             }
                         }))
                     const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
-                    console.log(`Output: ${targetId} => ${JSON.stringify(computed ?? 'UNDEFINED', null, 4)}`)
                     if (!deepEqual(computed, value)) {
                         await multiTableTransactWrite([
                             ...conditionChecks,
@@ -108,14 +99,13 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                         // error in order to reactivate the exponentialBackoff wrapper
                         //
                         internalCache.AssetState.set(targetId, isNaN(computed) ? 0 : computed)
-                        const allDescendants = Descent
+                        const allDescendants = internalCache.Descent.getPartial(targetId)
                             .filter(({ EphemeraId }) => (EphemeraId !== targetId))
                             .map(({ EphemeraId }) => (EphemeraId))
                         allDescendants.forEach((EphemeraId) => {
                             deferredPayloads[EphemeraId] = {
                                 type: 'DependencyCascade',
-                                targetId: EphemeraId,
-                                Descent: extractTree(Descent, EphemeraId)
+                                targetId: EphemeraId
                             }
                         })
                     }

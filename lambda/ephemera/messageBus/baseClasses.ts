@@ -212,7 +212,6 @@ export type AncestryUpdateMessage = {
 export type DependencyCascadeMessage = {
     type: 'DependencyCascade';
     targetId: string;
-    Descent: Omit<DependencyNode, 'completeness'>[];
 }
 
 export type MessageType = PublishMessage |

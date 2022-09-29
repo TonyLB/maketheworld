@@ -55,6 +55,24 @@ Array [
 ]
 `;
 
+exports[`DependencyGraph generationOrder should correctly calculate generation order for a complex graph 1`] = `
+Array [
+  Array [
+    "VARIABLE#One",
+  ],
+  Array [
+    "COMPUTED#Two",
+    "COMPUTED#Six",
+  ],
+  Array [
+    "COMPUTED#Four",
+  ],
+  Array [
+    "COMPUTED#Seven",
+  ],
+]
+`;
+
 exports[`DependencyGraph get should correctly fetch a tree 1`] = `
 Array [
   Object {

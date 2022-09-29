@@ -111,7 +111,6 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                 return ephemeraDB.addPerAsset({
                     fetchArgs: initializeComponent,
                     updateKeys: ['cached', 'activeCharacters', 'src', 'rootAsset', '#value'],
-                    extraFetchKeys: ['Descent'],
                     ExpressionAttributeNames: {
                         '#value': 'value'
                     },
@@ -131,8 +130,7 @@ export const mergeIntoEphemera = async (assetId: string, items: EphemeraItem[]):
                             if (item.tag === 'Computed') {
                                 messageBus.send({
                                     type: 'DependencyCascade',
-                                    targetId: item.EphemeraId,
-                                    Descent: draft.Descent ?? []
+                                    targetId: item.EphemeraId
                                 })
                             }
                         }
