@@ -74,79 +74,19 @@ Array [
 exports[`DependencyCascadeMessage should update a computed item and cascade 2`] = `
 Array [
   Object {
-    "Descent": Array [
-      Object {
-        "EphemeraId": "COMPUTED#TestTwo",
-        "connections": Array [],
-      },
-    ],
     "targetId": "COMPUTED#TestTwo",
     "type": "DependencyCascade",
   },
   Object {
-    "Descent": Array [
-      Object {
-        "EphemeraId": "COMPUTED#CascadeOne",
-        "connections": Array [
-          Object {
-            "EphemeraId": "COMPUTED#CascadeThree",
-            "assets": Array [
-              "base",
-            ],
-            "key": "cascadeOne",
-          },
-        ],
-      },
-      Object {
-        "EphemeraId": "COMPUTED#CascadeThree",
-        "connections": Array [
-          Object {
-            "EphemeraId": "COMPUTED#TestTwo",
-            "assets": Array [
-              "base",
-            ],
-            "key": "cascadeThree",
-          },
-        ],
-      },
-      Object {
-        "EphemeraId": "COMPUTED#TestTwo",
-        "connections": Array [],
-      },
-    ],
     "targetId": "COMPUTED#CascadeOne",
     "type": "DependencyCascade",
   },
   Object {
-    "Descent": Array [
-      Object {
-        "EphemeraId": "COMPUTED#CascadeTwo",
-        "connections": Array [],
-      },
-    ],
-    "targetId": "COMPUTED#CascadeTwo",
+    "targetId": "COMPUTED#CascadeThree",
     "type": "DependencyCascade",
   },
   Object {
-    "Descent": Array [
-      Object {
-        "EphemeraId": "COMPUTED#CascadeThree",
-        "connections": Array [
-          Object {
-            "EphemeraId": "COMPUTED#TestTwo",
-            "assets": Array [
-              "base",
-            ],
-            "key": "cascadeThree",
-          },
-        ],
-      },
-      Object {
-        "EphemeraId": "COMPUTED#TestTwo",
-        "connections": Array [],
-      },
-    ],
-    "targetId": "COMPUTED#CascadeThree",
+    "targetId": "COMPUTED#CascadeTwo",
     "type": "DependencyCascade",
   },
 ]
@@ -253,23 +193,11 @@ Array [
 exports[`DependencyCascadeMessage should update in parallel and combine cascades 3`] = `
 Array [
   Object {
-    "Descent": Array [
-      Object {
-        "EphemeraId": "COMPUTED#CascadeOne",
-        "connections": Array [],
-      },
-    ],
     "targetId": "COMPUTED#CascadeOne",
     "type": "DependencyCascade",
   },
   Object {
-    "Descent": Array [
-      Object {
-        "EphemeraId": "CascadeTwo",
-        "connections": Array [],
-      },
-    ],
-    "targetId": "CascadeTwo",
+    "targetId": "COMPUTED#CascadeTwo",
     "type": "DependencyCascade",
   },
 ]

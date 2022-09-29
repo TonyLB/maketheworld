@@ -8,6 +8,8 @@ jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
 import dependencyCascadeMessage from './dependencyCascade'
+import { DependencyNode } from '../internalCache/baseClasses'
+import { extractTree } from '../internalCache/dependencyGraph'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
@@ -19,6 +21,7 @@ describe('DependencyCascadeMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        internalCache.clear()
         exponentialBackoffMock.mockImplementation(async (func) => { await func() })
     })
 
@@ -37,50 +40,51 @@ describe('DependencyCascadeMessage', () => {
         })
         internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
         internalCacheMock.EvaluateCode.get.mockResolvedValue(3)
+        internalCacheMock.Descent.generationOrder.mockReturnValue([['COMPUTED#TestOne'], ['COMPUTED#TestTwo']])
+        const testDescent: DependencyNode[] = [
+            {
+                EphemeraId: 'COMPUTED#TestOne',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
+                    { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeOne',
+                completeness: 'Partial',
+                connections: [{
+                    EphemeraId: 'COMPUTED#CascadeThree',
+                    key: 'cascadeOne',
+                    assets: ['base'],
+                }]
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeTwo',
+                completeness: 'Partial',
+                connections: []
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeThree',
+                completeness: 'Partial',
+                connections: [{
+                    EphemeraId: 'COMPUTED#TestTwo',
+                    key: 'cascadeThree',
+                    assets: ['base']
+                }]
+            },
+            {
+                EphemeraId: 'COMPUTED#TestTwo',
+                completeness: 'Partial',
+                connections: []
+            }
+        ]
+        internalCacheMock.Descent.getBatch.mockResolvedValue(testDescent)
+        internalCacheMock.Descent.getPartial.mockImplementation((targetId) => (extractTree(testDescent, targetId)))
         await dependencyCascadeMessage({
             payloads: [
-                {
-                    type: 'DependencyCascade',
-                    targetId: 'COMPUTED#TestOne',
-                    Descent: [
-                        {
-                            EphemeraId: 'COMPUTED#TestOne',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
-                                { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#CascadeOne',
-                            connections: [{
-                                EphemeraId: 'COMPUTED#CascadeThree',
-                                key: 'cascadeOne',
-                                assets: ['base'],
-                            }]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#CascadeTwo',
-                            connections: []
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#CascadeThree',
-                            connections: [{
-                                EphemeraId: 'COMPUTED#TestTwo',
-                                key: 'cascadeThree',
-                                assets: ['base']
-                            }]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#TestTwo',
-                            connections: []
-                        }
-                    ]
-                },
-                {
-                    type: 'DependencyCascade',
-                    targetId: 'COMPUTED#TestTwo',
-                    Descent: []
-                }
+                { type: 'DependencyCascade', targetId: 'COMPUTED#TestOne' },
+                { type: 'DependencyCascade', targetId: 'COMPUTED#TestTwo' }
             ],
             messageBus: messageBusMock
         })
@@ -117,45 +121,40 @@ describe('DependencyCascadeMessage', () => {
         }: {}))
         internalCacheMock.AssetState.isOverridden.mockReturnValue(false)
         internalCacheMock.EvaluateCode.get.mockImplementation(async ({ source }) => (source === 'a + b' ? 3 : 8))
+        internalCacheMock.Descent.generationOrder.mockReturnValue([['COMPUTED#TestOne', 'COMPUTED#TestTwo']])
+        const testDescent: DependencyNode[] = [
+            {
+                EphemeraId: 'COMPUTED#TestOne',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
+                    { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeOne',
+                completeness: 'Partial',
+                connections: []
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeTwo',
+                completeness: 'Partial',
+                connections: []
+            },
+            {
+                EphemeraId: 'COMPUTED#TestTwo',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'COMPUTED#CascadeOne', key: 'testTwo', assets: ['base'] }
+                ]
+            }
+        ]
+        internalCacheMock.Descent.getBatch.mockResolvedValue(testDescent)
+        internalCacheMock.Descent.getPartial.mockImplementation((targetId) => (extractTree(testDescent, targetId)))
         await dependencyCascadeMessage({
             payloads: [
-                {
-                    type: 'DependencyCascade',
-                    targetId: 'COMPUTED#TestOne',
-                    Descent: [
-                        {
-                            EphemeraId: 'COMPUTED#TestOne',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
-                                { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#CascadeOne',
-                            connections: []
-                        },
-                        {
-                            EphemeraId: 'CascadeTwo',
-                            connections: []
-                        }
-                    ]
-                },
-                {
-                    type: 'DependencyCascade',
-                    targetId: 'COMPUTED#TestTwo',
-                    Descent: [
-                        {
-                            EphemeraId: 'COMPUTED#TestTwo',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#CascadeOne', key: 'testTwo', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#CascadeOne',
-                            connections: []
-                        }
-                    ]
-                }
+                { type: 'DependencyCascade', targetId: 'COMPUTED#TestOne' },
+                { type: 'DependencyCascade', targetId: 'COMPUTED#TestTwo' }
             ],
             messageBus: messageBusMock
         })
