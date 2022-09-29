@@ -31,7 +31,6 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
         .filter((value: DependencyNode | undefined): value is DependencyNode => (typeof value !== 'undefined'))
     )
     const updatingNodes = unique(payloadActions.map(({ EphemeraId }) => (EphemeraId)))
-    console.log(`updatingNodes: ${JSON.stringify(updatingNodes, null, 4)}`)
     const workablePayload = (message: DependencyGraphAction) => {
         if (isDependencyGraphPut(message)) {
             return !Boolean(internalCache[dependencyTag].getPartial(message.putItem.EphemeraId).find(({ EphemeraId }) => (updatingNodes.includes(EphemeraId))))
@@ -50,13 +49,11 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
             ]
         }), {})
     const unworkablePayloads = payloads.filter(({ type, ...payload}) => (!workablePayload(payload)))
-    console.log(`UnworkablePayloads: ${JSON.stringify(unworkablePayloads, null, 4)}`)
 
     unworkablePayloads.forEach((payload) => {
         messageBus.send(payload)
     })
 
-    console.log(`payloadsByTarget: ${JSON.stringify(payloadsByTarget, null, 4)}`)
     await Promise.all(Object.entries(payloadsByTarget).map(async ([targetId, payloadList]) => {
         const tag = tagFromEphemeraId(targetId)
         //
@@ -79,8 +76,8 @@ export const dependentUpdateMessage = (dependencyTag: 'Descent' | 'Ancestry') =>
                     draft[dependencyTag] = []
                 }
                 const startGraph: Record<string, DependencyNode> = draft[dependencyTag].reduce((previous, { EphemeraId, ...rest }) => ({ ...previous, [EphemeraId]: { EphemeraId, completeness: 'Complete', ...rest }}), {})
-                const reducedGraph = reduceDependencyGraph(startGraph, payloadList)
-                draft[dependencyTag] = extractTree(Object.values(reducedGraph), targetId)
+                reduceDependencyGraph(startGraph, payloadList)
+                draft[dependencyTag] = extractTree(Object.values(startGraph), targetId)
                     .map((node) => {
                         const { completeness, ...rest } = node
                         return rest

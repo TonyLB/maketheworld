@@ -90,7 +90,6 @@ describe('DependencyCascadeMessage', () => {
         })
         expect(transactMock).toHaveBeenCalledTimes(1)
         expect(transactMock.mock.calls[0][0]).toMatchSnapshot()
-        console.log(`messages: ${JSON.stringify(messageBusMock.send.mock.calls.map((item) => (item[0])), null, 4)}`)
         expect(messageBusMock.send).toHaveBeenCalledTimes(4)
         expect(messageBusMock.send.mock.calls.map(([item]) => (item))).toMatchSnapshot()
 

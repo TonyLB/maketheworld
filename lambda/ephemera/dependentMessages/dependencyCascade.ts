@@ -44,7 +44,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     if (!fetchComputed) {
                         return
                     }
-                    console.log(`Calculating: ${targetId}`)
                     //
                     // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
                     // for faster fetching
@@ -52,7 +51,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                     const { src, value } = fetchComputed
                     const assetStateMap = await internalCache.AssetMap.get(targetId)
                     const assetState = await internalCache.AssetState.get(assetStateMap)
-                    console.log(`Calculating: ${targetId} x ${JSON.stringify(assetStateMap, null, 4)} x ${JSON.stringify(assetState, null, 4)}`)
                     //
                     // TODO:  Do NOT ConditionCheck against Ephemera that have been directly overriden in the cache ... they've been set too
                     // recently to be confident of their eventually-consistent status
@@ -76,7 +74,6 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                             }
                         }))
                     const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
-                    console.log(`Output: ${targetId} => ${JSON.stringify(computed ?? 'UNDEFINED', null, 4)}`)
                     if (!deepEqual(computed, value)) {
                         await multiTableTransactWrite([
                             ...conditionChecks,
