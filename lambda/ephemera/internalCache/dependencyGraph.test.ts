@@ -309,69 +309,8 @@ describe('DependencyGraph', () => {
                     ]
                 }
             ])
-            ephemeraMock.getItem.mockImplementation(async ({ EphemeraId }) => {
-                console.log(`EPHEMERAID: ${EphemeraId}`)
-                if (EphemeraId === 'COMPUTED#Two') {
-                    return { Descent: [
-                        {
-                            EphemeraId: 'COMPUTED#Two',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#Four', assets: ['base'] },
-                                { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
-                                { EphemeraId: 'COMPUTED#Eight', assets: ['layer'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Four',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Five',
-                            connections: []
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Seven',
-                            connections: []
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Eight',
-                            connections: []
-                        }
-                    ] }
-                }
-                else {
-                    return { Descent: [
-                        {
-                            EphemeraId: 'COMPUTED#Three',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
-                                { EphemeraId: 'COMPUTED#Six', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Five',
-                            connections: []
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Six',
-                            connections: [
-                                { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
-                            ]
-                        },
-                        {
-                            EphemeraId: 'COMPUTED#Seven',
-                            connections: []
-                        }
-                    ] }
-                }
-            })
 
-            console.log(`Computed THREE: ${JSON.stringify(internalCache.Descent.getPartial('COMPUTED#Three'))}`)
             const output = await internalCache.Descent.getBatch(['COMPUTED#Two', 'COMPUTED#Three', 'COMPUTED#Five', 'COMPUTED#Seven'])
-            console.log(JSON.stringify(ephemeraMock.getItem.mock.calls.map((item) => (item[0])), null, 4))
-            console.log(JSON.stringify(internalCache.Descent._Store, null, 4))
             expect(output).toEqual([
                 {
                     EphemeraId: 'COMPUTED#Two',
@@ -413,7 +352,14 @@ describe('DependencyGraph', () => {
                     ]
                 }
             ])
-            // expect(ephemeraDB.batchGetItem).toHaveBeenCalledTimes(1)
+            expect(ephemeraDB.batchGetItem).toHaveBeenCalledTimes(1)
+            expect(ephemeraDB.batchGetItem).toHaveBeenCalledWith({
+                Items: [
+                    { EphemeraId: 'COMPUTED#Two', DataCategory: 'Meta::Computed' },
+                    { EphemeraId: 'COMPUTED#Three', DataCategory: 'Meta::Computed' }
+                ],
+                ProjectionFields: ['Descent']
+            })
 
         })
     })

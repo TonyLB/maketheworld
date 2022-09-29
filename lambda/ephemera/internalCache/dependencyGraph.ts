@@ -197,7 +197,23 @@ export class DependencyGraphData {
         // TODO: Create a batchGetItem analog to the getItem one function above this, in order to add
         // promises as needed, all in batch, rather than do individual gets
         //
-        await Promise.all(minimumFetchSet.map((ephemeraId) => (this.get(ephemeraId))))
+        this._Cache.add({
+            promiseFactory: () => (ephemeraDB.batchGetItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
+                Items: minimumFetchSet.map((EphemeraId) => ({
+                    EphemeraId,
+                    DataCategory: `Meta::${tagFromEphemeraId(EphemeraId)}`
+                })),
+                ProjectionFields: [this.dependencyTag]
+            })),
+            requiredKeys: unique(ephemeraList, cascadeDependencies) as string[],
+            transform: (fetchList) => {
+                return fetchList.reduce<Record<string, DependencyNode>>((previous, fetch) => {
+                    const tree = fetch?.[this.dependencyTag] || []
+                    return tree.reduce<Record<string, DependencyNode>>((accumulator, node) => ({ ...accumulator, [node.EphemeraId]: node }), previous)
+                }, {})
+            }
+        })
+        // await Promise.all(minimumFetchSet.map((ephemeraId) => (this.get(ephemeraId))))
         const individualTrees = await Promise.all(ephemeraList.map((ephemeraId) => (this.get(ephemeraId))))
         return individualTrees.reduce<DependencyNode[]>((previous, tree) => ([
             ...previous,
