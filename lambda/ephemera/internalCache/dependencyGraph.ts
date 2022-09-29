@@ -183,6 +183,23 @@ export class DependencyGraphData {
         return this.getPartial(EphemeraId)
     }
 
+    generationOrder(ephemeraList: string[]): string[][] {
+        if (ephemeraList.length === 0) {
+            return []
+        }
+        const dependentItems = ephemeraList.reduce<string[]>((previous, ephemeraId) => ([
+            ...previous,
+            ...(this.getPartial(ephemeraId)
+                .map(({ EphemeraId }) => (EphemeraId))
+                .filter((EphemeraId) => (EphemeraId !== ephemeraId))
+                .filter((check) => (!(previous.includes(check))))
+            )
+        ]), [])
+        const independent = ephemeraList.filter((value) => (!(dependentItems.includes(value))))
+        const dependent = ephemeraList.filter((value) => (dependentItems.includes(value)))
+        return [independent, ...this.generationOrder(dependent)]
+    }
+
     async getBatch(ephemeraList: string[]): Promise<DependencyNode[]> {
         const cascadeDependencies = ephemeraList.reduce<string[]>((previous, ephemeraId) => ([
             ...previous,
