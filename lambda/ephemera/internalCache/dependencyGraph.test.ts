@@ -193,4 +193,174 @@ describe('DependencyGraph', () => {
             expect(internalCache.Descent.getPartial('VARIABLE#testOne')).toMatchSnapshot()
         })
     })
+
+    describe('getBatch', () => {
+        beforeEach(() => {
+            jest.clearAllMocks()
+            jest.resetAllMocks()
+            internalCache.clear()
+        })
+    
+        it('should correctly create a minimal covering-set of dependency fetches', async () => {
+            internalCache.Descent._Store = {
+                'VARIABLE#One': {
+                    EphemeraId: 'VARIABLE#One',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Two', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Three', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Two': {
+                    EphemeraId: 'COMPUTED#Two',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Four', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Five', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Three': {
+                    EphemeraId: 'COMPUTED#Three',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Six', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Four': {
+                    EphemeraId: 'COMPUTED#Four',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Five': {
+                    EphemeraId: 'COMPUTED#Five',
+                    completeness: 'Partial',
+                    connections: []
+                },
+                'COMPUTED#Six': {
+                    EphemeraId: 'COMPUTED#Six',
+                    completeness: 'Partial',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                    ]
+                },
+                'COMPUTED#Seven': {
+                    EphemeraId: 'COMPUTED#Seven',
+                    completeness: 'Partial',
+                    connections: []
+                }
+            }
+            ephemeraMock.batchGetItem.mockResolvedValue([
+                {
+                    Descent: [
+                        {
+                            EphemeraId: 'COMPUTED#Two',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#Four', assets: ['base'] },
+                                { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
+                                { EphemeraId: 'COMPUTED#Eight', assets: ['layer'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Four',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Five',
+                            connections: []
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Seven',
+                            connections: []
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Eight',
+                            connections: []
+                        }
+                    ]
+                },
+                {
+                    Descent: [
+                        {
+                            EphemeraId: 'COMPUTED#Three',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
+                                { EphemeraId: 'COMPUTED#Six', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Five',
+                            connections: []
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Six',
+                            connections: [
+                                { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                            ]
+                        },
+                        {
+                            EphemeraId: 'COMPUTED#Seven',
+                            connections: []
+                        }
+                    ]
+                }
+            ])
+
+            const output = await internalCache.Descent.getBatch(['COMPUTED#Two', 'COMPUTED#Three', 'COMPUTED#Five', 'COMPUTED#Seven'])
+            expect(output).toEqual([
+                {
+                    EphemeraId: 'COMPUTED#Two',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Four', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Eight', assets: ['layer'] }
+                    ]
+                },
+                {
+                    EphemeraId: 'COMPUTED#Four',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                    ]
+                },
+                {
+                    EphemeraId: 'COMPUTED#Seven',
+                    connections: []
+                },
+                {
+                    EphemeraId: 'COMPUTED#Five',
+                    connections: []
+                },
+                {
+                    EphemeraId: 'COMPUTED#Eight',
+                    connections: []
+                },
+                {
+                    EphemeraId: 'COMPUTED#Three',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Five', assets: ['base'] },
+                        { EphemeraId: 'COMPUTED#Six', assets: ['base'] }
+                    ]
+                },
+                {
+                    EphemeraId: 'COMPUTED#Six',
+                    connections: [
+                        { EphemeraId: 'COMPUTED#Seven', assets: ['base'] }
+                    ]
+                }
+            ])
+            expect(ephemeraDB.batchGetItem).toHaveBeenCalledTimes(1)
+            expect(ephemeraDB.batchGetItem).toHaveBeenCalledWith({
+                Items: [
+                    { EphemeraId: 'COMPUTED#Two', DataCategory: 'Meta::Computed' },
+                    { EphemeraId: 'COMPUTED#Three', DataCategory: 'Meta::Computed' }
+                ],
+                ProjectionFields: ['Descent']
+            })
+
+        })
+    })
 })

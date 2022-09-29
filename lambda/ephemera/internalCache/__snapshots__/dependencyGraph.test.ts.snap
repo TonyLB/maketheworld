@@ -25,6 +25,11 @@ Array [
     "completeness": "Partial",
     "connections": Array [],
   },
+  Object {
+    "EphemeraId": "COMPUTED#testThree",
+    "completeness": "Partial",
+    "connections": Array [],
+  },
 ]
 `;
 
