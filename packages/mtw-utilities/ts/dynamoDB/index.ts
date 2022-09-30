@@ -554,7 +554,7 @@ type AddPerAssetTransformArgument = {
     cached: string[]
 }
 
-export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[] }): Promise<T | undefined> => {
+export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, options: { retryErrors: string[], retryCallback?: () => Promise<void> }): Promise<T | undefined> => {
     let retries = 0
     let exponentialBackoff = 100
     let completed = false
@@ -566,7 +566,10 @@ export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, 
         }
         catch (err: any) {
             if ((options?.retryErrors || ['ConditionalCheckFailedException']).includes(err.errorType)) {
-                await delayPromise(exponentialBackoff)
+                await Promise.all([
+                    delayPromise(exponentialBackoff),
+                    ...(options.retryCallback ? [options.retryCallback()] : [])
+                ])
                 exponentialBackoff = exponentialBackoff * 2
                 retries++
                 completed = false

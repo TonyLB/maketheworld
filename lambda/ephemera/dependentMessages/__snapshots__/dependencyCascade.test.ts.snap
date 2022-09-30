@@ -1,5 +1,26 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`DependencyCascadeMessage should cascade computed after updating a variable 1`] = `
+Array [
+  Object {
+    "targetId": "COMPUTED#TestOne",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "targetId": "COMPUTED#CascadeOne",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "targetId": "COMPUTED#CascadeTwo",
+    "type": "DependencyCascade",
+  },
+  Object {
+    "targetId": "COMPUTED#TestTwo",
+    "type": "DependencyCascade",
+  },
+]
+`;
+
 exports[`DependencyCascadeMessage should update a computed item and cascade 1`] = `
 Array [
   Object {

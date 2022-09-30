@@ -16,6 +16,7 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
     //
     await internalCache.Descent.getBatch(payloads.map(({ targetId }) => (targetId)))
     const allGenerations = internalCache.Descent.generationOrder(payloads.map(({ targetId }) => (targetId)))
+    console.log(`All Generations: ${JSON.stringify(allGenerations, null, 4)}`)
     const firstGeneration = allGenerations.length > 0 ? allGenerations[0] : []
 
     let deferredPayloads = payloads
@@ -110,8 +111,19 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
                         })
                     }
                 },
-                { retryErrors: ['TransactionCanceledException'] }
-            )
+                { retryErrors: ['TransactionCanceledException'] })
+                break
+            case 'Variable':
+                const variableDescendants = internalCache.Descent.getPartial(targetId)
+                    .filter(({ EphemeraId }) => (EphemeraId !== targetId))
+                    .map(({ EphemeraId }) => (EphemeraId))
+                variableDescendants.forEach((EphemeraId) => {
+                    deferredPayloads[EphemeraId] = {
+                        type: 'DependencyCascade',
+                        targetId: EphemeraId
+                    }
+                })
+                break    
         }
     }
     await Promise.all(readyPayloads.map(processOneMessage))
