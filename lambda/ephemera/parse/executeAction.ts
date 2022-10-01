@@ -1,6 +1,6 @@
 import messageBus from '../messageBus'
 import internalCache from '../internalCache'
-import { defaultColorFromCharacterId } from '@tonylb/mtw-utilities/dist/selfHealing/index'
+import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
 import { LegalCharacterColor, PublishMessage } from '../messageBus/baseClasses'
 

@@ -131,27 +131,6 @@ export const healGlobalValues = async ({ shouldHealConnections = true, shouldHea
     }, async () => ({}))
 }
 
-export const generatePersonalAssetList = async (player) => {
-    if (player) {
-        const Items = await assetDB.query({
-            IndexName: 'PlayerIndex',
-            player,
-            KeyConditionExpression: "DataCategory = :dc",
-            ExpressionAttributeValues: {
-                ":dc": `Meta::Asset`
-            },
-            ProjectionFields: ['AssetId', 'importTree', 'Story']
-        })
-        const personalAssets = Items
-            .filter(({ Story }) => (!Story))
-            .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
-            .filter(({ AssetId }) => (AssetId))
-            .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
-        return sortImportTree(Object.assign({}, ...personalAssets))
-    }    
-    return []
-}
-
 export const convertAssetQuery = (queryItems) => {
     const Characters = queryItems
         .filter(({ DataCategory }) => (DataCategory === 'Meta::Character'))
@@ -200,90 +179,4 @@ export const generateLibrary = async () => {
         Characters,
         Assets
     }
-}
-
-export const defaultColorFromCharacterId = (CharacterId: string): string => (
-    ['green', 'purple', 'pink'][parseInt(CharacterId.slice(0, 3), 16) % 3]
-)
-
-export const healCharacter = async (CharacterId: string) => {
-    try {
-        const Item = await assetDB.getItem<{
-            Name: string;
-            fileURL: string;
-            player: string;
-            HomeId: string;
-            Color: string;
-            Pronouns: {
-                subject: string;
-                object: string;
-                possessive: string;
-                adjective: string;
-                reflexive: string;
-            };
-            FirstImpression: string;
-            OneCoolThing: string;
-            Outfit: string;
-        }>({
-            AssetId: `CHARACTER#${CharacterId}`,
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['player', '#Name', 'fileURL', 'HomeId', 'Color', 'Pronouns', 'FirstImpression', 'OneCoolThing', 'Outfit'],
-            ExpressionAttributeNames: {
-                '#Name': 'Name'
-            }
-        })
-
-        const healCharacterItem = async () => {
-            if (Item) {
-                const {
-                    Name,
-                    fileURL,
-                    HomeId,
-                    player,
-                    Color = defaultColorFromCharacterId(CharacterId),
-                    Pronouns = {
-                        subject: 'they',
-                        object: 'them',
-                        possessive: 'their',
-                        adjective: 'theirs',
-                        reflexive: 'themself'
-                    },
-                    FirstImpression,
-                    OneCoolThing,
-                    Outfit
-                } = Item
-                const personalAssets = await generatePersonalAssetList(player)
-                await ephemeraDB.update({
-                    EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-                    DataCategory: 'Meta::Character',
-                    UpdateExpression: `SET #Name = :name, fileURL = :fileURL, assets = :assets, RoomId = if_not_exists(RoomId, :homeId), Connected = if_not_exists(Connected, :false), Color = :color, Pronouns = :pronouns, FirstImpression = :firstImpression, Outfit = :outfit, OneCoolThing = :oneCoolThing`,
-                    ExpressionAttributeNames: {
-                        '#Name': 'Name'
-                    },
-                    ExpressionAttributeValues: {
-                        ':name': Name,
-                        ':fileURL': fileURL,
-                        ':homeId': HomeId || 'VORTEX',
-                        ':false': false,
-                        ':assets': personalAssets,
-                        ':color': Color,
-                        ':pronouns': Pronouns,
-                        ':firstImpression': FirstImpression,
-                        ':oneCoolThing': OneCoolThing,
-                        ':outfit': Outfit
-                    }
-                })
-            }
-        }
-
-        await healCharacterItem()
-
-    }
-    catch(error) {
-        //
-        // TODO: Handle absence of character from Assets table
-        //
-    }
-    return {}
-
 }

@@ -3,7 +3,6 @@ import { S3Client } from "@aws-sdk/client-s3"
 
 import { healAsset } from "./selfHealing/"
 import { healPlayer } from "./selfHealing/player"
-// import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
 import internalCache from "./internalCache"
 
@@ -51,10 +50,6 @@ export const handler = async (event, context) => {
         }
     }
     
-    // if (event.heal) {
-    //     const returnVal = await healPlayers()
-    //     return JSON.stringify(returnVal, null, 4)
-    // }
     const request = (event.body && JSON.parse(event.body) || undefined) as AssetAPIMessage | undefined
     if (!request || !['fetch', 'fetchLibrary', 'upload', 'uploadImage', 'checkin', 'checkout', 'subscribe', 'parseWML'].includes(request.message)) {
         context.fail(JSON.stringify(`Error: Unknown format ${JSON.stringify(event, null, 4) }`))
