@@ -5,7 +5,6 @@ import { healAsset } from "./selfHealing/"
 import { healPlayer } from "./selfHealing/player"
 // import { healPlayers } from "@tonylb/mtw-utilities/dist/selfHealing/index"
 
-// import { handleDynamoEvent } from './dynamoEvents/index.js'
 import internalCache from "./internalCache"
 
 import {
