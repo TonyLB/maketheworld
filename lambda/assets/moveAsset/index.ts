@@ -1,14 +1,36 @@
 import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 import { dbRegister } from '../serialize/dbRegister'
-import { assetWorkspaceFromAssetId } from "../serialize/s3Assets"
 import { asyncSuppressExceptions } from "@tonylb/mtw-utilities/dist/errors"
 import { MessageBus, MoveAssetMessage, MoveByAssetIdMessage } from "../messageBus/baseClasses"
 import internalCache from "../internalCache"
-import AssetWorkspace from "@tonylb/mtw-asset-workspace/dist/"
+import AssetWorkspace, { AssetWorkspaceAddress, isAssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist/"
+import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { assetDB } from "@tonylb/mtw-utilities/dist/dynamoDB"
 
 const { S3_BUCKET } = process.env;
 
+const assetWorkspaceFromAssetId = async (AssetId: string): Promise<AssetWorkspace | undefined> => {
+    const [type] = splitType(AssetId)
+    let dataCategory = 'Meta::Asset'
+    switch(type) {
+        case 'CHARACTER':
+            dataCategory = 'Meta::Character'
+            break
+    }
+    const address = (await assetDB.getItem<AssetWorkspaceAddress>({
+        AssetId,
+        DataCategory: dataCategory,
+        ProjectionFields: ['fileName', '#zone', 'player', 'subFolder'],
+        ExpressionAttributeNames: {
+            '#zone': 'zone'
+        }
+    })) || {}
+    if (!isAssetWorkspaceAddress(address)) {
+        return undefined
+    }
+    return new AssetWorkspace(address)
+}
 export const moveAssetMessage = async ({ payloads, messageBus }: { payloads: MoveAssetMessage[], messageBus: MessageBus }): Promise<void> => {
     const s3Client = await internalCache.Connection.get('s3Client')
     if (s3Client) {
