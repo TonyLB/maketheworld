@@ -229,4 +229,41 @@ describe('AssetMap', () => {
         })
     })
 
+    it('should query per-asset information on an asset argument', async () => {
+        ephemeraMock.query.mockResolvedValueOnce([
+            { EphemeraId: 'COMPUTED#testOne', key: 'one' },
+            { EphemeraId: 'COMPUTED#testTwo', key: 'two' }
+        ]).mockResolvedValueOnce([
+            { EphemeraId: 'VARIABLE#testThree', key: 'three' }
+        ])
+
+        const output = await internalCache.AssetMap.get('ASSET#Base')
+        expect(ephemeraMock.query).toHaveBeenCalledTimes(2)
+        expect(ephemeraMock.query).toHaveBeenCalledWith({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: 'ASSET#Base',
+            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ExpressionAttributeValues: {
+                ':ephemeraPrefix': 'COMPUTED'
+            },
+            ProjectionFields: ['#key', 'EphemeraId']
+        })
+        expect(ephemeraMock.query).toHaveBeenCalledWith({
+            IndexName: 'DataCategoryIndex',
+            DataCategory: 'ASSET#Base',
+            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ExpressionAttributeValues: {
+                ':ephemeraPrefix': 'VARIABLE'
+            },
+            ProjectionFields: ['#key', 'EphemeraId']
+        })
+        expect(output).toEqual({ one: 'COMPUTED#testOne', two: 'COMPUTED#testTwo', three: 'VARIABLE#testThree' })
+    })
+
 })

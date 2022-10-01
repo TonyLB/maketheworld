@@ -164,4 +164,55 @@ describe('DependencyCascadeMessage', () => {
         expect(messageBusMock.send.mock.calls.map(([item]) => (item))).toMatchSnapshot()
 
     })
+
+    it('should cascade computed after updating a variable', async () => {
+        internalCacheMock.Descent.generationOrder.mockReturnValue([['VARIABLE#testVariable'], ['COMPUTED#TestOne', 'COMPUTED#TestTwo']])
+        const testDescent: DependencyNode[] = [
+            {
+                EphemeraId: 'VARIABLE#testVariable',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'COMPUTED#TestOne', key: 'testVariable', assets: ['base'] },
+                    { EphemeraId: 'COMPUTED#TestTwo', key: 'testVariable', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'COMPUTED#TestOne',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'COMPUTED#CascadeOne', key: 'testOne', assets: ['base'] },
+                    { EphemeraId: 'COMPUTED#CascadeTwo', key: 'testOne', assets: ['base'] }
+                ]
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeOne',
+                completeness: 'Partial',
+                connections: []
+            },
+            {
+                EphemeraId: 'COMPUTED#CascadeTwo',
+                completeness: 'Partial',
+                connections: []
+            },
+            {
+                EphemeraId: 'COMPUTED#TestTwo',
+                completeness: 'Partial',
+                connections: [
+                    { EphemeraId: 'COMPUTED#CascadeOne', key: 'testTwo', assets: ['base'] }
+                ]
+            }
+        ]
+        internalCacheMock.Descent.getBatch.mockResolvedValue(testDescent)
+        internalCacheMock.Descent.getPartial.mockImplementation((targetId) => (extractTree(testDescent, targetId)))
+        await dependencyCascadeMessage({
+            payloads: [
+                { type: 'DependencyCascade', targetId: 'VARIABLE#testVariable' }
+            ],
+            messageBus: messageBusMock
+        })
+        expect(transactMock).toHaveBeenCalledTimes(0)
+        expect(messageBusMock.send).toHaveBeenCalledTimes(4)
+        expect(messageBusMock.send.mock.calls.map(([item]) => (item))).toMatchSnapshot()
+
+    })
 })

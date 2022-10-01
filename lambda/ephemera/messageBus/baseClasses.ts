@@ -214,6 +214,12 @@ export type DependencyCascadeMessage = {
     targetId: string;
 }
 
+export type ExecuteActionMessage = {
+    type: 'ExecuteAction';
+    actionId: string;
+    characterId: string;
+}
+
 export type MessageType = PublishMessage |
     ReturnValueMessage |
     DisconnectMessage |
@@ -234,7 +240,8 @@ export type MessageType = PublishMessage |
     RoomUpdateMessage |
     DescentUpdateMessage |
     AncestryUpdateMessage |
-    DependencyCascadeMessage
+    DependencyCascadeMessage |
+    ExecuteActionMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
@@ -267,5 +274,6 @@ export const isRoomUpdateMessage = (prop: MessageType): prop is RoomUpdateMessag
 export const isDescentUpdateMessage = (prop: MessageType): prop is DescentUpdateMessage => (prop.type === 'DescentUpdate')
 export const isAncestryUpdateMessage = (prop: MessageType): prop is AncestryUpdateMessage => (prop.type === 'AncestryUpdate')
 export const isDependencyCascadeMessage = (prop: MessageType): prop is DependencyCascadeMessage => (prop.type === 'DependencyCascade')
+export const isExecuteActionMessage = (prop: MessageType): prop is ExecuteActionMessage => (prop.type === 'ExecuteAction')
 
 export class MessageBus extends InternalMessageBus<MessageType> {}
