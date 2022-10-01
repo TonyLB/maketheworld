@@ -242,14 +242,26 @@ describe('AssetMap', () => {
         expect(ephemeraMock.query).toHaveBeenCalledWith({
             IndexName: 'DataCategoryIndex',
             DataCategory: 'ASSET#Base',
-            KeyConditionExpression: "begins_with(EphemeraId, 'COMPUTED')",
-            ProjectionFields: ['key', 'EphemeraId']
+            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ExpressionAttributeValues: {
+                ':ephemeraPrefix': 'COMPUTED'
+            },
+            ProjectionFields: ['#key', 'EphemeraId']
         })
         expect(ephemeraMock.query).toHaveBeenCalledWith({
             IndexName: 'DataCategoryIndex',
             DataCategory: 'ASSET#Base',
-            KeyConditionExpression: "begins_with(EphemeraId, 'VARIABLE')",
-            ProjectionFields: ['key', 'EphemeraId']
+            KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ExpressionAttributeValues: {
+                ':ephemeraPrefix': 'VARIABLE'
+            },
+            ProjectionFields: ['#key', 'EphemeraId']
         })
         expect(output).toEqual({ one: 'COMPUTED#testOne', two: 'COMPUTED#testTwo', three: 'VARIABLE#testThree' })
     })

@@ -3,7 +3,6 @@
 
 import { validateJWT } from './validateJWT.js'
 import { parseCommand } from './parse'
-import { executeAction as executeActionFromDB } from '@tonylb/mtw-utilities/dist/executeCode/index'
 
 import {
     EphemeraAPIMessage,
@@ -23,7 +22,6 @@ import internalCache from './internalCache'
 import messageBus from './messageBus'
 import { extractReturnValue } from './returnValue'
 import { executeAction } from './parse/executeAction'
-import { LegalCharacterColor } from './messageBus/baseClasses'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist/index.js'
 import { splitType } from '@tonylb/mtw-utilities/dist/types.js'
 
@@ -78,7 +76,7 @@ export const handler = async (event: any, context: any) => {
     messageBus.clear()
 
     // Handle EventBridge messages
-    if (['mtw.coordination', 'mtw.diagnostics'].includes(event?.source || '')) {
+    if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Decache Asset':
                 if (event.detail?.assetId) {
@@ -129,6 +127,15 @@ export const handler = async (event: any, context: any) => {
                     messageBus.send({
                         type: 'DependencyCascade',
                         targetId: event.detail.EphemeraId
+                    })
+                }
+                break
+            case 'Execute Action':
+                if (event.detail.actionId && event.detail.characterId) {
+                    messageBus.send({
+                        type: 'ExecuteAction',
+                        actionId: event.detail.actionId,
+                        characterId: event.detail.characterId
                     })
                 }
                 break
@@ -194,34 +201,14 @@ export const handler = async (event: any, context: any) => {
     if (isLinkAPIMessage(request)) {
         switch(splitType(request.to)[0]) {
             case 'ACTION':
-                const { RoomId } = (await internalCache.CharacterMeta.get(request.CharacterId)) || {}
-        
                 //
-                // TODO: Figure out whether we can still get use out of request.RoomId, as saved on
-                // the action Links
+                // TODO: Extend WML to assign legal Actions to Rooms, and then use that to check the legal
+                // actions to which the character has access, and confirm access before executing
                 //
-                const { executeMessageQueue = [] } = await executeActionFromDB(request.to, { RoomId, CharacterId: request.CharacterId })
-                console.log(`Execute Message Queue: ${JSON.stringify(executeMessageQueue, null, 4)}`)
-                executeMessageQueue.forEach((message) => {
-                    messageBus.send({
-                        type: 'PublishMessage',
-                        targets: message.Targets.map((target) => {
-                            const [type, id] = splitType(target)
-                            switch(type) {
-                                case 'ROOM':
-                                    return { roomId: id }
-                                case 'NOT-CHARACTER':
-                                    return { excludeCharacterId: id }
-                                default:
-                                    return { characterId: id }
-                            }
-                        }),
-                        message: message.Message,
-                        displayProtocol: message.DisplayProtocol as any,
-                        characterId: message.CharacterId || '',
-                        name: message.Name || '',
-                        color: (message.Color || 'grey') as LegalCharacterColor
-                    })
+                messageBus.send({
+                    type: 'ExecuteAction',
+                    actionId: request.to,
+                    characterId: request.CharacterId
                 })
                 break
             case 'FEATURE':

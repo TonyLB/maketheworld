@@ -110,6 +110,10 @@ export class EvaluateCodeData {
             return cachedEvaluation
         }
     }
+
+    //
+    // TODO: ISS-1570: Invalidate EvaluatedCode when relevant AssetState entries are set or invalidated
+    //
 }
 
 class AssetMap {
@@ -124,14 +128,26 @@ class AssetMap {
                 ephemeraDB.query({
                     IndexName: 'DataCategoryIndex',
                     DataCategory: EphemeraId,
-                    KeyConditionExpression: "begins_with(EphemeraId, 'COMPUTED')",
-                    ProjectionFields: ['key', 'EphemeraId']
+                    KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+                    ExpressionAttributeValues: {
+                        ':ephemeraPrefix': 'COMPUTED'
+                    },
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    },
+                    ProjectionFields: ['#key', 'EphemeraId']
                 }),
                 ephemeraDB.query({
                     IndexName: 'DataCategoryIndex',
                     DataCategory: EphemeraId,
-                    KeyConditionExpression: "begins_with(EphemeraId, 'VARIABLE')",
-                    ProjectionFields: ['key', 'EphemeraId']
+                    KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
+                    ExpressionAttributeValues: {
+                        ':ephemeraPrefix': 'VARIABLE'
+                    },
+                    ExpressionAttributeNames: {
+                        '#key': 'key'
+                    },
+                    ProjectionFields: ['#key', 'EphemeraId']
                 })
             ])
             return [...computedLookups, ...variableLookups].reduce<Record<string, string>>((previous, { EphemeraId, key }) => ({ ...previous, [key]: EphemeraId }), {})

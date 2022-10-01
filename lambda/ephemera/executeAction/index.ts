@@ -32,10 +32,13 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
             IndexName: 'DataCategoryIndex',
             DataCategory: AssetKey(rootAsset),
             KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
-            ExpressionAttributeValues: marshall({
+            ExpressionAttributeValues: {
                 ':ephemeraPrefix': 'ROOM'
-            }),
-            ProjectionFields: ['EphemeraId', 'key']
+            },
+            ExpressionAttributeNames: {
+                '#key': 'key'
+            },
+            ProjectionFields: ['EphemeraId', '#key']
         }),
         internalCache.CharacterMeta.get(payload.characterId),
         internalCache.AssetMap.get(AssetKey(rootAsset))
@@ -161,6 +164,7 @@ export const executeActionMessage = async ({ payloads, messageBus }: { payloads:
                 })))
             ])
             changedVariables.forEach((key) => {
+                internalCache.AssetState.set(assetMap[key], executionOutput[key])
                 messageBus.send({
                     type: 'DependencyCascade',
                     targetId: assetMap[key]

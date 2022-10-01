@@ -21,7 +21,8 @@ import {
     isRoomUpdateMessage,
     isDescentUpdateMessage,
     isAncestryUpdateMessage,
-    isDependencyCascadeMessage
+    isDependencyCascadeMessage,
+    isExecuteActionMessage
 } from "./baseClasses"
 
 import publishMessage from '../publishMessage'
@@ -41,6 +42,7 @@ import playerUpdateMessage from '../playerUpdate'
 import roomUpdateMessage from '../roomUpdate'
 import dependentUpdateMessage from '../dependentMessages/dependentUpdate'
 import dependencyCascadeMessage from '../dependentMessages/dependencyCascade'
+import executeActionMessage from '../executeAction'
 
 export const messageBus = new MessageBus()
 messageBus.subscribe({
@@ -163,6 +165,13 @@ messageBus.subscribe({
     priority: 5,
     filter: isDependencyCascadeMessage,
     callback: dependencyCascadeMessage
+})
+
+messageBus.subscribe({
+    tag: 'ExecuteAction',
+    priority: 7,
+    filter: isExecuteActionMessage,
+    callback: executeActionMessage
 })
 
 export default messageBus
