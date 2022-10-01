@@ -1,30 +1,8 @@
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
 
-import sortImportTree from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { ebClient } from '../clients'
-
-export const generatePersonalAssetList = async (player) => {
-    if (player) {
-        const Items = await assetDB.query({
-            IndexName: 'PlayerIndex',
-            player,
-            KeyConditionExpression: "DataCategory = :dc",
-            ExpressionAttributeValues: {
-                ":dc": `Meta::Asset`
-            },
-            ProjectionFields: ['AssetId', 'importTree', 'Story']
-        })
-        const personalAssets = Items
-            .filter(({ Story }) => (!Story))
-            .map(({ AssetId, importTree }) => ({ AssetId: splitType(AssetId)[1], importTree }))
-            .filter(({ AssetId }) => (AssetId))
-            .map(({ AssetId, importTree }) => ({ [AssetId]: importTree }))
-        return sortImportTree(Object.assign({}, ...personalAssets))
-    }    
-    return []
-}
 
 export const convertAssetQuery = (queryItems) => {
     const Characters = queryItems

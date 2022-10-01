@@ -1,7 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-jest.mock('@tonylb/mtw-utilities/dist/executeCode/sortImportTree')
-import { sortImportTree } from '@tonylb/mtw-utilities/dist/executeCode/sortImportTree'
 
 jest.mock('../messageBus')
 import { messageBus } from '../messageBus'
@@ -9,7 +7,6 @@ import { messageBus } from '../messageBus'
 import fetchImportDefaults from '.'
 
 const assetDBMock = assetDB as jest.Mocked<typeof assetDB>
-const sortImportTreeMock = sortImportTree as jest.Mock
 const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 
 describe('fetchImportDefaults', () => {
@@ -80,17 +77,6 @@ describe('fetchImportDefaults', () => {
                     }                    
             }
         })
-        sortImportTreeMock.mockImplementation((tree) => {
-            if (tree.LayerA) {
-                return ['BASE', 'test', 'LayerA', 'LayerB']
-            }
-            if (tree.BASE) {
-                return ['BASE']
-            }
-            if (tree.test) {
-                return ['BASE', 'test']
-            }
-        })
 
         assetDBMock.batchGetItem.mockResolvedValue([{
             AssetId: 'ROOM#123',
@@ -158,10 +144,6 @@ describe('fetchImportDefaults', () => {
             DataCategory: 'Meta::Asset',
             ProjectionFields: ['importTree', 'namespaceMap', 'defaultNames', 'defaultExits']
         })
-        expect(sortImportTreeMock).toHaveBeenCalledWith({
-            LayerA: { BASE: {} },
-            LayerB: { test: { BASE: {} }}
-        })
         expect(assetDBMock.batchGetItem).toHaveBeenCalledWith({
             Items: [{
                 AssetId: 'ROOM#123',
@@ -172,16 +154,16 @@ describe('fetchImportDefaults', () => {
                 DataCategory: `ASSET#BASE`
             },
             {
-                AssetId: 'ROOM#567',
-                DataCategory: `ASSET#test`
-            },
-            {
                 AssetId: 'ROOM#123',
                 DataCategory: `ASSET#LayerA`
             },
             {
                 AssetId: 'ROOM#345',
                 DataCategory: `ASSET#LayerA`
+            },
+            {
+                AssetId: 'ROOM#567',
+                DataCategory: `ASSET#test`
             },
             {
                 AssetId: 'ROOM#567',
@@ -269,14 +251,6 @@ describe('fetchImportDefaults', () => {
                         defaultNames: {},
                         defaultExits: []
                     }                    
-            }
-        })
-        sortImportTreeMock.mockImplementation((tree) => {
-            if (tree.LayerA) {
-                return ['BASE', 'LayerA']
-            }
-            if (tree.BASE) {
-                return ['BASE']
             }
         })
 

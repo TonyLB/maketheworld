@@ -7,7 +7,7 @@ import { ExecuteActionMessage, LegalCharacterColor, MessageBus, PublishMessage }
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
-import { defaultColorFromCharacterId } from "@tonylb/mtw-utilities/dist/selfHealing"
+import { defaultColorFromCharacterId } from "../lib/characterColor"
 
 export const executeActionMessage = async ({ payloads, messageBus }: { payloads: ExecuteActionMessage[]; messageBus: MessageBus }): Promise<void> => {
     //
