@@ -23,7 +23,8 @@ describe('ExecuteActionMessage', () => {
         Color: 'purple',
         EphemeraId: 'CHARACTER#Somebody',
         RoomId: 'VORTEX',
-        HomeId: 'VORTEX'
+        HomeId: 'VORTEX',
+        assets: []
     }
     beforeEach(() => {
         jest.clearAllMocks()
