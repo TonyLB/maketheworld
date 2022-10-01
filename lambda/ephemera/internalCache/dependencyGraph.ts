@@ -314,7 +314,7 @@ export const DependencyGraph = <GBase extends CacheConstructor>(Base: GBase) => 
             await Promise.all([
                 this.Descent.flush(),
                 this.Ancestry.flush(),
-                super.flush
+                super.flush()
             ])
         }
     }
