@@ -46,7 +46,7 @@ export type RoomCharacter = {
     CharacterId: string;
 }
 
-type RoomDescribeData = {
+export type RoomDescribeData = {
     Description: TaggedMessageContent[];
     Name: string;
     RoomId: string;

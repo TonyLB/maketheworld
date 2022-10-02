@@ -2,6 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
+import { TaggedMessageContent, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/messages"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
@@ -27,34 +28,10 @@ export type PublishMessageBase = {
     targets: PublishTarget[];
 }
 
-//
-// TODO: Figure out how to abstract copied typescript constraints on messages
-// into a central library shared between lambdas and front-end
-//
-type TaggedText = {
-    tag: 'String';
-    value: string;
-}
-
-type TaggedLineBreak = {
-    tag: 'LineBreak';
-}
-
-export type TaggedLink = {
-    tag: 'Link',
-    RoomId: string;
-    text: string;
-    to: string;
-}
-
-export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
-
 export type PublishWorldMessage = PublishMessageBase & {
     displayProtocol: 'WorldMessage';
     message: TaggedMessageContent[];
 }
-
-export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
 
 type MessageCharacterInfo = {
     characterId: string;

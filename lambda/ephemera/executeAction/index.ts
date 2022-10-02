@@ -3,7 +3,8 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { AssetKey, RoomKey, splitType } from "@tonylb/mtw-utilities/dist/types"
 import internalCache from "../internalCache"
-import { ExecuteActionMessage, LegalCharacterColor, MessageBus, PublishMessage } from "../messageBus/baseClasses"
+import { ExecuteActionMessage, MessageBus, PublishMessage } from "../messageBus/baseClasses"
+import { LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/messages"
 import { produce } from 'immer'
 import { sandboxedExecution } from '../computation/sandbox'
 import { tagFromEphemeraId } from "../internalCache/dependencyGraph"
