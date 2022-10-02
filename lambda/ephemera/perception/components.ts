@@ -1,5 +1,8 @@
-import { splitType } from '@tonylb/mtw-utilities/dist/types';
+import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { produce } from 'immer'
+import { EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
+import { RoomDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
+import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 //
 // TODO: Replace repeated direct assigns of spaceAfter and spaceBefore with a post-process
@@ -8,20 +11,23 @@ import { produce } from 'immer'
 // all spaceBefore/spaceAfter from the list of joined arguments
 //
 
-type RenderItem = {
-    spaceAfter?: boolean;
-    spaceBefore?: boolean;
-    value?: string;
-    tag: 'String' | 'LineBreak' | 'Link'
+const renderItemToTaggedMessage = (item: ComponentRenderItem): TaggedMessageContent => {
+    if (item.tag === 'LineBreak') {
+        return item
+    }
+    else {
+        const { spaceAfter, spaceBefore, ...rest } = item
+        return rest
+    }
 }
 
-const joinRenderItems = function * (render: RenderItem[] = []): Generator<RenderItem> {
+const joinRenderItems = function * (render: ComponentRenderItem[] = []): Generator<TaggedMessageContent> {
     if (render.length > 0) {
         //
         // Use spread-operator to clear the read-only tags that Immer can apply
         //
-        let currentItem: RenderItem = { ...render[0] }
-        if (currentItem.spaceBefore) {
+        let currentItem: ComponentRenderItem = { ...render[0] }
+        if (currentItem.tag !== 'LineBreak' && currentItem.spaceBefore) {
             switch(currentItem.tag) {
                 case 'String':
                     currentItem.value = ` ${currentItem.value}`
@@ -32,14 +38,12 @@ const joinRenderItems = function * (render: RenderItem[] = []): Generator<Render
                         value: ' '
                     }
                     break
-                case 'LineBreak':
-                    break
             }
         }
         for (const renderItem of (render.slice(1) || [])) {
-            const currentSpacingDefined = currentItem.spaceAfter !== undefined || currentItem.spaceBefore !== undefined
-            const renderSpacingDefined = renderItem.spaceAfter !== undefined || renderItem.spaceBefore !== undefined
-            const spaceBetween = currentItem.spaceAfter || renderItem.spaceBefore
+            const currentSpacingDefined = currentItem.tag !== 'LineBreak' && (currentItem.spaceAfter !== undefined || currentItem.spaceBefore !== undefined)
+            const renderSpacingDefined = renderItem.tag !== 'LineBreak' && (renderItem.spaceAfter !== undefined || renderItem.spaceBefore !== undefined)
+            const spaceBetween = (currentItem.tag !== 'LineBreak' && currentItem.spaceAfter) || (renderItem.tag !== 'LineBreak' && renderItem.spaceBefore)
             switch(renderItem.tag) {
                 case 'String':
                     switch(currentItem.tag) {
@@ -48,10 +52,7 @@ const joinRenderItems = function * (render: RenderItem[] = []): Generator<Render
                             currentItem.spaceAfter = renderItem.spaceAfter
                             break
                         case 'Link':
-                            yield {
-                                ...currentItem,
-                                spaceAfter: undefined
-                            }
+                            yield renderItemToTaggedMessage(currentItem)
                             currentItem = {
                                 ...renderItem,
                                 value: `${spaceBetween ? ' ' : ''}${renderSpacingDefined ? (renderItem.value || '').trimStart() : renderItem.value}`,
@@ -59,10 +60,7 @@ const joinRenderItems = function * (render: RenderItem[] = []): Generator<Render
                             }
                             break
                         case 'LineBreak':
-                            yield {
-                                ...currentItem,
-                                spaceAfter: undefined
-                            }
+                            yield renderItemToTaggedMessage(currentItem)
                             currentItem = {
                                 ...renderItem,
                                 value: renderSpacingDefined ? (renderItem.value || '').trimStart() : renderItem.value,
@@ -74,21 +72,17 @@ const joinRenderItems = function * (render: RenderItem[] = []): Generator<Render
                 case 'Link':
                     switch(currentItem.tag) {
                         case 'String':
-                            yield {
+                            yield renderItemToTaggedMessage({
                                 ...currentItem,
                                 value: `${currentSpacingDefined ? (currentItem.value || '').trimEnd() : currentItem.value}${spaceBetween ? ' ' : ''}`,
-                                spaceAfter: undefined
-                            }
+                            })
                             currentItem = {
                                 ...renderItem,
                                 spaceBefore: undefined
                             }
                             break
                         case 'Link':
-                            yield {
-                                ...currentItem,
-                                spaceAfter: undefined
-                            }
+                            yield renderItemToTaggedMessage(currentItem)
                             if (spaceBetween) {
                                 yield {
                                     tag: 'String',
@@ -101,10 +95,7 @@ const joinRenderItems = function * (render: RenderItem[] = []): Generator<Render
                             }
                             break
                         case 'LineBreak':
-                            yield {
-                                ...currentItem,
-                                spaceAfter: undefined
-                            }
+                            yield renderItemToTaggedMessage(currentItem)
                             currentItem = {
                                 ...renderItem,
                                 spaceBefore: undefined
@@ -113,52 +104,53 @@ const joinRenderItems = function * (render: RenderItem[] = []): Generator<Render
                     }
                     break
                 case 'LineBreak':
-                    yield {
-                        ...currentItem,
-                        value: currentSpacingDefined ? (currentItem.value || '').trim() : currentItem.value,
-                        spaceAfter: undefined
-                    }
-                    currentItem = {
-                        ...renderItem,
-                        spaceBefore: undefined
-                    }
+                    yield currentItem.tag === 'String'
+                        ? renderItemToTaggedMessage({
+                            ...currentItem,
+                            value: currentSpacingDefined ? (currentItem.value || '').trim() : currentItem.value
+                        })
+                        : renderItemToTaggedMessage(currentItem)
+                    currentItem = renderItem
                     break
             }
         }
-        yield currentItem
+        yield renderItemToTaggedMessage(currentItem)
     }
 }
 
-const foldSpacingIntoList = ({ render, spaceBefore, spaceAfter }: { render: RenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): RenderItem[] => (produce(render, (draft) => {
-    if (draft && draft.length > 0) {
-        draft[0].spaceBefore = draft[0].spaceBefore || spaceBefore
-        draft[draft.length - 1].spaceAfter = draft[draft.length - 1].spaceAfter || spaceAfter
-    }
-}))
+// const foldSpacingIntoList = ({ render, spaceBefore, spaceAfter }: { render: ComponentRenderItem[]; spaceBefore: boolean; spaceAfter: boolean }): ComponentRenderItem[] => (produce(render, (draft) => {
+//     if (draft && draft.length > 0) {
+//         if (draft[0].tag !== 'LineBreak') {
+//             draft[0].spaceBefore = draft[0].spaceBefore || spaceBefore
+//         }
+//         const endOfList = draft[draft.length - 1]
+//         if (endOfList.tag !== 'LineBreak') {
+//             endOfList.spaceAfter = endOfList.spaceAfter || spaceAfter
+//         }
+//     }
+// }))
 
-export const componentAppearanceReduce = (...renderList) => {
-    const joinedList = renderList.reduce((previous, current) => ({
-        render: [
-            ...(previous.render || []),
-            ...(current.render ? foldSpacingIntoList(current) : [])
+type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters' | 'Description'> & { Description: ComponentRenderItem[] }
+
+export const componentAppearanceReduce = (...renderList: EphemeraRoomAppearance[]): Omit<RoomDescribeData, 'RoomId' | 'Characters'> => {
+    const joinedList = renderList.reduce<RenderRoomOutput>((previous, current) => ({
+        Description: [
+            ...(previous.Description || []),
+            ...(current.render || [])
         ],
-        name: [
-            ...(previous.name || []),
-            ...(current.name || [])
+        Name: `${previous.Name || ''}${current.name || ''}`,
+        // features: [
+        //     ...(previous.features || []),
+        //     ...(current.features || [])
+        // ],
+        Exits: [
+            ...(previous.Exits || []),
+            ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: to, Visibility: "Private" as "Private" })) || [])
         ],
-        features: [
-            ...(previous.features || []),
-            ...(current.features || [])
-        ],
-        exits: [
-            ...(previous.exits || []),
-            ...(current.exits || [])
-        ],
-    }), { render: [], name: [], features: [], exits: [] })
+    }), { Description: [], Name: '', Exits: [] })
     return {
         ...joinedList,
-        name: joinedList.name.join(''),
-        render: [...joinRenderItems(joinedList.render)]
+        Description: [...joinRenderItems(joinedList.Description)]
     }
 }
 

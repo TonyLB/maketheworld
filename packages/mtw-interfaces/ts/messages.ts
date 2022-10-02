@@ -19,7 +19,6 @@ type TaggedLineBreak = {
 
 export type TaggedLink = {
     tag: 'Link',
-    RoomId: string;
     text: string;
     to: string;
 }

@@ -4,15 +4,17 @@ describe('component utilities', () => {
     describe('componentAppearanceReduce', () => {
         it('should return empty from empty string', () => {
             expect(componentAppearanceReduce()).toEqual({
-                render: [],
-                name: "",
-                features: [],
-                exits: []
+                Description: [],
+                Name: "",
+                Exits: []
             })
         })
 
         it('should correctly join render strings', () => {
             expect(componentAppearanceReduce({
+                conditions: [],
+                name: '',
+                exits: [],
                 render: [{
                     tag: 'String',
                     value: 'Test',
@@ -24,15 +26,17 @@ describe('component utilities', () => {
                     spaceBefore: true
                 }]
             })).toEqual({
-                render: [{ tag: 'String', value: 'Test One' }],
-                name: '',
-                features: [],
-                exits: []
+                Description: [{ tag: 'String', value: 'Test One' }],
+                Name: '',
+                Exits: []
             })
         })
 
         it('should correctly join link after string', () => {
             expect(componentAppearanceReduce({
+                conditions: [],
+                name: '',
+                exits: [],
                 render: [{
                     tag: 'String',
                     value: 'Test',
@@ -44,19 +48,21 @@ describe('component utilities', () => {
                     spaceBefore: true
                 }]
             })).toEqual({
-                render: [
+                Description: [
                     { tag: 'String', value: 'Test ' },
                     { tag: 'Link', value: 'One' }
                 ],
-                name: '',
-                features: [],
-                exits: []
+                Name: '',
+                Exits: []
             })
 
         })
 
         it('should correctly join string after link', () => {
             expect(componentAppearanceReduce({
+                conditions: [],
+                name: '',
+                exits: [],
                 render: [{
                     tag: 'Link',
                     value: 'Test',
@@ -68,19 +74,21 @@ describe('component utilities', () => {
                     spaceBefore: true
                 }]
             })).toEqual({
-                render: [
+                Description: [
                     { tag: 'Link', value: 'Test' },
                     { tag: 'String', value: ' One' }
                 ],
-                name: '',
-                features: [],
-                exits: []
+                Name: '',
+                Exits: []
             })
 
         })
 
         it('should correctly join links with space between', () => {
             expect(componentAppearanceReduce({
+                conditions: [],
+                name: '',
+                exits: [],
                 render: [{
                     tag: 'Link',
                     value: 'Test',
@@ -92,20 +100,22 @@ describe('component utilities', () => {
                     spaceBefore: true
                 }]
             })).toEqual({
-                render: [
+                Description: [
                     { tag: 'Link', value: 'Test' },
                     { tag: 'String', value: ' ' },
                     { tag: 'Link', value: 'One' }
                 ],
-                name: '',
-                features: [],
-                exits: []
+                Name: '',
+                Exits: []
             })
 
         })
 
         it('should correctly join items with line breaks', () => {
             expect(componentAppearanceReduce({
+                conditions: [],
+                name: '',
+                exits: [],
                 render: [{
                     tag: 'Link',
                     value: 'Test',
@@ -120,14 +130,13 @@ describe('component utilities', () => {
                     spaceBefore: true
                 }]
             })).toEqual({
-                render: [
+                Description: [
                     { tag: 'Link', value: 'Test' },
                     { tag: 'LineBreak' },
                     { tag: 'Link', value: 'One' }
                 ],
-                name: '',
-                features: [],
-                exits: []
+                Name: '',
+                Exits: []
             })
 
         })
@@ -135,6 +144,9 @@ describe('component utilities', () => {
 
         it('should correctly join items without spacing fields', () => {
             expect(componentAppearanceReduce({
+                conditions: [],
+                name: '',
+                exits: [],
                 render: [{
                     tag: 'String',
                     value: 'Test ',
@@ -144,13 +156,12 @@ describe('component utilities', () => {
                     value: 'One',
                 }]
             })).toEqual({
-                render: [
+                Description: [
                     { tag: 'String', value: 'Test ' },
                     { tag: 'Link', value: 'One' }
                 ],
-                name: '',
-                features: [],
-                exits: []
+                Name: '',
+                Exits: []
             })
 
         })
