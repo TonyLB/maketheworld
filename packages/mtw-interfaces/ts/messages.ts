@@ -57,7 +57,7 @@ export type RoomDescription = {
     DisplayProtocol: 'RoomDescription';
 } & RoomDescribeData & MessageAddressing
 
-type FeatureDescribeData = {
+export type FeatureDescribeData = {
     Description: TaggedMessageContent[];
     Name: string;
     FeatureId: string;

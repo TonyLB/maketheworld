@@ -1,7 +1,7 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { produce } from 'immer'
-import { EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
+import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 
 //
@@ -131,26 +131,53 @@ const joinRenderItems = function * (render: ComponentRenderItem[] = []): Generat
 // }))
 
 type RenderRoomOutput = Omit<RoomDescribeData, 'RoomId' | 'Characters' | 'Description'> & { Description: ComponentRenderItem[] }
+type RenderFeatureOutput = Omit<FeatureDescribeData, 'FeatureId' | 'Description'> & { Description: ComponentRenderItem[] }
 
-export const componentAppearanceReduce = (...renderList: EphemeraRoomAppearance[]): Omit<RoomDescribeData, 'RoomId' | 'Characters'> => {
-    const joinedList = renderList.reduce<RenderRoomOutput>((previous, current) => ({
-        Description: [
-            ...(previous.Description || []),
-            ...(current.render || [])
-        ],
-        Name: `${previous.Name || ''}${current.name || ''}`,
-        // features: [
-        //     ...(previous.features || []),
-        //     ...(current.features || [])
-        // ],
-        Exits: [
-            ...(previous.Exits || []),
-            ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: to, Visibility: "Private" as "Private" })) || [])
-        ],
-    }), { Description: [], Name: '', Exits: [] })
-    return {
-        ...joinedList,
-        Description: [...joinRenderItems(joinedList.Description)]
+const isEphemeraRoomAppearance = (value: EphemeraFeatureAppearance[] | EphemeraRoomAppearance[]): value is EphemeraRoomAppearance[] => (value.length === 0 || 'exits' in value[0])
+
+export function componentAppearanceReduce (...renderList: EphemeraFeatureAppearance[]): Omit<FeatureDescribeData, 'FeatureId'>
+export function componentAppearanceReduce (...renderList: EphemeraRoomAppearance[]): Omit<RoomDescribeData, 'RoomId' | 'Characters'>
+export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearance[] | EphemeraFeatureAppearance[])): (Omit<RoomDescribeData, 'RoomId' | 'Characters'> | Omit<FeatureDescribeData, 'FeatureId'>) {
+    if (renderList.length === 0) {
+        return {
+            Name: '',
+            Description: [],
+            Exits: []
+        }
+    }
+    if (isEphemeraRoomAppearance(renderList)) {
+        const joinedList = renderList.reduce<RenderRoomOutput>((previous, current) => ({
+            Description: [
+                ...(previous.Description || []),
+                ...(current.render || [])
+            ],
+            Name: `${previous.Name || ''}${current.name || ''}`,
+            // features: [
+            //     ...(previous.features || []),
+            //     ...(current.features || [])
+            // ],
+            Exits: [
+                ...(previous.Exits || []),
+                ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: to, Visibility: "Private" as "Private" })) || [])
+            ],
+        }), { Description: [], Name: '', Exits: [] })
+        return {
+            ...joinedList,
+            Description: [...joinRenderItems(joinedList.Description)]
+        }    
+    }
+    else {
+        const joinedList = renderList.reduce<RenderFeatureOutput>((previous, current) => ({
+            Description: [
+                ...(previous.Description || []),
+                ...(current.render || [])
+            ],
+            Name: `${previous.Name || ''}${current.name || ''}`,
+        }), { Description: [], Name: '' })
+        return {
+            ...joinedList,
+            Description: [...joinRenderItems(joinedList.Description)]
+        }
     }
 }
 

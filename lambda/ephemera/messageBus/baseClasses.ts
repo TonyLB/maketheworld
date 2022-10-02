@@ -2,7 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
-import { TaggedMessageContent, LegalCharacterColor } from "@tonylb/mtw-interfaces/dist/messages"
+import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription } from "@tonylb/mtw-interfaces/dist/messages"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
@@ -60,7 +60,21 @@ export type PublishRoomUpdateMessage = {
     Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds'> & { CharacterId: string })[];
 } & PublishMessageBase
 
-export type PublishMessage = PublishWorldMessage | PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage | PublishRoomUpdateMessage
+export type PublishFeatureDescriptionMessage = Omit<FeatureDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+    displayProtocol: 'FeatureDescription';
+} & PublishMessageBase
+
+export type PublishRoomDescriptionMessage = Omit<RoomDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+    displayProtocol: 'RoomDescription';
+} & PublishMessageBase
+
+export type PublishMessage = PublishWorldMessage |
+    PublishSpeechMessage |
+    PublishNarrateMessage |
+    PublishOutOfCharacterMessage |
+    PublishRoomUpdateMessage |
+    PublishFeatureDescriptionMessage |
+    PublishRoomDescriptionMessage
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';

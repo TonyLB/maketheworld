@@ -7,6 +7,7 @@ import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { EphemeraRoomAppearance } from "../cacheAsset/baseClasses"
 import { componentAppearanceReduce } from "./components"
 import { splitType } from "@tonylb/mtw-utilities/dist/types"
+import { RoomDescribeData } from "@tonylb/mtw-interfaces/dist/messages"
 
 export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionMessage[], messageBus: MessageBus }): Promise<void> => {
     const nonComponentRenders = payloads
@@ -42,12 +43,12 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
             switch(tag) {
                 case 'Room':
                     const RoomId = splitType(ephemeraId)[1]
-                    const possibleAppearances = [...(globalAssets || []), ...characterAssets]
+                    const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
                         .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[]))
                         .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
-                    const [roomCharacterList, ...renderAppearancesUnfiltered] = (await Promise.all([
+                    const [roomCharacterList, ...renderRoomAppearancesUnfiltered] = (await Promise.all([
                         internalCache.RoomCharacterList.get(RoomId),
-                        ...(possibleAppearances.map(async (appearance) => {
+                        ...(possibleRoomAppearances.map(async (appearance) => {
                             const conditionsPassList = await Promise.all(appearance.conditions.map(async ({ if: source, dependencies }) => (
                                 internalCache.EvaluateCode.get({
                                     source,
@@ -63,20 +64,50 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                             }
                         }))
                     ]))
-                    const renderAppearances = renderAppearancesUnfiltered.filter((value: EphemeraRoomAppearance | undefined): value is EphemeraRoomAppearance => (Boolean(value)))
-                    const render = componentAppearanceReduce(...renderAppearances)
+                    const renderRoomAppearances = renderRoomAppearancesUnfiltered.filter((value: EphemeraRoomAppearance | undefined): value is EphemeraRoomAppearance => (Boolean(value)))
+                    const renderRoom = componentAppearanceReduce(...renderRoomAppearances) as Omit<RoomDescribeData, 'RoomId' | 'Characters'>
                     messageBus.send({
                         type: 'PublishMessage',
                         targets: [{ characterId }],
-                        displayProtocol: 'RoomUpdate',
+                        displayProtocol: 'RoomDescription',
                         RoomId,
                         Characters: roomCharacterList.map(({ EphemeraId, ConnectionIds, ...rest }) => ({ CharacterId: splitType(EphemeraId)[1], ...rest })),
-                        ...render
+                        ...renderRoom
                     })
                     break
-                    //
-                    // TODO: Create analogous render pipeline for Features
-                    //
+                case 'Feature':
+                    const FeatureId = splitType(ephemeraId)[1]
+                    const possibleFeatureAppearances = [...(globalAssets || []), ...characterAssets]
+                        .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[]))
+                        .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
+                    const renderFeatureAppearancesUnfiltered = await Promise.all(possibleFeatureAppearances
+                        .map(async (appearance) => {
+                            const conditionsPassList = await Promise.all(appearance.conditions.map(async ({ if: source, dependencies }) => (
+                                internalCache.EvaluateCode.get({
+                                    source,
+                                    mapping: dependencies.reduce<Record<string, string>>((previous, { EphemeraId, key }) => ({ ...previous, [key]: EphemeraId }), {})
+                                })
+                            )))
+                            const allConditionsPass = conditionsPassList.reduce<boolean>((previous, value) => (previous && Boolean(value)), true)
+                            if (allConditionsPass) {
+                                return appearance
+                            }
+                            else {
+                                return undefined
+                            }
+                        })
+                    )
+                    const renderFeatureAppearances = renderFeatureAppearancesUnfiltered.filter((value: EphemeraRoomAppearance | undefined): value is EphemeraRoomAppearance => (Boolean(value)))
+                    const renderFeature = componentAppearanceReduce(...renderFeatureAppearances)
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [{ characterId }],
+                        displayProtocol: 'FeatureDescription',
+                        FeatureId,
+                        ...renderFeature
+                    })
+                    break
+
             }
 
         })
