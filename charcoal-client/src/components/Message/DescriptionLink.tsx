@@ -14,7 +14,7 @@ import { blue, grey } from '@mui/material/colors'
 
 import {
     TaggedLink
-} from '../../slices/messages/baseClasses'
+} from '@tonylb/mtw-interfaces/dist/messages'
 
 import { socketDispatchPromise } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'

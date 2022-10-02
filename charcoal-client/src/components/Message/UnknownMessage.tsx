@@ -6,7 +6,7 @@ import {
 } from '@mui/material'
 
 import MessageComponent from './MessageComponent'
-import { Message } from '../../slices/messages/baseClasses'
+import { Message } from '@tonylb/mtw-interfaces/dist/messages'
 
 interface UnknownMessageProps {
     message: Message;

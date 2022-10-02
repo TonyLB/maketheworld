@@ -16,7 +16,7 @@ import MessageComponent from './MessageComponent'
 import {
     RoomDescription as RoomDescriptionType,
     RoomHeader as RoomHeaderType,
-} from '../../slices/messages/baseClasses'
+} from '@tonylb/mtw-interfaces/dist/messages'
 
 import RoomExit from './RoomExit'
 import RoomCharacter from './RoomCharacter'

@@ -7,7 +7,7 @@ import HiddenIcon from '@mui/icons-material/VisibilityOff'
 
 import { moveCharacter } from '../../slices/lifeLine'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { RoomExit as RoomExitType } from '../../slices/messages/baseClasses'
+import { RoomExit as RoomExitType } from '@tonylb/mtw-interfaces/dist/messages'
 
 interface RoomExitProps {
     exit: RoomExitType;

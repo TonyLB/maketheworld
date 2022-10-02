@@ -5,7 +5,7 @@ import reducer, {
 } from './index'
 import {
     WorldMessage
-} from './baseClasses'
+} from '@tonylb/mtw-interfaces/dist/messages'
 
 jest.mock('../../cacheDB')
 

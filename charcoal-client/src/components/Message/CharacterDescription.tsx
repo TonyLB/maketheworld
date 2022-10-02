@@ -17,7 +17,7 @@ import MessageComponent from './MessageComponent'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import {
     CharacterDescription as CharacterDescriptionType
-} from '../../slices/messages/baseClasses'
+} from '@tonylb/mtw-interfaces/dist/messages'
 
 import DescriptionLink from './DescriptionLink'
 

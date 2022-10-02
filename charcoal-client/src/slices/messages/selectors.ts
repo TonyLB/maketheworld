@@ -1,7 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit'
 import { v4 as uuidv4 } from 'uuid'
 
-import { Message, MessageState, RoomHeader } from './baseClasses'
+import { Message, RoomHeader } from '@tonylb/mtw-interfaces/dist/messages'
+import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
 
 

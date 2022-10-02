@@ -9,7 +9,7 @@ import FeatureDescription from './FeatureDescription'
 import SpacerMessage from './SpacerMessage'
 import UnknownMessage from './UnknownMessage'
 
-import { Message as MessageType } from '../../slices/messages/baseClasses'
+import { Message as MessageType } from '@tonylb/mtw-interfaces/dist/messages'
 import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
 

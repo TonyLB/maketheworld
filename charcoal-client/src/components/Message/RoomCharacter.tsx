@@ -1,7 +1,7 @@
 import React, { ReactChild, ReactChildren} from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { RoomCharacter as RoomCharacterType } from '../../slices/messages/baseClasses'
+import { RoomCharacter as RoomCharacterType } from '@tonylb/mtw-interfaces/dist/messages'
 import { socketDispatchPromise } from '../../slices/lifeLine'
 
 import { useActiveCharacter } from '../ActiveCharacter'

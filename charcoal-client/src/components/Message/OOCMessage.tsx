@@ -9,7 +9,7 @@ import { CharacterColorWrapper } from '../CharacterStyleWrapper'
 import { useActiveCharacter } from '../ActiveCharacter'
 import TaggedMessageContent from './TaggedMessageContent'
 
-import { OutOfCharacterMessage } from '../../slices/messages/baseClasses'
+import { OutOfCharacterMessage } from '@tonylb/mtw-interfaces/dist/messages'
 import MessageComponent from './MessageComponent'
 import CharacterAvatar from '../CharacterAvatar'
 

@@ -12,7 +12,7 @@ import {
 import { getActiveCharacterList } from '../../slices/ephemera'
 import { getPlayer } from '../../slices/player'
 import { useActiveCharacter } from '../ActiveCharacter'
-import { LegalCharacterColor } from '../../slices/messages/baseClasses'
+import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/messages'
 
 declare module '@mui/material/styles' {
     interface PaletteOptions {
