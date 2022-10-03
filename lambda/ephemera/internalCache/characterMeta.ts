@@ -9,6 +9,7 @@ export type CharacterMetaItem = {
     Color?: string;
     fileURL?: string;
     HomeId: string;
+    assets: string[];
     Pronouns: NormalCharacterPronouns;
 }
 
@@ -22,11 +23,11 @@ export class CacheCharacterMetaData {
             const characterData = await ephemeraDB.getItem<CharacterMetaItem>({
                     EphemeraId: `CHARACTER#${characterId}`,
                     DataCategory: 'Meta::Character',
-                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'Pronouns'],
+                    ProjectionFields: ['EphemeraId', '#name', 'RoomId', 'Color', 'fileURL', 'HomeId', 'assets', 'Pronouns'],
                     ExpressionAttributeNames: {
                         '#name': 'Name'
                     }
-                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX', Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
+                }) || { EphemeraId: '', Name: '', RoomId: '', Color: 'grey', fileURL: '', HomeId: 'VORTEX', assets: [], Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' } }
             this.CharacterMetaById[characterId] = characterData
         }
         return this.CharacterMetaById[characterId] || []

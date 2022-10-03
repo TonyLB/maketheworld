@@ -62,7 +62,7 @@ export class DeferredCache <T>{
                         const defaultFunc = this._default
                         if (!(typeof defaultFunc === 'undefined')) {
                             failedKeys.forEach((key) => {
-                                cache[key].resolve(defaultFunc(key))
+                                this.set(key, defaultFunc(key))
                             })
                         }
                         else {

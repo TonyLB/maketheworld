@@ -40,7 +40,7 @@ describe('DescentUpdateMessage', () => {
             messageBus
         })
 
-        expect(messageBus.send).toHaveBeenCalledTimes(2)
+        expect(messageBus.send).toHaveBeenCalledTimes(1)
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'DescentUpdate',
             EphemeraId: 'ASSET#ImportOne',

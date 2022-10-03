@@ -8,6 +8,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB';
 import CacheCharacterConnections from './characterConnections';
 import AssetState from './assetState';
 import DependencyGraph from './dependencyGraph';
+import { ComponentMeta } from './componentMeta';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections'
 class CacheGlobalData {
@@ -54,6 +55,7 @@ class CacheGlobalData {
                         DataCategory: 'Assets',
                         ProjectionFields: ['assets']
                     })) || {}
+                    this.assets = assets
                 }
                 return this.assets
             case 'connections':
@@ -94,6 +96,6 @@ export const CacheGlobal = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-const InternalCache = AssetState(DependencyGraph(CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase))))))
+const InternalCache = ComponentMeta(AssetState(DependencyGraph(CacheCharacterConnections(CacheCharacterMeta(CacheRoomCharacterLists(CacheGlobal(CacheBase)))))))
 export const internalCache = new InternalCache()
 export default internalCache

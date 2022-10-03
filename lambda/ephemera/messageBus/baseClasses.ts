@@ -2,6 +2,7 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb"
 import { InternalMessageBus } from '@tonylb/mtw-internal-bus/dist'
 import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
+import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription } from "@tonylb/mtw-interfaces/dist/messages"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
 
 export type PublishTargetRoom = {
@@ -27,34 +28,10 @@ export type PublishMessageBase = {
     targets: PublishTarget[];
 }
 
-//
-// TODO: Figure out how to abstract copied typescript constraints on messages
-// into a central library shared between lambdas and front-end
-//
-type TaggedText = {
-    tag: 'String';
-    value: string;
-}
-
-type TaggedLineBreak = {
-    tag: 'LineBreak';
-}
-
-export type TaggedLink = {
-    tag: 'Link',
-    RoomId: string;
-    text: string;
-    to: string;
-}
-
-export type TaggedMessageContent = TaggedLink | TaggedText | TaggedLineBreak;
-
 export type PublishWorldMessage = PublishMessageBase & {
     displayProtocol: 'WorldMessage';
     message: TaggedMessageContent[];
 }
-
-export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'
 
 type MessageCharacterInfo = {
     characterId: string;
@@ -83,7 +60,21 @@ export type PublishRoomUpdateMessage = {
     Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds'> & { CharacterId: string })[];
 } & PublishMessageBase
 
-export type PublishMessage = PublishWorldMessage | PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage | PublishRoomUpdateMessage
+export type PublishFeatureDescriptionMessage = Omit<FeatureDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+    displayProtocol: 'FeatureDescription';
+} & PublishMessageBase
+
+export type PublishRoomDescriptionMessage = Omit<RoomDescription, 'DisplayProtocol' | 'MessageId' | 'CreatedTime' | 'Target'> & {
+    displayProtocol: 'RoomDescription';
+} & PublishMessageBase
+
+export type PublishMessage = PublishWorldMessage |
+    PublishSpeechMessage |
+    PublishNarrateMessage |
+    PublishOutOfCharacterMessage |
+    PublishRoomUpdateMessage |
+    PublishFeatureDescriptionMessage |
+    PublishRoomDescriptionMessage
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -247,6 +238,8 @@ export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
+export const isRoomDescriptionPublishMessage = (prop: PublishMessage): prop is PublishRoomDescriptionMessage => (prop.displayProtocol === 'RoomDescription')
+export const isFeatureDescriptionPublishMessage = (prop: PublishMessage): prop is PublishFeatureDescriptionMessage => (prop.displayProtocol === 'FeatureDescription')
 
 export const isReturnValueMessage = (prop: MessageType): prop is ReturnValueMessage => (prop.type === 'ReturnValue')
 export const isDisconnectMessage = (prop: MessageType): prop is DisconnectMessage => (prop.type === 'Disconnect')

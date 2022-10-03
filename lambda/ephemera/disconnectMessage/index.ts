@@ -24,7 +24,7 @@ const atomicallyRemoveCharacterAdjacency = async (connectionId, characterId) => 
             return
         }
         const { RoomId, Name, fileURL, Color, EphemeraId } = characterFetch || {}
-        const { Pronouns, ...rest } = characterFetch || {}
+        const { Pronouns, assets, ...rest } = characterFetch || {}
 
         const currentActiveCharacters = await internalCache.RoomCharacterList.get(RoomId)
 

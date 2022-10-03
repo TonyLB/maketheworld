@@ -1,6 +1,6 @@
 import Dexie, { Transaction } from 'dexie'
 
-import { Message } from '../slices/messages/baseClasses'
+import { Message } from '@tonylb/mtw-interfaces/dist/messages'
 
 export type TextEntryLinesType = {
     key: 'TextEntryLines';

@@ -21,7 +21,6 @@ import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types.js'
 import { CacheAssetMessage, MessageBus } from '../messageBus/baseClasses.js'
 import { mergeIntoEphemera } from './perAsset'
-import { isNormalComponent, isNormalMap } from '@tonylb/mtw-wml/dist/normalize.js'
 
 //
 // TODO:

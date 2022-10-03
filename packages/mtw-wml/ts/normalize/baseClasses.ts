@@ -63,7 +63,7 @@ export type ComponentRenderItem = {
     tag: 'Link';
     targetTag: 'Feature' | 'Action';
     to: string;
-    text?: string;
+    text: string;
     spaceBefore?: boolean;
     spaceAfter?: boolean;
 } | {

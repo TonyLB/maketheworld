@@ -14,7 +14,7 @@ import MessageComponent from './MessageComponent'
 import {
     FeatureDescription as FeatureDescriptionType,
     TaggedMessageContent
-} from '../../slices/messages/baseClasses'
+} from '@tonylb/mtw-interfaces/dist/messages'
 
 import DescriptionLink from './DescriptionLink'
 

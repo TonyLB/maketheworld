@@ -32,6 +32,7 @@ describe("disconnectMessage", () => {
             Name: 'Tess',
             Color: 'purple',
             HomeId: 'VORTEX',
+            assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
         internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([
@@ -98,6 +99,7 @@ describe("disconnectMessage", () => {
             Name: 'Tess',
             RoomId: 'TestABC',
             HomeId: 'VORTEX',
+            assets: [],
             Pronouns: { subject: 'they', object: 'them', possessive: 'their', adjective: 'theirs', reflexive: 'themself' }
         })
         internalCacheMock.RoomCharacterList.get.mockResolvedValueOnce([

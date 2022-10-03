@@ -2,7 +2,8 @@ import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { LegalCharacterColor, PublishMessage } from '../messageBus/baseClasses'
+import { PublishMessage } from '../messageBus/baseClasses'
+import { LegalCharacterColor } from '@tonylb/mtw-interfaces/dist/messages'
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: string; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {
     if (CharacterId && Message && DisplayProtocol) {

@@ -4,7 +4,7 @@ import {
     Box
 } from '@mui/material'
 
-import { SpacerMessage as SpacerMessageType } from '../../slices/messages/baseClasses'
+import { SpacerMessage as SpacerMessageType } from '@tonylb/mtw-interfaces/dist/messages'
 
 interface SpacerMessageProps {
     message: SpacerMessageType;

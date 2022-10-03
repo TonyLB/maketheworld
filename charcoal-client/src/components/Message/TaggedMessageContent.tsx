@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import { TaggedMessageContent as TaggedMessageContentType } from "../../slices/messages/baseClasses"
+import { TaggedMessageContent as TaggedMessageContentType } from "@tonylb/mtw-interfaces/dist/messages"
 import DescriptionLink from './DescriptionLink'
 
 interface TaggedMessageContentProps {

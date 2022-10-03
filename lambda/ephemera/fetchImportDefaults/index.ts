@@ -6,7 +6,8 @@ import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { objectMap } from '@tonylb/mtw-utilities/dist/objects'
 import { assetDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { componentAppearanceReduce, isComponentKey } from '@tonylb/mtw-utilities/dist/components/components'
-import { TaggedMessageContent, ImportDefaultsMessage, FetchImportDefaultsMessage, MessageBus } from '../messageBus/baseClasses'
+import { ImportDefaultsMessage, FetchImportDefaultsMessage, MessageBus } from '../messageBus/baseClasses'
+import { TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 
 type NamespaceMapItem = {
     assetId: string;

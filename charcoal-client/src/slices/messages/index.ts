@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType } from '../../cacheDB'
-import { Message } from './baseClasses'
+import { Message } from '@tonylb/mtw-interfaces/dist/messages'
 
 const initialState = {} as Record<string, Message[]>
 
