@@ -55,6 +55,7 @@ class CacheGlobalData {
                         DataCategory: 'Assets',
                         ProjectionFields: ['assets']
                     })) || {}
+                    this.assets = assets
                 }
                 return this.assets
             case 'connections':

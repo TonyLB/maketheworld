@@ -37,7 +37,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: { payloads: Pe
                 internalCache.Global.get('assets'),
                 internalCache.CharacterMeta.get(characterId)
             ])
-            const appearancesByAsset = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, unique(globalAssets, characterAssets) as string[])
+            const appearancesByAsset = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
 
             const tag = tagFromEphemeraId(ephemeraId) as 'Room' | 'Feature'
             switch(tag) {

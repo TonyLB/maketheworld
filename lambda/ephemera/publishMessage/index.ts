@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage } from "../messageBus/baseClasses"
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
@@ -175,6 +175,30 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 DisplayProtocol: payload.displayProtocol,
                 RoomId: payload.RoomId,
                 Characters: payload.Characters
+            })
+        }
+        if (isRoomDescriptionPublishMessage(payload)) {
+            pushToQueues({
+                Targets: payload.targets,
+                MessageId: `MESSAGE#${uuidv4()}`,
+                CreatedTime: CreatedTime + index,
+                DisplayProtocol: payload.displayProtocol,
+                RoomId: payload.RoomId,
+                Name: payload.Name,
+                Description: payload.Description,
+                Characters: payload.Characters,
+                Exits: payload.Exits
+            })
+        }
+        if (isFeatureDescriptionPublishMessage(payload)) {
+            pushToQueues({
+                Targets: payload.targets,
+                MessageId: `MESSAGE#${uuidv4()}`,
+                CreatedTime: CreatedTime + index,
+                DisplayProtocol: payload.displayProtocol,
+                FeatureId: payload.FeatureId,
+                Name: payload.Name,
+                Description: payload.Description
             })
         }
     })

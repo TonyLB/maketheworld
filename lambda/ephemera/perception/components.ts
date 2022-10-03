@@ -158,7 +158,7 @@ export function componentAppearanceReduce (...renderList: (EphemeraRoomAppearanc
             // ],
             Exits: [
                 ...(previous.Exits || []),
-                ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: to, Visibility: "Private" as "Private" })) || [])
+                ...(current.exits.map(({ name, to }) => ({ Name: name, RoomId: splitType(to)[1], Visibility: "Private" as "Private" })) || [])
             ],
         }), { Description: [], Name: '', Exits: [] })
         return {
