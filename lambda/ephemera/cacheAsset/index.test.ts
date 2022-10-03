@@ -308,7 +308,6 @@ describe('cacheAsset', () => {
             [{
                 EphemeraId: 'ROOM#DEF',
                 key: 'ABC',
-                tag: 'Room',
                 appearances: [{
                     conditions: [],
                     exits: [],
@@ -331,20 +330,17 @@ describe('cacheAsset', () => {
             {
                 EphemeraId: 'VARIABLE#QRS',
                 key: 'powered',
-                tag: 'Variable',
                 default: 'false'
             },
             {
                 EphemeraId: 'VARIABLE#TUV',
                 key: 'switchedOn',
-                tag: 'Variable',
                 default: 'true'
             },
             {
                 EphemeraId: 'COMPUTED#XYZ',
                 key: 'active',
                 src: 'powered && switchedOn',
-                tag: 'Computed',
                 dependencies: [
                     { key: 'switchedOn', EphemeraId: 'VARIABLE#TUV' },
                     { key: 'powered', EphemeraId: 'VARIABLE#QRS' }

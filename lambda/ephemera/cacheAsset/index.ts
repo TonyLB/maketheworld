@@ -11,10 +11,15 @@ import {
     isNormalAction,
     NormalCharacter,
     isNormalCharacter,
-    ComponentRenderItem
+    ComponentRenderItem,
+    isNormalRoom,
+    isNormalFeature,
+    isNormalMap,
+    isNormalVariable,
+    isNormalComputed
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { EphemeraActionId, EphemeraCharacter, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraItem, EphemeraMapId, EphemeraPushArgs, EphemeraRoomId, EphemeraVariableId } from './baseClasses'
+import { EphemeraActionId, EphemeraCharacter, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraItem, EphemeraMapId, EphemeraPushArgs, EphemeraRoomId, EphemeraVariableId, isEphemeraActionId, isEphemeraCharacterId, isEphemeraComputedId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraVariableId } from './baseClasses'
 import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
@@ -65,102 +70,101 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
         return undefined
     }
     const renderTranslate = ephemeraTranslateRender(assetWorkspace)
-    switch(item.tag) {
-        case 'Room':
-            return {
-                tag: 'Room',
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraRoomId,
-                appearances: item.appearances
-                    .map((appearance) => ({
-                        conditions: conditionsTransform(appearance.contextStack),
-                        name: appearance.name || '',
-                        render: (appearance.render || []).map(renderTranslate),
-                        exits: appearance.contents
-                            .filter(({ tag }) => (tag === 'Exit'))
-                            .map(({ key }) => (normal[key]))
-                            .filter(isNormalExit)
-                            .map(({ to, name }) => ({
-                                name: name || '',
-                                to: namespaceMap[to]
-                            }))
-                    }))
-            }
-        case 'Feature':
-            return {
-                tag: 'Feature',
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraFeatureId,
-                appearances: item.appearances
-                    .map((appearance) => ({
-                        conditions: conditionsTransform(appearance.contextStack),
-                        name: appearance.name || '',
-                        render: (appearance.render || []).map(renderTranslate),
-                    }))
-            }
-        case 'Map':
-            return {
-                tag: 'Map',
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraMapId,
-                appearances: item.appearances
-                    .map((appearance) => ({
-                        conditions: conditionsTransform(appearance.contextStack),
-                        name: appearance.name || '',
-                        fileURL: appearance.images.length > 0 ? appearance.images.slice(-1)[0] : '',
-                        rooms: objectEntryMap(appearance.rooms, ([key, { x, y }]) => ({
-                            EphemeraId: namespaceMap[key] || '',
-                            x,
-                            y
+    if (isEphemeraRoomId(EphemeraId) && isNormalRoom(item)) {
+        return {
+            key: item.key,
+            EphemeraId: EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
+                    name: appearance.name || '',
+                    render: (appearance.render || []).map(renderTranslate),
+                    exits: appearance.contents
+                        .filter(({ tag }) => (tag === 'Exit'))
+                        .map(({ key }) => (normal[key]))
+                        .filter(isNormalExit)
+                        .map(({ to, name }) => ({
+                            name: name || '',
+                            to: namespaceMap[to]
                         }))
-                    }))
-            }
-        case 'Character':
-            return {
-                tag: 'Character',
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraCharacterId,
-                address: assetWorkspace.address,
-                Name: item.Name,
-                Pronouns: item.Pronouns,
-                FirstImpression: item.FirstImpression,
-                OneCoolThing: item.OneCoolThing,
-                Outfit: item.Outfit,
-                Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
-                fileURL: item.fileURL,
-                Connected: false,
-                ConnectionIds: [],
-                RoomId: 'VORTEX'
-            }
-        case 'Action':
-            return {
-                tag: item.tag,
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraActionId,
-                src: item.src
-            }
-        case 'Variable':
-            return {
-                tag: 'Variable',
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraVariableId,
-                default: item.default
-            }
-        case 'Computed':
-            return {
-                tag: item.tag,
-                key: item.key,
-                EphemeraId: EphemeraId as EphemeraComputedId,
-                src: item.src,
-                dependencies: item.dependencies
-                    .map((key) => ({
-                        key,
-                        EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
-                    }))
-            }
-        default:
-            return undefined
+                }))
+        }
     }
+    if (isEphemeraFeatureId(EphemeraId) && isNormalFeature(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
+                    name: appearance.name || '',
+                    render: (appearance.render || []).map(renderTranslate),
+                }))
+        }
+    }
+    if (isEphemeraMapId(EphemeraId) && isNormalMap(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            appearances: item.appearances
+                .map((appearance) => ({
+                    conditions: conditionsTransform(appearance.contextStack),
+                    name: appearance.name || '',
+                    fileURL: appearance.images.length > 0 ? appearance.images.slice(-1)[0] : '',
+                    rooms: objectEntryMap(appearance.rooms, ([key, { x, y }]) => ({
+                        EphemeraId: namespaceMap[key] || '',
+                        x,
+                        y
+                    }))
+                }))
+        }
+    }
+    if (isEphemeraCharacterId(EphemeraId) && isNormalCharacter(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            address: assetWorkspace.address,
+            Name: item.Name,
+            Pronouns: item.Pronouns,
+            FirstImpression: item.FirstImpression,
+            OneCoolThing: item.OneCoolThing,
+            Outfit: item.Outfit,
+            Color: defaultColorFromCharacterId(splitType(EphemeraId)[1]) as any,
+            fileURL: item.fileURL,
+            Connected: false,
+            ConnectionIds: [],
+            RoomId: 'VORTEX'
+        }
+
+    }
+    if (isEphemeraActionId(EphemeraId) && isNormalAction(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            src: item.src
+        }    
+    }
+    if (isEphemeraVariableId(EphemeraId) && isNormalVariable(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            default: item.default
+        }
+    }
+    if (isEphemeraComputedId(EphemeraId) && isNormalComputed(item)) {
+        return {
+            key: item.key,
+            EphemeraId,
+            src: item.src,
+            dependencies: item.dependencies
+                .map((key) => ({
+                    key,
+                    EphemeraId: (assetWorkspace.namespaceIdToDB[key] || '')
+                }))
+        }
+    }
+    console.log(`WARNING: Unknown combination of types in cacheAsset:  NormalItem with tag '${item.tag}' and Ephemera wrapper: '${splitType(EphemeraId)[0]}'`)
+    return undefined
 }
 
 
