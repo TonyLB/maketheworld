@@ -14,7 +14,7 @@ import {
     ComponentRenderItem
 } from '@tonylb/mtw-wml/dist/normalize/baseClasses.js'
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index.js'
-import { EphemeraCharacter, EphemeraItem, EphemeraPushArgs } from './baseClasses'
+import { EphemeraActionId, EphemeraCharacter, EphemeraCharacterId, EphemeraComputedId, EphemeraFeatureId, EphemeraItem, EphemeraMapId, EphemeraPushArgs, EphemeraRoomId, EphemeraVariableId } from './baseClasses'
 import { objectEntryMap } from '../lib/objects.js'
 import { conditionsFromContext } from './utilities'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
@@ -70,7 +70,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             return {
                 tag: 'Room',
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraRoomId,
                 appearances: item.appearances
                     .map((appearance) => ({
                         conditions: conditionsTransform(appearance.contextStack),
@@ -90,7 +90,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             return {
                 tag: 'Feature',
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraFeatureId,
                 appearances: item.appearances
                     .map((appearance) => ({
                         conditions: conditionsTransform(appearance.contextStack),
@@ -102,7 +102,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             return {
                 tag: 'Map',
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraMapId,
                 appearances: item.appearances
                     .map((appearance) => ({
                         conditions: conditionsTransform(appearance.contextStack),
@@ -119,7 +119,7 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             return {
                 tag: 'Character',
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraCharacterId,
                 address: assetWorkspace.address,
                 Name: item.Name,
                 Pronouns: item.Pronouns,
@@ -136,21 +136,21 @@ const ephemeraItemFromNormal = (assetWorkspace: AssetWorkspace) => (item: Normal
             return {
                 tag: item.tag,
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraActionId,
                 src: item.src
             }
         case 'Variable':
             return {
                 tag: 'Variable',
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraVariableId,
                 default: item.default
             }
         case 'Computed':
             return {
                 tag: item.tag,
                 key: item.key,
-                EphemeraId,
+                EphemeraId: EphemeraId as EphemeraComputedId,
                 src: item.src,
                 dependencies: item.dependencies
                     .map((key) => ({
