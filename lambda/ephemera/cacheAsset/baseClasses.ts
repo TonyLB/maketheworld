@@ -1,5 +1,8 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist"
-import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize"
+import { splitType } from "@tonylb/mtw-utilities/dist/types";
+import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+
+type EphemeraWrappedId<T extends string> = `${T}#${string}`
 
 type EphemeraItemDependency = {
     key: string;
@@ -10,6 +13,9 @@ export type EphemeraCondition = {
     dependencies: EphemeraItemDependency[];
     if: string;
 }
+
+export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
+export const isEphemeraFeatureId = (key: string): key is EphemeraFeatureId => (splitType(key)[0] === 'FEATURE')
 
 export type EphemeraFeatureAppearance = {
     conditions: EphemeraCondition[];

@@ -44,13 +44,15 @@ describe('component utilities', () => {
                 },
                 {
                     tag: 'Link',
-                    value: 'One',
+                    text: 'One',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature',
                     spaceBefore: true
                 }]
             })).toEqual({
                 Description: [
                     { tag: 'String', value: 'Test ' },
-                    { tag: 'Link', value: 'One' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
                 ],
                 Name: '',
                 Exits: []
@@ -65,7 +67,9 @@ describe('component utilities', () => {
                 exits: [],
                 render: [{
                     tag: 'Link',
-                    value: 'Test',
+                    text: 'Test',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature',
                     spaceAfter: true
                 },
                 {
@@ -75,7 +79,7 @@ describe('component utilities', () => {
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'Link', value: 'Test' },
+                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne', targetTag: 'Feature' },
                     { tag: 'String', value: ' One' }
                 ],
                 Name: '',
@@ -91,19 +95,23 @@ describe('component utilities', () => {
                 exits: [],
                 render: [{
                     tag: 'Link',
-                    value: 'Test',
+                    text: 'Test',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature',
                     spaceAfter: true
                 },
                 {
                     tag: 'Link',
-                    value: 'One',
+                    text: 'One',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature',
                     spaceBefore: true
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'Link', value: 'Test' },
+                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne', targetTag: 'Feature' },
                     { tag: 'String', value: ' ' },
-                    { tag: 'Link', value: 'One' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
                 ],
                 Name: '',
                 Exits: []
@@ -118,7 +126,9 @@ describe('component utilities', () => {
                 exits: [],
                 render: [{
                     tag: 'Link',
-                    value: 'Test',
+                    text: 'Test',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature',
                     spaceAfter: true
                 },
                 {
@@ -126,14 +136,16 @@ describe('component utilities', () => {
                 },
                 {
                     tag: 'Link',
-                    value: 'One',
+                    text: 'One',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature',
                     spaceBefore: true
                 }]
             })).toEqual({
                 Description: [
-                    { tag: 'Link', value: 'Test' },
+                    { tag: 'Link', text: 'Test', to: 'FEATURE#TestOne', targetTag: 'Feature' },
                     { tag: 'LineBreak' },
-                    { tag: 'Link', value: 'One' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
                 ],
                 Name: '',
                 Exits: []
@@ -153,12 +165,14 @@ describe('component utilities', () => {
                 },
                 {
                     tag: 'Link',
-                    value: 'One',
+                    text: 'One',
+                    to: 'FEATURE#TestOne',
+                    targetTag: 'Feature'
                 }]
             })).toEqual({
                 Description: [
                     { tag: 'String', value: 'Test ' },
-                    { tag: 'Link', value: 'One' }
+                    { tag: 'Link', text: 'One', to: 'FEATURE#TestOne', targetTag: 'Feature' }
                 ],
                 Name: '',
                 Exits: []
