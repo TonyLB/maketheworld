@@ -41,7 +41,6 @@ describe('ComponentMeta', () => {
         expect(output).toEqual({
             Base: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Base',
                 appearances: [{
                     name: '',
@@ -55,7 +54,6 @@ describe('ComponentMeta', () => {
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Layer',
                 appearances: [{
                     name: '',
@@ -81,7 +79,6 @@ describe('ComponentMeta', () => {
     it('should send already cached items', async () => {
         internalCache.ComponentMeta.set('ROOM#TestOne', 'Layer', {
             EphemeraId: 'ROOM#TestOne',
-            tag: 'Room',
             assetId: 'Layer',
             appearances: [{
                 name: '',
@@ -109,7 +106,6 @@ describe('ComponentMeta', () => {
         expect(output).toEqual({
             Base: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Base',
                 appearances: [{
                     name: '',
@@ -123,7 +119,6 @@ describe('ComponentMeta', () => {
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Layer',
                 appearances: [{
                     name: '',
@@ -162,7 +157,6 @@ describe('ComponentMeta', () => {
         expect(output).toEqual({
             Base: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Base',
                 appearances: [{
                     name: '',
@@ -176,7 +170,6 @@ describe('ComponentMeta', () => {
             },
             Layer: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Layer',
                 appearances: []
             }
