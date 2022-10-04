@@ -27,7 +27,6 @@ describe('Perception message', () => {
         cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
             Base: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Base',
                 appearances: [
                     {
@@ -46,7 +45,6 @@ describe('Perception message', () => {
             },
             Personal: {
                 EphemeraId: 'ROOM#TestOne',
-                tag: 'Room',
                 assetId: 'Base',
                 appearances: [
                     {
@@ -104,7 +102,6 @@ describe('Perception message', () => {
         cacheMock.ComponentMeta.getAcrossAssets.mockResolvedValue({
             Base: {
                 EphemeraId: 'FEATURE#TestOne',
-                tag: 'Feature',
                 assetId: 'Base',
                 appearances: [
                     {
@@ -121,7 +118,6 @@ describe('Perception message', () => {
             },
             Personal: {
                 EphemeraId: 'FEATURE#TestOne',
-                tag: 'Feature',
                 assetId: 'Base',
                 appearances: [
                     {

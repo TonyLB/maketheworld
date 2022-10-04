@@ -1,5 +1,8 @@
 import { AssetWorkspaceAddress } from "@tonylb/mtw-asset-workspace/dist"
-import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize"
+import { splitType } from "@tonylb/mtw-utilities/dist/types";
+import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/dist/normalize/baseClasses"
+
+type EphemeraWrappedId<T extends string> = `${T}#${string}`
 
 type EphemeraItemDependency = {
     key: string;
@@ -11,6 +14,9 @@ export type EphemeraCondition = {
     if: string;
 }
 
+export type EphemeraFeatureId = EphemeraWrappedId<'FEATURE'>
+export const isEphemeraFeatureId = (key: string): key is EphemeraFeatureId => (splitType(key)[0] === 'FEATURE')
+
 export type EphemeraFeatureAppearance = {
     conditions: EphemeraCondition[];
     name: string;
@@ -18,9 +24,8 @@ export type EphemeraFeatureAppearance = {
 }
 
 export type EphemeraFeature = {
-    EphemeraId: string;
+    EphemeraId: EphemeraFeatureId;
     key: string;
-    tag: 'Feature';
     appearances: EphemeraFeatureAppearance[];
 }
 
@@ -36,12 +41,17 @@ export type EphemeraRoomAppearance = {
     exits: EphemeraExit[];
 }
 
+export type EphemeraRoomId = EphemeraWrappedId<'ROOM'>
+export const isEphemeraRoomId = (key: string): key is EphemeraRoomId => (splitType(key)[0] === 'ROOM')
+
 export type EphemeraRoom = {
-    EphemeraId: string;
+    EphemeraId: EphemeraRoomId;
     key: string;
-    tag: 'Room';
     appearances: EphemeraRoomAppearance[];
 }
+
+export type EphemeraMapId = EphemeraWrappedId<'MAP'>
+export const isEphemeraMapId = (key: string): key is EphemeraMapId => (splitType(key)[0] === 'MAP')
 
 export type EphemeraMapRoom = {
     EphemeraId: string;
@@ -57,16 +67,17 @@ export type EphemeraMapAppearance = {
 }
 
 export type EphemeraMap = {
-    EphemeraId: string;
+    EphemeraId: EphemeraMapId;
     key: string;
-    tag: 'Map';
     appearances: EphemeraMapAppearance[];
 }
 
+export type EphemeraCharacterId = EphemeraWrappedId<'CHARACTER'>
+export const isEphemeraCharacterId = (key: string): key is EphemeraCharacterId => (splitType(key)[0] === 'CHARACTER')
+
 export type EphemeraCharacter = {
-    EphemeraId: string;
+    EphemeraId: EphemeraCharacterId;
     key: string;
-    tag: 'Character';
     address: AssetWorkspaceAddress;
     Name: string;
     Pronouns: NormalCharacterPronouns;
@@ -80,29 +91,50 @@ export type EphemeraCharacter = {
     RoomId: string;
 }
 
+export type EphemeraActionId = EphemeraWrappedId<'ACTION'>
+export const isEphemeraActionId = (key: string): key is EphemeraActionId => (splitType(key)[0] === 'ACTION')
+
 export type EphemeraAction = {
-    EphemeraId: string;
+    EphemeraId: EphemeraActionId;
     key: string;
-    tag: 'Action';
     src: string;
 }
 
+export type EphemeraVariableId = EphemeraWrappedId<'VARIABLE'>
+export const isEphemeraVariableId = (key: string): key is EphemeraVariableId => (splitType(key)[0] === 'VARIABLE')
+
 export type EphemeraVariable = {
-    EphemeraId: string;
+    EphemeraId: EphemeraVariableId;
     key: string;
-    tag: 'Variable';
     default: string;
 }
 
+export type EphemeraComputedId = EphemeraWrappedId<'COMPUTED'>
+export const isEphemeraComputedId = (key: string): key is EphemeraComputedId => (splitType(key)[0] === 'COMPUTED')
+
 export type EphemeraComputed = {
-    EphemeraId: string;
+    EphemeraId: EphemeraComputedId;
     key: string;
-    tag: 'Computed';
     src: string;
     dependencies: EphemeraItemDependency[];
 }
 
 export type EphemeraItem = EphemeraFeature | EphemeraRoom | EphemeraMap | EphemeraCharacter | EphemeraAction | EphemeraVariable | EphemeraComputed
+
+type LegalEphemeraTag = 'Asset' | (EphemeraItem['EphemeraId'] extends `${infer T}#${string}` ? Capitalize<Lowercase<T>> : never)
+
+const isLegalEphemeraTag = (tag: string): tag is LegalEphemeraTag => (['Asset', 'Room', 'Map', 'Character', 'Action', 'Variable', 'Computed'].includes(tag))
+
+export const tagFromEphemeraWrappedId = (EphemeraId: string): LegalEphemeraTag => {
+    const [upperTag] = splitType(EphemeraId)
+    const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
+    if (isLegalEphemeraTag(tag)) {
+        return tag
+    }
+    else {
+        throw new Error(`Invalid dependency tag: ${tag}`)
+    }
+}
 
 export type EphemeraDependencyImport = {
     key: string;

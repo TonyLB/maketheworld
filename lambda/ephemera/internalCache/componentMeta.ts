@@ -1,26 +1,20 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
-import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, Deferred } from './baseClasses'
+import { CacheConstructor } from './baseClasses'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance } from '../cacheAsset/baseClasses'
-import { tagFromEphemeraId } from './dependencyGraph';
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraRoomId, EphemeraFeatureId, isEphemeraFeatureId, isEphemeraRoomId } from '../cacheAsset/baseClasses'
 
-type ComponentMetaItem = (
-    {
-        EphemeraId: string;
-        assetId: string;
-        tag: 'Room';
-        appearances: EphemeraRoomAppearance[];
-    }
-) | (
-    {
-        EphemeraId: string;
-        assetId: string;
-        tag: 'Feature';
-        appearances: EphemeraFeatureAppearance[];
-    }
-)
+type ComponentMetaRoomItem = {
+    EphemeraId: EphemeraRoomId;
+    assetId: string;
+    appearances: EphemeraRoomAppearance[];
+}
+type ComponentMetaFeatureItem = {
+    EphemeraId: EphemeraFeatureId;
+    assetId: string;
+    appearances: EphemeraFeatureAppearance[];
+}
+type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem
 
 const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: string, assetId: string } => {
@@ -39,17 +33,15 @@ export class ComponentMetaData {
     _Store: Record<string, ComponentMetaItem> = {}
     
     constructor() {
-        this._Cache = new DeferredCache({
+        this._Cache = new DeferredCache<ComponentMetaItem>({
             callback: (key, value) => { this._setStore(key, value) },
             defaultValue: (cacheKey) => {
                 const { assetId, EphemeraId } = cacheKeyComponents(cacheKey)
-                const tag = tagFromEphemeraId(EphemeraId)
-                if (tag !== 'Room' && tag !== 'Feature') {
+                if (!(isEphemeraFeatureId(EphemeraId) || isEphemeraRoomId(EphemeraId))) {
                     throw new Error('Illegal tag in ComponentMeta internalCache')
                 }
                 return {
                     EphemeraId,
-                    tag,
                     assetId,
                     appearances: []
                 }
@@ -70,113 +62,77 @@ export class ComponentMetaData {
         this._Store[key] = value
     }
 
-    async get(EphemeraId: string, assetId: string): Promise<ComponentMetaItem> {
-        const tag = tagFromEphemeraId(EphemeraId)
-        if (tag !== 'Room' && tag !== 'Feature') {
-            throw new Error('Illegal tag in ComponentMeta internalCache')
-        }
+    async _getPromiseFactory<T extends EphemeraRoomAppearance | EphemeraFeatureAppearance>(EphemeraId: EphemeraRoomId | EphemeraFeatureId, assetId: string): Promise<{ appearances: T[] } | undefined> {
+        return ephemeraDB.getItem<{ appearances: T[] }>({
+            EphemeraId,
+            DataCategory: AssetKey(assetId),
+            ProjectionFields: ['appearances']
+        })
+    }
+
+    async get(EphemeraId: EphemeraRoomId, assetId: string): Promise<ComponentMetaRoomItem>
+    async get(EphemeraId: EphemeraFeatureId, assetId: string): Promise<ComponentMetaFeatureItem>
+    async get(EphemeraId: EphemeraFeatureId | EphemeraRoomId, assetId: string): Promise<ComponentMetaItem>
+    async get(EphemeraId: EphemeraFeatureId | EphemeraRoomId, assetId: string): Promise<ComponentMetaItem> {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
         if (!this._Cache.isCached(cacheKey)) {
             //
             // TODO: Figure out how to convince Typescript to evaluate each branch independently, *without* having
             // to copy each branch explicitly
             //
-            switch(tag) {
-                case 'Room':
-                    this._Cache.add({
-                        promiseFactory: () => (ephemeraDB.getItem<{ appearances: EphemeraRoomAppearance[] }>({
-                            EphemeraId,
-                            DataCategory: AssetKey(assetId),
-                            ProjectionFields: ['appearances']
-                        })),
-                        requiredKeys: [cacheKey],
-                        transform: (fetch) => {
-                            if (typeof fetch === 'undefined') {
-                                return {}
-                            }
-                            else {
-                                return {
-                                    [cacheKey]: {
-                                        EphemeraId,
-                                        tag,
-                                        assetId,
-                                        appearances: fetch.appearances
-                                    }
+            if (isEphemeraRoomId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory<EphemeraRoomAppearance>(EphemeraId, assetId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: {
+                                    EphemeraId,
+                                    assetId,
+                                    appearances: fetch.appearances
                                 }
                             }
                         }
-                    })        
-                    break
-                case 'Feature':
-                    this._Cache.add({
-                        promiseFactory: () => (ephemeraDB.getItem<{ appearances: EphemeraFeatureAppearance[] }>({
-                            EphemeraId,
-                            DataCategory: AssetKey(assetId),
-                            ProjectionFields: ['appearances']
-                        })),
-                        requiredKeys: [cacheKey],
-                        transform: (fetch) => {
-                            if (typeof fetch === 'undefined') {
-                                return {}
-                            }
-                            else {
-                                return {
-                                    [cacheKey]: {
-                                        EphemeraId,
-                                        tag,
-                                        assetId,
-                                        appearances: fetch.appearances
-                                    }
+                    }
+                })
+            }
+            if (isEphemeraFeatureId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory<EphemeraFeatureAppearance>(EphemeraId, assetId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: {
+                                    EphemeraId,
+                                    assetId,
+                                    appearances: fetch.appearances
                                 }
                             }
                         }
-                    })        
-                    break
+                    }
+                })
             }
         }
         await this._Cache.get(cacheKey)
         return this._Store[cacheKey]
     }
 
-    async getAcrossAssets(EphemeraId: string, assetList: string[]): Promise<Record<string, ComponentMetaItem>> {
-        const tag = tagFromEphemeraId(EphemeraId)
-        if (tag !== 'Room' && tag !== 'Feature') {
-            throw new Error('Illegal tag in ComponentMeta internalCache')
-        }
-        switch(tag) {
-            case 'Room':
-                this._Cache.add({
-                    promiseFactory: (cacheKeys: string[]) => {
-                        return ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraRoomAppearance[] }>({
-                            Items: cacheKeys
-                                .map(cacheKeyComponents)
-                                .map(({ assetId }) => ({
-                                    EphemeraId,
-                                    DataCategory: AssetKey(assetId)
-                                })),
-                            ProjectionFields: ['DataCategory', 'appearances']
-                        })
-                    },
-                    requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
-                    transform: (fetchList) => {
-                        return fetchList.reduce<Record<string, ComponentMetaItem>>((previous, fetch) => {
-                            const assetId = splitType(fetch.DataCategory)[1]
-                            return {
-                                ...previous,
-                                [generateCacheKey(EphemeraId, assetId)]: {
-                                    EphemeraId,
-                                    tag,
-                                    assetId,
-                                    appearances: fetch.appearances
-                                }
-                            }
-                        }, {})
-                    }
-                })
-                break
-            case 'Feature':
-                this._Cache.add({
-                    promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraFeatureAppearance[] }>({
+    async getAcrossAssets(EphemeraId: EphemeraRoomId, assetList: string[]): Promise<Record<string, ComponentMetaRoomItem>>
+    async getAcrossAssets(EphemeraId: EphemeraFeatureId, assetList: string[]): Promise<Record<string, ComponentMetaFeatureItem>>
+    async getAcrossAssets(EphemeraId: EphemeraFeatureId | EphemeraRoomId, assetList: string[]): Promise<Record<string, ComponentMetaFeatureItem> | Record<string, ComponentMetaRoomItem>>
+    async getAcrossAssets(EphemeraId: EphemeraFeatureId | EphemeraRoomId, assetList: string[]): Promise<Record<string, ComponentMetaFeatureItem> | Record<string, ComponentMetaRoomItem>> {
+        if (isEphemeraRoomId(EphemeraId)) {
+            this._Cache.add({
+                promiseFactory: (cacheKeys: string[]) => {
+                    return ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraRoomAppearance[] }>({
                         Items: cacheKeys
                             .map(cacheKeyComponents)
                             .map(({ assetId }) => ({
@@ -184,30 +140,62 @@ export class ComponentMetaData {
                                 DataCategory: AssetKey(assetId)
                             })),
                         ProjectionFields: ['DataCategory', 'appearances']
-                    })),
-                    requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
-                    transform: (fetchList) => {
-                        return fetchList.reduce<Record<string, ComponentMetaItem>>((previous, fetch) => {
-                            const assetId = splitType(fetch.DataCategory)[1]
-                            return {
-                                ...previous,
-                                [generateCacheKey(EphemeraId, assetId)]: {
-                                    EphemeraId,
-                                    tag,
-                                    assetId,
-                                    appearances: fetch.appearances
-                                }
+                    })
+                },
+                requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
+                transform: (fetchList) => {
+                    return fetchList.reduce<Record<string, ComponentMetaRoomItem>>((previous, fetch) => {
+                        const assetId = splitType(fetch.DataCategory)[1]
+                        return {
+                            ...previous,
+                            [generateCacheKey(EphemeraId, assetId)]: {
+                                EphemeraId,
+                                assetId,
+                                appearances: fetch.appearances
                             }
-                        }, {})
-                    }
-                })
-                break
+                        }
+                    }, {})
+                }
+            })
+            const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
+            return individualMetas.reduce<Record<string, ComponentMetaRoomItem>>((previous, item) => ({
+                ...previous,
+                [item.assetId]: item
+            }), {})
         }
-        const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
-        return individualMetas.reduce<Record<string, ComponentMetaItem>>((previous, item) => ({
-            ...previous,
-            [item.assetId]: item
-        }), {})
+        if (isEphemeraFeatureId(EphemeraId)) {
+            this._Cache.add({
+                promiseFactory: (cacheKeys: string[]) => (ephemeraDB.batchGetItem<{ DataCategory: string; appearances: EphemeraFeatureAppearance[] }>({
+                    Items: cacheKeys
+                        .map(cacheKeyComponents)
+                        .map(({ assetId }) => ({
+                            EphemeraId,
+                            DataCategory: AssetKey(assetId)
+                        })),
+                    ProjectionFields: ['DataCategory', 'appearances']
+                })),
+                requiredKeys: assetList.map((assetId) => (generateCacheKey(EphemeraId, assetId))),
+                transform: (fetchList) => {
+                    return fetchList.reduce<Record<string, ComponentMetaItem>>((previous, fetch) => {
+                        const assetId = splitType(fetch.DataCategory)[1]
+                        return {
+                            ...previous,
+                            [generateCacheKey(EphemeraId, assetId)]: {
+                                EphemeraId,
+                                assetId,
+                                appearances: fetch.appearances
+                            }
+                        }
+                    }, {})
+                }
+            })
+            const individualMetas = await Promise.all(assetList.map((assetId) => (this.get(EphemeraId, assetId))))
+            return individualMetas.reduce<Record<string, ComponentMetaFeatureItem>>((previous, item) => ({
+                ...previous,
+                [item.assetId]: item
+            }), {})
+        }
+        throw new Error()
     }
 
     invalidate(EphemeraId: string, assetId: string) {

@@ -4,6 +4,7 @@ import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription } from "@tonylb/mtw-interfaces/dist/messages"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
+import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "../cacheAsset/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -150,7 +151,7 @@ export type FetchImportDefaultsMessage = {
 export type PerceptionMessage = {
     type: 'Perception';
     characterId: string;
-    ephemeraId: string;
+    ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraCharacterId | EphemeraMapId;
 }
 
 export type MoveCharacterMessage = {
