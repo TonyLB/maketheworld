@@ -215,14 +215,14 @@ export const handler = async (event: any, context: any) => {
                 messageBus.send({
                     type: 'Perception',
                     characterId: request.CharacterId,
-                    ephemeraId: request.to
+                    ephemeraId: request.to as `FEATURE#${string}`
                 })
                 break
             case 'CHARACTER':
                 messageBus.send({
                     type: 'Perception',
                     characterId: request.CharacterId,
-                    ephemeraId: `CHARACTERINPLAY#${splitType(request.to)[1]}`
+                    ephemeraId: `CHARACTER#${splitType(request.to)[1]}`
                 })
                 break
         }

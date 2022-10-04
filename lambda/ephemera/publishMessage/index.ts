@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isRoomDescriptionPublishMessage, isFeatureDescriptionPublishMessage, isCharacterDescriptionPublishMessage } from "../messageBus/baseClasses"
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { unique } from '@tonylb/mtw-utilities/dist/lists'
 import internalCache from '../internalCache'
@@ -199,6 +199,21 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 FeatureId: payload.FeatureId,
                 Name: payload.Name,
                 Description: payload.Description
+            })
+        }
+        if (isCharacterDescriptionPublishMessage(payload)) {
+            pushToQueues({
+                Targets: payload.targets,
+                MessageId: `MESSAGE#${uuidv4()}`,
+                CreatedTime: CreatedTime + index,
+                DisplayProtocol: payload.displayProtocol,
+                FeatureId: payload.CharacterId,
+                Name: payload.Name,
+                Pronouns: payload.Pronouns,
+                FirstImpression: payload.FirstImpression,
+                OneCoolThing: payload.OneCoolThing,
+                Outfit: payload.Outfit,
+                fileURL: payload.fileURL
             })
         }
     })

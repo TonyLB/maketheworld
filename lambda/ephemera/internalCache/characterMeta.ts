@@ -1,5 +1,5 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize';
+import { NormalCharacterPronouns } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
 import { CacheConstructor } from './baseClasses'
 
 export type CharacterMetaItem = {
