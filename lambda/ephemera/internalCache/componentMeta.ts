@@ -4,22 +4,22 @@ import { CacheConstructor } from './baseClasses'
 import { DeferredCache } from './deferredCache'
 import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraRoomId, EphemeraFeatureId, isEphemeraFeatureId, isEphemeraRoomId, EphemeraMapId, EphemeraMapAppearance, isEphemeraMapId } from '../cacheAsset/baseClasses'
 
-type ComponentMetaRoomItem = {
+export type ComponentMetaRoomItem = {
     EphemeraId: EphemeraRoomId;
     assetId: string;
     appearances: EphemeraRoomAppearance[];
 }
-type ComponentMetaFeatureItem = {
+export type ComponentMetaFeatureItem = {
     EphemeraId: EphemeraFeatureId;
     assetId: string;
     appearances: EphemeraFeatureAppearance[];
 }
-type ComponentMetaMapItem = {
+export type ComponentMetaMapItem = {
     EphemeraId: EphemeraMapId;
     assetId: string;
     appearances: EphemeraMapAppearance[];
 }
-type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaMapItem
+export type ComponentMetaItem = ComponentMetaRoomItem | ComponentMetaFeatureItem | ComponentMetaMapItem
 
 const generateCacheKey = (EphemeraId, assetId) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: string, assetId: string } => {

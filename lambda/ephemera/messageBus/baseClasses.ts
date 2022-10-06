@@ -4,7 +4,7 @@ import { AssetWorkspaceAddress } from '@tonylb/mtw-asset-workspace/dist'
 import { EventBridgeUpdatePlayerCharacter, EventBridgeUpdatePlayerAsset } from '@tonylb/mtw-interfaces/dist/eventBridge'
 import { TaggedMessageContent, LegalCharacterColor, FeatureDescription, RoomDescription, CharacterDescription } from "@tonylb/mtw-interfaces/dist/messages"
 import { DependencyEdge, DependencyGraphAction, DependencyNode, RoomCharacterListItem } from "../internalCache/baseClasses"
-import { EphemeraCharacterId, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "../cacheAsset/baseClasses"
+import { EphemeraCharacterId, EphemeraExit, EphemeraFeatureId, EphemeraMapId, EphemeraRoomId } from "../cacheAsset/baseClasses"
 
 export type PublishTargetRoom = {
     roomId: string;
@@ -121,7 +121,7 @@ export type RegisterCharacterMessage = {
     characterId: string;
 }
 
-export type EphemeraUpdateEntry = {
+export type EphemeraUpdateCharacterEntry = {
     type: 'CharacterInPlay';
     CharacterId: string;
     Connected: boolean;
@@ -130,6 +130,23 @@ export type EphemeraUpdateEntry = {
     fileURL: string;
     Color: string;
 }
+
+export type EphemeraUpdateMapEntry = {
+    type: 'MapUpdate';
+    targets: PublishTarget[];
+    MapId: string;
+    Name: string;
+    fileURL: string;
+    rooms: {
+        roomId: string;
+        name: string;
+        x: number;
+        y: number;
+        exits: EphemeraExit[];
+    }[]
+}
+
+export type EphemeraUpdateEntry = EphemeraUpdateCharacterEntry | EphemeraUpdateMapEntry;
 
 export type EphemeraUpdateMessage = {
     type: 'EphemeraUpdate';
