@@ -5,6 +5,10 @@ import internalCache from '../internalCache'
 
 const getCurrentRoom = async (CharacterId: string) => {
     const { RoomId } = await internalCache.CharacterMeta.get(CharacterId) || {}
+    //
+    // TODO: Abstract perception render to a ComponentRender internalCache, and use
+    // it here as well.
+    //
     if (RoomId) {
         const [{
             Exits: exits = [],

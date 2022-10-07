@@ -1,7 +1,6 @@
 import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
 import putAssetNormalized from './putAssetNormalized.js'
 import StateSynthesizer from './stateSynthesis'
-import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
 import AssetWorkspace from '@tonylb/mtw-asset-workspace/dist/'
 import {
     isNormalAsset,
@@ -173,7 +172,6 @@ export const pushEphemera = async({
     State,
     Dependencies = { room: [], computed: [] },
     Actions = {},
-    mapCache = {},
     importTree = {},
     scopeMap = {}
 }: EphemeraPushArgs) => {
@@ -183,7 +181,6 @@ export const pushEphemera = async({
         State,
         Dependencies,
         Actions,
-        mapCache,
         importTree,
         scopeMap
     })
@@ -274,16 +271,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
             )
             stateSynthesizer.state = state
         
-            const mapCache = await assetRender({
-                assetId,
-                existingStatesByAsset: {
-                    [assetId]: state,
-                },
-                existingNormalFormsByAsset: {
-                    [assetId]: assetWorkspace.normal || {}
-                }
-            })
-        
             const actions = Object.values(assetWorkspace.normal || {})
                 .filter(isNormalAction)
                 .reduce((previous, { key, src }) => ({
@@ -299,7 +286,6 @@ export const cacheAssetMessage = async ({ payloads, messageBus }: { payloads: Ca
                     State: stateSynthesizer.state,
                     Dependencies: stateSynthesizer.dependencies,
                     Actions: actions,
-                    mapCache,
                     //
                     // TODO: Refactor ancestry/descent layer of ephemera storage
                     //

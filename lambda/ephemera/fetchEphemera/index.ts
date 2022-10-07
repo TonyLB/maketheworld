@@ -4,6 +4,7 @@ import { render } from '@tonylb/mtw-utilities/dist/perception'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
+import { EphemeraMapId } from '../cacheAsset/baseClasses'
 
 type EphemeraQueryResult = {
     EphemeraId: string;
@@ -61,11 +62,7 @@ export const fetchEphemeraForCharacter = async ({
         { assets: characterAssets = [] } = {},
         globalAssets = []
     ] = await Promise.all([
-        ephemeraDB.getItem({
-            EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
-        }),
+        internalCache.CharacterMeta.get(CharacterId),
         internalCache.Global.get('assets')
     ])
 
@@ -83,8 +80,8 @@ export const fetchEphemeraForCharacter = async ({
     )
 
     const allMaps = [...(new Set(
-        mapQueryLists.reduce((previous, mapList) => (
-            [ ...previous, ...mapList.map(({ EphemeraId }) => (EphemeraId))]
+        mapQueryLists.reduce<EphemeraMapId[]>((previous, mapList) => (
+            [ ...previous, ...mapList.map(({ EphemeraId }) => (EphemeraId as EphemeraMapId))]
         ), [])
     ))]
 

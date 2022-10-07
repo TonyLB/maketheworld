@@ -1,6 +1,4 @@
 import { PerceptionMessage, MessageBus } from "../messageBus/baseClasses"
-import { render } from "@tonylb/mtw-utilities/dist/perception"
-import { deliverRenders } from "@tonylb/mtw-utilities/dist/perception/deliverRenders"
 import internalCache from "../internalCache"
 import { unique } from "@tonylb/mtw-utilities/dist/lists"
 import { EphemeraCharacter, EphemeraCondition, EphemeraExit, EphemeraFeatureAppearance, EphemeraMapAppearance, EphemeraRoomAppearance, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId } from "../cacheAsset/baseClasses"
@@ -35,27 +33,6 @@ const filterAppearances = async <T extends { conditions: EphemeraCondition[] }>(
 }
 
 export const perceptionMessage = async ({ payloads, messageBus }: { payloads: PerceptionMessage[], messageBus: MessageBus }): Promise<void> => {
-    // const nonComponentRenders = payloads
-    //     .filter(({ ephemeraId }) => (isEphemeraMapId(ephemeraId)))
-    // if (nonComponentRenders.length) {
-    //     const renderOutputs = await render({
-    //         renderList: nonComponentRenders
-    //             .map(({ characterId, ephemeraId }) => ({
-    //                 CharacterId: characterId,
-    //                 EphemeraId: ephemeraId
-    //             }))
-    //     })
-    //     //
-    //     // TODO: Replace deliverRenders with a messageBus handler
-    //     //
-    //     await deliverRenders({
-    //         renderOutputs
-    //     })
-    // }
-
-    //
-    // TODO: Translate other types, above, into directly-handled format like below
-    //
     await Promise.all(payloads.map(async ({ characterId, ephemeraId }) => {
         if (isEphemeraCharacterId(ephemeraId)) {
             const CharacterId = splitType(ephemeraId)[1]
