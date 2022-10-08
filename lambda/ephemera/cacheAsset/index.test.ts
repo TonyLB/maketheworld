@@ -9,8 +9,6 @@ jest.mock('@tonylb/mtw-utilities/dist/executeCode/recalculateComputes')
 import recalculateComputes from '@tonylb/mtw-utilities/dist/executeCode/recalculateComputes'
 jest.mock('@tonylb/mtw-utilities/dist/computation/sandbox')
 import { evaluateCode } from '@tonylb/mtw-utilities/dist/computation/sandbox'
-jest.mock('@tonylb/mtw-utilities/dist/perception/assetRender')
-import assetRender from '@tonylb/mtw-utilities/dist/perception/assetRender'
 jest.mock('./perAsset')
 import { mergeIntoEphemera } from './perAsset'
 
@@ -71,7 +69,6 @@ jest.mock('@tonylb/mtw-asset-workspace/dist/', () => {
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const evaluateCodeMock = evaluateCode as jest.Mock
 const recalculateComputesMock = recalculateComputes as jest.Mock
-const assetRenderMock = assetRender as jest.Mock
 // const AssetWorkspaceMock = AssetWorkspace as jest.Mocked<typeof AssetWorkspace>
 
 describe('cacheAsset', () => {
@@ -293,7 +290,6 @@ describe('cacheAsset', () => {
                 value: true
             }
         } })
-        assetRenderMock.mockResolvedValue({ foo: 'bar' })
 
         await cacheAssetMessage({
             payloads: [{
@@ -391,11 +387,6 @@ describe('cacheAsset', () => {
                 value: true
             }
         }
-        expect(assetRender).toHaveBeenCalledWith({
-            assetId: 'test',
-            existingNormalFormsByAsset: { test: mockTestAsset },
-            existingStatesByAsset: { test: expectedState }
-        })
         expect(ephemeraDB.putItem).toHaveBeenCalledWith({
             EphemeraId: "ASSET#test",
             DataCategory: "Meta::Asset",
@@ -416,7 +407,6 @@ describe('cacheAsset', () => {
                     computed: ['active']
                 }
             },
-            mapCache: { foo: 'bar' },
             importTree: {},
             scopeMap: {
                 test: 'ASSET#test',

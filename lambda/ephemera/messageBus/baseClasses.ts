@@ -136,7 +136,7 @@ export type EphemeraUpdateMapEntry = {
     targets: PublishTarget[];
     MapId: string;
     Name: string;
-    fileURL: string;
+    fileURL?: string;
     rooms: {
         roomId: string;
         name: string;
@@ -172,7 +172,7 @@ export type FetchImportDefaultsMessage = {
 
 export type PerceptionMessage = {
     type: 'Perception';
-    characterId: string;
+    characterId: EphemeraCharacterId;
     ephemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraCharacterId | EphemeraMapId;
 }
 

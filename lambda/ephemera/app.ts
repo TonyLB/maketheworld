@@ -158,6 +158,10 @@ export const handler = async (event: any, context: any) => {
         }
     }
     if (isFetchEphemeraAPIMessage(request)) {
+        //
+        // TODO: Create PublishEphemeraUpdate message to aggregate all Ephemera messages
+        // pushed during a cycle
+        //
         if (request.CharacterId) {
             const ephemera = await fetchEphemeraForCharacter({
                 CharacterId: request.CharacterId

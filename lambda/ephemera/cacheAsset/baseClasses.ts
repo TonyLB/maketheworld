@@ -194,7 +194,6 @@ export type EphemeraPushArgs = {
     State: EphemeraState;
     Dependencies?: EphemeraDependencies;
     Actions?: any;
-    mapCache?: any;
     importTree?: any;
     scopeMap?: any;
 }

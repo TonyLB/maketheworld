@@ -67,6 +67,24 @@ export type FeatureDescription = {
     DisplayProtocol: 'FeatureDescription';
 } & FeatureDescribeData & MessageAddressing
 
+export type MapDescribeRoom = {
+    roomId: string;
+    name: string;
+    x: number;
+    y: number;
+    exits: {
+        name: string;
+        to: string;
+    }[];
+}
+
+export type MapDescribeData = {
+    MapId: string;
+    Name: string;
+    fileURL?: string;
+    rooms: MapDescribeRoom[];
+}
+
 type CharacterDescribeData = {
     CharacterId: string;
     Name: string;

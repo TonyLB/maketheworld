@@ -1,23 +1,17 @@
-import { splitType, RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
+import { RoomKey } from '@tonylb/mtw-utilities/dist/types.js'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/dist/ephemera'
-import { render } from '@tonylb/mtw-utilities/dist/perception/index.js'
 import internalCache from '../internalCache'
 
 const getCurrentRoom = async (CharacterId: string) => {
     const { RoomId } = await internalCache.CharacterMeta.get(CharacterId) || {}
+    //
+    // TODO: Abstract perception render to a ComponentRender internalCache, and use
+    // it here as well.
+    //
     if (RoomId) {
-        const [{
-            Exits: exits = [],
-            Characters: characters = [],
-            Features: features = []
-        } = {}] = await render({
-            renderList: [{
-                CharacterId,
-                EphemeraId: RoomKey(RoomId)
-            }]
-        })
+        const { Exits: exits, Characters: characters } = await internalCache.ComponentRender.get(`CHARACTER#${CharacterId}`, `ROOM#${RoomId}`)
 
-        return { roomId: RoomId, exits, characters, features }
+        return { roomId: RoomId, exits, characters, features: [] }
     }
     else {
         return { roomId: null, exits: [], characters: [], features: [] }
@@ -45,10 +39,10 @@ export const parseCommand = async ({
             //
             return undefined
         }
-        const featureMatch = features.find(({ name = '' }) => (name.toLowerCase() === lookTarget))
-        if (featureMatch) {
-            return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: featureMatch.EphemeraId }}
-        }
+        // const featureMatch = features.find(({ name = '' }) => (name.toLowerCase() === lookTarget))
+        // if (featureMatch) {
+        //     return { message: 'action', actionType: 'look', payload: { CharacterId, EphemeraId: featureMatch.EphemeraId }}
+        // }
     }
     //
     // TODO: Add syntax for exit aliases, and expand the match here to include them

@@ -1,9 +1,9 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { render } from '@tonylb/mtw-utilities/dist/perception'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
+import { EphemeraMapId } from '../cacheAsset/baseClasses'
 
 type EphemeraQueryResult = {
     EphemeraId: string;
@@ -61,11 +61,7 @@ export const fetchEphemeraForCharacter = async ({
         { assets: characterAssets = [] } = {},
         globalAssets = []
     ] = await Promise.all([
-        ephemeraDB.getItem({
-            EphemeraId: `CHARACTERINPLAY#${CharacterId}`,
-            DataCategory: 'Meta::Character',
-            ProjectionFields: ['assets']
-        }),
+        internalCache.CharacterMeta.get(CharacterId),
         internalCache.Global.get('assets')
     ])
 
@@ -83,26 +79,23 @@ export const fetchEphemeraForCharacter = async ({
     )
 
     const allMaps = [...(new Set(
-        mapQueryLists.reduce((previous, mapList) => (
-            [ ...previous, ...mapList.map(({ EphemeraId }) => (EphemeraId))]
+        mapQueryLists.reduce<EphemeraMapId[]>((previous, mapList) => (
+            [ ...previous, ...mapList.map(({ EphemeraId }) => (EphemeraId as EphemeraMapId))]
         ), [])
     ))]
 
     if (allMaps.length) {
-        const renderOutput = await render({
-            renderList: allMaps.map((EphemeraId) => ({ EphemeraId, CharacterId })),
-            assetLists: {
-                global: globalAssets,
-                characters: {
-                    [CharacterId]: characterAssets
-                }
-            }
-        })
+        const renderOutput = await Promise.all(allMaps.map((mapId) => (internalCache.ComponentRender.get(`CHARACTER#${CharacterId}`, mapId))))
     
         return {
             messageType: 'Ephemera',
             RequestId,
-            updates: renderOutput
+            updates: renderOutput.map((mapDescribe) => ({
+                type: 'MapUpdate',
+                targets: [{ characterId: `CHARACTER#${CharacterId}` }],
+                ...mapDescribe,
+                MapId: splitType(mapDescribe.MapId)[1]
+            }))
         }    
     }
     return {

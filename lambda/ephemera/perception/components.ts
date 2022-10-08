@@ -1,5 +1,4 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
-import { produce } from 'immer'
 import { EphemeraFeatureAppearance, EphemeraRoomAppearance } from '../cacheAsset/baseClasses'
 import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent } from '@tonylb/mtw-interfaces/dist/messages'
 import { ComponentRenderItem } from '@tonylb/mtw-wml/dist/normalize/baseClasses'
