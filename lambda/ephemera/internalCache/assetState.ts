@@ -5,13 +5,13 @@ import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemer
 import { DeferredCache } from './deferredCache'
 import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 
-export type AssetStateMapping = Record<string, string>
+type StateItemId = EphemeraVariableId | EphemeraComputedId
+
+export type AssetStateMapping = Record<string, StateItemId>
 
 type AssetStateOutput<T extends AssetStateMapping> = {
     [key in keyof T]: any;
 }
-
-type StateItemId = EphemeraVariableId | EphemeraComputedId
 
 export class AssetStateData {
     _StateCache: DeferredCache<any> = new DeferredCache<any>();
@@ -48,20 +48,18 @@ export class AssetStateData {
         ))) as AssetStateOutput<T>
     }
 
-    set(EphemeraId: string, value: any) {
+    set(EphemeraId: StateItemId, value: any) {
         this._StateCache.set(Infinity, EphemeraId, value)
         this._StateOverriden[EphemeraId] = true
     }
 
-    invalidate(EphemeraId: string) {
+    invalidate(EphemeraId: StateItemId) {
         this._StateCache.invalidate(EphemeraId)
         delete this._StateOverriden[EphemeraId]
-        if (isEphemeraVariableId(EphemeraId) || isEphemeraComputedId(EphemeraId)) {
-            this._invalidateCallback(EphemeraId)
-        }
+        this._invalidateCallback(EphemeraId)
     }
 
-    isOverridden(EphemeraId: string) {
+    isOverridden(EphemeraId: StateItemId) {
         return this._StateOverriden[EphemeraId]
     }
 }
@@ -139,7 +137,7 @@ class AssetMap {
     async get(EphemeraId: string): Promise<AssetStateMapping> {
         if (tagFromEphemeraId(EphemeraId) === 'Asset') {
             const [computedLookups, variableLookups] = await Promise.all([
-                ephemeraDB.query({
+                ephemeraDB.query<{ EphemeraId: string; key: string; }[]>({
                     IndexName: 'DataCategoryIndex',
                     DataCategory: EphemeraId,
                     KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
@@ -151,7 +149,7 @@ class AssetMap {
                     },
                     ProjectionFields: ['#key', 'EphemeraId']
                 }),
-                ephemeraDB.query({
+                ephemeraDB.query<{ EphemeraId: string; key: string; }[]>({
                     IndexName: 'DataCategoryIndex',
                     DataCategory: EphemeraId,
                     KeyConditionExpression: "begins_with(EphemeraId, :ephemeraPrefix)",
@@ -164,15 +162,29 @@ class AssetMap {
                     ProjectionFields: ['#key', 'EphemeraId']
                 })
             ])
-            return [...computedLookups, ...variableLookups].reduce<Record<string, string>>((previous, { EphemeraId, key }) => ({ ...previous, [key]: EphemeraId }), {})
+            return [...computedLookups, ...variableLookups].reduce<Record<string, StateItemId>>((previous, { EphemeraId, key }) => (
+                (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
+                    ? { ...previous, [key]: EphemeraId }
+                    : previous
+            ), {})
         }
         else {
             const knownAncestry = this._Ancestry.getPartial(EphemeraId).find(({ EphemeraId: check }) => (check === EphemeraId))
             if (knownAncestry?.completeness === 'Complete') {
-                return knownAncestry.connections.reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (key ? { ...previous, [key]: EphemeraId } : previous), {})
+                return knownAncestry.connections.reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (
+                    (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
+                        ? { ...previous, [key]: EphemeraId }
+                        : previous
+                ), {})
             }
             const fetchedAncestry = await this._Ancestry.get(EphemeraId)
-            return (fetchedAncestry.find(({ EphemeraId: check }) => (check === EphemeraId))?.connections ?? []).reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (key ? { ...previous, [key]: EphemeraId } : previous), {})
+            return (fetchedAncestry.find(({ EphemeraId: check }) => (check === EphemeraId))?.connections ?? [])
+                .filter(({ EphemeraId }) => (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
+                .reduce<AssetStateMapping>((previous, { EphemeraId, key }) => (
+                    (key && (isEphemeraComputedId(EphemeraId) || isEphemeraVariableId(EphemeraId)))
+                        ? { ...previous, [key]: EphemeraId }
+                        : previous
+                    ), {})
         }
     }
 }

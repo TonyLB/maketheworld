@@ -2,6 +2,7 @@ import { TransactWriteItem } from "@aws-sdk/client-dynamodb"
 import { marshall } from "@aws-sdk/util-dynamodb"
 import { ephemeraDB, exponentialBackoffWrapper, multiTableTransactWrite } from "@tonylb/mtw-utilities/dist/dynamoDB"
 import { deepEqual } from "@tonylb/mtw-utilities/dist/objects"
+import { isEphemeraComputedId, isEphemeraVariableId } from "../cacheAsset/baseClasses"
 import internalCache from "../internalCache"
 import { DependencyNode } from "../internalCache/baseClasses"
 import { extractTree, tagFromEphemeraId } from "../internalCache/dependencyGraph"
@@ -25,104 +26,101 @@ export const dependencyCascadeMessage = async ({ payloads, messageBus }: { paylo
         .filter(({ targetId }) => (firstGeneration.includes(targetId)))
 
     const processOneMessage = async ({ targetId }: DependencyCascadeMessage): Promise<void> => {
-        const tag = tagFromEphemeraId(targetId)
-        switch(tag) {
-            case 'Computed':
-                await exponentialBackoffWrapper(async () => {
-                    //
-                    // TODO: Make Descent an optional property of the message, and fetch as part of the below when
-                    // it is not provided
-                    //
-                    const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNode[]; src: string; value: any }>({
-                        EphemeraId: targetId,
-                        DataCategory: 'Meta::Computed',
-                        ProjectionFields: ['src', '#value'],
-                        ExpressionAttributeNames: {
-                            '#value': 'value'
-                        }
-                    })
-                    if (!fetchComputed) {
-                        return
+        if (isEphemeraComputedId(targetId)) {
+            await exponentialBackoffWrapper(async () => {
+                //
+                // TODO: Make Descent an optional property of the message, and fetch as part of the below when
+                // it is not provided
+                //
+                const fetchComputed = await ephemeraDB.getItem<{ Ancestry: DependencyNode[]; src: string; value: any }>({
+                    EphemeraId: targetId,
+                    DataCategory: 'Meta::Computed',
+                    ProjectionFields: ['src', '#value'],
+                    ExpressionAttributeNames: {
+                        '#value': 'value'
                     }
-                    //
-                    // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
-                    // for faster fetching
-                    //
-                    const { src, value } = fetchComputed
-                    const assetStateMap = await internalCache.AssetMap.get(targetId)
-                    const assetState = await internalCache.AssetState.get(assetStateMap)
-                    //
-                    // TODO:  Do NOT ConditionCheck against Ephemera that have been directly overriden in the cache ... they've been set too
-                    // recently to be confident of their eventually-consistent status
-                    //
-                    const conditionChecks: TransactWriteItem[] = Object.entries(assetState)
-                        .filter(([key]) => (!internalCache.AssetState.isOverridden(assetStateMap[key])))
-                        .map(([key, value]) => ({
-                            ConditionCheck: {
+                })
+                if (!fetchComputed) {
+                    return
+                }
+                //
+                // TODO: Create a smaller AssetStateMapping denormalization of the top level of the Ancestry,
+                // for faster fetching
+                //
+                const { src, value } = fetchComputed
+                const assetStateMap = await internalCache.AssetMap.get(targetId)
+                const assetState = await internalCache.AssetState.get(assetStateMap)
+                //
+                // TODO:  Do NOT ConditionCheck against Ephemera that have been directly overriden in the cache ... they've been set too
+                // recently to be confident of their eventually-consistent status
+                //
+                const conditionChecks: TransactWriteItem[] = Object.entries(assetState)
+                    .filter(([key]) => (!internalCache.AssetState.isOverridden(assetStateMap[key])))
+                    .map(([key, value]) => ({
+                        ConditionCheck: {
+                            TableName: 'Ephemera',
+                            Key: marshall({
+                                EphemeraId: assetStateMap[key],
+                                DataCategory: `Meta::${tagFromEphemeraId(assetStateMap[key])}`
+                            }),
+                            ConditionExpression: '#value = :value',
+                            ExpressionAttributeNames: {
+                                '#value': 'value'
+                            },
+                            ExpressionAttributeValues: marshall({
+                                ':value': value
+                            })
+                        }
+                    }))
+                const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
+                if (!deepEqual(computed, value)) {
+                    await multiTableTransactWrite([
+                        ...conditionChecks,
+                        {
+                            Update: {
                                 TableName: 'Ephemera',
                                 Key: marshall({
-                                    EphemeraId: assetStateMap[key],
-                                    DataCategory: `Meta::${tagFromEphemeraId(assetStateMap[key])}`
+                                    EphemeraId: targetId,
+                                    DataCategory: 'Meta::Computed'
                                 }),
-                                ConditionExpression: '#value = :value',
+                                UpdateExpression: 'SET #value = :value',
                                 ExpressionAttributeNames: {
                                     '#value': 'value'
                                 },
                                 ExpressionAttributeValues: marshall({
-                                    ':value': value
+                                    ':value': isNaN(computed) ? 0 : computed ?? false
                                 })
                             }
-                        }))
-                    const computed = await internalCache.EvaluateCode.get({ mapping: assetStateMap, source: src })
-                    if (!deepEqual(computed, value)) {
-                        await multiTableTransactWrite([
-                            ...conditionChecks,
-                            {
-                                Update: {
-                                    TableName: 'Ephemera',
-                                    Key: marshall({
-                                        EphemeraId: targetId,
-                                        DataCategory: 'Meta::Computed'
-                                    }),
-                                    UpdateExpression: 'SET #value = :value',
-                                    ExpressionAttributeNames: {
-                                        '#value': 'value'
-                                    },
-                                    ExpressionAttributeValues: marshall({
-                                        ':value': isNaN(computed) ? 0 : computed ?? false
-                                    })
-                                }
-                            }
-                        ])
-                        //
-                        // TODO: Wrap the above in the try/catch and invalidate caches before re-throwing the
-                        // error in order to reactivate the exponentialBackoff wrapper
-                        //
-                        internalCache.AssetState.set(targetId, isNaN(computed) ? 0 : computed)
-                        const allDescendants = internalCache.Descent.getPartial(targetId)
-                            .filter(({ EphemeraId }) => (EphemeraId !== targetId))
-                            .map(({ EphemeraId }) => (EphemeraId))
-                        allDescendants.forEach((EphemeraId) => {
-                            deferredPayloads[EphemeraId] = {
-                                type: 'DependencyCascade',
-                                targetId: EphemeraId
-                            }
-                        })
-                    }
-                },
-                { retryErrors: ['TransactionCanceledException'] })
-                break
-            case 'Variable':
-                const variableDescendants = internalCache.Descent.getPartial(targetId)
-                    .filter(({ EphemeraId }) => (EphemeraId !== targetId))
-                    .map(({ EphemeraId }) => (EphemeraId))
-                variableDescendants.forEach((EphemeraId) => {
-                    deferredPayloads[EphemeraId] = {
-                        type: 'DependencyCascade',
-                        targetId: EphemeraId
-                    }
-                })
-                break    
+                        }
+                    ])
+                    //
+                    // TODO: Wrap the above in the try/catch and invalidate caches before re-throwing the
+                    // error in order to reactivate the exponentialBackoff wrapper
+                    //
+                    internalCache.AssetState.set(targetId, isNaN(computed) ? 0 : computed)
+                    const allDescendants = internalCache.Descent.getPartial(targetId)
+                        .filter(({ EphemeraId }) => (EphemeraId !== targetId))
+                        .map(({ EphemeraId }) => (EphemeraId))
+                    allDescendants.forEach((EphemeraId) => {
+                        deferredPayloads[EphemeraId] = {
+                            type: 'DependencyCascade',
+                            targetId: EphemeraId
+                        }
+                    })
+                }
+            },
+            { retryErrors: ['TransactionCanceledException'] })
+        }
+        if (isEphemeraVariableId(targetId)) {
+            const variableDescendants = internalCache.Descent.getPartial(targetId)
+                .filter(({ EphemeraId }) => (EphemeraId !== targetId))
+                .map(({ EphemeraId }) => (EphemeraId))
+            variableDescendants.forEach((EphemeraId) => {
+                deferredPayloads[EphemeraId] = {
+                    type: 'DependencyCascade',
+                    targetId: EphemeraId
+                }
+            })
         }
     }
     await Promise.all(readyPayloads.map(processOneMessage))
