@@ -269,7 +269,7 @@ export class ComponentMetaData {
 
     set(EphemeraId: string, assetId: string, value: ComponentMetaItem) {
         const cacheKey = generateCacheKey(EphemeraId, assetId)
-        this._Cache.set(cacheKey, value)
+        this._Cache.set(Infinity, cacheKey, value)
         this._Store[cacheKey] = value
     }
 }

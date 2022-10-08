@@ -1,7 +1,7 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { unique } from '@tonylb/mtw-utilities/dist/lists';
 import { splitType } from '@tonylb/mtw-utilities/dist/types';
-import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete, Deferred } from './baseClasses'
+import { CacheConstructor, DependencyEdge, DependencyNode, LegalDependencyTag, isLegalDependencyTag, isDependencyGraphPut, DependencyGraphAction, isDependencyGraphDelete } from './baseClasses'
 import { DeferredCache } from './deferredCache';
 
 export const tagFromEphemeraId = (EphemeraId: string): LegalDependencyTag => {
@@ -169,9 +169,6 @@ export class DependencyGraphData {
         }
         const knownTree = this.getPartial(EphemeraId).map(({ EphemeraId }) => (EphemeraId))
         if (!this._Cache.isCached(EphemeraId)) {
-            //
-            // TODO: Refactor how Deferred entries get created and promises assigned
-            //
             this._Cache.add({
                 promiseFactory: () => (ephemeraDB.getItem<{ Ancestry?: DependencyNode[]; Descent?: DependencyNode[] }>({
                     EphemeraId,
@@ -251,7 +248,7 @@ export class DependencyGraphData {
     put(tree: DependencyNode[], nonRecursive?: boolean) {
         tree.forEach((node) => {
             if (node.completeness === 'Complete') {
-                this._Cache.set(node.EphemeraId, node)
+                this._Cache.set(Infinity, node.EphemeraId, node)
             }
             else {
                 if (node.EphemeraId in this._Store) {

@@ -3,7 +3,6 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB/index'
 
 import internalCache from "."
 import { AssetStateMapping } from './assetState'
-import { Deferred } from './baseClasses'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 

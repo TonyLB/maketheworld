@@ -15,7 +15,7 @@ describe('DeferredCache', () => {
 
     it('should send async only where no previous attempt is running', async () => {
         testCache._cache['testOne'] = new Deferred()
-        testCache._cache['testOne'].resolve('1')
+        testCache._cache['testOne'].resolve(0, '1')
         const testFactory = jest.fn().mockResolvedValue({
             testTwo: '2',
             testThree: '3'
@@ -93,10 +93,31 @@ describe('DeferredCache', () => {
             transform: (output: Record<string, string>) => (output)
         })
         const outputPromise = testCache.get('testOne')
-        testCache.set('testOne', 'correct answer')
+        testCache.set(0, 'testOne', 'correct answer')
         mockResolve({ testOne: 'wrong answer' })
         const output = await outputPromise
         expect(output).toEqual('correct answer')
+    })
+
+    it('should retry an in-progress attempt when invalidate is called', async () => {
+        let mockResolve
+        const testFactoryOne = jest.fn().mockImplementation(() => (new Promise((resolve) => {
+            mockResolve = resolve
+        })))
+        testCache.add({
+            promiseFactory: testFactoryOne,
+            requiredKeys: ['testOne', 'testTwo'],
+            transform: (output: Record<string, string>) => (output)
+        })
+        const outputPromiseOne = testCache.get('testOne')
+        const outputPromiseTwo = testCache.get('testTwo')
+        testCache.invalidate('testOne')
+        mockResolve({ testOne: 'wrong answer', testTwo: 'right answer' })
+        const outputTwo = await outputPromiseTwo
+        expect(outputTwo).toEqual('right answer')
+        mockResolve({ testOne: 'correct answer' })
+        const outputOne = await outputPromiseOne
+        expect(outputOne).toEqual('correct answer')
     })
 
     it('should execute callback when passed', async () => {
