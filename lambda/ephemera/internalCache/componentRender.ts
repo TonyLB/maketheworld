@@ -2,8 +2,8 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { AssetKey, splitType } from '@tonylb/mtw-utilities/dist/types';
 import { ComponentMeta } from './componentMeta'
 import { DeferredCache } from './deferredCache'
-import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraRoomId, EphemeraFeatureId, isEphemeraFeatureId, isEphemeraRoomId, EphemeraMapId, EphemeraMapAppearance, isEphemeraMapId, EphemeraCharacterId, EphemeraCondition, isEphemeraCharacterId } from '../cacheAsset/baseClasses'
-import { RoomDescribeData, FeatureDescribeData, TaggedMessageContent, RoomDescription, FeatureDescription } from '@tonylb/mtw-interfaces/dist/messages'
+import { EphemeraRoomAppearance, EphemeraFeatureAppearance, EphemeraRoomId, EphemeraFeatureId, isEphemeraFeatureId, isEphemeraRoomId, EphemeraMapId, EphemeraMapAppearance, isEphemeraMapId, EphemeraCharacterId, EphemeraCondition, isEphemeraCharacterId, EphemeraExit } from '../cacheAsset/baseClasses'
+import { RoomDescribeData, FeatureDescribeData, MapDescribeData } from '@tonylb/mtw-interfaces/dist/messages'
 import { tagFromEphemeraId } from './dependencyGraph';
 import internalCache from '.';
 import { componentAppearanceReduce } from '../perception/components';
@@ -24,9 +24,9 @@ export type ComponentMetaMapItem = {
     assetId: string;
     appearances: EphemeraMapAppearance[];
 }
-export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData 
+export type ComponentDescriptionItem = RoomDescribeData | FeatureDescribeData | MapDescribeData
 
-const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId) => (`${CharacterId}::${EphemeraId}`)
+const generateCacheKey = (CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId) => (`${CharacterId}::${EphemeraId}`)
 
 const filterAppearances = async <T extends { conditions: EphemeraCondition[] }>(possibleAppearances: T[]): Promise<T[]> => {
     //
@@ -98,7 +98,8 @@ export class ComponentRenderData {
 
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId): Promise<RoomDescribeData>
     async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId): Promise<FeatureDescribeData>
-    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId): Promise<RoomDescribeData | FeatureDescribeData> {
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<MapDescribeData>
+    async _getPromiseFactory(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraMapId): Promise<RoomDescribeData | FeatureDescribeData | MapDescribeData> {
         const [globalAssets, { assets: characterAssets }] = await Promise.all([
             internalCache.Global.get('assets'),
             internalCache.CharacterMeta.get(CharacterId)
@@ -132,14 +133,61 @@ export class ComponentRenderData {
                 ...renderFeature
             }
         }
+        if (isEphemeraMapId(EphemeraId)) {
+            const possibleMapAppearances = [...(globalAssets || []), ...characterAssets]
+                .map((assetId) => ((appearancesByAsset[assetId]?.appearances || []) as EphemeraMapAppearance[]))
+                .reduce<EphemeraMapAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
+            const renderMapAppearances = await filterAppearances(possibleMapAppearances)
+            const allRooms = (unique(...renderMapAppearances.map(({ rooms }) => (Object.values(rooms).map(({ EphemeraId }) => (EphemeraId))))) as string[])
+                .filter(isEphemeraRoomId)
+            const roomPositions = renderMapAppearances
+                .map(({ rooms }) => (rooms))
+                .reduce<Record<EphemeraRoomId, { x: number; y: number }>>((previous, rooms) => (
+                    Object.values(rooms).reduce((accumulator, room) => ({ ...accumulator, [room.EphemeraId]: { x: room.x, y: room.y } }), previous)
+                ), {})
+            const roomMetas = await Promise.all(allRooms.map(async (ephemeraId) => {
+                const metaByAsset = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, unique(globalAssets || [], characterAssets) as string[])
+                const possibleRoomAppearances = [...(globalAssets || []), ...characterAssets]
+                    .map((assetId) => (((metaByAsset[assetId]?.appearances || []) as EphemeraRoomAppearance[])
+                        .filter(({ name, exits }) => (name || exits.find(({ to }) => (isEphemeraRoomId(to) &&  allRooms.includes(to)))))
+                    ))
+                    .reduce<EphemeraRoomAppearance[]>((previous, appearances) => ([ ...previous, ...appearances ]), [])
+                const renderRoomMapAppearances = await filterAppearances(possibleRoomAppearances)
+                const aggregateRoomDescription = {
+                    roomId: splitType(ephemeraId)[1],
+                    name: renderRoomMapAppearances.map(({ name }) => (name)).join(''),
+                    x: roomPositions[ephemeraId].x,
+                    y: roomPositions[ephemeraId].y,
+                    exits: Object.values(renderRoomMapAppearances
+                        .map(({ exits }) => (exits.filter(({ to }) => (isEphemeraRoomId(to) && allRooms.includes(to)))))
+                        .reduce<Record<string, EphemeraExit>>((previous, exits) => (
+                            exits.reduce<Record<string, EphemeraExit>>((accumulator, exit) => ({
+                                ...accumulator,
+                                [exit.to]: exit
+                            }), previous)
+                        ), {}))
+                }
+                return aggregateRoomDescription
+            }))
+            return {
+                MapId: EphemeraId,
+                Name: renderMapAppearances.map(({ name }) => (name)).join(''),
+                fileURL: renderMapAppearances
+                    .map(({ fileURL }) => (fileURL))
+                    .filter((value) => (value))
+                    .reduce((previous, value) => (value || previous), ''),
+                rooms: roomMetas
+            }
+
+        }
         throw new Error('Illegal tag in ComponentDescription internalCache')
     }
 
-    // async get(EphemeraId: EphemeraMapId, assetId: string): Promise<ComponentMetaMapItem>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId): Promise<RoomDescribeData>
     async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId): Promise<FeatureDescribeData>
-    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId): Promise<ComponentDescriptionItem>
-    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId): Promise<ComponentDescriptionItem> {
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraMapId): Promise<MapDescribeData>
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem>
+    async get(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraFeatureId | EphemeraRoomId | EphemeraMapId): Promise<ComponentDescriptionItem> {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
         if (!this._Cache.isCached(cacheKey)) {
             //
@@ -163,6 +211,22 @@ export class ComponentRenderData {
                 })
             }
             if (isEphemeraFeatureId(EphemeraId)) {
+                this._Cache.add({
+                    promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
+                    requiredKeys: [cacheKey],
+                    transform: (fetch) => {
+                        if (typeof fetch === 'undefined') {
+                            return {}
+                        }
+                        else {
+                            return {
+                                [cacheKey]: fetch
+                            }
+                        }
+                    }
+                })
+            }
+            if (isEphemeraMapId(EphemeraId)) {
                 this._Cache.add({
                     promiseFactory: () => (this._getPromiseFactory(CharacterId, EphemeraId)),
                     requiredKeys: [cacheKey],
