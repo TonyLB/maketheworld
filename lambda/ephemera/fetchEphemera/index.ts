@@ -1,6 +1,5 @@
 import { splitType } from '@tonylb/mtw-utilities/dist/types'
 import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-import { render } from '@tonylb/mtw-utilities/dist/perception'
 import { EphemeraUpdateEntry, FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
@@ -86,20 +85,17 @@ export const fetchEphemeraForCharacter = async ({
     ))]
 
     if (allMaps.length) {
-        const renderOutput = await render({
-            renderList: allMaps.map((EphemeraId) => ({ EphemeraId, CharacterId })),
-            assetLists: {
-                global: globalAssets,
-                characters: {
-                    [CharacterId]: characterAssets
-                }
-            }
-        })
+        const renderOutput = await Promise.all(allMaps.map((mapId) => (internalCache.ComponentRender.get(`CHARACTER#${CharacterId}`, mapId))))
     
         return {
             messageType: 'Ephemera',
             RequestId,
-            updates: renderOutput
+            updates: renderOutput.map((mapDescribe) => ({
+                type: 'MapUpdate',
+                targets: [{ characterId: `CHARACTER#${CharacterId}` }],
+                ...mapDescribe,
+                MapId: splitType(mapDescribe.MapId)[1]
+            }))
         }    
     }
     return {

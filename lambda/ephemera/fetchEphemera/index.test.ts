@@ -1,7 +1,5 @@
 jest.mock('@tonylb/mtw-utilities/dist/dynamoDB')
 import { connectionDB, ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
-jest.mock('@tonylb/mtw-utilities/dist/perception')
-import { render } from '@tonylb/mtw-utilities/dist/perception'
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
@@ -13,7 +11,6 @@ import { fetchEphemeraForCharacter, fetchPlayerEphemera } from '.'
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>
 const internalCacheMock = jest.mocked(internalCache, true)
-const renderMock = render as jest.Mock
 
 describe('fetchPlayerEphemera', () => {
     beforeEach(() => {
@@ -83,7 +80,6 @@ xdescribe('fetchEphemeraForCharacter', () => {
             KeyConditionExpression: 'begins_with(EphemeraId, :map)',
             ExpressionAttributeValues: { ':map': 'MAP#' }
         })
-        expect(render).toHaveBeenCalledTimes(0)
         expect(output).toEqual({
             messageType: 'Ephemera',
             RequestId: '1234',
