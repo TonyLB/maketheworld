@@ -1,6 +1,7 @@
 import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
+import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from '../cacheAsset/baseClasses';
 import { DeferredCache } from './deferredCache'
 import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 
@@ -10,10 +11,17 @@ type AssetStateOutput<T extends AssetStateMapping> = {
     [key in keyof T]: any;
 }
 
+type StateItemId = EphemeraVariableId | EphemeraComputedId
+
 export class AssetStateData {
     _StateCache: DeferredCache<any> = new DeferredCache<any>();
     _StateOverriden: Record<string, boolean> = {}
+    _invalidateCallback: (EphemeraId: StateItemId) => void;
     
+    constructor(invalidateCallback: (EphemeraId: StateItemId) => void) {
+        this._invalidateCallback = invalidateCallback
+    }
+
     clear() {
         this._StateCache.clear()
         this._StateOverriden = {}
@@ -48,6 +56,9 @@ export class AssetStateData {
     invalidate(EphemeraId: string) {
         this._StateCache.invalidate(EphemeraId)
         delete this._StateOverriden[EphemeraId]
+        if (isEphemeraVariableId(EphemeraId) || isEphemeraComputedId(EphemeraId)) {
+            this._invalidateCallback(EphemeraId)
+        }
     }
 
     isOverridden(EphemeraId: string) {
@@ -114,6 +125,9 @@ export class EvaluateCodeData {
     //
     // TODO: ISS-1570: Invalidate EvaluatedCode when relevant AssetState entries are set or invalidated
     //
+    invalidateByAssetStateId (EphemeraId: StateItemId): void {
+
+    }
 }
 
 class AssetMap {
@@ -171,7 +185,7 @@ export const AssetState = <GBase extends ReturnType<typeof DependencyGraph>>(Bas
 
         constructor(...rest: any) {
             super()
-            this.AssetState = new AssetStateData()
+            this.AssetState = new AssetStateData((EphemeraId) => { this._invalidateAssetCallback(EphemeraId) })
             this.EvaluateCode = new EvaluateCodeData(this.AssetState)
             this.AssetMap = new AssetMap(this.Ancestry)
         }
@@ -185,6 +199,10 @@ export const AssetState = <GBase extends ReturnType<typeof DependencyGraph>>(Bas
                 this.AssetState.flush(),
                 super.flush()
             ])
+        }
+
+        _invalidateAssetCallback(EphemeraId: StateItemId): void {
+
         }
     }
 }
