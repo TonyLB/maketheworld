@@ -1,12 +1,45 @@
 export class Deferred <T>{
+    invalidationCounter: number = 0
     promise: Promise<T>;
-    resolve: (value: T) => void = () => {}
-    reject: (err: Error) => void = () => {}
+    _resolve: (value: T) => void = () => {}
+    _reject: (err: Error) => void = () => {}
+    isFulfilled: boolean = false
+    isRejected: boolean = false
     constructor() {
         this.promise = new Promise((resolve, reject)=> {
-            this.reject = reject
-            this.resolve = resolve
+            this._reject = reject
+            this._resolve = resolve
         })
+    }
+
+    invalidate() {
+        this.invalidationCounter += 1
+        if (this.isFulfilled || this.isRejected) {
+            this.promise = new Promise((resolve, reject)=> {
+                this._reject = reject
+                this._resolve = resolve
+            })
+            this.isFulfilled = false
+            this.isRejected = false
+        }
+    }
+
+    resolve (invalidationCounter: number, value: T): boolean {
+        if (invalidationCounter < this.invalidationCounter) {
+            return false
+        }
+        this._resolve(value)
+        this.isFulfilled = true
+        return true
+    }
+
+    reject (invalidationCounter: number, err: Error): boolean {
+        if (invalidationCounter >= this.invalidationCounter) {
+            this._reject(err)
+            this.isRejected = true
+            return true
+        }
+        return false
     }
 }
 
@@ -51,29 +84,54 @@ export class DeferredCache <T>{
         })
         if (fetchNeeded.length) {
             let cache = this._cache
-            this._promises.push(promiseFactory(fetchNeeded)
-                .then((output) => (transform(output)))
-                .then((output) => {
-                    Object.entries(output).forEach(([key, value]) => {
-                        this.set(key, value)
-                    })
-                    const failedKeys = fetchNeeded.filter((key) => (!(Object.keys(output).includes(key))))
-                    if (failedKeys.length) {
-                        const defaultFunc = this._default
-                        if (!(typeof defaultFunc === 'undefined')) {
-                            failedKeys.forEach((key) => {
-                                this.set(key, defaultFunc(key))
+            //
+            // Record current invalidationCounter (if any) in each target Deferred, and pass that to the
+            // resolve call later.  If you get an invalid resolve, repeat up to ten times to try to
+            // recover from invalidation
+            //
+            this._promises.push((async () => {
+                let keysRemaining = fetchNeeded
+                let repeatCount = 0
+                while(keysRemaining.length && repeatCount < 10) {
+                    let invalidatedKeys: string[] = []
+                    let invalidationCounters = Object.assign({}, ...keysRemaining.map((key) => ({
+                        [key]: key in this._cache ? this._cache[key].invalidationCounter : 0
+                    })))
+                    await promiseFactory(keysRemaining)
+                        .then((output) => (transform(output)))
+                        .then((output) => {
+                            Object.entries(output).forEach(([key, value]) => {
+                                if (!this.set(invalidationCounters[key] || 0, key, value) && (keysRemaining.includes(key))) {
+                                    invalidatedKeys.push(key)
+                                }
                             })
-                        }
-                        else {
-                            console.log(`FAILED KEYS: ${JSON.stringify(failedKeys, null, 4)}`)
-                            failedKeys.forEach((key) => {
-                                cache[key].reject(new DeferredCacheException(`Required key "${key}" not returned by promise`))
-                            })
-                        }
-                    }
+                            const failedKeys = keysRemaining.filter((key) => (!(Object.keys(output).includes(key))))
+                            if (failedKeys.length) {
+                                const defaultFunc = this._default
+                                if (!(typeof defaultFunc === 'undefined')) {
+                                    failedKeys.forEach((key) => {
+                                        if (!this.set(invalidationCounters[key], key, defaultFunc(key))) {
+                                            invalidatedKeys.push[key]
+                                        }
+                                    })
+                                }
+                                else {
+                                    console.log(`FAILED KEYS: ${JSON.stringify(failedKeys, null, 4)}`)
+                                    failedKeys.forEach((key) => {
+                                        if (!cache[key].reject(invalidationCounters[key], new DeferredCacheException(`Required key "${key}" not returned by promise`))) {
+                                            invalidatedKeys.push[key]
+                                        }
+                                    })
+                                }
+                            }
+                        })
+                    keysRemaining = [...invalidatedKeys]
+                    repeatCount++
+                }
+                keysRemaining.forEach((key) => {
+                    cache[key].reject(Infinity, new DeferredCacheException(`Required key "${key}" failed invalidation retry ten times`))
                 })
-            )
+            })())
         }
     }
 
@@ -89,17 +147,24 @@ export class DeferredCache <T>{
     }
 
     invalidate(key: string) {
-        delete this._cache[key]
+        if (key in this._cache) {
+            if (this._cache[key].isFulfilled || this._cache[key].isRejected) {
+                delete this._cache[key]
+            }
+            else {
+                this._cache[key].invalidate()
+            }
+        }
     }
 
-    set(key: string, value: T) {
+    set(invalidationCounter: number, key: string, value: T): boolean {
         if (!(key in this._cache)) {
             this._cache[key] = new Deferred<T>()
         }
         if (this._callback) {
             this._callback(key, value)
         }
-        this._cache[key].resolve(value)
+        return this._cache[key].resolve(invalidationCounter, value)
     }
 
     isCached(key: string): boolean {

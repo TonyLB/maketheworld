@@ -41,7 +41,7 @@ export class AssetStateData {
     }
 
     set(EphemeraId: string, value: any) {
-        this._StateCache.set(EphemeraId, value)
+        this._StateCache.set(Infinity, EphemeraId, value)
         this._StateOverriden[EphemeraId] = true
     }
 

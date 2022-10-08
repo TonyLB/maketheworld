@@ -253,13 +253,13 @@ export class ComponentRenderData {
             delete this._Store[cacheKey]
         }
         if (cacheKey in this._Cache) {
-            delete this._Cache[cacheKey]
+            this._Cache[cacheKey].invalidate()
         }
     }
 
     set(CharacterId: EphemeraCharacterId, EphemeraId: EphemeraRoomId | EphemeraFeatureId, value: ComponentDescriptionItem) {
         const cacheKey = generateCacheKey(CharacterId, EphemeraId)
-        this._Cache.set(cacheKey, value)
+        this._Cache.set(Infinity, cacheKey, value)
         this._Store[cacheKey] = value
     }
 }
