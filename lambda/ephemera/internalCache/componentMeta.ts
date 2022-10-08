@@ -295,4 +295,4 @@ export const ComponentMeta = <GBase extends CacheConstructor>(Base: GBase) => {
     }
 }
 
-export default ComponentMetaItem
+export default ComponentMeta
