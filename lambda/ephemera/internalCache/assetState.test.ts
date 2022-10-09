@@ -147,6 +147,24 @@ describe('EvaluateCode', () => {
         expect(internalCache.AssetState.get).toHaveBeenCalledWith(testMapping)
     })
 
+    it('should invalidate correctly by ephemeraId', async () => {
+        const testMapping: AssetStateMapping = { 
+            a: 'VARIABLE#testOne',
+            b: 'VARIABLE#testTwo'
+        }
+        assetCacheMock
+            .mockResolvedValueOnce({ a: 1, b: 2 })
+            .mockResolvedValueOnce({ a: 1, b: 4 })
+        const outputOne = await internalCache.EvaluateCode.get({ mapping: testMapping, source: 'a+b'})
+        expect(outputOne).toBe(3)
+        expect(assetCacheMock).toHaveBeenCalledTimes(1)
+        expect(assetCacheMock).toHaveBeenCalledWith(testMapping)
+        internalCache.AssetState.invalidate('VARIABLE#testTwo')
+        const outputTwo = await internalCache.EvaluateCode.get({ mapping: testMapping, source: 'a+b'})
+        expect(outputTwo).toBe(5)
+        expect(assetCacheMock).toHaveBeenCalledTimes(2)
+    })
+
 })
 
 describe('AssetMap', () => {

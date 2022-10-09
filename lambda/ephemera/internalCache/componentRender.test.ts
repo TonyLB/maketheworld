@@ -72,7 +72,6 @@ describe('ComponentRender cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-        await internalCache.flush()
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base', 'Personal'])
         expect(output).toEqual({
             RoomId: 'ROOM#TestOne',
@@ -254,4 +253,74 @@ describe('ComponentRender cache handler', () => {
         })
     })
 
+    it('should correctly invalidate evaluations on asset state change', async () => {
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'VORTEX',
+            HomeId: 'VORTEX',
+            Pronouns: { subject: 'she', object: 'her', possessive: 'her', adjective: 'hers', reflexive: 'herself' }
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+            Base: {
+                EphemeraId: 'ROOM#TestOne',
+                assetId: 'Base',
+                appearances: [
+                    {
+                        conditions: [],
+                        name: 'TestRoom',
+                        render: [{ tag: 'String', value: 'First' }],
+                        exits: []
+                    },
+                    {
+                        conditions: [{ if: 'testTwo', dependencies: [{ key: 'testTwo', EphemeraId: 'VARIABLE#testVariable' }] }],
+                        name: '',
+                        render: [{ tag: 'String', value: 'Second' }],
+                        exits: []
+                    }
+                ]
+            }
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
+            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', ConnectionIds: [] }
+        ])
+        jest.spyOn(internalCache.EvaluateCode, "get")
+            .mockResolvedValueOnce(false)
+            .mockResolvedValueOnce(true)
+            .mockResolvedValueOnce(false)
+        const outputOne = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('ROOM#TestOne', ['Base'])
+        expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(1)
+        expect(outputOne).toEqual({
+            RoomId: 'ROOM#TestOne',
+            Name: 'TestRoom',
+            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'First' }],
+            Exits: []
+        })
+
+        internalCache.AssetState.invalidate('VARIABLE#testVariable')
+        const outputTwo = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
+        expect(outputTwo).toEqual({
+            RoomId: 'ROOM#TestOne',
+            Name: 'TestRoom',
+            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            Exits: []
+        })
+
+        internalCache.AssetState.invalidate('VARIABLE#otherVariable')
+        const outputThree = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.EvaluateCode.get).toHaveBeenCalledTimes(2)
+        expect(outputThree).toEqual({
+            RoomId: 'ROOM#TestOne',
+            Name: 'TestRoom',
+            Characters: [{ CharacterId: 'TESS', Name: 'Tess', Color: 'purple' }],
+            Description: [{ tag: 'String', value: 'FirstSecond' }],
+            Exits: []
+        })
+    })
 })

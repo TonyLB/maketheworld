@@ -14,8 +14,8 @@ describe('DeferredCache', () => {
     })
 
     it('should send async only where no previous attempt is running', async () => {
-        testCache._cache['testOne'] = new Deferred()
-        testCache._cache['testOne'].resolve(0, '1')
+        testCache._cache.push(['testOne', new Deferred()])
+        testCache._find('testOne')?.resolve(0, '1')
         const testFactory = jest.fn().mockResolvedValue({
             testTwo: '2',
             testThree: '3'

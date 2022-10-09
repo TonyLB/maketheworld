@@ -4,7 +4,7 @@ import { ComponentRenderItem, NormalCharacterPronouns } from "@tonylb/mtw-wml/di
 
 type EphemeraWrappedId<T extends string> = `${T}#${string}`
 
-type EphemeraItemDependency = {
+export type EphemeraItemDependency = {
     key: string;
     EphemeraId: string;
 }
