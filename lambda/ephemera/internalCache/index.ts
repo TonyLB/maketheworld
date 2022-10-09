@@ -14,7 +14,7 @@ import { EphemeraCharacterId } from '../cacheAsset/baseClasses';
 
 type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
 
-type MapSubscriptionConnection = {
+export type MapSubscriptionConnection = {
     connectionId: string;
     characterIds: EphemeraCharacterId[]
 }
