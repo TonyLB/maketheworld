@@ -10,17 +10,26 @@ import AssetState from './assetState';
 import DependencyGraph from './dependencyGraph';
 import ComponentMeta from './componentMeta';
 import ComponentRender from './componentRender';
+import { EphemeraCharacterId } from '../cacheAsset/baseClasses';
 
-type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections'
+type CacheGlobalKeys = 'ConnectionId' | 'RequestId' | 'player' | 'assets' | 'connections' | 'mapSubscriptions'
+
+type MapSubscriptionConnection = {
+    connectionId: string;
+    characterIds: EphemeraCharacterId[]
+}
+
 class CacheGlobalData {
     ConnectionId?: string;
     RequestId?: string;
     player?: string;
     assets?: string[];
     connections?: string[];
+    mapSubscriptions?: MapSubscriptionConnection[];
     get(key: 'ConnectionId' | 'RequestId' | 'player'): Promise<string | undefined>
     get(key: 'assets' | 'connections'): Promise<string[] | undefined>
-    get(key: CacheGlobalKeys): Promise<string | string[] | undefined>
+    get(key: 'mapSubscriptions'): Promise<MapSubscriptionConnection[] | undefined>
+    get(key: CacheGlobalKeys): Promise<string | string[] | MapSubscriptionConnection[] | undefined>
     async get(key: CacheGlobalKeys) {
         switch(key) {
             case 'player':
@@ -69,6 +78,15 @@ class CacheGlobalData {
                     this.connections = Object.keys(connections)
                 }
                 return this.connections
+            case 'mapSubscriptions':
+                if (typeof this.mapSubscriptions === 'undefined') {
+                    const { connections = [] } = (await connectionDB.getItem<{ connections: MapSubscriptionConnection[] }>({
+                        ConnectionId: 'Map',
+                        DataCategory: 'Subscriptions',
+                        ProjectionFields: ['connections']
+                    })) || {}
+                    this.mapSubscriptions = connections
+                }
             default:
                 return this[key]
         }
