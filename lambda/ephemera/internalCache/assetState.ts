@@ -107,14 +107,11 @@ export class EvaluateCodeData {
             promiseFactory: async (addresses: EvaluateCodeAddress[]): Promise<any> => {
                 return Promise.all(addresses.map(async (address) => {
                     const { mapping, source } = address
-                    console.log(`Address: ${JSON.stringify(address, null, 4)}`)
                     if (Object.keys(address.mapping).length) {
-                        console.log(`Awaiting asset values`)
                         const sandbox = await this._AssetState.get(mapping)
                         return { address, value: evaluateCode(`return (${source})`)({ ...sandbox }) }
                     }
                     else {
-                        console.log(`Returning value`)
                         return { address, value: evaluateCode(`return (${source})`)({}) }
                     }    
                 }))
@@ -129,7 +126,10 @@ export class EvaluateCodeData {
     // TODO: ISS-1570: Invalidate EvaluatedCode when relevant AssetState entries are set or invalidated
     //
     invalidateByAssetStateId (EphemeraId: StateItemId): void {
-
+        const addressesToInvalidate = this._Cache._cache
+            .map(([address]) => (address))
+            .filter(({ mapping }) => (Object.values(mapping).includes(EphemeraId)))
+        addressesToInvalidate.forEach((address) => (this._Cache.invalidate(address)))
     }
 }
 
@@ -219,7 +219,7 @@ export const AssetState = <GBase extends ReturnType<typeof DependencyGraph>>(Bas
         }
 
         _invalidateAssetCallback(EphemeraId: StateItemId): void {
-
+            this.EvaluateCode.invalidateByAssetStateId(EphemeraId)
         }
     }
 }
