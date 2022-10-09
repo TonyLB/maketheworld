@@ -5,7 +5,7 @@ import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemer
 import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 
-type StateItemId = EphemeraVariableId | EphemeraComputedId
+export type StateItemId = EphemeraVariableId | EphemeraComputedId
 
 export type AssetStateMapping = Record<string, StateItemId>
 
