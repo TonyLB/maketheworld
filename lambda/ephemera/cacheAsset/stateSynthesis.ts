@@ -352,8 +352,8 @@ export class StateSynthesizer extends Object {
                 const parentTag = this.normalForm[key]?.tag
                 const childTag = this.normalForm[childKey]?.tag
                 if (
-                    (parentTag === 'Variable' || parentTag === 'Computed' || parentTag === 'Room') &&
-                    (childTag === 'Variable' || childTag === 'Computed' || childTag === 'Room')
+                    (parentTag === 'Variable' || parentTag === 'Computed' || parentTag === 'Room' || parentTag === 'Map') &&
+                    (childTag === 'Variable' || childTag === 'Computed' || childTag === 'Room' || childTag === 'Map')
                 ) {
                     this.messageBus.send({
                         type: 'DescentUpdate',
@@ -395,6 +395,15 @@ export class StateSynthesizer extends Object {
                                 ...dependencies
                             ]), previous)
                     ), [] as string[])
+                ) as string[]
+            }))
+            .forEach(sendMessages)
+        Object.values(this.normalForm)
+            .filter(isNormalMap)
+            .map(({ key, appearances }) => ({
+                key,
+                dependencies: unique(appearances
+                    .reduce<string[]>((previous, { rooms }) => ([ ...previous, ...Object.keys(rooms)]), [])
                 ) as string[]
             }))
             .forEach(sendMessages)

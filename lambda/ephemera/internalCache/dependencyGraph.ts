@@ -107,9 +107,10 @@ export const reduceDependencyGraph = (state: Record<string, DependencyNode>, act
                     state[EphemeraId].connections[index] = {
                         ...state[EphemeraId].connections[index],
                         assets: unique(
-                        connection.assets,
-                        putItem.assets
-                    ) as string[]}
+                            connection.assets,
+                            putItem.assets
+                        ) as string[]
+                    }
                     found = true
                 }
             })
