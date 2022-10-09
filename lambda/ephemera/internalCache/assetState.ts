@@ -2,7 +2,7 @@ import evaluateCode from '@tonylb/mtw-utilities/dist/computation/sandbox';
 import { ephemeraDB } from '@tonylb/mtw-utilities/dist/dynamoDB'
 import { deepEqual } from '@tonylb/mtw-utilities/dist/objects';
 import { EphemeraComputedId, EphemeraVariableId, isEphemeraComputedId, isEphemeraVariableId } from '../cacheAsset/baseClasses';
-import { DeferredCache } from './deferredCache'
+import { DeferredCache, DeferredCacheGeneral } from './deferredCache'
 import DependencyGraph, { DependencyGraphData, tagFromEphemeraId } from './dependencyGraph';
 
 type StateItemId = EphemeraVariableId | EphemeraComputedId
@@ -69,55 +69,60 @@ type EvaluateCodeAddress = {
     source: string;
 }
 
-type EvaluateCodePromiseDistinguisher = {
-    mapping: AssetStateMapping;
-    promise: Promise<any>;
-}
+const compareCodeAddresses = (keyA: EvaluateCodeAddress, keyB: EvaluateCodeAddress) => (deepEqual(keyA, keyB))
 
+//
+// TODO: Refactor EvaluateCodeData using DeferredGeneralCache<EvaluateCodeAddress, any>
+//
 export class EvaluateCodeData {
     _AssetState: AssetStateData;
-    _EvaluatePromiseBySource: Record<string, EvaluateCodePromiseDistinguisher[]> = {}
+    _Cache: DeferredCacheGeneral<EvaluateCodeAddress, any> = new DeferredCacheGeneral({
+        comparison: compareCodeAddresses
+    })
 
     constructor(AssetState: AssetStateData) {
         this._AssetState = AssetState
     }
     clear() {
-        this._EvaluatePromiseBySource = {}
+        this._Cache.clear()
     }
 
     _findPromise({ source, mapping }: EvaluateCodeAddress): Promise<any> | undefined {
-        if (!(source in this._EvaluatePromiseBySource)) {
+        if (!(source in this._Cache)) {
             return undefined
         }
-        const searchPromises = this._EvaluatePromiseBySource[source].find(({ mapping: searchMapping }) => (deepEqual(mapping, searchMapping)))
+        const searchPromises = this._Cache[source].find(({ mapping: searchMapping }) => (deepEqual(mapping, searchMapping)))
         return searchPromises?.promise
     }
 
     _cachePromise({ source, mapping }: EvaluateCodeAddress, promise: Promise<any>): void {
-        this._EvaluatePromiseBySource[source] = [
-            ...(this._EvaluatePromiseBySource[source] || []),
+        this._Cache[source] = [
+            ...(this._Cache[source] || []),
             { mapping, promise }
         ]
     }
     
-    async get({ source, mapping }: EvaluateCodeAddress): Promise<any> {
-        const cachedEvaluation = this._findPromise({ source, mapping })
-        if (!cachedEvaluation) {
-            const promiseToCache = (async () => {
-                if (Object.keys(mapping).length) {
-                    const sandbox = await this._AssetState.get(mapping)
-                    return evaluateCode(`return (${source})`)({ ...sandbox })
-                }
-                else {
-                    return evaluateCode(`return (${source})`)({})
-                }
-            })()
-            this._cachePromise({ source, mapping }, promiseToCache)
-            return promiseToCache
-        }
-        else {
-            return cachedEvaluation
-        }
+    async get(address: EvaluateCodeAddress): Promise<any> {
+        this._Cache.generalAdd({
+            promiseFactory: async (addresses: EvaluateCodeAddress[]): Promise<any> => {
+                return Promise.all(addresses.map(async (address) => {
+                    const { mapping, source } = address
+                    console.log(`Address: ${JSON.stringify(address, null, 4)}`)
+                    if (Object.keys(address.mapping).length) {
+                        console.log(`Awaiting asset values`)
+                        const sandbox = await this._AssetState.get(mapping)
+                        return { address, value: evaluateCode(`return (${source})`)({ ...sandbox }) }
+                    }
+                    else {
+                        console.log(`Returning value`)
+                        return { address, value: evaluateCode(`return (${source})`)({}) }
+                    }    
+                }))
+            },
+            requiredKeys: [address],
+            transform: (pairs) => (pairs.map(({ address, value }) => ([ address, value ])))
+        })
+        return await this._Cache.get(address)
     }
 
     //
